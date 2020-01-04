@@ -1,1 +1,24 @@
+$ cat .gitignore
+
+# File Types
+*.asv
+*.mat
+*.pyc
+*.py~
+*.swp
 *.tws
+*~
+
+# Directories
+**/__pycache__/
+**/_build/
+**/build/
+**/dist/
+**/mhkit.egg-info/
+**/.ipynb_checkpoints
+**/tests/*.png
+
+.coverage
+
+# Exemptions
+!wecsim_output.mat

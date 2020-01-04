@@ -1,0 +1,6 @@
+pandas
+numpy
+scipy
+matplotlib
+requests
+pecos
