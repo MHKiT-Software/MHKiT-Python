@@ -6,7 +6,7 @@ import re
 DISTNAME = 'mhkit'
 PACKAGES = ['mhkit']
 EXTENSIONS = []
-DESCRIPTION = 'Marine Hydrokinetic Toolkit'
+DESCRIPTION = 'Marine and Hydrokinetic Toolkit'
 AUTHOR = 'MHKiT developers'
 MAINTAINER_EMAIL = ''
 LICENSE = 'Revised BSD'
@@ -17,7 +17,7 @@ CLASSIFIERS=['Development Status :: 0 - Alpha',
              'Intended Audience :: Science/Research',
              'Operating System :: OS Independent',
             ],
-DEPENDENCIES = ['numpy', 'pandas', 'scipy', 'matplotlib', 'requests']
+DEPENDENCIES = ['numpy', 'pandas', 'scipy', 'matplotlib', 'requests', 'pecos']
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))
