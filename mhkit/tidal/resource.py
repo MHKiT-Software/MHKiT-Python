@@ -88,8 +88,6 @@ def principal_flow_direction(directions, width_dir):
     flood: float
         Principal flood direction in degrees
     '''
-    if isinstance(directions, np.ndarray) == 1: #for Matalb
-        directions = pd.Series(directions)
     # Number of directional bins 
     N_dir=int(360/width_dir)
     # Compute directional histogram
