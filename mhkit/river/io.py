@@ -24,8 +24,7 @@ def _read_usgs_json(text):
 
 def read_usgs_file(file_name):
     """
-    Reads a USGS JSON data file (from https://waterdata.usgs.gov/nwis) 
-    into a pandas DataFrame
+    Reads a USGS JSON data file (from https://waterdata.usgs.gov/nwis)
 
     Parameters
     ----------
@@ -50,7 +49,7 @@ def request_usgs_data(station, parameter, start_date, end_date,
                       data_type='Daily', proxy=None, write_json=None):
     """
     Loads USGS data directly from https://waterdata.usgs.gov/nwis using a 
-    GET request into a pandas DataFrame
+    GET request
     
     The request URL prints to the screen.
 

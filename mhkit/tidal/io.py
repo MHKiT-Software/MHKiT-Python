@@ -10,7 +10,9 @@ def request_noaa_data(station, parameter, start_date, end_date,
                       proxy=None, write_json=None):
     """
     Loads NOAA current data directly from https://tidesandcurrents.noaa.gov/api/ using a 
-    GET request into a pandas DataFrame. NOAA sets max of 31 days between start and end date.
+    GET request. 
+    
+    NOAA sets max of 31 days between start and end date.
     See https://co-ops.nos.noaa.gov/api/ for options. All times are reported as GMT and metric
     units are returned for data.
     

@@ -5,8 +5,7 @@ import scipy.io as sio
 
 def read_NDBC_file(file_name, missing_values=['MM',9999,999,99]):
     """
-    Reads a NDBC wave buoy data file (from https://www.ndbc.noaa.gov) into a
-    DataFrame.
+    Reads a NDBC wave buoy data file (from https://www.ndbc.noaa.gov).
     
     Realtime and historical data files can be loaded with this function.  
     
