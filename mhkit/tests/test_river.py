@@ -1,7 +1,9 @@
 import unittest
-from os.path import abspath, dirname, join
+from os.path import abspath, dirname, join, isfile
+import os
 import numpy as np
 import pandas as pd
+import matplotlib.pylab as plt
 import mhkit.river as river
 
 testdir = dirname(abspath(__file__))
@@ -79,6 +81,42 @@ class TestResource(unittest.TestCase):
         self.results['P'] = river.resource.velocity_to_power(self.results['V'], p2,cut_in, cut_out)
         self.assertAlmostEqual((self.results['P'] - self.results['P_control']).sum(), 0.00, places=2 )
 
+    def test_plot_flow_duration_curve(self):
+        filename = abspath(join(testdir, 'river_plot_flow_duration_curve.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        plt.figure()
+        river.graphics.plot_flow_duration_curve(self.data['Q'], self.results['f'])
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))
+        
+    def test_plot_power_duration_curve(self):
+        filename = abspath(join(testdir, 'river_plot_power_duration_curve.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        plt.figure()
+        river.graphics.plot_flow_duration_curve(self.results['P_control'], self.results['f'])
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))
+        
+    def test_plot_velocity_duration_curve(self):
+        filename = abspath(join(testdir, 'river_plot_velocity_duration_curve.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        plt.figure()
+        river.graphics.plot_velocity_duration_curve(self.results['V'], self.results['f'])
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))
+        
 
 class TestIO(unittest.TestCase):
 
