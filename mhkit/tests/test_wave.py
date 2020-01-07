@@ -306,7 +306,7 @@ class TestPerformance(unittest.TestCase):
         
         P = wave.performance.dc_power(current, voltage)
     
-        self.assertEqual(P.sum()[0], 584)
+        self.assertEqual(P.sum()['Gross'], 584)
         
     def test_plot_matrix(self):
         filename = abspath(join(testdir, 'wave_plot_matrix.png'))

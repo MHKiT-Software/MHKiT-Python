@@ -295,7 +295,7 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
         
     P = power.sum(axis=1)*power_factor
     P = P.to_frame('Power')
-
+    
     return P
 
 def dc_power(voltage, current):
@@ -313,17 +313,18 @@ def dc_power(voltage, current):
     --------
     P: pandas DataFrame
         DC power [W] from each channel and gross power indexed by time
-        """
+    """
     assert isinstance(voltage, (pd.Series, pd.DataFrame)), 'voltage must be of type pd.Series or pd.DataFrame'
     assert isinstance(current, (pd.Series, pd.DataFrame)), 'current must be of type pd.Series or pd.DataFrame'
     
     # rename columns in current the calculation
     col_map = dict(zip(current.columns, voltage.columns))
     
-    power = current.rename(columns=col_map)*voltage
+    P = current.rename(columns=col_map)*voltage
+    coln = list(range(1,len(P.columns)+1))
+    P.columns = coln
     
-    P = power.sum(axis=1, skipna=True) 
-    P = P.to_frame('Gross')
-
+    P['Gross'] = P.sum(axis=1, skipna=True) 
+    
     return P
 
