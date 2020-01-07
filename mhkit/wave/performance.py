@@ -313,7 +313,7 @@ def dc_power(voltage, current):
     --------
     P: pandas DataFrame
         DC power [W] from each channel and gross power indexed by time
-        """
+    """
     assert isinstance(voltage, (pd.Series, pd.DataFrame)), 'voltage must be of type pd.Series or pd.DataFrame'
     assert isinstance(current, (pd.Series, pd.DataFrame)), 'current must be of type pd.Series or pd.DataFrame'
     
