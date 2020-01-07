@@ -81,14 +81,14 @@ class TestResource(unittest.TestCase):
 
     def test_principal_directions(self):    
         width_direction=10
-        direction1, direction2 = tidal.resource.principal_flow_direction(self.data.d, width_direction)
+        direction1, direction2 = tidal.resource.principal_flow_directions(self.data.d, width_direction)
 
         self.assertEqual(direction1,172.0) 
         self.assertEqual(round(direction2,1),round(352.3,1))                                                                                   
 
 
 
-        import ipdb;ipdb.set_trace()
+        #import ipdb;ipdb.set_trace()
 
 
 if __name__ == '__main__':

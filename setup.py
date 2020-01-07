@@ -4,7 +4,7 @@ import os
 import re
 
 DISTNAME = 'mhkit'
-PACKAGES = ['mhkit']
+PACKAGES = find_packages()
 EXTENSIONS = []
 DESCRIPTION = 'Marine and Hydrokinetic Toolkit'
 AUTHOR = 'MHKiT developers'
