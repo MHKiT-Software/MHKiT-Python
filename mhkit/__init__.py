@@ -1,5 +1,6 @@
 from mhkit import wave
 from mhkit import river
+from mhkit import tidal
 from mhkit import qc
 from mhkit import utils
 

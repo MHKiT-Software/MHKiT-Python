@@ -10,9 +10,7 @@ def request_noaa_data(station, parameter, start_date, end_date,
                       proxy=None, write_json=None):
     """
     Loads NOAA current data directly from https://tidesandcurrents.noaa.gov/api/ using a 
-    GET request. 
-    
-    NOAA sets max of 31 days between start and end date.
+    get request into a pandas DataFrame. NOAA sets max of 31 days between start and end date.
     See https://co-ops.nos.noaa.gov/api/ for options. All times are reported as GMT and metric
     units are returned for data.
     
@@ -40,18 +38,6 @@ def request_noaa_data(station, parameter, start_date, end_date,
         Data indexed by datetime with columns named according to the parameter's 
         variable description
 
-    Examples
-    --------
-    # 10 years of daily discharge values at Tenana River near Nenana
-    data = request_usgs_data(station="15515500", parameter='00065',
-                                            start_date='2009-08-01', 
-                                            end_date='2019-08-01',
-                                            data_type='Instantaneous')
-    
-    # 10 years of instaneous gage height measurements
-    data = request_usgs_data(station="15515500", parameter='00065',
-                                            start_date='2009-08-01', 
-                                            end_date='2019-08-01',
     """
     # Parse start and end dates
     year0, month0, day0 = int(start_date[0:4]), int(start_date[4:6]), int(start_date[6:8])

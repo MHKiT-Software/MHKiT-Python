@@ -70,7 +70,7 @@ def _normalize_angle(degree):
     return new_degree
 
 
-def principal_flow_direction(directions, width_dir):
+def principal_flow_directions(directions, width_dir):
     '''
     The weighted average (over the working velocity range of the TEC) 
     should be considered to be the principal direction of the current, 
@@ -79,7 +79,10 @@ def principal_flow_direction(directions, width_dir):
 
     Parameters
     ----------
-
+    directions: array like
+        Directions in degrees with 0 degrees specified as true north
+    width_dir: float 
+        Width of directional bins for histogram in degrees
 
     Returns
     -------
@@ -88,8 +91,6 @@ def principal_flow_direction(directions, width_dir):
     flood: float
         Principal flood direction in degrees
     '''
-    if isinstance(directions, np.ndarray) == 1: #for Matalb
-        directions = pd.Series(directions)
     # Number of directional bins 
     N_dir=int(360/width_dir)
     # Compute directional histogram
