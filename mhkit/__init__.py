@@ -4,7 +4,7 @@ from mhkit import tidal
 from mhkit import qc
 from mhkit import utils
 
-__version__ = '0.1.0'
+__version__ = 'v0.1.0'
 
 __copyright__ = """
 Copyright 2019-2020 Alliance for Sustainable Energy, LLC under the terms of 
