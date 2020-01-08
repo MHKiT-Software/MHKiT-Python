@@ -78,7 +78,7 @@ def plot_rose(directions, velocities, width_dir, width_vel, metadata=None,
               flood=None, ebb=None):
     """
     Creates a polar histogram. Direction angles from binned histogram must 
-        be specified such that 0  degrees is north.
+    be specified such that 0  degrees is north.
 
     Parameters
     ----------
@@ -140,7 +140,7 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
                                         flood=None, ebb=None):
     """
     Creates a polar histogram. Direction angles from binned histogram must 
-        be specified such that 0 is north.
+    be specified such that 0 is north.
 
     Parameters
     ----------
@@ -162,7 +162,7 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
     Returns
     -------
     ax: figure
-        Water current rose plot
+       Joint probability distribution  
     """
     # Calculate the 2D histogram
     H, dir_edges, vel_edges = _histogram(directions, velocities, width_dir, width_vel)
