@@ -42,7 +42,7 @@ def plot_spectrum(S, ax=None):
 
 def plot_elevation_timeseries(eta, ax=None):
     """
-    Plot wave surface elevation time series
+    Plot wave surface elevation time-series
     
     Parameters
     ------------

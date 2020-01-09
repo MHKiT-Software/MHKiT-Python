@@ -149,7 +149,7 @@ def plot_power_duration_curve(P, F, label=None, ax=None):
     
 def plot_discharge_timeseries(Q, label=None, ax=None):
     """
-    Plots discharge timeseries
+    Plots discharge time-series
     
     Parameters
     ------------

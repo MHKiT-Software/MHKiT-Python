@@ -8,7 +8,7 @@ from itertools import product as _product
 ### Spectrum
 def elevation_spectrum(eta, sample_rate, nnft, window='hamming', detrend=True):
     """
-    Calculates the wave energy spectrum from wave elevation time series
+    Calculates the wave energy spectrum from wave elevation time-series
     
     Parameters
     ------------
@@ -185,14 +185,14 @@ def jonswap_spectrum(f, Tp, Hs, gamma=3.3):
 ### Metrics
 def surface_elevation(S, time_index, seed=123):
     """
-    Calculates wave elevation time series from spectrum using a random phase
+    Calculates wave elevation time-series from spectrum using a random phase
     
     Parameters
     ------------    
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     time_index: numpy array
-        Time used to create the wave elevation time series [s],
+        Time used to create the wave elevation time-series [s],
         for example, time = np.arange(0,100,0.01)
     seed: int (optional)
         Random seed

@@ -204,13 +204,13 @@ def plot_current_timeseries(directions, speeds, principal_direction,
     Parameters
     ----------
     direction: array like
-        time-series of directions [degrees]
+        Time-series of directions [degrees]
     speed: array like
-        time-series of speeds [m/s]
+        Time-series of speeds [m/s]
     principal_direction: float
         Direction to compute the velocity in [degrees]
     label: string
-       Label to use in the legend
+        Label to use in the legend
     ax : matplotlib axes object
         Axes for plotting.  If None, then a new figure with a single 
         axes is used.  
@@ -218,7 +218,7 @@ def plot_current_timeseries(directions, speeds, principal_direction,
     Returns
     -------
     ax: figure
-        timeseries plot of current-speed velocity
+        Time-series plot of current-speed velocity
     '''
     # Rotate coordinate system by supplied principal_direction
     principal_directions = directions - principal_direction
