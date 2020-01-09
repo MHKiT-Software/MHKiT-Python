@@ -77,21 +77,6 @@ def request_usgs_data(station, parameter, start_date, end_date,
     data : pandas DataFrame 
         Data indexed by datetime with columns named according to the parameter's 
         variable description
-
-    Examples
-    --------
-    # 10 years of daily discharge values at Tenana River near Nenana
-    data = request_usgs_data(station="15515500", parameter='00065',
-                                            start_date='2009-08-01', 
-                                            end_date='2019-08-01',
-                                            data_type='Instantaneous')
-    
-    # 10 years of instaneous gage height measurements
-    data = request_usgs_data(station="15515500", parameter='00065',
-                                            start_date='2009-08-01', 
-                                            end_date='2019-08-01',
-                                            data_type='Instantaneous')
-
     """
     assert data_type in ['Daily', 'Instantaneous'], 'data_type must be Daily or Instantaneous'
     
@@ -120,10 +105,10 @@ def request_usgs_data(station, parameter, start_date, end_date,
     
     return data 
 
-
+"""
 def _load_usgs_data_using_climata(station, parameter, start_date, end_date, 
                            data_type='Daily'):
-    """
+    '''
     Loads data directly from https://waterdata.usgs.gov/nwis using the 
     Python package 'climata'
 
@@ -166,7 +151,7 @@ def _load_usgs_data_using_climata(station, parameter, start_date, end_date,
                                                end_date='2019-08-01',
                                                data_type='Instantaneous')
 
-    """
+    '''
     from climata.usgs import DailyValueIO, InstantValueIO
     
     if data_type == 'Daily':
@@ -201,3 +186,4 @@ def _load_usgs_data_using_climata(station, parameter, start_date, end_date,
 
     return df, metadata
     
+"""

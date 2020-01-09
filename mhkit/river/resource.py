@@ -50,14 +50,7 @@ def exceedance_probability(D):
     
     if isinstance(D, pd.DataFrame) and len(D.columns) == 1: # for matlab
         D = D.squeeze().copy()
-        
-    if isinstance(D.index, pd.DatetimeIndex):
-        infered_freq = pd.infer_freq(D.index)
-        time_interval = D.index[-1] - D.index[0]
-    else:
-        infered_freq = D.index.to_series().diff().mean()
-        time_interval = D.index[-1] - D.index[0]
-        
+
     # Calculate exceedence probability (F)
     rank = D.rank(method='max', ascending=False)
     F = 100* (rank / (len(D)+1) )
@@ -190,18 +183,20 @@ def energy_produced(F, P, seconds):
     """
     Returns the energy produced for a given time period provided
     exceedence probability and power.
+    
     Parameters
     ----------
     F : pandas DataFrame    
-            Exceedance probability [unitless] indexed by time [datetime or s]
+        Exceedance probability [unitless] indexed by time [datetime or s]
     P : pandas DataFrame
-            Power [W] indexed by time [datetime or s]
+        Power [W] indexed by time [datetime or s]
     seconds: float
-            Seconds in the time period of interest
+        Seconds in the time period of interest
+            
     Returns
     -------
     E : float
-            Energy [J] produced in the given time frame
+        Energy [J] produced in the given time frame
     """
     assert isinstance(F, (pd.DataFrame, pd.Series)), 'D must be of type pd.Series' # dataframe allowed for matlab
     assert isinstance(P, (pd.DataFrame, pd.Series)), 'D must be of type pd.Series' # dataframe allowed for matlab
