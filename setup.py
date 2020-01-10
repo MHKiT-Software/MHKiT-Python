@@ -17,7 +17,12 @@ CLASSIFIERS=['Development Status :: 0 - Alpha',
              'Intended Audience :: Science/Research',
              'Operating System :: OS Independent',
             ],
-DEPENDENCIES = ['numpy', 'pandas', 'scipy', 'matplotlib', 'requests', 'pecos']
+DEPENDENCIES = ['pandas', 
+                'numpy<1.18', 
+                'scipy',
+                'matplotlib', 
+                'requests', 
+                'pecos']
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))
