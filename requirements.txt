@@ -3,4 +3,4 @@ numpy<1.18
 scipy
 matplotlib
 requests
-pecos
+pecos>=0.1.8

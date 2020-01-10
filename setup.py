@@ -22,7 +22,7 @@ DEPENDENCIES = ['pandas',
                 'scipy',
                 'matplotlib', 
                 'requests', 
-                'pecos']
+                'pecos>=0.1.8']
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))
