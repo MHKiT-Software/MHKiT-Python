@@ -34,10 +34,6 @@ before_script:
         source /etc/init.d/xvfb start; 
         sleep 3;
       fi
-    - git clone https://github.com/sandialabs/pecos.git
-    - cd pecos
-    - python setup.py install
-    - cd ..
 
 # setup miniconda for numpy, scipy, pandas
 before_install:
