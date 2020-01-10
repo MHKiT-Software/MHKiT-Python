@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import scipy.io as sio
 
 
 def read_NDBC_file(file_name, missing_values=['MM',9999,999,99]):

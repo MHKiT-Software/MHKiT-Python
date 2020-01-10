@@ -1,14 +1,6 @@
-import pandas as pd
 import numpy as np
 import math
-import matplotlib.pyplot as plt
 from  mhkit.river.resource import exceedance_probability, Froude_number
-from scipy.stats import linregress
-#from mhkit.utils import _assert_data_type
-def _assert_data_type(a,b):
-    pass
-
-
 
 def _histogram(directions, velocities, width_dir, width_vel):
     '''
@@ -54,6 +46,7 @@ def _histogram(directions, velocities, width_dir, width_vel):
 def _normalize_angle(degree):
     '''
     Normalizes degrees to be between 0 and 360
+    
     Parameters
     ----------
     degree: int or float
@@ -72,6 +65,8 @@ def _normalize_angle(degree):
 
 def principal_flow_directions(directions, width_dir):
     '''
+    Calculates principal flow directions for ebb and flood cycles
+    
     The weighted average (over the working velocity range of the TEC) 
     should be considered to be the principal direction of the current, 
     and should be used for both the ebb and flood cycles to determine 

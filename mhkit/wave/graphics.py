@@ -1,6 +1,6 @@
 import numpy as np
-import matplotlib.pylab as plt
 import pandas as pd
+import matplotlib.pyplot as plt 
 from mhkit.wave.resource import significant_wave_height as _sig_wave_height
 from mhkit.wave.resource import peak_period as _peak_period
 from mhkit.river.graphics import _xy_plot
@@ -42,7 +42,7 @@ def plot_spectrum(S, ax=None):
 
 def plot_elevation_timeseries(eta, ax=None):
     """
-    Plot wave surface elevation time series
+    Plot wave surface elevation time-series
     
     Parameters
     ------------

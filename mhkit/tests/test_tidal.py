@@ -1,44 +1,13 @@
 import unittest
-from os.path import abspath, dirname, join
+from os.path import abspath, dirname, join, isfile
+import os
 import numpy as np
 import pandas as pd
+import matplotlib.pylab as plt
 import mhkit.tidal as tidal
 
 testdir = dirname(abspath(__file__))
 datadir = join(testdir, 'data')
-
-class TestDevice(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(self):
-        self.diameter = 1
-        self.height = 2
-        self.width = 3
-        self.diameters = [1,2,3,4]
-
-    @classmethod
-    def tearDownClass(self):
-        pass
-    
-    def test_circular(self):
-        eq, ca = tidal.device.circular(self.diameter) 
-        self.assertEqual(eq, self.diameter)
-        self.assertEqual(ca, 4*np.pi*self.diameter**2.)
-
-    def test_ducted(self):
-        eq, ca =tidal.device.ducted(self.diameter) 
-        self.assertEqual(eq, self.diameter)
-        self.assertEqual(ca, 4*np.pi*self.diameter**2.)
-    
-    def test_rectangular(self):
-        eq, ca = tidal.device.rectangular(self.height, self.width)
-        self.assertAlmostEqual(eq, 2.76, places=2)
-        self.assertAlmostEqual(ca, self.height*self.width, places=2)
-
-    def test_multiple_circular(self):
-        eq, ca = tidal.device.multiple_circular(self.diameters)
-        self.assertAlmostEqual(eq, 5.48, places=2)
-        self.assertAlmostEqual(ca, 23.56, places=2)
 
 
 class TestIO(unittest.TestCase):
@@ -57,7 +26,6 @@ class TestIO(unittest.TestCase):
         self.assertTrue(np.all(data.columns == ['s','d','b']) )
         self.assertEqual(data.shape, (18890, 3))
         
-
 
 class TestResource(unittest.TestCase):
 
@@ -79,18 +47,49 @@ class TestResource(unittest.TestCase):
         self.assertEqual(df['F'].max(), 90)
 
 
-    def test_principal_directions(self):    
+    def test_principal_flow_directions(self):    
         width_direction=10
         direction1, direction2 = tidal.resource.principal_flow_directions(self.data.d, width_direction)
 
         self.assertEqual(direction1,172.0) 
         self.assertEqual(round(direction2,1),round(352.3,1))                                                                                   
-
-
-
-        #import ipdb;ipdb.set_trace()
-
-
+    
+    def test_plot_current_timeseries(self):
+        filename = abspath(join(testdir, 'tidal_plot_current_timeseries.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        plt.figure()
+        tidal.graphics.plot_current_timeseries(self.data.d, self.data.s, 172)
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))
+        
+    def test_plot_joint_probability_distribution(self):
+        filename = abspath(join(testdir, 'tidal_plot_joint_probability_distribution.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        plt.figure()
+        tidal.graphics.plot_joint_probability_distribution(self.data.d, self.data.s, 1, 0.1)
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))
+    
+    def test_plot_rose(self):
+        filename = abspath(join(testdir, 'tidal_plot_rose.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        plt.figure()
+        tidal.graphics.plot_rose(self.data.d, self.data.s, 1, 0.1)
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))
+        
 if __name__ == '__main__':
     unittest.main() 
 

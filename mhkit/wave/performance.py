@@ -203,7 +203,7 @@ def power_matrix(LM, JM):
 
 def mean_annual_energy_production_timeseries(L, J):
     """
-    Calculates mean annual energy production (MAEP) from timeseries
+    Calculates mean annual energy production (MAEP) from time-series
     
     Parameters
     ------------

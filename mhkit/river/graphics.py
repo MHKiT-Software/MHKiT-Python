@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from pandas.plotting import register_matplotlib_converters
-register_matplotlib_converters()
+import matplotlib.pyplot as plt 
 
 
 def _xy_plot(x, y, fmt='.', label=None, xlabel=None, ylabel=None, title=None,
@@ -151,7 +149,7 @@ def plot_power_duration_curve(P, F, label=None, ax=None):
     
 def plot_discharge_timeseries(Q, label=None, ax=None):
     """
-    Plots discharge timeseries
+    Plots discharge time-series
     
     Parameters
     ------------

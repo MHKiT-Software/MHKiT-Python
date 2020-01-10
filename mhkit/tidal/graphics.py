@@ -2,14 +2,10 @@ import numpy as np
 import pandas as pd
 import math
 import bisect
-import mhkit.river.graphics as CECgraphics
+from scipy.interpolate import interpn as _interpn
+import matplotlib.pyplot as plt 
 from mhkit.tidal.resource import _histogram
-from scipy.interpolate import interpn
 from mhkit.river.graphics import plot_velocity_duration_curve, _xy_plot
-try:
-    import matplotlib.pyplot as plt
-except:
-    pass
 
 
 def _initialize_polar(ax = None, metadata=None, flood=None, ebb=None):
@@ -179,7 +175,7 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
     dir_bins[-1] = dir_edges[-1]
     vel_bins[-1] = vel_edges[-1]
     # Interpolate the bins back to specific data points
-    z = interpn( (dir_bins, vel_bins  ) ,
+    z = _interpn( (dir_bins, vel_bins  ) ,
                   H , np.vstack([directions,velocities]).T , method = "splinef2d",
                   bounds_error = False )
     # Plot the most probable data last 
@@ -208,13 +204,13 @@ def plot_current_timeseries(directions, speeds, principal_direction,
     Parameters
     ----------
     direction: array like
-        time-series of directions [degrees]
+        Time-series of directions [degrees]
     speed: array like
-        time-series of speeds [cm/s]
+        Time-series of speeds [m/s]
     principal_direction: float
         Direction to compute the velocity in [degrees]
     label: string
-       Label to use in the legend
+        Label to use in the legend
     ax : matplotlib axes object
         Axes for plotting.  If None, then a new figure with a single 
         axes is used.  
@@ -222,7 +218,7 @@ def plot_current_timeseries(directions, speeds, principal_direction,
     Returns
     -------
     ax: figure
-        timeseries plot of current-speed velocity
+        Time-series plot of current-speed velocity
     '''
     # Rotate coordinate system by supplied principal_direction
     principal_directions = directions - principal_direction
@@ -233,6 +229,7 @@ def plot_current_timeseries(directions, speeds, principal_direction,
                      ylabel='Velocity [$m/s$]', ax=ax)
     return ax
 
+"""
 def _histogram_table(directions, velocities, width_dir, width_vel):
     '''
     Returns the histogram joint probability as percent with directional bin rows 
@@ -310,7 +307,4 @@ def _plot_histogram(directions, velocities, width_dir, width_vel):
     plt.xlabel('Direction [degrees]')
     plt.ylabel('Velocity [m/s]')
     return 
-
-
-
-
+"""

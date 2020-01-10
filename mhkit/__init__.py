@@ -4,6 +4,10 @@ from mhkit import tidal
 from mhkit import qc
 from mhkit import utils
 
+# Register datetime converter for a matplotlib plotting methods
+from pandas.plotting import register_matplotlib_converters as _rmc
+_rmc()
+
 __version__ = 'v0.1.0'
 
 __copyright__ = """

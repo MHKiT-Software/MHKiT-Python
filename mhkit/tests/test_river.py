@@ -116,6 +116,42 @@ class TestResource(unittest.TestCase):
         plt.close()
         
         self.assertTrue(isfile(filename))
+    
+    def test_plot_discharge_timeseries(self):
+        filename = abspath(join(testdir, 'river_plot_discharge_timeseries.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        plt.figure()
+        river.graphics.plot_discharge_timeseries(self.data['Q'])
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))
+        
+    def test_plot_discharge_vs_velocity(self):
+        filename = abspath(join(testdir, 'river_plot_discharge_vs_velocity.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        plt.figure()
+        river.graphics.plot_discharge_vs_velocity(self.data['Q'], self.results['V'])
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))
+    
+    def test_plot_velocity_vs_power(self):
+        filename = abspath(join(testdir, 'river_plot_velocity_vs_power.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        plt.figure()
+        river.graphics.plot_velocity_vs_power(self.results['V'], self.results['P_control'])
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))
         
 
 class TestIO(unittest.TestCase):
