@@ -186,11 +186,11 @@ def energy_produced(F, P, seconds):
     
     Parameters
     ----------
-    F : pandas DataFrame    
+    F : pandas Series    
         Exceedance probability [unitless] indexed by time [datetime or s]
-    P : pandas DataFrame
+    P : pandas Series
         Power [W] indexed by time [datetime or s]
-    seconds: float
+    seconds: int or float
         Seconds in the time period of interest
             
     Returns
@@ -200,16 +200,21 @@ def energy_produced(F, P, seconds):
     """
     assert isinstance(F, (pd.DataFrame, pd.Series)), 'D must be of type pd.Series' # dataframe allowed for matlab
     assert isinstance(P, (pd.DataFrame, pd.Series)), 'D must be of type pd.Series' # dataframe allowed for matlab
+    assert isinstance(seconds, (int, float)), 'seconds must be of type int or float' 
 
     if isinstance(F, pd.DataFrame) and len(F.columns) == 1: # for matlab
         F = F.squeeze().copy()
     if isinstance(P, pd.DataFrame) and len(P.columns) == 1: # for matlab
         P = P.squeeze().copy()
+        
     # Decimal probability
     f=F/100
+    
     # Power
     p = (f*P/100).sum()
+    
     # Energy
     E = seconds * p
+    
     return E
 
