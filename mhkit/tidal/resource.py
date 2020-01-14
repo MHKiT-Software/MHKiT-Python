@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import pandas as pd
 from  mhkit.river.resource import exceedance_probability, Froude_number
 
 def _histogram(directions, velocities, width_dir, width_vel):
@@ -74,7 +75,7 @@ def principal_flow_directions(directions, width_dir):
 
     Parameters
     ----------
-    directions: array like
+    directions: pd.Series or numpy array
         Directions in degrees with 0 degrees specified as true north
     width_dir: float 
         Width of directional bins for histogram in degrees
@@ -86,6 +87,9 @@ def principal_flow_directions(directions, width_dir):
     flood: float
         Principal flood direction in degrees
     '''
+
+    if isinstance(directions,np.ndarray) ==1:
+        directions=pd.Series(directions) 
     # Number of directional bins 
     N_dir=int(360/width_dir)
     # Compute directional histogram
