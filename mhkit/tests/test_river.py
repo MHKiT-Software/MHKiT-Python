@@ -64,31 +64,39 @@ class TestResource(unittest.TestCase):
     def tearDownClass(self):
         pass
     
+    def test_Froude_number(self):
+        v = 2
+        h = 5
+        Fr = river.resource.Froude_number(v, h)
+        self.assertAlmostEqual(Fr, 0.286, places=3)
+    
     def test_exceedance_probability(self):
-        self.results['f'] = river.resource.exceedance_probability(self.data.Q)
-        self.assertAlmostEqual((self.results['f'] - self.results['F_control']).sum(), 0.00, places=2 )
+        f = river.resource.exceedance_probability(self.data.Q)
+        self.assertAlmostEqual((f['F'] - self.results['F_control']).sum(), 0.00, places=2 )
 
     def test_discharge_to_velocity(self):
         p, r2 = river.resource.polynomial_fit(self.DV_curve['D'], self.DV_curve['V'],3)        
-        self.results['V'] = river.resource.discharge_to_velocity(self.data.Q, p)
-        self.assertAlmostEqual((self.results['V'] - self.results['V_control']).sum(), 0.00, places=2 )
+        V = river.resource.discharge_to_velocity(self.data.Q, p)
+        self.assertAlmostEqual((V['V'] - self.results['V_control']).sum(), 0.00, places=2 )
         
     def test_velocity_to_power(self):
         p, r2 = river.resource.polynomial_fit(self.DV_curve['D'], self.DV_curve['V'],3)        
-        self.results['V'] = river.resource.discharge_to_velocity(self.data.Q, p)
+        V = river.resource.discharge_to_velocity(self.data.Q, p)
+        
         p2, r22 = river.resource.polynomial_fit(self.VP_curve['V'], self.VP_curve['P'],2)
         cut_in  = self.DV_curve['V'].min()
         cut_out = self.DV_curve['V'].max()
-        self.results['P'] = river.resource.velocity_to_power(self.results['V'], p2,cut_in, cut_out)
-        self.assertAlmostEqual((self.results['P'] - self.results['P_control']).sum(), 0.00, places=2 )
+        P = river.resource.velocity_to_power(V['V'], p2,cut_in, cut_out)
+        self.assertAlmostEqual((P['P'] - self.results['P_control']).sum(), 0.00, places=2 )
 
     def test_plot_flow_duration_curve(self):
         filename = abspath(join(testdir, 'river_plot_flow_duration_curve.png'))
         if isfile(filename):
             os.remove(filename)
-        
+            
+        f = river.resource.exceedance_probability(self.data.Q)
         plt.figure()
-        river.graphics.plot_flow_duration_curve(self.data['Q'], self.results['f'])
+        river.graphics.plot_flow_duration_curve(self.data['Q'], f['F'])
         plt.savefig(filename, format='png')
         plt.close()
         
@@ -99,8 +107,9 @@ class TestResource(unittest.TestCase):
         if isfile(filename):
             os.remove(filename)
         
+        f = river.resource.exceedance_probability(self.data.Q)
         plt.figure()
-        river.graphics.plot_flow_duration_curve(self.results['P_control'], self.results['f'])
+        river.graphics.plot_flow_duration_curve(self.results['P_control'], f['F'])
         plt.savefig(filename, format='png')
         plt.close()
         
@@ -111,8 +120,9 @@ class TestResource(unittest.TestCase):
         if isfile(filename):
             os.remove(filename)
         
+        f = river.resource.exceedance_probability(self.data.Q)
         plt.figure()
-        river.graphics.plot_velocity_duration_curve(self.results['V'], self.results['f'])
+        river.graphics.plot_velocity_duration_curve(self.results['V_control'], f['F'])
         plt.savefig(filename, format='png')
         plt.close()
         
@@ -136,7 +146,7 @@ class TestResource(unittest.TestCase):
             os.remove(filename)
         
         plt.figure()
-        river.graphics.plot_discharge_vs_velocity(self.data['Q'], self.results['V'])
+        river.graphics.plot_discharge_vs_velocity(self.data['Q'], self.results['V_control'])
         plt.savefig(filename, format='png')
         plt.close()
         
@@ -148,7 +158,7 @@ class TestResource(unittest.TestCase):
             os.remove(filename)
         
         plt.figure()
-        river.graphics.plot_velocity_vs_power(self.results['V'], self.results['P_control'])
+        river.graphics.plot_velocity_vs_power(self.results['V_control'], self.results['P_control'])
         plt.savefig(filename, format='png')
         plt.close()
         
