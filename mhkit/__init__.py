@@ -8,6 +8,10 @@ from mhkit import utils
 from pandas.plotting import register_matplotlib_converters as _rmc
 _rmc()
 
+# Ignore future warnings
+import warnings as _warn
+_warn.simplefilter(action='ignore', category=FutureWarning)
+
 __version__ = 'v0.1.0'
 
 __copyright__ = """
