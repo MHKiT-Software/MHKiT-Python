@@ -1,7 +1,7 @@
 ![](figures/logo.png) MHKiT-Python
 =====================================
 
-[![Build Status](https://travis-ci.com/MHKiT-Code-Hub/mhkit-python.svg?token=bLwWLCExLzZ4E9mKzzuF&branch=master)](https://travis-ci.com/MHKiT-Code-Hub/mhkit-python)
+[![Build Status](https://travis-ci.org/MHKiT-Code-Hub/MHKiT-Python.svg?branch=master)](https://travis-ci.org/MHKiT-Code-Hub/MHKiT-Python)
 
 MHKiT-Python is a Python package designed for marine renewable energy applications to assist in 
 data processing and visualization.  The software package include functionality for:
