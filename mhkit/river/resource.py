@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from scipy.stats import linregress as _linregress
+from scipy.stats import rv_histogram as _rv_histogram
 
 
 def Froude_number(v, h, g=9.80665):
@@ -169,9 +170,9 @@ def velocity_to_power(V, polynomial_coefficients, cut_in, cut_out):
     # Calculate power using tranfer function and FDC
     vals = polynomial_coefficients(V)
     
-    # Power for velocity values outside lower and upper bounds are set to NaN
-    vals[V < cut_in] = np.nan
-    vals[V > cut_out] = np.nan
+    # Power for velocity values outside lower and upper bounds Turbine produces 0 power
+    vals[V < cut_in] = 0.
+    vals[V > cut_out] = 0.
 
     P = pd.Series(vals, index=V.index)
     
@@ -179,15 +180,13 @@ def velocity_to_power(V, polynomial_coefficients, cut_in, cut_out):
     
     return P
 
-def energy_produced(F, P, seconds):
+def energy_produced(P, seconds):
     """
     Returns the energy produced for a given time period provided
     exceedence probability and power.
     
     Parameters
     ----------
-    F : pandas Series    
-        Exceedance probability [unitless] indexed by time [datetime or s]
     P : pandas Series
         Power [W] indexed by time [datetime or s]
     seconds: int or float
@@ -198,23 +197,20 @@ def energy_produced(F, P, seconds):
     E : float
         Energy [J] produced in the given time frame
     """
-    assert isinstance(F, (pd.DataFrame, pd.Series)), 'D must be of type pd.Series' # dataframe allowed for matlab
     assert isinstance(P, (pd.DataFrame, pd.Series)), 'D must be of type pd.Series' # dataframe allowed for matlab
     assert isinstance(seconds, (int, float)), 'seconds must be of type int or float' 
 
-    if isinstance(F, pd.DataFrame) and len(F.columns) == 1: # for matlab
-        F = F.squeeze().copy()
     if isinstance(P, pd.DataFrame) and len(P.columns) == 1: # for matlab
         P = P.squeeze().copy()
         
-    # Decimal probability
-    f=F/100
-    
-    # Power
-    p = (f*P/100).sum()
-    
+    # Calculate Histogram of power
+    H, bins = np.histogram(P, 100 )
+    # Create a distribution
+    hist_dist = _rv_histogram([H,bins])
+    # Calculate the expected value of Power
+    EV = hist_dist.expect()
     # Energy
-    E = seconds * p
+    E = seconds * EV 
     
     return E
 
