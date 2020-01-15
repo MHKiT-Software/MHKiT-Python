@@ -1,5 +1,5 @@
-MHKiT-Python
-===================================
+![](figures/logo.png) MHKiT-Python
+=====================================
 
 [![Build Status](https://travis-ci.com/MHKiT-Code-Hub/mhkit-python.svg?token=bLwWLCExLzZ4E9mKzzuF&branch=master)](https://travis-ci.com/MHKiT-Code-Hub/mhkit-python)
 
@@ -12,16 +12,23 @@ data processing and visualization.  The software package include functionality f
 * Tidal resource and device
 * Data visualization
 
+Documentation
+------------------
+
+MHKiT-Python is part of the open-source marine renewable energy software on the MHKiT Code Hub.
+
+See the [MHKiT documentation](https://mhkit-code-hub.github.io/MHKiT) for more information.
+
 Installation
 ------------------------
-MHKiT requires Python (tested on 3.6 and 3.7) along with several Python 
-package dependencies.  MHKiT can be installed from PyPI using the command ``pip install mhkit``.
+MHKiT-Python requires Python (3.6 or 3.7) along with several Python 
+package dependencies.  MHKiT-Python can be installed from PyPI using the command ``pip install mhkit``.
 
 See [installation instructions](https://mhkit-code-hub.github.io/MHKiT/installation.html) for more information.
 
 Copyright and license
 ------------------------
-MHKiT Python is copyright through the National Renewable Energy Laboratory, 
+MHKiT-Python is copyright through the National Renewable Energy Laboratory, 
 Pacific Northwest National Laboratory, and Sandia National Laboratories. 
 The software is distributed under the Revised BSD License.
 
