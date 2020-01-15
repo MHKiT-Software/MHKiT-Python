@@ -2,6 +2,7 @@
 =====================================
 
 [![Build Status](https://travis-ci.org/MHKiT-Code-Hub/MHKiT-Python.svg?branch=master)](https://travis-ci.org/MHKiT-Code-Hub/MHKiT-Python)
+[![Coverage Status](https://coveralls.io/repos/github/MHKiT-Code-Hub/MHKiT-Python/badge.svg?branch=master)](https://coveralls.io/github/MHKiT-Code-Hub/MHKiT-Python?branch=master)
 
 MHKiT-Python is a Python package designed for marine renewable energy applications to assist in 
 data processing and visualization.  The software package include functionality for:
