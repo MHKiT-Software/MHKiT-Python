@@ -33,4 +33,4 @@ MHKiT-Python is copyright through the National Renewable Energy Laboratory,
 Pacific Northwest National Laboratory, and Sandia National Laboratories. 
 The software is distributed under the Revised BSD License.
 
-See [copyright and license](LICENSE.txt) for more information.
+See [copyright and license](LICENSE.md) for more information.
