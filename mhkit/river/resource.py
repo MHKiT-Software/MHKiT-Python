@@ -204,13 +204,17 @@ def energy_produced(P, seconds):
         P = P.squeeze().copy()
         
     # Calculate Histogram of power
-    H, bins = np.histogram(P, 100 )
+    H, edges = np.histogram(P, 100 )
     # Create a distribution
-    hist_dist = _rv_histogram([H,bins])
+    hist_dist = _rv_histogram([H,edges])
+    # Sample range for pdf
+    x = np.linspace(edges.min(),edges.max(),1000) 
     # Calculate the expected value of Power
-    EV = hist_dist.expect()
+    expected_val_of_power = np.trapz(x*hist_dist.pdf(x),x=x)
+    # Note: Built-in Expected Value method often throws warning
+    #EV = hist_dist.expect(lb=edges.min(), ub=edges.max())
     # Energy
-    E = seconds * EV 
+    E = seconds * expected_val_of_power 
     
     return E
 
