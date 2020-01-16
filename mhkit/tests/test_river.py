@@ -51,11 +51,11 @@ class TestResource(unittest.TestCase):
                            parse_dates=True)
         self.data.columns = ['Q']
         
-        self.DV_curve = pd.read_csv(join(examples_datadir, 'tanana_DV_curve.csv'))
-        self.DV_curve.columns = ['D', 'V']
+        #self.DV_curve = pd.read_csv(join(examples_datadir, 'tanana_DV_curve.csv'))
+        #self.DV_curve.columns = ['D', 'V']
         
-        self.VP_curve = pd.read_csv(join(examples_datadir, 'tanana_VP_curve.csv'))
-        self.VP_curve.columns = ['V', 'P']
+        #self.VP_curve = pd.read_csv(join(examples_datadir, 'tanana_VP_curve.csv'))
+        #self.VP_curve.columns = ['V', 'P']
         
         self.results = pd.read_csv(join(datadir, 'tanana_test_results.csv'), index_col=0, 
                               parse_dates=True)
