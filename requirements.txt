@@ -1,5 +1,5 @@
 pandas
-numpy<1.18
+numpy
 scipy
 matplotlib
 requests
