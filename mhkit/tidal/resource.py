@@ -29,11 +29,11 @@ def _histogram(directions, velocities, width_dir, width_vel):
     '''
 
     # Number of directional bins 
-    N_dir=360/width_dir
+    N_dir = math.ceil(360/width_dir)
     # Max bin (round up to nearest integer) 
-    vel_max = math.ceil( velocities.max() )
+    vel_max = math.ceil(velocities.max())
     # Number of velocity bins
-    N_vel = vel_max/ width_vel
+    N_vel = math.ceil(vel_max/width_vel)
     # 2D Histogram of current speed and direction
     H, dir_edges, vel_edges = np.histogram2d(directions, velocities, bins=(N_dir,N_vel),
                                           range=[[0,360],[0,vel_max]], density=True)
