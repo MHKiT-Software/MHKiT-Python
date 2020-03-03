@@ -105,7 +105,7 @@ class TestResourceMetrics(unittest.TestCase):
             NFFT = data[i]['NFFT']
             self.valdata2['AH'][i]['S'] = wave.resource.elevation_spectrum(elevation, 
                          sample_rate, NFFT)
-
+        """
         file_name = join(datadir, 'ValData2_CDiP.json')
         with open(file_name, "r") as read_file:
             data = json.load(read_file)
@@ -114,6 +114,7 @@ class TestResourceMetrics(unittest.TestCase):
             temp = pd.Series(data[i]['S']).to_frame('S')
             temp.index = temp.index.astype(float)
             self.valdata2['CDiP'][i]['S'] = temp
+        """
 
             
     @classmethod
