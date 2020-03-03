@@ -137,7 +137,7 @@ class TestResourceMetrics(unittest.TestCase):
         for f in self.valdata2.keys(): # for each file MC, AH, CDiP
             datasets = self.valdata2[f]
             for s in datasets.keys(): # for each set
-                print(f, s)
+                #print(f, s)
                 data = datasets[s]
                 for m in data['m'].keys():
                     expected = data['m'][m]
@@ -146,14 +146,14 @@ class TestResourceMetrics(unittest.TestCase):
                     calculated = wave.resource.frequency_moment(S, int(m)).iloc[0,0]
                     error = np.abs(expected-calculated)/expected
                     
-                    print('m'+str(m), expected, calculated, error)
+                    #print('m'+str(m), expected, calculated, error)
                     self.assertLess(error, 0.01) 
 
     def test_metrics(self):
        for f in self.valdata2.keys(): # for each file MC, AH, CDiP
             datasets = self.valdata2[f]
             for s in datasets.keys(): # for each set
-                print(f, s)
+                #print(f, s)
                 data = datasets[s]
                 S = data['S']
 
@@ -161,7 +161,7 @@ class TestResourceMetrics(unittest.TestCase):
                 expected = data['metrics']['Hm0']
                 calculated = wave.resource.significant_wave_height(S).iloc[0,0]
                 error = np.abs(expected-calculated)/expected
-                print('Hm0', expected, calculated, error)
+                #print('Hm0', expected, calculated, error)
                 self.assertLess(error, 0.01) 
 
                 # Te
@@ -175,35 +175,35 @@ class TestResourceMetrics(unittest.TestCase):
                 expected = data['metrics']['T0']
                 calculated = wave.resource.average_zero_crossing_period(S).iloc[0,0]
                 error = np.abs(expected-calculated)/expected
-                print('T0', expected, calculated, error)
+                #print('T0', expected, calculated, error)
                 self.assertLess(error, 0.01) 
 
                 # Tc
                 expected = data['metrics']['Tc']
                 calculated = wave.resource.average_crest_period(S).iloc[0,0]**2 # Tc = Tavg**2
                 error = np.abs(expected-calculated)/expected
-                print('Tc', expected, calculated, error)
+                #print('Tc', expected, calculated, error)
                 self.assertLess(error, 0.01) 
 
                 # Tm
                 expected = np.sqrt(data['metrics']['Tm'])
                 calculated = wave.resource.average_wave_period(S).iloc[0,0]
                 error = np.abs(expected-calculated)/expected
-                print('Tm', expected, calculated, error)
+                #print('Tm', expected, calculated, error)
                 self.assertLess(error, 0.01) 
                 
                 # Tp
                 expected = data['metrics']['Tp']
                 calculated = wave.resource.peak_period(S).iloc[0,0]
                 error = np.abs(expected-calculated)/expected
-                print('Tp', expected, calculated, error)
+                #print('Tp', expected, calculated, error)
                 self.assertLess(error, 0.001) 
                 
                 # e
                 expected = data['metrics']['e']
                 calculated = wave.resource.spectral_bandwidth(S).iloc[0,0]
                 error = np.abs(expected-calculated)/expected
-                print('e', expected, calculated, error)
+                #print('e', expected, calculated, error)
                 self.assertLess(error, 0.001) 
 
                 # v
@@ -211,7 +211,7 @@ class TestResourceMetrics(unittest.TestCase):
                     expected = data['metrics']['v']
                     calculated = wave.resource.spectral_width(S).iloc[0,0]
                     error = np.abs(expected-calculated)/expected
-                    print('v', expected, calculated, error)
+                    #print('v', expected, calculated, error)
                     self.assertLess(error, 0.01) 
 
                 
