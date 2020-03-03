@@ -77,6 +77,7 @@ class TestResourceMetrics(unittest.TestCase):
             self.valdata1 = pd.DataFrame(json.load(read_file))
         
         self.valdata2 = {}
+
         file_name = join(datadir, 'ValData2_MC.json')
         with open(file_name, "r") as read_file:
             data = json.load(read_file)
@@ -89,7 +90,7 @@ class TestResourceMetrics(unittest.TestCase):
             sample_rate = data[i]['sample_rate']
             NFFT = data[i]['NFFT']
             self.valdata2['MC'][i]['S'] = wave.resource.elevation_spectrum(elevation, 
-                         sample_rate, NFFT, window='hamming')
+                         sample_rate, NFFT)
 
         file_name = join(datadir, 'ValData2_AH.json')
         with open(file_name, "r") as read_file:
@@ -103,7 +104,7 @@ class TestResourceMetrics(unittest.TestCase):
             sample_rate = data[i]['sample_rate']
             NFFT = data[i]['NFFT']
             self.valdata2['AH'][i]['S'] = wave.resource.elevation_spectrum(elevation, 
-                         sample_rate, NFFT, window='hamming')
+                         sample_rate, NFFT)
 
         file_name = join(datadir, 'ValData2_CDiP.json')
         with open(file_name, "r") as read_file:
@@ -113,6 +114,7 @@ class TestResourceMetrics(unittest.TestCase):
             temp = pd.Series(data[i]['S']).to_frame('S')
             temp.index = temp.index.astype(float)
             self.valdata2['CDiP'][i]['S'] = temp
+
             
     @classmethod
     def tearDownClass(self):
@@ -129,7 +131,7 @@ class TestResourceMetrics(unittest.TestCase):
             error = ((expected-calculated)**2).sum() # SSE
             
             self.assertLess(error, 1e-6)
-    """
+
     def test_moments(self):
         for f in self.valdata2.keys(): # for each file MC, AH, CDiP
             datasets = self.valdata2[f]
@@ -145,7 +147,7 @@ class TestResourceMetrics(unittest.TestCase):
                     
                     print('m'+str(m), expected, calculated, error)
                     self.assertLess(error, 0.01) 
-    """
+
     def test_metrics(self):
        for f in self.valdata2.keys(): # for each file MC, AH, CDiP
             datasets = self.valdata2[f]
@@ -153,14 +155,14 @@ class TestResourceMetrics(unittest.TestCase):
                 print(f, s)
                 data = datasets[s]
                 S = data['S']
-                """
+
                 # Hm0
                 expected = data['metrics']['Hm0']
                 calculated = wave.resource.significant_wave_height(S).iloc[0,0]
                 error = np.abs(expected-calculated)/expected
                 print('Hm0', expected, calculated, error)
                 self.assertLess(error, 0.01) 
-                """
+
                 # Te
                 expected = data['metrics']['Te']
                 calculated = wave.resource.energy_period(S).iloc[0,0]
@@ -174,14 +176,14 @@ class TestResourceMetrics(unittest.TestCase):
                 error = np.abs(expected-calculated)/expected
                 print('T0', expected, calculated, error)
                 self.assertLess(error, 0.01) 
-                """
+
                 # Tc
                 expected = data['metrics']['Tc']
                 calculated = wave.resource.average_crest_period(S).iloc[0,0]**2 # Tc = Tavg**2
                 error = np.abs(expected-calculated)/expected
                 print('Tc', expected, calculated, error)
                 self.assertLess(error, 0.01) 
-                """
+
                 # Tm
                 expected = np.sqrt(data['metrics']['Tm'])
                 calculated = wave.resource.average_wave_period(S).iloc[0,0]
@@ -202,14 +204,14 @@ class TestResourceMetrics(unittest.TestCase):
                 error = np.abs(expected-calculated)/expected
                 print('e', expected, calculated, error)
                 self.assertLess(error, 0.001) 
-                """
+
                 # v
-                expected = data['metrics']['v']
-                calculated = wave.resource.spectral_width(S).iloc[0,0]
-                error = np.abs(expected-calculated)/expected
-                print('v', expected, calculated, error)
-                self.assertLess(error, 0.01) 
-                """
+                if f == 'MC': # this should be updated to run on other datasets
+                    expected = data['metrics']['v']
+                    calculated = wave.resource.spectral_width(S).iloc[0,0]
+                    error = np.abs(expected-calculated)/expected
+                    print('v', expected, calculated, error)
+                    self.assertLess(error, 0.01) 
 
                 
     def test_plot_elevation_timeseries(self):            
