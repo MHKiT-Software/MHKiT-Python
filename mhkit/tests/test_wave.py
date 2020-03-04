@@ -168,7 +168,7 @@ class TestResourceMetrics(unittest.TestCase):
                 expected = data['metrics']['Te']
                 calculated = wave.resource.energy_period(S).iloc[0,0]
                 error = np.abs(expected-calculated)/expected
-                print('Te', expected, calculated, error)
+                #print('Te', expected, calculated, error)
                 self.assertLess(error, 0.01) 
                 
                 # T0
