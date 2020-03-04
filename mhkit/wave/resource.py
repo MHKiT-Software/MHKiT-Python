@@ -6,7 +6,7 @@ from itertools import product as _product
 
 
 ### Spectrum
-def elevation_spectrum(eta, sample_rate, nnft, window='hamming', detrend=True):
+def elevation_spectrum(eta, sample_rate, nnft, window='hann', detrend=True):
     """
     Calculates the wave energy spectrum from wave elevation time-series
     
@@ -19,7 +19,7 @@ def elevation_spectrum(eta, sample_rate, nnft, window='hamming', detrend=True):
     nnft: integer
         Number of bins in the Fast Fourier Transform
     window: string (optional)
-        Signal window type. 'hamming' is used by default given the broadband 
+        Signal window type. 'hann' is used by default given the broadband 
         nature of waves. See scipy.signal.get_window for more options.
     detrend: bool (optional)
         Specifies if a linear trend is removed from the data before calculating 

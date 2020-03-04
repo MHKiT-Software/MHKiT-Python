@@ -16,8 +16,7 @@ data processing and visualization.  The software package include functionality f
 
 Documentation
 ------------------
-
-MHKiT-Python provides the marine renewable energy (MRE) community tools for data processing, visualization, quality control, resource assessment, and device performance. 
+MHKiT-Python documentation includes overview information, installation instructions, API documentation, and examples.
 See the [MHKiT documentation](https://mhkit-software.github.io/MHKiT) for more information.
 
 Installation
