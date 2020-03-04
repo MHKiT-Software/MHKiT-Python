@@ -238,6 +238,18 @@ class TestIO(unittest.TestCase):
         self.assertEqual((data.index == expected_index.tz_localize('UTC')).all(), True)
         self.assertEqual(data.shape, (31, 1))
 
+
+    def test_request_usgs_data(self):
+        data=river.io.request_usgs_data(station="15515500",
+                            parameter='00060',
+                            start_date='2009-08-01',
+                            end_date='2009-08-10',
+                            data_type='Daily')
+        self.assertEqual(data.columns, ['Discharge, cubic feet per second'])
+        self.assertEqual(data.shape, (10, 1))
+ 
+#        import ipdb; ipdb.set_trace() 
+
 if __name__ == '__main__':
     unittest.main() 
 
