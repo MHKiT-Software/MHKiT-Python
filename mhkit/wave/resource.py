@@ -230,7 +230,8 @@ def surface_elevation(S, time_index, seed=123):
 
     # Wave amplitude times delta f, truncated
     A = 2*S 
-    A = A.multiply(delta_f, axis=0)    
+    A = A.multiply(delta_f, axis=0)
+    A = np.sqrt(A)
     A = A.loc[start_time:end_time,:]
     
     # Product of omega and time
