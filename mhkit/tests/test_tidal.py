@@ -25,6 +25,13 @@ class TestIO(unittest.TestCase):
         data, metadata = tidal.io.read_noaa_json(file_name)
         self.assertTrue(np.all(data.columns == ['s','d','b']) )
         self.assertEqual(data.shape, (18890, 3))
+
+    def test_request_noaa_data(self):
+        data, metadata = tidal.io.request_noaa_data(station='s08010', parameter='currents',
+                                       start_date='20180101', end_date='20180102',
+                                       proxy=None, write_json=None)
+        self.assertTrue(np.all(data.columns == ['s','d','b']) )
+        self.assertEqual(data.shape, (92, 3))
         
 
 class TestResource(unittest.TestCase):
@@ -50,7 +57,6 @@ class TestResource(unittest.TestCase):
     def test_principal_flow_directions(self):    
         width_direction=10
         direction1, direction2 = tidal.resource.principal_flow_directions(self.data.d, width_direction)
-
         self.assertEqual(direction1,172.0) 
         self.assertEqual(round(direction2,1),round(352.3,1))                                                                                   
     
