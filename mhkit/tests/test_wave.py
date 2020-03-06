@@ -70,7 +70,7 @@ class TestResourceSpectrum(unittest.TestCase):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
         eta = wave.resource.surface_elevation(S, self.t)
         dt = self.t[1] - self.t[0]
-        Sn = wave.resource.elevation_spectrum(eta, 1/dt, len(eta.values), 
+        Sn = wave.resource.elevation_spectrum(eta, 1/dt, len(eta), 
                                               detrend=False, window='boxcar',
                                               noverlap=0)
 
