@@ -18,7 +18,9 @@ class TestResourceSpectrum(unittest.TestCase):
         self.f = omega/(2*np.pi)
         self.Hs = 2.5
         self.Tp = 8
-        self.t = np.arange(0, 60*10, 0.05)
+        df = self.f[1] - self.f[0]
+        Trep = 1/df
+        self.t = np.arange(0, Trep, 0.05)
             
     @classmethod
     def tearDownClass(self):
@@ -43,21 +45,22 @@ class TestResourceSpectrum(unittest.TestCase):
         self.assertLess(errorHm0, 0.01)
         self.assertLess(errorTp0, 0.01)
 
-    def test_surface_elevation(self):
+    def test_surface_elevation_moments(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
         eta = wave.resource.surface_elevation(S, self.t)
         dt = self.t[1] - self.t[0]
-        df = self.f[1] - self.f[0]
-        Sn = wave.resource.elevation_spectrum(eta, 1/dt, int(np.floor(self.t[-1]/df)))
+        Sn = wave.resource.elevation_spectrum(eta, 1/dt, len(eta.values), 
+                                              detrend=False, window='boxcar',
+                                              noverlap=0)
 
         m0 = wave.resource.frequency_moment(S,0).m0.values[0]
-        m0n = wave.resource.frequency_moment(S,0).m0.values[0]
+        m0n = wave.resource.frequency_moment(Sn,0).m0.values[0]
         errorm0 = np.abs((m0 - m0n)/m0)
 
         self.assertLess(errorm0, 0.01)
 
         m1 = wave.resource.frequency_moment(S,1).m1.values[0]
-        m1n = wave.resource.frequency_moment(S,1).m1.values[0]
+        m1n = wave.resource.frequency_moment(Sn,1).m1.values[0]
         errorm1 = np.abs((m1 - m1n)/m1)
 
         self.assertLess(errorm1, 0.01)

@@ -6,7 +6,7 @@ from itertools import product as _product
 
 
 ### Spectrum
-def elevation_spectrum(eta, sample_rate, nnft, window='hann', detrend=True):
+def elevation_spectrum(eta, sample_rate, nnft, window='hann', detrend=True, noverlap=None):
     """
     Calculates the wave energy spectrum from wave elevation time-series
     
@@ -49,7 +49,7 @@ def elevation_spectrum(eta, sample_rate, nnft, window='hann', detrend=True):
         if detrend:
             data = _signal.detrend(data.dropna(), axis=-1, type='linear', bp=0)
         [f, wave_spec_measured] = _signal.welch(data, fs=sample_rate, window=window, 
-            nperseg=nnft, nfft=nnft) 
+            nperseg=nnft, nfft=nnft, noverlap=noverlap) 
         S[col] = wave_spec_measured
     S.index=f
     S.columns = eta.columns
