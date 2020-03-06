@@ -6,6 +6,7 @@ import pandas as pd
 import json
 import matplotlib.pylab as plt
 import mhkit.wave as wave
+from scipy.interpolate import interp1d
 
 testdir = dirname(abspath(__file__))
 datadir = join(testdir, 'data')
@@ -64,6 +65,20 @@ class TestResourceSpectrum(unittest.TestCase):
         errorm1 = np.abs((m1 - m1n)/m1)
 
         self.assertLess(errorm1, 0.01)
+
+    def test_surface_elevation_rmse(self):
+        S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
+        eta = wave.resource.surface_elevation(S, self.t)
+        dt = self.t[1] - self.t[0]
+        Sn = wave.resource.elevation_spectrum(eta, 1/dt, len(eta.values), 
+                                              detrend=False, window='boxcar',
+                                              noverlap=0)
+
+        fSn = interp1d(Sn.index.values, Sn.values, axis=0)
+        rmse = (S.values - fSn(S.index.values))**2
+        rmse_sum = np.sum(rmse)
+
+        self.assertLess(rmse_sum, 0.1)
     
     def test_jonswap_spectrum(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
