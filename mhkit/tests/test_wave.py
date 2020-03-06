@@ -76,9 +76,9 @@ class TestResourceSpectrum(unittest.TestCase):
 
         fSn = interp1d(Sn.index.values, Sn.values, axis=0)
         rmse = (S.values - fSn(S.index.values))**2
-        rmse_sum = np.sum(rmse)
+        rmse_sum = (np.sum(rmse)/len(rmse))**0.5
 
-        self.assertLess(rmse_sum, 0.1)
+        self.assertLess(rmse_sum, 0.02)
     
     def test_jonswap_spectrum(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
