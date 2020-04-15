@@ -97,7 +97,7 @@ def get_DEL(var, m, binNum=100, t=600):
     DELs = Srf**m * Nrf / t
     DEL = DELs.sum() ** (1/m)
 
-    # return variable as dataframe
+    # TODO: figure out if this is necessary
     #DEL = pd.DataFrame(DEL)
 
     return DEL

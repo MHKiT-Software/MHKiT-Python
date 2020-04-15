@@ -17,6 +17,9 @@ $ cat .gitignore
 **/mhkit.egg-info/
 **/.ipynb_checkpoints
 **/tests/*.png
+**/workspace/data_peetz/
+**/workspace/data_mooring/
+**/.vscode/
 
 .coverage
 

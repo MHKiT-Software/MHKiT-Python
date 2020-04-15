@@ -1,8 +1,7 @@
 # import statements
 import pandas as pd 
 import numpy as np 
-from datetime import timedelta
-
+import datetime as dt
 import matplotlib.pyplot as plt 
 
 def get_stats(data,tname,stat,period,freq):
@@ -15,7 +14,7 @@ def get_stats(data,tname,stat,period,freq):
         dataframe containg data to be analyzed
     tname : string
         name of column containing time in datetime format
-    stat : string input of mean, max, min, or std
+    stat : string input of mean, max, min, std or abs (absolute maximum)
         type of statistics to be calculated
     period : float/int
         statistical window of interest (ex. 600 seconds) [sec]
@@ -27,6 +26,8 @@ def get_stats(data,tname,stat,period,freq):
     stats : pandas dataframe or series
         dataframe containing calculated statistical values of data
     """
+    # TODO: add functionality to check for consecutive data and find a way to handle it
+
     # check to see if data contains enough data points for statistical window
     # if len(data)%(period*freq) > 0:
     #     remain = len(data) % (period*freq)
@@ -34,8 +35,8 @@ def get_stats(data,tname,stat,period,freq):
     #     print('WARNING: there were not enought data points in the last statistical period. Last '+str(remain)+' points were removed.')
     
     # convert period to timedelta
-    td = timedelta(seconds=period)
-
+    td = dt.timedelta(seconds=period)
+    
     # calculate statistical parameter
     if stat == 'mean' : stats = data.resample(td,on=tname).mean()
     elif stat == 'max' : stats = data.resample(td,on=tname).max()
@@ -45,7 +46,7 @@ def get_stats(data,tname,stat,period,freq):
     else:
         print('Invalid stat input')
 
-    # drop first and last entry to make sure each stat window has enough points
+    # drop first and last entry to make sure each stat window has enough points (temporary)
     stats = stats.iloc[1:-1]
 
     return stats
@@ -73,6 +74,28 @@ def unwrapvec(data):
         data = unwrapvec(data)
     return data
 
+# TODO: allow function to perform action on entire array
+def matlab2datetime(matlab_datenum):
+    """
+    conversion of matlab datenum format to python datetime
+
+    Parameters:
+    ----------------
+    matlab_datenum : float/int
+        value of matlab datenum to be converted
+
+    Returns:
+    -----------------
+    pdate : float/int
+        equivalent python datetime value
+    """
+    day = dt.datetime.fromordinal(int(matlab_datenum))
+    dayfrac = dt.timedelta(days=matlab_datenum%1) - dt.timedelta(days = 366)
+    pdate = day + dayfrac
+    return pdate
+
+
+# TODO: add function description
 def statplotter(x,vmean,vmax,vmin,xlabel=None,ylabel=None,title=None,savepath=None):
     fig, ax = plt.subplots(figsize=(6,4))
     s = 10
@@ -91,8 +114,8 @@ def statplotter(x,vmean,vmax,vmin,xlabel=None,ylabel=None,title=None,savepath=No
         plt.close()
     
 
-def statsplotter_bin(x,varmean,std=None,varmax=None,varmin=None,xlabel=None,ylabel=None,title=None,savepath=None):
-    fig, ax = plt.subplots(figsize=(8,6))
+# def statsplotter_bin(x,varmean,std=None,varmax=None,varmin=None,xlabel=None,ylabel=None,title=None,savepath=None):
+#     fig, ax = plt.subplots(figsize=(8,6))
 
 
 

@@ -14,25 +14,25 @@ sMean = util.get_stats(df,'time','mean',600,1)
 sMax = util.get_stats(df,'time','max',600,1)
 sMin = util.get_stats(df,'time','min',600,1)
 
-# # make plots of stats
-# util.statplotter(sMean.t3_wind_speed,sMean['t3_active_power'],sMax['t3_active_power'],sMin['t3_active_power'],ylabel='Power',xlabel='Wind speed',title='Raw Stats')
+# make plots of stats
+util.statplotter(sMean.t3_wind_speed,sMean['t3_active_power'],sMax['t3_active_power'],sMin['t3_active_power'],ylabel='Power',xlabel='Wind speed',title='Raw Stats')
 
-# # bin data
-# bmeans,bmstd = lk.bin_stats(sMean.t3_wind_speed,sMean.t3_active_power,20,bwidth=1)
-# bmax,_ = lk.bin_stats(sMean.t3_wind_speed,sMax.t3_active_power,20,bwidth=1)
-# bmin,_ = lk.bin_stats(sMean.t3_wind_speed,sMin.t3_active_power,20,bwidth=1)
+# bin data
+bmeans,bmstd = lk.bin_stats(sMean.t3_wind_speed,sMean.t3_active_power,20,bwidth=1)
+bmax,_ = lk.bin_stats(sMean.t3_wind_speed,sMax.t3_active_power,20,bwidth=1)
+bmin,_ = lk.bin_stats(sMean.t3_wind_speed,sMin.t3_active_power,20,bwidth=1)
 
-# # make plot of binned data
-# x = np.linspace(0.5,18.5,19)
-# plt.plot(x,bmeans)
-# plt.errorbar(x,bmeans.loc[:,0],yerr=bmstd.loc[:,0],fmt='none',capsize=4,ecolor='black')
-# plt.plot(x,bmax)
-# plt.plot(x,bmin)
-# plt.grid(alpha=0.5)
-# plt.title('Binned Stats')
-# plt.xlabel('Wind speed')
-# plt.ylabel('Power')
-# plt.show()
+# make plot of binned data
+x = np.linspace(0.5,18.5,19)
+plt.plot(x,bmeans)
+plt.errorbar(x,bmeans.loc[:,0],yerr=bmstd.loc[:,0],fmt='none',capsize=4,ecolor='black')
+plt.plot(x,bmax)
+plt.plot(x,bmin)
+plt.grid(alpha=0.5)
+plt.title('Binned Stats')
+plt.xlabel('Wind speed')
+plt.ylabel('Power')
+plt.show()
 
 # apply slope and offset to tower base bending
 df.t3_tb_bending_1 = (df.t3_tb_bending_1 - 1.7553e-04)*4.2143e07

@@ -2,7 +2,7 @@
 import pandas as pd 
 import numpy as np 
 from datetime import timedelta
-import myFunctions as mf
+import _utilities as util
 import random
 from scipy.io import loadmat
 from scipy.stats import binned_statistic
@@ -24,7 +24,7 @@ df.B1 = tbaseB1
 df.B2 = tbaseB2
 heading = 271.6 # heading of positive bridge heading relative to true north
 # unwrap yaw vector
-yaw = mf.unwrapvec(yaw)
+yaw = util.unwrapvec(yaw)
 
 ######## PROCESSING
 
