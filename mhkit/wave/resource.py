@@ -249,7 +249,7 @@ def surface_elevation(S, time_index, seed=123):
     return eta
 
 
-def frequency_moment(S, N):
+def frequency_moment(S, N, frequency_bins=None):
     """
     Calculates the Nth frequency moment of the spectrum
     
@@ -259,6 +259,8 @@ def frequency_moment(S, N):
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     N: int
         Moment (0 for 0th, 1 for 1st ....)
+    frequency_bins: numpy array (optional)
+        Bins for frequency of S. Required for unevenly spaced bins
     
     Returns
     -------
@@ -273,10 +275,17 @@ def frequency_moment(S, N):
     
     f = spec.index 
     fn = np.power(f, N)
+    if frequency_bins is None:
+        delta_f = pd.Series(f).diff()
+        delta_f[0] = f[1]-f[0]
+    else: 
+        assert isinstance(frequency_bins, np.ndarray), 'frequency_bins must be of type np.ndarray'
+        print('in!')
+        delta_f = pd.Series(frequency_bins)
 
-    delta_f = pd.Series(f).diff()
-    delta_f[0] = f[1]-f[0]
     delta_f.index = f
+    # print(f)
+    # print(delta_f.values)
         
     m = spec.multiply(fn,axis=0).multiply(delta_f,axis=0)
     m = m.sum(axis=0)
