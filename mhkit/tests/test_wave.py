@@ -33,7 +33,7 @@ class TestResourceSpectrum(unittest.TestCase):
         
         error = np.abs(self.Tp - Tp0)/self.Tp
         
-        #self.assertLess(error, 0.01)
+        self.assertLess(error, 0.01)
         
     def test_bretschneider_spectrum(self):
         S = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
@@ -43,8 +43,8 @@ class TestResourceSpectrum(unittest.TestCase):
         errorHm0 = np.abs(self.Tp - Tp0)/self.Tp
         errorTp0 = np.abs(self.Hs - Hm0)/self.Hs
         
-        #self.assertLess(errorHm0, 0.01)
-        #self.assertLess(errorTp0, 0.01)
+        self.assertLess(errorHm0, 0.01)
+        self.assertLess(errorTp0, 0.01)
 
     def test_surface_elevation_moments(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
@@ -58,13 +58,13 @@ class TestResourceSpectrum(unittest.TestCase):
         m0n = wave.resource.frequency_moment(Sn,0).m0.values[0]
         errorm0 = np.abs((m0 - m0n)/m0)
 
-        #self.assertLess(errorm0, 0.01)
+        self.assertLess(errorm0, 0.01)
 
         m1 = wave.resource.frequency_moment(S,1).m1.values[0]
         m1n = wave.resource.frequency_moment(Sn,1).m1.values[0]
         errorm1 = np.abs((m1 - m1n)/m1)
 
-        #self.assertLess(errorm1, 0.01)
+        self.assertLess(errorm1, 0.01)
 
     def test_surface_elevation_rmse(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
@@ -78,7 +78,7 @@ class TestResourceSpectrum(unittest.TestCase):
         rmse = (S.values - fSn(S.index.values))**2
         rmse_sum = (np.sum(rmse)/len(rmse))**0.5
 
-        #self.assertLess(rmse_sum, 0.02)
+        self.assertLess(rmse_sum, 0.02)
     
     def test_jonswap_spectrum(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
@@ -88,8 +88,8 @@ class TestResourceSpectrum(unittest.TestCase):
         errorHm0 = np.abs(self.Tp - Tp0)/self.Tp
         errorTp0 = np.abs(self.Hs - Hm0)/self.Hs
         
-        #self.assertLess(errorHm0, 0.01)
-        #self.assertLess(errorTp0, 0.01)
+        self.assertLess(errorHm0, 0.01)
+        self.assertLess(errorTp0, 0.01)
     
     def test_plot_spectrum(self):            
         filename = abspath(join(testdir, 'wave_plot_spectrum.png'))
@@ -103,7 +103,7 @@ class TestResourceSpectrum(unittest.TestCase):
         plt.savefig(filename, format='png')
         plt.close()
         
-        #self.assertTrue(isfile(filename))
+        self.assertTrue(isfile(filename))
         
 
 class TestResourceMetrics(unittest.TestCase):
