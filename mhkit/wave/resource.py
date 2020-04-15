@@ -279,8 +279,8 @@ def frequency_moment(S, N, frequency_bins=None):
         delta_f = pd.Series(f).diff()
         delta_f[0] = f[1]-f[0]
     else:
-        print('in!') 
-        assert isinstance(frequency_bins, (np.ndarray,pd.Series)), 'frequency_bins must be of type np.ndarray or pd.Series'
+         
+        assert isinstance(frequency_bins, (np.ndarray,pd.Series,pd.DataFrame)), 'frequency_bins must be of type np.ndarray or pd.Series'
         delta_f = pd.Series(frequency_bins)
 
     delta_f.index = f
