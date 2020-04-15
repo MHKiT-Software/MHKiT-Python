@@ -260,7 +260,7 @@ def frequency_moment(S, N, frequency_bins=None):
     N: int
         Moment (0 for 0th, 1 for 1st ....)
     frequency_bins: numpy array or pandas Series (optional)
-        Bins for frequency of S. Required for unevenly spaced bins
+        Bin widths for frequency of S. Required for unevenly sized bins
     
     Returns
     -------
@@ -304,7 +304,7 @@ def significant_wave_height(S, frequency_bins=None):
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     frequency_bins: numpy array or pandas Series (optional)
-        Bins for frequency of S. Required for unevenly spaced bins
+        Bin widths for frequency of S. Required for unevenly sized bins
         
     Returns
     ---------
@@ -330,7 +330,7 @@ def average_zero_crossing_period(S,frequency_bins=None):
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     frequency_bins: numpy array or pandas Series (optional)
-        Bins for frequency of S. Required for unevenly spaced bins
+        Bin widths for frequency of S. Required for unevenly sized bins
         
     Returns
     ---------
@@ -358,7 +358,7 @@ def average_crest_period(S,frequency_bins=None):
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     frequency_bins: numpy array or pandas Series (optional)
-        Bins for frequency of S. Required for unevenly spaced bins
+        Bin widths for frequency of S. Required for unevenly sized bins
         
     Returns
     ---------
@@ -386,7 +386,7 @@ def average_wave_period(S,frequency_bins=None):
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     frequency_bins: numpy array or pandas Series (optional)
-        Bins for frequency of S. Required for unevenly spaced bins
+        Bin widths for frequency of S. Required for unevenly sized bins
         
     Returns
     ---------
@@ -438,7 +438,7 @@ def energy_period(S,frequency_bins=None):
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     frequency_bins: numpy array or pandas Series (optional)
-        Bins for frequency of S. Required for unevenly spaced bins
+        Bin widths for frequency of S. Required for unevenly sized bins
         
     Returns
     ---------
@@ -466,7 +466,7 @@ def spectral_bandwidth(S,frequency_bins=None):
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     frequency_bins: numpy array or pandas Series (optional)
-        Bins for frequency of S. Required for unevenly spaced bins
+        Bin widths for frequency of S. Required for unevenly sized bins
         
     Returns
     ---------
@@ -494,7 +494,7 @@ def spectral_width(S,frequency_bins=None):
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     frequency_bins: numpy array or pandas Series (optional)
-        Bins for frequency of S. Required for unevenly spaced bins
+        Bin widths for frequency of S. Required for unevenly sized bins
         
     Returns
     ---------
