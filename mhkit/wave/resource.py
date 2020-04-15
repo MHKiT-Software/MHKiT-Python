@@ -259,7 +259,7 @@ def frequency_moment(S, N, frequency_bins=None):
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     N: int
         Moment (0 for 0th, 1 for 1st ....)
-    frequency_bins: numpy array (optional)
+    frequency_bins: numpy array or pandas Series (optional)
         Bins for frequency of S. Required for unevenly spaced bins
     
     Returns
@@ -278,9 +278,9 @@ def frequency_moment(S, N, frequency_bins=None):
     if frequency_bins is None:
         delta_f = pd.Series(f).diff()
         delta_f[0] = f[1]-f[0]
-    else: 
-        assert isinstance(frequency_bins, np.ndarray), 'frequency_bins must be of type np.ndarray'
-        print('in!')
+    else:
+        print('in!') 
+        assert isinstance(frequency_bins, (np.ndarray,pd.Series)), 'frequency_bins must be of type np.ndarray or pd.Series'
         delta_f = pd.Series(frequency_bins)
 
     delta_f.index = f
@@ -295,7 +295,7 @@ def frequency_moment(S, N, frequency_bins=None):
     return m
 
 
-def significant_wave_height(S):
+def significant_wave_height(S, frequency_bins=None):
     """
     Calculates wave height from spectra
 
@@ -303,6 +303,8 @@ def significant_wave_height(S):
     ------------    
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_bins: numpy array or pandas Series (optional)
+        Bins for frequency of S. Required for unevenly spaced bins
         
     Returns
     ---------
@@ -312,13 +314,14 @@ def significant_wave_height(S):
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     
     # Eq 12 in IEC 62600-101
-    Hm0 = 4*np.sqrt(frequency_moment(S,0))
+    
+    Hm0 = 4*np.sqrt(frequency_moment(S,0,frequency_bins=frequency_bins))
     Hm0.columns = ['Hm0']
     
     return Hm0
 
 
-def average_zero_crossing_period(S):
+def average_zero_crossing_period(S,frequency_bins=None):
     """
     Calculates wave average zero crossing period from spectra
     
@@ -326,6 +329,8 @@ def average_zero_crossing_period(S):
     ------------    
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_bins: numpy array or pandas Series (optional)
+        Bins for frequency of S. Required for unevenly spaced bins
         
     Returns
     ---------
@@ -335,8 +340,8 @@ def average_zero_crossing_period(S):
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     
     # Eq 15 in IEC 62600-101 
-    m0 = frequency_moment(S,0).squeeze() # convert to Series for calculation
-    m2 = frequency_moment(S,2).squeeze()
+    m0 = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
+    m2 = frequency_moment(S,2,frequency_bins=frequency_bins).squeeze()
     
     Tz = np.sqrt(m0/m2)
     Tz = pd.DataFrame(Tz, index=S.columns, columns = ['Tz'])
@@ -344,7 +349,7 @@ def average_zero_crossing_period(S):
     return Tz
 
 
-def average_crest_period(S):
+def average_crest_period(S,frequency_bins=None):
     """
     Calculates wave average crest period from spectra
     
@@ -352,6 +357,8 @@ def average_crest_period(S):
     ------------
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_bins: numpy array or pandas Series (optional)
+        Bins for frequency of S. Required for unevenly spaced bins
         
     Returns
     ---------
@@ -361,8 +368,8 @@ def average_crest_period(S):
     """
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     
-    m2 = frequency_moment(S,2).squeeze() # convert to Series for calculation
-    m4 = frequency_moment(S,4).squeeze()
+    m2 = frequency_moment(S,2,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
+    m4 = frequency_moment(S,4,frequency_bins=frequency_bins).squeeze()
     
     Tavg = np.sqrt(m2/m4)
     Tavg = pd.DataFrame(Tavg, index=S.columns, columns=['Tavg'])
@@ -370,7 +377,7 @@ def average_crest_period(S):
     return Tavg
 
 
-def average_wave_period(S):
+def average_wave_period(S,frequency_bins=None):
     """
     Calculates mean wave period from spectra
     
@@ -378,6 +385,8 @@ def average_wave_period(S):
     ------------
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_bins: numpy array or pandas Series (optional)
+        Bins for frequency of S. Required for unevenly spaced bins
         
     Returns
     ---------
@@ -386,8 +395,8 @@ def average_wave_period(S):
     """
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     
-    m0 = frequency_moment(S,0).squeeze() # convert to Series for calculation
-    m1 = frequency_moment(S,1).squeeze() 
+    m0 = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
+    m1 = frequency_moment(S,1,frequency_bins=frequency_bins).squeeze() 
     
     Tm = np.sqrt(m0/m1)
     Tm = pd.DataFrame(Tm, index=S.columns, columns=['Tm'])    
@@ -420,7 +429,7 @@ def peak_period(S):
     return Tp
 
 
-def energy_period(S):
+def energy_period(S,frequency_bins=None):
     """
     Calculates wave energy period from spectra
     
@@ -428,6 +437,8 @@ def energy_period(S):
     ------------
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_bins: numpy array or pandas Series (optional)
+        Bins for frequency of S. Required for unevenly spaced bins
         
     Returns
     ---------
@@ -436,8 +447,8 @@ def energy_period(S):
     """
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     
-    mn1 = frequency_moment(S,-1).squeeze() # convert to Series for calculation
-    m0  = frequency_moment(S,0).squeeze()
+    mn1 = frequency_moment(S,-1,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
+    m0  = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze()
     
     # Eq 13 in IEC 62600-101 
     Te = mn1/m0
@@ -446,7 +457,7 @@ def energy_period(S):
     return Te
 
     
-def spectral_bandwidth(S):
+def spectral_bandwidth(S,frequency_bins=None):
     """
     Calculates bandwidth from spectra
     
@@ -454,6 +465,8 @@ def spectral_bandwidth(S):
     ------------
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_bins: numpy array or pandas Series (optional)
+        Bins for frequency of S. Required for unevenly spaced bins
         
     Returns
     ---------
@@ -462,9 +475,9 @@ def spectral_bandwidth(S):
     """
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     
-    m2 = frequency_moment(S,2).squeeze() # convert to Series for calculation
-    m0 = frequency_moment(S,0).squeeze()
-    m4 = frequency_moment(S,4).squeeze()
+    m2 = frequency_moment(S,2,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
+    m0 = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze()
+    m4 = frequency_moment(S,4,frequency_bins=frequency_bins).squeeze()
     
     e = np.sqrt(1- (m2**2)/(m0/m4))
     e = pd.DataFrame(e, index=S.columns, columns=['e'])
@@ -472,7 +485,7 @@ def spectral_bandwidth(S):
     return e
     
 
-def spectral_width(S):
+def spectral_width(S,frequency_bins=None):
     """
     Calculates wave spectral width from spectra
     
@@ -480,6 +493,8 @@ def spectral_width(S):
     ------------
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_bins: numpy array or pandas Series (optional)
+        Bins for frequency of S. Required for unevenly spaced bins
         
     Returns
     ---------
@@ -488,9 +503,9 @@ def spectral_width(S):
     """
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     
-    mn2 = frequency_moment(S,-2).squeeze() # convert to Series for calculation
-    m0 = frequency_moment(S,0).squeeze()
-    mn1 = frequency_moment(S,-1).squeeze()
+    mn2 = frequency_moment(S,-2,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
+    m0 = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze()
+    mn1 = frequency_moment(S,-1,frequency_bins=frequency_bins).squeeze()
     
     # Eq 16 in IEC 62600-101 
     v = np.sqrt((m0*mn2/np.power(mn1,2))-1)
