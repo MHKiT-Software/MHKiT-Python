@@ -4,18 +4,14 @@ import numpy as np
 import datetime as dt
 import matplotlib.pyplot as plt 
 
-def get_stats(data,tname,stat,period,freq):
+def get_stats(data,freq,period=600):
     """
     function used to obtain statistics from a dataset
 
     Parameters:
     ----------------------
     data : pandas dataframe or series
-        dataframe containg data to be analyzed
-    tname : string
-        name of column containing time in datetime format
-    stat : string input of mean, max, min, std or abs (absolute maximum)
-        type of statistics to be calculated
+        dataframe containg multiple or a single variable to be analyzed with statistical window
     period : float/int
         statistical window of interest (ex. 600 seconds) [sec]
     freq : float/int
@@ -23,33 +19,27 @@ def get_stats(data,tname,stat,period,freq):
     
     Returns:
     ----------------------
-    stats : pandas dataframe or series
-        dataframe containing calculated statistical values of data
+    means,maxs,mins,stds,absv : pandas dataframes or series
+        dataframes containing calculated statistical values of data
     """
-    # TODO: add functionality to check for consecutive data and find a way to handle it
-
     # check to see if data contains enough data points for statistical window
-    # if len(data)%(period*freq) > 0:
-    #     remain = len(data) % (period*freq)
-    #     data = data.iloc[0:-int(remain)]
-    #     print('WARNING: there were not enought data points in the last statistical period. Last '+str(remain)+' points were removed.')
+    if len(data)%(period*freq) > 0:
+        raise Exception('WARNING: there were not enought data points in the last statistical period. No stats calculated')
     
-    # convert period to timedelta
-    td = dt.timedelta(seconds=period)
-    
-    # calculate statistical parameter
-    if stat == 'mean' : stats = data.resample(td,on=tname).mean()
-    elif stat == 'max' : stats = data.resample(td,on=tname).max()
-    elif stat == 'min' : stats = data.resample(td,on=tname).min()
-    elif stat == 'std' : stats = data.resample(td,on=tname).std()
-    elif stat == 'abs' : stats = data.resample(td,on=tname).abs().max()
-    else:
-        print('Invalid stat input')
+    time = data.time[0]   
 
-    # drop first and last entry to make sure each stat window has enough points (temporary)
-    stats = stats.iloc[1:-1]
+    # calculate stats
+    means = data.mean()
+    maxs = data.max()
+    mins = data.min()
+    stds = data.std()
+    #absv = data.abs().max()
 
-    return stats
+    # TODO: handle if time variable exists
+    # TODO: handle vector averaging
+
+    # TODO: add statement to check output type
+    return time, means.to_frame(),maxs.to_frame(),mins.to_frame(),stds.to_frame()
 
 def unwrapvec(data):
     """
@@ -117,48 +107,3 @@ def statplotter(x,vmean,vmax,vmin,xlabel=None,ylabel=None,title=None,savepath=No
 # def statsplotter_bin(x,varmean,std=None,varmax=None,varmin=None,xlabel=None,ylabel=None,title=None,savepath=None):
 #     fig, ax = plt.subplots(figsize=(8,6))
 
-
-
-
-
-
-# def get_stats(data,period,freq):
-#     """
-#     function used to obtain statistics from a dataset
-
-#     Parameters:
-#     ----------------------
-#     data : pandas dataframe
-
-#     period : float/int
-#         statistical window of interest (ex. 600 seconds) [sec]
-#     freq : float/int
-#         sample rate of data [1/sec]
-    
-#     Returns:
-#     ----------------------
-#     dfstats : pandas multi-index dataframe
-#         dataframe containing calculated statistical values of data
-#     """
-#     # check to see if data contains enough data points for statistical window
-#     if len(data)%(period*freq) > 0:
-#         remain = len(data) % (period*freq)
-#         data = data.iloc[0:-int(remain)]
-#         print('WARNING: there were not enought data points in the last statistical period. Last '+str(remain)+' points were removed.')
-    
-#     # convert period to timedelta
-#     td = timedelta(seconds=period)
-
-#     # create multi-index
-#     time = data.resample(td).mean().index
-#     iterables = [['mean','max','min','std'], time]
-#     index = pd.MultiIndex.from_product(iterables,names=['Stat','Time'])  
-
-#     # calculate statistical parameter and create dataframe
-#     dfstats = pd.DataFrame(columns=data.columns.values,index=index)
-#     dfstats.loc['mean'] = data.resample(td).mean().values
-#     dfstats.loc['max'] = data.resample(td).max().values
-#     dfstats.loc['min'] = data.resample(td).min().values
-#     dfstats.loc[('std')] = data.resample(td).std().values
-
-#     return dfstats
