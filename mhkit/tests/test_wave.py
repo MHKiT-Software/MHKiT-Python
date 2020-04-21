@@ -256,12 +256,21 @@ class TestResourceMetrics(unittest.TestCase):
                 self.assertLess(error, 0.001) 
 
                 # v
-                if f == 'MC' or f == 'CDiP': # this should be updated to run on other datasets
+                if f == 'CDiP': # this should be updated to run on other datasets
                     expected = data['metrics']['v']
                     calculated = wave.resource.spectral_width(S,frequency_bins=f_bins).iloc[0,0]
                     error = np.abs(expected-calculated)/expected
+
                        
                     self.assertLess(error, 0.01) 
+
+                if f == 'MC':
+                    expected = data['metrics']['v']
+                    calculated = wave.resource.spectral_width(S).iloc[0,0] # testing that default uniform frequency bin widths works 
+                    error = np.abs(expected-calculated)/expected
+
+                       
+                    self.assertLess(error, 0.01)
 
                 
     def test_plot_elevation_timeseries(self):            
