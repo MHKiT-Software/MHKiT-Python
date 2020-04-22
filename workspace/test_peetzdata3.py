@@ -2,7 +2,7 @@
 import pandas as pd 
 import numpy as np 
 import _utilities as util
-import _loadsKit as lk 
+from mhkit import loadsKit as lk 
 import matplotlib.pyplot as plt 
 import os
 import nptdms # 3rd party module used to read TDMS files
@@ -14,6 +14,7 @@ pathOut = 'workspace/data_peetz/fastdata'
 # preallocate
 dfmeans = []
 DELlist = []
+time = []
 # start loop
 for f in os.listdir(pathOut):
     if f.endswith('.tdms'):
@@ -38,7 +39,8 @@ for f in os.listdir(pathOut):
         # start processing
         df.set_index('time',inplace=True)
         sMean,sMax,sMin,sStd = util.get_stats(df,50,period=600)
-        dfmeans.append(sMean)
+        dfmeans.extend(sMean.values.tolist())
+        time.extend(sMean.index.values)
         
         # get DELs
         DEL = lk.get_DEL(df.t3_tb_bending_1,3)
@@ -46,7 +48,7 @@ for f in os.listdir(pathOut):
                 
         print('done')
 
-dfmeans = pd.DataFrame()
+dfmeans = pd.DataFrame(dfmeans,columns=df.columns.values,index=time)
 
 
 # calculate PSD of last time series

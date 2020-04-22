@@ -2,7 +2,7 @@
 import pandas as pd 
 import numpy as np 
 import _utilities as util
-import _loadsKit as lk 
+from mhkit import loadsKit as lk 
 import matplotlib.pyplot as plt 
 import mhkit
 
