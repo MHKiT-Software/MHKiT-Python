@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np 
 import datetime as dt
 import matplotlib.pyplot as plt 
+from mhkit import qc
 
 def get_stats(data,freq,period=600):
     """
@@ -10,36 +11,65 @@ def get_stats(data,freq,period=600):
 
     Parameters:
     ----------------------
-    data : pandas dataframe or series
-        dataframe containg multiple or a single variable to be analyzed with statistical window
+    data : pandas dataframe
+        time-indexed dataframe containg variable(s) to be analyzed with statistical window
     period : float/int
         statistical window of interest (ex. 600 seconds) [sec]
     freq : float/int
-        sample rate of data [1/sec]
+        sample rate of data [Hz]
     
     Returns:
     ----------------------
-    means,maxs,mins,stds,absv : pandas dataframes or series
+    means,maxs,mins,stds : pandas dataframes
         dataframes containing calculated statistical values of data
     """
-    # check to see if data contains enough data points for statistical window
-    if len(data)%(period*freq) > 0:
-        raise Exception('WARNING: there were not enought data points in the last statistical period. No stats calculated')
+    # check data type
+    assert isinstance(data, pd.DataFrame), 'data must be of type pd.DataFrame'
+    assert isinstance(freq, (float,int)), 'freq must be of type int or float'
+    assert isinstance(period, (float,int)), 'freq must be of type int or float'
+
+    # check timestamp using qc module
+    data.index = data.index.round('1ms')
+    dataQC = qc.check_timestamp(data,1/freq)
+    dataQC = dataQC['cleaned_data']
     
-    time = data.time[0]   
+    # check to see if data length contains enough data points for statistical window
+    if len(dataQC)%(period*freq) > 0:
+        remain = len(dataQC) % (period*freq)
+        dataQC = dataQC.iloc[0:-int(remain)]
+        print('WARNING: there were not enought data points in the last statistical period. Last '+str(remain)+' points were removed.')
+    
+    # pre-allocate lists
+    time = []
+    means = []
+    maxs = []
+    mins = []
+    stdev = []
 
-    # calculate stats
-    means = data.mean()
-    maxs = data.max()
-    mins = data.min()
-    stds = data.std()
-    #absv = data.abs().max()
+    # grab data chunks to performs stats on
+    step = period*freq
+    for i in range(int(len(dataQC)/(period*freq))):
+        datachunk = dataQC.iloc[i*step:(i+1)*step]
+        # check whether there are any NaNs in datachunk
+        if datachunk.isnull().any().any(): 
+            continue
+        else:
+            # get stats
+            time.append(datachunk.index.values[0])
+            means.append(datachunk.mean())
+            maxs.append(datachunk.max())
+            mins.append(datachunk.min())
+            stdev.append(datachunk.std())
 
-    # TODO: handle if time variable exists
+    # convert to dataframes and set index
+    means = pd.DataFrame(means,index=time)
+    maxs = pd.DataFrame(maxs,index=time)
+    mins = pd.DataFrame(mins,index=time)
+    stdev = pd.DataFrame(stdev,index=time)
+
     # TODO: handle vector averaging
 
-    # TODO: add statement to check output type
-    return time, means.to_frame(),maxs.to_frame(),mins.to_frame(),stds.to_frame()
+    return means,maxs,mins,stdev
 
 def unwrapvec(data):
     """
@@ -47,14 +77,22 @@ def unwrapvec(data):
 
     Parameters:
     ---------------
-    data : dataframe or array
+    data : pd.Series, numpy array, list
         list of data points to be unwrapped [deg]
     
     Returns:
     --------------
-    data : dataframe or array
+    data : numpy array
         returns list of data points unwrapped between 0-360 deg
     """
+    # check data types
+    try:
+        data = np.array(data)
+    except:
+        pass
+    assert isinstance(data, np.ndarray), 'data must be of type np.ndarray'
+
+    # loop through and unwrap points
     for i in range(len(data)):
         if data[i] < 0:
             data[i] = data[i]+360
@@ -64,44 +102,66 @@ def unwrapvec(data):
         data = unwrapvec(data)
     return data
 
-# TODO: allow function to perform action on entire array
 def matlab2datetime(matlab_datenum):
     """
     conversion of matlab datenum format to python datetime
 
     Parameters:
     ----------------
-    matlab_datenum : float/int
-        value of matlab datenum to be converted
+    matlab_datenum : np.array
+        array of matlab datenum to be converted
 
     Returns:
     -----------------
-    pdate : float/int
-        equivalent python datetime value
+    time : np.array
+        array of corresponding python datetime values
     """
-    day = dt.datetime.fromordinal(int(matlab_datenum))
-    dayfrac = dt.timedelta(days=matlab_datenum%1) - dt.timedelta(days = 366)
-    pdate = day + dayfrac
-    return pdate
+    # check data types
+    try:
+        matlab_datenum = np.array(matlab_datenum)
+    except:
+        pass
+    assert isinstance(matlab_datenum, np.ndarray), 'data must be of type np.ndarray'
+
+    # pre-allocate
+    time = []
+    # loop through dates and convert
+    for t in matlab_datenum:
+        day = dt.datetime.fromordinal(int(t))
+        dayfrac = dt.timedelta(days=t%1) - dt.timedelta(days = 366)
+        time.append(day + dayfrac)
+    
+    time = np.array(time)
+    return time
+
+def excel2datetime(excel_num):
+    """
+    conversion of matlab datenum format to python datetime
+
+    Parameters:
+    ----------------
+    matlab_datenum : np.array
+        array of matlab datenum to be converted
+
+    Returns:
+    -----------------
+    time : np.array
+        array of corresponding python datetime values
+    """
+    # check data types
+    try:
+        excel_num = np.array(excel_num)
+    except:
+        pass
+    assert isinstance(excel_num, np.ndarray), 'data must be of type np.ndarray'
+
+    # convert to datetime
+    time = pd.to_datetime('1899-12-30')+pd.to_timedelta(excel_num,'D')
+
+    return time
 
 
-# TODO: add function description
-def statplotter(x,vmean,vmax,vmin,xlabel=None,ylabel=None,title=None,savepath=None):
-    fig, ax = plt.subplots(figsize=(6,4))
-    s = 10
-    ax.scatter(x,vmean,label='mean',s=s)
-    ax.scatter(x,vmax,label='max',s=s)
-    ax.scatter(x,vmin,label='min',s=s)
-    ax.grid(alpha=0.4)
-    ax.legend(loc='best')
-    if xlabel!=None: ax.set_xlabel(xlabel)
-    if ylabel!=None: ax.set_ylabel(ylabel)
-    if title!=None: ax.set_title(title)
-    fig.tight_layout()
-    if savepath==None: plt.show()
-    else: 
-        fig.savefig(savepath)
-        plt.close()
+
     
 
 # def statsplotter_bin(x,varmean,std=None,varmax=None,varmin=None,xlabel=None,ylabel=None,title=None,savepath=None):
