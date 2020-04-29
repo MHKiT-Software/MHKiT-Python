@@ -213,9 +213,9 @@ def surface_elevation(S, time_index, seed=123, phases=None):
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     assert isinstance(time_index, np.ndarray), 'time_index must be of type np.ndarray'
     assert isinstance(seed, (type(None),int)), 'seed must be of type int'
-    assert isinstance(phases, (type(None),np.ndarray)), 'phases must be of type np.ndarray'
+    assert isinstance(phases, (type(None),np.ndarray, pd.DataFrame)), 'phases must be of type np.ndarray'
     if phases is not None:
-        assert len(phases) == len(S), 'length of phases must match S'
+        assert phases.squeeze().shape == S.squeeze().shape, 'shape of phases must match S'
     
     
     start_time = time_index[0]
@@ -227,33 +227,36 @@ def surface_elevation(S, time_index, seed=123, phases=None):
     
     if phases is None:
         np.random.seed(seed)
-        phase = pd.Series(2*np.pi*np.random.rand(f.size))
-    else:
-        phase = pd.Series(phases)
-    phase.index = f
+        phase = pd.DataFrame(2*np.pi*np.random.rand(S.shape[0], S.shape[1]),
+                             index=S.index, columns=S.columns)
+    elif isinstance(phases, np.ndarray):
+        phase = pd.DataFrame(phases, index=S.index, columns=S.columns)
+    elif isinstance(phases, pd.DataFrame):
+        phase = phases
+        
     phase = phase[start_time:end_time] # Should phase, omega, and A*delta_f be 
                                         #   truncated before computation?
     omega = pd.Series(2*np.pi*f) # angular freqency
     omega.index = f
     omega = omega[start_time:end_time]
-
-    # Wave amplitude times delta f, truncated
+    
+        # Wave amplitude times delta f, truncated
     A = 2*S 
     A = A.multiply(delta_f, axis=0)
     A = np.sqrt(A)
     A = A.loc[start_time:end_time,:]
-    
-    # Product of omega and time
-    B = np.array([x*y for x,y in _product(time_index, omega)])
-    B = B.reshape((len(time_index),len(omega)))
-    B = pd.DataFrame(B, index=time_index, columns=omega.index)
 
-    C = np.real(np.exp(1j*(B+phase)))
-    C = pd.DataFrame(C, index=time_index, columns=omega.index)
-      
     eta = pd.DataFrame(columns=S.columns, index=time_index)
-    for col in A.columns:
-        eta[col] = (C*A[col]).sum(axis=1)
+    for mcol in eta.columns:
+        # Product of omega and time
+        B = np.array([x*y for x,y in _product(time_index, omega)])
+        B = B.reshape((len(time_index),len(omega)))
+        B = pd.DataFrame(B, index=time_index, columns=omega.index)
+    
+        C = np.real(np.exp(1j*(B+phase[mcol])))
+        C = pd.DataFrame(C, index=time_index, columns=omega.index)
+
+        eta[mcol] = (C*A[mcol]).sum(axis=1)
 
     return eta
 

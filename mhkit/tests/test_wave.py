@@ -64,7 +64,24 @@ class TestResourceSpectrum(unittest.TestCase):
 
         assert_frame_equal(eta0, eta1)
         assert_frame_equal(eta0, eta2)
-        
+
+    def test_surface_elevation_phases_np(self):
+        S0 = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
+        S1 = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs*1.1)
+        S = pd.concat([S0, S1], axis=1)
+
+        phases = np.random.rand(S.shape[0], S.shape[1]) * 2 * np.pi
+        wave.resource.surface_elevation(S, self.t, phases=phases)
+
+    def test_surface_elevation_phases_pd(self):
+        S0 = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
+        S1 = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs*1.1)
+        S = pd.concat([S0, S1], axis=1)
+
+        phases_pd = pd.DataFrame(np.random.rand(S.shape[0], S.shape[1]) * 2 * np.pi,
+                                 index=S.index, columns=S.columns)
+        wave.resource.surface_elevation(S, self.t, phases=phases_pd)
+
     def test_surface_elevation_moments(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
         eta = wave.resource.surface_elevation(S, self.t)
