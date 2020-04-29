@@ -7,6 +7,9 @@ import json
 import matplotlib.pylab as plt
 import mhkit.wave as wave
 from scipy.interpolate import interp1d
+from pandas.testing import assert_frame_equal
+import inspect
+
 
 testdir = dirname(abspath(__file__))
 datadir = join(testdir, 'data')
@@ -46,6 +49,22 @@ class TestResourceSpectrum(unittest.TestCase):
         self.assertLess(errorHm0, 0.01)
         self.assertLess(errorTp0, 0.01)
 
+    def test_surface_elevation_phasing(self):
+        S = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
+
+        sig = inspect.signature(wave.resource.surface_elevation)
+        seednum = sig.parameters['seed'].default
+
+        eta0 = wave.resource.surface_elevation(S, self.t)
+        eta1 = wave.resource.surface_elevation(S, self.t, seed=seednum)
+
+        np.random.seed(seednum)
+        phases = np.random.rand(len(S)) * 2 * np.pi
+        eta2 = wave.resource.surface_elevation(S, self.t, phases=phases)
+
+        assert_frame_equal(eta0, eta1)
+        assert_frame_equal(eta0, eta2)
+        
     def test_surface_elevation_moments(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
         eta = wave.resource.surface_elevation(S, self.t)
