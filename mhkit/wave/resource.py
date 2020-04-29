@@ -183,7 +183,7 @@ def jonswap_spectrum(f, Tp, Hs, gamma=3.3):
     return S
 
 ### Metrics
-def surface_elevation(S, time_index, seed=123):
+def surface_elevation(S, time_index, seed=123, phases=None):
     """
     Calculates wave elevation time-series from spectrum using a random phase
     
@@ -196,6 +196,9 @@ def surface_elevation(S, time_index, seed=123):
         for example, time = np.arange(0,100,0.01)
     seed: int (optional)
         Random seed
+    phases: numpy array (optional)
+        Explicit phases for frequency components (overrides seed)
+        for example, phases = np.random.rand(len(S)) * 2 * np.pi
         
     Returns
     ---------
@@ -209,9 +212,10 @@ def surface_elevation(S, time_index, seed=123):
         pass
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     assert isinstance(time_index, np.ndarray), 'time_index must be of type np.ndarray'
-    assert isinstance(seed, int), 'seed must be of type int'
+    assert isinstance(seed, (type(None),int)), 'seed must be of type int'
+    assert isinstance(phases, np.ndarray), 'phases must be of type np.ndarray'
+    assert len(phases) == len(S), 'length of phases must match S'
     
-    np.random.seed(seed)
     
     start_time = time_index[0]
     end_time = time_index[-1]
@@ -220,7 +224,11 @@ def surface_elevation(S, time_index, seed=123):
     f.index = f
     delta_f = f.diff()
     
-    phase = pd.Series(2*np.pi*np.random.rand(f.size))
+    if phases is None:
+        np.random.seed(seed)
+        phase = pd.Series(2*np.pi*np.random.rand(f.size))
+    else:
+        phase = pd.Series(phases)
     phase.index = f
     phase = phase[start_time:end_time] # Should phase, omega, and A*delta_f be 
                                         #   truncated before computation?
