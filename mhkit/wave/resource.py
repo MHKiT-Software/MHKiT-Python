@@ -214,7 +214,8 @@ def surface_elevation(S, time_index, seed=123, phases=None):
     assert isinstance(time_index, np.ndarray), 'time_index must be of type np.ndarray'
     assert isinstance(seed, (type(None),int)), 'seed must be of type int'
     assert isinstance(phases, (type(None),np.ndarray)), 'phases must be of type np.ndarray'
-    assert len(phases) == len(S), 'length of phases must match S'
+    if phases is not None:
+        assert len(phases) == len(S), 'length of phases must match S'
     
     
     start_time = time_index[0]
