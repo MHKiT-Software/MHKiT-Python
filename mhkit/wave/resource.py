@@ -185,7 +185,7 @@ def jonswap_spectrum(f, Tp, Hs, gamma=3.3):
 ### Metrics
 def surface_elevation(S, time_index, seed=123, phases=None):
     """
-    Calculates wave elevation time-series from spectrum using a random phase
+    Calculates wave elevation time-series from spectrum
     
     Parameters
     ------------    
@@ -196,7 +196,7 @@ def surface_elevation(S, time_index, seed=123, phases=None):
         for example, time = np.arange(0,100,0.01)
     seed: int (optional)
         Random seed
-    phases: numpy array (optional)
+    phases: numpy array or pandas DataFrame (optional)
         Explicit phases for frequency components (overrides seed)
         for example, phases = np.random.rand(len(S)) * 2 * np.pi
         
