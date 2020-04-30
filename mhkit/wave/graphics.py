@@ -123,34 +123,81 @@ def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
 
     return ax
 
-def plot_chakrabarti(H, L, D, ax=None):
+def plot_chakrabarti(*args, ax=None):
     """
-    Plots, in the style of Chakrabart, relative importance of viscous, inertia,
-    and diffraction phemonena
+    Plots, in the style of Chakrabart (2005), relative importance of viscous, 
+    inertia, and diffraction phemonena
 
     Chakrabarti, Subrata. Handbook of Offshore Engineering (2-volume set). 
     Elsevier, 2005.
 
     Parameters
     ------------
-    H: float or np.ndarray
-        Wave height
-    L: float or np.ndarray
-        Wave length
-    D: float or np.ndarray
-        Characteristic dimension
-
+    *args : floats or np.ndarrays or pd.DataFrame
+        If floats: H, L, D
+            where H is wave weight, L is wave length, D is characteristic length
+        If np.ndarray: H, L, D
+            (same as floats)
+        If pd.DataFrame
+            (same as floats)
     ax : matplotlib axes object (optional)
         Axes for plotting.  If None, then a new figure is created.
     
     Returns
     ---------
     ax : matplotlib pyplot axes
+
+    Examples
+    --------
+    **Using floats**
+
+    >>> plt.figure()
+    >>> ax = plt.gca()
+    >>> D = 5
+    >>> H = 8
+    >>> L = 200
+    >>> wave.graphics.plot_chakrabarti(H, L, D, ax=ax)
+
+    **Using np.ndarrays**
+    
+    >>> plt.figure()
+    >>> ax = plt.gca()
+    >>> D = np.linspace(5,15,5)
+    >>> H = 8*np.ones_like(D)
+    >>> L = 200*np.ones_like(D)
+    >>> wave.graphics.plot_chakrabarti(H, L, D, ax=ax)
+
+    **Using pd.DataFrame**
+
+    >>> plt.figure()
+    >>> ax = plt.gca()
+    >>> D = np.linspace(5,15,5)
+    >>> H = 8*np.ones_like(D)
+    >>> L = 200*np.ones_like(D)
+    >>> mvals = pd.DataFrame([H.flatten(),L.flatten(),D.flatten()], \
+                              index=['H','L','D']).transpose()
+    >>> wave.graphics.plot_chakrabarti(mvals, ax=ax)
     """
-    assert isinstance(H, (np.ndarray, float, int)), 'H must be a real numeric type'
-    assert isinstance(L, (np.ndarray, float, int)), 'L must be a real numeric type'
-    assert isinstance(D, (np.ndarray, float, int)), 'D must be a real numeric type'
-    assert isinstance(ax, (type(None), plt.Axes))
+    if len(args) == 1:
+        mvals = args[0]
+    if len(args) == 3:
+        H = args[0]
+        L = args[1]
+        D = args[2]
+        assert isinstance(H, (np.ndarray, float, int, np.int64)), 'H must be a real numeric type'
+        assert isinstance(L, (np.ndarray, float, int, np.int64)), 'L must be a real numeric type'
+        assert isinstance(D, (np.ndarray, float, int, np.int64)), 'D must be a real numeric type'
+        assert isinstance(ax, (type(None), plt.Axes))
+        if isinstance(H, np.ndarray):
+            assert H.squeeze().shape == L.squeeze().shape \
+            and H.squeeze().shape == D.squeeze().shape, 'H, L, and D must be same shape'
+        else:
+            H = np.array([H])
+            L = np.array([L])
+            D = np.array([D])
+
+        mvals = pd.DataFrame([H.flatten(),L.flatten(),D.flatten()],
+                         index=['H','L','D']).transpose()
 
     if ax is None:
         plt.figure()
@@ -201,14 +248,14 @@ def plot_chakrabarti(H, L, D, ax=None):
     ax.text(1, 7, 'wave\nbreaking\n$H/L > 0.14$', ha='center', va='top',
             fontstyle='italic', fontsize='small')
 
-        # plot point(s)
-    xval = H/D
-    yval = np.pi*D/L
-    for ii, (xx, yy) in enumerate(zip(xval, yval)):
-        lab = '$H = %.2g,\\,L = %.2g,\\,D = %.2g$' % (H[ii], L[ii], D[ii])
+    for index, row in mvals.iterrows():
+        xx = row['H']/row['D']
+        yy = np.pi*row['D']/row['L']
+        lab = '$H = %.2g,\\,L = %.2g,\\,D = %.2g$' % (row['H'], row['L'], row['D'])
         ax.plot(xx, yy, 'o', label=lab)
+        # print(row['c1'], row['c2'])
 
-    if len(H) > 1 or len(L) > 1 or len(D) > 1:
+    if index > 0:
         ax.legend(fontsize='xx-small', ncol=2)
 
     ax.set_xlim((0.01, 10))

@@ -110,6 +110,18 @@ class TestResourceSpectrum(unittest.TestCase):
         if isfile(filename):
             os.remove(filename)
         
+        D = 5
+        H = 10
+        L = 200
+
+        wave.graphics.plot_chakrabarti(H, L, D)
+        plt.savefig(filename)
+
+    def test_plot_chakrabarti_np(self):            
+        filename = abspath(join(testdir, 'wave_plot_chakrabarti_np.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
         D = np.linspace(5, 15, 5)
         H = 10 * np.ones_like(D)
         L = 200 * np.ones_like(D)
@@ -117,7 +129,23 @@ class TestResourceSpectrum(unittest.TestCase):
         wave.graphics.plot_chakrabarti(H, L, D)
         plt.savefig(filename)
         
-        self.assertTrue(isfile(filename))   
+        self.assertTrue(isfile(filename))
+
+    def test_plot_chakrabarti_np(self):            
+        filename = abspath(join(testdir, 'wave_plot_chakrabarti_pd.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        D = np.linspace(5, 15, 5)
+        H = 10 * np.ones_like(D)
+        L = 200 * np.ones_like(D)
+        mvals = pd.DataFrame([H.flatten(),L.flatten(),D.flatten()],
+                         index=['H','L','D']).transpose()
+
+        wave.graphics.plot_chakrabarti(H, L, D)
+        plt.savefig(filename)
+        
+        self.assertTrue(isfile(filename))
         
 
 class TestResourceMetrics(unittest.TestCase):
