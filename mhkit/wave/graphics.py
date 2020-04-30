@@ -123,3 +123,96 @@ def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
 
     return ax
 
+def plot_chakrabarti(H, L, D, ax=None):
+    """
+    Plots, in the style of Chakrabart, relative importance of viscous, inertia,
+    and diffraction phemonena
+
+    Chakrabarti, Subrata. Handbook of Offshore Engineering (2-volume set). 
+    Elsevier, 2005.
+
+    Parameters
+    ------------
+    H: float or np.ndarray
+        Wave height
+    L: float or np.ndarray
+        Wave length
+    D: float or np.ndarray
+        Characteristic dimension
+
+    ax : matplotlib axes object (optional)
+        Axes for plotting.  If None, then a new figure is created.
+    
+    Returns
+    ---------
+    ax : matplotlib pyplot axes
+    """
+    assert isinstance(H, (np.ndarray, float, int)), 'H must be a real numeric type'
+    assert isinstance(L, (np.ndarray, float, int)), 'L must be a real numeric type'
+    assert isinstance(D, (np.ndarray, float, int)), 'D must be a real numeric type'
+    assert isinstance(ax, (type(None), plt.Axes))
+
+    if ax is None:
+        plt.figure()
+        ax = plt.gca()
+
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    x = np.logspace(-2, 1, 1000)
+
+    # upper bound of low drag region    
+    ldv = 20
+    y_small_drag = ldv*np.ones_like(x)
+    ax.plot(x[x < 0.14 * np.pi / ldv], y_small_drag[x < 0.14 * np.pi / ldv],
+            'k--')
+    ax.text(0.0125, 30, 'drag', ha='center', va='top', fontstyle='italic',
+            fontsize='small')
+
+    # upper bound of small drag region
+    sdv = 1.5
+    y_small_drag = sdv*np.ones_like(x)
+    ax.plot(x[x < 0.14 * np.pi / sdv], y_small_drag[x < 0.14 * np.pi / sdv],
+            'k--')
+    ax.text(0.02, 7, 'inertia \n& drag', ha='center', va='top',
+            fontstyle='italic', fontsize='small')
+     
+    # upper bound of neglible drag region   
+    ndv = 0.25
+    y_small_drag = ndv*np.ones_like(x)
+    ax.plot(x[x < 0.14 * np.pi / ndv], y_small_drag[x < 0.14 * np.pi / ndv],
+            'k--')
+    ax.text(8e-2, 0.7, 'large\ninertia', ha='center', va='top',
+        fontstyle='italic', fontsize='small')
+
+    ax.text(8e-2, 6e-2, 'all\ninertia', ha='center', va='top',
+            fontstyle='italic', fontsize='small')
+
+    # left bound of diffraction region
+    drv = 0.5
+    y_diff_reg = np.array([1e-2, 0.14 * np.pi / drv])
+    x_diff_reg = 0.5 * np.ones_like(y_diff_reg)
+    ax.plot(x_diff_reg, y_diff_reg, 'k--')
+    ax.text(2, 6e-2, 'diffraction', ha='center', va='top', fontstyle='italic',
+            fontsize='small')
+
+    # deep water breaking limit (H/L = 0.14)
+    y_breaking = 0.14 * np.pi / x
+    ax.plot(x, y_breaking, 'k-')
+    ax.text(1, 7, 'wave\nbreaking\n$H/L > 0.14$', ha='center', va='top',
+            fontstyle='italic', fontsize='small')
+
+        # plot point(s)
+    xval = H/D
+    yval = np.pi*D/L
+    for ii, (xx, yy) in enumerate(zip(xval, yval)):
+        lab = '$H = %.2g,\\,L = %.2g,\\,D = %.2g$' % (H[ii], L[ii], D[ii])
+        ax.plot(xx, yy, 'o', label=lab)
+
+    if len(H) > 1 or len(L) > 1 or len(D) > 1:
+        ax.legend(fontsize='xx-small', ncol=2)
+
+    ax.set_xlim((0.01, 10))
+    ax.set_ylim((0.01, 50))
+
+    ax.set_xlabel('Diffraction parameter, $\\frac{\\pi D}{\\lambda}$')
+    ax.set_ylabel('KC parameter, $\\frac{H}{D}$')
