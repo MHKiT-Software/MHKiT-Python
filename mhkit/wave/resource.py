@@ -5,6 +5,7 @@ from scipy import signal as _signal
 from itertools import product as _product
 
 
+
 ### Spectrum
 def elevation_spectrum(eta, sample_rate, nnft, window='hann', detrend=True, noverlap=None):
     """
@@ -183,7 +184,7 @@ def jonswap_spectrum(f, Tp, Hs, gamma=3.3):
     return S
 
 ### Metrics
-def surface_elevation(S, time_index, seed=123, phases=None):
+def surface_elevation(S, time_index, seed=123, frequency_bins=None,phases=None):
     """
     Calculates wave elevation time-series from spectrum
     
@@ -196,6 +197,8 @@ def surface_elevation(S, time_index, seed=123, phases=None):
         for example, time = np.arange(0,100,0.01)
     seed: int (optional)
         Random seed
+    frequency_bins: numpy array or pandas Series (optional)
+        Bin widths for frequency of S. Required for unevenly sized bins
     phases: numpy array or pandas DataFrame (optional)
         Explicit phases for frequency components (overrides seed)
         for example, phases = np.random.rand(len(S)) * 2 * np.pi
@@ -211,20 +214,34 @@ def surface_elevation(S, time_index, seed=123, phases=None):
     except:
         pass
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
-    assert isinstance(time_index, np.ndarray), 'time_index must be of type np.ndarray'
+    assert isinstance(time_index, np.ndarray), ('time_index must be of type' 
+            'np.ndarray')
     assert isinstance(seed, (type(None),int)), 'seed must be of type int'
-    assert isinstance(phases, (type(None),np.ndarray, pd.DataFrame)), 'phases must be of type np.ndarray'
+    assert isinstance(frequency_bins, (type(None), np.ndarray, pd.DataFrame)),( 
+            "frequency_bins must be of type None, np.ndarray, or pd,DataFrame")
+    assert isinstance(phases, (type(None), np.ndarray, pd.DataFrame)), (
+            'phases must be of type None, np.ndarray, or pd,DataFrame')
+
+    if frequency_bins is not None:
+        assert frequency_bins.squeeze().shape == frequency_bins.squeeze().shape,(
+            'shape of frequency_bins must match shape of S')
     if phases is not None:
-        assert phases.squeeze().shape == S.squeeze().shape, 'shape of phases must match S'
-    
-    
+        assert phases.squeeze().shape == S.squeeze().shape,( 
+            'shape of phases must match shape of S')
+        
     start_time = time_index[0]
     end_time = time_index[-1]
-    
-    f = pd.Series(S.index) # frequency
+
+    f = pd.Series(S.index)
     f.index = f
-    delta_f = f.diff()
-    
+        
+    if frequency_bins is None:        
+        delta_f = f.diff()
+    elif isinstance(frequency_bins, np.ndarray):
+        delta_f = pd.DataFrame(frequency_bins, index=S.index, columns=['df'])
+    elif isinstance(frequency_bins, pd.DataFrame):
+        delta_f = frequency_bins
+
     if phases is None:
         np.random.seed(seed)
         phase = pd.DataFrame(2*np.pi*np.random.rand(S.shape[0], S.shape[1]),
@@ -236,11 +253,12 @@ def surface_elevation(S, time_index, seed=123, phases=None):
         
     phase = phase[start_time:end_time] # Should phase, omega, and A*delta_f be 
                                         #   truncated before computation?
-    omega = pd.Series(2*np.pi*f) # angular freqency
+    
+    omega = pd.Series(2*np.pi*f) 
     omega.index = f
     omega = omega[start_time:end_time]
     
-        # Wave amplitude times delta f, truncated
+    # Wave amplitude times delta f, truncated
     A = 2*S 
     A = A.multiply(delta_f, axis=0)
     A = np.sqrt(A)
@@ -292,13 +310,12 @@ def frequency_moment(S, N, frequency_bins=None):
         delta_f[0] = f[1]-f[0]
     else:
          
-        assert isinstance(frequency_bins, (np.ndarray,pd.Series,pd.DataFrame)), 'frequency_bins must be of type np.ndarray or pd.Series'
+        assert isinstance(frequency_bins, (np.ndarray,pd.Series,pd.DataFrame)),(
+         'frequency_bins must be of type np.ndarray or pd.Series')
         delta_f = pd.Series(frequency_bins)
 
     delta_f.index = f
-    # print(f)
-    # print(delta_f.values)
-        
+# import ipdb; ipdb.set_trace()    
     m = spec.multiply(fn,axis=0).multiply(delta_f,axis=0)
     m = m.sum(axis=0)
     
