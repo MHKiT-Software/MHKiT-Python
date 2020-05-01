@@ -49,38 +49,41 @@ class TestResourceSpectrum(unittest.TestCase):
         self.assertLess(errorHm0, 0.01)
         self.assertLess(errorTp0, 0.01)
 
-    def test_surface_elevation_phasing(self):
+    def test_surface_elevation_seed(self):
         S = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
 
         sig = inspect.signature(wave.resource.surface_elevation)
         seednum = sig.parameters['seed'].default
-
+        
         eta0 = wave.resource.surface_elevation(S, self.t)
-        eta1 = wave.resource.surface_elevation(S, self.t, seed=seednum)
+        eta1 = wave.resource.surface_elevation(S, self.t, seed=seednum)                
+        
+        assert_frame_equal(eta0, eta1)        
 
+    def test_surface_elevation_phasing(self):
+        S = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
+        eta0 = wave.resource.surface_elevation(S, self.t)        
+        sig = inspect.signature(wave.resource.surface_elevation)
+        seednum = sig.parameters['seed'].default
         np.random.seed(seednum)
         phases = np.random.rand(len(S)) * 2 * np.pi
-        eta2 = wave.resource.surface_elevation(S, self.t, phases=phases)
+        eta1 = wave.resource.surface_elevation(S, self.t, phases=phases)
 
         assert_frame_equal(eta0, eta1)
-        assert_frame_equal(eta0, eta2)
 
-    def test_surface_elevation_phases_np(self):
+
+    def test_surface_elevation_phases_np_and_pd(self):
         S0 = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
         S1 = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs*1.1)
         S = pd.concat([S0, S1], axis=1)
 
-        phases = np.random.rand(S.shape[0], S.shape[1]) * 2 * np.pi
-        wave.resource.surface_elevation(S, self.t, phases=phases)
+        phases_np = np.random.rand(S.shape[0], S.shape[1]) * 2 * np.pi
+        phases_pd = pd.DataFrame(phases_np, index=S.index, columns=S.columns)
 
-    def test_surface_elevation_phases_pd(self):
-        S0 = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
-        S1 = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs*1.1)
-        S = pd.concat([S0, S1], axis=1)
+        eta_np = wave.resource.surface_elevation(S, self.t, phases=phases_np)
+        eta_pd = wave.resource.surface_elevation(S, self.t, phases=phases_pd)
 
-        phases_pd = pd.DataFrame(np.random.rand(S.shape[0], S.shape[1]) * 2 * np.pi,
-                                 index=S.index, columns=S.columns)
-        wave.resource.surface_elevation(S, self.t, phases=phases_pd)
+        assert_frame_equal(eta_np, eta_pd)
 
     def test_surface_elevation_moments(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
