@@ -85,6 +85,22 @@ class TestResourceSpectrum(unittest.TestCase):
 
         assert_frame_equal(eta_np, eta_pd)
 
+    def test_surface_elevation_frequency_bins_np_and_pd(self):
+        S0 = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
+        S1 = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs*1.1)
+        S = pd.concat([S0, S1], axis=1)
+
+        eta0 = wave.resource.surface_elevation(S, self.t)
+
+        f_bins_np = np.array([np.diff(S.index)[0]]*len(S))
+        f_bins_pd = pd.DataFrame(f_bins_np, index=S.index, columns=['df'])
+
+        eta_np = wave.resource.surface_elevation(S, self.t, frequency_bins=f_bins_np)
+        #import ipdb; ipdb.set_trace()
+        eta_pd = wave.resource.surface_elevation(S, self.t, frequency_bins=f_bins_pd)
+
+        assert_frame_equal(eta_np, eta_pd)        
+
     def test_surface_elevation_moments(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
         eta = wave.resource.surface_elevation(S, self.t)
@@ -183,7 +199,7 @@ class TestResourceMetrics(unittest.TestCase):
             self.valdata2['AH'][i]['S'] = wave.resource.elevation_spectrum(elevation, 
                          sample_rate, NFFT)
         
-        file_name = join(datadir, 'ValData2_CDiP.json')
+        file_name = join(datadir, 'ValData2_CDiP.json')       
         with open(file_name, "r") as read_file:
             data = json.load(read_file)
         self.valdata2['CDiP'] = data
@@ -191,7 +207,6 @@ class TestResourceMetrics(unittest.TestCase):
             temp = pd.Series(data[i]['S']).to_frame('S')
             temp.index = temp.index.astype(float)
             self.valdata2['CDiP'][i]['S'] = temp
-        
 
             
     @classmethod
@@ -211,36 +226,35 @@ class TestResourceMetrics(unittest.TestCase):
             self.assertLess(error, 1e-6)
     
     def test_moments(self):
-        for f in self.valdata2.keys(): # for each file MC, AH, CDiP
-            datasets = self.valdata2[f]
+        for file_i in self.valdata2.keys(): # for each file MC, AH, CDiP
+            datasets = self.valdata2[file_i]
             for s in datasets.keys(): # for each set
-                #print(f, s)
                 data = datasets[s]
                 for m in data['m'].keys():
                     expected = data['m'][m]
                     S = data['S']
-                    
                     if s == 'CDiP1' or s == 'CDiP6':
-                        f_bins=pd.Series(data['freqBinWidth'])
+                        f_bins=pd.Series(data['freqBinWidth'])                       
                     else: 
                         f_bins = None
-                    
+
                     calculated = wave.resource.frequency_moment(S, int(m),frequency_bins=f_bins).iloc[0,0]
                     error = np.abs(expected-calculated)/expected
                     
                     self.assertLess(error, 0.01) 
+
     
 
     def test_metrics(self):
-       for f in self.valdata2.keys(): # for each file MC, AH, CDiP
-            datasets = self.valdata2[f]
+       for file_i in self.valdata2.keys(): # for each file MC, AH, CDiP
+            datasets = self.valdata2[file_i]
             
             for s in datasets.keys(): # for each set
                 
                 
                 data = datasets[s]
                 S = data['S']
-                if f == 'CDiP':
+                if file_i == 'CDiP':
                     f_bins=pd.Series(data['freqBinWidth'])
                 else: 
                     f_bins = None
@@ -295,15 +309,15 @@ class TestResourceMetrics(unittest.TestCase):
                 self.assertLess(error, 0.001) 
 
                 # v
-                if f == 'CDiP': # this should be updated to run on other datasets
-                    expected = data['metrics']['v']
+                if file_i == 'CDiP': # this should be updated to run on other datasets
+                    expected = data['metrics']['v']                    
                     calculated = wave.resource.spectral_width(S,frequency_bins=f_bins).iloc[0,0]
                     error = np.abs(expected-calculated)/expected
 
                        
                     self.assertLess(error, 0.01) 
 
-                if f == 'MC':
+                if file_i == 'MC':
                     expected = data['metrics']['v']
                     calculated = wave.resource.spectral_width(S).iloc[0,0] # testing that default uniform frequency bin widths works 
                     error = np.abs(expected-calculated)/expected
