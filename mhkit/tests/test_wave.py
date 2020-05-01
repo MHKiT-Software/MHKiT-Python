@@ -95,10 +95,10 @@ class TestResourceSpectrum(unittest.TestCase):
         f_bins_np = np.array([np.diff(S.index)[0]]*len(S))
         f_bins_pd = pd.DataFrame(f_bins_np, index=S.index, columns=['df'])
 
-        eta_np = wave.resource.surface_elevation(S, self.t, frequency_bins=f_bins_np)
-        #import ipdb; ipdb.set_trace()
+        eta_np = wave.resource.surface_elevation(S, self.t, frequency_bins=f_bins_np)        
         eta_pd = wave.resource.surface_elevation(S, self.t, frequency_bins=f_bins_pd)
 
+        assert_frame_equal(eta0, eta_np)        
         assert_frame_equal(eta_np, eta_pd)        
 
     def test_surface_elevation_moments(self):
