@@ -234,13 +234,17 @@ def surface_elevation(S, time_index, seed=123, frequency_bins=None,phases=None):
 
     f = pd.Series(S.index)
     f.index = f
-        
+    
     if frequency_bins is None:        
         delta_f = f.diff()
+        #delta_f[0] = f[1]-f[0]
+
     elif isinstance(frequency_bins, np.ndarray):
-        delta_f = pd.DataFrame(frequency_bins, index=S.index, columns=['df'])
+        delta_f = pd.Series(frequency_bins, index=S.index)
     elif isinstance(frequency_bins, pd.DataFrame):
-        delta_f = frequency_bins
+        assert len(frequency_bins.columns) == 1, ('frequency_bins must only'
+                'contain 1 column')        
+        delta_f = frequency_bins.squeeze()
 
     if phases is None:
         np.random.seed(seed)
@@ -315,7 +319,7 @@ def frequency_moment(S, N, frequency_bins=None):
         delta_f = pd.Series(frequency_bins)
 
     delta_f.index = f
-# import ipdb; ipdb.set_trace()    
+ 
     m = spec.multiply(fn,axis=0).multiply(delta_f,axis=0)
     m = m.sum(axis=0)
     
