@@ -131,7 +131,7 @@ class TestResourceSpectrum(unittest.TestCase):
         
         self.assertTrue(isfile(filename))
 
-    def test_plot_chakrabarti_np(self):            
+    def test_plot_chakrabarti_pd(self):            
         filename = abspath(join(testdir, 'wave_plot_chakrabarti_pd.png'))
         if isfile(filename):
             os.remove(filename)
