@@ -263,3 +263,5 @@ def plot_chakrabarti(*args, ax=None):
 
     ax.set_xlabel('Diffraction parameter, $\\frac{\\pi D}{\\lambda}$')
     ax.set_ylabel('KC parameter, $\\frac{H}{D}$')
+
+    plt.tight_layout()
