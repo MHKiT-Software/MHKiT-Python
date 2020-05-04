@@ -26,13 +26,13 @@ def elevation_spectrum(eta, sample_rate, nnft, window='hann', detrend=True, nove
         Specifies if a linear trend is removed from the data before calculating 
         the wave energy spectrum.  Data is detrended by default.
     noverlap: int, optional 
-        Number of points to overlap between segments. 
-        If None, noverlap = nperseg / 2. Defaults to None.
+        Number of points to overlap between segments. If None,
+        ``noverlap = nperseg / 2``.  Defaults to None.
         
     Returns
     ---------
     S: pandas DataFrame
-        Spectral density [m^2/Hz] indexed by frequency [Hz]
+        sSpectral density [m^2/Hz] indexed by frequency [Hz]
     """
 
     # TODO: Add confidence intervals, equal energy frequency spacing, and NDBC 
