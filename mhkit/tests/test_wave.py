@@ -167,9 +167,9 @@ class TestResourceSpectrum(unittest.TestCase):
         
         D = 5
         H = 10
-        L = 200
+        lambda_w = 200
 
-        wave.graphics.plot_chakrabarti(H, L, D)
+        wave.graphics.plot_chakrabarti(H, lambda_w, D)
         plt.savefig(filename)
 
     def test_plot_chakrabarti_np(self):            
@@ -179,9 +179,9 @@ class TestResourceSpectrum(unittest.TestCase):
         
         D = np.linspace(5, 15, 5)
         H = 10 * np.ones_like(D)
-        L = 200 * np.ones_like(D)
+        lambda_w = 200 * np.ones_like(D)
 
-        wave.graphics.plot_chakrabarti(H, L, D)
+        wave.graphics.plot_chakrabarti(H, lambda_w, D)
         plt.savefig(filename)
         
         self.assertTrue(isfile(filename))
@@ -193,11 +193,11 @@ class TestResourceSpectrum(unittest.TestCase):
         
         D = np.linspace(5, 15, 5)
         H = 10 * np.ones_like(D)
-        L = 200 * np.ones_like(D)
-        mvals = pd.DataFrame([H.flatten(),L.flatten(),D.flatten()],
-                         index=['H','L','D']).transpose()
+        lambda_w = 200 * np.ones_like(D)
+        df = pd.DataFrame([H.flatten(),lambda_w.flatten(),D.flatten()],
+                         index=['H','lambda_w','D']).transpose()
 
-        wave.graphics.plot_chakrabarti(H, L, D)
+        wave.graphics.plot_chakrabarti(df)
         plt.savefig(filename)
         
         self.assertTrue(isfile(filename))

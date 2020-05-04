@@ -133,15 +133,16 @@ def plot_chakrabarti(*args, ax=None):
 
     Parameters
     ------------
-    *args : floats or np.ndarrays or pd.DataFrame
-        If floats: H, L, D
-            where H is wave weight, L is wave length, D is characteristic length
-        If np.ndarray: H, L, D
-            (same as floats)
-        If pd.DataFrame
-            (same as floats)
+    *args : floats or numpy array or pandas DataFrame
+    H: float or numpy array or pandas DataFrame
+        Wave height [m]   
+    lambda_w: float or numpy array or pandas DataFrame
+        Wave length [m]
+    D: float or numpy array or pandas DataFrame
+        Characteristic length [m]
     ax : matplotlib axes object (optional)
         Axes for plotting.  If None, then a new figure is created.
+    
     
     Returns
     ---------
@@ -152,52 +153,49 @@ def plot_chakrabarti(*args, ax=None):
     **Using floats**
 
     >>> plt.figure()
-    >>> ax = plt.gca()
     >>> D = 5
     >>> H = 8
-    >>> L = 200
-    >>> wave.graphics.plot_chakrabarti(H, L, D, ax=ax)
+    >>> lambda_w = 200
+    >>> wave.graphics.plot_chakrabarti(H, lambda_w, D)
 
-    **Using np.ndarrays**
+    **Using numpy array**
     
     >>> plt.figure()
-    >>> ax = plt.gca()
     >>> D = np.linspace(5,15,5)
     >>> H = 8*np.ones_like(D)
-    >>> L = 200*np.ones_like(D)
-    >>> wave.graphics.plot_chakrabarti(H, L, D, ax=ax)
+    >>> lambda_w = 200*np.ones_like(D)
+    >>> wave.graphics.plot_chakrabarti(H, lambda_w, D)
 
-    **Using pd.DataFrame**
+    **Using pandas DataFrame**
 
     >>> plt.figure()
-    >>> ax = plt.gca()
     >>> D = np.linspace(5,15,5)
     >>> H = 8*np.ones_like(D)
-    >>> L = 200*np.ones_like(D)
-    >>> mvals = pd.DataFrame([H.flatten(),L.flatten(),D.flatten()], \
-                              index=['H','L','D']).transpose()
-    >>> wave.graphics.plot_chakrabarti(mvals, ax=ax)
+    >>> lambda_w = 200*np.ones_like(D)
+    >>> df = pd.DataFrame([H.flatten(),lambda_w.flatten(),D.flatten()], \
+                              index=['H','lambda_w','D']).transpose()
+    >>> wave.graphics.plot_chakrabarti(df)
     """
     if len(args) == 1:
         mvals = args[0]
     if len(args) == 3:
         H = args[0]
-        L = args[1]
+        lambda_w = args[1]
         D = args[2]
         assert isinstance(H, (np.ndarray, float, int, np.int64)), 'H must be a real numeric type'
-        assert isinstance(L, (np.ndarray, float, int, np.int64)), 'L must be a real numeric type'
+        assert isinstance(lambda_w, (np.ndarray, float, int, np.int64)), 'lambda_w must be a real numeric type'
         assert isinstance(D, (np.ndarray, float, int, np.int64)), 'D must be a real numeric type'
         assert isinstance(ax, (type(None), plt.Axes))
         if isinstance(H, np.ndarray):
-            assert H.squeeze().shape == L.squeeze().shape \
-            and H.squeeze().shape == D.squeeze().shape, 'H, L, and D must be same shape'
+            assert H.squeeze().shape == lambda_w.squeeze().shape \
+            and H.squeeze().shape == D.squeeze().shape, 'H, lambda_w, and D must be same shape'
         else:
             H = np.array([H])
-            L = np.array([L])
+            lambda_w = np.array([lambda_w])
             D = np.array([D])
 
-        mvals = pd.DataFrame([H.flatten(),L.flatten(),D.flatten()],
-                         index=['H','L','D']).transpose()
+        mvals = pd.DataFrame([H.flatten(),lambda_w.flatten(),D.flatten()],
+                         index=['H','lambda_w','D']).transpose()
 
     if ax is None:
         plt.figure()
@@ -242,16 +240,16 @@ def plot_chakrabarti(*args, ax=None):
     ax.text(2, 6e-2, 'diffraction', ha='center', va='top', fontstyle='italic',
             fontsize='small')
 
-    # deep water breaking limit (H/L = 0.14)
+    # deep water breaking limit (H/lambda_w = 0.14)
     y_breaking = 0.14 * np.pi / x
     ax.plot(x, y_breaking, 'k-')
-    ax.text(1, 7, 'wave\nbreaking\n$H/L > 0.14$', ha='center', va='top',
+    ax.text(1, 7, 'wave\nbreaking\n$H/\lambda_w > 0.14$', ha='center', va='top',
             fontstyle='italic', fontsize='small')
 
     for index, row in mvals.iterrows():
         xx = row['H']/row['D']
-        yy = np.pi*row['D']/row['L']
-        lab = '$H = %.2g,\\,L = %.2g,\\,D = %.2g$' % (row['H'], row['L'], row['D'])
+        yy = np.pi*row['D']/row['lambda_w']
+        lab = '$H = %.2g,\\,lambda_w = %.2g,\\,D = %.2g$' % (row['H'], row['lambda_w'], row['D'])
         ax.plot(xx, yy, 'o', label=lab)
         # print(row['c1'], row['c2'])
 
@@ -261,7 +259,7 @@ def plot_chakrabarti(*args, ax=None):
     ax.set_xlim((0.01, 10))
     ax.set_ylim((0.01, 50))
 
-    ax.set_xlabel('Diffraction parameter, $\\frac{\\pi D}{\\lambda}$')
+    ax.set_xlabel('Diffraction parameter, $\\frac{\\pi D}{\\lambda_w}$')
     ax.set_ylabel('KC parameter, $\\frac{H}{D}$')
 
     plt.tight_layout()
