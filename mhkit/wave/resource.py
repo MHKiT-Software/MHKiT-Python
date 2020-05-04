@@ -25,6 +25,9 @@ def elevation_spectrum(eta, sample_rate, nnft, window='hann', detrend=True, nove
     detrend: bool (optional)
         Specifies if a linear trend is removed from the data before calculating 
         the wave energy spectrum.  Data is detrended by default.
+    noverlap: int, optional 
+        Number of points to overlap between segments. 
+        If None, noverlap = nperseg / 2. Defaults to None.
         
     Returns
     ---------
