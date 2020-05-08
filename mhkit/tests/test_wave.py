@@ -197,7 +197,7 @@ class TestResourceSpectrum(unittest.TestCase):
         df = pd.DataFrame([H.flatten(),lambda_w.flatten(),D.flatten()],
                          index=['H','lambda_w','D']).transpose()
 
-        wave.graphics.plot_chakrabarti(df)
+        wave.graphics.plot_chakrabarti(df.H, df.lambda_w, df.D)
         plt.savefig(filename)
         
         self.assertTrue(isfile(filename))
