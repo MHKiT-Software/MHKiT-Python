@@ -123,7 +123,7 @@ def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
 
     return ax
 
-def plot_chakrabarti(*args, ax=None):
+def plot_chakrabarti(H, lambda_w, D, ax=None):
     """
     Plots, in the style of Chakrabart (2005), relative importance of viscous, 
     inertia, and diffraction phemonena
@@ -132,13 +132,12 @@ def plot_chakrabarti(*args, ax=None):
     Elsevier, 2005.
 
     Parameters
-    ------------
-    *args : floats or numpy array or pandas DataFrame
-    H: float or numpy array or pandas DataFrame
+    ------------    
+    H: float or numpy array or pandas Series
         Wave height [m]   
-    lambda_w: float or numpy array or pandas DataFrame
+    lambda_w: float or numpy array or pandas Series
         Wave length [m]
-    D: float or numpy array or pandas DataFrame
+    D: float or numpy array or pandas Series
         Characteristic length [m]
     ax : matplotlib axes object (optional)
         Axes for plotting.  If None, then a new figure is created.
@@ -174,29 +173,40 @@ def plot_chakrabarti(*args, ax=None):
     >>> lambda_w = 200*np.ones_like(D)
     >>> df = pd.DataFrame([H.flatten(),lambda_w.flatten(),D.flatten()], \
                               index=['H','lambda_w','D']).transpose()
-    >>> wave.graphics.plot_chakrabarti(df)
+    >>> wave.graphics.plot_chakrabarti(df.H, df.lambda_w, df.D)
     """
-    if len(args) == 1:
-        mvals = args[0]
-    if len(args) == 3:
-        H = args[0]
-        lambda_w = args[1]
-        D = args[2]
-        assert isinstance(H, (np.ndarray, float, int, np.int64)), 'H must be a real numeric type'
-        assert isinstance(lambda_w, (np.ndarray, float, int, np.int64)), 'lambda_w must be a real numeric type'
-        assert isinstance(D, (np.ndarray, float, int, np.int64)), 'D must be a real numeric type'
-        assert isinstance(ax, (type(None), plt.Axes))
+
+    assert isinstance(H, (np.ndarray, float, int, np.int64,pd.Series)), 'H must be a real numeric type'
+    assert isinstance(lambda_w, (np.ndarray, float, int, np.int64,pd.Series)), 'lambda_w must be a real numeric type'
+    assert isinstance(D, (np.ndarray, float, int, np.int64,pd.Series)), 'D must be a real numeric type'
+    
+    if any([(isinstance(H, np.ndarray) or isinstance(H, pd.Series)),        \
+            (isinstance(lambda_w, np.ndarray) or isinstance(H, pd.Series)), \
+            (isinstance(D, np.ndarray) or isinstance(H, pd.Series))\
+           ]):
+        errMsg = 'H, lambda_w, and D must be same shape'
+        n_H = H.squeeze().shape
+        n_lambda_w = lambda_w.squeeze().shape
+        n_D = D.squeeze().shape
+        assert n_H == n_lambda_w and n_H == n_D, errMsg
+        
         if isinstance(H, np.ndarray):
-            assert H.squeeze().shape == lambda_w.squeeze().shape \
-            and H.squeeze().shape == D.squeeze().shape, 'H, lambda_w, and D must be same shape'
-        else:
-            H = np.array([H])
-            lambda_w = np.array([lambda_w])
-            D = np.array([D])
+            mvals = pd.DataFrame(H.reshape(len(H),1), columns=['H'])
+            mvals['lambda_w'] = lambda_w
+            mvals['D'] = D
+        elif isinstance(H, pd.Series):   
+            mvals = pd.DataFrame(H )
+            mvals['lambda_w'] = lambda_w
+            mvals['D'] = D 
 
-        mvals = pd.DataFrame([H.flatten(),lambda_w.flatten(),D.flatten()],
-                         index=['H','lambda_w','D']).transpose()
-
+    else:        
+        H = np.array([H])
+        lambda_w = np.array([lambda_w])
+        D = np.array([D])
+        mvals = pd.DataFrame(H.reshape(len(H),1), columns=['H'])
+        mvals['lambda_w'] = lambda_w
+        mvals['D'] = D
+                
     if ax is None:
         plt.figure()
         ax = plt.gca()
@@ -249,7 +259,7 @@ def plot_chakrabarti(*args, ax=None):
     for index, row in mvals.iterrows():
         xx = row['H']/row['D']
         yy = np.pi*row['D']/row['lambda_w']
-        lab = '$H = %.2g,\\,lambda_w = %.2g,\\,D = %.2g$' % (row['H'], row['lambda_w'], row['D'])
+        lab = '$H = %.2g,\\,$lambda_{w}$ = %.2g,\\,D = %.2g$' % (row['H'], row['lambda_w'], row['D'])
         ax.plot(xx, yy, 'o', label=lab)
         # print(row['c1'], row['c2'])
 
