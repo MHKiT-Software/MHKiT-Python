@@ -19,6 +19,7 @@ $ cat .gitignore
 **/tests/*.png
 **/workspace/data_peetz/
 **/workspace/data_mooring/
+**/workspace/data_GE/
 **/.vscode/
 
 .coverage
