@@ -23,6 +23,9 @@ $ cat .gitignore
 **/.vscode/
 
 .coverage
+.DS_Store
+.DS_Store?
+.gitignore
 
 # Exemptions
 !wecsim_output.mat
