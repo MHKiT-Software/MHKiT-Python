@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 def bin_stats(x,stat,maxX,bwidth=0.1):
     """
-    use to bin calculated statistics into current speed bins according to IEC
+    use to bin calculated statistics against "x" according to IEC
     
     Parameters:
     -----------------
@@ -119,6 +119,60 @@ def get_DEL(var, m, binNum=100, t=600):
     DEL = DELs.sum() ** (1/m)
 
     return DEL
+
+def get_DEL_channels(df, chan_dict, binNum=100, t=600):
+    """ Calculates the damage equivalent load of multiple variables
+    
+    Parameters: 
+    -----------
+    var : array
+        contains data of variable/channel being analyzed
+    
+    m : float/int
+        fatigue slope factor of material
+    
+    binNum : int
+        number of bins for rainflow counting method (minimum=100)
+    
+    t : float/int
+        length of measured data (seconds)
+    
+    Returns:
+    -----------
+    DEL : float
+        Damage equivalent load of single variable  
+    """
+    # check data types
+    assert isinstance(df, pd.DataFrame), 'df must be of type pd.DataFrame'
+    assert isinstance(chan_dict, (list,tuple)), 'chan_dict must be of type list or tuple'
+    assert isinstance(binNum, (float,int)), 'binNum must be of type float or int'
+    assert isinstance(t, (float,int)), 't must be of type float or int'
+
+    # create dictionary from chan_dict
+    dic = dict(chan_dict)
+
+    # pre-allocate list
+    dflist = []
+
+    # loop through channels and apply corresponding fatigue slope
+    for var in dic.keys():
+        # find rainflow ranges
+        ranges = fatpack.find_rainflow_ranges(df[var])
+
+        # find range count and bin
+        Nrf, Srf = fatpack.find_range_count(ranges,binNum)
+
+        # get DEL
+        DELs = Srf**dic[var] * Nrf / t
+        DEL = DELs.sum() ** (1/dic[var])
+        dflist.append(DEL)
+    
+    # create dataframe to return
+    dfDEL = pd.DataFrame(np.transpose(dflist))
+    dfDEL = dfDEL.T
+    dfDEL.columns = dic.keys()
+
+    return dfDEL
 
     
 ################ plotting functions
