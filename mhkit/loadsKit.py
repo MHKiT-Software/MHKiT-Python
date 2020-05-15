@@ -7,17 +7,20 @@ import matplotlib.pyplot as plt
 
 ################ general functions
 
-def bin_stats(x,stat,maxX,bwidth=0.1):
+def bin_stats(df,x,maxX,statlist=[],bwidth=0.1):
     """
     use to bin calculated statistics against "x" according to IEC
     
     Parameters:
     -----------------
-    x : array
-        array containing values to bin against
+    df : pd.Dataframe
+        matrix containing time-series statistics of variables
     
-    stat : array 
-        array containing statistics of load variable in question
+    x : array
+        contains array of variable to bin data against (ie. wind speed)
+    
+    statlist : list, optional 
+        contains names of variables to be binned. Bins all variables if left empty
     
     maxX : float/int
         maximum value used for creating rightmost bin edge of x
@@ -35,112 +38,86 @@ def bin_stats(x,stat,maxX,bwidth=0.1):
     """
     # check data types
     try:
-        x = np.array(x)
-        stat = np.array(stat)
+        x = np.asarray(x)
     except:
         pass
-    assert isinstance(x, np.ndarray), 'x must be of type np.ndarray'
-    assert isinstance(stat, np.ndarray), 'stat must be of type np.ndarray'
+    assert isinstance(df, pd.DataFrame), 'df must be of type pd.DataFrame'
+    assert isinstance(x, np.ndarray), 'x must be of np.ndarray'
     assert isinstance(maxX, (float,int)), 'maxX must be of type float or int'
     assert isinstance(bwidth, (float,int)), 'bwidth must be of type float or int'
 
+    # determine variables to analyze
+    if len(statlist)==0: # if not specified, bin all variables
+        statlist=df.columns.values
+    else:
+        assert isinstance(statlist, list), 'stat must be of type list'
 
     # create bin edges with step size = bwidth
-    bedges = list(range(0,maxX,bwidth))
+    bedges = list(range(0,maxX+1,bwidth))
 
-    # bin data
-    bstat = binned_statistic(x,stat,statistic='mean',bins=bedges)
+    # pre-allocate list variables
+    bstatlist = []
+    bstdlist = []
 
-    # get std of bins
-    std = []
-    stdev = pd.DataFrame(stat,index=bstat.binnumber)
-    for i in range(1,len(bstat.bin_edges)):
-        x = stdev.loc[i].std(ddof=0)
-        std.append(x[0])
-
-    # extract load means of each bin
-    baverages = bstat.statistic
-
+    # loop through statlist and get binned means
+    for chan in statlist:
+        # bin data
+        bstat = binned_statistic(x,df[chan],statistic='mean',bins=bedges)
+        # get std of bins
+        std = []
+        stdev = pd.DataFrame(df[chan])
+        stdev.set_index(bstat.binnumber,inplace=True)
+        for i in range(1,len(bstat.bin_edges)):
+            try:
+                temp = stdev.loc[i].std(ddof=0)
+                std.append(temp[0])
+            except:
+                std.append(np.nan)
+        bstatlist.append(bstat.statistic)
+        bstdlist.append(std)
+ 
     # convert return variables to dataframes
-    baverages = pd.DataFrame(baverages)
-    bstd = pd.DataFrame(std)
+    baverages = pd.DataFrame(np.transpose(bstatlist),columns=statlist)
+    bstd = pd.DataFrame(np.transpose(bstdlist),columns=statlist)
+
+    # check if any nans exist
+    if baverages.isna().any().any():
+        print('Warning: some bins may be empty!')
 
     return baverages, bstd
 
 
 ################ ultimate loads functions
 
-
+# TODO: ranked loads and/or ultimate loads per wind speed
 
 
 
 ################ fatigue functions
 
-def get_DEL(var, m, binNum=100, t=600):
-    """ Calculates the damage equivalent load of a single variable
-    
-    Parameters: 
-    -----------
-    var : array
-        contains data of variable/channel being analyzed
-    
-    m : float/int
-        fatigue slope factor of material
-    
-    binNum : int
-        number of bins for rainflow counting method (minimum=100)
-    
-    t : float/int
-        length of measured data (seconds)
-    
-    Returns:
-    -----------
-    DEL : float
-        Damage equivalent load of single variable  
-    """
-    # check data types
-    try:
-        var = np.array(var)
-    except:
-        pass
-    assert isinstance(var, np.ndarray), 'var must be of type np.ndarray'
-    assert isinstance(m, (float,int)), 'm must be of type float or int'
-    assert isinstance(binNum, (float,int)), 'binNum must be of type float or int'
-    assert isinstance(t, (float,int)), 't must be of type float or int'
-
-    # find rainflow ranges
-    ranges = fatpack.find_rainflow_ranges(var)
-
-    # find range count and bin
-    Nrf, Srf = fatpack.find_range_count(ranges,binNum)
-
-    # get DEL
-    DELs = Srf**m * Nrf / t
-    DEL = DELs.sum() ** (1/m)
-
-    return DEL
-
-def get_DEL_channels(df, chan_dict, binNum=100, t=600):
+def get_DELs(df, chan_dict, binNum=100, t=600):
     """ Calculates the damage equivalent load of multiple variables
     
     Parameters: 
     -----------
-    var : array
-        contains data of variable/channel being analyzed
+    df : pd.DataFrame
+        contains dataframe of variables/channels being analyzed
     
-    m : float/int
-        fatigue slope factor of material
-    
+    chan_dict : list, tuple
+        tuple/list containing channel names to be analyzed and corresponding fatigue slope factor "m"
+        ie. ('TwrBsFxt',4)
+        
     binNum : int
         number of bins for rainflow counting method (minimum=100)
     
     t : float/int
-        length of measured data (seconds)
-    
+        Used to control DEL frequency. Default for 1Hz is 600 seconds for 10min data
+        
     Returns:
     -----------
-    DEL : float
-        Damage equivalent load of single variable  
+    dfDEL : pd.DataFrame
+        Damage equivalent load of each specified variable  
+    
     """
     # check data types
     assert isinstance(df, pd.DataFrame), 'df must be of type pd.DataFrame'
@@ -177,7 +154,7 @@ def get_DEL_channels(df, chan_dict, binNum=100, t=600):
     
 ################ plotting functions
 
-def statplotter(x,vmean,vmax,vmin,xlabel=None,ylabel=None,title=None,savepath=None):
+def statplotter(x,vmean,vmax,vmin,vstdev=[],xlabel=None,ylabel=None,title=None,savepath=None):
     """
     plot showing standard raw statistics of variable
 
@@ -191,6 +168,8 @@ def statplotter(x,vmean,vmax,vmin,xlabel=None,ylabel=None,title=None,savepath=No
         array of max statistical values of variable
     vmin : numpy array
         array of min statistical values of variable
+    vstdev : numpy array, optional
+        array of standard deviation statistical values of variable
     xlabel : string, optional
         add xlabel to plot
     ylabel : string, optional
@@ -218,10 +197,10 @@ def statplotter(x,vmean,vmax,vmin,xlabel=None,ylabel=None,title=None,savepath=No
     assert isinstance(vmin, np.ndarray), 'vmin must be of type np.ndarray'
 
     fig, ax = plt.subplots(figsize=(6,4))
-    s = 10
-    ax.scatter(x,vmean,label='mean',s=s)
-    ax.scatter(x,vmax,label='max',s=s)
-    ax.scatter(x,vmin,label='min',s=s)
+    ax.plot(x,vmax,'^',label='max',mfc='none')
+    ax.plot(x,vmean,'o',label='mean',mfc='none')
+    ax.plot(x,vmin,'v',label='min',mfc='none')
+    if len(vstdev)>0: ax.plot(x,vstdev,'+',label='stdev',c='m')
     ax.grid(alpha=0.4)
     ax.legend(loc='best')
     if xlabel!=None: ax.set_xlabel(xlabel)
