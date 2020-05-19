@@ -213,7 +213,33 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
 
     ax.set_xscale('log')
     ax.set_yscale('log')
-    x = np.logspace(-2, 1, 1000)
+    
+    for index, row in mvals.iterrows():
+        xx = row['H']/row['D']
+        yy = np.pi*row['D']/row['lambda_w']
+        lab = '$H = %.2g,\\,$lambda_{w}$ = %.2g,\\,D = %.2g$' % (row['H'], row['lambda_w'], row['D'])
+        ax.plot(xx, yy, 'o', label=lab)
+
+    x_data_range = ax.get_xlim()
+    y_data_range = ax.get_ylim()
+    x_data_min = x_data_range[0]
+    x_data_max = x_data_range[1]
+    y_data_min = y_data_range[0]
+    y_data_max = y_data_range[1]
+
+    x_absolute_min = -2
+    x_absolute_max =  1
+    y_absolute_min =  0.01
+    y_absolute_max =  50
+
+    x_min = n_significant_figures( min(x_absolute_min, x_data_min), 1)
+    x_max = n_significant_figures( max(x_absolute_max, x_data_max), 1)
+    y_min = n_significant_figures( min(y_absolute_min, y_data_min), 1)
+    y_max = n_significant_figures( max(y_absolute_max, y_data_max), 1)
+
+
+    x = np.logspace(x_min, x_max, 1000)
+    import ipdb; ipdb.set_trace()
 
     # upper bound of low drag region    
     ldv = 20
@@ -256,20 +282,85 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     ax.text(1, 7, 'wave\nbreaking\n$H/\lambda_w > 0.14$', ha='center', va='top',
             fontstyle='italic', fontsize='small')
 
-    for index, row in mvals.iterrows():
-        xx = row['H']/row['D']
-        yy = np.pi*row['D']/row['lambda_w']
-        lab = '$H = %.2g,\\,$lambda_{w}$ = %.2g,\\,D = %.2g$' % (row['H'], row['lambda_w'], row['D'])
-        ax.plot(xx, yy, 'o', label=lab)
-        # print(row['c1'], row['c2'])
-
     if index > 0:
         ax.legend(fontsize='xx-small', ncol=2)
 
-    ax.set_xlim((0.01, 10))
-    ax.set_ylim((0.01, 50))
+#    float(format(0.00156,'.1g'))
+
+ #   ax.set_xlim((x_min, x_max))
+  #  ax.set_ylim((y_min, y_max))
+    #ax.set_xlim((0.01, 10))
+    #ax.set_ylim((0.01, 50))
 
     ax.set_xlabel('Diffraction parameter, $\\frac{\\pi D}{\\lambda_w}$')
     ax.set_ylabel('KC parameter, $\\frac{H}{D}$')
 
     plt.tight_layout()
+
+def _set_Min(threshold, val):
+    '''
+    Will return the value of threshold or val; whichever is less
+
+    Parameters
+    ----------
+    threshold: float
+        No value greater than this number will be returns
+    val: float
+        will return this value if less than threshold
+
+    Returns
+    -------
+    min_val: float
+        The value of threshold or val; whichever is less
+    '''
+    if threshold < val:
+        min_val = threshold
+    else:
+        min_val = val
+    return min_val
+
+
+def _set_Max(thershold, val):
+    '''
+    Will return the value of thershold or val; whichever is greater
+
+    Parameters
+    ----------
+    threshold: float
+        No value less than this number will be returns
+    val: float
+        Will return this value if greater than threshold
+
+    Returns
+    -------
+    max_val: float
+        The value of thershold or val; whichever is greater
+    '''
+    if threshold > val:
+        max_val = threshold
+    else:
+        max_val = val
+    return max_val
+
+
+
+def n_significant_figures(num,sig_figs):
+    '''
+    returns the number rounded to n significant figures
+
+    Parameters
+    ----------
+    num: float
+    number to be rounded
+    sig_figs: int
+        number of significant figures to roun to
+
+    Returns
+    -------
+    num_n: float
+        num rounded to n significant figures
+    '''
+    
+    num_n = float(format(num, f'.{sig_figs}g'))
+    return num_n
+
