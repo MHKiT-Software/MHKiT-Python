@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 ################ general functions
 
-def bin_stats(df,x,maxX,statlist=[],bwidth=0.1):
+def bin_stats(df,x,bin_edges,statlist=[]):
     """
     use to bin calculated statistics against "x" according to IEC
     
@@ -19,15 +19,12 @@ def bin_stats(df,x,maxX,statlist=[],bwidth=0.1):
     x : array
         contains array of variable to bin data against (ie. wind speed)
     
+    bin_edges : array
+        contains array of desired bin edges w/ consistent step size. 
+
     statlist : list, optional 
         contains names of variables to be binned. Bins all variables if left empty
     
-    maxX : float/int
-        maximum value used for creating rightmost bin edge of x
-
-    bwidth : float/int, optional 
-        width of bins
-
     Returns:
     ----------------
     baverages : array
@@ -39,21 +36,18 @@ def bin_stats(df,x,maxX,statlist=[],bwidth=0.1):
     # check data types
     try:
         x = np.asarray(x)
+        bin_edges = np.asarray(bin_edges)
     except:
         pass
     assert isinstance(df, pd.DataFrame), 'df must be of type pd.DataFrame'
-    assert isinstance(x, np.ndarray), 'x must be of np.ndarray'
-    assert isinstance(maxX, (float,int)), 'maxX must be of type float or int'
-    assert isinstance(bwidth, (float,int)), 'bwidth must be of type float or int'
+    assert isinstance(x, np.ndarray), 'x must be of type np.ndarray'
+    assert isinstance(bin_edges, np.ndarray), 'bin_edges must be of type np.ndarray'
 
     # determine variables to analyze
     if len(statlist)==0: # if not specified, bin all variables
         statlist=df.columns.values
     else:
         assert isinstance(statlist, list), 'stat must be of type list'
-
-    # create bin edges with step size = bwidth
-    bedges = list(range(0,maxX+1,bwidth))
 
     # pre-allocate list variables
     bstatlist = []
@@ -62,7 +56,7 @@ def bin_stats(df,x,maxX,statlist=[],bwidth=0.1):
     # loop through statlist and get binned means
     for chan in statlist:
         # bin data
-        bstat = binned_statistic(x,df[chan],statistic='mean',bins=bedges)
+        bstat = binned_statistic(x,df[chan],statistic='mean',bins=bin_edges)
         # get std of bins
         std = []
         stdev = pd.DataFrame(df[chan])
@@ -95,7 +89,7 @@ def bin_stats(df,x,maxX,statlist=[],bwidth=0.1):
 
 ################ fatigue functions
 
-def get_DELs(df, chan_dict, binNum=100, t=600):
+def get_DELs(df, chan_info, binNum=100, t=600):
     """ Calculates the damage equivalent load of multiple variables
     
     Parameters: 
@@ -103,7 +97,7 @@ def get_DELs(df, chan_dict, binNum=100, t=600):
     df : pd.DataFrame
         contains dataframe of variables/channels being analyzed
     
-    chan_dict : list, tuple
+    chan_info : list, tuple
         tuple/list containing channel names to be analyzed and corresponding fatigue slope factor "m"
         ie. ('TwrBsFxt',4)
         
@@ -121,12 +115,12 @@ def get_DELs(df, chan_dict, binNum=100, t=600):
     """
     # check data types
     assert isinstance(df, pd.DataFrame), 'df must be of type pd.DataFrame'
-    assert isinstance(chan_dict, (list,tuple)), 'chan_dict must be of type list or tuple'
+    assert isinstance(chan_info, (list,tuple)), 'chan_info must be of type list or tuple'
     assert isinstance(binNum, (float,int)), 'binNum must be of type float or int'
     assert isinstance(t, (float,int)), 't must be of type float or int'
 
     # create dictionary from chan_dict
-    dic = dict(chan_dict)
+    dic = dict(chan_info)
 
     # pre-allocate list
     dflist = []
