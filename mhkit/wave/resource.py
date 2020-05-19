@@ -5,6 +5,7 @@ from scipy import signal as _signal
 from itertools import product as _product
 
 
+
 ### Spectrum
 def elevation_spectrum(eta, sample_rate, nnft, window='hann', detrend=True, noverlap=None):
     """
@@ -24,7 +25,10 @@ def elevation_spectrum(eta, sample_rate, nnft, window='hann', detrend=True, nove
     detrend: bool (optional)
         Specifies if a linear trend is removed from the data before calculating 
         the wave energy spectrum.  Data is detrended by default.
-        
+    noverlap: int, optional
+        Number of points to overlap between segments. If None,
+        ``noverlap = nperseg / 2``.  Defaults to None. 
+                
     Returns
     ---------
     S: pandas DataFrame
@@ -183,9 +187,9 @@ def jonswap_spectrum(f, Tp, Hs, gamma=3.3):
     return S
 
 ### Metrics
-def surface_elevation(S, time_index, seed=123):
+def surface_elevation(S, time_index, seed=123, frequency_bins=None,phases=None):
     """
-    Calculates wave elevation time-series from spectrum using a random phase
+    Calculates wave elevation time-series from spectrum
     
     Parameters
     ------------    
@@ -196,6 +200,11 @@ def surface_elevation(S, time_index, seed=123):
         for example, time = np.arange(0,100,0.01)
     seed: int (optional)
         Random seed
+    frequency_bins: numpy array or pandas Series (optional)
+        Bin widths for frequency of S. Required for unevenly sized bins
+    phases: numpy array or pandas DataFrame (optional)
+        Explicit phases for frequency components (overrides seed)
+        for example, phases = np.random.rand(len(S)) * 2 * np.pi
         
     Returns
     ---------
@@ -208,48 +217,76 @@ def surface_elevation(S, time_index, seed=123):
     except:
         pass
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
-    assert isinstance(time_index, np.ndarray), 'time_index must be of type np.ndarray'
-    assert isinstance(seed, int), 'seed must be of type int'
-    
-    np.random.seed(seed)
-    
+    assert isinstance(time_index, np.ndarray), ('time_index must be of type' 
+            'np.ndarray')
+    assert isinstance(seed, (type(None),int)), 'seed must be of type int'
+    assert isinstance(frequency_bins, (type(None), np.ndarray, pd.DataFrame)),( 
+            "frequency_bins must be of type None, np.ndarray, or pd,DataFrame")
+    assert isinstance(phases, (type(None), np.ndarray, pd.DataFrame)), (
+            'phases must be of type None, np.ndarray, or pd,DataFrame')
+
+    if frequency_bins is not None:
+        assert frequency_bins.squeeze().shape == frequency_bins.squeeze().shape,(
+            'shape of frequency_bins must match shape of S')
+    if phases is not None:
+        assert phases.squeeze().shape == S.squeeze().shape,( 
+            'shape of phases must match shape of S')
+        
     start_time = time_index[0]
     end_time = time_index[-1]
-    
-    f = pd.Series(S.index) # frequency
+
+    f = pd.Series(S.index)
     f.index = f
-    delta_f = f.diff()
     
-    phase = pd.Series(2*np.pi*np.random.rand(f.size))
-    phase.index = f
+    if frequency_bins is None:        
+        delta_f = f.diff()
+        #delta_f[0] = f[1]-f[0]
+
+    elif isinstance(frequency_bins, np.ndarray):
+        delta_f = pd.Series(frequency_bins, index=S.index)
+    elif isinstance(frequency_bins, pd.DataFrame):
+        assert len(frequency_bins.columns) == 1, ('frequency_bins must only'
+                'contain 1 column')        
+        delta_f = frequency_bins.squeeze()
+
+    if phases is None:
+        np.random.seed(seed)
+        phase = pd.DataFrame(2*np.pi*np.random.rand(S.shape[0], S.shape[1]),
+                             index=S.index, columns=S.columns)
+    elif isinstance(phases, np.ndarray):
+        phase = pd.DataFrame(phases, index=S.index, columns=S.columns)
+    elif isinstance(phases, pd.DataFrame):
+        phase = phases
+        
     phase = phase[start_time:end_time] # Should phase, omega, and A*delta_f be 
                                         #   truncated before computation?
-    omega = pd.Series(2*np.pi*f) # angular freqency
+    
+    omega = pd.Series(2*np.pi*f) 
     omega.index = f
     omega = omega[start_time:end_time]
-
+    
     # Wave amplitude times delta f, truncated
     A = 2*S 
     A = A.multiply(delta_f, axis=0)
     A = np.sqrt(A)
     A = A.loc[start_time:end_time,:]
-    
-    # Product of omega and time
-    B = np.array([x*y for x,y in _product(time_index, omega)])
-    B = B.reshape((len(time_index),len(omega)))
-    B = pd.DataFrame(B, index=time_index, columns=omega.index)
 
-    C = np.real(np.exp(1j*(B+phase)))
-    C = pd.DataFrame(C, index=time_index, columns=omega.index)
-      
     eta = pd.DataFrame(columns=S.columns, index=time_index)
-    for col in A.columns:
-        eta[col] = (C*A[col]).sum(axis=1)
+    for mcol in eta.columns:
+        # Product of omega and time
+        B = np.array([x*y for x,y in _product(time_index, omega)])
+        B = B.reshape((len(time_index),len(omega)))
+        B = pd.DataFrame(B, index=time_index, columns=omega.index)
+    
+        C = np.real(np.exp(1j*(B+phase[mcol])))
+        C = pd.DataFrame(C, index=time_index, columns=omega.index)
+
+        eta[mcol] = (C*A[mcol]).sum(axis=1)
 
     return eta
 
 
-def frequency_moment(S, N):
+def frequency_moment(S, N, frequency_bins=None):
     """
     Calculates the Nth frequency moment of the spectrum
     
@@ -259,6 +296,8 @@ def frequency_moment(S, N):
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     N: int
         Moment (0 for 0th, 1 for 1st ....)
+    frequency_bins: numpy array or pandas Series (optional)
+        Bin widths for frequency of S. Required for unevenly sized bins
     
     Returns
     -------
@@ -273,11 +312,17 @@ def frequency_moment(S, N):
     
     f = spec.index 
     fn = np.power(f, N)
+    if frequency_bins is None:
+        delta_f = pd.Series(f).diff()
+        delta_f[0] = f[1]-f[0]
+    else:
+         
+        assert isinstance(frequency_bins, (np.ndarray,pd.Series,pd.DataFrame)),(
+         'frequency_bins must be of type np.ndarray or pd.Series')
+        delta_f = pd.Series(frequency_bins)
 
-    delta_f = pd.Series(f).diff()
-    delta_f[0] = f[1]-f[0]
     delta_f.index = f
-        
+ 
     m = spec.multiply(fn,axis=0).multiply(delta_f,axis=0)
     m = m.sum(axis=0)
     
@@ -286,7 +331,7 @@ def frequency_moment(S, N):
     return m
 
 
-def significant_wave_height(S):
+def significant_wave_height(S, frequency_bins=None):
     """
     Calculates wave height from spectra
 
@@ -294,6 +339,8 @@ def significant_wave_height(S):
     ------------    
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_bins: numpy array or pandas Series (optional)
+        Bin widths for frequency of S. Required for unevenly sized bins
         
     Returns
     ---------
@@ -303,13 +350,14 @@ def significant_wave_height(S):
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     
     # Eq 12 in IEC 62600-101
-    Hm0 = 4*np.sqrt(frequency_moment(S,0))
+    
+    Hm0 = 4*np.sqrt(frequency_moment(S,0,frequency_bins=frequency_bins))
     Hm0.columns = ['Hm0']
     
     return Hm0
 
 
-def average_zero_crossing_period(S):
+def average_zero_crossing_period(S,frequency_bins=None):
     """
     Calculates wave average zero crossing period from spectra
     
@@ -317,6 +365,8 @@ def average_zero_crossing_period(S):
     ------------    
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_bins: numpy array or pandas Series (optional)
+        Bin widths for frequency of S. Required for unevenly sized bins
         
     Returns
     ---------
@@ -326,8 +376,8 @@ def average_zero_crossing_period(S):
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     
     # Eq 15 in IEC 62600-101 
-    m0 = frequency_moment(S,0).squeeze() # convert to Series for calculation
-    m2 = frequency_moment(S,2).squeeze()
+    m0 = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
+    m2 = frequency_moment(S,2,frequency_bins=frequency_bins).squeeze()
     
     Tz = np.sqrt(m0/m2)
     Tz = pd.DataFrame(Tz, index=S.columns, columns = ['Tz'])
@@ -335,7 +385,7 @@ def average_zero_crossing_period(S):
     return Tz
 
 
-def average_crest_period(S):
+def average_crest_period(S,frequency_bins=None):
     """
     Calculates wave average crest period from spectra
     
@@ -343,6 +393,8 @@ def average_crest_period(S):
     ------------
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_bins: numpy array or pandas Series (optional)
+        Bin widths for frequency of S. Required for unevenly sized bins
         
     Returns
     ---------
@@ -352,8 +404,8 @@ def average_crest_period(S):
     """
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     
-    m2 = frequency_moment(S,2).squeeze() # convert to Series for calculation
-    m4 = frequency_moment(S,4).squeeze()
+    m2 = frequency_moment(S,2,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
+    m4 = frequency_moment(S,4,frequency_bins=frequency_bins).squeeze()
     
     Tavg = np.sqrt(m2/m4)
     Tavg = pd.DataFrame(Tavg, index=S.columns, columns=['Tavg'])
@@ -361,7 +413,7 @@ def average_crest_period(S):
     return Tavg
 
 
-def average_wave_period(S):
+def average_wave_period(S,frequency_bins=None):
     """
     Calculates mean wave period from spectra
     
@@ -369,6 +421,8 @@ def average_wave_period(S):
     ------------
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_bins: numpy array or pandas Series (optional)
+        Bin widths for frequency of S. Required for unevenly sized bins
         
     Returns
     ---------
@@ -377,8 +431,8 @@ def average_wave_period(S):
     """
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     
-    m0 = frequency_moment(S,0).squeeze() # convert to Series for calculation
-    m1 = frequency_moment(S,1).squeeze() 
+    m0 = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
+    m1 = frequency_moment(S,1,frequency_bins=frequency_bins).squeeze() 
     
     Tm = np.sqrt(m0/m1)
     Tm = pd.DataFrame(Tm, index=S.columns, columns=['Tm'])    
@@ -411,7 +465,7 @@ def peak_period(S):
     return Tp
 
 
-def energy_period(S):
+def energy_period(S,frequency_bins=None):
     """
     Calculates wave energy period from spectra
     
@@ -419,6 +473,8 @@ def energy_period(S):
     ------------
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_bins: numpy array or pandas Series (optional)
+        Bin widths for frequency of S. Required for unevenly sized bins
         
     Returns
     ---------
@@ -427,8 +483,8 @@ def energy_period(S):
     """
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     
-    mn1 = frequency_moment(S,-1).squeeze() # convert to Series for calculation
-    m0  = frequency_moment(S,0).squeeze()
+    mn1 = frequency_moment(S,-1,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
+    m0  = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze()
     
     # Eq 13 in IEC 62600-101 
     Te = mn1/m0
@@ -437,7 +493,7 @@ def energy_period(S):
     return Te
 
     
-def spectral_bandwidth(S):
+def spectral_bandwidth(S,frequency_bins=None):
     """
     Calculates bandwidth from spectra
     
@@ -445,6 +501,8 @@ def spectral_bandwidth(S):
     ------------
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_bins: numpy array or pandas Series (optional)
+        Bin widths for frequency of S. Required for unevenly sized bins
         
     Returns
     ---------
@@ -453,9 +511,9 @@ def spectral_bandwidth(S):
     """
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     
-    m2 = frequency_moment(S,2).squeeze() # convert to Series for calculation
-    m0 = frequency_moment(S,0).squeeze()
-    m4 = frequency_moment(S,4).squeeze()
+    m2 = frequency_moment(S,2,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
+    m0 = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze()
+    m4 = frequency_moment(S,4,frequency_bins=frequency_bins).squeeze()
     
     e = np.sqrt(1- (m2**2)/(m0/m4))
     e = pd.DataFrame(e, index=S.columns, columns=['e'])
@@ -463,7 +521,7 @@ def spectral_bandwidth(S):
     return e
     
 
-def spectral_width(S):
+def spectral_width(S,frequency_bins=None):
     """
     Calculates wave spectral width from spectra
     
@@ -471,6 +529,8 @@ def spectral_width(S):
     ------------
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_bins: numpy array or pandas Series (optional)
+        Bin widths for frequency of S. Required for unevenly sized bins
         
     Returns
     ---------
@@ -479,9 +539,9 @@ def spectral_width(S):
     """
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     
-    mn2 = frequency_moment(S,-2).squeeze() # convert to Series for calculation
-    m0 = frequency_moment(S,0).squeeze()
-    mn1 = frequency_moment(S,-1).squeeze()
+    mn2 = frequency_moment(S,-2,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
+    m0 = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze()
+    mn1 = frequency_moment(S,-1,frequency_bins=frequency_bins).squeeze()
     
     # Eq 16 in IEC 62600-101 
     v = np.sqrt((m0*mn2/np.power(mn1,2))-1)
