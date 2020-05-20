@@ -449,7 +449,7 @@ def interharmonics(harmonics,frequency):
 
     Returns
     -------
-    interharmonics: array? Pandas?
+    interharmonics: pandas DataFrame
         interharmonics groups
     """
     #Note: work on the data types, df, Series, numpy to streamline this. Will I ever pass multiple columns of harmonics??
@@ -467,7 +467,7 @@ def interharmonics(harmonics,frequency):
     j=0
     i=0
     cols=harmonics.columns
-    harmonic_subgroups=np.ones((np.size(hz),np.size(cols)))
+    interharmonics=np.ones((np.size(hz),np.size(cols)))
     for n in hz: 
         harmonics=harmonics.sort_index(axis=0)
         ind=pd.Index(harmonics.index)
@@ -478,14 +478,14 @@ def interharmonics(harmonics,frequency):
             subset = subset.squeeze()
         else: 
             subset = harmonics.iloc[indn+1:indn+7]**2
+            subset = subset.squeeze()
         for col in cols:
-            harmonic_subgroups[i,j] = np.sqrt(np.sum(subset))
+            interharmonics[i,j] = np.sqrt(np.sum(subset))
             j=j+1
         j=0
         i=i+1
     
     
-    harmonic_subgroups = pd.DataFrame(harmonic_subgroups,index=hz)
+    interharmonics = pd.DataFrame(interharmonics,index=hz)
 
-    return harmonic_subgroups
-
+    return interharmonics
