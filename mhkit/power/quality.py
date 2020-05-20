@@ -326,7 +326,7 @@ def harmonics(x,freq):
     harmonics: float? Array? 
         harmonics of the timeseries data
     """
-    #print(len(x))
+    
     x.to_numpy()
     
     a = np.fft.fft(x,axis=0)
@@ -398,7 +398,7 @@ def harmonic_subgroups(harmonics, frequency):
         
         indn = ind.get_loc(n, method='nearest')
         for col in cols:
-            harmonic_subgroups[i,j] = np.sqrt(np.sum([harmonics[col].iloc[indn]**2,harmonics[col].iloc[indn]**2,harmonics[col].iloc[indn]**2]))
+            harmonic_subgroups[i,j] = np.sqrt(np.sum([harmonics[col].iloc[indn-1]**2,harmonics[col].iloc[indn]**2,harmonics[col].iloc[indn+1]**2]))
             j=j+1
         j=0
         i=i+1
@@ -452,6 +452,7 @@ def interharmonics(harmonics,frequency):
     interharmonics: array? Pandas?
         interharmonics groups
     """
+    #Note: work on the data types, df, Series, numpy to streamline this. Will I ever pass multiple columns of harmonics??
     #assert isinstance(frequency, {60,50]), 'Frequency must be either 60 or 50'
 
     if frequency == 60:
@@ -463,13 +464,26 @@ def interharmonics(harmonics,frequency):
     else:
         print("Not a valid frequency")
         pass
-
-    for n in hz:    
+    j=0
+    i=0
+    cols=harmonics.columns
+    harmonic_subgroups=np.ones((np.size(hz),np.size(cols)))
+    for n in hz: 
+        harmonics=harmonics.sort_index(axis=0)
+        ind=pd.Index(harmonics.index)
+        
+        indn = ind.get_loc(n, method='nearest')  
         if frequency == 60:
-            subset = harmonics[n+1:n+9]**2
+            subset = harmonics.iloc[indn+1:indn+11]**2
+            subset = subset.squeeze()
         else: 
-            subset = harmonics[n+1:n+7]**2
-        harmonic_subgroups = np.sqrt(np.sum(subset))
+            subset = harmonics.iloc[indn+1:indn+7]**2
+        for col in cols:
+            harmonic_subgroups[i,j] = np.sqrt(np.sum(subset))
+            j=j+1
+        j=0
+        i=i+1
+    
     
     harmonic_subgroups = pd.DataFrame(harmonic_subgroups,index=hz)
 
