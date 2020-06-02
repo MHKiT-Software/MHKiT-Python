@@ -213,46 +213,7 @@ def simulated_voltage(uo,R_fic,L_fic,im):
     ufic=pd.DataFrame(ufic,index=uo.index)
     return ufic 
 
-def instantaneous_frequency(um):
 
-    """
-    Calcultes the instantaneous frequency of a measured voltage
-    
-     
-    Parameters
-    -----------
-    um: pandas DataFrame
-        measured voltage source (V) index by time 
-
-        
-    Returns
-    ---------
-    frequency: pandas DataFrame
-        the frequency of the measured voltage (Hz) index by time 
-    """  
-    frequency = pd.DataFrame()
-    d=pd.Series(um.index).diff()
-    
-    if isinstance(um, pd.DataFrame):
-        columns = list(um)
-        
-        for i in columns:
-            f = hilbert(um[i])
-            instantaneous_phase = np.unwrap(np.angle(f))
-            instantaneous_frequency = (np.diff(instantaneous_phase) /(2.0*np.pi) * (1/d[1:]))   #
-            frequency=pd.concat([frequency,instantaneous_frequency],axis=1)
-        names = list(range(1,len(um.columns)+1))
-        frequency.columns=names
-            
-    
-    if isinstance(um,pd.Series):
-        f = hilbert(um)
-        instantaneous_phase = np.unwrap(np.angle(f))
-        instantaneous_frequency = (np.diff(instantaneous_phase) /(2.0*np.pi) * (1/d[1:]))   #
-        frequency=pd.concat([frequency,instantaneous_frequency],axis=1)
-        frequency.columns = [1]
-        
-    return frequency
     
 
 def short_term_flicker_severity(P): ### Should not need this function- it should be the output of the flickermeter 
