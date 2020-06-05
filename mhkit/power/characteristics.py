@@ -28,7 +28,7 @@ def instantaneous_frequency(um):
     #mask = pd.Series(um.index).diff() == pd.Timedelta('0 days 00:00:00')
     #print(mask)
     d=pd.Series(t).diff()
-    print(d)
+    #print(d)
     
     if isinstance(um, pd.DataFrame):
         columns = list(um)
@@ -83,7 +83,7 @@ def dc_power(voltage, current):
 
 def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
     """
-    Calculates real power from line to neutral voltage and current 
+    Calculates magnitude of apparent power from line to neutral voltage and current 
 
     Parameters
     -----------
@@ -99,7 +99,7 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
     Returns
     --------
     P: pandas DataFrame
-        Total power [W] indexed by time
+        magnitude of apparent power [volt-amperes] indexed by time
     """
     assert isinstance(voltage, pd.DataFrame), 'voltage must be of type pd.DataFrame'
     assert isinstance(current, pd.DataFrame), 'current must be of type pd.DataFrame'
@@ -111,9 +111,9 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
     col_map = dict(zip(current.columns, voltage.columns))
 
     if line_to_line:
-        power = current.rename(columns=col_map)*(voltage*np.sqrt(3))
+        power = current.rename(columns=col_map).abs()*(voltage.abs()*np.sqrt(3))
     else:
-        power = current.rename(columns=col_map)*voltage
+        power = current.rename(columns=col_map).abs()*voltage.abs()
         
     P = power.sum(axis=1)*power_factor
     P = P.to_frame('Power')
