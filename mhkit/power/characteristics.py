@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from scipy.signal import hilbert
+import datetime
 
 def instantaneous_frequency(um):
 
@@ -20,7 +21,14 @@ def instantaneous_frequency(um):
         the frequency of the measured voltage (Hz) index by time 
     """  
     frequency = pd.DataFrame()
-    d=pd.Series(um.index).diff()
+    if isinstance(um.index[0], datetime.datetime):
+        t = (um.index - datetime.datetime(1970,1,1)).total_seconds()
+    else:
+        t = um.index
+    #mask = pd.Series(um.index).diff() == pd.Timedelta('0 days 00:00:00')
+    #print(mask)
+    d=pd.Series(t).diff()
+    print(d)
     
     if isinstance(um, pd.DataFrame):
         columns = list(um)
