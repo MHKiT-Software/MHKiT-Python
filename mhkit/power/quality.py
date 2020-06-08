@@ -9,7 +9,7 @@ from scipy.signal import hilbert
 
 #This group of functions are to be used for power quality assessments 
 
-def harmonics(x,freq):
+def harmonics(x,freq,grid_freq):
     """
     Calculates the harmonics from time series of voltage or current based on IEC 61000-4-7. 
 
@@ -21,10 +21,14 @@ def harmonics(x,freq):
     freq: float
         frequency of the timeseries data [Hz]
     
+    grid_freq: int
+        value indicating if the power supply is 50 or 60 Hz. Valid input are 50 and 60
+   
+    
     Returns
     --------
-    harmonics: float? Array? 
-        harmonics of the timeseries data
+    harmonics: pandas DataFrame 
+        amplitude of the harmonics of the time series data indexed by the harmonic order
     """
     
     x.to_numpy()
@@ -32,16 +36,21 @@ def harmonics(x,freq):
     a = np.fft.fft(x,axis=0)
     
     amp = np.abs(a) # amplitude of the harmonics
-    #print(len(amp))
+    
     freqfft = fftpack.fftfreq(len(x),d=1./freq)
-    ##### NOTE: Harmonic order is fft freq/ number of fundamentals in the sample time period, look int if this is what I should be using
-    ### Note: do I need to impliment the digital low pass filter equations ???
+    
 
     harmonics = pd.DataFrame(amp,index=freqfft)
     
+    
     harmonics=harmonics.sort_index(axis=0)
-    #print(harmonics)
-    hz = np.arange(0,3000,5)
+    if grid_freq == 60:    
+        hz = np.arange(0,3005,5)
+    elif grid_freq == 50: 
+        hz = np.arange(0,2505,5)
+    else:
+        print('grid_freq must be either 60 or 50')
+        pass
     
     ind=pd.Index(harmonics.index)
     indn = [None]*np.size(hz)
@@ -51,45 +60,42 @@ def harmonics(x,freq):
         i = i+1
     
     harmonics = harmonics.iloc[indn]
+    harmonics.index = hz
+    harmonics = harmonics.loc[~harmonics.index.duplicated(keep='first')]
     
     return harmonics
 
 
-def harmonic_subgroups(harmonics, frequency): 
+def harmonic_subgroups(harmonics, grid_freq): 
     """
     calculates the harmonic subgroups based on IEC 61000-4-7
 
     Parameters
     ----------
     harmonics: pandas Series or DataFrame 
-        RMS harmonic amplitude indexed by the harmonic frequency 
-    frequency: int
+        RMS harmonic amplitude indexed by the harmonic order 
+    grid_freq: int
         value indicating if the power supply is 50 or 60 Hz. Valid input are 50 and 60
 
     Returns
     --------
-    harmonic_subgroups: array? Pandas?
+    harmonic_subgroups: pandas DataFrame
         harmonic subgroups 
-    """
-    #assert isinstance(frequency, {60,50]), 'Frequency must be either 60 or 50'
+    """        
 
-    #def subgroup(h,ind):
-        
-
-    if frequency == 60:
+    if grid_freq == 60:
         
         hz = np.arange(1,3000,60)
-    elif frequency == 50: 
+    elif grid_freq == 50: 
         
         hz = np.arange(1,2500,50)
     else:
-        print("Not a valid frequency")
+        print('grid_freq must be either 60 or 50')
         pass
     
     j=0
     i=0
     cols=harmonics.columns
-    #harmonic_subgroups=[None]*np.size(hz)
     harmonic_subgroups=np.ones((np.size(hz),np.size(cols)))
     for n in hz:
 
@@ -102,13 +108,12 @@ def harmonic_subgroups(harmonics, frequency):
             j=j+1
         j=0
         i=i+1
-        #print(harmonic_subgroups)
     
     harmonic_subgroups = pd.DataFrame(harmonic_subgroups,index=hz)
 
     return harmonic_subgroups
 
-def total_harmonic_current_distortion(harmonics_subgroup,rated_current):    #### might want to rename without current since this can be done for voltage too
+def total_harmonic_current_distortion(harmonics_subgroup,rated_current):    
 
     """
     Calculates the total harmonic current distortion (THC) based on IEC 62600-30
@@ -123,28 +128,28 @@ def total_harmonic_current_distortion(harmonics_subgroup,rated_current):    ####
     
     Returns
     --------
-    THC: float
+    THCD: float
         the total harmonic current distortion 
     """
-    #print(harmonics_subgroup)
+    
     harmonics_sq = harmonics_subgroup.iloc[2:50]**2
 
     harmonics_sum=harmonics_sq.sum()
 
-    THC = (np.sqrt(harmonics_sum)/harmonics_subgroup.iloc[1])*100
+    THCD = (np.sqrt(harmonics_sum)/harmonics_subgroup.iloc[1])*100
 
-    return THC
+    return THCD
 
-def interharmonics(harmonics,frequency):
+def interharmonics(harmonics,grid_freq):
     """
     calculates the interharmonics ffrom the harmonics of current
 
     Parameters
     -----------
     harmonics: pandas Series or DataFrame 
-        RMS harmonic amplitude indexed by the harmonic frequency 
+        RMS harmonic amplitude indexed by the harmonic order 
 
-    frequency: int
+    grid_freq: int
         value indicating if the power supply is 50 or 60 Hz. Valid input are 50 and 60
 
     Returns
@@ -153,17 +158,18 @@ def interharmonics(harmonics,frequency):
         interharmonics groups
     """
     #Note: work on the data types, df, Series, numpy to streamline this. Will I ever pass multiple columns of harmonics??
-    #assert isinstance(frequency, {60,50]), 'Frequency must be either 60 or 50'
+    
 
-    if frequency == 60:
+    if grid_freq == 60:
         
         hz = np.arange(0,3000,60)
-    elif frequency == 50: 
+    elif grid_freq == 50: 
         
         hz = np.arange(0,2500,50)
     else:
-        print("Not a valid frequency")
+        print('grid_freq must be either 60 or 50')
         pass
+    
     j=0
     i=0
     cols=harmonics.columns
