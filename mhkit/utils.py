@@ -31,7 +31,7 @@ def get_stats(data,freq,period=600):
     assert isinstance(period, (float,int)), 'freq must be of type int or float'
 
     # check timestamp using qc module
-    data.index = data.index.round('1ms')
+    data.index = data.index.round('1ms') # TODO: may be a better idea to force the user to do this in case very high sample rates are used
     dataQC = qc.check_timestamp(data,1/freq)
     dataQC = dataQC['cleaned_data']
     
@@ -115,12 +115,12 @@ def matlab2datetime(matlab_datenum):
 
     Returns:
     -----------------
-    time : np.array
+    time : DateTimeIndex
         array of corresponding python datetime values
     """
     # check data types
     try:
-        matlab_datenum = np.array(matlab_datenum)
+        matlab_datenum = np.array(matlab_datenum,ndmin=1)
     except:
         pass
     assert isinstance(matlab_datenum, np.ndarray), 'data must be of type np.ndarray'
@@ -134,20 +134,21 @@ def matlab2datetime(matlab_datenum):
         time.append(day + dayfrac)
     
     time = np.array(time)
+    time = pd.to_datetime(time)
     return time
 
 def excel2datetime(excel_num):
     """
-    conversion of matlab datenum format to python datetime
+    conversion of excel datenum format to python datetime
 
     Parameters:
     ----------------
-    matlab_datenum : np.array
-        array of matlab datenum to be converted
+    excel_num : np.array
+        array of excel datenums to be converted
 
     Returns:
     -----------------
-    time : np.array
+    time : DateTimeIndex
         array of corresponding python datetime values
     """
     # check data types
