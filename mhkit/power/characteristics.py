@@ -60,16 +60,13 @@ def dc_power(voltage, current):
     """
     assert isinstance(voltage, (pd.Series, pd.DataFrame)), 'voltage must be of type pd.Series or pd.DataFrame'
     assert isinstance(current, (pd.Series, pd.DataFrame)), 'current must be of type pd.Series or pd.DataFrame'
+    assert voltage.shape == current.shape, 'current and volatge must have the same shape'
     
-    # rename columns in current the calculation
-    col_map = dict(zip(current.columns, voltage.columns))
     
-    P = current.rename(columns=col_map)*voltage
-    coln = list(range(1,len(P.columns)+1))
-    P.columns = coln
-    
+    P = current.values * voltage.values
+    P = pd.DataFrame(P) 
     P['Gross'] = P.sum(axis=1, skipna=True) 
-    
+
     return P
 
 def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
