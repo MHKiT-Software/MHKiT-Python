@@ -95,15 +95,17 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
     assert len(current.columns) == 3, 'current must have three columns'
     assert current.shape == voltage.shape, 'current and voltage must be of the same size'
     
-    # rename columns in current the calculation
-    col_map = dict(zip(current.columns, voltage.columns))
+
+    current = np.abs(current.values)
+    voltage = np.abs(voltage.values)
 
     if line_to_line:
-        power = current.rename(columns=col_map).abs()*(voltage.abs()*np.sqrt(3))
+        power = current * (voltage * np.sqrt(3))
     else:
-        power = current.rename(columns=col_map).abs()*voltage.abs()
-        
-    P = power.sum(axis=1)*power_factor
+        power = current * voltage
+         
+    power = pd.DataFrame(power) 
+    P = power.sum(axis=1) * power_factor
     P = P.to_frame('Power')
     
     return P
