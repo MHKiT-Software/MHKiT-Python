@@ -14,7 +14,7 @@ def get_stats(data,freq,period=600):
     Parameters:
     ----------------------
     data : pandas dataframe
-        time-indexed dataframe containg variable(s) to be analyzed with statistical window
+        DateTimeIndex-ed dataframe containg variable(s) to be analyzed with statistical window
     period : float/int
         statistical window of interest (ex. 600 seconds) [sec]
     freq : float/int
@@ -54,6 +54,8 @@ def get_stats(data,freq,period=600):
         datachunk = dataQC.iloc[i*step:(i+1)*step]
         # check whether there are any NaNs in datachunk
         if datachunk.isnull().any().any(): 
+            print('NaNs found in statistical window...check timestamps!')
+            input('Press <ENTER> to continue')
             continue
         else:
             # get stats
