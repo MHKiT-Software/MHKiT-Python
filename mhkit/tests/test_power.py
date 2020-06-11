@@ -49,14 +49,19 @@ class TestDevice(unittest.TestCase):
         self.assertAlmostEqual(P2.sum()[0], 1011.518, 2)
         self.assertAlmostEqual(P2b.sum()[0], 1011.518/2, 2)
         
-    def test_dc_power(self):
+    def test_dc_power_DataFrame(self):
 
         current = pd.DataFrame(self.current_data, columns=['A1', 'A2', 'A3'])
         voltage = pd.DataFrame(self.voltage_data, columns=['V1', 'V2', 'V3'])
-        
         P = power.characteristics.dc_power(voltage, current)
+        self.assertEqual(P.sum()['Gross'], (voltage.values * current.values).sum())
+        
+    def test_dc_power_Series(self):
     
-        self.assertEqual(P.sum()['Gross'], 584)
+        current = pd.DataFrame(self.current_data, columns=['A1', 'A2', 'A3'])
+        voltage = pd.DataFrame(self.voltage_data, columns=['V1', 'V2', 'V3'])
+        P = power.characteristics.dc_power(voltage['V1'], current['A1'])
+        self.assertEqual(P.sum()['Gross'], sum( voltage['V1'] * current['A1']))
 
 if __name__ == '__main__':
     unittest.main() 
