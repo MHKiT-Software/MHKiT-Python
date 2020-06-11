@@ -6,12 +6,12 @@ import datetime
 def instantaneous_frequency(um):
 
     """
-    Calcultes the instantaneous frequency of a measured voltage
+    Calculates the instantaneous frequency of a measured voltage
     
      
     Parameters
     -----------
-    um: pandas DataFrame
+    um: pandas Series or DataFrame
         measured voltage source (V) index by time 
 
         
@@ -20,34 +20,25 @@ def instantaneous_frequency(um):
     frequency: pandas DataFrame
         the frequency of the measured voltage (Hz) index by time 
     """  
-    frequency = pd.DataFrame()
+    assert isinstance(um, (pd.Series, pd.DataFrame)), 'um must be of type pd.Series or pd.DataFrame'
+   
     if isinstance(um.index[0], datetime.datetime):
         t = (um.index - datetime.datetime(1970,1,1)).total_seconds()
     else:
         t = um.index
-    #mask = pd.Series(um.index).diff() == pd.Timedelta('0 days 00:00:00')
-    #print(mask)
-    d=pd.Series(t).diff()
-    #print(d)
-    
-    if isinstance(um, pd.DataFrame):
-        columns = list(um)
-        
-        for i in columns:
-            f = hilbert(um[i])
-            instantaneous_phase = np.unwrap(np.angle(f))
-            instantaneous_frequency = (np.diff(instantaneous_phase) /(2.0*np.pi) * (1/d[1:]))   #
-            frequency=pd.concat([frequency,instantaneous_frequency],axis=1)
-        names = list(range(1,len(um.columns)+1))
-        frequency.columns=names
-            
-    
+
+    dt = pd.Series(t).diff()[1:]
+
     if isinstance(um,pd.Series):
-        f = hilbert(um)
+        um = um.to_frame()
+
+    columns  = um.columns
+    frequency=pd.DataFrame(columns=columns)
+    for column in um.columns:
+        f = hilbert(um[column])
         instantaneous_phase = np.unwrap(np.angle(f))
-        instantaneous_frequency = (np.diff(instantaneous_phase) /(2.0*np.pi) * (1/d[1:]))   #
-        frequency=pd.concat([frequency,instantaneous_frequency],axis=1)
-        frequency.columns = [1]
+        instantaneous_frequency = np.diff(instantaneous_phase) /(2.0*np.pi) * (1/dt)
+        frequency[column] = instantaneous_frequency
         
     return frequency
 
