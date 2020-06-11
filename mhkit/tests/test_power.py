@@ -60,7 +60,7 @@ class TestDevice(unittest.TestCase):
         self.assertEqual(P1b.sum()[0], 584/2)
         self.assertAlmostEqual(P2.sum()[0], 1011.518, 2)
         self.assertAlmostEqual(P2b.sum()[0], 1011.518/2, 2)
-        
+
 if __name__ == '__main__':
     unittest.main() 
         
