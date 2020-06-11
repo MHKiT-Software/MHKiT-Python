@@ -54,7 +54,7 @@ class TestDevice(unittest.TestCase):
         current = pd.DataFrame(self.current_data, columns=['A1', 'A2', 'A3'])
         voltage = pd.DataFrame(self.voltage_data, columns=['V1', 'V2', 'V3'])
         
-        P = power.characteristics.dc_power(current, voltage)
+        P = power.characteristics.dc_power(voltage, current)
     
         self.assertEqual(P.sum()['Gross'], 584)
 
