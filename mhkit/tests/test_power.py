@@ -35,34 +35,32 @@ class TestDevice(unittest.TestCase):
         # Should we test than len(freq) == len(um)-1?
         
 
-    def test_ac_power_three_phase(self):
-        current = pd.DataFrame(self.current_data, columns=['A1', 'A2', 'A3'])
-        voltage = pd.DataFrame(self.voltage_data, columns=['V1', 'V2', 'V3'])
-        
-        P1 = power.characteristics.ac_power_three_phase(current, voltage, 1, False)
-        P1b = power.characteristics.ac_power_three_phase(current, voltage, 0.5, False)
-        P2 = power.characteristics.ac_power_three_phase(current, voltage, 1, True)
-        P2b = power.characteristics.ac_power_three_phase(current, voltage, 0.5, True)
-        
-        self.assertEqual(P1.sum()[0], 584)
-        self.assertEqual(P1b.sum()[0], 584/2)
-        self.assertAlmostEqual(P2.sum()[0], 1011.518, 2)
-        self.assertAlmostEqual(P2b.sum()[0], 1011.518/2, 2)
-        
     def test_dc_power_DataFrame(self):
-
         current = pd.DataFrame(self.current_data, columns=['A1', 'A2', 'A3'])
         voltage = pd.DataFrame(self.voltage_data, columns=['V1', 'V2', 'V3'])
         P = power.characteristics.dc_power(voltage, current)
         self.assertEqual(P.sum()['Gross'], (voltage.values * current.values).sum())
         
     def test_dc_power_Series(self):
-    
         current = pd.DataFrame(self.current_data, columns=['A1', 'A2', 'A3'])
         voltage = pd.DataFrame(self.voltage_data, columns=['V1', 'V2', 'V3'])
         P = power.characteristics.dc_power(voltage['V1'], current['A1'])
         self.assertEqual(P.sum()['Gross'], sum( voltage['V1'] * current['A1']))
 
+    def test_ac_power_three_phase(self):
+        current = pd.DataFrame(self.current_data, columns=['A1', 'A2', 'A3'])
+        voltage = pd.DataFrame(self.voltage_data, columns=['V1', 'V2', 'V3'])
+        
+        P1 = power.characteristics.ac_power_three_phase( voltage, current, 1, False)
+        P1b = power.characteristics.ac_power_three_phase(voltage, current, 0.5, False)
+        P2 = power.characteristics.ac_power_three_phase( voltage, current,1, True)
+        P2b = power.characteristics.ac_power_three_phase(voltage, current, 0.5, True)
+        
+        self.assertEqual(P1.sum()[0], 584)
+        self.assertEqual(P1b.sum()[0], 584/2)
+        self.assertAlmostEqual(P2.sum()[0], 1011.518, 2)
+        self.assertAlmostEqual(P2b.sum()[0], 1011.518/2, 2)
+        
 if __name__ == '__main__':
     unittest.main() 
         
