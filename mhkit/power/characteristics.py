@@ -96,13 +96,13 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
     assert current.shape == voltage.shape, 'current and voltage must be of the same size'
     
 
-    current = np.abs(current.values)
-    voltage = np.abs(voltage.values)
+    abs_current = np.abs(current.values)
+    abs_voltage = np.abs(voltage.values)
 
     if line_to_line:
-        power = current * (voltage * np.sqrt(3))
+        power = abs_current * (abs_voltage * np.sqrt(3))
     else:
-        power = current * voltage
+        power = abs_current * abs_voltage
          
     power = pd.DataFrame(power) 
     P = power.sum(axis=1) * power_factor
