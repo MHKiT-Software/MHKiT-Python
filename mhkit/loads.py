@@ -81,12 +81,6 @@ def bin_stats(df,x,bin_edges,statlist=[]):
     return baverages, bstd
 
 
-################ ultimate loads functions
-
-# TODO: ranked loads and/or ultimate loads per wind speed
-
-
-
 ################ fatigue functions
 
 def get_DELs(df, chan_info, binNum=100, t=600):
@@ -196,6 +190,55 @@ def statplotter(x,vmean,vmax,vmin,vstdev=[],xlabel=None,ylabel=None,title=None,s
     ax.plot(x,vmin,'v',label='min',mfc='none')
     if len(vstdev)>0: ax.plot(x,vstdev,'+',label='stdev',c='m')
     ax.grid(alpha=0.4)
+    ax.legend(loc='best')
+    if xlabel!=None: ax.set_xlabel(xlabel)
+    if ylabel!=None: ax.set_ylabel(ylabel)
+    if title!=None: ax.set_title(title)
+    fig.tight_layout()
+    if savepath==None: plt.show()
+    else: 
+        fig.savefig(savepath)
+        plt.close()
+
+
+def binplotter(bcenters,bmean,bmax,bmin,bstdmean,bstdmax,bstdmin,xlabel=None,ylabel=None,title=None,savepath=None):
+    """
+    plot showing standard binned statistics of single variable
+
+    Parameters:
+    ------------------
+    bcenters : numpy array
+        array of x-axis bin center values
+    bmean : numpy array
+        array of binned mean statistical values of variable
+    bmax : numpy array
+        array of binned max statistical values of variable
+    bmin : numpy array
+        array of binned min statistical values of variable
+    bstdmean : numpy array
+        array of standard deviations of mean binned statistics
+    bstdmax : numpy array
+        array of standard deviations of max binned statistics
+    bstdmin : numpy array
+        array of standard deviations of min binned statistics
+    xlabel : string, optional
+        add xlabel to plot
+    ylabel : string, optional
+        add ylabel to plot
+    title : string, optional
+        add title to plot
+    savepath : string, optional
+        path and filename to save figure. Plt.show() is called otherwise
+
+    Returns:
+    -------------------
+    figure
+    """
+    fig, ax = plt.subplots(figsize=(7,5))
+    ax.errorbar(bcenters,bmax,marker='^',mfc='none',yerr=bstdmax,capsize=4,label='max')
+    ax.errorbar(bcenters,bmean,marker='o',mfc='none',yerr=bstdmean,capsize=4,label='mean')
+    ax.errorbar(bcenters,bmin,marker='v',mfc='none',yerr=bstdmin,capsize=4,label='min')
+    ax.grid(alpha=0.5)
     ax.legend(loc='best')
     if xlabel!=None: ax.set_xlabel(xlabel)
     if ylabel!=None: ax.set_ylabel(ylabel)
