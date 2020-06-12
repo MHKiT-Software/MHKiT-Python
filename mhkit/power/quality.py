@@ -30,10 +30,8 @@ def harmonics(x,freq,grid_freq):
     harmonics: pandas DataFrame 
         amplitude of the harmonics of the time series data indexed by the harmonic order
     """
-   
-
-    assert isinstance(x, (pd.Series, pd.DataFrame)), 'voltage must be of type pd.DataFrame'
-    assert isinstance(freq, float), 'voltage must be of type pd.DataFrame'
+    assert isinstance(x, (pd.Series, pd.DataFrame)), 'Provided voltage or current must be of type pd.DataFrame or pd.Series'
+    assert isinstance(freq, float), 'freq must be of type pd.DataFrame'
     assert (grid_freq == 50 or grid_freq == 60), 'grid_freq must be either 50 or 60'
 
     x.to_numpy()
@@ -84,6 +82,8 @@ def harmonic_subgroups(harmonics, grid_freq):
     harmonic_subgroups: pandas DataFrame
         harmonic subgroups 
     """        
+    assert isinstance(harmonics, (pd.Series, pd.DataFrame)), 'harmonics must be of type pd.DataFrame or pd.Series'
+    assert (grid_freq == 50 or grid_freq == 60), 'grid_freq must be either 50 or 60'
 
     if grid_freq == 60:
         
@@ -91,9 +91,6 @@ def harmonic_subgroups(harmonics, grid_freq):
     elif grid_freq == 50: 
         
         hz = np.arange(1,2500,50)
-    else:
-        print('grid_freq must be either 60 or 50')
-        pass
     
     j=0
     i=0
@@ -133,6 +130,8 @@ def total_harmonic_current_distortion(harmonics_subgroup,rated_current):
     THCD: float
         the total harmonic current distortion 
     """
+    assert isinstance(harmonics_subgroup, (pd.Series, pd.DataFrame)), 'harmonic_subgroups must be of type pd.DataFrame or pd.Series'
+    assert isinstance(rated_current), float), 'rated_current must be a float'
     
     harmonics_sq = harmonics_subgroup.iloc[2:50]**2
 
@@ -159,6 +158,8 @@ def interharmonics(harmonics,grid_freq):
     interharmonics: pandas DataFrame
         interharmonics groups
     """
+    assert isinstance(harmonics, (pd.Series, pd.DataFrame)), 'harmonics must be of type pd.DataFrame or pd.Series'
+    assert (grid_freq == 50 or grid_freq == 60), 'grid_freq must be either 50 or 60'
     #Note: work on the data types, df, Series, numpy to streamline this. Will I ever pass multiple columns of harmonics??
     
 
@@ -168,9 +169,6 @@ def interharmonics(harmonics,grid_freq):
     elif grid_freq == 50: 
         
         hz = np.arange(0,2500,50)
-    else:
-        print('grid_freq must be either 60 or 50')
-        pass
     
     j=0
     i=0
