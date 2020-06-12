@@ -30,7 +30,12 @@ def harmonics(x,freq,grid_freq):
     harmonics: pandas DataFrame 
         amplitude of the harmonics of the time series data indexed by the harmonic order
     """
-    
+   
+
+    assert isinstance(x, (pd.Series, pd.DataFrame)), 'voltage must be of type pd.DataFrame'
+    assert isinstance(freq, float), 'voltage must be of type pd.DataFrame'
+    assert (grid_freq == 50 or grid_freq == 60), 'grid_freq must be either 50 or 60'
+
     x.to_numpy()
     
     a = np.fft.fft(x,axis=0)
@@ -48,9 +53,6 @@ def harmonics(x,freq,grid_freq):
         hz = np.arange(0,3005,5)
     elif grid_freq == 50: 
         hz = np.arange(0,2505,5)
-    else:
-        print('grid_freq must be either 60 or 50')
-        pass
     
     ind=pd.Index(harmonics.index)
     indn = [None]*np.size(hz)
