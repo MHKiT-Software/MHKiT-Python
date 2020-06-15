@@ -6,12 +6,12 @@ import datetime
 def instantaneous_frequency(um):
 
     """
-    Calcultes the instantaneous frequency of a measured voltage
+    Calculates the instantaneous frequency of a measured voltage
     
      
     Parameters
     -----------
-    um: pandas DataFrame
+    um: pandas Series or DataFrame
         measured voltage source (V) index by time 
 
         
@@ -20,34 +20,25 @@ def instantaneous_frequency(um):
     frequency: pandas DataFrame
         the frequency of the measured voltage (Hz) index by time 
     """  
-    frequency = pd.DataFrame()
+    assert isinstance(um, (pd.Series, pd.DataFrame)), 'um must be of type pd.Series or pd.DataFrame'
+   
     if isinstance(um.index[0], datetime.datetime):
         t = (um.index - datetime.datetime(1970,1,1)).total_seconds()
     else:
         t = um.index
-    #mask = pd.Series(um.index).diff() == pd.Timedelta('0 days 00:00:00')
-    #print(mask)
-    d=pd.Series(t).diff()
-    #print(d)
-    
-    if isinstance(um, pd.DataFrame):
-        columns = list(um)
-        
-        for i in columns:
-            f = hilbert(um[i])
-            instantaneous_phase = np.unwrap(np.angle(f))
-            instantaneous_frequency = (np.diff(instantaneous_phase) /(2.0*np.pi) * (1/d[1:]))   #
-            frequency=pd.concat([frequency,instantaneous_frequency],axis=1)
-        names = list(range(1,len(um.columns)+1))
-        frequency.columns=names
-            
-    
+
+    dt = pd.Series(t).diff()[1:]
+
     if isinstance(um,pd.Series):
-        f = hilbert(um)
+        um = um.to_frame()
+
+    columns  = um.columns
+    frequency=pd.DataFrame(columns=columns)
+    for column in um.columns:
+        f = hilbert(um[column])
         instantaneous_phase = np.unwrap(np.angle(f))
-        instantaneous_frequency = (np.diff(instantaneous_phase) /(2.0*np.pi) * (1/d[1:]))   #
-        frequency=pd.concat([frequency,instantaneous_frequency],axis=1)
-        frequency.columns = [1]
+        instantaneous_frequency = np.diff(instantaneous_phase) /(2.0*np.pi) * (1/dt)
+        frequency[column] = instantaneous_frequency
         
     return frequency
 
@@ -69,16 +60,13 @@ def dc_power(voltage, current):
     """
     assert isinstance(voltage, (pd.Series, pd.DataFrame)), 'voltage must be of type pd.Series or pd.DataFrame'
     assert isinstance(current, (pd.Series, pd.DataFrame)), 'current must be of type pd.Series or pd.DataFrame'
+    assert voltage.shape == current.shape, 'current and volatge must have the same shape'
     
-    # rename columns in current the calculation
-    col_map = dict(zip(current.columns, voltage.columns))
     
-    P = current.rename(columns=col_map)*voltage
-    coln = list(range(1,len(P.columns)+1))
-    P.columns = coln
-    
+    P = current.values * voltage.values
+    P = pd.DataFrame(P) 
     P['Gross'] = P.sum(axis=1, skipna=True) 
-    
+
     return P
 
 def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
@@ -99,7 +87,7 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
     Returns
     --------
     P: pandas DataFrame
-        magnitude of active power [Watts] indexed by time
+        magnitude of active power [W] indexed by time
     """
     assert isinstance(voltage, pd.DataFrame), 'voltage must be of type pd.DataFrame'
     assert isinstance(current, pd.DataFrame), 'current must be of type pd.DataFrame'
@@ -107,15 +95,17 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
     assert len(current.columns) == 3, 'current must have three columns'
     assert current.shape == voltage.shape, 'current and voltage must be of the same size'
     
-    # rename columns in current the calculation
-    col_map = dict(zip(current.columns, voltage.columns))
+
+    abs_current = np.abs(current.values)
+    abs_voltage = np.abs(voltage.values)
 
     if line_to_line:
-        power = current.rename(columns=col_map).abs()*(voltage.abs()*np.sqrt(3))
+        power = abs_current * (abs_voltage * np.sqrt(3))
     else:
-        power = current.rename(columns=col_map).abs()*voltage.abs()
-        
-    P = power.sum(axis=1)*power_factor
+        power = abs_current * abs_voltage
+         
+    power = pd.DataFrame(power) 
+    P = power.sum(axis=1) * power_factor
     P = P.to_frame('Power')
     
     return P
