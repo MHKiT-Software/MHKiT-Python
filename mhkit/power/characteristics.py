@@ -83,7 +83,7 @@ def dc_power(voltage, current):
 
 def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
     """
-    Calculates magnitude of apparent power from line to neutral voltage and current 
+    Calculates magnitude of active power from line to neutral voltage and current 
 
     Parameters
     -----------
@@ -99,7 +99,7 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
     Returns
     --------
     P: pandas DataFrame
-        magnitude of apparent power [volt-amperes] indexed by time
+        magnitude of active power [Watts] indexed by time
     """
     assert isinstance(voltage, pd.DataFrame), 'voltage must be of type pd.DataFrame'
     assert isinstance(current, pd.DataFrame), 'current must be of type pd.DataFrame'
