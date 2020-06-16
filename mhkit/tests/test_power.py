@@ -15,7 +15,10 @@ class TestDevice(unittest.TestCase):
         self.samples = np.linspace(0, self.t, int(fs*self.t), endpoint=False)
         self.frequency = 60
         self.freq_array = np.ones(len(self.samples))*60
-        
+        harmonics_int = np.arange(0,60*50,5)
+        self.harmonics_vals = np.zeros(len(harmonics_int))
+        self.harmonics_vals[12]= 1.0  
+        print(self.harmonics_vals)
         self.signal = np.sin(2 * np.pi * self.frequency * self.samples)
         
         self.current_data = [[1,2,3],[4,5,6],[7,8,9],[10,11,12]]
@@ -33,6 +36,14 @@ class TestDevice(unittest.TestCase):
         for i in freq.values:
             self.assertAlmostEqual(i[0], self.frequency,1)
         # Should we test than len(freq) == len(um)-1?
+
+    def test_harmonics(self):
+        current = pd.Series(self.signal,index = self.samples)
+        harmonics = power.quality.harmonics(current,1000,self.frequency)
+        for i,j in zip(harmonics.values,self.harmonics_vals):
+            print(i)
+            print(j)
+            self.assertAlmostEqual(i[0], j,1)
         
 
     def test_dc_power_DataFrame(self):
