@@ -28,7 +28,7 @@ def harmonics(x,freq,grid_freq):
     Returns
     --------
     harmonics: pandas DataFrame 
-        amplitude of the harmonics of the time series data indexed by the harmonic order
+        amplitude of the harmonics of the time series data indexed by the harmonic frequency
     """
     assert isinstance(x, (pd.Series, pd.DataFrame)), 'Provided voltage or current must be of type pd.DataFrame or pd.Series'
     assert isinstance(freq, (float, int)), 'freq must be of type float or integer'
@@ -62,6 +62,7 @@ def harmonics(x,freq,grid_freq):
     harmonics = harmonics.iloc[indn]
     harmonics.index = hz
     harmonics = harmonics.loc[~harmonics.index.duplicated(keep='first')]
+    harmonics = harmonics/len(x)*2
     
     return harmonics
 
@@ -73,24 +74,24 @@ def harmonic_subgroups(harmonics, grid_freq):
     Parameters
     ----------
     harmonics: pandas Series or DataFrame 
-        harmonic amplitude indexed by the harmonic order 
+        harmonic amplitude indexed by the harmonic frequency 
     grid_freq: int
         value indicating if the power supply is 50 or 60 Hz. Valid input are 50 and 60
 
     Returns
     --------
     harmonic_subgroups: pandas DataFrame
-        harmonic subgroups 
+        harmonic subgroups indexed by harmonic frequency
     """        
     assert isinstance(harmonics, (pd.Series, pd.DataFrame)), 'harmonics must be of type pd.DataFrame or pd.Series'
     assert (grid_freq == 50 or grid_freq == 60), 'grid_freq must be either 50 or 60'
 
     if grid_freq == 60:
         
-        hz = np.arange(1,3000,60)
+        hz = np.arange(0,3000,60)
     elif grid_freq == 50: 
         
-        hz = np.arange(1,2500,50)
+        hz = np.arange(0,2500,50)
     
     j=0
     i=0
@@ -120,7 +121,7 @@ def total_harmonic_current_distortion(harmonics_subgroup,rated_current):
     Parameters
     ----------
     harmonics_subgroup: pandas DataFrame or Series
-        the subgrouped RMS current harmonics indexed by harmonic order
+        the subgrouped current harmonics indexed by harmonic frequency
     
     rated_current: float
         the rated current of the energy device in Amps
@@ -148,7 +149,7 @@ def interharmonics(harmonics,grid_freq):
     Parameters
     -----------
     harmonics: pandas Series or DataFrame 
-        RMS harmonic amplitude indexed by the harmonic order 
+        harmonic amplitude indexed by the harmonic frequency 
 
     grid_freq: int
         value indicating if the power supply is 50 or 60 Hz. Valid input are 50 and 60
@@ -177,14 +178,15 @@ def interharmonics(harmonics,grid_freq):
         harmonics=harmonics.sort_index(axis=0)
         ind=pd.Index(harmonics.index)
         
-        indn = ind.get_loc(n, method='nearest')  
-        if frequency == 60:
-            subset = harmonics.iloc[indn+1:indn+11]**2
-            subset = subset.squeeze()
-        else: 
-            subset = harmonics.iloc[indn+1:indn+7]**2
-            subset = subset.squeeze()
+        indn = ind.get_loc(n, method='nearest') 
         for col in cols:
+            if grid_freq == 60:
+                subset = harmonics[col].iloc[indn+1:indn+11]**2
+                subset = subset.squeeze()
+            else: 
+                subset = harmonics[col].iloc[indn+1:indn+7]**2
+                subset = subset.squeeze()
+        
             interharmonics[i,j] = np.sqrt(np.sum(subset))
             j=j+1
         j=0
