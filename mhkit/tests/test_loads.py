@@ -34,13 +34,11 @@ class TestLoads(unittest.TestCase):
 
     def test_bin_stats(self):
         # create array containg wind speeds to use as bin edges
-        b_edges = np.arange(3,20,1)
+        b_edges = np.arange(3,26,1)
         # apply function for means
         [b_means, b_means_std] = loads.bin_stats(self.dfmeans,self.dfmeans['uWind_80m'],b_edges)
 
         # check that slices are equal
-        print(self.bin_means)
-        print(b_means)
         assert_frame_equal(self.bin_means,b_means)
         assert_frame_equal(self.bin_means_std,b_means_std)
 
