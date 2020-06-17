@@ -39,6 +39,8 @@ class TestLoads(unittest.TestCase):
         [b_means, b_means_std] = loads.bin_stats(self.dfmeans,self.dfmeans['uWind_80m'],b_edges)
 
         # check that slices are equal
+        print(self.bin_means)
+        print(b_means)
         assert_frame_equal(self.bin_means,b_means)
         assert_frame_equal(self.bin_means_std,b_means_std)
 
@@ -48,8 +50,8 @@ class TestLoads(unittest.TestCase):
         err_tower = np.abs((self.fatigue_tower-DEL['TB_ForeAft'])/self.fatigue_tower)
         err_blade = np.abs((self.fatigue_blade-DEL['BL1_FlapMom'])/self.fatigue_tower)
 
-        self.assertLess(err_tower,0.05)
-        self.assertLess(err_blade,0.05)
+        self.assertTrue((err_tower < 0.05).all())
+        self.assertTrue((err_blade < 0.05).all())
 
     def test_scatplotter(self):
         savepath = abspath(join(testdir, 'test_scatplotter.png'))
@@ -81,3 +83,6 @@ class TestLoads(unittest.TestCase):
             xlabel='Wind Speed [m/s]',ylabel=variab,title='Binned Stats',savepath=savepath)
 
         self.assertTrue(isfile(savepath))
+
+if __name__ == '__main__':
+    unittest.main()
