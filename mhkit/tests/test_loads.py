@@ -25,10 +25,6 @@ class TestLoads(unittest.TestCase):
         self.dfstd = pd.read_csv(filepath5)
         self.bin_means = pd.read_csv('data/data_loads_binmeans.csv')
         self.bin_means_std = pd.read_csv('data/data_loads_binmeans_std.csv')
-        self.var_dict = [
-            ('TB_ForeAft',4),
-            ('BL1_FlapMom',10)
-        ]
         self.fatigue_tower = 3804
         self.fatigue_blade = 1388
 
@@ -43,10 +39,11 @@ class TestLoads(unittest.TestCase):
         assert_frame_equal(self.bin_means_std,b_means_std)
 
     def test_get_DELs(self):
-        DEL = loads.get_DELs(self.df,self.var_dict,binNum=100,t=600)
+        DEL_tower = loads.damage_equivalent_load(self.df['TB_ForeAft'],4,binNum=100,t=600)
+        DEL_blade = loads.damage_equivalent_load(self.df['BL1_FlapMom'],10,binNum=100,t=600)
 
-        err_tower = np.abs((self.fatigue_tower-DEL['TB_ForeAft'])/self.fatigue_tower)
-        err_blade = np.abs((self.fatigue_blade-DEL['BL1_FlapMom'])/self.fatigue_tower)
+        err_tower = np.abs((self.fatigue_tower-DEL_tower)/self.fatigue_tower)
+        err_blade = np.abs((self.fatigue_blade-DEL_blade)/self.fatigue_tower)
 
         self.assertTrue((err_tower < 0.05).all())
         self.assertTrue((err_blade < 0.05).all())
