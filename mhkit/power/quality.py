@@ -2,9 +2,8 @@ import pandas as pd
 import numpy as np
 import scipy.integrate as integrate
 from scipy.optimize import fsolve
-from scipy import signal
-from scipy import fft, fftpack
 from scipy.signal import hilbert
+from scipy import signal, fft, fftpack
 
 
 #This group of functions are to be used for power quality assessments 
@@ -34,35 +33,45 @@ def harmonics(x,freq,grid_freq):
     assert isinstance(freq, (float, int)), 'freq must be of type float or integer'
     assert (grid_freq == 50 or grid_freq == 60), 'grid_freq must be either 50 or 60'
 
-    x.to_numpy()
-    
-    a = np.fft.fft(x,axis=0)
-    
-    amp = np.abs(a) # amplitude of the harmonics
-    
-    freqfft = fftpack.fftfreq(len(x),d=1./freq)
-    
+    x = x.to_numpy()
+    sample_spacing = 1./freq 
+    frequency_bin_centers = fftpack.fftfreq(len(x), d=sample_spacing)
 
-    harmonics = pd.DataFrame(amp,index=freqfft)
-    
-    
-    harmonics=harmonics.sort_index(axis=0)
+    harmonics_amplitude = np.abs(np.fft.fft(x, axis=0))
+
+    harmonics = pd.DataFrame(harmonics_amplitude, index=frequency_bin_centers)
+    harmonics = harmonics.sort_index()
+
     if grid_freq == 60:    
         hz = np.arange(0,3005,5)
     elif grid_freq == 50: 
         hz = np.arange(0,2505,5)
-    
-    ind=pd.Index(harmonics.index)
-    indn = [None]*np.size(hz)
-    i = 0
-    for n in hz:
-        indn[i] = ind.get_loc(n, method='nearest')
-        i = i+1
-    
-    harmonics = harmonics.iloc[indn]
+
+
+    harmonics_index = pd.Index(harmonics.index)
+    frequency_index_loc = [None]*np.size(hz)
+
+    index_0 = harmonics_index.get_loc(hz[0], method='nearest')
+    frequency_index_loc[0] = index_0
+    sorted_index_greater_than_hz0 = harmonics_index[index_0:]
+
+    i = 1
+    for val in hz[1:]:
+        frequency_index_loc[i] = sorted_index_greater_than_hz0.get_loc(val, method='nearest')
+        i += 1
+    frequency_index_loc[1:] = (np.array(frequency_index_loc[1:])+index_0).tolist()
+
+    harmonics = harmonics.iloc[frequency_index_loc]
     harmonics.index = hz
     harmonics = harmonics.loc[~harmonics.index.duplicated(keep='first')]
     harmonics = harmonics/len(x)*2
+
+
+#    harmonics = harmonics.iloc[frequency_index_loc]
+#    harmonics.index = hz
+#    harmonics = harmonics.loc[~harmonics.index.duplicated(keep='first')]
+#    harmonics = harmonics/len(x)*2
+#   import ipdb; ipdb.set_trace()
     
     return harmonics
 
