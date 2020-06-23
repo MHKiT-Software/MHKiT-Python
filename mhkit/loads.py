@@ -83,7 +83,7 @@ def bin_stats(df,x,bin_edges,statlist=[]):
 
 ################ fatigue functions
 
-def damage_equivalent_load(var, m, binNum=100, t=600):
+def damage_equivalent_load(var, m, bin_num=100, t=600):
     """ Calculates the damage equivalent load of a single variable
     
     Parameters: 
@@ -94,7 +94,7 @@ def damage_equivalent_load(var, m, binNum=100, t=600):
     m : float/int
         fatigue slope factor of material
     
-    binNum : int
+    bin_num : int
         number of bins for rainflow counting method (minimum=100)
     
     t : float/int
@@ -112,14 +112,14 @@ def damage_equivalent_load(var, m, binNum=100, t=600):
         pass
     assert isinstance(var, np.ndarray), 'var must be of type np.ndarray'
     assert isinstance(m, (float,int)), 'm must be of type float or int'
-    assert isinstance(binNum, (float,int)), 'binNum must be of type float or int'
+    assert isinstance(bin_num, (float,int)), 'bin_num must be of type float or int'
     assert isinstance(t, (float,int)), 't must be of type float or int'
 
     # find rainflow ranges
     ranges = fatpack.find_rainflow_ranges(var)
 
     # find range count and bin
-    Nrf, Srf = fatpack.find_range_count(ranges,binNum)
+    Nrf, Srf = fatpack.find_range_count(ranges, bin_num)
 
     # get DEL
     DELs = Srf**m * Nrf / t
