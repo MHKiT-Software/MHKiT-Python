@@ -43,9 +43,9 @@ def harmonics(x,freq,grid_freq):
     harmonics = harmonics.sort_index()
 
     if grid_freq == 60:    
-        hz = np.arange(0,3005,5)
+        hz = np.arange(0,3060,5)
     elif grid_freq == 50: 
-        hz = np.arange(0,2505,5)
+        hz = np.arange(0,2570,5)
 
 
     harmonics_index = pd.Index(harmonics.index)
@@ -97,10 +97,10 @@ def harmonic_subgroups(harmonics, grid_freq):
 
     if grid_freq == 60:
         
-        hz = np.arange(0,3000,60)
+        hz = np.arange(0,3060,60)
     elif grid_freq == 50: 
         
-        hz = np.arange(0,2500,50)
+        hz = np.arange(0,2550,50)
     
     j=0
     i=0
@@ -174,10 +174,10 @@ def interharmonics(harmonics,grid_freq):
 
     if grid_freq == 60:
         
-        hz = np.arange(0,3000,60)
+        hz = np.arange(0,3060,60)
     elif grid_freq == 50: 
         
-        hz = np.arange(0,2500,50)
+        hz = np.arange(0,2550,50)
     
     j=0
     i=0

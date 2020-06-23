@@ -15,7 +15,7 @@ class TestDevice(unittest.TestCase):
         self.samples = np.linspace(0, self.t, int(fs*self.t), endpoint=False)
         self.frequency = 60
         self.freq_array = np.ones(len(self.samples))*60
-        harmonics_int = np.arange(0,60*50,5)
+        harmonics_int = np.arange(0,60*60,5)
         self.harmonics_int = harmonics_int
         self.interharmonic = np.zeros(len(harmonics_int)) #since this is an idealized sin wave, the interharmonics should be zero
         self.harmonics_vals = np.zeros(len(harmonics_int))
