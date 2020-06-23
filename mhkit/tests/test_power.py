@@ -11,14 +11,16 @@ class TestDevice(unittest.TestCase):
     def setUpClass(self):
         self.t = 600
         fs = 1000
-        
+        sample_frequency = 1000 # = fs 
         self.samples = np.linspace(0, self.t, int(fs*self.t), endpoint=False)
         self.frequency = 60
         self.freq_array = np.ones(len(self.samples))*60
         harmonics_int = np.arange(0,60*50,5)
+        self.harmonics_int = harmonics_int
         self.interharmonic = np.zeros(len(harmonics_int)) #since this is an idealized sin wave, the interharmonics should be zero
         self.harmonics_vals = np.zeros(len(harmonics_int))
         self.harmonics_vals[12]= 1.0  #setting 60th harmonic to amplitude of the signal
+
         self.harmonic_groups = self.harmonics_vals[0::12] #harmonic groups should be equal to every 12th harmonic in this idealized example
         self.thcd = 0.0 #Since this is an idealized sin wave, there should be no distortion 
         
@@ -31,6 +33,41 @@ class TestDevice(unittest.TestCase):
     def tearDownClass(self):
         pass
 
+    def test_harmonics_sine_wave(self):
+
+        current = pd.Series(self.signal, index=self.samples)
+        harmonics = power.quality.harmonics(current, 1000, self.frequency)
+
+        for i,j in zip(harmonics.values, self.harmonics_vals):
+            self.assertAlmostEqual(i[0], j,1)
+
+    def test_harmonic_subgroup_sine_wave(self):
+        current = pd.Series(self.signal, index=self.samples)
+        harmonics = pd.DataFrame(self.harmonics_vals, 
+                          index= self.harmonics_int)
+        hsg = power.quality.harmonic_subgroups(harmonics,self.frequency)
+        for i,j in zip(hsg.values,self.harmonic_groups):
+            self.assertAlmostEqual(i[0], j,1)
+
+    def test_TCHD_sine_wave(self):
+        current = pd.Series(self.signal, index=self.samples)
+        harmonics = pd.DataFrame(self.harmonics_vals, 
+                         index= self.harmonics_int)
+        hsg = power.quality.harmonic_subgroups(harmonics,self.frequency)
+
+        TCHD = power.quality.total_harmonic_current_distortion(hsg,18.8) # had to just put a random rated current in here
+        self.assertAlmostEqual(TCHD.values[0],self.thcd)
+
+    def test_interharmonics_sine_wave(self):
+        current = pd.Series(self.signal, index=self.samples)
+        harmonics = pd.DataFrame(self.harmonics_vals, 
+                         index= self.harmonics_int)
+
+        inter_harmonics = power.quality.interharmonics(harmonics,self.frequency)
+
+        for i,j in zip(inter_harmonics.values, self.interharmonic):
+            self.assertAlmostEqual(i[0], j,1)
+
 
     def test_instfreq(self):
         um = pd.Series(self.signal,index = self.samples)
@@ -38,29 +75,6 @@ class TestDevice(unittest.TestCase):
         freq = power.characteristics.instantaneous_frequency(um)
         for i in freq.values:
             self.assertAlmostEqual(i[0], self.frequency,1)
-        # Should we test than len(freq) == len(um)-1?
-
-    def test_harmonics(self):
-        current = pd.Series(self.signal,index = self.samples)
-        harmonics = power.quality.harmonics(current,1000,self.frequency)
-        for i,j in zip(harmonics.values,self.harmonics_vals):
-            
-            self.assertAlmostEqual(i[0], j,1)
-        hsg = power.quality.harmonic_subgroups(harmonics,self.frequency)
-        for i,j in zip(hsg.values,self.harmonic_groups):
-            
-            self.assertAlmostEqual(i[0], j,1)
-
-        TCHD = power.quality.total_harmonic_current_distortion(hsg,18.8) # had to just put a random rated current in here
-        self.assertAlmostEqual(TCHD.values[0],self.thcd)
-        #test interharmonics
-        ih = power.quality.interharmonics(harmonics,self.frequency)
-        for i,j in zip(ih.values,self.interharmonic):
-            
-            self.assertAlmostEqual(i[0], j,1)
-
-
-        
 
     def test_dc_power_DataFrame(self):
         current = pd.DataFrame(self.current_data, columns=['A1', 'A2', 'A3'])
