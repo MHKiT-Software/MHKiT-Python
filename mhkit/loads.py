@@ -1,11 +1,9 @@
-# import statements
-import pandas as pd 
-import numpy as np
-import fatpack #### this is a 3rd party module used for rainflow counting
 from scipy.stats import binned_statistic
 import matplotlib.pyplot as plt 
+import pandas as pd 
+import numpy as np
+import fatpack
 
-################ general functions
 
 def bin_stats(df,x,bin_edges,statlist=[]):
     """
@@ -130,7 +128,7 @@ def damage_equivalent_load(var, m, bin_num=100, t=600):
     
 ################ plotting functions
 
-def statplotter(x,vmean,vmax,vmin,vstdev=[],xlabel=None,ylabel=None,title=None,savepath=None):
+def plot_statistics(x,vmean,vmax,vmin,vstdev=[],xlabel=None,ylabel=None,title=None,savepath=None):
     """
     plot showing standard raw statistics of variable
 
@@ -189,7 +187,7 @@ def statplotter(x,vmean,vmax,vmin,vstdev=[],xlabel=None,ylabel=None,title=None,s
         plt.close()
 
 
-def binplotter(bcenters,bmean,bmax,bmin,bstdmean,bstdmax,bstdmin,xlabel=None,ylabel=None,title=None,savepath=None):
+def plot_bin_statistics(bcenters,bmean,bmax,bmin,bstdmean,bstdmax,bstdmin,xlabel=None,ylabel=None,title=None,savepath=None):
     """
     plot showing standard binned statistics of single variable
 
