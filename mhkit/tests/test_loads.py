@@ -25,16 +25,12 @@ class TestLoads(unittest.TestCase):
         self.dfstd = pd.read_csv(filepath5)
         self.bin_means = pd.read_csv('data/data_loads_binmeans.csv')
         self.bin_means_std = pd.read_csv('data/data_loads_binmeans_std.csv')
-        self.var_dict = [
-            ('TB_ForeAft',4),
-            ('BL1_FlapMom',10)
-        ]
         self.fatigue_tower = 3804
         self.fatigue_blade = 1388
 
     def test_bin_stats(self):
         # create array containg wind speeds to use as bin edges
-        b_edges = np.arange(3,20,1)
+        b_edges = np.arange(3,26,1)
         # apply function for means
         [b_means, b_means_std] = loads.bin_stats(self.dfmeans,self.dfmeans['uWind_80m'],b_edges)
 
@@ -43,13 +39,14 @@ class TestLoads(unittest.TestCase):
         assert_frame_equal(self.bin_means_std,b_means_std)
 
     def test_get_DELs(self):
-        DEL = loads.get_DELs(self.df,self.var_dict,binNum=100,t=600)
+        DEL_tower = loads.damage_equivalent_load(self.df['TB_ForeAft'],4,binNum=100,t=600)
+        DEL_blade = loads.damage_equivalent_load(self.df['BL1_FlapMom'],10,binNum=100,t=600)
 
-        err_tower = np.abs((self.fatigue_tower-DEL['TB_ForeAft'])/self.fatigue_tower)
-        err_blade = np.abs((self.fatigue_blade-DEL['BL1_FlapMom'])/self.fatigue_tower)
+        err_tower = np.abs((self.fatigue_tower-DEL_tower)/self.fatigue_tower)
+        err_blade = np.abs((self.fatigue_blade-DEL_blade)/self.fatigue_tower)
 
-        self.assertLess(err_tower,0.05)
-        self.assertLess(err_blade,0.05)
+        self.assertTrue((err_tower < 0.05).all())
+        self.assertTrue((err_blade < 0.05).all())
 
     def test_scatplotter(self):
         savepath = abspath(join(testdir, 'test_scatplotter.png'))
@@ -81,3 +78,6 @@ class TestLoads(unittest.TestCase):
             xlabel='Wind Speed [m/s]',ylabel=variab,title='Binned Stats',savepath=savepath)
 
         self.assertTrue(isfile(savepath))
+
+if __name__ == '__main__':
+    unittest.main()

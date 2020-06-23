@@ -83,61 +83,49 @@ def bin_stats(df,x,bin_edges,statlist=[]):
 
 ################ fatigue functions
 
-def get_DELs(df, chan_info, binNum=100, t=600):
-    """ Calculates the damage equivalent load of multiple variables
+def damage_equivalent_load(var, m, binNum=100, t=600):
+    """ Calculates the damage equivalent load of a single variable
     
     Parameters: 
     -----------
-    df : pd.DataFrame
-        contains dataframe of variables/channels being analyzed
+    var : array
+        contains data of variable/channel being analyzed
     
-    chan_info : list, tuple
-        tuple/list containing channel names to be analyzed and corresponding fatigue slope factor "m"
-        ie. ('TwrBsFxt',4)
-        
+    m : float/int
+        fatigue slope factor of material
+    
     binNum : int
         number of bins for rainflow counting method (minimum=100)
     
     t : float/int
-        Used to control DEL frequency. Default for 1Hz is 600 seconds for 10min data
-        
+        length of measured data (seconds)
+    
     Returns:
     -----------
-    dfDEL : pd.DataFrame
-        Damage equivalent load of each specified variable  
-    
+    DEL : float
+        Damage equivalent load of single variable  
     """
     # check data types
-    assert isinstance(df, pd.DataFrame), 'df must be of type pd.DataFrame'
-    assert isinstance(chan_info, (list,tuple)), 'chan_info must be of type list or tuple'
+    try:
+        var = np.array(var)
+    except:
+        pass
+    assert isinstance(var, np.ndarray), 'var must be of type np.ndarray'
+    assert isinstance(m, (float,int)), 'm must be of type float or int'
     assert isinstance(binNum, (float,int)), 'binNum must be of type float or int'
     assert isinstance(t, (float,int)), 't must be of type float or int'
 
-    # create dictionary from chan_dict
-    dic = dict(chan_info)
+    # find rainflow ranges
+    ranges = fatpack.find_rainflow_ranges(var)
 
-    # pre-allocate list
-    dflist = []
+    # find range count and bin
+    Nrf, Srf = fatpack.find_range_count(ranges,binNum)
 
-    # loop through channels and apply corresponding fatigue slope
-    for var in dic.keys():
-        # find rainflow ranges
-        ranges = fatpack.find_rainflow_ranges(df[var])
+    # get DEL
+    DELs = Srf**m * Nrf / t
+    DEL = DELs.sum() ** (1/m)
 
-        # find range count and bin
-        Nrf, Srf = fatpack.find_range_count(ranges,binNum)
-
-        # get DEL
-        DELs = Srf**dic[var] * Nrf / t
-        DEL = DELs.sum() ** (1/dic[var])
-        dflist.append(DEL)
-    
-    # create dataframe to return
-    dfDEL = pd.DataFrame(np.transpose(dflist))
-    dfDEL = dfDEL.T
-    dfDEL.columns = dic.keys()
-
-    return dfDEL
+    return DEL
 
     
 ################ plotting functions
