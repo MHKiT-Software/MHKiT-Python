@@ -1,30 +1,31 @@
-# import statements
-import unittest
 from os.path import abspath, dirname, join, isfile
-import pandas as pd 
-import numpy as np
+from pandas.testing import assert_frame_equal
 from mhkit import utils
 from mhkit import loads
-from pandas.testing import assert_frame_equal
+import pandas as pd 
+import numpy as np
+import unittest
+import json
 
 testdir = dirname(abspath(__file__))
+datadir = join(testdir, 'data')
 
 class TestLoads(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        filepath1 = 'data/data_loads.csv'
-        self.df = pd.read_csv(filepath1)
-        filepath2 = 'data/data_loads_dfmeans.csv'
-        self.dfmeans = pd.read_csv(filepath2)
-        filepath3 = 'data/data_loads_dfmaxs.csv'
-        self.dfmaxs = pd.read_csv(filepath3)
-        filepath4 = 'data/data_loads_dfmins.csv'
-        self.dfmins = pd.read_csv(filepath4)
-        filepath5 = 'data/data_loads_dfstd.csv'
-        self.dfstd = pd.read_csv(filepath5)
-        self.bin_means = pd.read_csv('data/data_loads_binmeans.csv')
-        self.bin_means_std = pd.read_csv('data/data_loads_binmeans_std.csv')
+
+        loads_data_file = join(datadir, "loads_data_dict.json")
+        with open(loads_data_file, 'r') as fp:
+            data_dict = json.load(fp)
+        # convert dictionaries into dataframes
+        data = {
+                key: pd.DataFrame(data_dict[key]) 
+                for key in data_dict
+               }
+        self.data = data
+
+
         self.fatigue_tower = 3804
         self.fatigue_blade = 1388
 
@@ -32,15 +33,19 @@ class TestLoads(unittest.TestCase):
         # create array containg wind speeds to use as bin edges
         b_edges = np.arange(3,26,1)
         # apply function for means
-        [b_means, b_means_std] = loads.bin_stats(self.dfmeans,self.dfmeans['uWind_80m'],b_edges)
+        load_means =self.data['means']
+        bin_against = load_means['uWind_80m']
+        [b_means, b_means_std] = loads.bin_stats(load_means, bin_against, b_edges)
 
-        # check that slices are equal
-        assert_frame_equal(self.bin_means,b_means)
-        assert_frame_equal(self.bin_means_std,b_means_std)
+        assert_frame_equal(self.data['bin_means'],b_means)
+        assert_frame_equal(self.data['bin_means_std'],b_means_std)
 
-    def test_get_DELs(self):
-        DEL_tower = loads.damage_equivalent_load(self.df['TB_ForeAft'],4,binNum=100,t=600)
-        DEL_blade = loads.damage_equivalent_load(self.df['BL1_FlapMom'],10,binNum=100,t=600)
+    def test_damage_equivalent_loads(self):
+        loads_data = self.data['loads']
+        tower_load = loads_data['TB_ForeAft']
+        blade_load = loads_data['BL1_FlapMom']
+        DEL_tower = loads.damage_equivalent_load(tower_load, 4,bin_num=100,t=600)
+        DEL_blade = loads.damage_equivalent_load(blade_load,10,bin_num=100,t=600)
 
         err_tower = np.abs((self.fatigue_tower-DEL_tower)/self.fatigue_tower)
         err_blade = np.abs((self.fatigue_blade-DEL_blade)/self.fatigue_tower)
@@ -48,33 +53,41 @@ class TestLoads(unittest.TestCase):
         self.assertTrue((err_tower < 0.05).all())
         self.assertTrue((err_blade < 0.05).all())
 
-    def test_scatplotter(self):
+    def test_plot_statistics(self):
         savepath = abspath(join(testdir, 'test_scatplotter.png'))
-        loads.statplotter(self.dfmeans['uWind_80m'],self.dfmeans['TB_ForeAft'],self.dfmaxs['TB_ForeAft'],self.dfmins['TB_ForeAft'],
-            vstdev=self.dfstd['TB_ForeAft'],xlabel='Wind Speed [m/s]',ylabel='Tower Base Mom [kNm]',savepath=savepath)
+
+        loads.plot_statistics( self.data['means']['uWind_80m'],
+                           self.data['means']['TB_ForeAft'],
+                           self.data['maxs']['TB_ForeAft'],
+                           self.data['mins']['TB_ForeAft'],
+                    vstdev=self.data['std']['TB_ForeAft'],
+                    xlabel='Wind Speed [m/s]',
+                    ylabel='Tower Base Mom [kNm]',
+                    savepath=savepath)
         
         self.assertTrue(isfile(savepath))
 
     def test_binplotter(self):
-        # load in data
-        bin_maxs = pd.read_csv('data/data_loads_binmaxs.csv')
-        bin_maxs_std = pd.read_csv('data/data_loads_binmaxs_std.csv')
-        bin_mins = pd.read_csv('data/data_loads_binmins.csv')
-        bin_mins_std = pd.read_csv('data/data_loads_binmins_std.csv')
+        bin_maxs     = self.data['bin_maxs']
+        bin_maxs_std = self.data['bin_maxs_std']
+        bin_mins     = self.data['bin_mins']
+        bin_mins_std = self.data['bin_maxs_std']
+
         # define some extra input variables
         savepath = abspath(join(testdir, 'test_binplotter.png'))
         bcenters = np.arange(3.5,25.5,step=1)
         variab = 'TB_ForeAft'
+
         # decleration of inputs to be used in plotting
-        bmean = self.bin_means[variab]
-        bmax = bin_maxs[variab]
-        bmin = bin_mins[variab]
-        bstdmean = self.bin_means_std[variab]
+        bmean = self.data['bin_means'][variab]
+        bmax  = self.data['bin_maxs'][variab]
+        bmin  = self.data['bin_mins'][variab]
+        bstdmean = self.data['bin_means_std'][variab]
         bstdmax = bin_maxs_std[variab]
         bstdmin = bin_mins_std[variab]
 
         # create plot
-        loads.binplotter(bcenters,bmean,bmax,bmin,bstdmean,bstdmax,bstdmin,
+        loads.plot_bin_statistics(bcenters,bmean,bmax,bmin,bstdmean,bstdmax,bstdmin,
             xlabel='Wind Speed [m/s]',ylabel=variab,title='Binned Stats',savepath=savepath)
 
         self.assertTrue(isfile(savepath))
