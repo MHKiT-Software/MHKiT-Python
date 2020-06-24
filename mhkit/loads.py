@@ -15,21 +15,21 @@ def bin_stats(df,x,bin_edges,statlist=[]):
         matrix containing time-series statistics of variables
     
     x : array
-        contains array of variable to bin data against (ie. wind speed)
+        array of variable to bin data against (ie. wind speed)
     
     bin_edges : array
-        contains array of desired bin edges w/ consistent step size. 
+        array of desired bin edges w/ consistent step size. 
 
     statlist : list, optional 
         contains names of variables to be binned. Bins all variables if left empty
     
     Returns:
     ----------------
-    baverages : array
-        array containing the load means of each bin
+    baverages : pd.DataFrame
+        load means of each bin
 
-    bstd : array
-        object containing additional information related to the binning process
+    bstd : pd.DataFrame
+        additional information related to the binning process
     """
     # check data types
     try:
@@ -87,7 +87,7 @@ def damage_equivalent_load(var, m, bin_num=100, t=600):
     Parameters: 
     -----------
     var : array
-        contains data of variable/channel being analyzed
+        data of variable/channel being analyzed
     
     m : float/int
         fatigue slope factor of material
