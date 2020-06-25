@@ -6,19 +6,19 @@ import datetime
 def instantaneous_frequency(um):
 
     """
-    Calculates the instantaneous frequency of a measured voltage
+    Calculates instantaneous frequency of measured voltage
     
      
     Parameters
     -----------
     um: pandas Series or DataFrame
-        measured voltage source (V) index by time 
+        Measured voltage (V) indexed by time 
 
         
     Returns
     ---------
     frequency: pandas DataFrame
-        the frequency of the measured voltage (Hz) index by time 
+        Frequency of the measured voltage (Hz) indexed by time 
     """  
     assert isinstance(um, (pd.Series, pd.DataFrame)), 'um must be of type pd.Series or pd.DataFrame'
    
@@ -71,23 +71,23 @@ def dc_power(voltage, current):
 
 def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
     """
-    Calculates magnitude of active power from line to neutral voltage and current 
+    Calculates magnitude of active AC power from line to neutral voltage and current 
 
     Parameters
     -----------
     voltage: pandas DataFrame
-        Time series of all three measured voltage phases [V] indexed by time
+        Time-series of three phase measured voltage [V] indexed by time
     current: pandas DataFrame 
-        Time series of all three measured current phases [A] indexed by time
+        Time-series of three phase measured current [A] indexed by time
     power_factor: float 
-        Power factor for the system
+        Power factor for the efficiency of the system
     line_to_line: bool
         Set to true if the given voltage measurements are line_to_line
     
     Returns
     --------
     P: pandas DataFrame
-        magnitude of active power [W] indexed by time
+        Magnitude of active AC power [W] indexed by time with column named Power
     """
     assert isinstance(voltage, pd.DataFrame), 'voltage must be of type pd.DataFrame'
     assert isinstance(current, pd.DataFrame), 'current must be of type pd.DataFrame'
