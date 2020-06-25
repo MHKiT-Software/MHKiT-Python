@@ -147,8 +147,8 @@ def total_harmonic_current_distortion(harmonics_subgroup,rated_current):
     
     Returns
     --------
-    THCD: float
-        Total harmonic current distortion 
+    THCD: pd.DataFrame
+        Total harmonic current distortion indexed by signal name
     """
     assert isinstance(harmonics_subgroup, (pd.Series, pd.DataFrame)), 'harmonic_subgroups must be of type pd.DataFrame or pd.Series'
     assert isinstance(rated_current, float), 'rated_current must be a float'
@@ -158,6 +158,7 @@ def total_harmonic_current_distortion(harmonics_subgroup,rated_current):
     harmonics_sum=harmonics_sq.sum()
 
     THCD = (np.sqrt(harmonics_sum)/harmonics_subgroup.iloc[1])*100
+    THCD = pd.DataFrame(THCD)  # converting to dataframe for Matlab
 
     return THCD
 
