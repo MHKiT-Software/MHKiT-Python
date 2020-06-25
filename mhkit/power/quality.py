@@ -27,7 +27,8 @@ def harmonics(x,freq,grid_freq):
     Returns
     --------
     harmonics: pandas DataFrame 
-        Amplitude of the time-series data harmonics indexed by the harmonic frequency
+        Amplitude of the time-series data harmonics indexed by the harmonic 
+        frequency with signal name columns
     """
     assert isinstance(x, (pd.Series, pd.DataFrame)), 'Provided voltage or current must be of type pd.DataFrame or pd.Series'
     assert isinstance(freq, (float, int)), 'freq must be of type float or integer'
@@ -91,7 +92,8 @@ def harmonic_subgroups(harmonics, grid_freq):
     Returns
     --------
     harmonic_subgroups: pandas DataFrame
-        Harmonic subgroups indexed by harmonic frequency
+        Harmonic subgroups indexed by harmonic frequency 
+        with signal name columns
     """        
     assert isinstance(harmonics, (pd.Series, pd.DataFrame)), 'harmonics must be of type pd.DataFrame or pd.Series'
     assert (grid_freq == 50 or grid_freq == 60), 'grid_freq must be either 50 or 60'
@@ -148,7 +150,7 @@ def total_harmonic_current_distortion(harmonics_subgroup,rated_current):
     Returns
     --------
     THCD: pd.DataFrame
-        Total harmonic current distortion indexed by signal name
+        Total harmonic current distortion indexed by signal name with THCD column 
     """
     assert isinstance(harmonics_subgroup, (pd.Series, pd.DataFrame)), 'harmonic_subgroups must be of type pd.DataFrame or pd.Series'
     assert isinstance(rated_current, float), 'rated_current must be a float'
@@ -159,6 +161,8 @@ def total_harmonic_current_distortion(harmonics_subgroup,rated_current):
 
     THCD = (np.sqrt(harmonics_sum)/harmonics_subgroup.iloc[1])*100
     THCD = pd.DataFrame(THCD)  # converting to dataframe for Matlab
+    THCD.columns = ['THCD']
+    THCD = THCD.T
 
     return THCD
 

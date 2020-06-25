@@ -18,7 +18,8 @@ def instantaneous_frequency(um):
     Returns
     ---------
     frequency: pandas DataFrame
-        Frequency of the measured voltage (Hz) indexed by time 
+        Frequency of the measured voltage (Hz) indexed by time  
+        with signal name columns
     """  
     assert isinstance(um, (pd.Series, pd.DataFrame)), 'um must be of type pd.Series or pd.DataFrame'
    
@@ -87,7 +88,7 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
     Returns
     --------
     P: pandas DataFrame
-        Magnitude of active AC power [W] indexed by time with column named Power
+        Magnitude of active AC power [W] indexed by time with Power column 
     """
     assert isinstance(voltage, pd.DataFrame), 'voltage must be of type pd.DataFrame'
     assert isinstance(current, pd.DataFrame), 'current must be of type pd.DataFrame'
