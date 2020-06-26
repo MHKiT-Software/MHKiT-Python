@@ -29,17 +29,17 @@ class TestGenUtils(unittest.TestCase):
         time = pd.to_datetime(string_time)
         self.assertTrue(means.index[0]==time)
         
-    def test_uwrapvec(self):
+    def test_uwrap_vec(self):
         # create array of test values and corresponding expected answers
         test = [-740,-400,-50,0,50,400,740]
         correct = [340,320,310,0,50,40,20]
         # get answers from function
-        answer = utils.unwrapvec(test)
+        answer = utils.unwrap_vec(test)
         
         # check if answer is correct
         assert_frame_equal(pd.DataFrame(answer),pd.DataFrame(correct))
 
-    def test_excel2datetime(self):
+    def test_excel_to_datetime(self):
         # store excel timestamp
         excel_time = 4.279549212962963e+04
         # corresponding datetime
@@ -52,14 +52,14 @@ class TestGenUtils(unittest.TestCase):
         # check if answer is correct
         self.assertTrue(answer2 == time)
 
-    def test_matlab2datetime(self):
+    def test_matlab_to_datetime(self):
         # store excel timestamp
         mat_time = 7.367554921296296e+05
         # corresponding datetime
         string_time = '2017-03-01 11:48:40'
         time = pd.to_datetime(string_time)
         # test function
-        answer = utils.matlab2datetime(mat_time)
+        answer = utils.matlab_to_datetime(mat_time)
         answer2 = answer.round('s') # round to nearest second for comparison
         
         # check if answer is correct

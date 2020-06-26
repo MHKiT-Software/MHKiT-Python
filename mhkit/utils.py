@@ -9,12 +9,12 @@ _matlab = False # Private variable indicating if mhkit is run through matlab
 
 def get_stats(data,freq,period=600):
     """
-    function used to obtain statistics from a dataset
+    Obtain statistics from a dataset
 
     Parameters:
     ----------------------
-    data : pandas dataframe
-        DateTimeIndex-ed dataframe containg variable(s) to be analyzed with statistical window
+    data : pandas DataFrame
+        DateTimeIndex-ed DataFrame containg variable(s) to be analyzed with statistical window
     period : float/int
         statistical window of interest (ex. 600 seconds) [sec]
     freq : float/int
@@ -22,8 +22,8 @@ def get_stats(data,freq,period=600):
     
     Returns:
     ----------------------
-    means,maxs,mins,stds : pandas dataframes
-        dataframes containing calculated statistical values of data
+    means,maxs,mins,stds : pandas DataFrame
+        DataFrames containing calculated statistical values of data
     """
     # check data type
     assert isinstance(data, pd.DataFrame), 'data must be of type pd.DataFrame'
@@ -39,7 +39,7 @@ def get_stats(data,freq,period=600):
     if len(dataQC)%(period*freq) > 0:
         remain = len(dataQC) % (period*freq)
         dataQC = dataQC.iloc[0:-int(remain)]
-        print('WARNING: there were not enought data points in the last statistical period. Last '+str(remain)+' points were removed.')
+        print('WARNING: there were not enough data points in the last statistical period. Last '+str(remain)+' points were removed.')
     
     # pre-allocate lists
     time = []
@@ -75,19 +75,19 @@ def get_stats(data,freq,period=600):
 
     return means,maxs,mins,stdev
 
-def unwrapvec(data):
+def unwrap_vec(data):
     """
-    function used to unwrap vectors into 0-360 deg range
+    Function used to unwrap vectors into 0-360 deg range
 
     Parameters:
     ---------------
     data : pd.Series, numpy array, list
-        list of data points to be unwrapped [deg]
+        List of data points to be unwrapped [deg]
     
     Returns:
     --------------
     data : numpy array
-        returns list of data points unwrapped between 0-360 deg
+        List of data points unwrapped between 0-360 deg
     """
     # check data types
     try:
@@ -103,22 +103,22 @@ def unwrapvec(data):
         elif data[i] > 360:
             data[i] = data[i]-360
     if max(data) > 360 or min(data) < 0:
-        data = unwrapvec(data)
+        data = unwrap_vec(data)
     return data
 
-def matlab2datetime(matlab_datenum):
+def matlab_to_datetime(matlab_datenum):
     """
-    conversion of matlab datenum format to python datetime
+    Conversion of matlab datenum format to python datetime
 
     Parameters:
     ----------------
     matlab_datenum : np.array
-        array of matlab datenum to be converted
+        Array of matlab datenum to be converted
 
     Returns:
     -----------------
     time : DateTimeIndex
-        array of corresponding python datetime values
+        Array of corresponding python datetime values
     """
     # check data types
     try:
@@ -139,19 +139,19 @@ def matlab2datetime(matlab_datenum):
     time = pd.to_datetime(time)
     return time
 
-def excel2datetime(excel_num):
+def excel_to_datetime(excel_num):
     """
-    conversion of excel datenum format to python datetime
+    Conversion of excel datenum format to python datetime
 
     Parameters:
     ----------------
     excel_num : np.array
-        array of excel datenums to be converted
+        Array of excel datenums to be converted
 
     Returns:
     -----------------
     time : DateTimeIndex
-        array of corresponding python datetime values
+        Array of corresponding python datetime values
     """
     # check data types
     try:

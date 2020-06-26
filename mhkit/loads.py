@@ -7,29 +7,29 @@ import fatpack
 
 def bin_stats(df,x,bin_edges,statlist=[]):
     """
-    use to bin calculated statistics against "x" according to IEC
+    Use to bin calculated statistics against "x" according to IEC
     
     Parameters:
     -----------------
     df : pd.Dataframe
-        matrix containing time-series statistics of variables
+        Matrix containing time-series statistics of variables
     
     x : array
-        array of variable to bin data against (ie. wind speed)
+        Array of variable to bin data against (ie. wind speed)
     
     bin_edges : array
-        array of desired bin edges w/ consistent step size. 
+        Array of desired bin edges w/ consistent step size. 
 
     statlist : list, optional 
-        contains names of variables to be binned. Bins all variables if left empty
+        Names of variables to be binned. Bins all variables if left empty
     
     Returns:
     ----------------
     baverages : pd.DataFrame
-        load means of each bin
+        Load means of each bin
 
     bstd : pd.DataFrame
-        additional information related to the binning process
+        Additional information related to the binning process
     """
     # check data types
     try:
@@ -87,16 +87,16 @@ def damage_equivalent_load(var, m, bin_num=100, t=600):
     Parameters: 
     -----------
     var : array
-        data of variable/channel being analyzed
+        Data of variable/channel being analyzed
     
     m : float/int
-        fatigue slope factor of material
+        Fatigue slope factor of material
     
     bin_num : int
-        number of bins for rainflow counting method (minimum=100)
+        Number of bins for rainflow counting method (minimum=100)
     
     t : float/int
-        length of measured data (seconds)
+        Length of measured data (seconds)
     
     Returns:
     -----------
@@ -135,23 +135,23 @@ def plot_statistics(x,vmean,vmax,vmin,vstdev=[],xlabel=None,ylabel=None,title=No
     Parameters:
     ------------------
     x : numpy array
-        array of x-axis values
+        Array of x-axis values
     vmean : numpy array
-        array of mean statistical values of variable
+        Array of mean statistical values of variable
     vmax : numpy array
-        array of max statistical values of variable
+        Array of max statistical values of variable
     vmin : numpy array
-        array of min statistical values of variable
+        Array of min statistical values of variable
     vstdev : numpy array, optional
-        array of standard deviation statistical values of variable
+        Array of standard deviation statistical values of variable
     xlabel : string, optional
-        add xlabel to plot
+        xlabel to plot
     ylabel : string, optional
-        add ylabel to plot
+        ylabel to plot
     title : string, optional
-        add title to plot
+        title to plot
     savepath : string, optional
-        path and filename to save figure. Plt.show() is called otherwise
+        Path and filename to save figure. Plt.show() is called otherwise
 
     Returns:
     -------------------
@@ -189,32 +189,32 @@ def plot_statistics(x,vmean,vmax,vmin,vstdev=[],xlabel=None,ylabel=None,title=No
 
 def plot_bin_statistics(bcenters,bmean,bmax,bmin,bstdmean,bstdmax,bstdmin,xlabel=None,ylabel=None,title=None,savepath=None):
     """
-    plot showing standard binned statistics of single variable
+    Plot showing standard binned statistics of single variable
 
     Parameters:
     ------------------
     bcenters : numpy array
-        array of x-axis bin center values
+        x-axis bin center values
     bmean : numpy array
-        array of binned mean statistical values of variable
+        Binned mean statistical values of variable
     bmax : numpy array
-        array of binned max statistical values of variable
+        Binned max statistical values of variable
     bmin : numpy array
-        array of binned min statistical values of variable
+        Binned min statistical values of variable
     bstdmean : numpy array
-        array of standard deviations of mean binned statistics
+        Standard deviations of mean binned statistics
     bstdmax : numpy array
-        array of standard deviations of max binned statistics
+        Standard deviations of max binned statistics
     bstdmin : numpy array
-        array of standard deviations of min binned statistics
+        Standard deviations of min binned statistics
     xlabel : string, optional
-        add xlabel to plot
+        xlabel for plot
     ylabel : string, optional
-        add ylabel to plot
+        ylabel for plot
     title : string, optional
-        add title to plot
+        Title for plot
     savepath : string, optional
-        path and filename to save figure. Plt.show() is called otherwise
+        Path and filename to save figure. Plt.show() is used by default.
 
     Returns:
     -------------------
