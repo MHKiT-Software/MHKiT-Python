@@ -9,21 +9,21 @@ _matlab = False # Private variable indicating if mhkit is run through matlab
 
 def get_stats(data,freq,period=600):
     """
-    Obtain statistics from a dataset
+    Obtain mean, max, min and stdev statistics of data for a given statistical window
 
     Parameters:
     ----------------------
     data : pandas DataFrame
-        DateTimeIndex-ed DataFrame containg variable(s) to be analyzed with statistical window
-    period : float/int
-        statistical window of interest (ex. 600 seconds) [sec]
+        Data indexed by datetime with columns of data to be analyzed 
     freq : float/int
-        sample rate of data [Hz]
+        Sample rate of data [Hz]
+    period : float/int
+        Statistical window of interest [sec], default = 600 
     
     Returns:
     ----------------------
     means,maxs,mins,stds : pandas DataFrame
-        DataFrames containing calculated statistical values of data
+        Calculated statistical values from the data
     """
     # check data type
     assert isinstance(data, pd.DataFrame), 'data must be of type pd.DataFrame'
@@ -82,12 +82,12 @@ def unwrap_vec(data):
     Parameters:
     ---------------
     data : pd.Series, numpy array, list
-        List of data points to be unwrapped [deg]
+        Data points to be unwrapped [deg]
     
     Returns:
     --------------
     data : numpy array
-        List of data points unwrapped between 0-360 deg
+        Data points unwrapped between 0-360 deg
     """
     # check data types
     try:
@@ -113,12 +113,12 @@ def matlab_to_datetime(matlab_datenum):
     Parameters:
     ----------------
     matlab_datenum : np.array
-        Array of matlab datenum to be converted
+        MATLAB datenum to be converted
 
     Returns:
     -----------------
     time : DateTimeIndex
-        Array of corresponding python datetime values
+        Python datetime values
     """
     # check data types
     try:
@@ -146,12 +146,12 @@ def excel_to_datetime(excel_num):
     Parameters:
     ----------------
     excel_num : np.array
-        Array of excel datenums to be converted
+        Excel datenums to be converted
 
     Returns:
     -----------------
     time : DateTimeIndex
-        Array of corresponding python datetime values
+        Python datetime values
     """
     # check data types
     try:

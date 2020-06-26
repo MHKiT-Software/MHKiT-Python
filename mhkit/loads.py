@@ -5,7 +5,7 @@ import numpy as np
 import fatpack
 
 
-def bin_stats(df,x,bin_edges,statlist=[]):
+def bin_stats(df,x,bin_edges,variable_list=[]):
     """
     Use to bin calculated statistics against "x" according to IEC
     
@@ -15,20 +15,20 @@ def bin_stats(df,x,bin_edges,statlist=[]):
         Matrix containing time-series statistics of variables
     
     x : array
-        Array of variable to bin data against (ie. wind speed)
+        Signal to bin data against (e.g. wind speed)
     
     bin_edges : array
-        Array of desired bin edges w/ consistent step size. 
+        Bin edges with consistent step size
 
-    statlist : list, optional 
-        Names of variables to be binned. Bins all variables if left empty
+    variable_list : list, optional 
+        Variables to be binned, default = all variables
     
     Returns:
     ----------------
-    baverages : pd.DataFrame
+    bin_mean : pd.DataFrame
         Load means of each bin
 
-    bstd : pd.DataFrame
+    bin_std : pd.DataFrame
         Additional information related to the binning process
     """
     # check data types
@@ -42,17 +42,17 @@ def bin_stats(df,x,bin_edges,statlist=[]):
     assert isinstance(bin_edges, np.ndarray), 'bin_edges must be of type np.ndarray'
 
     # determine variables to analyze
-    if len(statlist)==0: # if not specified, bin all variables
-        statlist=df.columns.values
+    if len(variable_list)==0: # if not specified, bin all variables
+        variable_list=df.columns.values
     else:
-        assert isinstance(statlist, list), 'stat must be of type list'
+        assert isinstance(variable_list, list), 'must be of type list'
 
     # pre-allocate list variables
     bstatlist = []
     bstdlist = []
 
-    # loop through statlist and get binned means
-    for chan in statlist:
+    # loop through variable_list and get binned means
+    for chan in variable_list:
         # bin data
         bstat = binned_statistic(x,df[chan],statistic='mean',bins=bin_edges)
         # get std of bins
@@ -69,14 +69,14 @@ def bin_stats(df,x,bin_edges,statlist=[]):
         bstdlist.append(std)
  
     # convert return variables to dataframes
-    baverages = pd.DataFrame(np.transpose(bstatlist),columns=statlist)
-    bstd = pd.DataFrame(np.transpose(bstdlist),columns=statlist)
+    bin_mean = pd.DataFrame(np.transpose(bstatlist),columns=variable_list)
+    bin_std = pd.DataFrame(np.transpose(bstdlist),columns=variable_list)
 
     # check if any nans exist
-    if baverages.isna().any().any():
+    if bin_mean.isna().any().any():
         print('Warning: some bins may be empty!')
 
-    return baverages, bstd
+    return bin_mean, bin_std
 
 
 ################ fatigue functions
@@ -187,25 +187,25 @@ def plot_statistics(x,vmean,vmax,vmin,vstdev=[],xlabel=None,ylabel=None,title=No
         plt.close()
 
 
-def plot_bin_statistics(bcenters,bmean,bmax,bmin,bstdmean,bstdmax,bstdmin,xlabel=None,ylabel=None,title=None,savepath=None):
+def plot_bin_statistics(bin_centers,bin_mean,bin_max,bin_min,bin_mean_std,bin_max_std,bin_min_std,xlabel=None,ylabel=None,title=None,savepath=None):
     """
     Plot showing standard binned statistics of single variable
 
     Parameters:
     ------------------
-    bcenters : numpy array
+    bin_centers : numpy array
         x-axis bin center values
-    bmean : numpy array
+    bin_mean : numpy array
         Binned mean statistical values of variable
-    bmax : numpy array
+    bin_max : numpy array
         Binned max statistical values of variable
-    bmin : numpy array
+    bin_min : numpy array
         Binned min statistical values of variable
-    bstdmean : numpy array
+    bin_mean_std : numpy array
         Standard deviations of mean binned statistics
-    bstdmax : numpy array
+    bin_max_std : numpy array
         Standard deviations of max binned statistics
-    bstdmin : numpy array
+    bin_min_std : numpy array
         Standard deviations of min binned statistics
     xlabel : string, optional
         xlabel for plot
@@ -221,9 +221,9 @@ def plot_bin_statistics(bcenters,bmean,bmax,bmin,bstdmean,bstdmax,bstdmin,xlabel
     figure
     """
     fig, ax = plt.subplots(figsize=(7,5))
-    ax.errorbar(bcenters,bmax,marker='^',mfc='none',yerr=bstdmax,capsize=4,label='max')
-    ax.errorbar(bcenters,bmean,marker='o',mfc='none',yerr=bstdmean,capsize=4,label='mean')
-    ax.errorbar(bcenters,bmin,marker='v',mfc='none',yerr=bstdmin,capsize=4,label='min')
+    ax.errorbar(bin_centers,bin_max,marker='^',mfc='none',yerr=bin_max_std,capsize=4,label='max')
+    ax.errorbar(bin_centers,bin_mean,marker='o',mfc='none',yerr=bin_mean_std,capsize=4,label='mean')
+    ax.errorbar(bin_centers,bin_min,marker='v',mfc='none',yerr=bin_min_std,capsize=4,label='min')
     ax.grid(alpha=0.5)
     ax.legend(loc='best')
     if xlabel!=None: ax.set_xlabel(xlabel)
