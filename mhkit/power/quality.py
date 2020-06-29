@@ -57,23 +57,9 @@ def harmonics(x,freq,grid_freq):
         hz = np.arange(0,2570,5)
 
 
-    harmonics_index = pd.Index(harmonics.index)
-    frequency_index_loc = [None]*np.size(hz)
+    harmonics = harmonics.reindex(hz, method='nearest')
+    harmonics = harmonics/len(x)*2
 
-    index_0 = harmonics_index.get_loc(hz[0], method='nearest')
-    frequency_index_loc[0] = index_0
-    sorted_index_greater_than_hz0 = harmonics_index[index_0:]
-
-    i = 1
-    for val in hz[1:]:
-        frequency_index_loc[i] = sorted_index_greater_than_hz0.get_loc(val, method='nearest')
-        i += 1
-    frequency_index_loc[1:] = (np.array(frequency_index_loc[1:])+index_0).tolist()
-
-    harmonics = harmonics.iloc[frequency_index_loc]
-    harmonics.index = hz
-    harmonics = harmonics.loc[~harmonics.index.duplicated(keep='first')]
-    harmonics = harmonics/len(x)*2    
     
     return harmonics
 
