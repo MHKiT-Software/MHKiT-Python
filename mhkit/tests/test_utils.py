@@ -79,4 +79,5 @@ class TestGenUtils(unittest.TestCase):
         # check if answer is correct
         self.assertTrue(answer2 == time)
 
-
+if __name__ == '__main__':
+    unittest.main()
