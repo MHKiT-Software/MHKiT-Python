@@ -45,8 +45,8 @@ class TestLoads(unittest.TestCase):
         loads_data = self.data['loads']
         tower_load = loads_data['TB_ForeAft']
         blade_load = loads_data['BL1_FlapMom']
-        DEL_tower = loads.damage_equivalent_load(tower_load, 4,bin_num=100,t=600)
-        DEL_blade = loads.damage_equivalent_load(blade_load,10,bin_num=100,t=600)
+        DEL_tower = loads.damage_equivalent_load(tower_load, 4,bin_num=100,data_length=600)
+        DEL_blade = loads.damage_equivalent_load(blade_load,10,bin_num=100,data_length=600)
 
         err_tower = np.abs((self.fatigue_tower-DEL_tower)/self.fatigue_tower)
         err_blade = np.abs((self.fatigue_blade-DEL_blade)/self.fatigue_tower)
@@ -63,7 +63,7 @@ class TestLoads(unittest.TestCase):
                            self.data['means']['TB_ForeAft'],
                            self.data['maxs']['TB_ForeAft'],
                            self.data['mins']['TB_ForeAft'],
-                    vstdev=self.data['std']['TB_ForeAft'],
+                    y_stdev=self.data['std']['TB_ForeAft'],
                     xlabel='Wind Speed [m/s]',
                     ylabel='Tower Base Mom [kNm]',
                     savepath=savepath)
