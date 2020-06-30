@@ -3,6 +3,7 @@ from mhkit import river
 from mhkit import tidal
 from mhkit import qc
 from mhkit import utils
+from mhkit import power
 
 # Register datetime converter for a matplotlib plotting methods
 from pandas.plotting import register_matplotlib_converters as _rmc
