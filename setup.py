@@ -22,7 +22,8 @@ DEPENDENCIES = ['pandas',
                 'scipy',
                 'matplotlib', 
                 'requests', 
-                'pecos>=0.1.8']
+                'pecos>=0.1.8',
+                'fatpack']
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))
