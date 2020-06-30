@@ -8,9 +8,9 @@ import fatpack
 def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     """
     Bins calculated statistics against data signal (or channel) 
-    according to IEC TS
+    according to IEC TS 62600-3:2020 ED1.
     
-    Parameters:
+    Parameters
     -----------------
     data : pandas DataFrame
        Time-series statistics of data signal(s)
@@ -24,7 +24,7 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     data_signal : list, optional 
         List of data signal(s) to bin, default = all data signals
     
-    Returns:
+    Returns
     ----------------
     bin_mean : pandas DataFrame
         Mean of each bin
@@ -84,9 +84,10 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
 
 def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     """
-    Calculates the damage equivalent load of a single data signal (or channel)
+    Calculates the damage equivalent load of a single data signal (or channel) 
+    based on IEC TS 62600-3:2020 ED1.
     
-    Parameters: 
+    Parameters
     -----------
     data_signal : array
         Data signal being analyzed
@@ -100,7 +101,7 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     data_length : float/int
         Length of measured data (seconds)
     
-    Returns:
+    Returns
     -----------
     DEL : float
         Damage equivalent load of single data signal
@@ -134,7 +135,7 @@ def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],xlabel=None,ylabel=None,titl
     """
     Plot showing standard raw statistics of variable
 
-    Parameters:
+    Parameters
     ------------------
     x : numpy array
         Array of x-axis values
@@ -155,7 +156,7 @@ def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],xlabel=None,ylabel=None,titl
     savepath : string, optional
         Path and filename to save figure. Plt.show() is called otherwise
 
-    Returns:
+    Returns
     -------------------
     figure
     """
@@ -193,7 +194,7 @@ def plot_bin_statistics(bin_centers,bin_mean,bin_max,bin_min,bin_mean_std,bin_ma
     """
     Plot showing standard binned statistics of single variable
 
-    Parameters:
+    Parameters
     ------------------
     bin_centers : numpy array
         x-axis bin center values
@@ -218,7 +219,7 @@ def plot_bin_statistics(bin_centers,bin_mean,bin_max,bin_min,bin_mean_std,bin_ma
     savepath : string, optional
         Path and filename to save figure. Plt.show() is used by default.
 
-    Returns:
+    Returns
     -------------------
     figure
     """

@@ -12,8 +12,8 @@ def get_statistics(data,freq,period=600):
     Calculate mean, max, min and stdev statistics of data for a 
     given statistical window
 
-    Parameters:
-    ----------------------
+    Parameters
+    ------------
     data : pandas DataFrame
         Data indexed by datetime with columns of data to be analyzed 
     freq : float/int
@@ -21,10 +21,10 @@ def get_statistics(data,freq,period=600):
     period : float/int
         Statistical window of interest [sec], default = 600 
     
-    Returns:
-    ----------------------
+    Returns
+    ---------
     means,maxs,mins,stdevs : pandas DataFrame
-        Calculated statistical values from the data
+        Calculated statistical values from the data, indexed by the first timestamp
     """
     # Check data type
     assert isinstance(data, pd.DataFrame), 'data must be of type pd.DataFrame'
@@ -53,13 +53,13 @@ def get_statistics(data,freq,period=600):
     step = period*freq
     for i in range(int(len(dataQC)/(period*freq))):
         datachunk = dataQC.iloc[i*step:(i+1)*step]
-        # check whether there are any NaNs in datachunk
+        # Check whether there are any NaNs in datachunk
         if datachunk.isnull().any().any(): 
             print('NaNs found in statistical window...check timestamps!')
             input('Press <ENTER> to continue')
             continue
         else:
-            # get stats
+            # Get stats
             time.append(datachunk.index.values[0])
             means.append(datachunk.mean())
             maxs.append(datachunk.max())
@@ -80,13 +80,13 @@ def unwrap_vector(data):
     """
     Function used to unwrap vectors into 0-360 deg range
 
-    Parameters:
-    ---------------
+    Parameters
+    ------------
     data : pandas Series, numpy array, list
         Data points to be unwrapped [deg]
     
-    Returns:
-    --------------
+    Returns
+    ---------
     data : numpy array
         Data points unwrapped between 0-360 deg
     """
@@ -111,13 +111,13 @@ def matlab_to_datetime(matlab_datenum):
     """
     Convert MATLAB datenum format to Python datetime
 
-    Parameters:
-    ----------------
+    Parameters
+    ------------
     matlab_datenum : numpy array
         MATLAB datenum to be converted
 
-    Returns:
-    -----------------
+    Returns
+    ---------
     time : DateTimeIndex
         Python datetime values
     """
@@ -144,13 +144,13 @@ def excel_to_datetime(excel_num):
     """
     Convert Excel datenum format to Python datetime
 
-    Parameters:
-    ----------------
+    Parameters
+    ------------
     excel_num : numpy array
         Excel datenums to be converted
 
-    Returns:
-    -----------------
+    Returns
+    ---------
     time : DateTimeIndex
         Python datetime values
     """
