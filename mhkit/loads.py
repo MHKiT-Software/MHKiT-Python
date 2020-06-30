@@ -56,7 +56,7 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     for signal_name in data_signal:
         # Bin data
         bin_stat = binned_statistic(bin_against,data[signal_name],statistic='mean',bins=bin_edges)
-        # Caclualte std of bins
+        # Calculate std of bins
         std = []
         stdev = pd.DataFrame(data[signal_name])
         stdev.set_index(bin_stat.binnumber,inplace=True)
@@ -85,7 +85,15 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
 def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     """
     Calculates the damage equivalent load of a single data signal (or channel) 
-    based on IEC TS 62600-3:2020 ED1.
+    based on IEC TS 62600-3:2020 ED1. 4-point rainflow counting algorithm from fatpack module
+    is based on the following resources:
+        `C. Amzallag et. al. Standardization of the rainflow counting method for
+        fatigue analysis. International Journal of Fatigue, 16 (1994) 287-293`
+        `ISO 12110-2, Metallic materials - Fatigue testing - Variable amplitude
+        fatigue testing.`
+        `G. Marsh et. al. Review and application of Rainflow residue processing
+        techniques for accurate fatigue damage estimation. International Journal
+        of Fatigue, 82 (2016) 757-765`
     
     Parameters
     -----------

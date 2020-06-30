@@ -9,8 +9,10 @@ _matlab = False # Private variable indicating if mhkit is run through matlab
 
 def get_statistics(data,freq,period=600):
     """
-    Calculate mean, max, min and stdev statistics of data for a 
-    given statistical window
+    Calculate mean, max, min and stdev statistics of continuous data for a 
+    given statistical window. Default length of statistical window (period) is
+    based on IEC TS 62600-3:2020 ED1. Also allows calculation of statistics for multiple statistical
+    windows of continuous data.
 
     Parameters
     ------------
@@ -32,7 +34,7 @@ def get_statistics(data,freq,period=600):
     assert isinstance(period, (float,int)), 'freq must be of type int or float'
 
     # Check timestamp using qc module
-    data.index = data.index.round('1ms') # TODO: may be a better idea to force the user to do this in case very high sample rates are used
+    data.index = data.index.round('1ms')
     dataQC = qc.check_timestamp(data,1/freq)
     dataQC = dataQC['cleaned_data']
     
@@ -71,8 +73,6 @@ def get_statistics(data,freq,period=600):
     maxs = pd.DataFrame(maxs,index=time)
     mins = pd.DataFrame(mins,index=time)
     stdevs = pd.DataFrame(stdev,index=time)
-
-    # TODO: handle vector averaging
 
     return means,maxs,mins,stdevs
 
