@@ -7,9 +7,10 @@ from mhkit import qc
 
 _matlab = False # Private variable indicating if mhkit is run through matlab
 
-def get_stats(data,freq,period=600):
+def get_statistics(data,freq,period=600):
     """
-    Obtain mean, max, min and stdev statistics of data for a given statistical window
+    Calculate mean, max, min and stdev statistics of data for a 
+    given statistical window
 
     Parameters:
     ----------------------
@@ -22,33 +23,33 @@ def get_stats(data,freq,period=600):
     
     Returns:
     ----------------------
-    means,maxs,mins,stds : pandas DataFrame
+    means,maxs,mins,stdevs : pandas DataFrame
         Calculated statistical values from the data
     """
-    # check data type
+    # Check data type
     assert isinstance(data, pd.DataFrame), 'data must be of type pd.DataFrame'
     assert isinstance(freq, (float,int)), 'freq must be of type int or float'
     assert isinstance(period, (float,int)), 'freq must be of type int or float'
 
-    # check timestamp using qc module
+    # Check timestamp using qc module
     data.index = data.index.round('1ms') # TODO: may be a better idea to force the user to do this in case very high sample rates are used
     dataQC = qc.check_timestamp(data,1/freq)
     dataQC = dataQC['cleaned_data']
     
-    # check to see if data length contains enough data points for statistical window
+    # Check to see if data length contains enough data points for statistical window
     if len(dataQC)%(period*freq) > 0:
         remain = len(dataQC) % (period*freq)
         dataQC = dataQC.iloc[0:-int(remain)]
         print('WARNING: there were not enough data points in the last statistical period. Last '+str(remain)+' points were removed.')
     
-    # pre-allocate lists
+    # Pre-allocate lists
     time = []
     means = []
     maxs = []
     mins = []
     stdev = []
 
-    # grab data chunks to performs stats on
+    # Get data chunks to performs stats on
     step = period*freq
     for i in range(int(len(dataQC)/(period*freq))):
         datachunk = dataQC.iloc[i*step:(i+1)*step]
@@ -65,23 +66,23 @@ def get_stats(data,freq,period=600):
             mins.append(datachunk.min())
             stdev.append(datachunk.std())
 
-    # convert to dataframes and set index
+    # Convert to DataFrames and set index
     means = pd.DataFrame(means,index=time)
     maxs = pd.DataFrame(maxs,index=time)
     mins = pd.DataFrame(mins,index=time)
-    stdev = pd.DataFrame(stdev,index=time)
+    stdevs = pd.DataFrame(stdev,index=time)
 
     # TODO: handle vector averaging
 
-    return means,maxs,mins,stdev
+    return means,maxs,mins,stdevs
 
-def unwrap_vec(data):
+def unwrap_vector(data):
     """
     Function used to unwrap vectors into 0-360 deg range
 
     Parameters:
     ---------------
-    data : pd.Series, numpy array, list
+    data : pandas Series, numpy array, list
         Data points to be unwrapped [deg]
     
     Returns:
@@ -89,30 +90,30 @@ def unwrap_vec(data):
     data : numpy array
         Data points unwrapped between 0-360 deg
     """
-    # check data types
+    # Check data types
     try:
         data = np.array(data)
     except:
         pass
     assert isinstance(data, np.ndarray), 'data must be of type np.ndarray'
 
-    # loop through and unwrap points
+    # Loop through and unwrap points
     for i in range(len(data)):
         if data[i] < 0:
             data[i] = data[i]+360
         elif data[i] > 360:
             data[i] = data[i]-360
     if max(data) > 360 or min(data) < 0:
-        data = unwrap_vec(data)
+        data = unwrap_vector(data)
     return data
 
 def matlab_to_datetime(matlab_datenum):
     """
-    Conversion of matlab datenum format to python datetime
+    Convert MATLAB datenum format to Python datetime
 
     Parameters:
     ----------------
-    matlab_datenum : np.array
+    matlab_datenum : numpy array
         MATLAB datenum to be converted
 
     Returns:
@@ -120,14 +121,14 @@ def matlab_to_datetime(matlab_datenum):
     time : DateTimeIndex
         Python datetime values
     """
-    # check data types
+    # Check data types
     try:
         matlab_datenum = np.array(matlab_datenum,ndmin=1)
     except:
         pass
     assert isinstance(matlab_datenum, np.ndarray), 'data must be of type np.ndarray'
 
-    # pre-allocate
+    # Pre-allocate
     time = []
     # loop through dates and convert
     for t in matlab_datenum:
@@ -141,11 +142,11 @@ def matlab_to_datetime(matlab_datenum):
 
 def excel_to_datetime(excel_num):
     """
-    Conversion of excel datenum format to python datetime
+    Convert Excel datenum format to Python datetime
 
     Parameters:
     ----------------
-    excel_num : np.array
+    excel_num : numpy array
         Excel datenums to be converted
 
     Returns:
@@ -153,14 +154,14 @@ def excel_to_datetime(excel_num):
     time : DateTimeIndex
         Python datetime values
     """
-    # check data types
+    # Check data types
     try:
         excel_num = np.array(excel_num)
     except:
         pass
     assert isinstance(excel_num, np.ndarray), 'data must be of type np.ndarray'
 
-    # convert to datetime
+    # Convert to datetime
     time = pd.to_datetime('1899-12-30')+pd.to_timedelta(excel_num,'D')
 
     return time
