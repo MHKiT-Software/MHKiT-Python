@@ -8,11 +8,12 @@
 MHKiT-Python is a Python package designed for marine renewable energy applications to assist in 
 data processing and visualization.  The software package include functionality for:
 
-* Quality control analysis
-* Wave resource and wave performance
-* River resource and device
-* Tidal resource and device
+* Data processing
 * Data visualization
+* Data quality control
+* Resource assessment
+* Device performance
+* Device loads
 
 Documentation
 ------------------
