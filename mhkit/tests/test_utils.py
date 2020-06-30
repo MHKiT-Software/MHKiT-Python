@@ -40,7 +40,7 @@ class TestGenUtils(unittest.TestCase):
         assert_frame_equal(pd.DataFrame(answer),pd.DataFrame(correct))
 
     def test_matlab_to_datetime(self):
-        # store excel timestamp
+        # store matlab timestamp
         mat_time = 7.367554921296296e+05
         # corresponding datetime
         string_time = '2017-03-01 11:48:40'
@@ -59,7 +59,7 @@ class TestGenUtils(unittest.TestCase):
         string_time = '2017-03-01 11:48:40'
         time = pd.to_datetime(string_time)
         # test function
-        answer = utils.excel2datetime(excel_time)
+        answer = utils.excel_to_datetime(excel_time)
         answer2 = answer.round('s') # round to nearest second for comparison
         
         # check if answer is correct
