@@ -13,7 +13,7 @@ _rmc()
 import warnings as _warn
 _warn.simplefilter(action='ignore', category=FutureWarning)
 
-__version__ = 'v0.1.0'
+__version__ = 'v0.2.0'
 
 __copyright__ = """
 Copyright 2019, Alliance for Sustainable Energy, LLC under the terms of 
