@@ -126,7 +126,7 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     assert isinstance(data_length, (float,int)), 'data_length must be of type float or int'
 
     # find rainflow ranges
-    ranges = fatpack.find_rainflow_ranges(data_signal)
+    ranges = fatpack.find_rainflow_ranges(data_signal,k=256)
 
     # find range count and bin
     Nrf, Srf = fatpack.find_range_count(ranges, bin_num)
