@@ -17,6 +17,10 @@ $ cat .gitignore
 **/mhkit.egg-info/
 **/.ipynb_checkpoints
 **/tests/*.png
+**/workspace/data_peetz/
+**/workspace/data_mooring/
+**/workspace/data_GE/
+**/.vscode/
 
 .coverage
 .DS_Store
