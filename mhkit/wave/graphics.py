@@ -266,6 +266,9 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     ax.text(8e-2, 0.7, 'large\ninertia', ha='center', va='top',
         fontstyle='italic', fontsize='small')
 
+    ax.text(8e-2, 6e-2, 'all\ninertia', ha='center', va='top',
+        fontstyle='italic', fontsize='small')
+
     # left bound of diffraction region
     drv = 0.5
     graphScale = list(ax.get_ylim())
