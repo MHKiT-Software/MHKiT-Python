@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 from mhkit.wave.resource import significant_wave_height as _sig_wave_height
 from mhkit.wave.resource import peak_period as _peak_period
 from mhkit.river.graphics import _xy_plot
@@ -9,7 +9,7 @@ from mhkit.river.graphics import _xy_plot
 def plot_spectrum(S, ax=None):
     """
     Plots wave amplitude spectrum versus omega
-    
+
     Parameters
     ------------
     S: pandas DataFrame
@@ -19,15 +19,15 @@ def plot_spectrum(S, ax=None):
     Returns
     ---------
     ax : matplotlib pyplot axes
-    
+
     """
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
-    
+
     f = S.index
-    
-    ax = _xy_plot(f*2*np.pi, S/(2*np.pi), fmt='-', xlabel='omega [rad/s]', 
+
+    ax = _xy_plot(f*2*np.pi, S/(2*np.pi), fmt='-', xlabel='omega [rad/s]',
              ylabel='Spectral density [m$^2$s/rad]', ax=ax)
-    
+
     """
     spectrum_type = S.columns
     if S.shape[1] == 1:
@@ -37,34 +37,34 @@ def plot_spectrum(S, ax=None):
         ax.set_title(title)
     else:
         ax.legend(spectrum_type)
-    """   
+    """
     return ax
 
 def plot_elevation_timeseries(eta, ax=None):
     """
     Plot wave surface elevation time-series
-    
+
     Parameters
     ------------
     eta: pandas DataFrame
         Wave surface elevation [m] indexed by time [datetime or s]
     ax : matplotlib axes object
         Axes for plotting.  If None, then a new figure is created.
-        
+
     Returns
     ---------
     ax : matplotlib pyplot axes
-            
+
     """
-    
+
     assert isinstance(eta, pd.DataFrame), 'eta must be of type pd.DataFrame'
-    
-    ax = _xy_plot(eta.index, eta, fmt='-', xlabel='Time', 
+
+    ax = _xy_plot(eta.index, eta, fmt='-', xlabel='Time',
                   ylabel='$\eta$ [m]', ax=ax)
-    
+
     return ax
 
-def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True, 
+def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
                 ax=None):
     """
     Plots values in the matrix as a scatter diagram
@@ -85,36 +85,36 @@ def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
         Show values on the scatter diagram
     ax : matplotlib axes object
         Axes for plotting.  If None, then a new figure is created.
-    
+
     Returns
     ---------
     ax : matplotlib pyplot axes
-    
+
     """
     assert isinstance(M, pd.DataFrame), 'M must be of type pd.DataFrame'
-    
+
     if ax is None:
         plt.figure()
         ax = plt.gca()
-        
+
     im = ax.imshow(M, origin='lower', aspect='auto')
-    
+
     # Add colorbar
     cbar = plt.colorbar(im)
     if zlabel:
         cbar.set_label(zlabel, rotation=270, labelpad=15)
-    
+
     # Set x and y label
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    
+
     # Show values in the plot
     if show_values:
         for i, col in enumerate(M.columns):
             for j, index in enumerate(M.index):
                 if not np.isnan(M.loc[index,col]):
                     ax.text(i, j, format(M.loc[index,col], '.2f'), ha="center", va="center")
-    
+
     # Reset x and y ticks
     ax.set_xticks(np.arange(len(M.columns)))
     ax.set_yticks(np.arange(len(M.index)))
@@ -221,7 +221,9 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
         ax.plot(xx, yy, 'o', label=lab)
 
     if (xx>=10) or (yy>=50) or (lambda_w >= 1000) :
-        ax.autoscale(enable=True, axis='both', tight=None)
+
+        ax.autoscale(enable=True, axis='both', tight=bool)
+
     else:
          ax.set_xlim((0.01, 10))
          ax.set_ylim((0.01, 50))
@@ -229,6 +231,7 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     graphScale = list(ax.get_xlim())
     if graphScale[0] >= .01:
         graphScale[0] =.01
+
 
     x = np.logspace(1,np.log10(graphScale[1]), 2)
     y_breaking = 0.14 * np.pi / x
@@ -264,6 +267,10 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     y_small_drag = ndv*np.ones_like(graphScale)
     ax.plot(graphScale, y_small_drag,'k--')
     ax.text(8e-2, 0.7, 'large\ninertia', ha='center', va='top',
+        fontstyle='italic', fontsize='small')
+
+
+    ax.text(8e-2, 6e-2, 'all\ninertia', ha='center', va='top',
         fontstyle='italic', fontsize='small')
 
     # left bound of diffraction region
