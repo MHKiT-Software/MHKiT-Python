@@ -221,7 +221,9 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
         ax.plot(xx, yy, 'o', label=lab)
 
     if (xx>=10) or (yy>=50) or (lambda_w >= 1000) :
+
         ax.autoscale(enable=True, axis='both', tight=bool)
+
     else:
          ax.set_xlim((0.01, 10))
          ax.set_ylim((0.01, 50))
@@ -266,6 +268,7 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     ax.plot(graphScale, y_small_drag,'k--')
     ax.text(8e-2, 0.7, 'large\ninertia', ha='center', va='top',
         fontstyle='italic', fontsize='small')
+
 
     ax.text(8e-2, 6e-2, 'all\ninertia', ha='center', va='top',
         fontstyle='italic', fontsize='small')
