@@ -221,7 +221,7 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
         ax.plot(xx, yy, 'o', label=lab)
 
     if (xx>=10) or (yy>=50) or (lambda_w >= 1000) :
-        ax.autoscale(enable=True, axis='both', tight=None)
+        ax.autoscale(enable=True, axis='both', tight=bool)
     else:
          ax.set_xlim((0.01, 10))
          ax.set_ylim((0.01, 50))
@@ -229,6 +229,7 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     graphScale = list(ax.get_xlim())
     if graphScale[0] >= .01:
         graphScale[0] =.01
+
 
     x = np.logspace(1,np.log10(graphScale[1]), 2)
     y_breaking = 0.14 * np.pi / x
