@@ -219,14 +219,13 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
         yy = np.pi*row['D']/row['lambda_w']
         lab = '$H = %.2g,\\,$lambda_{w}$ = %.2g,\\,D = %.2g$' % (row['H'], row['lambda_w'], row['D'])
         ax.plot(xx, yy, 'o', label=lab)
-
-    if (xx>=10) or (yy>=50) or (lambda_w >= 1000) :
-
-        ax.autoscale(enable=True, axis='both', tight=bool)
+   
+    if np.any(xx>=10 or xx<=.02) or np.any(yy>=50) or np.any(lambda_w >= 1000) :
+        ax.autoscale(enable=True, axis='both', tight=True)  
 
     else:
-         ax.set_xlim((0.01, 10))
-         ax.set_ylim((0.01, 50))
+        ax.set_xlim((0.01, 10))
+        ax.set_ylim((0.01, 50))
 
     graphScale = list(ax.get_xlim())
     if graphScale[0] >= .01:
@@ -242,8 +241,9 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     y_breaking = 0.14 * np.pi / x
     ax.plot(x, y_breaking, 'k-')
     graphScale = list(ax.get_xlim())
-    ax.text(1, 7, 'wave\nbreaking\n$H/\lambda_w > 0.14$', ha='center', va='top',
             fontstyle='italic', fontsize='small')
+    ax.text(1, 7, 'wave\nbreaking\n$H/\lambda_w > 0.14$', ha='center', va='center',
+            fontstyle='italic', fontsize='small',clip_on='True')
 
     # upper bound of low drag region
     ldv = 20
@@ -251,27 +251,27 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     graphScale[1] = 0.14 * np.pi / ldv
     ax.plot(graphScale, y_small_drag,'k--')
     ax.text(0.0125, 30, 'drag', ha='center', va='top', fontstyle='italic',
-            fontsize='small')
+            fontsize='small',clip_on='True')
 
     # upper bound of small drag region
     sdv = 1.5
     y_small_drag = sdv*np.ones_like(graphScale)
     graphScale[1] = 0.14 * np.pi / sdv
     ax.plot(graphScale, y_small_drag,'k--')
-    ax.text(0.02, 7, 'inertia \n& drag', ha='center', va='top',
-            fontstyle='italic', fontsize='small')
+    ax.text(0.02, 7, 'inertia \n& drag', ha='center', va='center',
+            fontstyle='italic', fontsize='small',clip_on='True')
 
     # upper bound of negligible drag region
     ndv = 0.25
     graphScale[1] = 0.14 * np.pi / ndv
     y_small_drag = ndv*np.ones_like(graphScale)
     ax.plot(graphScale, y_small_drag,'k--')
-    ax.text(8e-2, 0.7, 'large\ninertia', ha='center', va='top',
-        fontstyle='italic', fontsize='small')
+    ax.text(8e-2, 0.7, 'large\ninertia', ha='center', va='center',
+        fontstyle='italic', fontsize='small',clip_on='True')
 
 
-    ax.text(8e-2, 6e-2, 'all\ninertia', ha='center', va='top',
-        fontstyle='italic', fontsize='small')
+    ax.text(8e-2, 6e-2, 'all\ninertia', ha='center', va='center',
+        fontstyle='italic', fontsize='small', clip_on='True')
 
     # left bound of diffraction region
     drv = 0.5
@@ -279,8 +279,8 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     graphScale[1] = 0.14 * np.pi / drv
     x_diff_reg = drv*np.ones_like(graphScale)
     ax.plot(x_diff_reg, graphScale, 'k--')
-    ax.text(2, 6e-2, 'diffraction', ha='center', va='top', fontstyle='italic',
-            fontsize='small')
+    ax.text(2, 6e-2, 'diffraction', ha='center', va='center', fontstyle='italic',
+            fontsize='small',clip_on='True')
 
 
     if index > 0:
