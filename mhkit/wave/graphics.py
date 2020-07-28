@@ -121,3 +121,4 @@ def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
     ax.set_yticklabels(M.index)
 
     return ax
+	
