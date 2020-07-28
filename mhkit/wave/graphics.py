@@ -123,7 +123,6 @@ def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
 
     return ax
 
-def plot_chakrabarti(H, lambda_w, D, ax=None):
     """
     Plots, in the style of Chakrabart (2005), relative importance of viscous,
     inertia, and diffraction phemonena

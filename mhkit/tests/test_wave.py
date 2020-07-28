@@ -159,49 +159,7 @@ class TestResourceSpectrum(unittest.TestCase):
         plt.close()
         
         self.assertTrue(isfile(filename))
-
-    def test_plot_chakrabarti(self):            
-        filename = abspath(join(testdir, 'wave_plot_chakrabarti.png'))
-        if isfile(filename):
-            os.remove(filename)
-        
-        D = 5
-        H = 10
-        lambda_w = 200
-
-        wave.graphics.plot_chakrabarti(H, lambda_w, D)
-        plt.savefig(filename)
-
-    def test_plot_chakrabarti_np(self):            
-        filename = abspath(join(testdir, 'wave_plot_chakrabarti_np.png'))
-        if isfile(filename):
-            os.remove(filename)
-        
-        D = np.linspace(5, 15, 5)
-        H = 10 * np.ones_like(D)
-        lambda_w = 200 * np.ones_like(D)
-
-        wave.graphics.plot_chakrabarti(H, lambda_w, D)
-        plt.savefig(filename)
-        
-        self.assertTrue(isfile(filename))
-
-    def test_plot_chakrabarti_pd(self):            
-        filename = abspath(join(testdir, 'wave_plot_chakrabarti_pd.png'))
-        if isfile(filename):
-            os.remove(filename)
-        
-        D = np.linspace(5, 15, 5)
-        H = 10 * np.ones_like(D)
-        lambda_w = 200 * np.ones_like(D)
-        df = pd.DataFrame([H.flatten(),lambda_w.flatten(),D.flatten()],
-                         index=['H','lambda_w','D']).transpose()
-
-        wave.graphics.plot_chakrabarti(df.H, df.lambda_w, df.D)
-        plt.savefig(filename)
-        
-        self.assertTrue(isfile(filename))
-        
+      
 
 class TestResourceMetrics(unittest.TestCase):
 
