@@ -110,38 +110,9 @@ def read_NDBC_file(file_name, missing_values=['MM',9999,999,99]):
     return data, metadata
 
 
-def fetch_NDBC(number, data="Spectral Wave Data", proxy=None):
-    '''
-    Historical data: Spectral wave density on ndbc.noaa.gov
-    for the given buoy number.  
-        
-    Parameters
-    ----------
-    saveType: string
-        If set to to "h5", the data will be saved in a compressed .h5
-        file
-        If set to "txt", the data will be stored in a raw .txt file
-        Otherwise, a file will not be created
-        NOTE: Only applies 
-    savePath : string
-        Relative path to place directory with data files.       
-    '''
-            
-    # Returns link for each year of historical Spectral wave density data
-    links = _get_links(number, proxy=proxy)
-    
-    noaa_data = {}
-    for key in links:
-        key_URL = f'https://ndbc.noaa.gov{links[key]}'
-        file_name = key_URL.replace('download_data', 'view_text_file')
-        response =  requests.get(file_name)
-        df = pd.read_csv(StringIO(response.text), sep='\s+')
-        noaa_data[key] = df
-        #import ipdb; ipdb.set_trace()
-    return noaa_data
-    
-    
-def _get_links(number, data="Spectral Wave Data", proxy=None):  
+def get_available_noaa_data(number, 
+                            data="Spectral Wave Data", 
+                            proxy=None):  
     '''
     Returns a dictionary of links indexed by hyperlink reference 
     e.g. year.
@@ -156,12 +127,12 @@ def _get_links(number, data="Spectral Wave Data", proxy=None):
     Returns
     -------
     links: Dict
-        links to NOAA data indexed by href key
+        Links to NOAA data indexed by href key
     '''
     
     if data != "Spectral Wave Data":
-        "Currently only Historical Spectral Wave Data is supported. If you would like to see more data types please open an issue or submit a Pull Request on GitHub"
-        #break
+        msg = __supported_noaa_params()
+        return msg
         
     #prepares to pull the data from the NDBC website
     url = f'https://www.ndbc.noaa.gov/station_history.php?station={number}'
@@ -176,28 +147,59 @@ def _get_links(number, data="Spectral Wave Data", proxy=None):
     
     #checks for headers in differently formatted webpages
     if len(headers) == 0:
-        raise Exception("Spectral wave density data for buoy #%s not found" % number)
+        msg=f"Spectral wave density data for buoy {number} not found"
+        raise Exception(msg)
 
     if len(headers) == 2:
         headers = headers[1]
     else:
         headers = headers[0]
 
-    links = {a.string: a["href"] for a in headers.find_next_siblings("a", href=True)}
+    links = {a.string: a["href"] for a in headers.find_next_siblings("a",
+        href=True)}
         
     return links    
     
     
+def fetch_NDBC(links, data="Spectral Wave Data", proxy=None):
+    '''
+    Returns a DataFrame for each {key: link}  element passed in the 
+	links dictionary.
+        
+    Parameters
+    ----------
+    links: Dict
+	    Data link dict from `get_available_noaa_data`
+	data: string
+	    NOAA data product
+	proxy: string
+	    Proxy URL        
+    '''
+
+    if data != "Spectral Wave Data":
+        msg = __supported_noaa_params()
+        return msg
+	              
+    noaa_data = {}
+    for key in links:
+        key_URL = f'https://ndbc.noaa.gov{links[key]}'
+        file_name = key_URL.replace('download_data', 'view_text_file')
+        response =  requests.get(file_name)
+        df = pd.read_csv(StringIO(response.text), sep='\s+')
+        noaa_data[key] = df
+    return noaa_data
+        
+
 def noaa_dates_to_DateTime(dataframe, data="Spectral Wave Data"):
     '''
-    Analyzes a DataFrame header to convert #YY  MM DD hh mm
-    to return a DataFrame with the NOAA DateColumns removed
-    and a new ['date'] columns with DateTime Format
+    Takes a DataFrame and converts the NOAA date columns 
+	(e.g. "#YY  MM DD hh mm") to datetime. Returns a DataFrame with the 
+	removed NOAA date columns a new ['date'] columns with DateTime Format
     
     Parameters
     ----------
     dataframe: DataFrame
-        NOAA Datafrmae with headers ['YY', 'MM', 'DD', 'hh', {'mm'}]
+        Dataframe with headers (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
     data: string
         Specifies the type of NOAA data
         
@@ -209,8 +211,8 @@ def noaa_dates_to_DateTime(dataframe, data="Spectral Wave Data"):
     '''
 
     if data != "Spectral Wave Data":
-        "Currently only Historical Spectral Wave Data is supported. If you would like to see more data types please open an issue or submit a Pull Request on GitHub"
-        #break
+        msg = __supported_noaa_params()
+        return msg
     
     df = dataframe.copy(deep=True)
     hours_loc = np.where(df.columns.values == 'hh')[0][0]       
@@ -232,29 +234,70 @@ def noaa_dates_to_DateTime(dataframe, data="Spectral Wave Data"):
         year_fmt = '%y' 
 
     if minutes:
-        columns = all_columns[0:hours_loc+2]
-            
-        # Convert to str and zero pad
-        for key in columns:
-            df[key] = df[key].astype(str).str.zfill(2)
+        hours_loc +=1 
         
-        df['date_string'] =  [str(a)+str(b)+str(c)+str(d)+str(e) for a,b,c,d,e in zip(df[columns[0]], df[columns[1]], df[columns[2]], df[columns[3]], df[columns[4]])]  
-        df['date'] = pd.to_datetime(df['date_string'], format=f'{year_fmt}%m%d%H%M')
-        del df['date_string']
-        
-        df.drop(columns[0:hours_loc+2], axis=1, inplace=True)
-        
-    else:
-        columns = all_columns[0:hours_loc+1]
-        # Convert to str and zero pad
-        for key in columns[0:hours_loc+1]:          
-            df[key] = df[key].astype(str).str.zfill(2)
-        
-        df['date_string'] =  [str(a)+str(b)+str(c)+str(d) for a,b,c,d in zip(df[columns[0]], df[columns[1]], df[columns[2]], df[columns[3]])]
-        df['date'] = pd.to_datetime(df['date_string'], format=f'{year_fmt}%m%d%H')
-        del df['date_string']
-        
-        df.drop(columns[0:hours_loc+1], axis=1, inplace=True)
+    columns = all_columns[0:hours_loc+1]           
+    df = __date_string_to_datetime(df, columns, year_fmt)        
+    df.drop(columns[0:hours_loc+1], axis=1, inplace=True)       
     
     return df
+    
+def __supported_noaa_params():
+    '''
+    There is a significant number of datasets provided by NOAA. There is
+    specific data processing required for each type. Therefore this 
+    function is thrown for any data type not currently covered.
+    Parameters
+    ----------
+    None
+    
+    Returns
+    -------
+    msg: string
+        string indicating what is supported and how to request or add
+        new functionality    
+    '''
+    
+    msg = ["Currently only Historical Spectral Wave Data is "+
+    "supported. If you would like to see more data types please"+
+    " open an issue or submit a Pull Request on GitHub"]
+    print(msg)
+    return msg	
+	
+
+def __date_string_to_datetime(df, columns, year_fmt):
+    '''
+    Takes a NOAA df and creates a datetime from multiple columns headers
+    by combining each column into a single string. Then the datetime 
+    method is applied  given the expected format. 
+    
+    Parameters
+    ----------
+    df: DataFrame
+        Dataframe with columns (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
+    columns: list 
+        list of strings for the columns to consider   
+        (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
+    year_fmt: str
+        Specifies if year is 2 digit or 4 digit for datetime 
+        interpretation
+       
+    Returns
+    -------
+    df: DataFrame
+        The passed df with a new column ['date'] with the datetime format           
+    '''
+    
+    # Convert to str and zero pad
+    for key in columns:
+        df[key] = df[key].astype(str).str.zfill(2)
+    
+    df['date_string'] = df[columns[0]]
+    for column in columns[1:]:
+        df['date_string'] = df[['date_string', column]].apply(lambda x: ''.join(x), axis=1)
+    df['date'] = pd.to_datetime(df['date_string'], format=f'{year_fmt}%m%d%H%M')
+    del df['date_string']
+    
+    return df
+    
     
