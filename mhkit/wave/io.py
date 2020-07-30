@@ -134,12 +134,11 @@ def get_available_noaa_data(number,
         msg = __supported_noaa_params()
         return msg
         
-    #prepares to pull the data from the NDBC website
-    url = f'https://www.ndbc.noaa.gov/station_history.php?station={number}'
+    noaa_buoy_url = f'https://www.ndbc.noaa.gov/station_history.php?station={number}'
     if proxy == None:
-        ndbcURL = requests.get(url)
+        ndbcURL = requests.get(noaa_buoy_url)
     else:
-        ndbcURL = requests.get(url, proxies=proxy)
+        ndbcURL = requests.get(noaa_buoy_url, proxies=proxy)
 
     ndbcURL.raise_for_status()
     ndbcHTML = bs4.BeautifulSoup(ndbcURL.text, "lxml")
@@ -173,7 +172,12 @@ def fetch_NDBC(links, data="Spectral Wave Data", proxy=None):
 	data: string
 	    NOAA data product
 	proxy: string
-	    Proxy URL        
+	    Proxy URL   
+        
+    Returns
+    -------
+    noaa_data: dict
+        Dictionary of NOAA data 
     '''
 
     if data != "Spectral Wave Data":
@@ -190,11 +194,12 @@ def fetch_NDBC(links, data="Spectral Wave Data", proxy=None):
     return noaa_data
         
 
-def noaa_dates_to_DateTime(dataframe, data="Spectral Wave Data"):
+def noaa_dates_to_datetime(dataframe, data="Spectral Wave Data", 
+                           return_date_cols=False):
     '''
     Takes a DataFrame and converts the NOAA date columns 
 	(e.g. "#YY  MM DD hh mm") to datetime. Returns a DataFrame with the 
-	removed NOAA date columns a new ['date'] columns with DateTime Format
+	removed NOAA date columns a new ['date'] columns with DateTime Format.
     
     Parameters
     ----------
@@ -202,45 +207,62 @@ def noaa_dates_to_DateTime(dataframe, data="Spectral Wave Data"):
         Dataframe with headers (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
     data: string
         Specifies the type of NOAA data
+    return_date_col: Bool
+        Default False. When true will return list of NOAA date columns
+            
         
     Returns
     -------
-    df: DataFrame
-        DateFrame with NOAA dates dropped and new ['date']
+    date: Series
+        Series with NOAA dates dropped and new ['date']
         column in DateTime format
+    noaa_date_cols: list
+        List of the DataFrame columns headers for dates as provided by 
+        NOAA
     '''
 
     if data != "Spectral Wave Data":
         msg = __supported_noaa_params()
         return msg
     
-    df = dataframe.copy(deep=True)
-    hours_loc = np.where(df.columns.values == 'hh')[0][0]       
-    minutes = df.columns[hours_loc+1] == 'mm'
-
-    all_columns = df.columns.values.tolist()
-    year_col = all_columns[0]
+    # Remove frequency columns    
+    df = dataframe.copy(deep=True)     
+    times_only = __remove_columns(df, starts_with='.')
+       
+    noaa_date_cols = times_only.columns.values.tolist()
+    if len(noaa_date_cols) == 4:
+        minutes = False
+    elif len(noaa_date_cols) ==5:
+        minutes = True
+    else:
+        msg:f"Error unexpected length of time. Return: {noaa_date_cols} "         
     
-    is_pound = ('#' in year_col)
-    if is_pound: 
-        df = df.rename(columns={year_col: year_col.split('#')[1]})
-        all_columns = df.columns.values.tolist()
-        year_col = all_columns[0]
-        year_fmt = '%Y'
-        
-    elif year_col == 'YYYY':
-        year_fmt = '%Y'
-    elif year_col =='YY':
-        year_fmt = '%y' 
-
+    # So far these have been consistiently names
+    months_loc = noaa_date_cols.index('MM')
+    days_loc   = noaa_date_cols.index('DD')
+    hours_loc  = noaa_date_cols.index('hh')
     if minutes:
-        hours_loc +=1 
+        minutes_loc  = noaa_date_cols.index('mm')
+        index_exclude_year = [months_loc, days_loc, hours_loc, minutes_loc]
+    else:
+        index_exclude_year = [months_loc, days_loc, hours_loc]
         
-    columns = all_columns[0:hours_loc+1]           
-    df = __date_string_to_datetime(df, columns, year_fmt)        
-    df.drop(columns[0:hours_loc+1], axis=1, inplace=True)       
+    years_loc = [*set([*range(len(noaa_date_cols))]) - set(index_exclude_year)][0]          
+    year_string = noaa_date_cols[years_loc]
     
-    return df
+    if ('#' in year_string) or (year_string == 'YYYY'):
+        year_fmt = '%Y'
+    elif year_string =='YY':
+        year_fmt = '%y' 
+               
+    df = __date_string_to_datetime(df, noaa_date_cols, year_fmt)        
+    date = df['date']       
+    del df
+    
+    if return_date_cols:
+        return date, noaa_date_cols
+    return date
+
     
 def __supported_noaa_params():
     '''
@@ -300,4 +322,21 @@ def __date_string_to_datetime(df, columns, year_fmt):
     
     return df
     
+
+def __remove_columns(df, starts_with='.'):
+    '''
+    Removes column names that start with '.' and returns the modified 
+    DataFrame.
+    
+    Parameters
+    ----------
+    df: Dataframe
+        Dataframe with columns that start_with=pattern to be removed
+    starts_with: str
+        Removes all columns that start with the specified pattern
+    '''  
+    for column in df:
+        if column.startswith(starts_with):
+            del df[column]    
+    return df
     
