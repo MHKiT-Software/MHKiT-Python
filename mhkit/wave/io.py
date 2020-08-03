@@ -1,8 +1,9 @@
-from io import StringIO
+from io import BytesIO
 import pandas as pd
 import numpy as np
 import requests
 import bs4
+import zlib
 
 
 def read_NDBC_file(file_name, missing_values=['MM',9999,999,99]):
@@ -110,67 +111,91 @@ def read_NDBC_file(file_name, missing_values=['MM',9999,999,99]):
     return data, metadata
 
 
-def get_available_ndbc_data(number, 
-                            data="Spectral Wave Data", 
-                            proxy=None):  
+def ndbc_available_data(parameter="swden",
+                        number=None, 
+                        proxy=None):  
     '''
-    Returns a dictionary of links indexed by hyperlink reference 
+    Returns a dictionary of links indexed by hyperlink reference  
+    for a given parameters
+     
     e.g. year.
     
     Parameters
     ----------
+    parameter: string
+        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
     number: string
-        Buoy Number
+        Buoy Number        
     proxy: string
         proxy url
         
     Returns
     -------
-    links: Dict
-        Links to NDBC data indexed by href key
+    available_data: DataFrame
+        DataFrame with station ID
     '''
-    
-    if data != "Spectral Wave Data":
+
+    if parameter != "swden":
         msg = __supported_ndbc_params()
         return msg
-        
-    ndbc_buoy_url = f'https://www.ndbc.noaa.gov/station_history.php?station={number}'
+    
+    ndbc_data = f'https://www.ndbc.noaa.gov/data/historical/{parameter}/'
     if proxy == None:
-        ndbcURL = requests.get(ndbc_buoy_url)
+        response = requests.get(ndbc_data)
     else:
-        ndbcURL = requests.get(ndbc_buoy_url, proxies=proxy)
-
-    ndbcURL.raise_for_status()
-    ndbcHTML = bs4.BeautifulSoup(ndbcURL.text, "lxml")
-    headers = ndbcHTML.findAll("b", text="Spectral wave density data: ")
+        response = requests.get(ndbc_data, proxies=proxy)
     
-    #checks for headers in differently formatted webpages
-    if len(headers) == 0:
-        msg=f"Spectral wave density data for buoy {number} not found"
-        raise Exception(msg)
+    status = response.status_code 
+    if status != 200:
+        msg=f"request.get{ndbc_data} failed by returning code of {status}"
+        raise Exception(msg)            
 
-    if len(headers) == 2:
-        headers = headers[1]
-    else:
-        headers = headers[0]
 
-    links = {a.string: a["href"] for a in headers.find_next_siblings("a",
-        href=True)}
+    filenames = pd.read_html(response.text)[0].Name.dropna()    
+    buoys = _ndbc_parse_filenames(filenames)
+
+    available_data = buoys.copy(deep=True)
+    if number != None:
+        available_data = buoys[buoys.id==number]
         
-    return links    
+    return available_data
     
-    
-def fetch_ndbc(links, data="Spectral Wave Data", proxy=None):
+def _ndbc_parse_filenames(filenames):  
     '''
-    Returns a DataFrame for each {key: link}  element passed in the 
-	links dictionary.
+    Takes a list of available filenames as a series from NDBC then 
+    parses out the station ID and year from the file name.
+    
+    Parameters
+    ----------
+    filenames: Series
+        List of compressed file names from NDBC
+     
+    Returns
+    -------
+    buoys: DataFrame
+        DataFrame with keys=['id','year','file_name']    
+    '''  
+    filenames = filenames[filenames.str.contains('.txt.gz')]
+    buoy_id_year_str = filenames.str.split('.', expand=True)[0]
+    buoy_id_year = buoy_id_year_str.str.split('w', n=1,expand=True)
+    buoys = buoy_id_year.rename(columns={0:'id', 1:'year'})
+    
+    expected_station_id_length = 5
+    buoys = buoys[buoys.id.str.len() == expected_station_id_length]
+    buoys['filename'] = filenames  
+    return buoys    
+    
+    
+def fetch_ndbc(filenames, parameter="swden", proxy=None):
+    '''
+    Requests data and returns a DataFrame for each filename passed
         
     Parameters
     ----------
-    links: Dict
-	    Data link dict from `get_available_ndbc_data`
-	data: string
-	    NDBC data product
+    filenames: DataFrame
+	    Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
+    parameter: string
+        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
 	proxy: string
 	    Proxy URL   
         
@@ -180,19 +205,24 @@ def fetch_ndbc(links, data="Spectral Wave Data", proxy=None):
         Dictionary of NDBC data 
     '''
 
-    if data != "Spectral Wave Data":
+    if parameter != "swden":
         msg = __supported_ndbc_params()
         return msg
-	              
-    ndbc_data = {}
-    for key in links:
-        key_URL = f'https://ndbc.noaa.gov{links[key]}'
-        file_name = key_URL.replace('download_data', 'view_text_file')
-        response =  requests.get(file_name)
-        df = pd.read_csv(StringIO(response.text), sep='\s+')
-        ndbc_data[key] = df
-    return ndbc_data
+    
+    buoy_data = _ndbc_parse_filenames(filenames)
         
+    parameter_url = f'https://www.ndbc.noaa.gov/data/historical/{parameter}'
+    ndbc_data = {}    
+    
+    for year, filename in zip(buoy_data.year, buoy_data.filename):
+        file_url = f'{parameter_url}/{filename}'
+        response =  requests.get(file_url)
+        data = zlib.decompress(response.content, 16+zlib.MAX_WBITS)
+        df = pd.read_csv(BytesIO(data), sep='\s+')
+        ndbc_data[year] = df
+
+    return ndbc_data
+                
 
 def ndbc_dates_to_datetime(dataframe, data="Spectral Wave Data", 
                            return_date_cols=False):
@@ -224,9 +254,9 @@ def ndbc_dates_to_datetime(dataframe, data="Spectral Wave Data",
     if data != "Spectral Wave Data":
         msg = __supported_ndbc_params()
         return msg
-    
-    # Remove frequency columns    
+       
     df = dataframe.copy(deep=True)     
+    # Remove frequency columns 
     times_only = __remove_columns(df, starts_with='.')
        
     ndbc_date_cols = times_only.columns.values.tolist()
@@ -284,6 +314,32 @@ def __supported_ndbc_params():
     "supported. If you would like to see more data types please"+
     " open an issue or submit a Pull Request on GitHub"]
     print(msg)
+    #Available Data: https://www.ndbc.noaa.gov/data/    
+    
+    # Historical
+    parameters = {
+    'adcp'	:	'Acoustic Doppler Current Profiler Current Year Historical Data'	,
+    'adcp2'	:	'Acoustic Doppler Current Profiler Current Year Historical Data'	,
+    'cwind'	:	'Continuous Winds Current Year Historical Data'	,
+    'dart'	:	'Water Column Height (DART) Current Year Historical Data'	,
+    'mmbcur'	:	'	',
+    'ocean'	:	'Oceanographic Current Year Historical Data'	,
+    'rain'	:	'Hourly Rain Current Year Historical Data'	,
+    'rain10'	:	'10-Minute Rain Current Year Historical Data'	,
+    'rain24'	:	'24-Hour Rain Current Year Historical Data'	,
+    'srad'	:	'Solar Radiation Current Year Historical Data'	,
+    'stdmet'	:	'Standard Meteorological Current Year Historical Data'	,
+    'supl'	:	'Supplemental Measurements Current Year Historical Data'	,
+    'swden'	:	'Raw Spectral Wave Current Year Historical Data'	,
+    'swdir'	:	'Spectral Wave Current Year Historical Data (alpha1)'	,
+    'swdir2'	:	'Spectral Wave Current Year Historical Data (alpha2)'	,
+    'swr1'	:	'Spectral Wave Current Year Historical Data (r1)'	,
+    'swr2'	:	'Spectral Wave Current Year Historical Data (r2)'	,
+    'wlevel'	:	'Tide Current Year Historical Data'	,
+    }
+
+    
+    
     return msg	
 	
 
