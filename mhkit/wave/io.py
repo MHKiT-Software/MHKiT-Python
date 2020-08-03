@@ -110,7 +110,7 @@ def read_NDBC_file(file_name, missing_values=['MM',9999,999,99]):
     return data, metadata
 
 
-def get_available_noaa_data(number, 
+def get_available_ndbc_data(number, 
                             data="Spectral Wave Data", 
                             proxy=None):  
     '''
@@ -127,18 +127,18 @@ def get_available_noaa_data(number,
     Returns
     -------
     links: Dict
-        Links to NOAA data indexed by href key
+        Links to NDBC data indexed by href key
     '''
     
     if data != "Spectral Wave Data":
-        msg = __supported_noaa_params()
+        msg = __supported_ndbc_params()
         return msg
         
-    noaa_buoy_url = f'https://www.ndbc.noaa.gov/station_history.php?station={number}'
+    ndbc_buoy_url = f'https://www.ndbc.noaa.gov/station_history.php?station={number}'
     if proxy == None:
-        ndbcURL = requests.get(noaa_buoy_url)
+        ndbcURL = requests.get(ndbc_buoy_url)
     else:
-        ndbcURL = requests.get(noaa_buoy_url, proxies=proxy)
+        ndbcURL = requests.get(ndbc_buoy_url, proxies=proxy)
 
     ndbcURL.raise_for_status()
     ndbcHTML = bs4.BeautifulSoup(ndbcURL.text, "lxml")
@@ -160,7 +160,7 @@ def get_available_noaa_data(number,
     return links    
     
     
-def fetch_NDBC(links, data="Spectral Wave Data", proxy=None):
+def fetch_ndbc(links, data="Spectral Wave Data", proxy=None):
     '''
     Returns a DataFrame for each {key: link}  element passed in the 
 	links dictionary.
@@ -168,105 +168,105 @@ def fetch_NDBC(links, data="Spectral Wave Data", proxy=None):
     Parameters
     ----------
     links: Dict
-	    Data link dict from `get_available_noaa_data`
+	    Data link dict from `get_available_ndbc_data`
 	data: string
-	    NOAA data product
+	    NDBC data product
 	proxy: string
 	    Proxy URL   
         
     Returns
     -------
-    noaa_data: dict
-        Dictionary of NOAA data 
+    ndbc_data: dict
+        Dictionary of NDBC data 
     '''
 
     if data != "Spectral Wave Data":
-        msg = __supported_noaa_params()
+        msg = __supported_ndbc_params()
         return msg
 	              
-    noaa_data = {}
+    ndbc_data = {}
     for key in links:
         key_URL = f'https://ndbc.noaa.gov{links[key]}'
         file_name = key_URL.replace('download_data', 'view_text_file')
         response =  requests.get(file_name)
         df = pd.read_csv(StringIO(response.text), sep='\s+')
-        noaa_data[key] = df
-    return noaa_data
+        ndbc_data[key] = df
+    return ndbc_data
         
 
-def noaa_dates_to_datetime(dataframe, data="Spectral Wave Data", 
+def ndbc_dates_to_datetime(dataframe, data="Spectral Wave Data", 
                            return_date_cols=False):
     '''
-    Takes a DataFrame and converts the NOAA date columns 
+    Takes a DataFrame and converts the NDBC date columns 
 	(e.g. "#YY  MM DD hh mm") to datetime. Returns a DataFrame with the 
-	removed NOAA date columns a new ['date'] columns with DateTime Format.
+	removed NDBC date columns a new ['date'] columns with DateTime Format.
     
     Parameters
     ----------
     dataframe: DataFrame
         Dataframe with headers (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
     data: string
-        Specifies the type of NOAA data
+        Specifies the type of NDBC data
     return_date_col: Bool
-        Default False. When true will return list of NOAA date columns
+        Default False. When true will return list of NDBC date columns
             
         
     Returns
     -------
     date: Series
-        Series with NOAA dates dropped and new ['date']
+        Series with NDBC dates dropped and new ['date']
         column in DateTime format
-    noaa_date_cols: list
+    ndbc_date_cols: list
         List of the DataFrame columns headers for dates as provided by 
-        NOAA
+        NDBC
     '''
 
     if data != "Spectral Wave Data":
-        msg = __supported_noaa_params()
+        msg = __supported_ndbc_params()
         return msg
     
     # Remove frequency columns    
     df = dataframe.copy(deep=True)     
     times_only = __remove_columns(df, starts_with='.')
        
-    noaa_date_cols = times_only.columns.values.tolist()
-    if len(noaa_date_cols) == 4:
+    ndbc_date_cols = times_only.columns.values.tolist()
+    if len(ndbc_date_cols) == 4:
         minutes = False
-    elif len(noaa_date_cols) ==5:
+    elif len(ndbc_date_cols) ==5:
         minutes = True
     else:
-        msg:f"Error unexpected length of time. Return: {noaa_date_cols} "         
+        msg:f"Error unexpected length of time. Return: {ndbc_date_cols} "         
     
     # So far these have been consistiently names
-    months_loc = noaa_date_cols.index('MM')
-    days_loc   = noaa_date_cols.index('DD')
-    hours_loc  = noaa_date_cols.index('hh')
+    months_loc = ndbc_date_cols.index('MM')
+    days_loc   = ndbc_date_cols.index('DD')
+    hours_loc  = ndbc_date_cols.index('hh')
     if minutes:
-        minutes_loc  = noaa_date_cols.index('mm')
+        minutes_loc  = ndbc_date_cols.index('mm')
         index_exclude_year = [months_loc, days_loc, hours_loc, minutes_loc]
     else:
         index_exclude_year = [months_loc, days_loc, hours_loc]
         
-    years_loc = [*set([*range(len(noaa_date_cols))]) - set(index_exclude_year)][0]          
-    year_string = noaa_date_cols[years_loc]
+    years_loc = [*set([*range(len(ndbc_date_cols))]) - set(index_exclude_year)][0]          
+    year_string = ndbc_date_cols[years_loc]
     
     if ('#' in year_string) or (year_string == 'YYYY'):
         year_fmt = '%Y'
     elif year_string =='YY':
         year_fmt = '%y' 
                
-    df = __date_string_to_datetime(df, noaa_date_cols, year_fmt)        
+    df = __date_string_to_datetime(df, ndbc_date_cols, year_fmt)        
     date = df['date']       
     del df
     
     if return_date_cols:
-        return date, noaa_date_cols
+        return date, ndbc_date_cols
     return date
 
     
-def __supported_noaa_params():
+def __supported_ndbc_params():
     '''
-    There is a significant number of datasets provided by NOAA. There is
+    There is a significant number of datasets provided by NDBC. There is
     specific data processing required for each type. Therefore this 
     function is thrown for any data type not currently covered.
     Parameters
@@ -289,7 +289,7 @@ def __supported_noaa_params():
 
 def __date_string_to_datetime(df, columns, year_fmt):
     '''
-    Takes a NOAA df and creates a datetime from multiple columns headers
+    Takes a NDBC df and creates a datetime from multiple columns headers
     by combining each column into a single string. Then the datetime 
     method is applied  given the expected format. 
     
