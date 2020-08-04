@@ -278,7 +278,7 @@ def ndbc_dates_to_datetime(data, parameter='swden',
     else:
         msg:f"Error unexpected length of time. Return: {ndbc_date_cols} "         
     
-    # So far these have been consistiently names
+    # So far these have been consistiently named
     months_loc = ndbc_date_cols.index('MM')
     days_loc   = ndbc_date_cols.index('DD')
     hours_loc  = ndbc_date_cols.index('hh')

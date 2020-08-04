@@ -9,6 +9,7 @@ import mhkit.wave as wave
 from scipy.interpolate import interp1d
 from pandas.testing import assert_frame_equal
 import inspect
+from datetime import datetime
 
 
 testdir = dirname(abspath(__file__))
@@ -441,7 +442,7 @@ class TestIO(unittest.TestCase):
     ### Realtime data
     def test_read_NDBC_realtime_met(self):
         data, units = wave.io.read_NDBC_file(join(datadir, '46097.txt'))
-        expected_index0 = pd.datetime(2019,4,2,13,50)
+        expected_index0 = datetime(2019,4,2,13,50)
         self.assertSetEqual(set(data.columns), set(self.expected_columns_metRT))
         self.assertEqual(data.index[0], expected_index0)
         self.assertEqual(data.shape, (6490, 14))
@@ -451,7 +452,7 @@ class TestIO(unittest.TestCase):
     def test_read_NDBC_historical_met(self):
         # QC'd monthly data, Aug 2019
         data, units = wave.io.read_NDBC_file(join(datadir, '46097h201908qc.txt'))
-        expected_index0 = pd.datetime(2019,8,1,0,0)
+        expected_index0 = datetime(2019,8,1,0,0)
         self.assertSetEqual(set(data.columns), set(self.expected_columns_metH))
         self.assertEqual(data.index[0], expected_index0)
         self.assertEqual(data.shape, (4464, 13))
@@ -462,6 +463,21 @@ class TestIO(unittest.TestCase):
         data, units = wave.io.read_NDBC_file(join(datadir, 'data.txt'))
         self.assertEqual(data.shape, (743, 47))
         self.assertEqual(units, None)
+		
+    def test_ndbc_available_data(self):
+        #from mhkit.wave.io import ndbc_available_data
+        data=wave.io.ndbc_available_data(number='46029')
+                
+        cols = data.columns.tolist()
+        exp_cols = ['id', 'year', 'filename']
+        self.assertEqual(cols, exp_cols)                
+                
+        years = [int(year) for year in data.year.tolist()]
+        exp_years=[*range(1996,1996+len(years))]
+        self.assertEqual(years, exp_years)
+        self.assertEqual(data.shape, (len(data), 3))
+
+
 
 if __name__ == '__main__':
     unittest.main() 
