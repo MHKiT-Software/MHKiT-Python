@@ -175,16 +175,18 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
                               index=['H','lambda_w','D']).transpose()
     >>> wave.graphics.plot_chakrabarti(df.H, df.lambda_w, df.D)
     """
-
-    assert isinstance(H, (np.ndarray, float, int, np.int64,pd.Series)), 'H must be a real numeric type'
-    assert isinstance(lambda_w, (np.ndarray, float, int, np.int64,pd.Series)), 'lambda_w must be a real numeric type'
-    assert isinstance(D, (np.ndarray, float, int, np.int64,pd.Series)), 'D must be a real numeric type'
+    assert isinstance(H, (np.ndarray, float, int, np.int64,pd.Series)), \
+           'H must be a real numeric type'
+    assert isinstance(lambda_w, (np.ndarray, float, int, np.int64,pd.Series)), \
+           'lambda_w must be a real numeric type'
+    assert isinstance(D, (np.ndarray, float, int, np.int64,pd.Series)), \
+           'D must be a real numeric type'
 
     if any([(isinstance(H, np.ndarray) or isinstance(H, pd.Series)),        \
             (isinstance(lambda_w, np.ndarray) or isinstance(H, pd.Series)), \
             (isinstance(D, np.ndarray) or isinstance(H, pd.Series))\
            ]):
-        errMsg = 'H, lambda_w, and D must be same shape'
+        errMsg = 'D, H, and lambda_w must be same shape'
         n_H = H.squeeze().shape
         n_lambda_w = lambda_w.squeeze().shape
         n_D = D.squeeze().shape
@@ -195,7 +197,7 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
             mvals['lambda_w'] = lambda_w
             mvals['D'] = D
         elif isinstance(H, pd.Series):
-            mvals = pd.DataFrame(H )
+            mvals = pd.DataFrame(H)
             mvals['lambda_w'] = lambda_w
             mvals['D'] = D
 
@@ -215,14 +217,18 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     ax.set_yscale('log')
 
     for index, row in mvals.iterrows():
-        xx = row['H']/row['D']
-        yy = np.pi*row['D']/row['lambda_w']
-        lab = '$H = %.2g,\\,$lambda_{w}$ = %.2g,\\,D = %.2g$' % (row['H'], row['lambda_w'], row['D'])
-        ax.plot(xx, yy, 'o', label=lab)
+        H = row.H
+        D = row.D
+        lambda_w = row.lambda_w
+        
+        KC = H / D
+        Diffraction = np.pi*D / lambda_w
+        label = f'$H$ = {H:g}, $\lambda_w$ = {lambda_w:g}, $D$ = {D:g}'
+        ax.plot(Diffraction, KC, 'o', label=label)
    
-    if np.any(xx>=10 or xx<=.02) or np.any(yy>=50) or np.any(lambda_w >= 1000) :
+    if np.any(KC>=10 or KC<=.02) or np.any(Diffraction>=50) or \
+        np.any(lambda_w >= 1000) :
         ax.autoscale(enable=True, axis='both', tight=True)  
-
     else:
         ax.set_xlim((0.01, 10))
         ax.set_ylim((0.01, 50))
@@ -231,46 +237,52 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     if graphScale[0] >= .01:
         graphScale[0] =.01
 
-
-    x = np.logspace(1,np.log10(graphScale[1]), 2)
-    y_breaking = 0.14 * np.pi / x
-    ax.plot(x, y_breaking, 'k-')
-
     # deep water breaking limit (H/lambda_w = 0.14)
     x = np.logspace(1,np.log10(graphScale[0]), 2)
     y_breaking = 0.14 * np.pi / x
     ax.plot(x, y_breaking, 'k-')
     graphScale = list(ax.get_xlim())
     
-    ax.text(1, 7, 'wave\nbreaking\n$H/\lambda_w > 0.14$', ha='center', va='center',
-            fontstyle='italic', fontsize='small',clip_on='True')
+    ax.text(1, 7, 
+            'wave\nbreaking\n$H/\lambda_w > 0.14$', 
+            ha='center', va='center', fontstyle='italic', 
+            fontsize='small',clip_on='True')
 
     # upper bound of low drag region
     ldv = 20
     y_small_drag = 20*np.ones_like(graphScale)
     graphScale[1] = 0.14 * np.pi / ldv
     ax.plot(graphScale, y_small_drag,'k--')
-    ax.text(0.0125, 30, 'drag', ha='center', va='top', fontstyle='italic',
+    ax.text(0.0125, 30, 
+            'drag', 
+            ha='center', va='top', fontstyle='italic',
             fontsize='small',clip_on='True')
+            
     # upper bound of small drag region
     sdv = 1.5
     y_small_drag = sdv*np.ones_like(graphScale)
     graphScale[1] = 0.14 * np.pi / sdv
     ax.plot(graphScale, y_small_drag,'k--')
-    ax.text(0.02, 7, 'inertia \n& drag', ha='center', va='center',
-            fontstyle='italic', fontsize='small',clip_on='True')
+    ax.text(0.02, 7, 
+            'inertia \n& drag', 
+            ha='center', va='center', fontstyle='italic', 
+            fontsize='small',clip_on='True')
 
     # upper bound of negligible drag region
     ndv = 0.25
     graphScale[1] = 0.14 * np.pi / ndv
     y_small_drag = ndv*np.ones_like(graphScale)
     ax.plot(graphScale, y_small_drag,'k--')
-    ax.text(8e-2, 0.7, 'large\ninertia', ha='center', va='center',
-        fontstyle='italic', fontsize='small',clip_on='True')
+    ax.text(8e-2, 0.7, 
+            'large\ninertia', 
+            ha='center', va='center', fontstyle='italic', 
+            fontsize='small',clip_on='True')
 
 
-    ax.text(8e-2, 6e-2, 'all\ninertia', ha='center', va='center',
-        fontstyle='italic', fontsize='small', clip_on='True')
+    ax.text(8e-2, 6e-2, 
+            'all\ninertia', 
+            ha='center', va='center', fontstyle='italic', 
+            fontsize='small', clip_on='True')
 
     # left bound of diffraction region
     drv = 0.5
@@ -278,7 +290,9 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     graphScale[1] = 0.14 * np.pi / drv
     x_diff_reg = drv*np.ones_like(graphScale)
     ax.plot(x_diff_reg, graphScale, 'k--')
-    ax.text(2, 6e-2, 'diffraction', ha='center', va='center', fontstyle='italic',
+    ax.text(2, 6e-2, 
+            'diffraction', 
+            ha='center', va='center', fontstyle='italic',
             fontsize='small',clip_on='True')
 
 
