@@ -241,7 +241,7 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     y_breaking = 0.14 * np.pi / x
     ax.plot(x, y_breaking, 'k-')
     graphScale = list(ax.get_xlim())
-            fontstyle='italic', fontsize='small')
+    
     ax.text(1, 7, 'wave\nbreaking\n$H/\lambda_w > 0.14$', ha='center', va='center',
             fontstyle='italic', fontsize='small',clip_on='True')
 
@@ -252,7 +252,6 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     ax.plot(graphScale, y_small_drag,'k--')
     ax.text(0.0125, 30, 'drag', ha='center', va='top', fontstyle='italic',
             fontsize='small',clip_on='True')
-
     # upper bound of small drag region
     sdv = 1.5
     y_small_drag = sdv*np.ones_like(graphScale)
