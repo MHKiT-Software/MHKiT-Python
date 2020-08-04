@@ -111,21 +111,19 @@ def read_NDBC_file(file_name, missing_values=['MM',9999,999,99]):
     return data, metadata
 
 
-def ndbc_available_data(parameter="swden",
+def ndbc_available_data(parameter='swden',
                         number=None, 
                         proxy=None):  
     '''
-    Returns a dictionary of links indexed by hyperlink reference  
-    for a given parameters
-     
-    e.g. year.
+    For a given parameter this will return a DataFrame of years, and 
+    station IDs and file names              
     
     Parameters
     ----------
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
     number: string
-        Buoy Number        
+        Buoy Number.  5-character alpha-numeric station identifier        
     proxy: string
         proxy url
         
@@ -134,6 +132,10 @@ def ndbc_available_data(parameter="swden",
     available_data: DataFrame
         DataFrame with station ID
     '''
+    assert isinstance(parameter, str), 'parameter must be a string'
+    assert isinstance(number, (str, None)), 'If specified the buoy number must be a string'
+    assert isinstance(proxy , (str, type(None))), 'If specified proxy must be a string'
+    assert len(number) == 5, ' 5-character alpha-numeric station identifier'
 
     if parameter != "swden":
         msg = __supported_ndbc_params()
@@ -175,6 +177,8 @@ def _ndbc_parse_filenames(filenames):
     buoys: DataFrame
         DataFrame with keys=['id','year','file_name']    
     '''  
+    assert isinstance(filenames, pd.Series), 'filenames must be of type pd.Series' 
+    
     filenames = filenames[filenames.str.contains('.txt.gz')]
     buoy_id_year_str = filenames.str.split('.', expand=True)[0]
     buoy_id_year = buoy_id_year_str.str.split('w', n=1,expand=True)
@@ -204,6 +208,9 @@ def fetch_ndbc(filenames, parameter="swden", proxy=None):
     ndbc_data: dict
         Dictionary of NDBC data 
     '''
+    assert isinstance(filenames, pd.Series), 'filenames must be of type pd.Series' 
+    assert isinstance(parameter, str), 'parameter must be a string'
+    assert isinstance(proxy, (str, type(None))), 'If specified proxy must be a string'    
 
     if parameter != "swden":
         msg = __supported_ndbc_params()
@@ -224,7 +231,7 @@ def fetch_ndbc(filenames, parameter="swden", proxy=None):
     return ndbc_data
                 
 
-def ndbc_dates_to_datetime(dataframe, data="Spectral Wave Data", 
+def ndbc_dates_to_datetime(data, parameter='swden', 
                            return_date_cols=False):
     '''
     Takes a DataFrame and converts the NDBC date columns 
@@ -233,10 +240,10 @@ def ndbc_dates_to_datetime(dataframe, data="Spectral Wave Data",
     
     Parameters
     ----------
-    dataframe: DataFrame
+    data: DataFrame
         Dataframe with headers (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
-    data: string
-        Specifies the type of NDBC data
+    parameter: string
+        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
     return_date_col: Bool
         Default False. When true will return list of NDBC date columns
             
@@ -250,12 +257,16 @@ def ndbc_dates_to_datetime(dataframe, data="Spectral Wave Data",
         List of the DataFrame columns headers for dates as provided by 
         NDBC
     '''
+    assert isinstance(data, pd.DataFrame), 'filenames must be of type pd.DataFrame' 
+    assert isinstance(parameter, str), 'parameter must be a string'
+    assert isinstance(return_date_cols, bool), 'return_date_cols must be of type bool'
 
-    if data != "Spectral Wave Data":
+
+    if parameter != "swden":
         msg = __supported_ndbc_params()
         return msg
        
-    df = dataframe.copy(deep=True)     
+    df = data.copy(deep=True)     
     # Remove frequency columns 
     times_only = __remove_columns(df, starts_with='.')
        
@@ -338,8 +349,6 @@ def __supported_ndbc_params():
     'wlevel'	:	'Tide Current Year Historical Data'	,
     }
 
-    
-    
     return msg	
 	
 
@@ -365,6 +374,9 @@ def __date_string_to_datetime(df, columns, year_fmt):
     df: DataFrame
         The passed df with a new column ['date'] with the datetime format           
     '''
+    assert isinstance(df, pd.DataFrame), 'df must be of type pd.DataFrame' 
+    assert isinstance(columns, list), 'Columns must be a list'
+    assert isinstance(year_fmt, str), 'year_fmt must be a string'
     
     # Convert to str and zero pad
     for key in columns:
@@ -391,6 +403,8 @@ def __remove_columns(df, starts_with='.'):
     starts_with: str
         Removes all columns that start with the specified pattern
     '''  
+    assert isinstance(df, pd.DataFrame), 'df must be of type pd.DataFrame' 
+    assert isinstance(starts_with, str), 'starts_with must be a string'    
     for column in df:
         if column.startswith(starts_with):
             del df[column]    
