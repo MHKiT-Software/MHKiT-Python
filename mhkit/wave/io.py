@@ -268,7 +268,7 @@ def ndbc_dates_to_datetime(data, parameter='swden',
        
     df = data.copy(deep=True)     
     # Remove frequency columns 
-    times_only = __remove_columns(df, starts_with='.')
+    times_only = _remove_columns(df, starts_with='.')
        
     ndbc_date_cols = times_only.columns.values.tolist()
     if len(ndbc_date_cols) == 4:
@@ -296,7 +296,7 @@ def ndbc_dates_to_datetime(data, parameter='swden',
     elif year_string =='YY':
         year_fmt = '%y' 
                
-    df = __date_string_to_datetime(df, ndbc_date_cols, year_fmt)        
+    df = _date_string_to_datetime(df, ndbc_date_cols, year_fmt)        
     date = df['date']       
     del df
     
@@ -304,6 +304,65 @@ def ndbc_dates_to_datetime(data, parameter='swden',
         return date, ndbc_date_cols
     return date
 
+    
+def _date_string_to_datetime(df, columns, year_fmt):
+    '''
+    Takes a NDBC df and creates a datetime from multiple columns headers
+    by combining each column into a single string. Then the datetime 
+    method is applied  given the expected format. 
+    
+    Parameters
+    ----------
+    df: DataFrame
+        Dataframe with columns (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
+    columns: list 
+        list of strings for the columns to consider   
+        (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
+    year_fmt: str
+        Specifies if year is 2 digit or 4 digit for datetime 
+        interpretation
+       
+    Returns
+    -------
+    df: DataFrame
+        The passed df with a new column ['date'] with the datetime format           
+    '''
+    assert isinstance(df, pd.DataFrame), 'df must be of type pd.DataFrame' 
+    assert isinstance(columns, list), 'Columns must be a list'
+    assert isinstance(year_fmt, str), 'year_fmt must be a string'
+    
+    # Convert to str and zero pad
+    for key in columns:
+        df[key] = df[key].astype(str).str.zfill(2)
+    
+    df['date_string'] = df[columns[0]]
+    for column in columns[1:]:
+        df['date_string'] = df[['date_string', column]].apply(lambda x: ''.join(x), axis=1)
+    df['date'] = pd.to_datetime(df['date_string'], format=f'{year_fmt}%m%d%H%M')
+    del df['date_string']
+    
+    return df
+    
+
+def _remove_columns(df, starts_with='.'):
+    '''
+    Removes column names that start with '.' and returns the modified 
+    DataFrame.
+    
+    Parameters
+    ----------
+    df: Dataframe
+        Dataframe with columns that start_with=pattern to be removed
+    starts_with: str
+        Removes all columns that start with the specified pattern
+    '''  
+    assert isinstance(df, pd.DataFrame), 'df must be of type pd.DataFrame' 
+    assert isinstance(starts_with, str), 'starts_with must be a string'    
+    for column in df:
+        if column.startswith(starts_with):
+            del df[column]    
+    return df
+    
     
 def __supported_ndbc_params():
     '''
@@ -350,63 +409,4 @@ def __supported_ndbc_params():
     }
 
     return msg	
-	
-
-def __date_string_to_datetime(df, columns, year_fmt):
-    '''
-    Takes a NDBC df and creates a datetime from multiple columns headers
-    by combining each column into a single string. Then the datetime 
-    method is applied  given the expected format. 
-    
-    Parameters
-    ----------
-    df: DataFrame
-        Dataframe with columns (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
-    columns: list 
-        list of strings for the columns to consider   
-        (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
-    year_fmt: str
-        Specifies if year is 2 digit or 4 digit for datetime 
-        interpretation
-       
-    Returns
-    -------
-    df: DataFrame
-        The passed df with a new column ['date'] with the datetime format           
-    '''
-    assert isinstance(df, pd.DataFrame), 'df must be of type pd.DataFrame' 
-    assert isinstance(columns, list), 'Columns must be a list'
-    assert isinstance(year_fmt, str), 'year_fmt must be a string'
-    
-    # Convert to str and zero pad
-    for key in columns:
-        df[key] = df[key].astype(str).str.zfill(2)
-    
-    df['date_string'] = df[columns[0]]
-    for column in columns[1:]:
-        df['date_string'] = df[['date_string', column]].apply(lambda x: ''.join(x), axis=1)
-    df['date'] = pd.to_datetime(df['date_string'], format=f'{year_fmt}%m%d%H%M')
-    del df['date_string']
-    
-    return df
-    
-
-def __remove_columns(df, starts_with='.'):
-    '''
-    Removes column names that start with '.' and returns the modified 
-    DataFrame.
-    
-    Parameters
-    ----------
-    df: Dataframe
-        Dataframe with columns that start_with=pattern to be removed
-    starts_with: str
-        Removes all columns that start with the specified pattern
-    '''  
-    assert isinstance(df, pd.DataFrame), 'df must be of type pd.DataFrame' 
-    assert isinstance(starts_with, str), 'starts_with must be a string'    
-    for column in df:
-        if column.startswith(starts_with):
-            del df[column]    
-    return df
     

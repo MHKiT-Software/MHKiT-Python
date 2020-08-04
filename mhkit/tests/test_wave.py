@@ -434,6 +434,11 @@ class TestIO(unittest.TestCase):
             'WVHT': 'm', 'DPD': 'sec', 'APD': 'sec', 'MWD': 'deg', 'PRES': 'hPa', 
             'ATMP': 'degC', 'WTMP': 'degC', 'DEWP': 'degC', 'VIS': 'nmi', 
             'TIDE': 'ft'}
+        self.filenames=['46042w1996.txt.gz', 
+                        '46029w1997.txt.gz', 
+                        '46029w1998.txt.gz']
+        self.swden = pd.read_csv(join(datadir,self.filenames[0]), sep=r'\s+', 
+                                 compression='gzip')
         
     @classmethod
     def tearDownClass(self):
@@ -465,7 +470,6 @@ class TestIO(unittest.TestCase):
         self.assertEqual(units, None)
 		
     def test_ndbc_available_data(self):
-        #from mhkit.wave.io import ndbc_available_data
         data=wave.io.ndbc_available_data(number='46029')
                 
         cols = data.columns.tolist()
@@ -477,7 +481,40 @@ class TestIO(unittest.TestCase):
         self.assertEqual(years, exp_years)
         self.assertEqual(data.shape, (len(data), 3))
 
+    def test__ndbc_parse_filenames(self):  
+        filenames= pd.Series(self.filenames)
+        buoys = wave.io._ndbc_parse_filenames(filenames)
+        years = buoys.year.tolist()
+        numbers = buoys.id.tolist()
+        fnames = buoys.filename.tolist()
+        
+        self.assertEqual(buoys.shape, (len(filenames),3))    
+        self.assertEqual(years, ['1996','1997','1998'])  
+        self.assertEqual(numbers, ['46042','46029','46029'])          
+        self.assertEqual(fnames, self.filenames)
+        
+    def test_fetch_ndbc(self):
+        filenames= pd.Series(self.filenames[0])
+        ndbc_data = wave.io.fetch_ndbc(filenames)
+        self.assertTrue(self.swden.equals(ndbc_data['1996']))
 
+    def test_ndbc_dates_to_datetime(self):
+        dt = wave.io.ndbc_dates_to_datetime(self.swden)
+        self.assertEqual(datetime(1996, 1, 1), dt[0])
+        
+    def test__remove_columns(self):    
+        swden = self.swden.copy(deep=True)
+        times_only = wave.io._remove_columns(swden, starts_with='.')
+        exp_cols= ['YY', 'MM', 'DD', 'hh']
+        self.assertEqual(times_only.columns.tolist(), exp_cols)
+        
+    def test__date_string_to_datetime(self):
+        swden = self.swden.copy(deep=True)
+        #import ipdb; ipdb.set_trace()
+        df = wave.io._date_string_to_datetime(swden, ['YY', 'MM', 'DD', 'hh'], '%y') 
+        dt = df['date']
+        self.assertEqual(datetime(1996, 1, 1), dt[0])
+        
 
 if __name__ == '__main__':
     unittest.main() 
