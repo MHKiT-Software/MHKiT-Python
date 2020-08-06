@@ -442,7 +442,7 @@ def average_wave_period(S,frequency_bins=None):
 
 def peak_period(S):
     """
-    Calculates wave energy period from spectra
+    Calculates wave peak period from spectra
     
     Parameters
     ------------
