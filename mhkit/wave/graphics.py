@@ -28,16 +28,7 @@ def plot_spectrum(S, ax=None):
     ax = _xy_plot(f*2*np.pi, S/(2*np.pi), fmt='-', xlabel='omega [rad/s]',
              ylabel='Spectral density [m$^2$s/rad]', ax=ax)
 
-    """
-    spectrum_type = S.columns
-    if S.shape[1] == 1:
-        Hm0 = _sig_wave_height(S).iloc[0,0]
-        Tp0 = _peak_period(S).iloc[0,0]
-        title = 'Spectrum: ' + spectrum_type[0] + ' \n Tp = {:0.2f}, Hs = {:0.2f}'.format(Tp0,Hm0)
-        ax.set_title(title)
-    else:
-        ax.legend(spectrum_type)
-    """
+
     return ax
 
 def plot_elevation_timeseries(eta, ax=None):
