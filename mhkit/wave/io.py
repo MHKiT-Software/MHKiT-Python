@@ -112,7 +112,7 @@ def read_NDBC_file(file_name, missing_values=['MM',9999,999,99]):
 
 
 def ndbc_available_data(parameter='swden',
-                        number=None, 
+                        buoy_number=None, 
                         proxy=None):  
     '''
     For a given parameter this will return a DataFrame of years, 
@@ -120,9 +120,9 @@ def ndbc_available_data(parameter='swden',
     
     Parameters
     ----------
-    parameter: string
+    parameter: string (optional)
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
-    number: string
+    buoy_number: string (optional)
         Buoy Number.  5-character alpha-numeric station identifier        
     proxy: string (optional)
         proxy url
@@ -133,10 +133,10 @@ def ndbc_available_data(parameter='swden',
         DataFrame with station ID
     '''
     assert isinstance(parameter, str), 'parameter must be a string'
-    assert isinstance(number, (str, type(None))), 'If specified the buoy number must be a string'
+    assert isinstance(buoy_number, (str, type(None))), 'If specified the buoy number must be a string'
     assert isinstance(proxy , (str, type(None))), 'If specified proxy must be a string'
-    if number != None:
-        assert len(number) == 5, ' 5-character alpha-numeric station identifier'
+    if buoy_number != None:
+        assert len(buoy_number) == 5, ' 5-character alpha-numeric station identifier'
 
     if parameter != "swden":
         msg = __supported_ndbc_params()
@@ -158,8 +158,8 @@ def ndbc_available_data(parameter='swden',
     buoys = _ndbc_parse_filenames(filenames)
 
     available_data = buoys.copy(deep=True)
-    if number != None:
-        available_data = buoys[buoys.id==number]
+    if buoy_number != None:
+        available_data = buoys[buoys.id==buoy_number]
         
     return available_data
     
