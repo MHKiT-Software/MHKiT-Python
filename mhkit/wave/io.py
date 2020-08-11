@@ -115,7 +115,7 @@ def ndbc_available_data(parameter='swden',
                         number=None, 
                         proxy=None):  
     '''
-    For a given parameter this will return a DataFrame of years, and 
+    For a given parameter this will return a DataFrame of years, 
     station IDs and file names              
     
     Parameters
@@ -124,7 +124,7 @@ def ndbc_available_data(parameter='swden',
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
     number: string
         Buoy Number.  5-character alpha-numeric station identifier        
-    proxy: string
+    proxy: string (optional)
         proxy url
         
     Returns
@@ -133,9 +133,10 @@ def ndbc_available_data(parameter='swden',
         DataFrame with station ID
     '''
     assert isinstance(parameter, str), 'parameter must be a string'
-    assert isinstance(number, (str, None)), 'If specified the buoy number must be a string'
+    assert isinstance(number, (str, type(None))), 'If specified the buoy number must be a string'
     assert isinstance(proxy , (str, type(None))), 'If specified proxy must be a string'
-    assert len(number) == 5, ' 5-character alpha-numeric station identifier'
+    if number != None:
+        assert len(number) == 5, ' 5-character alpha-numeric station identifier'
 
     if parameter != "swden":
         msg = __supported_ndbc_params()
