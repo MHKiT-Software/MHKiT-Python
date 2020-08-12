@@ -543,13 +543,7 @@ class TestIO(unittest.TestCase):
     def test_ndbc_dates_to_datetime(self):
         dt = wave.io.ndbc_dates_to_datetime('swden', self.swden)
         self.assertEqual(datetime(1996, 1, 1), dt[0])
-        
-    # def test__remove_columns(self):    
-        # swden = self.swden.copy(deep=True)
-        # times_only = wave.io._remove_columns(swden, starts_with='.')
-        # exp_cols= ['YY', 'MM', 'DD', 'hh']
-        # self.assertEqual(times_only.columns.tolist(), exp_cols)
-        
+               
     def test__date_string_to_datetime(self):
         swden = self.swden.copy(deep=True)
         df = wave.io._date_string_to_datetime(swden, ['YY', 'MM', 'DD', 'hh'], '%y') 

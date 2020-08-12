@@ -348,26 +348,6 @@ def _date_string_to_datetime(df, columns, year_fmt):
     return df
     
 
-def _remove_columns(df, starts_with='.'):
-    '''
-    Removes column names that start with '.' and returns the modified 
-    DataFrame.
-    
-    Parameters
-    ----------
-    df: Dataframe
-        Dataframe with columns that start_with=pattern to be removed
-    starts_with: str
-        Removes all columns that start with the specified pattern
-    '''  
-    assert isinstance(df, pd.DataFrame), 'df must be of type pd.DataFrame' 
-    assert isinstance(starts_with, str), 'starts_with must be a string'    
-    for column in df:
-        if column.startswith(starts_with):
-            del df[column]    
-    return df
-    
-    
 def __supported_ndbc_params():
     '''
     There is a significant number of datasets provided by NDBC. There is
