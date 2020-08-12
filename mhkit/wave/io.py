@@ -111,7 +111,7 @@ def read_NDBC_file(file_name, missing_values=['MM',9999,999,99]):
     return data, metadata
 
 
-def ndbc_available_data(parameter='swden',
+def ndbc_available_data(parameter,
                         buoy_number=None, 
                         proxy=None):  
     '''
@@ -121,8 +121,8 @@ def ndbc_available_data(parameter='swden',
     Parameters
     ----------
     parameter: string (optional)
-        Current option is 'swden'	:	'Raw Spectral Wave Current Year Historical Data'
-        More parameter options will be available soon. 
+        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        'stdmet':   'Standard Meteorological Current Year Historical Data'
     buoy_number: string (optional)
         Buoy Number.  5-character alpha-numeric station identifier        
     proxy: string (optional)
@@ -138,10 +138,6 @@ def ndbc_available_data(parameter='swden',
     assert isinstance(proxy , (str, type(None))), 'If specified proxy must be a string'
     if buoy_number != None:
         assert len(buoy_number) == 5, ' 5-character alpha-numeric station identifier'
-
-    if parameter != "swden":
-        msg = __supported_ndbc_params()
-        return msg
     
     ndbc_data = f'https://www.ndbc.noaa.gov/data/historical/{parameter}/'
     if proxy == None:
@@ -156,7 +152,7 @@ def ndbc_available_data(parameter='swden',
 
 
     filenames = pd.read_html(response.text)[0].Name.dropna()    
-    buoys = _ndbc_parse_filenames(filenames)
+    buoys = _ndbc_parse_filenames(parameter, filenames)
 
     available_data = buoys.copy(deep=True)
     if buoy_number != None:
@@ -164,7 +160,7 @@ def ndbc_available_data(parameter='swden',
         
     return available_data
     
-def _ndbc_parse_filenames(filenames):  
+def _ndbc_parse_filenames(parameter, filenames):  
     '''
     Takes a list of available filenames as a series from NDBC then 
     parses out the station ID and year from the file name.
@@ -180,10 +176,17 @@ def _ndbc_parse_filenames(filenames):
         DataFrame with keys=['id','year','file_name']    
     '''  
     assert isinstance(filenames, pd.Series), 'filenames must be of type pd.Series' 
+    assert isinstance(parameter, str), 'parameter must be a string'
+    
+    file_seps = {
+                'swden' : 'w',
+                'stdmet' : 'h'
+               }
+    file_sep= file_seps[parameter]
     
     filenames = filenames[filenames.str.contains('.txt.gz')]
     buoy_id_year_str = filenames.str.split('.', expand=True)[0]
-    buoy_id_year = buoy_id_year_str.str.split('w', n=1,expand=True)
+    buoy_id_year = buoy_id_year_str.str.split(file_sep, n=1,expand=True)
     buoys = buoy_id_year.rename(columns={0:'id', 1:'year'})
     
     expected_station_id_length = 5
@@ -192,7 +195,7 @@ def _ndbc_parse_filenames(filenames):
     return buoys    
     
     
-def fetch_ndbc(filenames, parameter="swden", proxy=None):
+def fetch_ndbc(parameter, filenames, proxy=None):
     '''
     Requests data and returns a DataFrame for each filename passed
         
@@ -202,6 +205,7 @@ def fetch_ndbc(filenames, parameter="swden", proxy=None):
 	    Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        'stdmet':   'Standard Meteorological Current Year Historical Data'
 	proxy: string
 	    Proxy URL   
         
@@ -213,12 +217,8 @@ def fetch_ndbc(filenames, parameter="swden", proxy=None):
     assert isinstance(filenames, pd.Series), 'filenames must be of type pd.Series' 
     assert isinstance(parameter, str), 'parameter must be a string'
     assert isinstance(proxy, (str, type(None))), 'If specified proxy must be a string'    
-
-    if parameter != "swden":
-        msg = __supported_ndbc_params()
-        return msg
     
-    buoy_data = _ndbc_parse_filenames(filenames)
+    buoy_data = _ndbc_parse_filenames(parameter, filenames)
         
     parameter_url = f'https://www.ndbc.noaa.gov/data/historical/{parameter}'
     ndbc_data = {}    
@@ -227,13 +227,13 @@ def fetch_ndbc(filenames, parameter="swden", proxy=None):
         file_url = f'{parameter_url}/{filename}'
         response =  requests.get(file_url)
         data = zlib.decompress(response.content, 16+zlib.MAX_WBITS)
-        df = pd.read_csv(BytesIO(data), sep='\s+')
+        df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)
         ndbc_data[year] = df
 
     return ndbc_data
                 
 
-def ndbc_dates_to_datetime(data, parameter='swden', 
+def ndbc_dates_to_datetime(parameter, data, 
                            return_date_cols=False):
     '''
     Takes a DataFrame and converts the NDBC date columns 
@@ -246,6 +246,7 @@ def ndbc_dates_to_datetime(data, parameter='swden',
         Dataframe with headers (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        'stdmet':   'Standard Meteorological Current Year Historical Data'
     return_date_col: Bool
         Default False. When true will return list of NDBC date columns
             
@@ -263,43 +264,44 @@ def ndbc_dates_to_datetime(data, parameter='swden',
     assert isinstance(parameter, str), 'parameter must be a string'
     assert isinstance(return_date_cols, bool), 'return_date_cols must be of type bool'
 
-
-    if parameter != "swden":
-        msg = __supported_ndbc_params()
-        return msg
-       
+      
     df = data.copy(deep=True)     
-    # Remove frequency columns 
-    times_only = _remove_columns(df, starts_with='.')
-       
-    ndbc_date_cols = times_only.columns.values.tolist()
-    if len(ndbc_date_cols) == 4:
-        minutes = False
-    elif len(ndbc_date_cols) ==5:
-        minutes = True
-    else:
-        msg:f"Error unexpected length of time. Return: {ndbc_date_cols} "         
+    cols = df.columns.values.tolist()
     
-    # So far these have been consistiently named
-    months_loc = ndbc_date_cols.index('MM')
-    days_loc   = ndbc_date_cols.index('DD')
-    hours_loc  = ndbc_date_cols.index('hh')
-    if minutes:
-        minutes_loc  = ndbc_date_cols.index('mm')
-        index_exclude_year = [months_loc, days_loc, hours_loc, minutes_loc]
-    else:
-        index_exclude_year = [months_loc, days_loc, hours_loc]
-        
-    years_loc = [*set([*range(len(ndbc_date_cols))]) - set(index_exclude_year)][0]          
-    year_string = ndbc_date_cols[years_loc]
+    try:
+        minutes_loc  = cols.index('mm')
+        minutes=True
+    except:
+        minutes=False
     
-    if ('#' in year_string) or (year_string == 'YYYY'):
+    row_0_is_units = False
+    year_string = [ col for col in  cols if col.startswith('Y')]
+    if not year_string:
+        year_string = [ col for col in  cols if col.startswith('#')]        
+        if not year_string:
+            print(f'ERROR: Could Not Find Year Column in {cols}')
+        year_string = year_string[0]
+        year_fmt = '%Y'        
+        if str(df[year_string][0]).startswith('#'):
+            row_0_is_units = True
+            df = df.drop(df.index[0])
+           
+    elif year_string[0] == 'YYYY':
+        year_string = year_string[0]
         year_fmt = '%Y'
-    elif year_string =='YY':
+    elif year_string[0]=='YY':
+        year_string = year_string[0]
         year_fmt = '%y' 
+    if minutes:
+        ndbc_date_cols = [year_string, 'MM', 'DD', 'hh', 'mm']
+    else:
+        ndbc_date_cols = [year_string, 'MM', 'DD', 'hh']
+
                
     df = _date_string_to_datetime(df, ndbc_date_cols, year_fmt)        
-    date = df['date']       
+    date = df['date']    
+    if row_0_is_units:
+        date = pd.concat([pd.Series([np.nan]),date])    
     del df
     
     if return_date_cols:
