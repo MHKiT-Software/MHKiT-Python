@@ -136,6 +136,7 @@ def ndbc_available_data(parameter,
     assert isinstance(parameter, str), 'parameter must be a string'
     assert isinstance(buoy_number, (str, type(None))), 'If specified the buoy number must be a string'
     assert isinstance(proxy , (str, type(None))), 'If specified proxy must be a string'
+    supported =__supported_ndbc_params(parameter)
     if buoy_number != None:
         assert len(buoy_number) == 5, ' 5-character alpha-numeric station identifier'
     
@@ -177,6 +178,7 @@ def _ndbc_parse_filenames(parameter, filenames):
     '''  
     assert isinstance(filenames, pd.Series), 'filenames must be of type pd.Series' 
     assert isinstance(parameter, str), 'parameter must be a string'
+    supported =__supported_ndbc_params(parameter)
     
     file_seps = {
                 'swden' : 'w',
@@ -217,7 +219,8 @@ def fetch_ndbc(parameter, filenames, proxy=None):
     assert isinstance(filenames, pd.Series), 'filenames must be of type pd.Series' 
     assert isinstance(parameter, str), 'parameter must be a string'
     assert isinstance(proxy, (str, type(None))), 'If specified proxy must be a string'    
-    
+    supported =__supported_ndbc_params(parameter)
+
     buoy_data = _ndbc_parse_filenames(parameter, filenames)
         
     parameter_url = f'https://www.ndbc.noaa.gov/data/historical/{parameter}'
@@ -263,7 +266,7 @@ def ndbc_dates_to_datetime(parameter, data,
     assert isinstance(data, pd.DataFrame), 'filenames must be of type pd.DataFrame' 
     assert isinstance(parameter, str), 'parameter must be a string'
     assert isinstance(return_date_cols, bool), 'return_date_cols must be of type bool'
-
+    supported =__supported_ndbc_params(parameter)
       
     df = data.copy(deep=True)     
     cols = df.columns.values.tolist()
@@ -348,7 +351,7 @@ def _date_string_to_datetime(df, columns, year_fmt):
     return df
     
 
-def __supported_ndbc_params():
+def __supported_ndbc_params(parameter):
     '''
     There is a significant number of datasets provided by NDBC. There is
     specific data processing required for each type. Therefore this 
@@ -363,11 +366,20 @@ def __supported_ndbc_params():
         string indicating what is supported and how to request or add
         new functionality    
     '''
-    
-    msg = ["Currently only Historical Spectral Wave Data is "+
-    "supported. If you would like to see more data types please"+
-    " open an issue or submit a Pull Request on GitHub"]
-    print(msg)
+    assert isinstance(parameter, str), 'parameter must be a string'
+    supported=True
+    supported_params = [
+                       'swden',
+                       'stdmet'
+                      ]
+    param = [param for param in supported_params if param == parameter]
+
+    if not param:      
+        supported=False
+        msg = ["Currently parameters 'swden' and 'stdmet'  are supported. \n"+
+               "If you would like to see more data types please \n"+
+               " open an issue or submit a Pull Request on GitHub"]
+        raise Exception(msg[0])
     #Available Data: https://www.ndbc.noaa.gov/data/    
     
     # Historical
@@ -392,5 +404,5 @@ def __supported_ndbc_params():
     'wlevel'	:	'Tide Current Year Historical Data'	,
     }
 
-    return msg	
+    return supported	
     
