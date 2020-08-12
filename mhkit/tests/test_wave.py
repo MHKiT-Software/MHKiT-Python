@@ -512,7 +512,7 @@ class TestIO(unittest.TestCase):
         self.assertEqual(units, None)
 		
     def test_ndbc_available_data(self):
-        data=wave.io.ndbc_available_data(number='46029')
+        data=wave.io.ndbc_available_data('swden', buoy_number='46029')
                 
         cols = data.columns.tolist()
         exp_cols = ['id', 'year', 'filename']
@@ -525,7 +525,7 @@ class TestIO(unittest.TestCase):
 
     def test__ndbc_parse_filenames(self):  
         filenames= pd.Series(self.filenames)
-        buoys = wave.io._ndbc_parse_filenames(filenames)
+        buoys = wave.io._ndbc_parse_filenames('swden', filenames)
         years = buoys.year.tolist()
         numbers = buoys.id.tolist()
         fnames = buoys.filename.tolist()
@@ -537,22 +537,21 @@ class TestIO(unittest.TestCase):
         
     def test_fetch_ndbc(self):
         filenames= pd.Series(self.filenames[0])
-        ndbc_data = wave.io.fetch_ndbc(filenames)
+        ndbc_data = wave.io.fetch_ndbc('swden', filenames)
         self.assertTrue(self.swden.equals(ndbc_data['1996']))
 
     def test_ndbc_dates_to_datetime(self):
-        dt = wave.io.ndbc_dates_to_datetime(self.swden)
+        dt = wave.io.ndbc_dates_to_datetime('swden', self.swden)
         self.assertEqual(datetime(1996, 1, 1), dt[0])
         
-    def test__remove_columns(self):    
-        swden = self.swden.copy(deep=True)
-        times_only = wave.io._remove_columns(swden, starts_with='.')
-        exp_cols= ['YY', 'MM', 'DD', 'hh']
-        self.assertEqual(times_only.columns.tolist(), exp_cols)
+    # def test__remove_columns(self):    
+        # swden = self.swden.copy(deep=True)
+        # times_only = wave.io._remove_columns(swden, starts_with='.')
+        # exp_cols= ['YY', 'MM', 'DD', 'hh']
+        # self.assertEqual(times_only.columns.tolist(), exp_cols)
         
     def test__date_string_to_datetime(self):
         swden = self.swden.copy(deep=True)
-        #import ipdb; ipdb.set_trace()
         df = wave.io._date_string_to_datetime(swden, ['YY', 'MM', 'DD', 'hh'], '%y') 
         dt = df['date']
         self.assertEqual(datetime(1996, 1, 1), dt[0])
