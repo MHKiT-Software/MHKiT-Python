@@ -120,7 +120,7 @@ def ndbc_available_data(parameter,
     
     Parameters
     ----------
-    parameter: string (optional)
+    parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
         'stdmet':   'Standard Meteorological Current Year Historical Data'
     buoy_number: string (optional)
@@ -179,6 +179,9 @@ def _ndbc_parse_filenames(parameter, filenames):
     
     Parameters
     ----------
+    parameter: string
+        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        'stdmet':   'Standard Meteorological Current Year Historical Data'
     filenames: Series
         List of compressed file names from NDBC
      
@@ -214,11 +217,11 @@ def fetch_ndbc(parameter, filenames, proxy=None):
         
     Parameters
     ----------
-    filenames: DataFrame
-	    Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+    filenames: DataFrame
+	    Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
 	proxy: string
 	    Proxy URL   
         
@@ -256,12 +259,12 @@ def ndbc_dates_to_datetime(parameter, data,
     
     Parameters
     ----------
-    data: DataFrame
-        Dataframe with headers (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
         'stdmet':   'Standard Meteorological Current Year Historical Data'
-    return_date_col: Bool
+    data: DataFrame
+        Dataframe with headers (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
+    return_date_col: Bool (optional)
         Default False. When true will return list of NDBC date columns
             
         
