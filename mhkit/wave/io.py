@@ -134,12 +134,17 @@ def ndbc_available_data(parameter,
         DataFrame with station ID, years, and NDBC file names. 
     '''
     assert isinstance(parameter, str), 'parameter must be a string'
-    assert isinstance(buoy_number, (str, type(None))), 'If specified the buoy number must be a string'
+    assert isinstance(buoy_number, (str, type(None), list)), ('If' 
+        'specified the buoy number must be a string or list of strings')
     assert isinstance(proxy , (str, type(None))), 'If specified proxy must be a string'
     supported =__supported_ndbc_params(parameter)
-    if buoy_number != None:
-        assert len(buoy_number) == 5, ' 5-character alpha-numeric station identifier'
-    
+    if isinstance(buoy_number, str):        
+        assert len(buoy_number) == 5, ('Buoy must be 5-character'
+        f'alpha-numeric station identifier got: {buoy_number}')
+    elif isinstance(buoy_number, list):
+        for buoy in buoy_number:
+            assert len(buoy) == 5, ('Each buoy must be a 5-character'
+            f'alpha-numeric station identifier got: {buoy}')
     ndbc_data = f'https://www.ndbc.noaa.gov/data/historical/{parameter}/'
     if proxy == None:
         response = requests.get(ndbc_data)
@@ -156,8 +161,14 @@ def ndbc_available_data(parameter,
     buoys = _ndbc_parse_filenames(parameter, filenames)
 
     available_data = buoys.copy(deep=True)
-    if buoy_number != None:
+    
+    if isinstance(buoy_number, str):        
         available_data = buoys[buoys.id==buoy_number]
+    elif isinstance(buoy_number, list):
+        available_data = buoys[buoys.id==buoy_number[0]]
+        for i in range(1, len(buoy_number)):
+            data = buoys[buoys.id==buoy_number[i]]
+            available_data = available_data.append(data)                  
         
     return available_data
     
