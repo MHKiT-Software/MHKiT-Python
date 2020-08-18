@@ -209,12 +209,15 @@ def _parse_filenames(parameter, filenames):
     buoys = buoys[buoys.id.str.len() == expected_station_id_length]
     buoys['filename'] = filenames  
     return buoys    
-    
-    
+        
 def request_data(parameter, filenames, proxy=None):
     '''
     Requests data by filenames and returns a dictionary of DataFrames 
-    for each filename passed. The Dictionary is indexed by buoy and year.
+    for each filename passed. If filenames for a sigle buoy are passed 
+    then the yearly DataFrames in the returned dictionary (ndbc_data) are 
+    indexed by year (e.g. ndbc_data['2014']). If multiple buoy ids are 
+    passed then the returned dictionary is indexed by buoy id and year 
+    (e.g. ndbc_data['46022']['2014']).
         
     Parameters
     ----------
@@ -237,16 +240,25 @@ def request_data(parameter, filenames, proxy=None):
     supported =_supported_params(parameter)
 
     buoy_data = _parse_filenames(parameter, filenames)
-        
     parameter_url = f'https://www.ndbc.noaa.gov/data/historical/{parameter}'
     ndbc_data = {}    
     
-    for year, filename in zip(buoy_data.year, buoy_data.filename):
-        file_url = f'{parameter_url}/{filename}'
-        response =  requests.get(file_url)
-        data = zlib.decompress(response.content, 16+zlib.MAX_WBITS)
-        df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)
-        ndbc_data[year] = df
+    for buoy_id in buoy_data['id'].unique():
+        ndbc_data_buoy={}
+        
+        buoy = buoy_data[buoy_data['id']== buoy_id]
+        years = buoy.year
+        filenames = buoy.filename
+        for year, filename in zip(years, filenames):
+            file_url = f'{parameter_url}/{filename}'
+            response =  requests.get(file_url)
+            data = zlib.decompress(response.content, 16+zlib.MAX_WBITS)
+            df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)
+            ndbc_data_buoy[year] = df
+        ndbc_data[buoy_id] = ndbc_data_buoy
+        
+    if len(ndbc_data) == 1:
+        ndbc_data = ndbc_data[buoy_id]
 
     return ndbc_data
 
