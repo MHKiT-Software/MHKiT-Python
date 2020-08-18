@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from rex import WaveX, MultiYearWaveX
 
 
 def read_NDBC_file(file_name, missing_values=['MM',9999,999,99]):
@@ -105,3 +106,52 @@ def read_NDBC_file(file_name, missing_values=['MM',9999,999,99]):
     data.replace(missing_values, np.nan, inplace=True)
     
     return data, metadata
+
+
+
+
+def read_US_wave_dataset(wave_path, variable, lat_lon, tree=None, 
+                                 unscale=True, str_decode=True, hsds=True):
+    
+        """
+        Parameters
+        ----------
+        wave_path : str
+            Path to US_Wave .h5 files
+            Available formats:
+                /h5_dir/
+                /h5_dir/prefix*suffix
+        tree : str | cKDTree
+            cKDTree or path to .pkl file containing pre-computed tree
+            of lat, lon coordinates
+        unscale : bool
+            Boolean flag to automatically unscale variables on extraction
+        str_decode : bool
+            Boolean flag to decode the bytestring meta data into normal
+            strings. Setting this to False will speed up the meta data read.
+        hsds : bool
+            Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
+            behind HSDS
+        """
+        
+        waveKwargs = {'tree':tree,'unscale':unscale,'str_decode':str_decode, 'hsds':hsds}
+        
+        
+        if isinstance(wave_path,list) or '*' in wave_path:
+            rex_accessor = MultiYearWaveX
+        else: 
+            rex_accessor = WaveX
+            
+        with rex_accessor(wave_path, **waveKwargs) as waves:
+            data = waves.get_lat_lon_df(variable,lat_lon)
+        
+        if data.shape[-1] == 1:
+            return data.squeeze('columns')
+        else:
+            return data
+            
+            
+        
+        
+        
+        
