@@ -5,7 +5,6 @@ import mhkit.utils as utils
 from pandas.testing import assert_frame_equal
 import json
 from os.path import abspath, dirname, join, isfile
-from datetime import datetime
 
 testdir = dirname(abspath(__file__))
 datadir = join(testdir, 'data')
@@ -27,11 +26,6 @@ class TestGenUtils(unittest.TestCase):
         self.freq = 50 # Hz
         self.period = 600 # seconds
         
-        self.filenames=['46042w1996.txt.gz', 
-                '46029w1997.txt.gz', 
-                '46029w1998.txt.gz']
-        self.swden = pd.read_csv(join(datadir,self.filenames[0]), sep=r'\s+', 
-                                 compression='gzip')
 
     def test_get_statistics(self):
         # load in file
@@ -84,17 +78,7 @@ class TestGenUtils(unittest.TestCase):
         answer2 = answer.round('s') # round to nearest second for comparison
         
         # check if answer is correct
-        self.assertTrue(answer2 == time)
-        
-    def test_ndbc_dates_to_datetime(self):
-        dt = utils.ndbc_dates_to_datetime('swden', self.swden)
-        self.assertEqual(datetime(1996, 1, 1), dt[0])
-               
-    def test__date_string_to_datetime(self):
-        swden = self.swden.copy(deep=True)
-        df = utils._date_string_to_datetime(swden, ['YY', 'MM', 'DD', 'hh'], '%y') 
-        dt = df['date']
-        self.assertEqual(datetime(1996, 1, 1), dt[0])        
+        self.assertTrue(answer2 == time)     
 
 if __name__ == '__main__':
     unittest.main()

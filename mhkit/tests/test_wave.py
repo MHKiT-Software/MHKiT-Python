@@ -459,7 +459,7 @@ class TestPerformance(unittest.TestCase):
         
         self.assertTrue(isfile(filename))
     
-class TestIO(unittest.TestCase):
+class TestIOndbc(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
@@ -488,7 +488,7 @@ class TestIO(unittest.TestCase):
     
     ### Realtime data
     def test_ndbc_read_realtime_met(self):
-        data, units = wave.io.ndbc_read_file(join(datadir, '46097.txt'))
+        data, units = wave.io.ndbc.read_file(join(datadir, '46097.txt'))
         expected_index0 = datetime(2019,4,2,13,50)
         self.assertSetEqual(set(data.columns), set(self.expected_columns_metRT))
         self.assertEqual(data.index[0], expected_index0)
@@ -498,7 +498,7 @@ class TestIO(unittest.TestCase):
     ### Historical data
     def test_ndbnc_read_historical_met(self):
         # QC'd monthly data, Aug 2019
-        data, units = wave.io.ndbc_read_file(join(datadir, '46097h201908qc.txt'))
+        data, units = wave.io.ndbc.read_file(join(datadir, '46097h201908qc.txt'))
         expected_index0 = datetime(2019,8,1,0,0)
         self.assertSetEqual(set(data.columns), set(self.expected_columns_metH))
         self.assertEqual(data.index[0], expected_index0)
@@ -507,12 +507,12 @@ class TestIO(unittest.TestCase):
         
     ### Spectral data
     def test_ndbc_read_spectral(self):
-        data, units = wave.io.ndbc_read_file(join(datadir, 'data.txt'))
+        data, units = wave.io.ndbc.read_file(join(datadir, 'data.txt'))
         self.assertEqual(data.shape, (743, 47))
         self.assertEqual(units, None)
 		
     def test_ndbc_available_data(self):
-        data=wave.io.ndbc_available_data('swden', buoy_number='46029')
+        data=wave.io.ndbc.available_data('swden', buoy_number='46029')
                 
         cols = data.columns.tolist()
         exp_cols = ['id', 'year', 'filename']
@@ -525,7 +525,7 @@ class TestIO(unittest.TestCase):
 
     def test__ndbc_parse_filenames(self):  
         filenames= pd.Series(self.filenames)
-        buoys = wave.io._ndbc_parse_filenames('swden', filenames)
+        buoys = wave.io.ndbc._parse_filenames('swden', filenames)
         years = buoys.year.tolist()
         numbers = buoys.id.tolist()
         fnames = buoys.filename.tolist()
@@ -537,9 +537,18 @@ class TestIO(unittest.TestCase):
         
     def test_ndbc_request_data(self):
         filenames= pd.Series(self.filenames[0])
-        ndbc_data = wave.io.ndbc_request_data('swden', filenames)
+        ndbc_data = wave.io.ndbc.request_data('swden', filenames)
         self.assertTrue(self.swden.equals(ndbc_data['1996']))
         
+    def test_ndbc_dates_to_datetime(self):
+        dt = wave.io.ndbc.dates_to_datetime('swden', self.swden)
+        self.assertEqual(datetime(1996, 1, 1), dt[0])
+               
+    def test__date_string_to_datetime(self):
+        swden = self.swden.copy(deep=True)
+        df = wave.io.ndbc._date_string_to_datetime(swden, ['YY', 'MM', 'DD', 'hh'], '%y') 
+        dt = df['date']
+        self.assertEqual(datetime(1996, 1, 1), dt[0])           
 
 if __name__ == '__main__':
     unittest.main() 
