@@ -5,3 +5,4 @@ matplotlib
 requests
 pecos>=0.1.8
 fatpack
+NREL-rex
