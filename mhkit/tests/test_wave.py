@@ -544,11 +544,16 @@ class TestIOndbc(unittest.TestCase):
         dt = wave.io.ndbc.dates_to_datetime('swden', self.swden)
         self.assertEqual(datetime(1996, 1, 1), dt[0])
                
-    def test__date_string_to_datetime(self):
+    def test_date_string_to_datetime(self):
         swden = self.swden.copy(deep=True)
         df = wave.io.ndbc._date_string_to_datetime(swden, ['YY', 'MM', 'DD', 'hh'], '%y') 
         dt = df['date']
-        self.assertEqual(datetime(1996, 1, 1), dt[0])           
+        self.assertEqual(datetime(1996, 1, 1), dt[0])  
+        
+    def test_parameter_units(self):
+        parameter='swden'
+        units = wave.io.ndbc.parameter_units(parameter)
+        self.assertEqual(units[parameter], '(m*m)/Hz')        
 
 if __name__ == '__main__':
     unittest.main() 
