@@ -6,7 +6,7 @@ import bs4
 import zlib
 
 
-def read_NDBC_file(file_name, missing_values=['MM',9999,999,99]):
+def ndbc_read_file(file_name, missing_values=['MM',9999,999,99]):
     """
     Reads a NDBC wave buoy data file (from https://www.ndbc.noaa.gov).
     
@@ -134,10 +134,10 @@ def ndbc_available_data(parameter,
         DataFrame with station ID, years, and NDBC file names. 
     '''
     assert isinstance(parameter, str), 'parameter must be a string'
-    assert isinstance(buoy_number, (str, type(None), list)), ('If' 
+    assert isinstance(buoy_number, (str, type(None), list)), ('If ' 
         'specified the buoy number must be a string or list of strings')
     assert isinstance(proxy , (str, type(None))), 'If specified proxy must be a string'
-    supported =__supported_ndbc_params(parameter)
+    supported =_ndbc_supported_params(parameter)
     if isinstance(buoy_number, str):        
         assert len(buoy_number) == 5, ('Buoy must be 5-character'
         f'alpha-numeric station identifier got: {buoy_number}')
@@ -192,7 +192,7 @@ def _ndbc_parse_filenames(parameter, filenames):
     '''  
     assert isinstance(filenames, pd.Series), 'filenames must be of type pd.Series' 
     assert isinstance(parameter, str), 'parameter must be a string'
-    supported =__supported_ndbc_params(parameter)
+    supported =_ndbc_supported_params(parameter)
     
     file_seps = {
                 'swden' : 'w',
@@ -211,9 +211,10 @@ def _ndbc_parse_filenames(parameter, filenames):
     return buoys    
     
     
-def fetch_ndbc(parameter, filenames, proxy=None):
+def ndbc_request_data(parameter, filenames, proxy=None):
     '''
-    Requests data and returns a DataFrame for each filename passed
+    Requests data by filenames and returns a dictionary of DataFrames 
+    for each filename passed. The Dictionary is indexed by buoy and year.
         
     Parameters
     ----------
@@ -228,12 +229,12 @@ def fetch_ndbc(parameter, filenames, proxy=None):
     Returns
     -------
     ndbc_data: dict
-        Dictionary of NDBC data 
+        Dictionary of DataFrames indexed by buoy and year.
     '''
     assert isinstance(filenames, pd.Series), 'filenames must be of type pd.Series' 
     assert isinstance(parameter, str), 'parameter must be a string'
     assert isinstance(proxy, (str, type(None))), 'If specified proxy must be a string'    
-    supported =__supported_ndbc_params(parameter)
+    supported =_ndbc_supported_params(parameter)
 
     buoy_data = _ndbc_parse_filenames(parameter, filenames)
         
@@ -248,128 +249,20 @@ def fetch_ndbc(parameter, filenames, proxy=None):
         ndbc_data[year] = df
 
     return ndbc_data
-                
-
-def ndbc_dates_to_datetime(parameter, data, 
-                           return_date_cols=False):
-    '''
-    Takes a DataFrame and converts the NDBC date columns 
-	(e.g. "#YY  MM DD hh mm") to datetime. Returns a DataFrame with the 
-	removed NDBC date columns a new ['date'] columns with DateTime Format.
-    
-    Parameters
-    ----------
-    parameter: string
-        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
-        'stdmet':   'Standard Meteorological Current Year Historical Data'
-    data: DataFrame
-        Dataframe with headers (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
-    return_date_col: Bool (optional)
-        Default False. When true will return list of NDBC date columns
-            
-        
-    Returns
-    -------
-    date: Series
-        Series with NDBC dates dropped and new ['date']
-        column in DateTime format
-    ndbc_date_cols: list
-        List of the DataFrame columns headers for dates as provided by 
-        NDBC
-    '''
-    assert isinstance(data, pd.DataFrame), 'filenames must be of type pd.DataFrame' 
-    assert isinstance(parameter, str), 'parameter must be a string'
-    assert isinstance(return_date_cols, bool), 'return_date_cols must be of type bool'
-    supported =__supported_ndbc_params(parameter)
-      
-    df = data.copy(deep=True)     
-    cols = df.columns.values.tolist()
-    
-    try:
-        minutes_loc  = cols.index('mm')
-        minutes=True
-    except:
-        minutes=False
-    
-    row_0_is_units = False
-    year_string = [ col for col in  cols if col.startswith('Y')]
-    if not year_string:
-        year_string = [ col for col in  cols if col.startswith('#')]        
-        if not year_string:
-            print(f'ERROR: Could Not Find Year Column in {cols}')
-        year_string = year_string[0]
-        year_fmt = '%Y'        
-        if str(df[year_string][0]).startswith('#'):
-            row_0_is_units = True
-            df = df.drop(df.index[0])
-           
-    elif year_string[0] == 'YYYY':
-        year_string = year_string[0]
-        year_fmt = '%Y'
-    elif year_string[0]=='YY':
-        year_string = year_string[0]
-        year_fmt = '%y' 
-    if minutes:
-        ndbc_date_cols = [year_string, 'MM', 'DD', 'hh', 'mm']
-    else:
-        ndbc_date_cols = [year_string, 'MM', 'DD', 'hh']
-
-               
-    df = _date_string_to_datetime(df, ndbc_date_cols, year_fmt)        
-    date = df['date']    
-    if row_0_is_units:
-        date = pd.concat([pd.Series([np.nan]),date])    
-    del df
-    
-    if return_date_cols:
-        return date, ndbc_date_cols
-    return date
 
     
-def _date_string_to_datetime(df, columns, year_fmt):
-    '''
-    Takes a NDBC df and creates a datetime from multiple columns headers
-    by combining each column into a single string. Then the datetime 
-    method is applied  given the expected format. 
-    
-    Parameters
-    ----------
-    df: DataFrame
-        Dataframe with columns (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
-    columns: list 
-        list of strings for the columns to consider   
-        (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
-    year_fmt: str
-        Specifies if year is 2 digit or 4 digit for datetime 
-        interpretation
-       
-    Returns
-    -------
-    df: DataFrame
-        The passed df with a new column ['date'] with the datetime format           
-    '''
-    assert isinstance(df, pd.DataFrame), 'df must be of type pd.DataFrame' 
-    assert isinstance(columns, list), 'Columns must be a list'
-    assert isinstance(year_fmt, str), 'year_fmt must be a string'
-    
-    # Convert to str and zero pad
-    for key in columns:
-        df[key] = df[key].astype(str).str.zfill(2)
-    
-    df['date_string'] = df[columns[0]]
-    for column in columns[1:]:
-        df['date_string'] = df[['date_string', column]].apply(lambda x: ''.join(x), axis=1)
-    df['date'] = pd.to_datetime(df['date_string'], format=f'{year_fmt}%m%d%H%M')
-    del df['date_string']
-    
-    return df
-    
 
-def __supported_ndbc_params(parameter):
+def _ndbc_supported_params(parameter):
     '''
     There is a significant number of datasets provided by NDBC. There is
     specific data processing required for each type. Therefore this 
     function is thrown for any data type not currently covered.
+    
+    Available Data: https://www.ndbc.noaa.gov/data/ 
+    https://www.ndbc.noaa.gov/historical_data.shtml
+    Decription of Measurements: https://www.ndbc.noaa.gov/measdes.shtml
+    Changes made to historical data: https://www.ndbc.noaa.gov/mods.shtml  
+    
     Parameters
     ----------
     None
@@ -394,7 +287,8 @@ def __supported_ndbc_params(parameter):
                "If you would like to see more data types please \n"+
                " open an issue or submit a Pull Request on GitHub"]
         raise Exception(msg[0])
-    #Available Data: https://www.ndbc.noaa.gov/data/    
+    
+
     
     # Historical
     parameters = {
