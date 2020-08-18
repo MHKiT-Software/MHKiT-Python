@@ -363,7 +363,45 @@ def _date_string_to_datetime(df, columns, year_fmt):
     del df['date_string']
     
     return df
+
+def parameter_units(parameter):
+    '''
+    Returns the NDBC units for the given parameter
     
+    Parameters
+    ----------
+    parameter: string
+        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        'stdmet':   'Standard Meteorological Current Year Historical Data'
+        
+    Returns
+    -------
+    units: dict
+        Dictionary of parameter units
+    '''
+    assert isinstance(parameter, str), 'parameter must be a string'
+    supported = _supported_params(parameter)
+    
+    if parameter == 'swden':
+        units = {'swden' : '(m*m)/Hz'}
+    elif parameter == 'stdmet':
+        units = {'WDIR' : 'degT',
+                 'WSPD' : 'm/s',
+                 'GST'  : 'm/s',
+                 'WVHT' : 'm' ,
+                 'DPD'  : 'sec',
+                 'APD'  : 'sec',
+                 'MWD'  : 'degT',
+                 'PRES' : 'hPa',
+                 'ATMP' : 'degC',
+                 'WTMP' : 'degC',
+                 'DEWP' : 'degC',
+                 'VIS'  : 'nmi',
+                 'PTDY' : 'hPa',
+                 'TIDE' : 'ft'
+                }
+    return units
+
 
 def _supported_params(parameter):
     '''
