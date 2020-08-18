@@ -488,7 +488,7 @@ class TestIO(unittest.TestCase):
     
     ### Realtime data
     def test_read_NDBC_realtime_met(self):
-        data, units = wave.io.read_NDBC_file(join(datadir, '46097.txt'))
+        data, units = wave.io.ndbc_read_file(join(datadir, '46097.txt'))
         expected_index0 = datetime(2019,4,2,13,50)
         self.assertSetEqual(set(data.columns), set(self.expected_columns_metRT))
         self.assertEqual(data.index[0], expected_index0)
@@ -498,7 +498,7 @@ class TestIO(unittest.TestCase):
     ### Historical data
     def test_read_NDBC_historical_met(self):
         # QC'd monthly data, Aug 2019
-        data, units = wave.io.read_NDBC_file(join(datadir, '46097h201908qc.txt'))
+        data, units = wave.io.ndbc_read_file(join(datadir, '46097h201908qc.txt'))
         expected_index0 = datetime(2019,8,1,0,0)
         self.assertSetEqual(set(data.columns), set(self.expected_columns_metH))
         self.assertEqual(data.index[0], expected_index0)
@@ -507,7 +507,7 @@ class TestIO(unittest.TestCase):
         
     ### Spectral data
     def test_read_NDBC_spectral(self):
-        data, units = wave.io.read_NDBC_file(join(datadir, 'data.txt'))
+        data, units = wave.io.ndbc_read_file(join(datadir, 'data.txt'))
         self.assertEqual(data.shape, (743, 47))
         self.assertEqual(units, None)
 		
