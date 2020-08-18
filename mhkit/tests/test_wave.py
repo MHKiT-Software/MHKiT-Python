@@ -487,7 +487,7 @@ class TestIO(unittest.TestCase):
         pass
     
     ### Realtime data
-    def test_read_NDBC_realtime_met(self):
+    def test_ndbc_read_realtime_met(self):
         data, units = wave.io.ndbc_read_file(join(datadir, '46097.txt'))
         expected_index0 = datetime(2019,4,2,13,50)
         self.assertSetEqual(set(data.columns), set(self.expected_columns_metRT))
@@ -496,7 +496,7 @@ class TestIO(unittest.TestCase):
         self.assertEqual(units,self.expected_units_metRT)
             
     ### Historical data
-    def test_read_NDBC_historical_met(self):
+    def test_ndbnc_read_historical_met(self):
         # QC'd monthly data, Aug 2019
         data, units = wave.io.ndbc_read_file(join(datadir, '46097h201908qc.txt'))
         expected_index0 = datetime(2019,8,1,0,0)
@@ -506,7 +506,7 @@ class TestIO(unittest.TestCase):
         self.assertEqual(units,self.expected_units_metH)
         
     ### Spectral data
-    def test_read_NDBC_spectral(self):
+    def test_ndbc_read_spectral(self):
         data, units = wave.io.ndbc_read_file(join(datadir, 'data.txt'))
         self.assertEqual(data.shape, (743, 47))
         self.assertEqual(units, None)
@@ -535,20 +535,10 @@ class TestIO(unittest.TestCase):
         self.assertEqual(numbers, ['46042','46029','46029'])          
         self.assertEqual(fnames, self.filenames)
         
-    def test_fetch_ndbc(self):
+    def test_ndbc_request_data(self):
         filenames= pd.Series(self.filenames[0])
-        ndbc_data = wave.io.fetch_ndbc('swden', filenames)
+        ndbc_data = wave.io.ndbc_request_data('swden', filenames)
         self.assertTrue(self.swden.equals(ndbc_data['1996']))
-
-    def test_ndbc_dates_to_datetime(self):
-        dt = wave.io.ndbc_dates_to_datetime('swden', self.swden)
-        self.assertEqual(datetime(1996, 1, 1), dt[0])
-               
-    def test__date_string_to_datetime(self):
-        swden = self.swden.copy(deep=True)
-        df = wave.io._date_string_to_datetime(swden, ['YY', 'MM', 'DD', 'hh'], '%y') 
-        dt = df['date']
-        self.assertEqual(datetime(1996, 1, 1), dt[0])
         
 
 if __name__ == '__main__':
