@@ -8,7 +8,7 @@ def read_NDBC_file(file_name, missing_values=['MM',9999,999,99]):
     Reads a NDBC wave buoy data file (from https://www.ndbc.noaa.gov).
     
     Realtime and historical data files can be loaded with this function.  
-    
+
     Note: With realtime data, missing data is denoted by "MM".  With historical 
     data, missing data is denoted using a variable number of 
     # 9's, depending on the data type (for example: 9999.0 999.0 99.0).
@@ -176,10 +176,7 @@ def read_US_wave_dataset(wave_path, parameter, lat_lon, tree=None,
         with rex_accessor(wave_path, **waveKwargs) as waves:
             data = waves.get_lat_lon_df(parameter,lat_lon)
         
-        if data.shape[-1] == 1:
-            return data.squeeze('columns')
-        else:
-            return data
+        return data
             
             
         
