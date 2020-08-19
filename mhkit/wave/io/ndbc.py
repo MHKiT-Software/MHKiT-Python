@@ -376,26 +376,98 @@ def _date_string_to_datetime(df, columns, year_fmt):
     
     return df
 
-def parameter_units(parameter):
+def parameter_units(parameter=''):
     '''
-    Returns the NDBC units for the given parameter
+    Returns the NDBC units for the given parameter, based on 
+    https://www.ndbc.noaa.gov/measdes.shtml
     
     Parameters
     ----------
-    parameter: string
+    parameter: string (optional)
+        'adcp':     'Acoustic Doppler Current Profiler Current Year Historical Data'
+        'cwind':    'Continuous Winds Current Year Historical Data'
+        'dart':     'Water Column Height (DART) Current Year Historical Data'
+        'derived2': 'Derived Met Values'
+        'ocean' :   'Oceanographic Current Year Historical Data'
+        'rain'	:	'Hourly Rain Current Year Historical Data'	,
+        'rain10':	'10-Minute Rain Current Year Historical Data'	,
+        'rain24':	'24-Hour Rain Current Year Historical Data'	,        
+        'realtime2':'Detailed Wave Summary (Realtime *.spec data files only)'
+        'srad':     'Solar Radiation Current Year Historical Data'
+        'stdmet':   ''Standard Meteorological Current Year Historical Data'
+        'supl':     'Supplemental Measurements Current Year Historical Data'
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
-        'stdmet':   'Standard Meteorological Current Year Historical Data'
-        
     Returns
     -------
     units: dict
         Dictionary of parameter units
     '''
     assert isinstance(parameter, str), 'parameter must be a string'
-    supported = _supported_params(parameter)
+    # supported = _supported_params(parameter)
     
-    if parameter == 'swden':
-        units = {'swden' : '(m*m)/Hz'}
+    if parameter == 'adcp':
+        units = {'DEP01'  : 'm',
+                 'DIR01' : 'deg',
+                 'SPD01' : 'cm/s',
+                }           
+    elif parameter == 'cwind':
+        units = {'WDIR'  : 'degT',
+                 'WSPD' : 'm/s',
+                 'GDR'  : 'degT',
+                 'GST'  : 'm/s',
+                 'GTIME' : 'hhmm'
+                }            
+    elif parameter == 'dart':
+        units = {'T'  : '-',
+                 'HEIGHT' : 'm',
+                }   
+    elif parameter == 'derived2':
+        units = {'CHILL'  : 'degC',
+                 'HEAT'   : 'degC',
+                 'ICE'    : 'cm/hr',
+                 'WSPD10' : 'm/s',
+                 'WSPD20' : 'm/s'
+                }
+    elif parameter == 'ocean':
+        units = {'DEPTH'  : 'm',
+                 'OTMP' : 'degC',
+                 'COND'  : 'mS/cm',
+                 'SAL'  : 'psu',
+                 'O2%'  : '%',
+                 'O2PPM' : 'ppm',
+                 'CLCON' : 'ug/l',
+                 'TURB' : 'FTU',
+                 'PH' : '-',
+                 'EH' : 'mv',
+                }            
+    elif parameter == 'rain':
+        units = {'ACCUM'  : 'mm',
+                }   
+    elif parameter == 'rain10':
+        units = {'RATE'  : 'mm/h',
+                }   
+    elif parameter == 'rain24':
+        units = {'RATE'  : 'mm/h',
+                 'PCT'  : '%',
+                 'SDEV'  : '-',
+                }          
+    elif parameter == 'realtime2':
+        units = {'WVHT': 'm',
+                 'SwH' : 'm',
+                 'SwP' : 'sec',
+                 'WWH' : 'm',
+                 'WWP' : 'sec',
+                 'SwD' : '-',
+                 'WWD' : 'degT',
+                 'STEEPNESS' : '-',
+                 'APD' : 'sec',
+                 'MWD' : 'degT',
+                }     
+    elif parameter == 'srad':
+        units = {'SRAD1'  : 'w/m2',
+                 'SRAD2' : 'w/m2',
+                 'SRAD3' : 'w/m2',
+                }                   
     elif parameter == 'stdmet':
         units = {'WDIR' : 'degT',
                  'WSPD' : 'm/s',
@@ -410,8 +482,75 @@ def parameter_units(parameter):
                  'DEWP' : 'degC',
                  'VIS'  : 'nmi',
                  'PTDY' : 'hPa',
-                 'TIDE' : 'ft'
-                }
+                 'TIDE' : 'ft'}
+    elif parameter == 'supl':
+        units = {'PRES'  : 'hPa',
+                 'PTIME' : 'hhmm',
+                 'WSPD'  : 'm/s',
+                 'WDIR'  : 'degT',
+                 'WTIME' : 'hhmm'
+                }        
+    elif parameter == 'swden':
+        units = {'swden' : '(m*m)/Hz'}
+    else :
+        units = {'swden' : '(m*m)/Hz',
+                 'PRES'  : 'hPa',
+                 'PTIME' : 'hhmm',
+                 'WDIR'  : 'degT',
+                 'WTIME' : 'hhmm',
+                 'GST'  : 'm/s',
+                 'WVHT' : 'm' ,
+                 'DPD'  : 'sec',
+                 'APD'  : 'sec',
+                 'MWD'  : 'degT',
+                 'ATMP' : 'degC',
+                 'WTMP' : 'degC',
+                 'DEWP' : 'degC',
+                 'VIS'  : 'nmi',
+                 'PTDY' : 'hPa',
+                 'TIDE' : 'ft',
+                 'SRAD1'  : 'w/m2',
+                 'SRAD2' : 'w/m2',
+                 'SRAD3' : 'w/m2',
+                 'WVHT': 'm',
+                 'SwH' : 'm',
+                 'SwP' : 'sec',
+                 'WWH' : 'm',
+                 'WWP' : 'sec',
+                 'SwD' : '-',
+                 'WWD' : 'degT',
+                 'STEEPNESS' : '-',
+                 'APD' : 'sec',
+                 'RATE'  : 'mm/h',
+                 'PCT'  : '%',
+                 'SDEV'  : '-',
+                 'ACCUM'  : 'mm',
+                 'DEPTH'  : 'm',
+                 'OTMP' : 'degC',
+                 'COND'  : 'mS/cm',
+                 'SAL'  : 'psu',
+                 'O2%'  : '%',
+                 'O2PPM' : 'ppm',
+                 'CLCON' : 'ug/l',
+                 'TURB' : 'FTU',
+                 'PH' : '-',
+                 'EH' : 'mv',
+                 'CHILL'  : 'degC',
+                 'HEAT'   : 'degC',
+                 'ICE'    : 'cm/hr',
+                 'WSPD'  : 'm/s',
+                 'WSPD10' : 'm/s',
+                 'WSPD20' : 'm/s',
+                 'T'  : '-',
+                 'HEIGHT' : 'm',
+                 'GDR'  : 'degT',
+                 'GST'  : 'm/s',
+                 'GTIME' : 'hhmm',
+                 'DEP01'  : 'm',
+                 'DIR01' : 'deg',
+                 'SPD01' : 'cm/s',
+                 }
+
     return units
 
 
@@ -459,20 +598,20 @@ def _supported_params(parameter):
     'adcp2'	:	'Acoustic Doppler Current Profiler Current Year Historical Data'	,
     'cwind'	:	'Continuous Winds Current Year Historical Data'	,
     'dart'	:	'Water Column Height (DART) Current Year Historical Data'	,
-    'mmbcur'	:	'	',
+    'mmbcur':	'Marsh-McBirney Current Measurements',
     'ocean'	:	'Oceanographic Current Year Historical Data'	,
     'rain'	:	'Hourly Rain Current Year Historical Data'	,
-    'rain10'	:	'10-Minute Rain Current Year Historical Data'	,
-    'rain24'	:	'24-Hour Rain Current Year Historical Data'	,
+    'rain10':	'10-Minute Rain Current Year Historical Data'	,
+    'rain24':	'24-Hour Rain Current Year Historical Data'	,
     'srad'	:	'Solar Radiation Current Year Historical Data'	,
-    'stdmet'	:	'Standard Meteorological Current Year Historical Data'	,
+    'stdmet':	'Standard Meteorological Current Year Historical Data'	,
     'supl'	:	'Supplemental Measurements Current Year Historical Data'	,
     'swden'	:	'Raw Spectral Wave Current Year Historical Data'	,
     'swdir'	:	'Spectral Wave Current Year Historical Data (alpha1)'	,
-    'swdir2'	:	'Spectral Wave Current Year Historical Data (alpha2)'	,
+    'swdir2':	'Spectral Wave Current Year Historical Data (alpha2)'	,
     'swr1'	:	'Spectral Wave Current Year Historical Data (r1)'	,
     'swr2'	:	'Spectral Wave Current Year Historical Data (r2)'	,
-    'wlevel'	:	'Tide Current Year Historical Data'	,
+    'wlevel':	'Tide Current Year Historical Data'	,
     }
 
     return supported	
