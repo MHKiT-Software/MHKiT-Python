@@ -11,13 +11,13 @@ AUTHOR = 'MHKiT developers'
 MAINTAINER_EMAIL = ''
 LICENSE = 'Revised BSD'
 URL = 'https://github.com/MHKiT-Software/mhkit-python'
-CLASSIFIERS=['Development Status :: 0 - Alpha',
+CLASSIFIERS=['Development Status :: 3 - Alpha',
              'Programming Language :: Python :: 3',
              'Topic :: Scientific/Engineering',
              'Intended Audience :: Science/Research',
              'Operating System :: OS Independent',
-            ],
-DEPENDENCIES = ['pandas', 
+            ]
+DEPENDENCIES = ['pandas>=1.0.0', 
                 'numpy', 
                 'scipy',
                 'matplotlib', 

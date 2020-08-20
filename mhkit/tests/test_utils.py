@@ -25,6 +25,7 @@ class TestGenUtils(unittest.TestCase):
 
         self.freq = 50 # Hz
         self.period = 600 # seconds
+        
 
     def test_get_statistics(self):
         # load in file
@@ -77,7 +78,7 @@ class TestGenUtils(unittest.TestCase):
         answer2 = answer.round('s') # round to nearest second for comparison
         
         # check if answer is correct
-        self.assertTrue(answer2 == time)
+        self.assertTrue(answer2 == time)     
 
 if __name__ == '__main__':
     unittest.main()
