@@ -125,8 +125,9 @@ def available_data(parameter,
         'stdmet':   'Standard Meteorological Current Year Historical Data'
     buoy_number: string (optional)
         Buoy Number.  5-character alpha-numeric station identifier        
-    proxy: string (optional)
-        proxy url
+	proxy: dict
+	    Proxy dict passed to python requests 
+        (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
         
     Returns
     -------
@@ -136,7 +137,7 @@ def available_data(parameter,
     assert isinstance(parameter, str), 'parameter must be a string'
     assert isinstance(buoy_number, (str, type(None), list)), ('If ' 
         'specified the buoy number must be a string or list of strings')
-    assert isinstance(proxy , (str, type(None))), 'If specified proxy must be a string'
+    assert isinstance(proxy, (dict, type(None))), 'If specified proxy must be a dict' 
     supported = _supported_params(parameter)
     if isinstance(buoy_number, str):        
         assert len(buoy_number) == 5, ('Buoy must be 5-character'
@@ -226,8 +227,9 @@ def request_data(parameter, filenames, proxy=None):
         'stdmet':   'Standard Meteorological Current Year Historical Data'
     filenames: DataFrame
 	    Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
-	proxy: string
-	    Proxy URL   
+	proxy: dict
+	    Proxy dict passed to python requests 
+        (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
         
     Returns
     -------
@@ -236,7 +238,7 @@ def request_data(parameter, filenames, proxy=None):
     '''
     assert isinstance(filenames, pd.Series), 'filenames must be of type pd.Series' 
     assert isinstance(parameter, str), 'parameter must be a string'
-    assert isinstance(proxy, (str, type(None))), 'If specified proxy must be a string'    
+    assert isinstance(proxy, (dict, type(None))), 'If specified proxy must be a dict'    
     supported =_supported_params(parameter)
 
     buoy_data = _parse_filenames(parameter, filenames)
