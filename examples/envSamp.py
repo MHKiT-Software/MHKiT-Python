@@ -1,26 +1,62 @@
+from mhkit.wave.resource import significant_wave_height, energy_period
 from mhkit.wave.PCA import principal_component_analysis, getContours
 import matplotlib.pyplot as plt
+from mhkit.wave.io import ndbc
 from scipy import stats
 import pandas as pd
 import numpy as np
 
+#=======================================================================
+# Get Spectral Wave Density & process data
+#=======================================================================
 
-# Hs={}
-# Te={}
-# for year in ndbc_data:
-    # year_data = ndbc_data[year]
-    # Hs[year] = significant_wave_height(year_data.T)
-    # Te[year] = energy_period(year_data.T)
+# Set the parameter to be spectral wave density
+spectral_wave_density='swden'
+
+# Get the NDBC data units
+units = ndbc.parameter_units(spectral_wave_density)
+
+# Find available parameter data for NDBC 46022
+available_data= ndbc.available_data(spectral_wave_density, 
+                                    buoy_number=['46022'])
+
+# Get dictionary of parameter data by year
+filenames= available_data['filename']
+ndbc_data = ndbc.request_data(spectral_wave_density, filenames)
+
+
+# Create a Datetime Index and remove NOAA date columns for each year
+for year in ndbc_data:
+   print(year)
+   year_data = ndbc_data[year]
+   year_data['date'], ndbc_date_cols = ndbc.dates_to_datetime(spectral_wave_density, 
+                                                              year_data, 
+                                                              return_date_cols=True)
+   year_data = year_data.drop(ndbc_date_cols, axis=1)
+   year_data = year_data.set_index('date')
+   ndbc_data[year] = year_data
+
+import ipdb; ipdb.set_trace()
+
+#=======================================================================
+# Calculate Hm0 and Te for each year
+#=======================================================================
+Hs={}
+Te={}
+for year in ndbc_data:
+    year_data = ndbc_data[year]
+    Hs[year] = significant_wave_height(year_data.T)
+    Te[year] = energy_period(year_data.T)
 
   
-# Hs_list = [ v for k,v in Hs.items()]; 
-# Te_list = [ v for k,v in Te.items()]; 
+Hs_list = [ v for k,v in Hs.items()]; 
+Te_list = [ v for k,v in Te.items()]; 
 
-# Hs= pd.concat(Hs_list ,axis=0)
-# Te= pd.concat(Te_list ,axis=0)
+Hs= pd.concat(Hs_list ,axis=0)
+Te= pd.concat(Te_list ,axis=0)
 
-# Hs['Te'] = Te.Te
-# Hs.dropna(inplace=True)
+Hs['Te'] = Te.Te
+Hs.dropna(inplace=True)
 
 
 df_raw = pd.read_pickle('46022HsTe.pkl')
