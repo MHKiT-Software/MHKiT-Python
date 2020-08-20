@@ -23,10 +23,10 @@ def read_file(file_name, missing_values=['MM',9999,999,99]):
     
     Parameters
     ------------
-    file_name : string
+    file_name: string
         Name of NDBC wave buoy data file
     
-    missing_value : list of values
+    missing_value: list of values
         List of values that denote missing data    
     
     Returns
@@ -123,11 +123,12 @@ def available_data(parameter,
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+        
     buoy_number: string (optional)
-        Buoy Number.  5-character alpha-numeric station identifier        
-	proxy: dict
-	    Proxy dict passed to python requests 
-        (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
+        Buoy Number.  5-character alpha-numeric station identifier   
+        
+    proxy: dict
+	    Proxy dict passed to python requests, (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
         
     Returns
     -------
@@ -182,7 +183,9 @@ def _parse_filenames(parameter, filenames):
     ----------
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+        
     filenames: Series
         List of compressed file names from NDBC
      
@@ -224,12 +227,14 @@ def request_data(parameter, filenames, proxy=None):
     ----------
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+        
     filenames: DataFrame
 	    Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
-	proxy: dict
-	    Proxy dict passed to python requests 
-        (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
+    
+    proxy: dict
+	    Proxy dict passed to python requests, (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
         
     Returns
     -------
@@ -278,9 +283,12 @@ def dates_to_datetime(parameter, data,
     ----------
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+        
     data: DataFrame
         Dataframe with headers (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
+        
     return_date_col: Bool (optional)
         Default False. When true will return list of NDBC date columns
             
@@ -290,6 +298,7 @@ def dates_to_datetime(parameter, data,
     date: Series
         Series with NDBC dates dropped and new ['date']
         column in DateTime format
+        
     ndbc_date_cols: list
         List of the DataFrame columns headers for dates as provided by 
         NDBC
@@ -353,9 +362,11 @@ def _date_string_to_datetime(df, columns, year_fmt):
     ----------
     df: DataFrame
         Dataframe with columns (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
+        
     columns: list 
         list of strings for the columns to consider   
         (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
+        
     year_fmt: str
         Specifies if year is 2 digit or 4 digit for datetime 
         interpretation
@@ -390,18 +401,31 @@ def parameter_units(parameter=''):
     ----------
     parameter: string (optional)
         'adcp':     'Acoustic Doppler Current Profiler Current Year Historical Data'
+        
         'cwind':    'Continuous Winds Current Year Historical Data'
+        
         'dart':     'Water Column Height (DART) Current Year Historical Data'
+        
         'derived2': 'Derived Met Values'
+        
         'ocean' :   'Oceanographic Current Year Historical Data'
-        'rain'	:	'Hourly Rain Current Year Historical Data'	,
-        'rain10':	'10-Minute Rain Current Year Historical Data'	,
-        'rain24':	'24-Hour Rain Current Year Historical Data'	,        
+        
+        'rain'	:	'Hourly Rain Current Year Historical Data'	
+        
+        'rain10':	'10-Minute Rain Current Year Historical Data'	
+        
+        'rain24':	'24-Hour Rain Current Year Historical Data'	
+        
         'realtime2':'Detailed Wave Summary (Realtime *.spec data files only)'
+        
         'srad':     'Solar Radiation Current Year Historical Data'
+        
         'stdmet':   ''Standard Meteorological Current Year Historical Data'
+        
         'supl':     'Supplemental Measurements Current Year Historical Data'
+        
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        
     Returns
     -------
     units: dict
@@ -555,7 +579,9 @@ def parameter_units(parameter=''):
                  'DIR01' : 'deg',
                  'SPD01' : 'cm/s',
                  }
-
+        
+    units = sorted(units.items())
+        
     return units
 
 
