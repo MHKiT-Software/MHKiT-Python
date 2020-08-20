@@ -253,7 +253,10 @@ def request_data(parameter, filenames, proxy=None):
         filenames = buoy.filename
         for year, filename in zip(years, filenames):
             file_url = f'{parameter_url}/{filename}'
-            response =  requests.get(file_url)
+            if proxy == None:
+                response = requests.get(file_url)
+            else:
+                response = requests.get(file_url, proxies=proxy)
             data = zlib.decompress(response.content, 16+zlib.MAX_WBITS)
             df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)
             ndbc_data_buoy[year] = df
