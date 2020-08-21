@@ -274,7 +274,8 @@ def request_data(parameter, filenames, proxy=None):
     return ndbc_data
 
 def dates_to_datetime(parameter, data, 
-                      return_date_cols=False):
+                      return_date_cols=False, 
+                      return_as_dataframe=False):
     '''
     Takes a DataFrame and converts the NDBC date columns 
 	(e.g. "#YY  MM DD hh mm") to datetime. Returns a DataFrame with the 
@@ -292,7 +293,9 @@ def dates_to_datetime(parameter, data,
         
     return_date_col: Bool (optional)
         Default False. When true will return list of NDBC date columns
-            
+         
+    dataFrame: bool
+        Results returned as a DataFrame (useful for MHKiT-MATLAB)         
         
     Returns
     -------
@@ -345,11 +348,14 @@ def dates_to_datetime(parameter, data,
     df = _date_string_to_datetime(df, ndbc_date_cols, year_fmt)        
     date = df['date']    
     if row_0_is_units:
-        date = pd.concat([pd.Series([np.nan]),date])    
+        date = pd.concat([pd.Series([np.nan]),date])               
     del df
     
+    if return_as_dataframe:
+        date = pd.DataFrame(date)    
     if return_date_cols:
-        return date, ndbc_date_cols
+        return date, ndbc_date_cols        
+    
     return date
 
     
