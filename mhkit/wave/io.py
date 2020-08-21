@@ -117,12 +117,15 @@ def read_wecSim(file_name):
         
     Parameters
     ------------
-    file_name: wecSim output file saved as a *.mat structure
+    file_name: string
+        Name of wecSim output file saved as a *.mat structure
         
         
     Returns
     ---------
-    ws_output: pandas DataFrame indexed by time (s)                    
+    ws_output: dict 
+        Dictionary of pandas DataFrames, indexed by time (s)      
+              
     """
     
     ws_data = sio.loadmat(file_name)
@@ -147,10 +150,10 @@ def read_wecSim(file_name):
         wave_output = wave_output.set_index('time') 
         wave_output['elevation'] = elevation
   
-        # Store wave type in DataFrame
-        wave_type = pd.DataFrame(data = [wtype],columns=['type'])
-        wave_output = pd.concat([wave_output,wave_type], axis=1)
-        wave_output.index.name = 'time'
+        # # Store wave type in DataFrame
+        # wave_type = pd.DataFrame(data = [wtype],columns=['type'])
+        # wave_output = pd.concat([wave_output,wave_type], axis=1)
+        # wave_output.index.name = 'time'
     
     except:
         print("wave class not used") 
@@ -318,7 +321,7 @@ def read_wecSim(file_name):
         ######################################    
         constraint_output = pd.DataFrame(data = time[0],columns=['time'])   
         constraint_output = constraint_output.set_index('time') 
-        for body in range(num_bodies):
+        for constraint in range(num_constraints):
             for dof in range(6):
                 constraint_output['constraint'+str(constraint+1)+'_position_dof'+str(dof+1)] = position[constraint][:,dof]
                 constraint_output['constraint'+str(constraint+1)+'_velocity_dof'+str(dof+1)] = velocity[constraint][:,dof]
@@ -333,12 +336,42 @@ def read_wecSim(file_name):
 
     ######################################
     ## import wecSim moopring class
-    #
+    # 
+    #         name: 'mooring'
+    #         time: [40001×1 double]
+    #     position: [40001×6 double]
+    #     velocity: [40001×6 double]
+    # forceMooring: [40001×6 double]
     ######################################
     try:
-      mooring = output['mooring']  #TEMP FIX
-      num_mooring = len(output[0][0]['name'][0])   # number of mooring
-      ## This needs work...
+      moorings = output['mooring']
+      num_moorings = len(moorings[0][0]['name'][0])   # number of mooring, not stored in DataFrame
+      
+      # constraints = output['constraints']
+      # num_constraints = len(constraints[0][0]['name'][0])   # number of constraints, not stored in DataFrame
+      name = []   # Not stored in DataFrame
+      time = []
+      position = []
+      velocity = []
+      forceMooring = []
+      for mooring in range(num_moorings):
+          name.append(moorings[0][0]['name'][0][mooring][0])   
+          time.append(moorings[0][0]['time'][0][mooring])
+          position.append(moorings[0][0]['position'][0][mooring])
+          velocity.append(moorings[0][0]['velocity'][0][mooring])
+          forceMooring.append(moorings[0][0]['forceMooring'][0][mooring])    
+      ######################################
+      ## create mooring_output DataFrame
+      ######################################    
+      mooring_output = pd.DataFrame(data = time[0],columns=['time'])   
+      mooring_output = mooring_output.set_index('time') 
+      for mooring in range(num_moorings):
+          for dof in range(6):
+              mooring_output['mooring'+str(mooring+1)+'_position_dof'+str(dof+1)] = position[mooring][:,dof]
+              mooring_output['mooring'+str(mooring+1)+'_velocity_dof'+str(dof+1)] = velocity[mooring][:,dof]
+              mooring_output['mooring'+str(mooring+1)+'_forceMooring_dof'+str(dof+1)] = forceMooring[mooring][:,dof]
+      mooring_output
+          
     except:
       print("mooring class not used") 
       mooring_output = []
@@ -356,9 +389,50 @@ def read_wecSim(file_name):
     #    Line6: [1×1 struct]  
     ######################################
     try:
-      moorDyn = output['moorDyn']  #TEMP FIX
-      num_moorDyn = len(output[0][0]['name'][0])   # number of moorDyn  
+      moorDyn = output['moorDyn']       
+      num_moorDyn_lines = len(moorDyn[0][0][0].dtype) - 1    # number of moorDyn lines
+      
+      Lines =  moorDyn[0][0]['Lines'][0][0][0]      
+      signals = Lines.dtype.names
+      num_signals = len(Lines.dtype.names)
+      data = Lines[0]
+      
+      time = data[0]
+      Lines = pd.DataFrame(data = time,columns=['time'])   
+      Lines = Lines.set_index('time')       
+      for signal in range(1,num_signals):
+          Lines[signals[signal]] = data[signal]        
+
+
+       # for line_num in range(1,num_moorDyn_lines):
+       #     Line1 =  moorDyn[0][0]['Line'+str(line_num)][0][0][0]
+       #     signals = Line1.dtype.names
+       #     num_signals = len(Line1.dtype.names)
+       #     data = Line1[0]
+            
+       #     time = data[0]
+       #     Line1 = pd.DataFrame(data = time,columns=['time'])   
+       #     Line1 = Line1.set_index('time')       
+       #     for signal in range(1,num_signals):
+       #         Line1[signals[signal]] = data[signal]   
+          
+          
+       Line1 =  moorDyn[0][0]['Line1'][0][0][0]
+       signals = Line1.dtype.names
+       num_signals = len(Line1.dtype.names)
+       data = Line1[0]
+        
+       time = data[0]
+       Line1 = pd.DataFrame(data = time,columns=['time'])   
+       Line1 = Line1.set_index('time')       
+       for signal in range(1,num_signals):
+           Line1[signals[signal]] = data[signal]   
+
+      
       ## This needs work...
+      moorDyn_output = {'Lines': Lines,
+                        'Line1': Line1,
+                        }
     except:
       print("moorDyn class not used") 
       moorDyn_output = []

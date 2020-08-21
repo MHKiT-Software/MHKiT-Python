@@ -6,7 +6,18 @@ import matplotlib.pyplot as plt
 ### loading wec-sim output using io function### --> NOT WORKING RIGHT NOW
 # file_name = './data/wecsim_output.mat'
 # ws_output = mhkit.wave.io.load_wecSim_output(file_name)
-ws_output = mhkit.wave.io.read_wecSim('./data/RM3_matlabWorkspace_structure.mat')
+
+# # # no Mooring
+# file_name = './data/RM3_matlabWorkspace_structure.mat'
+# ws_output = mhkit.wave.io.load_wecSim_output(file_name)
+
+# # with Mooring
+# file_name = './data/RM3MooringMatrix_matlabWorkspace_structure.mat'
+# ws_output = mhkit.wave.io.load_wecSim_output(file_name)
+
+# with moorDyn
+file_name = './data/RM3MooringMatrix_matlabWorkspace_structure.mat'
+ws_output = mhkit.wave.io.read_wecSim(file_name)
 ws_output.keys()
 
 ws_output['wave'].head()
@@ -42,7 +53,18 @@ ws_output['constraints'].head()
 constraints = ws_output['constraints']
 plt.figure()
 constraints['constraint1_forceConstraint_dof4'].plot()
-    
+
+ws_output['mooring'].head()
+mooring = ws_output['mooring']
+
+
+ws_output['moorDyn']['Lines'].head()
+moorDyn = ws_output['moorDyn']
+
+
+
+
+## Running MHKiT modules
 try:
     # If wave type is *not* stored in DataFrame
     ws_spectrum = mhkit.wave.resource.elevation_spectrum(wave,60,1000)
