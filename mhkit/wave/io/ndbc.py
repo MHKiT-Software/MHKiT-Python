@@ -401,9 +401,15 @@ def _date_string_to_datetime(df, columns, year_fmt):
 
 def parameter_units(parameter=''):
     '''
-    Returns the NDBC units for the provided parameter, based on 
-    https://www.ndbc.noaa.gov/measdes.shtml. If no parameter is 
-    provided all NDBC parameter units are returned.
+    Returns an ordered dictionary of NDBC parameters with unit values. 
+    If no parameter is passed then an ordered dictionary of all NDBC 
+    parameterz specified unites is returned. If a parameter is specified
+    then only the units associated with that parameter are returned. 
+    Note that many NDBC paramters report multiple measurements and in 
+    that case the returned dictionary will contain the NDBC measurement
+    name and associated unit for all the measurements associated with 
+    the specified parameter. Optional parameter values are given below.
+    All units are based on  https://www.ndbc.noaa.gov/measdes.shtml.
     
     Parameters
     ----------
