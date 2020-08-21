@@ -242,11 +242,12 @@ def request_data(parameter, filenames, proxy=None):
     ndbc_data: dict
         Dictionary of DataFrames indexed by buoy and year.
     '''
-    assert isinstance(filenames, pd.Series), 'filenames must be of type pd.Series' 
+    assert isinstance(filenames, (pd.Series,pd.DataFrame)), 'filenames must be of type pd.Series' 
     assert isinstance(parameter, str), 'parameter must be a string'
     assert isinstance(proxy, (dict, type(None))), 'If specified proxy must be a dict'    
     supported =_supported_params(parameter)
-
+    if isinstance(filenames,pd.DataFrame):
+        filenames = filenames.squeeze()
     buoy_data = _parse_filenames(parameter, filenames)
     parameter_url = f'https://www.ndbc.noaa.gov/data/historical/{parameter}'
     ndbc_data = {}    
