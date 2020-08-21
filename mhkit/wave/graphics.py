@@ -59,7 +59,6 @@ def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
                 ax=None):
     """
     Plots values in the matrix as a scatter diagram
-
     Parameters
     ------------
     M: pandas DataFrame
@@ -113,6 +112,7 @@ def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
     ax.set_yticklabels(M.index)
 
     return ax
+
 
 def plot_chakrabarti(H, lambda_w, D, ax=None):
     """
