@@ -28,4 +28,4 @@ $ cat .gitignore
 .gitignore
 
 # Exemptions
-!wecsim_output.mat
+!**/examples/data/*.mat
