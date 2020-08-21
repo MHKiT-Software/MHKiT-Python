@@ -401,12 +401,13 @@ def _date_string_to_datetime(df, columns, year_fmt):
 
 def parameter_units(parameter=''):
     '''
-    Returns the NDBC units for the given parameter, based on 
-    https://www.ndbc.noaa.gov/measdes.shtml
+    Returns the NDBC units for the provided parameter, based on 
+    https://www.ndbc.noaa.gov/measdes.shtml. If no parameter is 
+    provided all NDBC parameter units are returned.
     
     Parameters
     ----------
-    parameter: string (optional)
+    parameter: string (optional)        
         'adcp':     'Acoustic Doppler Current Profiler Current Year Historical Data'
         
         'cwind':    'Continuous Winds Current Year Historical Data'
