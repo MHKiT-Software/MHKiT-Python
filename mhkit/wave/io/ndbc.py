@@ -295,7 +295,7 @@ def dates_to_datetime(parameter, data,
     return_date_col: Bool (optional)
         Default False. When true will return list of NDBC date columns
          
-    dataFrame: bool
+    return_as_dataFrame: bool
         Results returned as a DataFrame (useful for MHKiT-MATLAB)         
         
     Returns
