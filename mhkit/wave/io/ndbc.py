@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from collections import OrderedDict as _OrderedDict
 from io import BytesIO
 import pandas as pd
 import numpy as np
@@ -587,7 +587,7 @@ def parameter_units(parameter=''):
                  'SPD01' : 'cm/s',
                  }
         
-    units = OrderedDict(sorted(units.items()))
+    units = _OrderedDict(sorted(units.items()))
         
     return units
 
