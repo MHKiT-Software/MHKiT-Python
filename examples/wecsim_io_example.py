@@ -60,6 +60,7 @@ mooring = ws_output['mooring']
 
 ws_output['moorDyn']['Lines'].head()
 moorDyn = ws_output['moorDyn']
+moorDyn['Line1'].plot()
 
 
 

@@ -395,43 +395,54 @@ def read_wecSim(file_name):
       Lines =  moorDyn[0][0]['Lines'][0][0][0]      
       signals = Lines.dtype.names
       num_signals = len(Lines.dtype.names)
-      data = Lines[0]
-      
+      data = Lines[0]      
       time = data[0]
       Lines = pd.DataFrame(data = time,columns=['time'])   
       Lines = Lines.set_index('time')       
       for signal in range(1,num_signals):
           Lines[signals[signal]] = data[signal]        
 
+          
+      Line1 =  moorDyn[0][0]['Line1'][0][0][0]
+      signals = Line1.dtype.names
+      num_signals = len(Line1.dtype.names)
+      data = Line1[0]        
+      time = data[0]
+      Line1 = pd.DataFrame(data = time,columns=['time'])   
+      Line1 = Line1.set_index('time')       
+      for signal in range(1,num_signals):
+          Line1[signals[signal]] = data[signal]   
+      
 
-       # for line_num in range(1,num_moorDyn_lines):
-       #     Line1 =  moorDyn[0][0]['Line'+str(line_num)][0][0][0]
-       #     signals = Line1.dtype.names
-       #     num_signals = len(Line1.dtype.names)
-       #     data = Line1[0]
-            
-       #     time = data[0]
-       #     Line1 = pd.DataFrame(data = time,columns=['time'])   
-       #     Line1 = Line1.set_index('time')       
-       #     for signal in range(1,num_signals):
-       #         Line1[signals[signal]] = data[signal]   
-          
-          
-       Line1 =  moorDyn[0][0]['Line1'][0][0][0]
-       signals = Line1.dtype.names
-       num_signals = len(Line1.dtype.names)
-       data = Line1[0]
+
+#this isn't working        
         
-       time = data[0]
-       Line1 = pd.DataFrame(data = time,columns=['time'])   
-       Line1 = Line1.set_index('time')       
-       for signal in range(1,num_signals):
-           Line1[signals[signal]] = data[signal]   
+      # check = moorDyn[0][0][0]  
+      # check.dtype
+      # check.dtype.names[1]
+      
+      # lines_output = []  
+      # for line_num in range(1,num_moorDyn_lines+1):
+      #     tmp =  moorDyn[0][0]['Line'+str(line_num)][0][0][0]
+      #     signals = tmp.dtype.names
+      #     num_signals = len(tmp.dtype.names)
+      #     data = tmp[0]
+      #     time = data[0]
+      #     tmp = pd.DataFrame(data = time,columns=['time'])   
+      #     tmp = tmp.set_index('time')       
+      #     for signal in range(1,num_signals):
+      #         tmp[signals[signal]] = data[signal]            
+      #     lines_output['line'+str(line_num)] = tmp
+            
+            
+      
+
 
       
       ## This needs work...
       moorDyn_output = {'Lines': Lines,
-                        'Line1': Line1,
+                        # 'Line1': Line1,
+                        'data': lines_output,
                         }
     except:
       print("moorDyn class not used") 
