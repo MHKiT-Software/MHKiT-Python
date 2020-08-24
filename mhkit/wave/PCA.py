@@ -5,8 +5,8 @@ import numpy as np
 
 def principal_component_analysis(x1, x2, size_bin=250):
     '''
-    Performs a PCA given x1, and x2. Contours generated will use 
-    principal component analysis (PCA) with improved 
+    Performs a principal component analysis given x1, and x2. Contours 
+    generated will use principal component analysis (PCA) with improved 
     distribution fitting (Eckert et. al 2015) and the I-FORM.
 
     Parameters
@@ -102,11 +102,9 @@ def principal_component_analysis(x1, x2, size_bin=250):
         x2_bins_fit = np.append(x2_bins_fit,x2_bin_fit.reshape(2,1), axis=1)
     x2_bins_fit = np.delete(x2_bins_fit,0,axis=1)
 
-    # Use non-linear least squares to fit a function, mu_fcn, to data.
-    mu_param, pcov = optim.curve_fit(_mu_fcn,
-                                     x1_means.T, 
-                                     x2_bins_fit[0, :]
-                                     )
+    mu_linear_fit = stats.linregress(x1_means.T, x2_bins_fit[0, :])    
+
+
     
     sigma_param = _sigma_fits(x1_means, x2_bins_fit[1, :])
     
@@ -114,38 +112,16 @@ def principal_component_analysis(x1, x2, size_bin=250):
            'principal_axes': principal_axes, 
            'shift'         : shift, 
            'x1_fit'        : x1_fit, 
-           'mu_param'      : mu_param, 
+           'mu_linear_fit' : mu_linear_fit, 
            'sigma_param'   : sigma_param 
            }
     
     return PCA
 
 
-def _mu_fcn(x, mu_p_1, mu_p_2):
-    ''' 
-    Linear fitting function for the mean(mu) of Component 2 normal
-    distribution as a function of the Component 1 mean for each bin.
-    
-    Parameters
-    ----------
-    mu_p: np.array
-           Array of mu fitting function parameters.
-    x: np.array
-       Array of values (Component 1 mean for each bin) at which to 
-       evaluate the mu fitting function.
-    
-    Returns
-    -------
-    mu_fit: np.array
-            Array of fitted mu values.
-    '''
-    mu_fit = mu_p_1 * x + mu_p_2
-    return mu_fit
-
-
 def _sigma_fits( Comp1_mean, sigma_vals):
     '''
-    Sigma parameter fitting function using penalty optimization.
+    Sigma parameter fitting function using penalty optimizstatsation.
     
     Parameters
     ----------
@@ -346,7 +322,8 @@ def getContours(time_ss, time_r, PCA,  nb_steps=1000):
                                  mu= PCA['x1_fit']['mu'], loc=0,
                                  scale= PCA['x1_fit']['scale'])
     # Calculate mu values at each point on the circle
-    mu_R = _mu_fcn(Comp1_R, PCA['mu_param'][0], PCA['mu_param'][1])
+    mu_R = PCA['mu_linear_fit'].slope * Comp1_R + PCA['mu_linear_fit'].intercept
+#    mu_R = _mu_fcn(Comp1_R, PCA['mu_param'][0], PCA['mu_param'][1])
     # Calculate sigma values at each point on the circle
     sigma_R = _sigma_fcn(PCA['sigma_param'], Comp1_R)
     # Use calculated mu and sigma values to calculate C2 along the contour
