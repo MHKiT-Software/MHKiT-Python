@@ -3,7 +3,6 @@ from io import BytesIO
 import pandas as pd
 import numpy as np
 import requests
-import bs4
 import zlib
 
 
