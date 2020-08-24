@@ -1,3 +1,4 @@
+from collections import OrderedDict as _OrderedDict
 from io import BytesIO
 import pandas as pd
 import numpy as np
@@ -23,10 +24,10 @@ def read_file(file_name, missing_values=['MM',9999,999,99]):
     
     Parameters
     ------------
-    file_name : string
+    file_name: string
         Name of NDBC wave buoy data file
     
-    missing_value : list of values
+    missing_value: list of values
         List of values that denote missing data    
     
     Returns
@@ -123,10 +124,12 @@ def available_data(parameter,
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+        
     buoy_number: string (optional)
-        Buoy Number.  5-character alpha-numeric station identifier        
-	proxy: dict
-	    Proxy dict passed to python requests 
+        Buoy Number.  5-character alpha-numeric station identifier   
+        
+    proxy: dict
+	    Proxy dict passed to python requests, 
         (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
         
     Returns
@@ -182,7 +185,9 @@ def _parse_filenames(parameter, filenames):
     ----------
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+        
     filenames: Series
         List of compressed file names from NDBC
      
@@ -223,23 +228,28 @@ def request_data(parameter, filenames, proxy=None):
     Parameters
     ----------
     parameter: string
-        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        'swden'	:	'Raw Spectral Wave Current Year Historical Data'       
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+        
     filenames: DataFrame
 	    Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
-	proxy: dict
-	    Proxy dict passed to python requests 
+    
+    proxy: dict
+	    Proxy dict passed to python requests, 
         (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
+
         
     Returns
     -------
     ndbc_data: dict
         Dictionary of DataFrames indexed by buoy and year.
     '''
-    assert isinstance(filenames, pd.Series), 'filenames must be of type pd.Series' 
+    assert isinstance(filenames, (pd.Series,pd.DataFrame)), 'filenames must be of type pd.Series' 
     assert isinstance(parameter, str), 'parameter must be a string'
     assert isinstance(proxy, (dict, type(None))), 'If specified proxy must be a dict'    
     supported =_supported_params(parameter)
+    if isinstance(filenames,pd.DataFrame):
+        filenames = filenames.squeeze()
 
     buoy_data = _parse_filenames(parameter, filenames)
     parameter_url = f'https://www.ndbc.noaa.gov/data/historical/{parameter}'
@@ -268,7 +278,8 @@ def request_data(parameter, filenames, proxy=None):
     return ndbc_data
 
 def dates_to_datetime(parameter, data, 
-                      return_date_cols=False):
+                      return_date_cols=False, 
+                      return_as_dataframe=False):
     '''
     Takes a DataFrame and converts the NDBC date columns 
 	(e.g. "#YY  MM DD hh mm") to datetime. Returns a DataFrame with the 
@@ -279,18 +290,22 @@ def dates_to_datetime(parameter, data,
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+        
     data: DataFrame
         Dataframe with headers (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
+        
     return_date_col: Bool (optional)
         Default False. When true will return list of NDBC date columns
-            
+         
+    return_as_dataFrame: bool
+        Results returned as a DataFrame (useful for MHKiT-MATLAB)         
         
     Returns
     -------
     date: Series
         Series with NDBC dates dropped and new ['date']
         column in DateTime format
-    ndbc_date_cols: list
+    ndbc_date_cols: list (optional)
         List of the DataFrame columns headers for dates as provided by 
         NDBC
     '''
@@ -335,11 +350,15 @@ def dates_to_datetime(parameter, data,
     df = _date_string_to_datetime(df, ndbc_date_cols, year_fmt)        
     date = df['date']    
     if row_0_is_units:
-        date = pd.concat([pd.Series([np.nan]),date])    
+        date = pd.concat([pd.Series([np.nan]),date])               
     del df
     
+    if return_as_dataframe:
+        date = pd.DataFrame(date)    
     if return_date_cols:
-        return date, ndbc_date_cols
+        return date, ndbc_date_cols        
+    
+>>>>>>> f83e3e41e147bf55517be49beecffa93be3ad38e
     return date
 
     
@@ -353,9 +372,11 @@ def _date_string_to_datetime(df, columns, year_fmt):
     ----------
     df: DataFrame
         Dataframe with columns (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
+        
     columns: list 
         list of strings for the columns to consider   
         (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
+        
     year_fmt: str
         Specifies if year is 2 digit or 4 digit for datetime 
         interpretation
@@ -383,25 +404,45 @@ def _date_string_to_datetime(df, columns, year_fmt):
 
 def parameter_units(parameter=''):
     '''
-    Returns the NDBC units for the given parameter, based on 
-    https://www.ndbc.noaa.gov/measdes.shtml
+    Returns an ordered dictionary of NDBC parameters with unit values. 
+    If no parameter is passed then an ordered dictionary of all NDBC 
+    parameterz specified unites is returned. If a parameter is specified
+    then only the units associated with that parameter are returned. 
+    Note that many NDBC paramters report multiple measurements and in 
+    that case the returned dictionary will contain the NDBC measurement
+    name and associated unit for all the measurements associated with 
+    the specified parameter. Optional parameter values are given below.
+    All units are based on  https://www.ndbc.noaa.gov/measdes.shtml.
     
     Parameters
     ----------
-    parameter: string (optional)
+    parameter: string (optional)        
         'adcp':     'Acoustic Doppler Current Profiler Current Year Historical Data'
+        
         'cwind':    'Continuous Winds Current Year Historical Data'
+        
         'dart':     'Water Column Height (DART) Current Year Historical Data'
+        
         'derived2': 'Derived Met Values'
+        
         'ocean' :   'Oceanographic Current Year Historical Data'
-        'rain'	:	'Hourly Rain Current Year Historical Data'	,
-        'rain10':	'10-Minute Rain Current Year Historical Data'	,
-        'rain24':	'24-Hour Rain Current Year Historical Data'	,        
+        
+        'rain'	:	'Hourly Rain Current Year Historical Data'	
+        
+        'rain10':	'10-Minute Rain Current Year Historical Data'	
+        
+        'rain24':	'24-Hour Rain Current Year Historical Data'	
+        
         'realtime2':'Detailed Wave Summary (Realtime *.spec data files only)'
+        
         'srad':     'Solar Radiation Current Year Historical Data'
+        
         'stdmet':   ''Standard Meteorological Current Year Historical Data'
+        
         'supl':     'Supplemental Measurements Current Year Historical Data'
+        
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        
     Returns
     -------
     units: dict
@@ -556,6 +597,9 @@ def parameter_units(parameter=''):
                  'SPD01' : 'cm/s',
                  }
 
+        
+    units = _OrderedDict(sorted(units.items()))
+        
     return units
 
 
