@@ -3,7 +3,6 @@ from io import BytesIO
 import pandas as pd
 import numpy as np
 import requests
-import bs4
 import zlib
 
 
@@ -358,7 +357,6 @@ def dates_to_datetime(parameter, data,
     if return_date_cols:
         return date, ndbc_date_cols        
     
->>>>>>> f83e3e41e147bf55517be49beecffa93be3ad38e
     return date
 
     
