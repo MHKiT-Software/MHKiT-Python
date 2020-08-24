@@ -134,8 +134,8 @@ def read_wecSim(file_name):
     ######################################
     ## import wecSim wave class
     #         type: 'irregular'
-    #         time: [30001×1 double]
-    #    elevation: [30001×1 double]
+    #         time: [iterations x 1 double]
+    #    elevation: [iterations x 1 double]
     ######################################
     try:              
         wave = output['wave']
@@ -149,7 +149,10 @@ def read_wecSim(file_name):
         wave_output = pd.DataFrame(data = time,columns=['time'])   
         wave_output = wave_output.set_index('time') 
         wave_output['elevation'] = elevation
-  
+        
+        wave_type = wtype
+        wave_output.name = wave_type
+        
         # # Store wave type in DataFrame
         # wave_type = pd.DataFrame(data = [wtype],columns=['type'])
         # wave_output = pd.concat([wave_output,wave_type], axis=1)
@@ -163,17 +166,17 @@ def read_wecSim(file_name):
     ######################################
     ## import wecSim body class
     #                       name: 'float'
-    #                       time: [30001×1 double]
-    #                   position: [30001×6 double]
-    #                   velocity: [30001×6 double]
-    #               acceleration: [30001×6 double]
-    #                 forceTotal: [30001×6 double]
-    #            forceExcitation: [30001×6 double]
-    #      forceRadiationDamping: [30001×6 double]
-    #             forceAddedMass: [30001×6 double]
-    #             forceRestoring: [30001×6 double]
-    #    forceMorrisonAndViscous: [30001×6 double]
-    #         forceLinearDamping: [30001×6 double]
+    #                       time: [iterations x 1 double]
+    #                   position: [iterations x 6 double]
+    #                   velocity: [iterations x 6 double]
+    #               acceleration: [iterations x 6 double]
+    #                 forceTotal: [iterations x 6 double]
+    #            forceExcitation: [iterations x 6 double]
+    #      forceRadiationDamping: [iterations x 6 double]
+    #             forceAddedMass: [iterations x 6 double]
+    #             forceRestoring: [iterations x 6 double]
+    #    forceMorrisonAndViscous: [iterations x 6 double]
+    #         forceLinearDamping: [iterations x 6 double]
     ######################################    
     try:              
         bodies = output['bodies']
@@ -212,7 +215,8 @@ def read_wecSim(file_name):
         for body in range(num_bodies):
             for dof in range(6):
                 body_output['body'+str(body+1)+'_position_dof'+str(dof+1)] = position[body][:,dof]
-                body_output['body'+str(body+1)+'_velocity_dof'+str(dof+1)] = velocity[body][:,dof]
+                # body_output['body'+str(body+1)+'_position_dof'+str(dof+1)] = position[body][:,dof]
+                body_output[f'body{body+1}_velocity_dof{dof+1}'] = velocity[body][:,dof]
                 body_output['body'+str(body+1)+'_acceleration_dof'+str(dof+1)] = acceleration[body][:,dof]            
                 body_output['body'+str(body+1)+'_forceTotal_dof'+str(dof+1)] = forceTotal[body][:,dof]
                 body_output['body'+str(body+1)+'_forceExcitation_dof'+str(dof+1)] = forceExcitation[body][:,dof]
@@ -231,15 +235,15 @@ def read_wecSim(file_name):
     ######################################
     ## import wecSim pto class
     #                      name: 'PTO1'
-    #                      time: [30001×1 double]
-    #                  position: [30001×6 double]
-    #                  velocity: [30001×6 double]
-    #              acceleration: [30001×6 double]
-    #                forceTotal: [30001×6 double]
-    #            forceActuation: [30001×6 double]
-    #           forceConstraint: [30001×6 double]
-    #    forceInternalMechanics: [30001×6 double]
-    #    powerInternalMechanics: [30001×6 double]
+    #                      time: [iterations x 1 double]
+    #                  position: [iterations x 6 double]
+    #                  velocity: [iterations x 6 double]
+    #              acceleration: [iterations x 6 double]
+    #                forceTotal: [iterations x 6 double]
+    #            forceActuation: [iterations x 6 double]
+    #           forceConstraint: [iterations x 6 double]
+    #    forceInternalMechanics: [iterations x 6 double]
+    #    powerInternalMechanics: [iterations x 6 double]
     ######################################
     try:      
         ptos = output['ptos']
@@ -293,11 +297,11 @@ def read_wecSim(file_name):
     ## import wecSim constraint class
     #                       
     #            name: 'Constraint1'
-    #            time: [30001×1 double]
-    #        position: [30001×6 double]
-    #        velocity: [30001×6 double]
-    #    acceleration: [30001×6 double]
-    # forceConstraint: [30001×6 double]
+    #            time: [iterations x 1 double]
+    #        position: [iterations x 6 double]
+    #        velocity: [iterations x 6 double]
+    #    acceleration: [iterations x 6 double]
+    # forceConstraint: [iterations x 6 double]
     ######################################    
     try:      
         constraints = output['constraints']
@@ -338,10 +342,10 @@ def read_wecSim(file_name):
     ## import wecSim moopring class
     # 
     #         name: 'mooring'
-    #         time: [40001×1 double]
-    #     position: [40001×6 double]
-    #     velocity: [40001×6 double]
-    # forceMooring: [40001×6 double]
+    #         time: [iterations x 1 double]
+    #     position: [iterations x 6 double]
+    #     velocity: [iterations x 6 double]
+    # forceMooring: [iterations x 6 double]
     ######################################
     try:
       moorings = output['mooring']
@@ -390,7 +394,7 @@ def read_wecSim(file_name):
     ######################################
     try:
       moorDyn = output['moorDyn']       
-      num_moorDyn_lines = len(moorDyn[0][0][0].dtype) - 1    # number of moorDyn lines
+      num_lines = len(moorDyn[0][0][0].dtype) - 1    # number of moorDyn lines
       
       Lines =  moorDyn[0][0]['Lines'][0][0][0]      
       signals = Lines.dtype.names
@@ -401,49 +405,24 @@ def read_wecSim(file_name):
       Lines = Lines.set_index('time')       
       for signal in range(1,num_signals):
           Lines[signals[signal]] = data[signal]        
+      Lines_output= {'Lines': Lines}
 
-          
-      Line1 =  moorDyn[0][0]['Line1'][0][0][0]
-      signals = Line1.dtype.names
-      num_signals = len(Line1.dtype.names)
-      data = Line1[0]        
-      time = data[0]
-      Line1 = pd.DataFrame(data = time,columns=['time'])   
-      Line1 = Line1.set_index('time')       
-      for signal in range(1,num_signals):
-          Line1[signals[signal]] = data[signal]   
-      
-
-
-#this isn't working        
+      Line_num_output = {}  
+      for line_num in range(1,num_lines+1):
+        tmp =  moorDyn[0][0][f'Line{line_num}'][0][0][0]
+        signals = tmp.dtype.names
+        num_signals = len(tmp.dtype.names)
+        data = tmp[0]
+        time = data[0]
+        tmp = pd.DataFrame(data = time,columns=['time'])   
+        tmp = tmp.set_index('time')       
+        for signal in range(1,num_signals):
+          tmp[signals[signal]] = data[signal]              
+        Line_num_output[f'Line{line_num}'] = tmp
         
-      # check = moorDyn[0][0][0]  
-      # check.dtype
-      # check.dtype.names[1]
+      moorDyn_output = Lines_output.copy()
+      moorDyn_output.update(Line_num_output)
       
-      # lines_output = []  
-      # for line_num in range(1,num_moorDyn_lines+1):
-      #     tmp =  moorDyn[0][0]['Line'+str(line_num)][0][0][0]
-      #     signals = tmp.dtype.names
-      #     num_signals = len(tmp.dtype.names)
-      #     data = tmp[0]
-      #     time = data[0]
-      #     tmp = pd.DataFrame(data = time,columns=['time'])   
-      #     tmp = tmp.set_index('time')       
-      #     for signal in range(1,num_signals):
-      #         tmp[signals[signal]] = data[signal]            
-      #     lines_output['line'+str(line_num)] = tmp
-            
-            
-      
-
-
-      
-      ## This needs work...
-      moorDyn_output = {'Lines': Lines,
-                        # 'Line1': Line1,
-                        'data': lines_output,
-                        }
     except:
       print("moorDyn class not used") 
       moorDyn_output = []
