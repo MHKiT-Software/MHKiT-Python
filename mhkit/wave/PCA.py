@@ -8,6 +8,12 @@ def principal_component_analysis(x1, x2, size_bin=250):
     Performs a principal component analysis given x1, and x2. Contours 
     generated will use principal component analysis (PCA) with improved 
     distribution fitting (Eckert et. al 2015) and the I-FORM.
+    
+    Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
+    Neary, V. S. (2016). Application of principal component 
+    analysis (PCA) and improved joint probability distributions to 
+    the inverse first-order reliability method (I-FORM) for predicting 
+    extreme sea states. Ocean Engineering, 112, 307-319.
 
     Parameters
     ----------
@@ -102,132 +108,34 @@ def principal_component_analysis(x1, x2, size_bin=250):
         x2_bins_fit = np.append(x2_bins_fit,x2_bin_fit.reshape(2,1), axis=1)
     x2_bins_fit = np.delete(x2_bins_fit,0,axis=1)
 
-    mu_linear_fit = stats.linregress(x1_means.T, x2_bins_fit[0, :])    
-
-
+    mu_fit = stats.linregress(x1_means.T, x2_bins_fit[0, :])    
     
-    sigma_param = _sigma_fits(x1_means, x2_bins_fit[1, :])
+    Comp1_mean =x1_means
+    sigma_vals =x2_bins_fit[1, :]
+    # Sigma fit Constraints      
+    c_1 = lambda sig_p: (sig_p[2]); # Y intercept >= 0
+    # the minimum of the sigma fitting function must be >= to 0
+    c_2 = lambda sig_p: (sig_p[2] - (sig_p[1]**2) / (4 * sig_p[0]))
     
+    cons = ({'type': 'ineq', 'fun': c_1},
+            {'type': 'ineq', 'fun': c_2})    
+    
+    sigma_fit = optim.minimize(_objfun, x0=0.1*np.ones(3), 
+                               args=(Comp1_mean, sigma_vals),
+                               method='SLSQP',constraints=cons) 
+    
+  
     PCA = {
            'principal_axes': principal_axes, 
            'shift'         : shift, 
            'x1_fit'        : x1_fit, 
-           'mu_linear_fit' : mu_linear_fit, 
-           'sigma_param'   : sigma_param 
+           'mu_fit'        : mu_fit, 
+           'sigma_fit'     : sigma_fit 
            }
     
     return PCA
 
 
-def _sigma_fits( Comp1_mean, sigma_vals):
-    '''
-    Sigma parameter fitting function using penalty optimizstatsation.
-    
-    Parameters
-    ----------
-    Comp1_mean: np.array
-                Mean value of Component 1 for each bin of Component 2.
-    sigma_vals: np.array
-                Value of Component 2 sigma for each bin derived from normal
-                distribution fit.
-                
-    Returns
-    -------
-    sig_final: np.array
-               Final sigma parameter values after constrained optimization.
-    '''
-    sig_0 = np.array((0.1, 0.1, 0.1))  # Set initial guess
-    rho = 1.0  # Set initial penalty value
-    # Set tolerance, very small values (i.e.,smaller than 10^-5) may cause
-    # instabilities
-    epsilon = 10**-5
-    # Set inital beta values using beta function
-    Beta1, Beta2 = _betafcn(sig_0, rho)
-    # Initial search for minimum value using initial guess
-    sig_1 = optim.fmin(func=_objfun_penalty, x0=sig_0,
-                       args=(Comp1_mean, sigma_vals, Beta1, Beta2), disp=False)
-    # While either the difference between iterations or the difference in
-    # objective function evaluation is greater than the tolerance, continue
-    # iterating
-    while (np.amin(abs(sig_1 - sig_0)) > epsilon and
-           abs(_objfun(sig_1, Comp1_mean, sigma_vals) -
-               _objfun(sig_0, Comp1_mean, sigma_vals)) > epsilon):
-        sig_0 = sig_1
-        # Calculate penalties for this iteration
-        Beta1, Beta2 = _betafcn(sig_0, rho)
-        # Find a new minimum
-        sig_1 = optim.fmin(func=_objfun_penalty, x0=sig_0,
-                           args=(Comp1_mean, sigma_vals, Beta1, Beta2), disp=False)
-        rho = 10 * rho  # Increase penalization
-    sig_final = sig_1
-    return sig_final
-
-
-def _betafcn(sig_p, rho):
-    '''
-    Penalty calculation for sigma parameter fitting function to impose
-    positive value constraint.
-    Parameters
-    ----------
-    sig_p: np.array
-           Array of sigma fitting function parameters.
-    rho: float
-         Penalty function variable that drives the solution towards
-         required constraint.
-    Returns
-    -------
-    Beta1: float
-           Penalty function variable that applies the constraint requiring
-           the y-intercept of the sigma fitting function to be greater than
-           or equal to 0.
-    Beta2: float
-           Penalty function variable that applies the constraint requiring
-           the minimum of the sigma fitting function to be greater than or
-           equal to 0.
-    '''
-    if -sig_p[2] <= 0:
-        Beta1 = 0.0
-    else:
-        Beta1 = rho
-    if -sig_p[2] + (sig_p[1]**2) / (4 * sig_p[0]) <= 0:
-        Beta2 = 0.0
-    else:
-        Beta2 = rho
-    return Beta1, Beta2
-        
-        
-def _objfun_penalty(sig_p, x, y_actual, Beta1, Beta2):
-    '''
-    Penalty function used for sigma function constrained optimization.
-    Parameters
-    ----------
-    sig_p: np.array
-           Array of sigma fitting function parameters.
-    x: np.array
-       Array of values (Component 1 mean for each bin) at which to evaluate
-       the sigma fitting function.
-    y_actual: np.array
-              Array of actual sigma values for each bin to use in least
-              square error calculation with fitted values.
-    Beta1: float
-           Penalty function variable that applies the constraint requiring
-           the y-intercept of the sigma fitting function to be greater than
-           or equal to 0.
-    Beta2: float
-           Penalty function variable that applies the constraint requiring
-           the minimum of the sigma fitting function to be greater than or
-           equal to 0.
-    Returns
-    -------
-    penalty_fcn: float
-                 Objective function result with constraint penalties
-                 applied for out of bound solutions.
-    '''
-    penalty_fcn = (_objfun(sig_p, x, y_actual) + Beta1 * (-sig_p[2])**2 +
-                   Beta2 * (-sig_p[2] + (sig_p[1]**2) / (4 * sig_p[0]))**2)
-    return penalty_fcn        
-        
-        
 def _objfun(sig_p, x, y_actual):
     '''
     Sum of least square error objective function used in sigma
@@ -250,31 +158,10 @@ def _objfun(sig_p, x, y_actual):
                     Sum of least square error objective function for fitted
                     and actual values.
     '''
-    obj_fun_result = np.sum((_sigma_fcn(sig_p, x) - y_actual)**2)
-    return obj_fun_result  # Sum of least square error
-
-
-def _sigma_fcn(sig_p, x):
-    '''
-    Quadratic fitting formula for the standard deviation(sigma) of 
-    Component 2 normal distribution as a function of the Component 1 
-    mean for each bin. Used in the EA and getSamples functions.
-    
-    Parameters
-    ----------
-    sig_p: np.array
-           Array of sigma fitting function parameters.
-    x: np.array
-       Array of values (Component 1 mean for each bin) at which to evaluate
-       the sigma fitting function.
-       
-    Returns
-    -------
-    sigma_fit: np.array
-               Array of fitted sigma values.
-    '''
     sigma_fit = sig_p[0] * x**2 + sig_p[1] * x + sig_p[2]
-    return sigma_fit
+    obj_fun_result = np.sum((sigma_fit - y_actual)**2)
+    
+    return obj_fun_result  # Sum of least square error
 
 
 def getContours(time_ss, time_r, PCA,  nb_steps=1000):
@@ -283,6 +170,12 @@ def getContours(time_ss, time_r, PCA,  nb_steps=1000):
     This function calculates environmental contours of extreme sea states using
     principal component analysis and the inverse first-order reliability
     method.
+
+    Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
+    Neary, V. S. (2016). Application of principal component 
+    analysis (PCA) and improved joint probability distributions to 
+    the inverse first-order reliability method (I-FORM) for predicting 
+    extreme sea states. Ocean Engineering, 112, 307-319.
 
     Parameters
     ___________
@@ -322,14 +215,14 @@ def getContours(time_ss, time_r, PCA,  nb_steps=1000):
                                  mu= PCA['x1_fit']['mu'], loc=0,
                                  scale= PCA['x1_fit']['scale'])
     # Calculate mu values at each point on the circle
-    mu_R = PCA['mu_linear_fit'].slope * Comp1_R + PCA['mu_linear_fit'].intercept
-#    mu_R = _mu_fcn(Comp1_R, PCA['mu_param'][0], PCA['mu_param'][1])
+    mu_R = PCA['mu_fit'].slope * Comp1_R + PCA['mu_fit'].intercept
     # Calculate sigma values at each point on the circle
-    sigma_R = _sigma_fcn(PCA['sigma_param'], Comp1_R)
+    #sigma_R = _sigma_fcn(PCA['sigma_param'], Comp1_R)
+    sigma_val = PCA['sigma_fit'].x[0] * Comp1_R**2 + \
+                PCA['sigma_fit'].x[1] * Comp1_R + PCA['sigma_fit'].x[2]
     # Use calculated mu and sigma values to calculate C2 along the contour
     Comp2_R = stats.norm.ppf(stats.norm.cdf(U2, loc=0, scale=1),
-                             loc=mu_R, scale=sigma_R)
-
+                             loc=mu_R, scale=sigma_val)
     # Calculate x1 and T along the contour
     x1_Return, T_Return = _princomp_inv(Comp1_R, 
                                         Comp2_R, 
