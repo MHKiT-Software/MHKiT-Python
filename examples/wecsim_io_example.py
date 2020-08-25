@@ -26,11 +26,24 @@ plt.figure()
 wave.plot()
 wave.elevation.plot()
 
-ws_output['bodies'].head()
+ws_output['bodies'].keys()
 bodies = ws_output['bodies']
+# body1 = bodies['body1']
+# body2 = bodies['body2']
+
 plt.figure()
+bodies['body1'].name
+bodies['body1'].position_dof3.max()
+bodies['body1'].position_dof3.plot()
+# body1.position_dof3.max()
 # bodies['body1_position_dof3'].plot()
-bodies.body1_position_dof3.plot()
+# bodies.body1_position_dof3.plot()
+# body1.position_dof3.plot()
+
+plt.figure()
+bodies['body2'].name
+bodies['body2'].position_dof3.max()
+bodies['body2'].position_dof3.plot()
 
 ## Plot all body outputs
 # num_signals = bodies.columns.size

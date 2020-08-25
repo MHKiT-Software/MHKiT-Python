@@ -152,11 +152,7 @@ def read_wecSim(file_name):
         
         wave_type = wtype
         wave_output.name = wave_type
-        
-        # # Store wave type in DataFrame
-        # wave_type = pd.DataFrame(data = [wtype],columns=['type'])
-        # wave_output = pd.concat([wave_output,wave_type], axis=1)
-        # wave_output.index.name = 'time'
+
     
     except:
         print("wave class not used") 
@@ -210,23 +206,26 @@ def read_wecSim(file_name):
         ######################################
         ## create body_output DataFrame
         ######################################    
-        body_output = pd.DataFrame(data = time[0],columns=['time'])   
-        body_output = body_output.set_index('time') 
+        
+        body_num_output = {}          
         for body in range(num_bodies):
+            tmp2 = pd.DataFrame(data = time[0],columns=['time'])   
+            tmp2 = tmp2.set_index('time') 
             for dof in range(6):
-                body_output['body'+str(body+1)+'_position_dof'+str(dof+1)] = position[body][:,dof]
-                # body_output['body'+str(body+1)+'_position_dof'+str(dof+1)] = position[body][:,dof]
-                body_output[f'body{body+1}_velocity_dof{dof+1}'] = velocity[body][:,dof]
-                body_output['body'+str(body+1)+'_acceleration_dof'+str(dof+1)] = acceleration[body][:,dof]            
-                body_output['body'+str(body+1)+'_forceTotal_dof'+str(dof+1)] = forceTotal[body][:,dof]
-                body_output['body'+str(body+1)+'_forceExcitation_dof'+str(dof+1)] = forceExcitation[body][:,dof]
-                body_output['body'+str(body+1)+'_forceRadiationDamping_dof'+str(dof+1)] = forceRadiationDamping[body][:,dof]
-                body_output['body'+str(body+1)+'_forceAddedMass_dof'+str(dof+1)] = forceAddedMass[body][:,dof]
-                body_output['body'+str(body+1)+'_forceRestoring_dof'+str(dof+1)] = forceRestoring[body][:,dof]
-                body_output['body'+str(body+1)+'_forceMorrisonAndViscous_dof'+str(dof+1)] = forceMorrisonAndViscous[body][:,dof]
-                body_output['body'+str(body+1)+'_forceLinearDamping_dof'+str(dof+1)] = forceLinearDamping[body][:,dof]                
-        # What about num_bodies and name?
-
+                tmp2.name = name[body]
+                tmp2[f'position_dof{dof+1}'] = position[body][:,dof]
+                tmp2[f'velocity_dof{dof+1}'] = velocity[body][:,dof]
+                tmp2[f'acceleration_dof{dof+1}'] = acceleration[body][:,dof]            
+                tmp2[f'forceTotal_dof{dof+1}'] = forceTotal[body][:,dof]
+                tmp2[f'forceExcitation_dof{dof+1}'] = forceExcitation[body][:,dof]
+                tmp2[f'forceRadiationDamping_dof{dof+1}'] = forceRadiationDamping[body][:,dof]
+                tmp2[f'forceAddedMass_dof{dof+1}'] = forceAddedMass[body][:,dof]
+                tmp2[f'forceRestoring_dof{dof+1}'] = forceRestoring[body][:,dof]
+                tmp2[f'forceMorrisonAndViscous_dof{dof+1}'] = forceMorrisonAndViscous[body][:,dof]
+                tmp2[f'forceLinearDamping_dof{dof+1}'] = forceLinearDamping[body][:,dof]                            
+            body_num_output[f'body{body+1}'] = tmp2            
+        body_output = body_num_output.copy()   
+            
     except:
         print("body class not used") 
         body_output = []    
@@ -277,15 +276,15 @@ def read_wecSim(file_name):
         pto_output = pto_output.set_index('time') 
         for pto in range(num_ptos):
             for dof in range(6):
-                pto_output['pto'+str(pto+1)+'_position_dof'+str(dof+1)] = position[pto][:,dof]
-                pto_output['pto'+str(pto+1)+'_velocity_dof'+str(dof+1)] = velocity[pto][:,dof]
-                pto_output['pto'+str(pto+1)+'_acceleration_dof'+str(dof+1)] = acceleration[pto][:,dof]                 
-                pto_output['pto'+str(pto+1)+'_forceTotal_dof'+str(dof+1)] = forceTotal[pto][:,dof]            
-                pto_output['pto'+str(pto+1)+'_forceTotal_dof'+str(dof+1)] = forceTotal[pto][:,dof]     
-                pto_output['pto'+str(pto+1)+'_forceActuation_dof'+str(dof+1)] = forceActuation[pto][:,dof]                 
-                pto_output['pto'+str(pto+1)+'_forceConstraint_dof'+str(dof+1)] = forceConstraint[pto][:,dof]            
-                pto_output['pto'+str(pto+1)+'_forceInternalMechanics_dof'+str(dof+1)] = forceInternalMechanics[pto][:,dof]     
-                pto_output['pto'+str(pto+1)+'_powerInternalMechanics_dof'+str(dof+1)] = powerInternalMechanics[pto][:,dof]                 
+                pto_output[f'pto{pto+1}_position_dof{dof+1}'] = position[pto][:,dof]
+                pto_output[f'pto{pto+1}_velocity_dof{dof+1}'] = velocity[pto][:,dof]
+                pto_output[f'pto{pto+1}_acceleration_dof{dof+1}'] = acceleration[pto][:,dof]                 
+                pto_output[f'pto{pto+1}_forceTotal_dof{dof+1}'] = forceTotal[pto][:,dof]            
+                pto_output[f'pto{pto+1}_forceTotal_dof{dof+1}'] = forceTotal[pto][:,dof]     
+                pto_output[f'pto{pto+1}_forceActuation_dof{dof+1}'] = forceActuation[pto][:,dof]                 
+                pto_output[f'pto{pto+1}_forceConstraint_dof{dof+1}'] = forceConstraint[pto][:,dof]            
+                pto_output[f'pto{pto+1}_forceInternalMechanics_dof{dof+1}'] = forceInternalMechanics[pto][:,dof]     
+                pto_output[f'pto{pto+1}_powerInternalMechanics_dof{dof+1}'] = powerInternalMechanics[pto][:,dof]                 
         pto_output    
 
     except:
@@ -327,10 +326,10 @@ def read_wecSim(file_name):
         constraint_output = constraint_output.set_index('time') 
         for constraint in range(num_constraints):
             for dof in range(6):
-                constraint_output['constraint'+str(constraint+1)+'_position_dof'+str(dof+1)] = position[constraint][:,dof]
-                constraint_output['constraint'+str(constraint+1)+'_velocity_dof'+str(dof+1)] = velocity[constraint][:,dof]
-                constraint_output['constraint'+str(constraint+1)+'_acceleration_dof'+str(dof+1)] = acceleration[constraint][:,dof]            
-                constraint_output['constraint'+str(constraint+1)+'_forceConstraint_dof'+str(dof+1)] = forceConstraint[constraint][:,dof]
+                constraint_output[f'constraint{constraint+1}_position_dof{dof+1}'] = position[constraint][:,dof]
+                constraint_output[f'constraint{constraint+1}_velocity_dof{dof+1}'] = velocity[constraint][:,dof]
+                constraint_output[f'constraint{constraint+1}_acceleration_dof{dof+1}'] = acceleration[constraint][:,dof]            
+                constraint_output[f'constraint{constraint+1}_forceConstraint_dof{dof+1}'] = forceConstraint[constraint][:,dof]
         constraint_output
         
     except:
@@ -349,10 +348,7 @@ def read_wecSim(file_name):
     ######################################
     try:
       moorings = output['mooring']
-      num_moorings = len(moorings[0][0]['name'][0])   # number of mooring, not stored in DataFrame
-      
-      # constraints = output['constraints']
-      # num_constraints = len(constraints[0][0]['name'][0])   # number of constraints, not stored in DataFrame
+      num_moorings = len(moorings[0][0]['name'][0])   # number of mooring, not stored in DataFrame      
       name = []   # Not stored in DataFrame
       time = []
       position = []
@@ -371,9 +367,9 @@ def read_wecSim(file_name):
       mooring_output = mooring_output.set_index('time') 
       for mooring in range(num_moorings):
           for dof in range(6):
-              mooring_output['mooring'+str(mooring+1)+'_position_dof'+str(dof+1)] = position[mooring][:,dof]
-              mooring_output['mooring'+str(mooring+1)+'_velocity_dof'+str(dof+1)] = velocity[mooring][:,dof]
-              mooring_output['mooring'+str(mooring+1)+'_forceMooring_dof'+str(dof+1)] = forceMooring[mooring][:,dof]
+              mooring_output[f'mooring{mooring+1}_position_dof{dof+1}'] = position[mooring][:,dof]
+              mooring_output[f'mooring{mooring+1}_velocity_dof{dof+1}'] = velocity[mooring][:,dof]
+              mooring_output[f'mooring{mooring+1}_forceMooring_dof{dof+1}'] = forceMooring[mooring][:,dof]
       mooring_output
           
     except:
