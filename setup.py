@@ -23,7 +23,8 @@ DEPENDENCIES = ['pandas>=1.0.0',
                 'matplotlib', 
                 'requests', 
                 'pecos>=0.1.8',
-                'fatpack']
+                'fatpack',
+                'lxml']
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))
