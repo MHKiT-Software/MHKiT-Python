@@ -1,13 +1,22 @@
 from sklearn.decomposition import PCA as skPCA
+from sklearn.metrics import mean_squared_error
 import scipy.optimize as optim
 import scipy.stats as stats
 import numpy as np
 
 def principal_component_analysis(x1, x2, size_bin=250):
     '''
-    Performs a principal component analysis given x1, and x2. Contours 
+    Performs a modified principal component analysis (PCA) 
+    [Eckert et. al 2015] on two variables (x1, x2). This is donce 
+    by converting the the x1 and x2 data into the principal componet 
+    domain using the scikit-learn PCA method. For wave resource 
+    characterization (Hm0 and Te (or Tp))  the standard PCA method
+    is known to not remove all of the dependence between the 
+    two variables. To remove this dependence this PCA function
+    quantifies the relation between the two variables in the PCA space
+    by binning the data into bin sizes of "size_bin".  
     generated will use principal component analysis (PCA) with improved 
-    distribution fitting (Eckert et. al 2015) and the I-FORM.
+    distribution fitting  and the I-FORM.
     
     Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
     Neary, V. S. (2016). Application of principal component 
@@ -96,35 +105,45 @@ def principal_component_analysis(x1, x2, size_bin=250):
     x1_bins.append(x1_last_bin)
     x2_bins.append(x2_last_bin)
     
-    x2_bins_fit = np.zeros([2,1])  
-    x1_means = np.array([])   
+    x1_means = np.array([]) 
+    x2_means = np.array([]) 
+    x2_stds   = np.array([])     
+    
     for x1_bin, x2_bin in zip(x1_bins, x2_bins):                    
         x1_bin_mean = x1_bin.mean()
         x1_means = np.append(x1_means, x1_bin_mean)        
         
         # Calcualte normal distribution parameters for x2 in each bin
         x2_bin_sorted = np.sort(x2_bin)
-        x2_bin_fit = np.array(stats.norm.fit(x2_bin_sorted))   
-        x2_bins_fit = np.append(x2_bins_fit,x2_bin_fit.reshape(2,1), axis=1)
-    x2_bins_fit = np.delete(x2_bins_fit,0,axis=1)
+        x2_bin_mean = x2_bin_sorted.mean()
+        x2_bin_std  = x2_bin_sorted.std()
+        
+        x2_bin_mean = np.mean(x2_bin_sorted)
+        x2_means = np.append(x2_means, x2_bin_mean) 
+        
+        x2_bin_std  = np.std(x2_bin_sorted)
+        x2_stds = np.append(x2_stds, x2_bin_std) 
+    
+    mu_fit = stats.linregress(x1_means, x2_means)    
+    
+    # Constrained optimization of sigma
+    sigma_polynomial_order=2
+    sig_0 = 0.1 * np.ones(sigma_polynomial_order+1)
+    
+    def _objective_function(sig_p, x1_means, x2_sigs):
+        return mean_squared_error(np.polyval(sig_p, x1_means), x2_sigs)
+    
+    # Constraint Functions
+    y_intercept_gt_0 = lambda sig_p: (sig_p[2])
+    sig_polynomial_min_gt_0 = lambda sig_p: (sig_p[2] - (sig_p[1]**2) / \
+                                             (4 * sig_p[0]))    
+    constraints = ({'type': 'ineq', 'fun': y_intercept_gt_0},
+                   {'type': 'ineq', 'fun': sig_polynomial_min_gt_0})    
+    
+    sigma_fit = optim.minimize(_objective_function, x0=sig_0, 
+                               args=(x1_means, x2_stds),
+                               method='SLSQP',constraints=constraints)     
 
-    mu_fit = stats.linregress(x1_means.T, x2_bins_fit[0, :])    
-    
-    Comp1_mean =x1_means
-    sigma_vals =x2_bins_fit[1, :]
-    # Sigma fit Constraints      
-    c_1 = lambda sig_p: (sig_p[2]); # Y intercept >= 0
-    # the minimum of the sigma fitting function must be >= to 0
-    c_2 = lambda sig_p: (sig_p[2] - (sig_p[1]**2) / (4 * sig_p[0]))
-    
-    cons = ({'type': 'ineq', 'fun': c_1},
-            {'type': 'ineq', 'fun': c_2})    
-    
-    sigma_fit = optim.minimize(_objfun, x0=0.1*np.ones(3), 
-                               args=(Comp1_mean, sigma_vals),
-                               method='SLSQP',constraints=cons) 
-    
-  
     PCA = {
            'principal_axes': principal_axes, 
            'shift'         : shift, 
@@ -136,40 +155,13 @@ def principal_component_analysis(x1, x2, size_bin=250):
     return PCA
 
 
-def _objfun(sig_p, x, y_actual):
-    '''
-    Sum of least square error objective function used in sigma
-    minimization.
-    
-    Parameters
-    ----------
-    sig_p: np.array
-           Array of sigma fitting function parameters.
-    x: np.array
-       Array of values (Component 1 mean for each bin) at which to evaluate
-       the sigma fitting function.
-    y_actual: np.array
-              Array of actual sigma values for each bin to use in least
-              square error calculation with fitted values.
-              
-    Returns
-    -------
-    obj_fun_result: float
-                    Sum of least square error objective function for fitted
-                    and actual values.
-    '''
-    sigma_fit = sig_p[0] * x**2 + sig_p[1] * x + sig_p[2]
-    obj_fun_result = np.sum((sigma_fit - y_actual)**2)
-    
-    return obj_fun_result  # Sum of least square error
-
-
 def getContours(time_ss, time_r, PCA,  nb_steps=1000):
     '''
-    WDRT Extreme Sea State PCA Contour function
+    
     This function calculates environmental contours of extreme sea states using
     principal component analysis and the inverse first-order reliability
-    method.
+    method (IFORM) failure probability for the desired return period 
+    (time_R) given the duration of the measurements (time_ss)
 
     Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
     Neary, V. S. (2016). Application of principal component 
@@ -201,30 +193,39 @@ def getContours(time_ss, time_r, PCA,  nb_steps=1000):
 
     '''
 
-    # IFORM
-    # Failure probability for the desired return period (time_R) given the
-    # duration of the measurements (time_ss)
-    p_f = 1 / (365 * (24 / time_ss) * time_r)
-    beta = stats.norm.ppf((1 - p_f), loc=0, scale=1)  # Reliability
-    theta = np.linspace(0, 2 * np.pi, num = nb_steps)
-    # Vary U1, U2 along circle sqrt(U1^2+U2^2)=beta
-    U1 = beta * np.cos(theta)
-    U2 = beta * np.sin(theta)
+    
+    exceedance_probability = 1 / (365 * (24 / time_ss) * time_r)
+    iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
+                                             loc=0, scale=1)  
+    discretized_radians = np.linspace(0, 2 * np.pi, num = nb_steps)
+    
+    x_componenet_iso_prob = iso_probability_radius * \
+                            np.cos(discretized_radians)
+    y_componenet_iso_prob = iso_probability_radius * \
+                            np.sin(discretized_radians)
+    
+    
+    mu       = PCA['x1_fit']['mu']
+    mu_loc   = PCA['x1_fit']['loc']
+    mu_scale = PCA['x1_fit']['scale']
     # Calculate C1 values along the contour
-    Comp1_R = stats.invgauss.ppf(stats.norm.cdf(U1, loc=0, scale=1),
-                                 mu= PCA['x1_fit']['mu'], loc=0,
-                                 scale= PCA['x1_fit']['scale'])
+    x_quantile = stats.norm.cdf(x_componenet_iso_prob, loc=0, scale=1)
+    compoenent_1 = stats.invgauss.ppf(x_quantile, mu=mu , loc=mu_loc, 
+                                      scale=mu_scale )
+    mu_slope     = PCA['mu_fit'].slope
+    mu_intercept = PCA['mu_fit'].intercept    
     # Calculate mu values at each point on the circle
-    mu_R = PCA['mu_fit'].slope * Comp1_R + PCA['mu_fit'].intercept
+    mu_R = mu_slope * compoenent_1 + mu_intercept
     # Calculate sigma values at each point on the circle
-    #sigma_R = _sigma_fcn(PCA['sigma_param'], Comp1_R)
-    sigma_val = PCA['sigma_fit'].x[0] * Comp1_R**2 + \
-                PCA['sigma_fit'].x[1] * Comp1_R + PCA['sigma_fit'].x[2]
+    sigma_val = PCA['sigma_fit'].x[0] * compoenent_1**2 + \
+                PCA['sigma_fit'].x[1] * compoenent_1 + PCA['sigma_fit'].x[2]
+                
     # Use calculated mu and sigma values to calculate C2 along the contour
-    Comp2_R = stats.norm.ppf(stats.norm.cdf(U2, loc=0, scale=1),
+    Comp2_R = stats.norm.ppf(stats.norm.cdf(y_componenet_iso_prob, 
+                                            loc=0, scale=1),
                              loc=mu_R, scale=sigma_val)
     # Calculate x1 and T along the contour
-    x1_Return, T_Return = _princomp_inv(Comp1_R, 
+    x1_Return, T_Return = _princomp_inv(compoenent_1, 
                                         Comp2_R, 
                                         PCA['principal_axes'], 
                                         PCA['shift'])
