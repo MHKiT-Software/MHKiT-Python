@@ -56,16 +56,16 @@ bodies['body2'].position_dof3.plot()
 #         plt.xlabel('Time (s)')
 
 
-ws_output['ptos'].head()
 ptos=  ws_output['ptos']
+ptos['pto1'].head()
 # ptos.pto1_powerInternalMechanics_dof3.plot()
 plt.figure()
-(-1*ptos['pto1_powerInternalMechanics_dof3']).plot()
+(-1*ptos['pto1'].powerInternalMechanics_dof3).plot()
 
 ws_output['constraints'].head()
 constraints = ws_output['constraints']
 plt.figure()
-constraints['constraint1_forceConstraint_dof4'].plot()
+constraints['forceConstraint_dof4'].plot()
 
 ws_output['mooring'].head()
 mooring = ws_output['mooring']
