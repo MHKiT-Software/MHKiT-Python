@@ -171,45 +171,63 @@ def read_wecSim(file_name):
     #    forceMorrisonAndViscous: [iterations x 6 double]
     #         forceLinearDamping: [iterations x 6 double]
     ######################################    
-    bodies = output['bodies']
-    num_bodies = len(bodies[0][0]['name'][0])   # number of bodies, not stored in DataFrame
-    name = []   
-    time = []
-    position = []
-    velocity = []
-    acceleration = []
-    forceTotal = []
-    forceExcitation = []
-    forceRadiationDamping = []
-    forceAddedMass = []
-    forceRestoring = []
-    forceMorrisonAndViscous = []
-    forceLinearDamping = []
-    for body in range(num_bodies):
-        name.append(bodies[0][0]['name'][0][body][0])   
-        time.append(bodies[0][0]['time'][0][body])
-        position.append(bodies[0][0]['position'][0][body])
-        velocity.append(bodies[0][0]['velocity'][0][body])
-        acceleration.append(bodies[0][0]['acceleration'][0][body])
-        forceTotal.append(bodies[0][0]['forceTotal'][0][body])
-        forceExcitation.append(bodies[0][0]['forceExcitation'][0][body])
-        forceRadiationDamping.append(bodies[0][0]['forceRadiationDamping'][0][body])
-        forceAddedMass.append(bodies[0][0]['forceAddedMass'][0][body])
-        forceRestoring.append(bodies[0][0]['forceRestoring'][0][body])
-        forceMorrisonAndViscous.append(bodies[0][0]['forceMorrisonAndViscous'][0][body])
-        forceLinearDamping.append(bodies[0][0]['forceLinearDamping'][0][body])    
+    try:
+        bodies = output['bodies']
+        num_bodies = len(bodies[0][0]['name'][0])  
+        name = []   
+        time = []
+        position = []
+        velocity = []
+        acceleration = []
+        forceTotal = []
+        forceExcitation = []
+        forceRadiationDamping = []
+        forceAddedMass = []
+        forceRestoring = []
+        forceMorrisonAndViscous = []
+        forceLinearDamping = []
+        for body in range(num_bodies):
+            name.append(bodies[0][0]['name'][0][body][0])   
+            time.append(bodies[0][0]['time'][0][body])
+            position.append(bodies[0][0]['position'][0][body])
+            velocity.append(bodies[0][0]['velocity'][0][body])
+            acceleration.append(bodies[0][0]['acceleration'][0][body])
+            forceTotal.append(bodies[0][0]['forceTotal'][0][body])
+            forceExcitation.append(bodies[0][0]['forceExcitation'][0][body])
+            forceRadiationDamping.append(bodies[0][0]['forceRadiationDamping'][0][body])
+            forceAddedMass.append(bodies[0][0]['forceAddedMass'][0][body])
+            forceRestoring.append(bodies[0][0]['forceRestoring'][0][body])
+            forceMorrisonAndViscous.append(bodies[0][0]['forceMorrisonAndViscous'][0][body])
+            forceLinearDamping.append(bodies[0][0]['forceLinearDamping'][0][body])    
+    except:
+        num_bodies = 0         
         
     ######################################
     ## create body_output DataFrame
     ######################################            
-    #  if num_bodies == 1:   --> Kelley add this
-    if num_bodies >= 1:
+    if num_bodies == 1:
+        body_output = pd.DataFrame(data = time[0],columns=['time'])   
+        body_output = body_output.set_index('time') 
+        body_output.name = name
+        for body in range(num_bodies):
+            for dof in range(6):
+                body_output[f'position_dof{dof+1}'] = position[body][:,dof]
+                body_output[f'velocity_dof{dof+1}'] = velocity[body][:,dof]
+                body_output[f'acceleration_dof{dof+1}'] = acceleration[body][:,dof]            
+                body_output[f'forceTotal_dof{dof+1}'] = forceTotal[body][:,dof]
+                body_output[f'forceExcitation_dof{dof+1}'] = forceExcitation[body][:,dof]
+                body_output[f'forceRadiationDamping_dof{dof+1}'] = forceRadiationDamping[body][:,dof]
+                body_output[f'forceAddedMass_dof{dof+1}'] = forceAddedMass[body][:,dof]
+                body_output[f'forceRestoring_dof{dof+1}'] = forceRestoring[body][:,dof]
+                body_output[f'forceMorrisonAndViscous_dof{dof+1}'] = forceMorrisonAndViscous[body][:,dof]
+                body_output[f'forceLinearDamping_dof{dof+1}'] = forceLinearDamping[body][:,dof]              
+    elif num_bodies > 1:
         body_num_output = {}          
         for body in range(num_bodies):
             tmp2 = pd.DataFrame(data = time[0],columns=['time'])   
             tmp2 = tmp2.set_index('time') 
-            for dof in range(6):
-                tmp2.name = name[body]
+            tmp2.name = name[body]
+            for dof in range(6):                
                 tmp2[f'position_dof{dof+1}'] = position[body][:,dof]
                 tmp2[f'velocity_dof{dof+1}'] = velocity[body][:,dof]
                 tmp2[f'acceleration_dof{dof+1}'] = acceleration[body][:,dof]            
@@ -240,41 +258,58 @@ def read_wecSim(file_name):
     #    forceInternalMechanics: [iterations x 6 double]
     #    powerInternalMechanics: [iterations x 6 double]
     ######################################
-    ptos = output['ptos']
-    num_ptos = len(ptos[0][0]['name'][0])   # number of ptos, not stored in DataFrame
-    name = []   
-    time = []
-    position = []
-    velocity = []
-    acceleration = []
-    forceTotal = []
-    forceActuation = []
-    forceConstraint = []
-    forceInternalMechanics = []
-    powerInternalMechanics= []
-    for pto in range(num_ptos):
-        name.append(ptos[0][0]['name'][0][pto][0])  
-        time.append(ptos[0][0]['time'][0][pto])
-        position.append(ptos[0][0]['position'][0][pto])
-        velocity.append(ptos[0][0]['velocity'][0][pto])
-        acceleration.append(ptos[0][0]['acceleration'][0][pto])
-        forceTotal.append(ptos[0][0]['forceTotal'][0][pto])        
-        forceActuation.append(ptos[0][0]['forceActuation'][0][pto])        
-        forceConstraint.append(ptos[0][0]['forceConstraint'][0][pto])        
-        forceInternalMechanics.append(ptos[0][0]['forceInternalMechanics'][0][pto])        
-        powerInternalMechanics.append(ptos[0][0]['powerInternalMechanics'][0][pto])        
+    try:
+        ptos = output['ptos']
+        num_ptos = len(ptos[0][0]['name'][0]) 
+        name = []   
+        time = []
+        position = []
+        velocity = []
+        acceleration = []
+        forceTotal = []
+        forceActuation = []
+        forceConstraint = []
+        forceInternalMechanics = []
+        powerInternalMechanics= []
+        for pto in range(num_ptos):
+            name.append(ptos[0][0]['name'][0][pto][0])  
+            time.append(ptos[0][0]['time'][0][pto])
+            position.append(ptos[0][0]['position'][0][pto])
+            velocity.append(ptos[0][0]['velocity'][0][pto])
+            acceleration.append(ptos[0][0]['acceleration'][0][pto])
+            forceTotal.append(ptos[0][0]['forceTotal'][0][pto])        
+            forceActuation.append(ptos[0][0]['forceActuation'][0][pto])        
+            forceConstraint.append(ptos[0][0]['forceConstraint'][0][pto])        
+            forceInternalMechanics.append(ptos[0][0]['forceInternalMechanics'][0][pto])        
+            powerInternalMechanics.append(ptos[0][0]['powerInternalMechanics'][0][pto])        
+    except:
+        num_ptos = 0         
         
     ######################################
     ## create pto_output DataFrame
     ######################################      
-    # if num_ptos == 1:  --> Kelley add this
-    if num_ptos >= 1:
+    if num_ptos == 1:  
+        for pto in range(num_ptos):
+            pto_output = pd.DataFrame(data = time[0],columns=['time'])   
+            pto_output = pto_output.set_index('time') 
+            pto_output.name = name
+            for dof in range(6):                
+                pto_output[f'position_dof{dof+1}'] = position[pto][:,dof]
+                pto_output[f'velocity_dof{dof+1}'] = velocity[pto][:,dof]
+                pto_output[f'acceleration_dof{dof+1}'] = acceleration[pto][:,dof]                 
+                pto_output[f'forceTotal_dof{dof+1}'] = forceTotal[pto][:,dof]            
+                pto_output[f'forceTotal_dof{dof+1}'] = forceTotal[pto][:,dof]     
+                pto_output[f'forceActuation_dof{dof+1}'] = forceActuation[pto][:,dof]                 
+                pto_output[f'forceConstraint_dof{dof+1}'] = forceConstraint[pto][:,dof]            
+                pto_output[f'forceInternalMechanics_dof{dof+1}'] = forceInternalMechanics[pto][:,dof]     
+                pto_output[f'powerInternalMechanics_dof{dof+1}'] = powerInternalMechanics[pto][:,dof]   
+    elif num_ptos > 1:
         pto_num_output = {}     
         for pto in range(num_ptos):
             tmp3 = pd.DataFrame(data = time[0],columns=['time'])   
             tmp3 = tmp3.set_index('time') 
-            for dof in range(6):
-                tmp3.name = name[pto]
+            tmp3.name = name[pto]
+            for dof in range(6):                
                 tmp3[f'position_dof{dof+1}'] = position[pto][:,dof]
                 tmp3[f'velocity_dof{dof+1}'] = velocity[pto][:,dof]
                 tmp3[f'acceleration_dof{dof+1}'] = acceleration[pto][:,dof]                 
@@ -301,42 +336,46 @@ def read_wecSim(file_name):
     #    acceleration: [iterations x 6 double]
     # forceConstraint: [iterations x 6 double]
     ######################################    
-    constraints = output['constraints']
-    num_constraints = len(constraints[0][0]['name'][0])   # number of constraints, not stored in DataFrame
-    name = []   # Not stored in DataFrame
-    time = []
-    position = []
-    velocity = []
-    acceleration = []
-    forceConstraint = []
-    for constraint in range(num_constraints):
-        name.append(constraints[0][0]['name'][0][constraint][0])   
-        time.append(constraints[0][0]['time'][0][constraint])
-        position.append(constraints[0][0]['position'][0][constraint])
-        velocity.append(constraints[0][0]['velocity'][0][constraint])
-        acceleration.append(constraints[0][0]['acceleration'][0][constraint])
-        forceConstraint.append(constraints[0][0]['forceConstraint'][0][constraint])    
-    
+    try:
+        constraints = output['constraints']
+        num_constraints = len(constraints[0][0]['name'][0])   # number of constraints, not stored in DataFrame
+        name = []   
+        time = []
+        position = []
+        velocity = []
+        acceleration = []
+        forceConstraint = []
+        for constraint in range(num_constraints):
+            name.append(constraints[0][0]['name'][0][constraint][0])   
+            time.append(constraints[0][0]['time'][0][constraint])
+            position.append(constraints[0][0]['position'][0][constraint])
+            velocity.append(constraints[0][0]['velocity'][0][constraint])
+            acceleration.append(constraints[0][0]['acceleration'][0][constraint])
+            forceConstraint.append(constraints[0][0]['forceConstraint'][0][constraint])        
+    except:
+        num_constraints = 0 
+        
     ######################################
     ## create constraint_output DataFrame
     ######################################    
     if num_constraints == 1:
         constraint_output = pd.DataFrame(data = time[0],columns=['time'])   
         constraint_output = constraint_output.set_index('time') 
-        for constraint in range(num_constraints):
+        constraint_output.name = name
+        for constraint in range(num_constraints):            
             for dof in range(6):
                 constraint_output[f'position_dof{dof+1}'] = position[constraint][:,dof]
                 constraint_output[f'velocity_dof{dof+1}'] = velocity[constraint][:,dof]
                 constraint_output[f'acceleration_dof{dof+1}'] = acceleration[constraint][:,dof]            
                 constraint_output[f'forceConstraint_dof{dof+1}'] = forceConstraint[constraint][:,dof]
         constraint_output
-    elif num_constraints >= 1:
+    elif num_constraints > 1:
         constraint_num_output = {}
         for constraint in range(num_constraints):
             tmp4 = pd.DataFrame(data = time[0],columns=['time'])   
             tmp4 = tmp4.set_index('time') 
-            for dof in range(6):
-                tmp4.name = name[constraint]
+            tmp4.name = name[constraint]
+            for dof in range(6):                
                 tmp4[f'position_dof{dof+1}'] = position[constraint][:,dof]
                 tmp4[f'velocity_dof{dof+1}'] = velocity[constraint][:,dof]
                 tmp4[f'acceleration_dof{dof+1}'] = acceleration[constraint][:,dof]            
@@ -357,46 +396,51 @@ def read_wecSim(file_name):
     #     velocity: [iterations x 6 double]
     # forceMooring: [iterations x 6 double]
     ######################################
-    moorings = output['mooring']
-    num_moorings = len(moorings[0][0]['name'][0])   # number of mooring, not stored in DataFrame      
-    name = []   # Not stored in DataFrame
-    time = []
-    position = []
-    velocity = []
-    forceMooring = []
-    for mooring in range(num_moorings):
-        name.append(moorings[0][0]['name'][0][mooring][0])   
-        time.append(moorings[0][0]['time'][0][mooring])
-        position.append(moorings[0][0]['position'][0][mooring])
-        velocity.append(moorings[0][0]['velocity'][0][mooring])
-        forceMooring.append(moorings[0][0]['forceMooring'][0][mooring])    
+    try:
+        moorings = output['mooring']
+        num_moorings = len(moorings[0][0]['name'][0])   
+        name = []   # Not stored in DataFrame
+        time = []
+        position = []
+        velocity = []
+        forceMooring = []
+        for mooring in range(num_moorings):
+            name.append(moorings[0][0]['name'][0][mooring][0])   
+            time.append(moorings[0][0]['time'][0][mooring])
+            position.append(moorings[0][0]['position'][0][mooring])
+            velocity.append(moorings[0][0]['velocity'][0][mooring])
+            forceMooring.append(moorings[0][0]['forceMooring'][0][mooring])    
+    except:
+        num_moorings = 0 
+
     ######################################
     ## create mooring_output DataFrame
     ######################################    
     if num_moorings == 1:
-              mooring_output = pd.DataFrame(data = time[0],columns=['time'])   
-              mooring_output = mooring_output.set_index('time') 
-              for mooring in range(num_moorings):
-                  for dof in range(6):
-                      mooring_output[f'position_dof{dof+1}'] = position[mooring][:,dof]
-                      mooring_output[f'velocity_dof{dof+1}'] = velocity[mooring][:,dof]
-                      mooring_output[f'forceMooring_dof{dof+1}'] = forceMooring[mooring][:,dof]
-              mooring_output
-    elif num_moorings >= 1:   
-            mooring_num_output = {}
-            for mooring in range(num_moorings):
-                tmp5 = pd.DataFrame(data = time[0],columns=['time'])   
-                tmp5 = tmp5.set_index('time') 
-                for dof in range(6):
-                    tmp5.name = name[mooring]
-                    tmp5[f'position_dof{dof+1}'] = position[mooring][:,dof]
-                    tmp5[f'velocity_dof{dof+1}'] = velocity[mooring][:,dof]
-                    tmp5[f'forceMooring_dof{dof+1}'] = forceMooring[mooring][:,dof]
-                mooring_num_output[f'mooring{mooring+1}'] = tmp5   
-            mooring_output = mooring_num_output.copy()          
+        mooring_output = pd.DataFrame(data = time[0],columns=['time'])   
+        mooring_output = mooring_output.set_index('time')         
+        mooring_output.name = name
+        for mooring in range(num_moorings):
+            for dof in range(6):
+                mooring_output[f'position_dof{dof+1}'] = position[mooring][:,dof]
+                mooring_output[f'velocity_dof{dof+1}'] = velocity[mooring][:,dof]
+                mooring_output[f'forceMooring_dof{dof+1}'] = forceMooring[mooring][:,dof]
+        mooring_output
+    elif num_moorings > 1:   
+        mooring_num_output = {}
+        for mooring in range(num_moorings):
+            tmp5 = pd.DataFrame(data = time[0],columns=['time'])   
+            tmp5 = tmp5.set_index('time') 
+            tmp5.name = name[mooring]
+            for dof in range(6):                
+                tmp5[f'position_dof{dof+1}'] = position[mooring][:,dof]
+                tmp5[f'velocity_dof{dof+1}'] = velocity[mooring][:,dof]
+                tmp5[f'forceMooring_dof{dof+1}'] = forceMooring[mooring][:,dof]
+            mooring_num_output[f'mooring{mooring+1}'] = tmp5   
+        mooring_output = mooring_num_output.copy()          
     else:
-          print("mooring class not used") 
-          mooring_output = []
+        print("mooring class not used") 
+        mooring_output = []
 
     
     ######################################
@@ -411,40 +455,39 @@ def read_wecSim(file_name):
     #    Line6: [1×1 struct]  
     ######################################
     try:
-      moorDyn = output['moorDyn']       
-      num_lines = len(moorDyn[0][0][0].dtype) - 1    # number of moorDyn lines
+        moorDyn = output['moorDyn']       
+        num_lines = len(moorDyn[0][0][0].dtype) - 1    # number of moorDyn lines
       
-      Lines =  moorDyn[0][0]['Lines'][0][0][0]      
-      signals = Lines.dtype.names
-      num_signals = len(Lines.dtype.names)
-      data = Lines[0]      
-      time = data[0]
-      Lines = pd.DataFrame(data = time,columns=['time'])   
-      Lines = Lines.set_index('time')       
-      for signal in range(1,num_signals):
-          Lines[signals[signal]] = data[signal]        
-      Lines_output= {'Lines': Lines}
-
-      Line_num_output = {}  
-      for line_num in range(1,num_lines+1):
-        tmp =  moorDyn[0][0][f'Line{line_num}'][0][0][0]
-        signals = tmp.dtype.names
-        num_signals = len(tmp.dtype.names)
-        data = tmp[0]
+        Lines =  moorDyn[0][0]['Lines'][0][0][0]      
+        signals = Lines.dtype.names
+        num_signals = len(Lines.dtype.names)
+        data = Lines[0]      
         time = data[0]
-        tmp = pd.DataFrame(data = time,columns=['time'])   
-        tmp = tmp.set_index('time')       
+        Lines = pd.DataFrame(data = time,columns=['time'])   
+        Lines = Lines.set_index('time')       
         for signal in range(1,num_signals):
-          tmp[signals[signal]] = data[signal]              
-        Line_num_output[f'Line{line_num}'] = tmp
+            Lines[signals[signal]] = data[signal]        
+        Lines_output= {'Lines': Lines}
+
+        Line_num_output = {}  
+        for line_num in range(1,num_lines+1):
+          tmp =  moorDyn[0][0][f'Line{line_num}'][0][0][0]
+          signals = tmp.dtype.names
+          num_signals = len(tmp.dtype.names)
+          data = tmp[0]
+          time = data[0]
+          tmp = pd.DataFrame(data = time,columns=['time'])   
+          tmp = tmp.set_index('time')       
+          for signal in range(1,num_signals):
+            tmp[signals[signal]] = data[signal]              
+          Line_num_output[f'Line{line_num}'] = tmp
         
-      moorDyn_output = Lines_output.copy()
-      moorDyn_output.update(Line_num_output)
+        moorDyn_output = Lines_output.copy()
+        moorDyn_output.update(Line_num_output)
       
     except:
-      print("moorDyn class not used") 
-      moorDyn_output = []
-
+        print("moorDyn class not used") 
+        moorDyn_output = []
 
 
     ######################################
@@ -465,11 +508,10 @@ def read_wecSim(file_name):
     try:
         ptosim = output['ptosim']  #TEMP FIX
         num_ptosim = len(ptosim[0][0]['name'][0])   # number of ptosim  
-        ## This needs work...
+        ## Need to add example with ptosim output
     except:
-      print("ptosim class not used") 
-      ptosim_output = []
-
+        print("ptosim class not used") 
+        ptosim_output = []
 
 
     ######################################
@@ -484,24 +526,3 @@ def read_wecSim(file_name):
                   'ptosim' : ptosim_output
                  }
     return ws_output 
-
-
-    ######################################
-    ## create wecSim output with multiple DataFrames - OPTION 2
-    ######################################
-    # return wave_output, body_output
-
-    ######################################
-    ## create wecSim output DataFrame - OPTION 3 with concat
-    ######################################
-    # ws_output = pd.concat([wave_output, body_output], axis=1, sort=False)
-    # return ws_output
-
-    ######################################
-    ## create wecSim output with DataFrame of DataFrames - OPTION 4 
-    ######################################
-    # ws_output = [wave_output, body_output]    
-    # return ws_output   
-
-
-

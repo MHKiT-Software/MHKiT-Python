@@ -1,23 +1,26 @@
 import mhkit
 import scipy.io as sio
 import matplotlib.pyplot as plt
-# import h5py  --> load MATLAB objec?
+# import h5py  --> load MATLAB object?
 
-### loading wec-sim output using io function### --> NOT WORKING RIGHT NOW
-# file_name = './data/wecsim_output.mat'
-# ws_output = mhkit.wave.io.load_wecSim_output(file_name)
+## loading wec-sim output using io function### --> NOT WORKING RIGHT NOW
+file_name = './data/wecsim_output.mat'
+ws_output = mhkit.wave.io.read_wecSim(file_name)
 
 # # # no Mooring
 # file_name = './data/RM3_matlabWorkspace_structure.mat'
-# ws_output = mhkit.wave.io.load_wecSim_output(file_name)
+# ws_output = mhkit.wave.io.read_wecSim(file_name)
 
 # # with Mooring
 # file_name = './data/RM3MooringMatrix_matlabWorkspace_structure.mat'
-# ws_output = mhkit.wave.io.load_wecSim_output(file_name)
+# ws_output = mhkit.wave.io.read_wecSim(file_name)
 
-# with moorDyn
-file_name = './data/RM3MooringMatrix_matlabWorkspace_structure.mat'
-ws_output = mhkit.wave.io.read_wecSim(file_name)
+# # with moorDyn
+# file_name = './data/RM3MooringMatrix_matlabWorkspace_structure.mat'
+# ws_output = mhkit.wave.io.read_wecSim(file_name)
+
+
+
 ws_output.keys()
 
 ws_output['wave'].head()
@@ -28,6 +31,7 @@ wave.elevation.plot()
 
 ws_output['bodies'].keys()
 bodies = ws_output['bodies']
+# ws_output['bodies']['body1'].keys()
 # body1 = bodies['body1']
 # body2 = bodies['body2']
 
@@ -45,36 +49,24 @@ bodies['body2'].name
 bodies['body2'].position_dof3.max()
 bodies['body2'].position_dof3.plot()
 
-## Plot all body outputs
-# num_signals = bodies.columns.size
-# for col in range(num_signals):
-#         plt.figure()
-#         signal = bodies.columns[col]
-#         # bodies[signal].plot()
-#         plt.plot(bodies[signal])
-#         plt.title(signal)
-#         plt.xlabel('Time (s)')
-
 
 ptos=  ws_output['ptos']
-ptos['pto1'].head()
-# ptos.pto1_powerInternalMechanics_dof3.plot()
+ptos.head()
 plt.figure()
-(-1*ptos['pto1'].powerInternalMechanics_dof3).plot()
+(-1*ptos.powerInternalMechanics_dof3).plot()
 
-ws_output['constraints'].head()
 constraints = ws_output['constraints']
+constraints.head()
 plt.figure()
 constraints['forceConstraint_dof4'].plot()
 
-ws_output['mooring'].head()
-mooring = ws_output['mooring']
+# ws_output['mooring'].head()
+# mooring = ws_output['mooring']
+# mooring.forceMooring_dof5.plot()
 
-
-# ws_output['moorDyn']['Lines'].head()
-moorDyn = ws_output['moorDyn']
-moorDyn['Lines'].plot()
-
+# # ws_output['moorDyn']['Lines'].head()
+# moorDyn = ws_output['moorDyn']
+# moorDyn['Lines'].plot()
 
 
 
@@ -94,4 +86,16 @@ Hs = mhkit.wave.resource.significant_wave_height(ws_spectrum)
 print(Tp)
 print(Hs)
 
+
+###  OLD
+
+## Plot all body outputs
+# num_signals = bodies.columns.size
+# for col in range(num_signals):
+#         plt.figure()
+#         signal = bodies.columns[col]
+#         # bodies[signal].plot()
+#         plt.plot(bodies[signal])
+#         plt.title(signal)
+#         plt.xlabel('Time (s)')
 
