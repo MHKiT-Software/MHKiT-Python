@@ -292,7 +292,7 @@ def read_wecSim(file_name):
         for pto in range(num_ptos):
             pto_output = pd.DataFrame(data = time[0],columns=['time'])   
             pto_output = pto_output.set_index('time') 
-            pto_output.name = name
+            pto_output.name = name[pto]
             for dof in range(6):                
                 pto_output[f'position_dof{dof+1}'] = position[pto][:,dof]
                 pto_output[f'velocity_dof{dof+1}'] = velocity[pto][:,dof]
@@ -359,16 +359,15 @@ def read_wecSim(file_name):
     ## create constraint_output DataFrame
     ######################################    
     if num_constraints == 1:
-        constraint_output = pd.DataFrame(data = time[0],columns=['time'])   
-        constraint_output = constraint_output.set_index('time') 
-        constraint_output.name = name
-        for constraint in range(num_constraints):            
+        for constraint in range(num_constraints):          
+            constraint_output = pd.DataFrame(data = time[0],columns=['time'])   
+            constraint_output = constraint_output.set_index('time') 
+            constraint_output.name = name[constraint]        
             for dof in range(6):
                 constraint_output[f'position_dof{dof+1}'] = position[constraint][:,dof]
                 constraint_output[f'velocity_dof{dof+1}'] = velocity[constraint][:,dof]
                 constraint_output[f'acceleration_dof{dof+1}'] = acceleration[constraint][:,dof]            
                 constraint_output[f'forceConstraint_dof{dof+1}'] = forceConstraint[constraint][:,dof]
-        constraint_output
     elif num_constraints > 1:
         constraint_num_output = {}
         for constraint in range(num_constraints):
