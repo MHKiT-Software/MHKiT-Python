@@ -555,6 +555,16 @@ class TestIOndbc(unittest.TestCase):
         units = wave.io.ndbc.parameter_units(parameter)
         self.assertEqual(units[parameter], '(m*m)/Hz')        
 
+class TestWECSim(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(self):
+        pass
+            
+    @classmethod
+    def tearDownClass(self):
+        pass
+
     ### WEC-Sim data, mo mooring
     def test_read_wecSim_no_mooring(self):
         ws_output = wave.io.read_wecSim(join(datadir, 'RM3_matlabWorkspace_structure.mat'))
