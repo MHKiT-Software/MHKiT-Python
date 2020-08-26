@@ -1,5 +1,5 @@
-from mhkit.wave.resource import significant_wave_height, energy_period
-from mhkit.wave.PCA import principal_component_analysis, getContours
+from mhkit.wave.resource import significant_wave_height, energy_period, \
+                                principal_component_analysis, getContours
 import matplotlib.pyplot as plt
 from mhkit.wave.io import ndbc
 from scipy import stats
