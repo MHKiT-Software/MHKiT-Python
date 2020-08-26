@@ -133,7 +133,7 @@ def read_wecSim(file_name):
 
     ######################################
     ## import wecSim wave class
-    #         type: 'irregular'
+    #         type: ''
     #         time: [iterations x 1 double]
     #    elevation: [iterations x 1 double]
     ######################################
@@ -158,7 +158,7 @@ def read_wecSim(file_name):
     
     ######################################
     ## import wecSim body class
-    #                       name: 'float'
+    #                       name: ''
     #                       time: [iterations x 1 double]
     #                   position: [iterations x 6 double]
     #                   velocity: [iterations x 6 double]
@@ -247,7 +247,7 @@ def read_wecSim(file_name):
 
     ######################################
     ## import wecSim pto class
-    #                      name: 'PTO1'
+    #                      name: ''
     #                      time: [iterations x 1 double]
     #                  position: [iterations x 6 double]
     #                  velocity: [iterations x 6 double]
@@ -329,7 +329,7 @@ def read_wecSim(file_name):
     ######################################
     ## import wecSim constraint class
     #                       
-    #            name: 'Constraint1'
+    #            name: ''
     #            time: [iterations x 1 double]
     #        position: [iterations x 6 double]
     #        velocity: [iterations x 6 double]
@@ -338,7 +338,7 @@ def read_wecSim(file_name):
     ######################################    
     try:
         constraints = output['constraints']
-        num_constraints = len(constraints[0][0]['name'][0])   # number of constraints, not stored in DataFrame
+        num_constraints = len(constraints[0][0]['name'][0])   
         name = []   
         time = []
         position = []
@@ -389,7 +389,7 @@ def read_wecSim(file_name):
     ######################################
     ## import wecSim moopring class
     # 
-    #         name: 'mooring'
+    #         name: ''
     #         time: [iterations x 1 double]
     #     position: [iterations x 6 double]
     #     velocity: [iterations x 6 double]
@@ -398,7 +398,7 @@ def read_wecSim(file_name):
     try:
         moorings = output['mooring']
         num_moorings = len(moorings[0][0]['name'][0])   
-        name = []   # Not stored in DataFrame
+        name = []   
         time = []
         position = []
         velocity = []
@@ -418,7 +418,7 @@ def read_wecSim(file_name):
     if num_moorings == 1:
         mooring_output = pd.DataFrame(data = time[0],columns=['time'])   
         mooring_output = mooring_output.set_index('time')         
-        mooring_output.name = name
+        mooring_output.name = name[mooring]
         for mooring in range(num_moorings):
             for dof in range(6):
                 mooring_output[f'position_dof{dof+1}'] = position[mooring][:,dof]
@@ -492,7 +492,7 @@ def read_wecSim(file_name):
     ######################################
     ## import wecSim ptosim class
     # 
-    #                 name: 'Non-Compressible Fluid Hydraulic'
+    #                 name: ''
     #             pistonCF: [1×1 struct]
     #            pistonNCF: [1×1 struct]
     #           checkValve: [1×1 struct]
@@ -505,16 +505,16 @@ def read_wecSim(file_name):
     #      motionMechanism: [1×1 struct]
     ######################################    
     try:
-        ptosim = output['ptosim']  #TEMP FIX
+        ptosim = output['ptosim']  
         num_ptosim = len(ptosim[0][0]['name'][0])   # number of ptosim  
-        ## Need to add example with ptosim output
+        print("ptosim class output not supported at this time") 
     except:
         print("ptosim class not used") 
         ptosim_output = []
 
 
     ######################################
-    ## create wecSim output DataFrame of Dicts - OPTION 1
+    ## create wecSim output DataFrame of Dict
     ######################################
     ws_output = {'wave' : wave_output, 
                  'bodies' : body_output,
