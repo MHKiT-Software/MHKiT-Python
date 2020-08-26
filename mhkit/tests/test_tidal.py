@@ -79,7 +79,7 @@ class TestResource(unittest.TestCase):
         
         plt.figure()
         tidal.graphics.plot_joint_probability_distribution(self.data.d, self.data.s, 1, 0.1)
-        plt.savefig(filename, format='png')
+        plt.savefig(f'{filename}')
         plt.close()
         
         self.assertTrue(isfile(filename))
@@ -91,7 +91,7 @@ class TestResource(unittest.TestCase):
         
         plt.figure()
         tidal.graphics.plot_rose(self.data.d, self.data.s, 1, 0.1)
-        plt.savefig(filename, format='png')
+        plt.savefig(f'{filename}')
         plt.close()
         
         self.assertTrue(isfile(filename))
