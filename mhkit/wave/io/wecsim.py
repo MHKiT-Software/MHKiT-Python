@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import scipy.io as sio
 
-def read_wecSim(file_name):
+def read_output(file_name):
     """
     Loads the wecSim response class once 'output' has been saved to a *.mat 
     structure. 

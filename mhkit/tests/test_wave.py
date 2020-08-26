@@ -15,6 +15,9 @@ from datetime import datetime
 testdir = dirname(abspath(__file__))
 datadir = join(testdir, 'data')
 
+basedir = testdir.strip('mhkit\\tests')
+exampledir = join(basedir, 'examples\\data')
+
 class TestResourceSpectrum(unittest.TestCase):
 
     @classmethod
@@ -567,7 +570,7 @@ class TestWECSim(unittest.TestCase):
 
     ### WEC-Sim data, mo mooring
     def test_read_wecSim_no_mooring(self):
-        ws_output = wave.io.read_wecSim(join(datadir, 'RM3_matlabWorkspace_structure.mat'))
+        ws_output = wave.io.wecsim.read_output(join(exampledir, 'RM3_matlabWorkspace_structure.mat'))
         self.assertEqual(ws_output['wave'].elevation.name,'elevation')
         self.assertEqual(ws_output['bodies']['body1'].name,'float')
         self.assertEqual(ws_output['ptos'].name,'PTO1')        
@@ -578,7 +581,7 @@ class TestWECSim(unittest.TestCase):
 
     ### WEC-Sim data, with mooring
     def test_read_wecSim_with_mooring(self):
-        ws_output = wave.io.read_wecSim(join(datadir, 'RM3MooringMatrix_matlabWorkspace_structure.mat'))
+        ws_output = wave.io.wecsim.read_output(join(exampledir, 'RM3MooringMatrix_matlabWorkspace_structure.mat'))
         self.assertEqual(ws_output['wave'].elevation.name,'elevation')
         self.assertEqual(ws_output['bodies']['body1'].name,'float')
         self.assertEqual(ws_output['ptos'].name,'PTO1')        
@@ -589,7 +592,7 @@ class TestWECSim(unittest.TestCase):
         
     ### WEC-Sim data, with moorDyn
     def test_read_wecSim_with_moorDyn(self):
-        ws_output = wave.io.read_wecSim(join(datadir, 'RM3MoorDyn_matlabWorkspace_structure.mat'))
+        ws_output = wave.io.wecsim.read_output(join(exampledir, 'RM3MoorDyn_matlabWorkspace_structure.mat'))
         self.assertEqual(ws_output['wave'].elevation.name,'elevation')
         self.assertEqual(ws_output['bodies']['body1'].name,'float')
         self.assertEqual(ws_output['ptos'].name,'PTO1')        

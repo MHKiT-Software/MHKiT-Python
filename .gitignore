@@ -2,6 +2,7 @@ $ cat .gitignore
 
 # File Types
 *.asv
+*.m
 *.mat
 *.pyc
 *.py~
