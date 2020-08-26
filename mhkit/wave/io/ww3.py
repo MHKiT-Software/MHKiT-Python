@@ -162,8 +162,8 @@ def request_data(start_date, hours, varnames, latBounds=None, lonBounds=None, sa
     
     Returns
     ---------
-    outUrl: string
-        URL for download
+    ofn: string
+        Saved data file name
     """
     assert isinstance(start_date, datetime.datetime), 'start_date must be of type datetime.datetime'
     assert isinstance(hours, (int, float)), 'hours must be of type float'
@@ -194,3 +194,5 @@ def request_data(start_date, hours, varnames, latBounds=None, lonBounds=None, sa
     outname = '{fn}.nc'.format(fn=start_date.strftime('%Y-%m-%d'))
     ofn = os.path.join(savepath, outname)
     _downloadFile(url, ofn)
+
+    return ofn
