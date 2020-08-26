@@ -8,14 +8,14 @@ close all; clc; clear all;
 % save(['./data/RM3_matlabWorkspace_structure.mat'],'output')
 
 %% with Mooring
-% load('./data/RM3MooringMatrix_matlabWorkspace.mat')
-% output = struct(output);
-% save(['./data/RM3MooringMatrix_matlabWorkspace_structure.mat'],'output')
-
-%% with moorDyn
-load('./data/RM3MoorDyn_matlabWorkspace.mat')
+load('./data/RM3MooringMatrix_matlabWorkspace.mat')
 output = struct(output);
 save(['./data/RM3MooringMatrix_matlabWorkspace_structure.mat'],'output')
+
+%% with moorDyn
+% load('./data/RM3MoorDyn_matlabWorkspace.mat')
+% output = struct(output);
+% save(['./data/RM3MoorDyn_matlabWorkspace_structure.mat'],'output')
 
 %% Plot WEC-Sim data
 

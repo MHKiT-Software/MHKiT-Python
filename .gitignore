@@ -29,3 +29,4 @@ $ cat .gitignore
 
 # Exemptions
 !**/examples/data/*.mat
+!**/tests/data/*.mat

@@ -4,27 +4,27 @@ import matplotlib.pyplot as plt
 
 ######################################
 # Example loading WEC-Sim Output
+# This example will be converted into a Jupyter Notebook
 ######################################
-    
 
-# ## loading wec-sim output 
-# file_name = './data/wecsim_output.mat'
-# ws_output = mhkit.wave.io.read_wecSim(file_name)
 
-# # # no Mooring
+######################################
+# no Mooring
+######################################
 # file_name = './data/RM3_matlabWorkspace_structure.mat'
 # ws_output = mhkit.wave.io.read_wecSim(file_name)
 
-# # with Mooring
+######################################
+# with Mooring
+######################################
 # file_name = './data/RM3MooringMatrix_matlabWorkspace_structure.mat'
 # ws_output = mhkit.wave.io.read_wecSim(file_name)
 
+######################################
 # with moorDyn
-file_name = './data/RM3MooringMatrix_matlabWorkspace_structure.mat'
+######################################
+file_name = './data/RM3MoorDyn_matlabWorkspace_structure.mat'
 ws_output = mhkit.wave.io.read_wecSim(file_name)
-
-
-
 ws_output.keys()
 
 ######################################
@@ -87,7 +87,7 @@ if len(ws_output['mooring']) > 0:
 ######################################
 # MoorDyn
 ######################################
-elif len(ws_output['mooring']) > 0:
+if len(ws_output['moorDyn']) > 0:
     ws_output['moorDyn']['Lines'].head()
     moorDyn = ws_output['moorDyn']
     moorDyn['Lines'].plot()

@@ -463,5 +463,38 @@ class TestIO(unittest.TestCase):
         self.assertEqual(data.shape, (743, 47))
         self.assertEqual(units, None)
 
+    ### WEC-Sim data, mo mooring
+    def test_read_wecSim_no_mooring(self):
+        ws_output = wave.io.read_wecSim(join(datadir, 'RM3_matlabWorkspace_structure.mat'))
+        self.assertEqual(ws_output['wave'].elevation.name,'elevation')
+        self.assertEqual(ws_output['bodies']['body1'].name,'float')
+        self.assertEqual(ws_output['ptos'].name,'PTO1')        
+        self.assertEqual(ws_output['constraints'].name,'Constraint1')
+        self.assertEqual(len(ws_output['mooring']),0)
+        self.assertEqual(len(ws_output['moorDyn']),0)
+        self.assertEqual(len(ws_output['ptosim']),0)
+
+    ### WEC-Sim data, with mooring
+    def test_read_wecSim_with_mooring(self):
+        ws_output = wave.io.read_wecSim(join(datadir, 'RM3MooringMatrix_matlabWorkspace_structure.mat'))
+        self.assertEqual(ws_output['wave'].elevation.name,'elevation')
+        self.assertEqual(ws_output['bodies']['body1'].name,'float')
+        self.assertEqual(ws_output['ptos'].name,'PTO1')        
+        self.assertEqual(ws_output['constraints'].name,'Constraint1')
+        self.assertEqual(len(ws_output['mooring']),40001)
+        self.assertEqual(len(ws_output['moorDyn']),0)
+        self.assertEqual(len(ws_output['ptosim']),0)
+        
+    ### WEC-Sim data, with moorDyn
+    def test_read_wecSim_with_moorDyn(self):
+        ws_output = wave.io.read_wecSim(join(datadir, 'RM3MoorDyn_matlabWorkspace_structure.mat'))
+        self.assertEqual(ws_output['wave'].elevation.name,'elevation')
+        self.assertEqual(ws_output['bodies']['body1'].name,'float')
+        self.assertEqual(ws_output['ptos'].name,'PTO1')        
+        self.assertEqual(ws_output['constraints'].name,'Constraint1')
+        self.assertEqual(len(ws_output['mooring']),40001)
+        self.assertEqual(len(ws_output['moorDyn']),7)
+        self.assertEqual(len(ws_output['ptosim']),0)
+
 if __name__ == '__main__':
     unittest.main() 
