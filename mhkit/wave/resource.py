@@ -691,13 +691,22 @@ def wave_number(f, h, rho=1025, g=9.80665):
 def principal_component_analysis(x1, x2, size_bin=250):
     '''
     Performs a modified principal component analysis (PCA) 
-    [Eckert et. al 2015] on two variables (x1, x2). This is donce 
-    by converting the the x1 and x2 data into the principal componet 
-    domain using the scikit-learn PCA method. For environmental
-    wave contours (variable Hm0 and Te (or Tp)) the standard PCA method  
-    does not remove all of the dependence between the two variables. 
-    To create more practical applications of smooth extrapolocation
-    the variable inter dependence in principal axes frame is quantified
+    [Eckert et. al 2015] on two variables (x1, x2). The additional
+    PCA is performed in 5 steps:
+    1) Transform x1 & x2 into the principal component domain and shift
+       the y-axis so that all values are positive and non-zero
+    2) Fit the x1 data in the transformed reference frame with an 
+       inverse Gaussian Distribution
+    3) Bin the transformed data into groups of size bin and fin the 
+       mean of x1, the mean of x2, and the stadard deviation of x3
+    4) Perform a first order linear regression to determine a continuous
+       function relating the mean of the x1 bins to mean of the x2 bins
+    5) Find a second order polynomial which best relates the means of 
+       x1 to the standard deviation of x2 using constrained optimization
+       
+    For environmental wave contours (variables Hm0 and Te (or Tp)) 
+    the standard PCA method does not remove all convairance. 
+    Yhe variable inter[dependence in principal axes frame is quantified
     using a linear fit for the mean and a constrained polynomial of
     order 2 fit for the standard deviation.
 
@@ -728,19 +737,17 @@ def principal_component_analysis(x1, x2, size_bin=250):
        'mu_param'      : fit to _mu_fcn
        'sigma_param'   : fit to _sig_fits            
     '''
-           
-    pca = skPCA(n_components=2)
-    
+    # Step 0: Perform Standard PCA          
     mean_location=0    
     x1_mean_centered = x1 - x1.mean(axis=0)
     x2_mean_centered = x2 - x2.mean(axis=0)
     n_samples_by_n_features = np.column_stack((x1_mean_centered, 
                                                x2_mean_centered))
+    pca = skPCA(n_components=2)                                               
     pca.fit(n_samples_by_n_features)
-    
-    # The directions of maximum variance in the data
     principal_axes = pca.components_
 
+    # STEP 1: Transform data into new reference frame
     # Apply correct/expected sign convention    
     principal_axes = abs(principal_axes)  
     principal_axes[1, 1] = -principal_axes[1, 1]  
@@ -755,7 +762,7 @@ def principal_component_analysis(x1, x2, size_bin=250):
     shift = abs(min(x2_components)) + 0.1
     x2_components = x2_components + shift 
 
-    # Fitting distribution of Component 1
+    # STEP 2: Fit Component 1 data using a Gaussian Distribution
     x1_sorted_index = x1_components.argsort()
     x1_sorted = x1_components[x1_sorted_index]
     x2_sorted = x2_components[x1_sorted_index]
@@ -765,6 +772,7 @@ def principal_component_analysis(x1, x2, size_bin=250):
                'loc'   : x1_fit_results[1],
                'scale' : x1_fit_results[2]}
 
+    # Step 3: Bin Data & find order 1 linear relation between x1 & x2 means
     N = len(x1)  
     minimum_4_bins = np.floor(N*0.25)
     if size_bin > minimum_4_bins:
@@ -792,21 +800,21 @@ def principal_component_analysis(x1, x2, size_bin=250):
     
     x1_means = np.array([]) 
     x2_means = np.array([]) 
-    x2_stds  = np.array([])     
+    x2_sigmas  = np.array([])     
     
     for x1_bin, x2_bin in zip(x1_bins, x2_bins):                    
         x1_means = np.append(x1_means, x1_bin.mean())                         
         x2_means = np.append(x2_means, x2_bin.mean())         
-        x2_stds  = np.append(x2_stds, x2_bin.std()) 
+        x2_sigmas  = np.append(x2_sigmas, x2_bin.std()) 
     
     mu_fit = stats.linregress(x1_means, x2_means)    
     
-    # Constrained optimization of sigma
+    # STEP 4: Find order 2 relation between x1_mean and x2 standard deviation
     sigma_polynomial_order=2
     sig_0 = 0.1 * np.ones(sigma_polynomial_order+1)
     
-    def _objective_function(sig_p, x1_means, x2_sigs):
-        return mean_squared_error(np.polyval(sig_p, x1_means), x2_sigs)
+    def _objective_function(sig_p, x1_means, x2_sigmas):
+        return mean_squared_error(np.polyval(sig_p, x1_means), x2_sigmas)
     
     # Constraint Functions
     y_intercept_gt_0 = lambda sig_p: (sig_p[2])
@@ -816,27 +824,25 @@ def principal_component_analysis(x1, x2, size_bin=250):
                    {'type': 'ineq', 'fun': sig_polynomial_min_gt_0})    
     
     sigma_fit = optim.minimize(_objective_function, x0=sig_0, 
-                               args=(x1_means, x2_stds),
+                               args=(x1_means, x2_sigmas),
                                method='SLSQP',constraints=constraints)     
 
-    PCA = {
-           'principal_axes': principal_axes, 
+    PCA = {'principal_axes': principal_axes, 
            'shift'         : shift, 
            'x1_fit'        : x1_fit, 
            'mu_fit'        : mu_fit, 
-           'sigma_fit'     : sigma_fit 
-           }
+           'sigma_fit'     : sigma_fit }
     
     return PCA
 
 
-def getContours(time_ss, time_r, PCA,  nb_steps=1000):
-    '''
-    
-    This function calculates environmental contours of extreme sea states using
-    principal component analysis and the inverse first-order reliability
-    method (IFORM) failure probability for the desired return period 
-    (time_R) given the duration of the measurements (time_ss)
+def environmental_contour(time_ss, time_r, PCA,  nb_steps=1000):
+    '''    
+    This function calculates environmental contours of extreme sea 
+    states using the inverse first-order reliability method (IFORM) 
+    and the MHKiT principal component analysis (PCA) dictionary failure 
+    probability for the desired return period (time_R) given the 
+    duration of the measurements (time_ss). 
 
     Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
     Neary, V. S. (2016). Application of principal component 
@@ -870,38 +876,37 @@ def getContours(time_ss, time_r, PCA,  nb_steps=1000):
     exceedance_probability = 1 / (365 * (24 / time_ss) * time_r)
     iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
                                              loc=0, scale=1)  
-    discretized_radians = np.linspace(0, 2 * np.pi, num = nb_steps)
+    discretized_radians = np.linspace(0, 2 * np.pi, nb_steps)
     
     x_component_iso_prob = iso_probability_radius * \
                             np.cos(discretized_radians)
     y_component_iso_prob = iso_probability_radius * \
                             np.sin(discretized_radians)
     
-    # Calculate component 1 values along the contour
-    mu       = PCA['x1_fit']['mu']
-    mu_loc   = PCA['x1_fit']['loc']
-    mu_scale = PCA['x1_fit']['scale']
-    
     x_quantile = stats.norm.cdf(x_component_iso_prob, loc=0, scale=1)
-    #Percent point function (inverse of cdf — percentiles).
-    component_1 = stats.invgauss.ppf(x_quantile, mu=mu , loc=mu_loc, 
-                                      scale=mu_scale )
+    y_quantile = stats.norm.cdf(y_component_iso_prob, loc=0, scale=1)
     
-    # Calculate mu values at each point on the circle    
+    # Use the inverse of cdf to calculate component 1 values           
+    component_1 = stats.invgauss.ppf(x_quantile, 
+                                     mu   =PCA['x1_fit']['mu'],
+                                     loc  =PCA['x1_fit']['loc'], 
+                                     scale=PCA['x1_fit']['scale'] )
+    
+    # Find Component 2 mu using first order linear regression
     mu_slope     = PCA['mu_fit'].slope
     mu_intercept = PCA['mu_fit'].intercept        
-    mu_R = mu_slope * component_1 + mu_intercept
+    component_2_mu = mu_slope * component_1 + mu_intercept
     
-    # Calculate sigma values at each point on the circle
+    # Find Componenet 2 sigma using second order polynomial fit
     sigma_polynomial_coeffcients =PCA['sigma_fit'].x
-    sigma_val = np.polyval(sigma_polynomial_coeffcients, component_1)
+    component_2_sigma = np.polyval(sigma_polynomial_coeffcients, component_1)
                 
     # Use calculated mu and sigma values to calculate C2 along the contour
-    component_2 = stats.norm.ppf(stats.norm.cdf(y_component_iso_prob, 
-                                            loc=0, scale=1),
-                             loc=mu_R, scale=sigma_val)
+    component_2 = stats.norm.ppf(y_quantile,
+                                 loc  =component_2_mu, 
+                                 scale=component_2_sigma)
                              
-    # Calculate x1 and x2 along the contour in the original reference frame
+    # Convert contours back to the original reference frame
     principal_axes = PCA['principal_axes']
     shift = PCA['shift']
     pa00 = principal_axes[0, 0]
@@ -912,7 +917,7 @@ def getContours(time_ss, time_r, PCA,  nb_steps=1000):
     x2_contour = (( pa01 * component_1 - pa00 * (component_2 - shift)) / \
                   (pa01**2 + pa00**2))                                    
     
-        
-    x1_contour_negatives_as_zero = np.maximum(0, x1_contour)  
+    # Assign 0 value to any negative x1 contour values
+    x1_contour = np.maximum(0, x1_contour)  
 
-    return x1_contour_negatives_as_zero, x2_contour
+    return x1_contour, x2_contour
