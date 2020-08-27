@@ -1,5 +1,6 @@
 from mhkit.wave.resource import significant_wave_height, energy_period, \
-                                principal_component_analysis, getContours
+                                principal_component_analysis,  \
+                                environmental_contour
 import matplotlib.pyplot as plt
 from mhkit.wave.io import ndbc
 from scipy import stats
@@ -88,7 +89,7 @@ PCA  = principal_component_analysis(df.Hm0.values, df.Te.values)
 # Declare required parameters
 time_SS = 1.  # Sea state duration (hrs)
 time_R = 100  # Return periods (yrs) of interest
-Hs_Return, T_Return = getContours(time_SS, time_R, PCA , nb_steps=1000)
+Hs_Return, T_Return = environmental_contour(time_SS, time_R, PCA , nb_steps=1000)
 
 
 
@@ -97,11 +98,12 @@ Hs_Return, T_Return = getContours(time_SS, time_R, PCA , nb_steps=1000)
 # Display a plot of the 100-year return contour, full sea state samples
 # and contour samples
 # """
+
 plt.figure()
+
 plt.plot(df.Te, df.Hm0, 'bo', alpha=0.1, label='NDBC data')
 plt.plot(T_Return, Hs_Return, 'k-', label='100 year contour')
-#plt.plot(self.T_SampleFSS, self.Hs_SampleFSS, 'ro', label='full sea state samples')
-#plt.plot(self.T_SampleCA, self.Hs_SampleCA, 'y^', label='contour approach samples')
+
 plt.legend(loc='lower right', fontsize='small')
 plt.grid(True)
 plt.xlabel('Energy period, $T_e$ [s]')
