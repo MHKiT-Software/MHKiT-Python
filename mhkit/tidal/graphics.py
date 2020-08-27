@@ -182,8 +182,8 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
     idx=z.argsort()
     # Convert to radians and order points by probability
     theta,r,z = directions.values[idx]*np.pi/180. , velocities.values[idx], z[idx]
-    # Create scatter plot colored by probability density
-    sx=ax.scatter(theta, r, c=z, s=5, edgecolor='')
+    # Create scatter plot colored by probability density    
+    sx=ax.scatter(theta, r, c=z, s=5, edgecolor=None)
     # Create colorbar
     plt.colorbar(sx, label='Joint Probability [%]')
     # Get the r-ticks (polar y-ticks)
