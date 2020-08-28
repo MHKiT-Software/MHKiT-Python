@@ -687,8 +687,115 @@ def wave_number(f, h, rho=1025, g=9.80665):
     
     return k
 
+def environmental_contour(x1, x2, time_ss, time_r, PCA=None, size_bin=250, nb_steps=1000, return_PCA=False):
+    '''    
+    This function calculates environmental contours of extreme sea 
+    states using the inverse first-order reliability method (IFORM) 
+    and the MHKiT principal component analysis (PCA) dictionary failure 
+    probability for the desired return period (time_R) given the 
+    duration of the measurements (time_ss). 
 
-def principal_component_analysis(x1, x2, size_bin=250):
+    Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
+    Neary, V. S. (2016). Application of principal component 
+    analysis (PCA) and improved joint probability distributions to 
+    the inverse first-order reliability method (I-FORM) for predicting 
+    extreme sea states. Ocean Engineering, 112, 307-319.
+
+    Parameters
+    ----------
+    x1: array like
+        Component 1 data
+    x2: array like
+        Component 2 data        	
+    time_ss : float
+        Sea state duration (hours) of measurements in input.
+    time_r : np.array
+        Desired return period (years) for calculation of environmental
+        contour, can be a scalar or a vector.
+    PCA: dict
+	    properties returned from _principal_component_analysis
+    size_bin : float
+        Data points in each bin 		
+    nb_steps : int
+        Discretization of the circle in the normal space used for
+        inverse FORM calculation.
+	return_PCA: boolean
+	    Default False, if True will retun the PCA dictionary from _principal_component_analysis
+
+    Returns
+    -------
+    x1_Return : np.array
+        Calculated x1 values along the contour boundary following
+        return to original input orientation.
+    T_Return : np.array
+       Calculated T values along the contour boundary following
+       return to original input orientation.
+    PCA: Dictionary (optional)
+	    principal component analysis dictionary 
+       Keys:
+       -----       
+       'principal_axes': sign corrected PCA axes 
+       'shift'         : The shift applied to x2 
+       'x1_fit'        : gaussian fit of x1 data
+       'mu_param'      : fit to _mu_fcn
+       'sigma_param'   : fit to _sig_fits 
+
+    '''
+	if PCA == None:
+        PCA = _principal_component_analysis(x1, x2, size_bin=250)
+	
+    exceedance_probability = 1 / (365 * (24 / time_ss) * time_r)
+    iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
+                                             loc=0, scale=1)  
+    discretized_radians = np.linspace(0, 2 * np.pi, nb_steps)
+    
+    x_component_iso_prob = iso_probability_radius * \
+                            np.cos(discretized_radians)
+    y_component_iso_prob = iso_probability_radius * \
+                            np.sin(discretized_radians)
+    
+    x_quantile = stats.norm.cdf(x_component_iso_prob, loc=0, scale=1)
+    y_quantile = stats.norm.cdf(y_component_iso_prob, loc=0, scale=1)
+    
+    # Use the inverse of cdf to calculate component 1 values           
+    component_1 = stats.invgauss.ppf(x_quantile, 
+                                     mu   =PCA['x1_fit']['mu'],
+                                     loc  =PCA['x1_fit']['loc'], 
+                                     scale=PCA['x1_fit']['scale'] )
+    
+    # Find Component 2 mu using first order linear regression
+    mu_slope     = PCA['mu_fit'].slope
+    mu_intercept = PCA['mu_fit'].intercept        
+    component_2_mu = mu_slope * component_1 + mu_intercept
+    
+    # Find Componenet 2 sigma using second order polynomial fit
+    sigma_polynomial_coeffcients =PCA['sigma_fit'].x
+    component_2_sigma = np.polyval(sigma_polynomial_coeffcients, component_1)
+                
+    # Use calculated mu and sigma values to calculate C2 along the contour
+    component_2 = stats.norm.ppf(y_quantile,
+                                 loc  =component_2_mu, 
+                                 scale=component_2_sigma)
+                             
+    # Convert contours back to the original reference frame
+    principal_axes = PCA['principal_axes']
+    shift = PCA['shift']
+    pa00 = principal_axes[0, 0]
+    pa01 = principal_axes[0, 1]
+
+    x1_contour = (( pa00 * component_1 + pa01 * (component_2 - shift)) / \
+                  (pa01**2 + pa00**2))                         
+    x2_contour = (( pa01 * component_1 - pa00 * (component_2 - shift)) / \
+                  (pa01**2 + pa00**2))                                    
+    
+    # Assign 0 value to any negative x1 contour values
+    x1_contour = np.maximum(0, x1_contour)  
+    
+	if return_PCA:
+	   return x1_contour, x2_contour, PCA
+    return x1_contour, x2_contour
+
+def _principal_component_analysis(x1, x2, size_bin=250):
     '''
     Performs a modified principal component analysis (PCA) 
     [Eckert et. al 2015] on two variables (x1, x2). The additional
@@ -834,90 +941,3 @@ def principal_component_analysis(x1, x2, size_bin=250):
            'sigma_fit'     : sigma_fit }
     
     return PCA
-
-
-def environmental_contour(time_ss, time_r, PCA,  nb_steps=1000):
-    '''    
-    This function calculates environmental contours of extreme sea 
-    states using the inverse first-order reliability method (IFORM) 
-    and the MHKiT principal component analysis (PCA) dictionary failure 
-    probability for the desired return period (time_R) given the 
-    duration of the measurements (time_ss). 
-
-    Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
-    Neary, V. S. (2016). Application of principal component 
-    analysis (PCA) and improved joint probability distributions to 
-    the inverse first-order reliability method (I-FORM) for predicting 
-    extreme sea states. Ocean Engineering, 112, 307-319.
-
-    Parameters
-    ___________
-    time_ss : float
-        Sea state duration (hours) of measurements in input.
-    time_r : np.array
-        Desired return period (years) for calculation of environmental
-        contour, can be a scalar or a vector.
-    nb_steps : int
-        Discretization of the circle in the normal space used for
-        inverse FORM calculation.
-
-    Returns
-    -------
-    x1_Return : np.array
-        Calculated x1 values along the contour boundary following
-        return to original input orientation.
-    T_Return : np.array
-       Calculated T values along the contour boundary following
-       return to original input orientation.
-    nb_steps : float
-        Discretization of the circle in the normal space
-
-    '''
-    exceedance_probability = 1 / (365 * (24 / time_ss) * time_r)
-    iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
-                                             loc=0, scale=1)  
-    discretized_radians = np.linspace(0, 2 * np.pi, nb_steps)
-    
-    x_component_iso_prob = iso_probability_radius * \
-                            np.cos(discretized_radians)
-    y_component_iso_prob = iso_probability_radius * \
-                            np.sin(discretized_radians)
-    
-    x_quantile = stats.norm.cdf(x_component_iso_prob, loc=0, scale=1)
-    y_quantile = stats.norm.cdf(y_component_iso_prob, loc=0, scale=1)
-    
-    # Use the inverse of cdf to calculate component 1 values           
-    component_1 = stats.invgauss.ppf(x_quantile, 
-                                     mu   =PCA['x1_fit']['mu'],
-                                     loc  =PCA['x1_fit']['loc'], 
-                                     scale=PCA['x1_fit']['scale'] )
-    
-    # Find Component 2 mu using first order linear regression
-    mu_slope     = PCA['mu_fit'].slope
-    mu_intercept = PCA['mu_fit'].intercept        
-    component_2_mu = mu_slope * component_1 + mu_intercept
-    
-    # Find Componenet 2 sigma using second order polynomial fit
-    sigma_polynomial_coeffcients =PCA['sigma_fit'].x
-    component_2_sigma = np.polyval(sigma_polynomial_coeffcients, component_1)
-                
-    # Use calculated mu and sigma values to calculate C2 along the contour
-    component_2 = stats.norm.ppf(y_quantile,
-                                 loc  =component_2_mu, 
-                                 scale=component_2_sigma)
-                             
-    # Convert contours back to the original reference frame
-    principal_axes = PCA['principal_axes']
-    shift = PCA['shift']
-    pa00 = principal_axes[0, 0]
-    pa01 = principal_axes[0, 1]
-
-    x1_contour = (( pa00 * component_1 + pa01 * (component_2 - shift)) / \
-                  (pa01**2 + pa00**2))                         
-    x2_contour = (( pa01 * component_1 - pa00 * (component_2 - shift)) / \
-                  (pa01**2 + pa00**2))                                    
-    
-    # Assign 0 value to any negative x1 contour values
-    x1_contour = np.maximum(0, x1_contour)  
-
-    return x1_contour, x2_contour

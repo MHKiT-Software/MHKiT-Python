@@ -1,5 +1,4 @@
 from mhkit.wave.resource import significant_wave_height, energy_period, \
-                                principal_component_analysis,  \
                                 environmental_contour
 import matplotlib.pyplot as plt
 from mhkit.wave.io import ndbc
@@ -84,12 +83,11 @@ df = df.sort_index()
 df = df[:'20121231']
 
 
-PCA  = principal_component_analysis(df.Hm0.values, df.Te.values)
-
 # Declare required parameters
 time_SS = 1.  # Sea state duration (hrs)
 time_R = 100  # Return periods (yrs) of interest
-Hs_Return, T_Return = environmental_contour(time_SS, time_R, PCA , nb_steps=1000)
+Hs_Return, T_Return = environmental_contour(df.Hm0.values, df.Te.values, 
+                                            time_SS, time_R)
 
 
 
