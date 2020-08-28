@@ -1,5 +1,6 @@
 from mhkit.wave.resource import significant_wave_height, energy_period, \
                                 environmental_contour
+from mhkit.wave.graphics import plot_environmental_contour
 import matplotlib.pyplot as plt
 from mhkit.wave.io import ndbc
 from scipy import stats
@@ -82,30 +83,24 @@ df = df_raw[filtered_entries]
 df = df.sort_index()
 df = df[:'20121231']
 
-
-# Declare required parameters
-time_SS = 1.  # Sea state duration (hrs)
-time_R = 100  # Return periods (yrs) of interest
+# Sea state duration (hrs)
+# TODO: Get this from dime Delta
+time_SS = 1.  
+# Return periods (yrs) of interest
+time_R = 100  
 Hs_Return, T_Return = environmental_contour(df.Hm0.values, df.Te.values, 
                                             time_SS, time_R)
 
 
 
 
-# """
-# Display a plot of the 100-year return contour, full sea state samples
-# and contour samples
-# """
-
-plt.figure()
-
-plt.plot(df.Te, df.Hm0, 'bo', alpha=0.1, label='NDBC data')
-plt.plot(T_Return, Hs_Return, 'k-', label='100 year contour')
-
-plt.legend(loc='lower right', fontsize='small')
-plt.grid(True)
-plt.xlabel('Energy period, $T_e$ [s]')
-plt.ylabel('Sig. wave height, $H_s$ [m]')
+plot_environmental_contour(df.Hm0.values, 
+                           df.Te.values, 
+						   Hs_Return, 
+						   T_Return, 
+                           data_label='NDBC 46022', 
+						   contour_label='100 Year Contour',
+						   ax=None)
 plt.show()
 import ipdb; ipdb.set_trace()
 

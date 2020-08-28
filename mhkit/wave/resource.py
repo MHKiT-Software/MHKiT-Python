@@ -741,7 +741,7 @@ def environmental_contour(x1, x2, time_ss, time_r, PCA=None, size_bin=250, nb_st
        'sigma_param'   : fit to _sig_fits 
 
     '''
-	if PCA == None:
+    if PCA == None:
         PCA = _principal_component_analysis(x1, x2, size_bin=250)
 	
     exceedance_probability = 1 / (365 * (24 / time_ss) * time_r)
@@ -791,8 +791,8 @@ def environmental_contour(x1, x2, time_ss, time_r, PCA=None, size_bin=250, nb_st
     # Assign 0 value to any negative x1 contour values
     x1_contour = np.maximum(0, x1_contour)  
     
-	if return_PCA:
-	   return x1_contour, x2_contour, PCA
+    if return_PCA:
+        return x1_contour, x2_contour, PCA
     return x1_contour, x2_contour
 
 def _principal_component_analysis(x1, x2, size_bin=250):

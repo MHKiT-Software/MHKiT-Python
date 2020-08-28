@@ -294,3 +294,35 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     ax.set_ylabel('KC parameter, $\\frac{H}{D}$')
 
     plt.tight_layout()
+
+def plot_environmental_contour(x1, x2, x1_contour, x2_contour, 
+                               data_label=None, 
+                               contour_label=None,
+                               ax=None):
+    """
+    Plot wave surface elevation time-series
+
+    Parameters
+    ------------
+
+    ax : matplotlib axes object
+        Axes for plotting.  If None, then a new figure is created.
+
+    Returns
+    ---------
+    ax : matplotlib pyplot axes
+
+    """
+
+    #assert isinstance(eta, pd.DataFrame), 'eta must be of type pd.DataFrame'
+    
+
+    ax = _xy_plot(x2_contour, x1_contour, 'k-', 
+                  label=contour_label, ax=ax)
+    ax = plt.plot(x2, x1, 'bo', alpha=0.1, 
+                  label=data_label) 
+    plt.legend(loc='lower right')
+    plt.xlabel('Energy period, $T_e$ [s]')
+    plt.ylabel('Sig. wave height, $H_s$ [m]')
+    plt.tight_layout()
+    return ax
