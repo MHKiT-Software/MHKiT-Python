@@ -165,6 +165,9 @@ def available_data(parameter,
 
     available_data = buoys.copy(deep=True)
     
+	# Set year to numeric (makes year key non-unique)
+    available_data['year']=pd.to_numeric(available_data.year.str.strip('b'))
+	
     if isinstance(buoy_number, str):        
         available_data = buoys[buoys.id==buoy_number]
     elif isinstance(buoy_number, list):
@@ -183,7 +186,7 @@ def _parse_filenames(parameter, filenames):
     Parameters
     ----------
     parameter: string
-        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        'swden'	:    'Raw Spectral Wave Current Year Historical Data'
         
         'stdmet':   'Standard Meteorological Current Year Historical Data'
         
@@ -202,7 +205,7 @@ def _parse_filenames(parameter, filenames):
     file_seps = {
                 'swden' : 'w',
                 'stdmet' : 'h'
-               }
+                }
     file_sep= file_seps[parameter]
     
     filenames = filenames[filenames.str.contains('.txt.gz')]
