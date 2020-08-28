@@ -246,7 +246,8 @@ def request_data(parameter, filenames, proxy=None):
     assert isinstance(proxy, (dict, type(None))), 'If specified proxy must be a dict'    
     supported =_supported_params(parameter)
     if isinstance(filenames,pd.DataFrame):
-        filenames = filenames.squeeze()
+        filenames = pd.Series(filenames.squeeze())
+        
     buoy_data = _parse_filenames(parameter, filenames)
     parameter_url = f'https://www.ndbc.noaa.gov/data/historical/{parameter}'
     ndbc_data = {}    
