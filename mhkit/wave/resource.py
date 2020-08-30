@@ -746,7 +746,7 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250, nb_steps=1
 
     '''
     if PCA == None:
-        PCA = _principal_component_analysis(x1, x2, size_bin=250)
+        PCA = _principal_component_analysis(x1, x2, size_bin=size_bin)
 	
     exceedance_probability = 1 / (365 * (24 / dt) * period)
     iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
