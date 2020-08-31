@@ -1,5 +1,5 @@
 import unittest
-from os.path import abspath, dirname, join, isfile
+from os.path import abspath, dirname, join, isfile, normpath, relpath
 import os
 import numpy as np
 import pandas as pd
@@ -13,8 +13,8 @@ from datetime import datetime
 
 
 testdir = dirname(abspath(__file__))
-datadir = join(testdir, 'data')
-
+datadir = normpath(join(testdir,relpath('../../examples/data')))
+import ipdb; ipdb.set_trace()
 class TestResourceSpectrum(unittest.TestCase):
 
     @classmethod
@@ -386,6 +386,38 @@ class TestResourceMetrics(unittest.TestCase):
         plt.close()
         
         self.assertTrue(isfile(filename))
+
+
+class TestResourceContours(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(self):
+        self.Hm0Te = pd.read_hdf(f'{buoy_number}Hm0Te.h5', 'df') 
+                
+            
+    @classmethod
+    def tearDownClass(self):
+        pass
+        
+    def test_environmental_contour(self):
+       
+        self.assertAlmostEqual(L_stats['mean'], 0.6676, 3)
+
+        Hm0Te = self.Hm0Te
+        # Remove Outliers
+        df = Hm0Te[Hm0Te['Hm0'] < 20]
+
+        Hm0 = df.Hm0.values  
+        Te = df.Te.values 
+
+        # Delta time of sea-states 
+        dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds  
+        # Return periods (yrs) of interest
+        time_R = 100  
+        Hm0_contour, Te_contour = environmental_contour(Hm0, Te, 
+                                                    dt_ss, time_R)
+        contours = pd.read_csv('contours_46022_Hm0Te.csv')                                            
+                                                    
         
 class TestPerformance(unittest.TestCase):
 
@@ -526,7 +558,7 @@ class TestIOndbc(unittest.TestCase):
     def test__ndbc_parse_filenames(self):  
         filenames= pd.Series(self.filenames)
         buoys = wave.io.ndbc._parse_filenames('swden', filenames)
-        years = buoys.year.tolist()
+        years = pd.Series(buoys.year.tolist())
         numbers = buoys.id.tolist()
         fnames = buoys.filename.tolist()
         

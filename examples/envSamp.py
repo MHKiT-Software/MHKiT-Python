@@ -63,7 +63,7 @@ def get_Hm0_Te(buoy_number):
     Hs.dropna(inplace=True)
 
     # Save the data locally
-    Hs.to_pickle(f'{buoy_number}Hm0Te.pkl')
+    Hs.to_hdf(f'{buoy_number}Hm0Te.h5',  key='df')
     return Hs
 
 #=======================================================================
@@ -71,9 +71,9 @@ def get_Hm0_Te(buoy_number):
 #=======================================================================
 buoy_number='46022'
 try:
-    df_raw = pd.read_pickle(f'{buoy_number}Hm0Te.pkl')
+    df_raw = pd.read_hdf(f'{buoy_number}Hm0Te.h5', 'df')
 except:
-   df_raw = get_Hm0_Te(buoy_number)
+    df_raw = get_Hm0_Te(buoy_number)
 
 # Remove Outliers
 df = df_raw[df_raw['Hm0'] < 20]
@@ -83,16 +83,20 @@ df = df_raw[df_raw['Hm0'] < 20]
 dt_ss = (df.index[2]-df.index[1]).seconds  
 # Return periods (yrs) of interest
 time_R = 100  
-Hs_Return, T_Return = environmental_contour(df.Hm0.values, df.Te.values, 
-                                            dt_ss, time_R)
+Hm0_contour, Te_contour = environmental_contour(df.Hm0.values, df.Te.values, 
+                                                dt_ss, time_R)
 
-
-
+contours_46022_Hm0Te = pd.DataFrame.from_records(Hm0_contour.reshape(-1,1), 
+                                                 columns=['Hm0_contour'] )
+                                                  
+contours_46022_Hm0Te['Te_contour'] =  Te_contour
+ 
+contours_46022_Hm0Te.to_csv('contours_46022_Hm0Te.csv')
 
 plot_environmental_contour(df.Hm0.values, 
                            df.Te.values, 
-						   Hs_Return, 
-						   T_Return, 
+						   Hm0_contour, 
+						   Te_contour, 
                            data_label='NDBC 46022', 
 						   contour_label='100 Year Contour',
 						   ax=None)
