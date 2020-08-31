@@ -244,11 +244,12 @@ def request_data(parameter, filenames, proxy=None):
     assert isinstance(filenames, (pd.Series,pd.DataFrame)), 'filenames must be of type pd.Series' 
     assert isinstance(parameter, str), 'parameter must be a string'
     assert isinstance(proxy, (dict, type(None))), 'If specified proxy must be a dict' 
-    assert len(filenames)>0, "At least 1 filename must be passed"  
+    
     supported =_supported_params(parameter)
     if isinstance(filenames,pd.DataFrame):
         filenames = pd.Series(filenames.squeeze())
         
+    assert len(filenames)>0, "At least 1 filename must be passed"      
     buoy_data = _parse_filenames(parameter, filenames)
     parameter_url = f'https://www.ndbc.noaa.gov/data/historical/{parameter}'
     ndbc_data = {}    
