@@ -76,12 +76,7 @@ except:
    df_raw = get_Hm0_Te(buoy_number)
 
 # Remove Outliers
-abs_z_scores = np.abs(stats.zscore(df_raw))
-N_standard_deviations = 4
-filtered_entries = (abs_z_scores < N_standard_deviations).all(axis=1)
-df = df_raw[filtered_entries]
-df = df.sort_index()
-df = df[:'20121231']
+df = df_raw[df_raw['Hm0'] < 20]
 
 # Sea state duration (hrs)
 # TODO: Get this from dime Delta
