@@ -230,7 +230,7 @@ def request_data(parameter, filenames, proxy=None):
         
         'stdmet':   'Standard Meteorological Current Year Historical Data'
         
-    filenames: DataFrame
+    filenames: pandas Series or DataFrame
 	    Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
     
     proxy: dict
