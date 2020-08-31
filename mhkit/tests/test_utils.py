@@ -4,10 +4,10 @@ import pandas as pd
 import mhkit.utils as utils
 from pandas.testing import assert_frame_equal
 import json
-from os.path import abspath, dirname, join, isfile
+from os.path import abspath, dirname, join, isfile, normpath, relpath
 
 testdir = dirname(abspath(__file__))
-datadir = join(testdir, 'data')
+datadir = normpath(join(testdir,relpath('../../examples/data')))
 
 class TestGenUtils(unittest.TestCase):
 

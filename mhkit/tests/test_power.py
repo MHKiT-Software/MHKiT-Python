@@ -1,9 +1,12 @@
 import unittest
-from os.path import abspath, dirname, join, isfile
+from os.path import abspath, dirname, join, isfile, normpath, relpath
 import os
 import numpy as np
 import pandas as pd
 import mhkit.power as power
+
+testdir = dirname(abspath(__file__))
+datadir = normpath(join(testdir,relpath('../../examples/data')))
 
 class TestDevice(unittest.TestCase):
 
