@@ -539,6 +539,17 @@ class TestIOndbc(unittest.TestCase):
         filenames= pd.Series(self.filenames[0])
         ndbc_data = wave.io.ndbc.request_data('swden', filenames)
         self.assertTrue(self.swden.equals(ndbc_data['1996']))
+
+    def test_ndbc_request_data_from_dataframe(self):
+        filenames= pd.DataFrame(pd.Series(data=self.filenames[0]))
+        ndbc_data = wave.io.ndbc.request_data('swden', filenames)
+        self.assertTrue(self.swden.equals(ndbc_data['1996']))
+
+    def test_ndbc_request_data_filenames_length(self):
+        with self.assertRaises(Exception) as context:
+            wave.io.ndbc.request_data('swden', pd.Series(dtype=float))
+
+        self.assertTrue('At least 1 filename must be passed' in str(context.exception))
         
     def test_ndbc_dates_to_datetime(self):
         dt = wave.io.ndbc.dates_to_datetime('swden', self.swden)
