@@ -305,7 +305,7 @@ def dates_to_datetime(parameter, data,
         Series with NDBC dates dropped and new ['date']
         column in DateTime format
         
-    ndbc_date_cols: list
+    ndbc_date_cols: list (optional)
         List of the DataFrame columns headers for dates as provided by 
         NDBC
     '''
@@ -321,6 +321,7 @@ def dates_to_datetime(parameter, data,
         minutes_loc  = cols.index('mm')
         minutes=True
     except:
+        df['mm'] = np.zeros(len(df)).astype(int).astype(str)
         minutes=False
     
     row_0_is_units = False
@@ -341,14 +342,11 @@ def dates_to_datetime(parameter, data,
     elif year_string[0]=='YY':
         year_string = year_string[0]
         year_fmt = '%y' 
-    if minutes:
-        ndbc_date_cols = [year_string, 'MM', 'DD', 'hh', 'mm']
-    else:
-        ndbc_date_cols = [year_string, 'MM', 'DD', 'hh']
-
-               
-    df = _date_string_to_datetime(df, ndbc_date_cols, year_fmt)        
-    date = df['date']    
+        
+    parse_columns = [year_string, 'MM', 'DD', 'hh', 'mm']
+    df = _date_string_to_datetime(df, parse_columns, year_fmt)        
+    date = df['date']        
+    
     if row_0_is_units:
         date = pd.concat([pd.Series([np.nan]),date])               
     del df
@@ -356,6 +354,10 @@ def dates_to_datetime(parameter, data,
     if return_as_dataframe:
         date = pd.DataFrame(date)    
     if return_date_cols:
+        if minutes:
+            ndbc_date_cols = [year_string, 'MM', 'DD', 'hh', 'mm']
+        else:
+            ndbc_date_cols = [year_string, 'MM', 'DD', 'hh']
         return date, ndbc_date_cols        
     
     return date
@@ -370,11 +372,11 @@ def _date_string_to_datetime(df, columns, year_fmt):
     Parameters
     ----------
     df: DataFrame
-        Dataframe with columns (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
+        Dataframe with columns (e.g. ['YY', 'MM', 'DD', 'hh', 'mm'])
         
     columns: list 
         list of strings for the columns to consider   
-        (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
+        (e.g. ['YY', 'MM', 'DD', 'hh', 'mm'])
         
     year_fmt: str
         Specifies if year is 2 digit or 4 digit for datetime 
