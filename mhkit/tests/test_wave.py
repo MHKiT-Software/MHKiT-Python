@@ -13,7 +13,7 @@ from datetime import datetime
 
 
 testdir = dirname(abspath(__file__))
-datadir = normpath(join(testdir,relpath('../../examples/data')))
+datadir = normpath(join(testdir,relpath('../../examples/data/wave')))
 
 class TestResourceSpectrum(unittest.TestCase):
 

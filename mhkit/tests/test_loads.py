@@ -8,7 +8,7 @@ import unittest
 import json
 
 testdir = dirname(abspath(__file__))
-datadir = normpath(join(testdir,relpath('../../examples/data')))
+datadir = normpath(join(testdir,relpath('../../examples/data/loads')))
 
 class TestLoads(unittest.TestCase):
 

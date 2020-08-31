@@ -6,7 +6,7 @@ import pandas as pd
 import mhkit.power as power
 
 testdir = dirname(abspath(__file__))
-datadir = normpath(join(testdir,relpath('../../examples/data')))
+datadir = normpath(join(testdir,relpath('../../examples/data/power')))
 
 class TestDevice(unittest.TestCase):
 

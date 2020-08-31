@@ -7,7 +7,7 @@ import matplotlib.pylab as plt
 import mhkit.tidal as tidal
 
 testdir = dirname(abspath(__file__))
-datadir = normpath(join(testdir,relpath('../../examples/data')))
+datadir = normpath(join(testdir,relpath('../../examples/data/tidal')))
 
 
 class TestIO(unittest.TestCase):
