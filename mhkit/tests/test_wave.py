@@ -539,16 +539,32 @@ class TestIOndbc(unittest.TestCase):
         filenames= pd.Series(self.filenames[0])
         ndbc_data = wave.io.ndbc.request_data('swden', filenames)
         self.assertTrue(self.swden.equals(ndbc_data['1996']))
+
+    def test_ndbc_request_data_from_dataframe(self):
+        filenames= pd.DataFrame(pd.Series(data=self.filenames[0]))
+        ndbc_data = wave.io.ndbc.request_data('swden', filenames)
+        self.assertTrue(self.swden.equals(ndbc_data['1996']))
+
+    def test_ndbc_request_data_filenames_length(self):
+        with self.assertRaises(Exception) as context:
+            wave.io.ndbc.request_data('swden', pd.Series(dtype=float))
+
+        self.assertTrue('At least 1 filename must be passed' in str(context.exception))
         
     def test_ndbc_dates_to_datetime(self):
         dt = wave.io.ndbc.dates_to_datetime('swden', self.swden)
-        self.assertEqual(datetime(1996, 1, 1), dt[0])
+        self.assertEqual(datetime(1996, 1, 1, 1, 0), dt[1])
                
     def test_date_string_to_datetime(self):
         swden = self.swden.copy(deep=True)
-        df = wave.io.ndbc._date_string_to_datetime(swden, ['YY', 'MM', 'DD', 'hh'], '%y') 
+        swden['mm'] = np.zeros(len(swden)).astype(int).astype(str)
+        year_string='YY'
+        year_fmt='%y'
+        parse_columns = [year_string, 'MM', 'DD', 'hh', 'mm']
+        df = wave.io.ndbc._date_string_to_datetime(swden, parse_columns, 
+                                                   year_fmt) 
         dt = df['date']
-        self.assertEqual(datetime(1996, 1, 1), dt[0])  
+        self.assertEqual(datetime(1996, 1, 1, 1, 0), dt[1])  
         
     def test_parameter_units(self):
         parameter='swden'
