@@ -305,7 +305,7 @@ def dates_to_datetime(parameter, data,
         Series with NDBC dates dropped and new ['date']
         column in DateTime format
         
-    ndbc_date_cols: list
+    ndbc_date_cols: list (optional)
         List of the DataFrame columns headers for dates as provided by 
         NDBC
     '''
@@ -344,7 +344,7 @@ def dates_to_datetime(parameter, data,
         year_fmt = '%y' 
         
     parse_columns = [year_string, 'MM', 'DD', 'hh', 'mm']
-    df = _date_string_to_datetime(df, ndbc_date_cols, year_fmt)        
+    df = _date_string_to_datetime(df, parse_columns, year_fmt)        
     date = df['date']        
     
     if row_0_is_units:
@@ -358,7 +358,7 @@ def dates_to_datetime(parameter, data,
             ndbc_date_cols = [year_string, 'MM', 'DD', 'hh', 'mm']
         else:
             ndbc_date_cols = [year_string, 'MM', 'DD', 'hh']
-            return date, ndbc_date_cols        
+        return date, ndbc_date_cols        
     
     return date
 
