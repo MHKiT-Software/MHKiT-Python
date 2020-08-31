@@ -79,12 +79,12 @@ except:
 df = df_raw[df_raw['Hm0'] < 20]
 
 # Sea state duration (hrs)
-# TODO: Get this from dime Delta
-time_SS = 1.  
+# Delta time of sea-states 
+dt_ss = (df.index[2]-df.index[1]).seconds  
 # Return periods (yrs) of interest
 time_R = 100  
 Hs_Return, T_Return = environmental_contour(df.Hm0.values, df.Te.values, 
-                                            time_SS, time_R)
+                                            dt_ss, time_R)
 
 
 

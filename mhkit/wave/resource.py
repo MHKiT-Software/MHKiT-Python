@@ -687,7 +687,8 @@ def wave_number(f, h, rho=1025, g=9.80665):
     
     return k
 
-def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250, nb_steps=1000, return_PCA=False):
+def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250, 
+                          nb_steps=1000, return_PCA=False):
     '''    
     This function calculates environmental contours of extreme sea 
     states using the improved joint probability distributions 
@@ -712,7 +713,7 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250, nb_steps=1
     x2: array like
         Component 2 data        	
     dt : float
-        x1 and x2 temporal period (hours) 
+        x1 and x2 temporal period (seconds) 
     period : np.array
         Desired return period (years) for calculation of environmental
         contour, can be a scalar or a vector.
@@ -748,7 +749,7 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250, nb_steps=1
     if PCA == None:
         PCA = _principal_component_analysis(x1, x2, size_bin=size_bin)
 	
-    exceedance_probability = 1 / (365 * (24 / dt) * period)
+    exceedance_probability = 1 / (365 * 24 * 3600/ dt * period)
     iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
                                              loc=0, scale=1)  
     discretized_radians = np.linspace(0, 2 * np.pi, nb_steps)

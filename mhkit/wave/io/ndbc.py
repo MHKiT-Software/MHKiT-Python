@@ -404,7 +404,6 @@ def _date_string_to_datetime(df, columns, year_fmt):
     for column in columns[1:]:
         df['date_string'] = df[['date_string', column]].apply(lambda x: ''.join(x), axis=1)
     df['date'] = pd.to_datetime(df['date_string'], format=f'{year_fmt}%m%d%H%M')
-    import ipdb;ipdb.set_trace()
     del df['date_string']
     
     return df
