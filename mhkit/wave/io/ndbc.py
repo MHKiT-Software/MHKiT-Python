@@ -255,6 +255,7 @@ def request_data(parameter, filenames, proxy=None):
         filenames = filenames.squeeze()
     assert len(filenames)>0, "At least 1 filename must be passed"
        
+
     buoy_data = _parse_filenames(parameter, filenames)
     parameter_url = f'https://www.ndbc.noaa.gov/data/historical/{parameter}'
     ndbc_data = {}    
