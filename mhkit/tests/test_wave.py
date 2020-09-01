@@ -445,9 +445,9 @@ class TestResourceContours(unittest.TestCase):
         PCA = wave.resource._principal_component_analysis(Hm0,Te, size_bin=250)
         
         assert_allclose(PCA['principal_axes'], self.pca['principal_axes'])
-        self.assertEqual(PCA['shift'], self.pca['shift'])
-        self.assertEqual(PCA['x1_fit'], self.pca['x1_fit'])
-        self.assertEqual(PCA['mu_fit'], self.pca['mu_fit'])
+        self.assertAlmostEqual(PCA['shift'], self.pca['shift'])
+        self.assertAlmostEqual(PCA['x1_fit'], self.pca['x1_fit'])
+        self.assertAlmostEqual(PCA['mu_fit'], self.pca['mu_fit'])
         assert_allclose(PCA['sigma_fit']['x'], self.pca['sigma_fit']['x'])
         
         
