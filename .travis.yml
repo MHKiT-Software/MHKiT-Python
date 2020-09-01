@@ -46,6 +46,7 @@ before_install:
     - conda config --set always_yes yes --set changeps1 no
     - conda update -q conda
     - conda info -a
+    - conda install pickle
     
 install:
     - echo "install"
@@ -54,7 +55,7 @@ install:
     - conda list
     - echo $PATH
     - ls -l /home/travis/miniconda/envs/test_env/lib
-    - python setup.py develop
+    - pip install -e .
 
 script:
     - nosetests -v --with-coverage --cover-package=mhkit mhkit
