@@ -447,7 +447,8 @@ class TestResourceContours(unittest.TestCase):
         assert_allclose(PCA['principal_axes'], self.pca['principal_axes'])
         self.assertAlmostEqual(PCA['shift'], self.pca['shift'])
         self.assertAlmostEqual(PCA['x1_fit'], self.pca['x1_fit'])
-        self.assertAlmostEqual(PCA['mu_fit'], self.pca['mu_fit'])
+        self.assertAlmostEqual(PCA['mu_fit'].slope, self.pca['mu_fit'].slope)
+        self.assertAlmostEqual(PCA['mu_fit'].intercept, self.pca['mu_fit'].intercept)
         assert_allclose(PCA['sigma_fit']['x'], self.pca['sigma_fit']['x'])
         
         
