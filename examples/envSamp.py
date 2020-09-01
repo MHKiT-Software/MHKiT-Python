@@ -103,7 +103,7 @@ contours_46022_Hm0Te.to_csv('data/wave/Hm0_Te_contours_46022.csv', index=False)
 
 def save_dict(obj, name ):
     with open(f'data/wave/{name}.pkl', 'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+        pickle.dump(obj, f, protocol=4)
 save_dict(PCA,'principal_component_analysis')
 # PCA['principal_axes'] = PCA['principal_axes'].tolist()
 # PCA['sigma_fit']['jac'] = PCA['sigma_fit']['jac'].tolist()
