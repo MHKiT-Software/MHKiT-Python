@@ -100,14 +100,7 @@ contours_46022_Hm0Te['Te_contour'] =  Te_contour
  
 contours_46022_Hm0Te.to_csv('data/wave/Hm0_Te_contours_46022.csv', index=False)
 
-plot_environmental_contour(df.Hm0.values, 
-                           df.Te.values, 
-						   Hm0_contour, 
-						   Te_contour, 
-                           data_label='NDBC 46022', 
-						   contour_label='100 Year Contour',
-						   ax=None)
-plt.show()
+
 def save_dict(obj, name ):
     with open(f'data/wave/{name}.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
@@ -118,6 +111,14 @@ save_dict(PCA,'principal_component_analysis')
 # PCA['sigma_fit']['success'] = str(PCA['sigma_fit']['success'])
 # with open('data/wave/principal_component_analysis.json', 'w') as fp: json.dump(PCA, fp)
 
+plot_environmental_contour(df.Hm0.values, 
+                           df.Te.values, 
+						   Hm0_contour, 
+						   Te_contour, 
+                           data_label='NDBC 46022', 
+						   contour_label='100 Year Contour',
+						   ax=None)
+plt.show()
 
 import ipdb; ipdb.set_trace()
 

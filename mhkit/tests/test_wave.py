@@ -434,7 +434,7 @@ class TestResourceContours(unittest.TestCase):
                                                     dt_ss, time_R)
         
         expected_contours = pd.read_csv(join(datadir,'Hm0_Te_contours_46022.csv'))
-        np.testing.assert_allclose(expected_contours.Hm0_contour.values, Hm0_contour)
+        assert_allclose(expected_contours.Hm0_contour.values, Hm0_contour, rtol=1e-3)
         
     def test__principal_componenet_analysis(self):
         Hm0Te = self.Hm0Te
