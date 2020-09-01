@@ -252,7 +252,7 @@ def request_data(parameter, filenames, proxy=None):
     assert isinstance(proxy, (dict, type(None))), 'If specified proxy must be a dict' 
     supported =_supported_params(parameter)
     if isinstance(filenames,pd.DataFrame):
-        filenames = filenames.squeeze()
+        filenames = pd.Series(filenames.squeeze())
     assert len(filenames)>0, "At least 1 filename must be passed"
        
 

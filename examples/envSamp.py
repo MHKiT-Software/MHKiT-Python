@@ -63,7 +63,8 @@ def get_Hm0_Te(buoy_number):
     Hs.dropna(inplace=True)
 
     # Save the data locally
-    Hs.to_hdf(f'{buoy_number}Hm0Te.h5',  key='df')
+    Hs.to_hdf(f'data/wave/Hm0_Te_{buoy_number}.h5',  key='df')
+    Hs.to_pickle(f'data/wave/Hm0_Te_{buoy_number}.pkl')
     return Hs
 
 #=======================================================================
@@ -71,7 +72,8 @@ def get_Hm0_Te(buoy_number):
 #=======================================================================
 buoy_number='46022'
 try:
-    df_raw = pd.read_hdf(f'{buoy_number}Hm0Te.h5', 'df')
+    #df_raw = pd.read_hdf(f'data/wave/Hm0_Te_{buoy_number}.h5', 'df')
+    df_raw = pd.read_pickle(f'data/wave/Hm0_Te_{buoy_number}.pkl' )
 except:
     df_raw = get_Hm0_Te(buoy_number)
 
@@ -91,7 +93,7 @@ contours_46022_Hm0Te = pd.DataFrame.from_records(Hm0_contour.reshape(-1,1),
                                                   
 contours_46022_Hm0Te['Te_contour'] =  Te_contour
  
-contours_46022_Hm0Te.to_csv('contours_46022_Hm0Te.csv')
+contours_46022_Hm0Te.to_csv('data/wave/Hm0_Te_contours_46022.csv', index=False)
 
 plot_environmental_contour(df.Hm0.values, 
                            df.Te.values, 

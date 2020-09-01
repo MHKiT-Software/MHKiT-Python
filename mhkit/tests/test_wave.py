@@ -1,16 +1,16 @@
-import unittest
 from os.path import abspath, dirname, join, isfile, normpath, relpath
-import os
-import numpy as np
-import pandas as pd
-import json
-import matplotlib.pylab as plt
-import mhkit.wave as wave
-from scipy.interpolate import interp1d
 from pandas.testing import assert_frame_equal
-import inspect
+from numpy.testing import assert_allclose
+from scipy.interpolate import interp1d
+import matplotlib.pylab as plt
 from datetime import datetime
-
+import mhkit.wave as wave
+import pandas as pd
+import numpy as np
+import unittest
+import inspect
+import json
+import os
 
 testdir = dirname(abspath(__file__))
 datadir = normpath(join(testdir,relpath('../../examples/data/wave')))
@@ -282,7 +282,8 @@ class TestResourceMetrics(unittest.TestCase):
                     else: 
                         f_bins = None
 
-                    calculated = wave.resource.frequency_moment(S, int(m),frequency_bins=f_bins).iloc[0,0]
+                    calculated = wave.resource.frequency_moment(S, int(m)
+                                       ,frequency_bins=f_bins).iloc[0,0]
                     error = np.abs(expected-calculated)/expected
                     
                     self.assertLess(error, 0.01) 
@@ -305,35 +306,41 @@ class TestResourceMetrics(unittest.TestCase):
                 
                 # Hm0
                 expected = data['metrics']['Hm0']
-                calculated = wave.resource.significant_wave_height(S,frequency_bins=f_bins).iloc[0,0]
+                calculated = wave.resource.significant_wave_height(S,
+                                        frequency_bins=f_bins).iloc[0,0]
                 error = np.abs(expected-calculated)/expected
                 #print('Hm0', expected, calculated, error)
                 self.assertLess(error, 0.01) 
 
                 # Te
                 expected = data['metrics']['Te']
-                calculated = wave.resource.energy_period(S,frequency_bins=f_bins).iloc[0,0]
+                calculated = wave.resource.energy_period(S,
+                                        frequency_bins=f_bins).iloc[0,0]
                 error = np.abs(expected-calculated)/expected
                 #print('Te', expected, calculated, error)
                 self.assertLess(error, 0.01) 
                 
                 # T0
                 expected = data['metrics']['T0']
-                calculated = wave.resource.average_zero_crossing_period(S,frequency_bins=f_bins).iloc[0,0]
+                calculated = wave.resource.average_zero_crossing_period(S,
+                                         frequency_bins=f_bins).iloc[0,0]
                 error = np.abs(expected-calculated)/expected
                 #print('T0', expected, calculated, error)
                 self.assertLess(error, 0.01) 
 
                 # Tc
                 expected = data['metrics']['Tc']
-                calculated = wave.resource.average_crest_period(S,frequency_bins=f_bins).iloc[0,0]**2 # Tc = Tavg**2
+                calculated = wave.resource.average_crest_period(S,
+                # Tc = Tavg**2
+                                     frequency_bins=f_bins).iloc[0,0]**2 
                 error = np.abs(expected-calculated)/expected
                 #print('Tc', expected, calculated, error)
                 self.assertLess(error, 0.01) 
 
                 # Tm
                 expected = np.sqrt(data['metrics']['Tm'])
-                calculated = wave.resource.average_wave_period(S,frequency_bins=f_bins).iloc[0,0]
+                calculated = wave.resource.average_wave_period(S,
+                                        frequency_bins=f_bins).iloc[0,0]
                 error = np.abs(expected-calculated)/expected
                 #print('Tm', expected, calculated, error)
                 self.assertLess(error, 0.01) 
@@ -347,15 +354,18 @@ class TestResourceMetrics(unittest.TestCase):
                 
                 # e
                 expected = data['metrics']['e']
-                calculated = wave.resource.spectral_bandwidth(S,frequency_bins=f_bins).iloc[0,0]
+                calculated = wave.resource.spectral_bandwidth(S,
+                                        frequency_bins=f_bins).iloc[0,0]
                 error = np.abs(expected-calculated)/expected
                 #print('e', expected, calculated, error)
                 self.assertLess(error, 0.001) 
 
                 # v
-                if file_i == 'CDiP': # this should be updated to run on other datasets
+                if file_i == 'CDiP': 
+                    # this should be updated to run on other datasets
                     expected = data['metrics']['v']                    
-                    calculated = wave.resource.spectral_width(S,frequency_bins=f_bins).iloc[0,0]
+                    calculated = wave.resource.spectral_width(S,
+                                        frequency_bins=f_bins).iloc[0,0]
                     error = np.abs(expected-calculated)/expected
 
                        
@@ -363,7 +373,8 @@ class TestResourceMetrics(unittest.TestCase):
 
                 if file_i == 'MC':
                     expected = data['metrics']['v']
-                    calculated = wave.resource.spectral_width(S).iloc[0,0] # testing that default uniform frequency bin widths works 
+                    # testing that default uniform frequency bin widths works 
+                    calculated = wave.resource.spectral_width(S).iloc[0,0] 
                     error = np.abs(expected-calculated)/expected
 
                        
@@ -393,8 +404,10 @@ class TestResourceContours(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        self.Hm0Te = pd.read_hdf(f'{buoy_number}Hm0Te.h5', 'df') 
-                
+        
+        f_name= 'Hm0_Te_46022.pkl'
+        self.Hm0Te = pd.read_pickle(join(datadir,f_name))
+                        
             
     @classmethod
     def tearDownClass(self):
@@ -402,22 +415,21 @@ class TestResourceContours(unittest.TestCase):
         
     def test_environmental_contour(self):
        
-        self.assertAlmostEqual(L_stats['mean'], 0.6676, 3)
-
         Hm0Te = self.Hm0Te
-        # Remove Outliers
         df = Hm0Te[Hm0Te['Hm0'] < 20]
-
+        
         Hm0 = df.Hm0.values  
         Te = df.Te.values 
-
-        # Delta time of sea-states 
+        
         dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds  
-        # Return periods (yrs) of interest
         time_R = 100  
-        Hm0_contour, Te_contour = environmental_contour(Hm0, Te, 
+        
+        Hm0_contour, Te_contour = wave.resource.environmental_contour(Hm0, Te, 
                                                     dt_ss, time_R)
-        contours = pd.read_csv('contours_46022_Hm0Te.csv')                                            
+        
+        expected_contours = pd.read_csv(join(datadir,'Hm0_Te_contours_46022.csv'))
+        np.testing.assert_allclose(expected_contours.Hm0_contour.values, Hm0_contour)
+        
                                                     
         
 class TestPerformance(unittest.TestCase):
@@ -559,14 +571,14 @@ class TestIOndbc(unittest.TestCase):
     def test__ndbc_parse_filenames(self):  
         filenames= pd.Series(self.filenames)
         buoys = wave.io.ndbc._parse_filenames('swden', filenames)
-        years = pd.Series(buoys.year.tolist())
+        years = buoys.year.tolist()
         numbers = buoys.id.tolist()
         fnames = buoys.filename.tolist()
         
-        self.assertEqual(buoys.shape, (len(filenames),3))    
-        self.assertEqual(years, ['1996','1997','1998'])  
-        self.assertEqual(numbers, ['46042','46029','46029'])          
-        self.assertEqual(fnames, self.filenames)
+        self.assertEqual(buoys.shape, (len(filenames),3))              
+        self.assertListEqual(years, ['1996','1997','1998'])  
+        self.assertListEqual(numbers, ['46042','46029','46029'])          
+        self.assertListEqual(fnames, self.filenames)
         
     def test_ndbc_request_data(self):
         filenames= pd.Series(self.filenames[0])
@@ -576,13 +588,12 @@ class TestIOndbc(unittest.TestCase):
     def test_ndbc_request_data_from_dataframe(self):
         filenames= pd.DataFrame(pd.Series(data=self.filenames[0]))
         ndbc_data = wave.io.ndbc.request_data('swden', filenames)
-        self.assertTrue(self.swden.equals(ndbc_data['1996']))
+        assert_frame_equal(self.swden, ndbc_data['1996'])
 
     def test_ndbc_request_data_filenames_length(self):
-        with self.assertRaises(Exception) as context:
-            wave.io.ndbc.request_data('swden', pd.Series(dtype=float))
+        with self.assertRaises(AssertionError):  
+                               wave.io.ndbc.request_data('swden', pd.Series(dtype=float)) 
 
-        self.assertTrue('At least 1 filename must be passed' in str(context.exception))
         
     def test_ndbc_dates_to_datetime(self):
         dt = wave.io.ndbc.dates_to_datetime('swden', self.swden)
