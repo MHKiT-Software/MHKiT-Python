@@ -6,6 +6,8 @@ from mhkit.wave.io import ndbc
 from scipy import stats
 import pandas as pd
 import numpy as np
+import pickle
+import json
 
 def get_Hm0_Te(buoy_number):
     '''
@@ -63,8 +65,10 @@ def get_Hm0_Te(buoy_number):
     Hs.dropna(inplace=True)
 
     # Save the data locally
-    Hs.to_hdf(f'data/wave/Hm0_Te_{buoy_number}.h5',  key='df')
-    Hs.to_pickle(f'data/wave/Hm0_Te_{buoy_number}.pkl')
+    #Hs.to_hdf(f'data/wave/Hm0_Te_{buoy_number}.h5',  key='df')
+    #Hs.to_pickle(f'data/wave/Hm0_Te_{buoy_number}.pkl')
+    
+    Hs.to_json(f'data/wave/Hm0_Te_{buoy_number}.json')
     return Hs
 
 #=======================================================================
@@ -73,7 +77,8 @@ def get_Hm0_Te(buoy_number):
 buoy_number='46022'
 try:
     #df_raw = pd.read_hdf(f'data/wave/Hm0_Te_{buoy_number}.h5', 'df')
-    df_raw = pd.read_pickle(f'data/wave/Hm0_Te_{buoy_number}.pkl' )
+    #df_raw = pd.read_pickle(f'data/wave/Hm0_Te_{buoy_number}.pkl' )
+    df_raw = pd.read_json(f'data/wave/Hm0_Te_{buoy_number}.json' )
 except:
     df_raw = get_Hm0_Te(buoy_number)
 
@@ -85,8 +90,8 @@ df = df_raw[df_raw['Hm0'] < 20]
 dt_ss = (df.index[2]-df.index[1]).seconds  
 # Return periods (yrs) of interest
 time_R = 100  
-Hm0_contour, Te_contour = environmental_contour(df.Hm0.values, df.Te.values, 
-                                                dt_ss, time_R)
+Hm0_contour, Te_contour,PCA = environmental_contour(df.Hm0.values, df.Te.values, 
+                                                dt_ss, time_R,return_PCA=True)
 
 contours_46022_Hm0Te = pd.DataFrame.from_records(Hm0_contour.reshape(-1,1), 
                                                  columns=['Hm0_contour'] )
@@ -103,6 +108,17 @@ plot_environmental_contour(df.Hm0.values,
 						   contour_label='100 Year Contour',
 						   ax=None)
 plt.show()
+def save_dict(obj, name ):
+    with open(f'data/wave/{name}.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+save_dict(PCA,'principal_component_analysis')
+# PCA['principal_axes'] = PCA['principal_axes'].tolist()
+# PCA['sigma_fit']['jac'] = PCA['sigma_fit']['jac'].tolist()
+# PCA['sigma_fit']['x'] = PCA['sigma_fit']['x'].tolist()
+# PCA['sigma_fit']['success'] = str(PCA['sigma_fit']['success'])
+# with open('data/wave/principal_component_analysis.json', 'w') as fp: json.dump(PCA, fp)
+
+
 import ipdb; ipdb.set_trace()
 
 

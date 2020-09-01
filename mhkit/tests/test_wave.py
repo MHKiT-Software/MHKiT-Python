@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import unittest
 import inspect
+import pickle
 import json
 import os
 
@@ -405,9 +406,14 @@ class TestResourceContours(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         
-        f_name= 'Hm0_Te_46022.pkl'
-        self.Hm0Te = pd.read_pickle(join(datadir,f_name))
-                        
+        f_name= 'Hm0_Te_46022.json'
+        self.Hm0Te = pd.read_json(join(datadir,f_name))
+        
+
+        with open(join(datadir, 'principal_component_analysis.pkl'), 'rb') as f:
+            self.pca = pickle.load(f)                       
+
+        
             
     @classmethod
     def tearDownClass(self):
@@ -430,7 +436,20 @@ class TestResourceContours(unittest.TestCase):
         expected_contours = pd.read_csv(join(datadir,'Hm0_Te_contours_46022.csv'))
         np.testing.assert_allclose(expected_contours.Hm0_contour.values, Hm0_contour)
         
-                                                    
+    def test__principal_componenet_analysis(self):
+        Hm0Te = self.Hm0Te
+        df = Hm0Te[Hm0Te['Hm0'] < 20]
+        
+        Hm0 = df.Hm0.values  
+        Te = df.Te.values 
+        PCA = wave.resource._principal_component_analysis(Hm0,Te, size_bin=250)
+        
+        assert_allclose(PCA['principal_axes'], self.pca['principal_axes'])
+        self.assertEqual(PCA['shift'], self.pca['shift'])
+        self.assertEqual(PCA['x1_fit'], self.pca['x1_fit'])
+        self.assertEqual(PCA['mu_fit'], self.pca['mu_fit'])
+        assert_allclose(PCA['sigma_fit']['x'], self.pca['sigma_fit']['x'])
+        
         
 class TestPerformance(unittest.TestCase):
 
