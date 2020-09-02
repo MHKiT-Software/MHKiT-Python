@@ -282,33 +282,33 @@ def request_data(parameter, filenames, proxy=None):
 
     return ndbc_data
 
-def to_datetime_index(parameter, df):
+def to_datetime_index(parameter, ndbc_data):
     '''
-    Converts the NDBC column parameter DataFrame to the format expected by mhkit by
-	modifying the passed DataFrame by removing the NDBC date columns, 
-	and setting a datetime index
+    Converts the NDBC date and time information sreported in seperate
+    columns into a DateTime index and removed the NDBC date & time 
+    columns.        
 
     Parameters
     ------------
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
         'stdmet':   'Standard Meteorological Current Year Historical Data'
-    df: DataFrame
-        NDBC data in dataframe to be converted
+    ndbc_data: DataFrame
+        NDBC data in dataframe with date and time columns to be converted
     Returns
 	-------
-	ndbc_data: DataFrame
-	    Dataframe with NDBC date columns removed, and datetime  index
+	df_datetime: DataFrame
+	    Dataframe with NDBC date columns removed, and datetime index
     '''  
-    df_datetime = df.copy(deep=True)
+    df_datetime = ndbc_data.copy(deep=True)
     df_datetime['date'], ndbc_date_cols = dates_to_datetime(parameter, 
                                                           df, 
                                                           return_date_cols=True)
     df_datetime = df_datetime.drop(ndbc_date_cols, axis=1)
     df_datetime = df_datetime.set_index('date')
     if parameter=='swden':
-        # Convert columns to float now that the ndbc_date_cols (type=str) are gone
         df_datetime.columns = df_datetime.columns.astype(float)         
+        
     return df_datetime
 
 def dates_to_datetime(parameter, data, 
