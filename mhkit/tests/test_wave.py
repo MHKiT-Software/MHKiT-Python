@@ -1,5 +1,5 @@
 import unittest
-from os.path import abspath, dirname, join, isfile
+from os.path import abspath, dirname, join, isfile, normpath, relpath
 import os
 import numpy as np
 import pandas as pd
@@ -13,7 +13,7 @@ from datetime import datetime
 
 
 testdir = dirname(abspath(__file__))
-datadir = join(testdir, 'data')
+datadir = normpath(join(testdir,relpath('../../examples/data/wave')))
 
 class TestResourceSpectrum(unittest.TestCase):
 

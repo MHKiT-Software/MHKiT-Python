@@ -1,4 +1,4 @@
-from os.path import abspath, dirname, join, isfile
+from os.path import abspath, dirname, join, isfile, normpath, relpath
 from pandas.testing import assert_frame_equal
 from mhkit import utils
 from mhkit import loads
@@ -8,7 +8,7 @@ import unittest
 import json
 
 testdir = dirname(abspath(__file__))
-datadir = join(testdir, 'data')
+datadir = normpath(join(testdir,relpath('../../examples/data/loads')))
 
 class TestLoads(unittest.TestCase):
 
