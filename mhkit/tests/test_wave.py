@@ -614,6 +614,11 @@ class TestIOndbc(unittest.TestCase):
         with self.assertRaises(AssertionError):  
                                wave.io.ndbc.request_data('swden', pd.Series(dtype=float)) 
 
+    def test_ndbc_to_datetime_index(self):
+        dt = wave.io.ndbc.to_datetime_index('swden', self.swden)        
+        self.assertEqual(type(dt.index), pd.DatetimeIndex)
+        self.assertFalse({'YY','MM','DD','hh'}.issubset(dt.columns))
+        
         
     def test_ndbc_dates_to_datetime(self):
         dt = wave.io.ndbc.dates_to_datetime('swden', self.swden)

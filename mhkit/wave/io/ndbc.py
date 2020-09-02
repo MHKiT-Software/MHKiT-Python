@@ -302,7 +302,7 @@ def to_datetime_index(parameter, ndbc_data):
     '''  
     df_datetime = ndbc_data.copy(deep=True)
     df_datetime['date'], ndbc_date_cols = dates_to_datetime(parameter, 
-                                                          df, 
+                                                          df_datetime, 
                                                           return_date_cols=True)
     df_datetime = df_datetime.drop(ndbc_date_cols, axis=1)
     df_datetime = df_datetime.set_index('date')
