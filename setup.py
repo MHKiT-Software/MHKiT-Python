@@ -24,6 +24,7 @@ DEPENDENCIES = ['pandas>=1.0.0',
                 'requests', 
                 'pecos>=0.1.8',
                 'fatpack',
+                'lxml',
                 'scikit-learn']
 
 # use README file as the long description
