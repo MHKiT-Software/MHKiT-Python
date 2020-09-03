@@ -273,10 +273,10 @@ def request_data(parameter, filenames, proxy=None):
                 df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)
                 ndbc_data_buoy[year] = df
             except zlib.error: 
-                print('Issue decompressing the NDBC files. Please re-run your code. It may take several tries to run sucessfully')
+                print('Issue decompressing the NDBC file "' + filename +'". Please re-run your code. It may take several tries to run sucessfully.')
 
             except pandas.errors.EmptyDataError: 
-                print('The NDBC file,' + filename + ', is empty or missing data. Please omit this file from your data request in the future.')
+                print('The NDBC file "' + filename + '" is empty or missing data. Please omit this file from your data request in the future.')
                 
 
         ndbc_data[buoy_id] = ndbc_data_buoy
