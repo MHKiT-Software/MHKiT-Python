@@ -10,6 +10,8 @@ from scipy.interpolate import interp1d
 from pandas.testing import assert_frame_equal
 import inspect
 from datetime import datetime
+import contextlib
+from io import StringIO
 
 
 testdir = dirname(abspath(__file__))
@@ -550,6 +552,14 @@ class TestIOndbc(unittest.TestCase):
             wave.io.ndbc.request_data('swden', pd.Series(dtype=float))
 
         self.assertTrue('At least 1 filename must be passed' in str(context.exception))
+
+    def test_ndbc_request_data_empty_file(self):
+        temp_stdout = StringIO()
+        filename = pd.Series("42008h1984.txt.gz")  # known empty file. If NDBC replaces, this test may fail. 
+        with contextlib.redirect_stdout(temp_stdout):
+            wave.io.ndbc.request_data('stdmet', filename)
+        output = temp_stdout.getvalue().strip()
+        self.assertEqual(output, 'The NDBC file "' + filename.values +'" is empty or missing data. Please omit this file from your data request in the future.')
         
     def test_ndbc_dates_to_datetime(self):
         dt = wave.io.ndbc.dates_to_datetime('swden', self.swden)
