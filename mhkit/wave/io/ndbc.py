@@ -284,7 +284,7 @@ def request_data(parameter, filenames, proxy=None):
 
 def to_datetime_index(parameter, ndbc_data):
     '''
-    Converts the NDBC date and time information sreported in seperate
+    Converts the NDBC date and time information reported in separate
     columns into a DateTime index and removed the NDBC date & time 
     columns.        
 
