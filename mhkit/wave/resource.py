@@ -690,15 +690,17 @@ def wave_number(f, h, rho=1025, g=9.80665):
 def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250, 
                           nb_steps=1000, return_PCA=False):
     '''    
-    This function calculates environmental contours of extreme sea 
+    Calculates environmental contours of extreme sea 
     states using the improved joint probability distributions 
-	to inverse first-order reliability method (IFORM) 
+	with the inverse first-order reliability method (IFORM) 
     probability for the desired return period (period). Given the 
-    period of interest a circle of iso-probability is createdv
-    Each point on this circle finds the componenet 1 contour lines
-	in the PCA reference frame. The using the imporoved PCA methodology
-    component 2 contour lines are calculated from component 1 using 
-    the relationships defined in the PCA.	
+    period of interest a circle of iso-probability is created in the
+    in the PCA joint probability (x1, x2) reference frame.  
+    Using the joint probability value the CDF of the marginal 
+    distribution is used to find the quantile of each component. 
+    Finally, using the improved PCA methodology
+    the component 2 contour lines are calculated from component 1 using 
+    the relationships defined in _principal_component_analysis.	
 
     Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
     Neary, V. S. (2016). Application of principal component 
@@ -723,9 +725,10 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
         Data points in each bin 		
     nb_steps : int
         Discretization of the circle in the normal space used for
-        inverse FORM calculation.
+        IFORM calculation.
 	return_PCA: boolean
-	    Default False, if True will retun the PCA dictionary from _principal_component_analysis
+	    Default False, if True will retun the PCA dictionary from 
+        _principal_component_analysis
 
     Returns
     -------
@@ -810,19 +813,12 @@ def _principal_component_analysis(x1, x2, size_bin=250):
     2) Fit the x1 data in the transformed reference frame with an 
        inverse Gaussian Distribution
     3) Bin the transformed data into groups of size bin and fin the 
-       mean of x1, the mean of x2, and the stadard deviation of x3
-    4) Perform a first order linear regression to determine a continuous
-       function relating the mean of the x1 bins to mean of the x2 bins
-    5) Find a second order polynomial which best relates the means of 
+       mean of x1, the mean of x2, and the standard deviation of x3
+    4) Perform a first-order linear regression to determine a continuous
+       the function relating the mean of the x1 bins to mean of the x2 bins
+    5) Find a second-order polynomial which best relates the means of 
        x1 to the standard deviation of x2 using constrained optimization
-       
-    For environmental wave contours (variables Hm0 and Te (or Tp)) 
-    the standard PCA method does not remove all convairance. 
-    Yhe variable inter[dependence in principal axes frame is quantified
-    using a linear fit for the mean and a constrained polynomial of
-    order 2 fit for the standard deviation.
-
-    
+         
     Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
     Neary, V. S. (2016). Application of principal component 
     analysis (PCA) and improved joint probability distributions to 
