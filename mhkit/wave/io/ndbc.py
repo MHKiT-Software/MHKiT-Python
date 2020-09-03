@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 import requests
 import zlib
+import pandas.errors
+
 
 
 def read_file(file_name, missing_values=['MM',9999,999,99]):
@@ -266,9 +268,17 @@ def request_data(parameter, filenames, proxy=None):
                 response = requests.get(file_url)
             else:
                 response = requests.get(file_url, proxies=proxy)
-            data = zlib.decompress(response.content, 16+zlib.MAX_WBITS)
-            df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)
-            ndbc_data_buoy[year] = df
+            try: 
+                data = zlib.decompress(response.content, 16+zlib.MAX_WBITS)
+                df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)
+                ndbc_data_buoy[year] = df
+            except zlib.error: 
+                print('Issue decompressing the NDBC files. Please re-run your code. It may take several tries to run sucessfully')
+
+            except pandas.errors.EmptyDataError: 
+                print('The NDBC file,' + filename + ', is empty or missing data. Please omit this file from your data request in the future.')
+                
+
         ndbc_data[buoy_id] = ndbc_data_buoy
         
     if len(ndbc_data) == 1:
