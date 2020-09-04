@@ -2,6 +2,7 @@ $ cat .gitignore
 
 # File Types
 *.asv
+*.m
 *.mat
 *.pyc
 *.py~
@@ -28,4 +29,5 @@ $ cat .gitignore
 .gitignore
 
 # Exemptions
-!wecsim_output.mat
+!**/examples/data/*.mat
+!**/tests/data/*.mat

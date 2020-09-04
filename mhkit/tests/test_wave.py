@@ -15,6 +15,9 @@ from datetime import datetime
 testdir = dirname(abspath(__file__))
 datadir = normpath(join(testdir,relpath('../../examples/data/wave')))
 
+basedir = testdir.strip('mhkit\\tests')
+exampledir = join(basedir, 'examples\\data')
+
 class TestResourceSpectrum(unittest.TestCase):
 
     @classmethod
@@ -570,6 +573,49 @@ class TestIOndbc(unittest.TestCase):
         parameter='swden'
         units = wave.io.ndbc.parameter_units(parameter)
         self.assertEqual(units[parameter], '(m*m)/Hz')        
+
+class TestWECSim(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(self):
+        pass
+            
+    @classmethod
+    def tearDownClass(self):
+        pass
+
+    ### WEC-Sim data, mo mooring
+    def test_read_wecSim_no_mooring(self):
+        ws_output = wave.io.wecsim.read_output(join(exampledir, 'RM3_matlabWorkspace_structure.mat'))
+        self.assertEqual(ws_output['wave'].elevation.name,'elevation')
+        self.assertEqual(ws_output['bodies']['body1'].name,'float')
+        self.assertEqual(ws_output['ptos'].name,'PTO1')        
+        self.assertEqual(ws_output['constraints'].name,'Constraint1')
+        self.assertEqual(len(ws_output['mooring']),0)
+        self.assertEqual(len(ws_output['moorDyn']),0)
+        self.assertEqual(len(ws_output['ptosim']),0)
+
+    ### WEC-Sim data, with mooring
+    def test_read_wecSim_with_mooring(self):
+        ws_output = wave.io.wecsim.read_output(join(exampledir, 'RM3MooringMatrix_matlabWorkspace_structure.mat'))
+        self.assertEqual(ws_output['wave'].elevation.name,'elevation')
+        self.assertEqual(ws_output['bodies']['body1'].name,'float')
+        self.assertEqual(ws_output['ptos'].name,'PTO1')        
+        self.assertEqual(ws_output['constraints'].name,'Constraint1')
+        self.assertEqual(len(ws_output['mooring']),40001)
+        self.assertEqual(len(ws_output['moorDyn']),0)
+        self.assertEqual(len(ws_output['ptosim']),0)
+        
+    ### WEC-Sim data, with moorDyn
+    def test_read_wecSim_with_moorDyn(self):
+        ws_output = wave.io.wecsim.read_output(join(exampledir, 'RM3MoorDyn_matlabWorkspace_structure.mat'))
+        self.assertEqual(ws_output['wave'].elevation.name,'elevation')
+        self.assertEqual(ws_output['bodies']['body1'].name,'float')
+        self.assertEqual(ws_output['ptos'].name,'PTO1')        
+        self.assertEqual(ws_output['constraints'].name,'Constraint1')
+        self.assertEqual(len(ws_output['mooring']),40001)
+        self.assertEqual(len(ws_output['moorDyn']),7)
+        self.assertEqual(len(ws_output['ptosim']),0)
 
 if __name__ == '__main__':
     unittest.main() 
