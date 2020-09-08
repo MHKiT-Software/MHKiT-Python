@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import fatpack
 
+###### General functions
 
 def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     """
@@ -79,8 +80,134 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
 
     return bin_mean, bin_std
 
+def calculate_TSR(rotor_speed,blade_length,inflow_speed):
+    '''
+    Function used to calculate the tip speed ratio (TSR) of a MH device with rotor
 
-################ fatigue functions
+    Parameters:
+    ---------------
+    rotor_speed : numpy array
+        Rotor speed [rpm]
+    blade_length : float/int
+        Length of blade [m]
+    inflow_speed : numpy array
+        Velocity of inflow condition [m/s]
+
+    Returns:
+    -----------------
+    TSR : numpy array
+        Calculated tip speed ratio (TSR)
+    '''
+    # check data type
+    try:
+        rotor_speed = np.asarray(rotor_speed)
+        inflow_speed = np.asarray(inflow_speed)
+    except:
+        pass
+
+    assert isinstance(rotor_speed, np.ndarray), 'rotor_speed must be of type np.ndarray'
+    assert isinstance(blade_length, (float,int)), 'blade_length must be of type int or float'
+    assert isinstance(inflow_speed, np.ndarray), 'inflow_speed must be of type np.ndarray'
+
+    # get rotational velocity in m/s
+    rotor_velocity = rotor_speed / 60 * 2*np.pi*blade_length
+
+    # calculate TSR
+    TSR = rotor_velocity / inflow_speed
+
+    return TSR
+
+def calculate_Cp(power,inflow_speed,capture_area,rho):
+    '''
+    Function that calculates the power coefficient of device
+
+    Parameters
+    -------------
+    power : numpy array
+        Power output signal of device after losses [kW]
+    inflow_speed : numpy array
+        Speed of inflow [m/s]
+    capture_area : float/int
+        Projected area of rotor normal to inflow [m^2]
+    rho : float/int
+        Density of environment [kg/m^3]
+
+    Returns
+    -------------
+    Cp : numpy array
+        Power coefficient of device [-]
+
+    '''
+    # check data types
+    try:
+        power = np.asarray(power)
+        inflow_speed = np.asarray(inflow_speed)
+    except:
+        pass
+
+    assert isinstance(power, np.ndarray), 'power must be of type np.ndarray'
+    assert isinstance(inflow_speed, np.ndarray), 'inflow_speed must be of type np.ndarray'
+    assert isinstance(capture_area, (float,int)), 'capture_area must be of type int or float'
+    assert isinstance(rho, (float,int)), 'rho must be of type int or float'
+
+    # calculat power in
+    P_in = 0.5 * rho * capture_area * inflow_speed**3
+
+    # calculate Cp ratio
+    Cp = power / P_in 
+
+    return Cp
+
+def calculate_blade_moments(blade_matrix,flap_offset,flap_raw,edge_offset,edge_raw):
+    '''
+    Transfer function for deriving blade flap and edge moments using blade matrix.
+
+    Parameters
+    -------------
+    blade_matrix : numpy array
+        Derived blade calibration coefficients [D1,D2,D3,D4]
+    flap_offset : float/int
+        Derived offset of raw flap signal obtained during calibration process
+    flap_raw : numpy array
+        Raw strain signal of blade in the flapwise direction
+    edge_offset : float/int
+        Derived offset of raw edge signal obtained during calibration process
+    edge_raw : numpy array
+        Raw strain signal of blade in the edgewise direction
+    
+    Returns:
+    -------------
+    M_flap : numpy array
+        Blade flapwise moment in engineering units
+    M_edge : numpy array
+        Blade edgewise moment in engineering units
+    '''
+    # check data types
+    try:
+        blade_matrix = np.asarray(blade_matrix)
+        flap_raw = np.asarray(flap_raw)
+        edge_raw = np.asarray(edge_raw)
+    except:
+        pass
+            
+    assert isinstance(blade_matrix, np.ndarray), 'blade_matrix must be of type np.ndarray'
+    assert isinstance(flap_offset, (float,int)), 'flap_offset must be of type int or float'
+    assert isinstance(flap_raw, np.ndarray), 'flap_raw must be of type np.ndarray'
+    assert isinstance(edge_offset, (float,int)), 'edge_offset must be of type int or float'
+    assert isinstance(edge_raw, np.ndarray), 'edge_raw must be of type np.ndarray'
+
+    # remove offset from raw signal
+    flap_signal = flap_raw - flap_offset
+    edge_signal = edge_raw - edge_offset
+
+    # apply matrix to get load signals
+    M_flap = blade_matrix(0)*flap_signal + blade_matrix(1)*edge_signal
+    M_edge = blade_matrix(3)*flap_signal + blade_matrix(4)*edge_signal
+
+    return M_flap, M_edge
+
+
+################ Fatigue functions
 
 def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     """
@@ -90,7 +217,7 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
         
     - `C. Amzallag et. al. Standardization of the rainflow counting method for
       fatigue analysis. International Journal of Fatigue, 16 (1994) 287-293`
-      `ISO 12110-2, Metallic materials - Fatigue testing - Variable amplitude
+    - `ISO 12110-2, Metallic materials - Fatigue testing - Variable amplitude
       fatigue testing.`
     - `G. Marsh et. al. Review and application of Rainflow residue processing
       techniques for accurate fatigue damage estimation. International Journal
