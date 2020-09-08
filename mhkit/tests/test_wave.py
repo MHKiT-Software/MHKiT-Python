@@ -436,7 +436,7 @@ class TestResourceContours(unittest.TestCase):
         expected_contours = pd.read_csv(join(datadir,'Hm0_Te_contours_46022.csv'))
         assert_allclose(expected_contours.Hm0_contour.values, Hm0_contour, rtol=1e-3)
         
-    def test__principal_componenet_analysis(self):
+    def test__principal_component_analysis(self):
         Hm0Te = self.Hm0Te
         df = Hm0Te[Hm0Te['Hm0'] < 20]
         
@@ -450,6 +450,33 @@ class TestResourceContours(unittest.TestCase):
         self.assertAlmostEqual(PCA['mu_fit'].slope, self.pca['mu_fit'].slope)
         self.assertAlmostEqual(PCA['mu_fit'].intercept, self.pca['mu_fit'].intercept)
         assert_allclose(PCA['sigma_fit']['x'], self.pca['sigma_fit']['x'])
+        
+    def test_plot_environmental_contour(self):
+        filename = abspath(join(testdir, 'wave_plot_environmental_contour.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        Hm0Te = self.Hm0Te
+        df = Hm0Te[Hm0Te['Hm0'] < 20]
+        
+        Hm0 = df.Hm0.values  
+        Te = df.Te.values 
+        
+        dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds  
+        time_R = 100  
+        
+        Hm0_contour, Te_contour = wave.resource.environmental_contour(Hm0, Te, 
+                                                    dt_ss, time_R)
+        
+        plt.figure()
+        wave.graphics.plot_environmental_contour(Hm0, Te,
+                                                 Hm0_contour, Te_contour,
+                                                 'NDBC 46022',
+                                                 '100-year Contour')
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))        
         
         
 class TestPerformance(unittest.TestCase):
