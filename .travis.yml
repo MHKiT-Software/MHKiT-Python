@@ -7,7 +7,7 @@ cache: pip
 install:
   - pip install -e .
 script:
-    - nosetests -v --with-coverage --cover-package=mhkit mhkit
+  - nosetests -v --with-coverage --cover-package=mhkit mhkit
       
 after_success:
-    coveralls
+  - coveralls
