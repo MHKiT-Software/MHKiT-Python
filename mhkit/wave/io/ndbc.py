@@ -315,6 +315,9 @@ def to_datetime_index(parameter, ndbc_data):
 	df_datetime: DataFrame
 	    Dataframe with NDBC date columns removed, and datetime index
     '''  
+    assert isinstance(parameter, str), 'parameter must be a string'
+    assert isinstance(ndbc_data, pd.DataFrame), 'ndbc_data must be of type pd.DataFrame'
+    
     df_datetime = ndbc_data.copy(deep=True)
     df_datetime['date'], ndbc_date_cols = dates_to_datetime(parameter, 
                                                           df_datetime, 
