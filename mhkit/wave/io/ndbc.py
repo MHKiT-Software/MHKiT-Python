@@ -1,9 +1,12 @@
 from collections import OrderedDict as _OrderedDict
+from collections import defaultdict as _defaultdict
 from io import BytesIO
 import pandas as pd
 import numpy as np
 import requests
 import zlib
+import pandas.errors
+
 
 
 def read_file(file_name, missing_values=['MM',9999,999,99]):
@@ -234,16 +237,19 @@ def request_data(parameter, filenames, proxy=None):
 	    Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
     
     proxy: dict
-	    Proxy dict passed to python requests, (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
+	    Proxy dict passed to python requests, 
+        (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
         
     Returns
     -------
     ndbc_data: dict
         Dictionary of DataFrames indexed by buoy and year.
     '''
-    assert isinstance(filenames, (pd.Series,pd.DataFrame)), 'filenames must be of type pd.Series' 
+    assert isinstance(filenames, (pd.Series,pd.DataFrame)), (
+        'filenames must be of type pd.Series') 
     assert isinstance(parameter, str), 'parameter must be a string'
-    assert isinstance(proxy, (dict, type(None))), 'If specified proxy must be a dict' 
+    assert isinstance(proxy, (dict, type(None))), ('If specified proxy' 
+      'must be a dict')
     
     supported =_supported_params(parameter)
     if isinstance(filenames,pd.DataFrame):
@@ -252,11 +258,9 @@ def request_data(parameter, filenames, proxy=None):
     assert len(filenames)>0, "At least 1 filename must be passed"      
     buoy_data = _parse_filenames(parameter, filenames)
     parameter_url = f'https://www.ndbc.noaa.gov/data/historical/{parameter}'
-    ndbc_data = {}    
+    ndbc_data = _defaultdict(dict)    
     
-    for buoy_id in buoy_data['id'].unique():
-        ndbc_data_buoy={}
-        
+    for buoy_id in buoy_data['id'].unique():        
         buoy = buoy_data[buoy_data['id']== buoy_id]
         years = buoy.year
         filenames = buoy.filename
@@ -266,11 +270,23 @@ def request_data(parameter, filenames, proxy=None):
                 response = requests.get(file_url)
             else:
                 response = requests.get(file_url, proxies=proxy)
-            data = zlib.decompress(response.content, 16+zlib.MAX_WBITS)
-            df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)
-            ndbc_data_buoy[year] = df
-        ndbc_data[buoy_id] = ndbc_data_buoy
-        
+            try: 
+                data = zlib.decompress(response.content, 16+zlib.MAX_WBITS)
+                df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)                
+            except zlib.error: 
+                msg = (f'Issue decompressing the NDBC file {filename}'  
+                       f'(id: {buoy_id}, year: {year}). Please request ' 
+                       'the data again.')
+                print(msg)
+            except pandas.errors.EmptyDataError: 
+                msg = (f'The NDBC buoy {buoy_id} for year {year} with ' 
+                       f'filename {filename} is empty or missing '     
+                        'data. Please omit this file from your data '   
+                        'request in the future.')
+                print(msg)
+            else:
+                ndbc_data[buoy_id][year] = df    
+                             
     if len(ndbc_data) == 1:
         ndbc_data = ndbc_data[buoy_id]
 
