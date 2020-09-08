@@ -647,7 +647,6 @@ class TestIOndbc(unittest.TestCase):
         dt = wave.io.ndbc.to_datetime_index('swden', self.swden)        
         self.assertEqual(type(dt.index), pd.DatetimeIndex)
         self.assertFalse({'YY','MM','DD','hh'}.issubset(dt.columns))       
-        self.assertTrue('At least 1 filename must be passed' in str(context.exception))
 
     def test_ndbc_request_data_empty_file(self):
         temp_stdout = StringIO()
