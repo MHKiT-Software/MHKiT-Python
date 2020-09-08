@@ -735,9 +735,9 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
     x1_Return : np.array
         Calculated x1 values along the contour boundary following
         return to original input orientation.
-    T_Return : np.array
-       Calculated T values along the contour boundary following
-       return to original input orientation.
+    x2_Return : np.array
+       Calculated x1 values along the contour boundary following
+        return to original input orientation.
     PCA: Dictionary (optional)
 	    principal component analysis dictionary 
        Keys:
