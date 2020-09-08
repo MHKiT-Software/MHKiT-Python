@@ -555,11 +555,28 @@ class TestIOndbc(unittest.TestCase):
 
     def test_ndbc_request_data_empty_file(self):
         temp_stdout = StringIO()
-        filename = pd.Series("42008h1984.txt.gz")  # known empty file. If NDBC replaces, this test may fail. 
+        # known empty file. If NDBC replaces, this test may fail. 
+        filename = "42008h1984.txt.gz"  
+        buoy_id='42008'
+        year = '1984'
         with contextlib.redirect_stdout(temp_stdout):
-            wave.io.ndbc.request_data('stdmet', filename)
+            wave.io.ndbc.request_data('stdmet', pd.Series(filename))
         output = temp_stdout.getvalue().strip()
-        self.assertEqual(output, 'The NDBC file "' + filename.values +'" is empty or missing data. Please omit this file from your data request in the future.')
+        msg = (f'The NDBC buoy {buoy_id} for year {year} with ' 
+               f'filename {filename} is empty or missing '     
+                'data. Please omit this file from your data '   
+                'request in the future.')
+        self.assertEqual(output, msg)
+
+    def test_ndbc_request_multiple_files_with_empty_file(self):
+        temp_stdout = StringIO()
+        # known empty file. If NDBC replaces, this test may fail. 
+        empty_file = '42008h1984.txt.gz'
+        working_file = '46042h1996.txt.gz'
+        filenames = pd.Series([empty_file, working_file])
+        with contextlib.redirect_stdout(temp_stdout):
+            ndbc_data =wave.io.ndbc.request_data('stdmet', filenames)        
+        self.assertEqual(1, len(ndbc_data))              
         
     def test_ndbc_dates_to_datetime(self):
         dt = wave.io.ndbc.dates_to_datetime('swden', self.swden)
