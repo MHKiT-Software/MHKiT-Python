@@ -300,11 +300,25 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour,
                                contour_label=None,
                                ax=None):
     """
-    Plot wave surface elevation time-series
+    Plots an overlay of the x1 and x2 variables to the calculated
+    contours.
 
     Parameters
     ------------
-
+    x1: array like
+        Component 1 data
+    x2: array like
+        Component 2 data     
+    x1_Return : np.array
+        Calculated x1 values along the contour boundary following
+        return to original input orientation.
+    x2_Return : np.array
+       Calculated x1 values along the contour boundary following
+        return to original input orientation.
+    data_label: string
+        Label for x1, x2 data
+    contour_label: string
+        Label for countor data (x1_contour, x2_contour)    
     ax : matplotlib axes object
         Axes for plotting.  If None, then a new figure is created.
 
