@@ -5,8 +5,10 @@ from scipy.interpolate import interp1d
 import matplotlib.pylab as plt
 from datetime import datetime
 import mhkit.wave as wave
+from io import StringIO
 import pandas as pd
 import numpy as np
+import contextlib
 import unittest
 import inspect
 import pickle
@@ -644,8 +646,33 @@ class TestIOndbc(unittest.TestCase):
     def test_ndbc_to_datetime_index(self):
         dt = wave.io.ndbc.to_datetime_index('swden', self.swden)        
         self.assertEqual(type(dt.index), pd.DatetimeIndex)
-        self.assertFalse({'YY','MM','DD','hh'}.issubset(dt.columns))
-        
+        self.assertFalse({'YY','MM','DD','hh'}.issubset(dt.columns))       
+        self.assertTrue('At least 1 filename must be passed' in str(context.exception))
+
+    def test_ndbc_request_data_empty_file(self):
+        temp_stdout = StringIO()
+        # known empty file. If NDBC replaces, this test may fail. 
+        filename = "42008h1984.txt.gz"  
+        buoy_id='42008'
+        year = '1984'
+        with contextlib.redirect_stdout(temp_stdout):
+            wave.io.ndbc.request_data('stdmet', pd.Series(filename))
+        output = temp_stdout.getvalue().strip()
+        msg = (f'The NDBC buoy {buoy_id} for year {year} with ' 
+               f'filename {filename} is empty or missing '     
+                'data. Please omit this file from your data '   
+                'request in the future.')
+        self.assertEqual(output, msg)
+
+    def test_ndbc_request_multiple_files_with_empty_file(self):
+        temp_stdout = StringIO()
+        # known empty file. If NDBC replaces, this test may fail. 
+        empty_file = '42008h1984.txt.gz'
+        working_file = '46042h1996.txt.gz'
+        filenames = pd.Series([empty_file, working_file])
+        with contextlib.redirect_stdout(temp_stdout):
+            ndbc_data =wave.io.ndbc.request_data('stdmet', filenames)        
+        self.assertEqual(1, len(ndbc_data))              
         
     def test_ndbc_dates_to_datetime(self):
         dt = wave.io.ndbc.dates_to_datetime('swden', self.swden)
