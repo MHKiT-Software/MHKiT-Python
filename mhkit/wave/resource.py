@@ -715,7 +715,7 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
     x2: array like
         Component 2 data        	
     dt : float
-        x1 and x2 temporal period (seconds) 
+        x1 and x2 sample rate (seconds)
     period : int or float
         Desired return period (years) for calculation of environmental
         contour, can be a scalar or a vector.
@@ -725,7 +725,7 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
         for the passe x1, and x2.
     size_bin : float
         Data points in each bin 		
-    nb_steps : int
+    nb_steps : int (optional)
         Discretization of the circle in the normal space used for
         IFORM calculation.
 	return_PCA: boolean
@@ -810,8 +810,8 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
     x1_contour = np.maximum(0, x1_contour)  
     
     if return_PCA:
-        return x1_contour, x2_contour, PCA
-    return x1_contour, x2_contour
+        return np.transpose(x1_contour), np.transpose(x2_contour), PCA
+    return np.transpose(x1_contour), np.transpose(x2_contour)
 
 def _principal_component_analysis(x1, x2, size_bin=250):
     '''
