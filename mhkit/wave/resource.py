@@ -700,7 +700,7 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
     distribution is used to find the quantile of each component. 
     Finally, using the improved PCA methodology
     the component 2 contour lines are calculated from component 1 using 
-    the relationships defined in _principal_component_analysis.	
+    the relationships defined in Exkert-Gallup et. al. 2016.	
 
     Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
     Neary, V. S. (2016). Application of principal component 
@@ -720,15 +720,16 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
         Desired return period (years) for calculation of environmental
         contour, can be a scalar or a vector.
     PCA: dict
-	    properties returned from _principal_component_analysis
+	    principal component analysis dictionary from previous function 
+        call. When supplied the function will skip the PCA calculation 
+        for the passe x1, and x2.
     size_bin : float
         Data points in each bin 		
     nb_steps : int
         Discretization of the circle in the normal space used for
         IFORM calculation.
 	return_PCA: boolean
-	    Default False, if True will retun the PCA dictionary from 
-        _principal_component_analysis
+	    Default False, if True will retun the PCA dictionary 
 
     Returns
     -------
