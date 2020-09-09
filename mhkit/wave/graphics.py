@@ -295,7 +295,7 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
 
     plt.tight_layout()
 
-def plot_environmental_contour(x1, x2, x1_contour, x2_contour, 
+def plot_environmental_contour(Hs, T, Hs_contour, T_contour, 
                                data_label=None, 
                                contour_label=None,
                                ax=None):
@@ -328,8 +328,8 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour,
     assert isinstance(T, np.ndarray), 'T must be of type np.ndarray'
     assert isinstance(Hs_contour, np.ndarray), 'Hs_contour must be of type np.ndarray'
     assert isinstance(T_contour, np.ndarray), 'T_contour must be of type np.ndarray'
-    assert isinstance(data_lable, str), 'data_label must be of type str'
-    assert isinstance(contour_lable, str), 'contour_label be of type str'
+    assert isinstance(data_label, str), 'data_label must be of type str'
+    assert isinstance(contour_label, str), 'contour_label be of type str'
     
 
     ax = _xy_plot(T_contour, Hs_contour, 'k-', 

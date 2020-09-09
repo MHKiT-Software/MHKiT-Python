@@ -753,7 +753,7 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
     assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
     assert isinstance(dt, (int,float)), 'dt must be of type int or float'
-    assert isinstance(years, (int,float)), 'years must be of type int or float'
+    assert isinstance(period, (int,float)), 'period must be of type int or float'
     assert isinstance(PCA, (dict, type(None))), 'If specified PCA must be a dict'
     assert isinstance(size_bin, int), 'size_bin must be of type int'
     assert isinstance(nb_steps, int), 'nb_steps must be of type int'
