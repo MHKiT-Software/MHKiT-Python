@@ -807,7 +807,7 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
 def _principal_component_analysis(x1, x2, size_bin=250):
     '''
     Performs a modified principal component analysis (PCA) 
-    [Eckert et. al 2015] on two variables (x1, x2). The additional
+    [Eckert et. al 2016] on two variables (x1, x2). The additional
     PCA is performed in 5 steps:
     1) Transform x1 & x2 into the principal component domain and shift
        the y-axis so that all values are positive and non-zero
