@@ -716,7 +716,7 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
         Component 2 data        	
     dt : float
         x1 and x2 temporal period (seconds) 
-    period : np.array
+    period : int or float
         Desired return period (years) for calculation of environmental
         contour, can be a scalar or a vector.
     PCA: dict
@@ -750,6 +750,15 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
        'sigma_param'   : fit to _sig_fits 
 
     '''
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(dt, (int,float)), 'dt must be of type int or float'
+    assert isinstance(years, (int,float)), 'years must be of type int or float'
+    assert isinstance(PCA, (dict, type(None))), 'If specified PCA must be a dict'
+    assert isinstance(size_bin, int), 'size_bin must be of type int'
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    assert isinstance(return_PCA, bool), 'return_PCA must be of type bool'
+    
     if PCA == None:
         PCA = _principal_component_analysis(x1, x2, size_bin=size_bin)
 	
@@ -846,6 +855,9 @@ def _principal_component_analysis(x1, x2, size_bin=250):
        'mu_param'      : fit to _mu_fcn
        'sigma_param'   : fit to _sig_fits            
     '''
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(size_bin, int), 'size_bin must be of type int'
     # Step 0: Perform Standard PCA          
     mean_location=0    
     x1_mean_centered = x1 - x1.mean(axis=0)
