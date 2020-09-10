@@ -25,9 +25,16 @@ class TestLoads(unittest.TestCase):
                }
         self.data = data
 
-
         self.fatigue_tower = 3804
         self.fatigue_blade = 1388
+
+        # import blade cal data
+        blade_data = pd.read_csv(join(datadir,'blade_cal.csv'),header=None)
+        blade_data.columns = ['flap_raw','edge_raw','flap_scaled','edge_scaled']
+        self.blade_data = blade_data
+        self.flap_offset = 9.19906E-05
+        self.edge_offset = -0.000310854
+        self.blade_matrix = [1034671.4,-126487.28,82507.959,1154090.7]
 
     def test_bin_statistics(self):
         # create array containg wind speeds to use as bin edges
@@ -40,6 +47,45 @@ class TestLoads(unittest.TestCase):
 
         assert_frame_equal(self.data['bin_means'],b_means)
         assert_frame_equal(self.data['bin_means_std'],b_means_std)
+
+
+    def test_calculate_TSR(self):
+        rotor_speed = [15,16,17,18] # create array of rotor speeds
+        rotor_diameter = 77 # diameter of rotor for GE 1.5
+        inflow_speed = [13,13,13,13] # array of wind speeds
+        TSR_answer = [4.7,5.0,5.3,5.6]
+        
+        TSR = loads.calculate_TSR(rotor_speed,rotor_diameter,inflow_speed)
+        error = np.abs((TSR_answer - TSR)/TSR_answer)
+
+        self.assertTrue((error < 0.015).all())
+
+    def test_calculate_Cp(self):
+        # data obtained from power performance report of wind turbine
+        inflow_speed = [4,6,8,10,12,14,16,18,20]
+        power_out = [59,304,742,1200,1400,1482,1497,1497,1511]
+        capture_area = 4657
+        rho = 1.225
+        Cp_answer = [0.318,0.493,0.508,0.421,0.284,0.189,0.128,0.090,0.066]
+        
+        Cp = loads.calculate_Cp(power_out,inflow_speed,capture_area,rho)
+        error = np.abs((Cp_answer - Cp) / Cp_answer)
+
+        self.assertTrue((error < 0.02).all())
+
+    def test_calculate_blade_moments(self):
+        flap_raw = self.blade_data['flap_raw']
+        flap_offset = self.flap_offset
+        edge_raw = self.blade_data['edge_raw']
+        edge_offset = self.edge_offset
+
+        M_flap, M_edge = loads.calculate_blade_moments(self.blade_matrix,flap_offset,flap_raw,edge_offset,edge_raw)
+
+        error_flap = np.abs((self.blade_data['flap_scaled']-M_flap)/self.blade_data['flap_scaled'])
+        error_edge = np.abs((self.blade_data['edge_scaled']-M_edge)/self.blade_data['edge_scaled'])
+
+        self.assertTrue((error_flap < 0.02).all())
+        self.assertTrue((error_edge < 0.02).all())
 
     def test_damage_equivalent_loads(self):
         loads_data = self.data['loads']
