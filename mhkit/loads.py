@@ -80,7 +80,7 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
 
     return bin_mean, bin_std
 
-def calculate_TSR(rotor_speed,blade_length,inflow_speed):
+def calculate_TSR(rotor_speed,rotor_diameter,inflow_speed):
     '''
     Function used to calculate the tip speed ratio (TSR) of a MH device with rotor
 
@@ -88,8 +88,8 @@ def calculate_TSR(rotor_speed,blade_length,inflow_speed):
     ---------------
     rotor_speed : numpy array
         Rotor speed [rpm]
-    blade_length : float/int
-        Length of blade [m]
+    rotor_diameter : float/int
+        Diameter of rotor [m]
     inflow_speed : numpy array
         Velocity of inflow condition [m/s]
 
@@ -106,11 +106,11 @@ def calculate_TSR(rotor_speed,blade_length,inflow_speed):
         pass
 
     assert isinstance(rotor_speed, np.ndarray), 'rotor_speed must be of type np.ndarray'
-    assert isinstance(blade_length, (float,int)), 'blade_length must be of type int or float'
+    assert isinstance(rotor_diameter, (float,int)), 'rotor diameter must be of type int or float'
     assert isinstance(inflow_speed, np.ndarray), 'inflow_speed must be of type np.ndarray'
 
     # get rotational velocity in m/s
-    rotor_velocity = rotor_speed / 60 * 2*np.pi*blade_length
+    rotor_velocity = rotor_speed / 60 * np.pi*rotor_diameter
 
     # calculate TSR
     TSR = rotor_velocity / inflow_speed
@@ -151,7 +151,7 @@ def calculate_Cp(power,inflow_speed,capture_area,rho):
     assert isinstance(rho, (float,int)), 'rho must be of type int or float'
 
     # calculat power in
-    P_in = 0.5 * rho * capture_area * inflow_speed**3
+    P_in = (0.5 * rho * capture_area * inflow_speed**3)/1000
 
     # calculate Cp ratio
     Cp = power / P_in 
@@ -201,8 +201,8 @@ def calculate_blade_moments(blade_matrix,flap_offset,flap_raw,edge_offset,edge_r
     edge_signal = edge_raw - edge_offset
 
     # apply matrix to get load signals
-    M_flap = blade_matrix(0)*flap_signal + blade_matrix(1)*edge_signal
-    M_edge = blade_matrix(3)*flap_signal + blade_matrix(4)*edge_signal
+    M_flap = blade_matrix[0]*flap_signal + blade_matrix[1]*edge_signal
+    M_edge = blade_matrix[2]*flap_signal + blade_matrix[3]*edge_signal
 
     return M_flap, M_edge
 
