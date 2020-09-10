@@ -329,10 +329,12 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour,
     """
 
     #assert isinstance(eta, pd.DataFrame), 'eta must be of type pd.DataFrame'
-    
-
-    ax = _xy_plot(x2_contour, x1_contour, 'k-', 
+    columns = an_array.shape[1]
+    for i in range(columns):
+        
+        ax = _xy_plot(x2_contour, x1_contour, 'k-', 
                   label=contour_label, ax=ax)
+                  
     ax = plt.plot(x2, x1, 'bo', alpha=0.1, 
                   label=data_label) 
     plt.legend(loc='lower right')
