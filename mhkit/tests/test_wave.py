@@ -1,5 +1,5 @@
 import unittest
-from os.path import abspath, dirname, join, isfile
+from os.path import abspath, dirname, join, isfile, normpath, relpath
 import os
 import numpy as np
 import pandas as pd
@@ -9,10 +9,13 @@ import mhkit.wave as wave
 from scipy.interpolate import interp1d
 from pandas.testing import assert_frame_equal
 import inspect
+from datetime import datetime
+import contextlib
+from io import StringIO
 
 
 testdir = dirname(abspath(__file__))
-datadir = join(testdir, 'data')
+datadir = normpath(join(testdir,relpath('../../examples/data/wave')))
 
 class TestResourceSpectrum(unittest.TestCase):
 
@@ -157,6 +160,48 @@ class TestResourceSpectrum(unittest.TestCase):
         wave.graphics.plot_spectrum(S)
         plt.savefig(filename, format='png')
         plt.close()
+        
+        self.assertTrue(isfile(filename))
+
+    def test_plot_chakrabarti(self):            
+        filename = abspath(join(testdir, 'wave_plot_chakrabarti.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        D = 5
+        H = 10
+        lambda_w = 200
+
+        wave.graphics.plot_chakrabarti(H, lambda_w, D)
+        plt.savefig(filename)
+
+    def test_plot_chakrabarti_np(self):            
+        filename = abspath(join(testdir, 'wave_plot_chakrabarti_np.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        D = np.linspace(5, 15, 5)
+        H = 10 * np.ones_like(D)
+        lambda_w = 200 * np.ones_like(D)
+
+        wave.graphics.plot_chakrabarti(H, lambda_w, D)
+        plt.savefig(filename)
+        
+        self.assertTrue(isfile(filename))
+
+    def test_plot_chakrabarti_pd(self):            
+        filename = abspath(join(testdir, 'wave_plot_chakrabarti_pd.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        D = np.linspace(5, 15, 5)
+        H = 10 * np.ones_like(D)
+        lambda_w = 200 * np.ones_like(D)
+        df = pd.DataFrame([H.flatten(),lambda_w.flatten(),D.flatten()],
+                         index=['H','lambda_w','D']).transpose()
+
+        wave.graphics.plot_chakrabarti(df.H, df.lambda_w, df.D)
+        plt.savefig(filename)
         
         self.assertTrue(isfile(filename))
         
@@ -416,7 +461,7 @@ class TestPerformance(unittest.TestCase):
         
         self.assertTrue(isfile(filename))
     
-class TestIO(unittest.TestCase):
+class TestIOndbc(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
@@ -433,35 +478,125 @@ class TestIO(unittest.TestCase):
             'WVHT': 'm', 'DPD': 'sec', 'APD': 'sec', 'MWD': 'deg', 'PRES': 'hPa', 
             'ATMP': 'degC', 'WTMP': 'degC', 'DEWP': 'degC', 'VIS': 'nmi', 
             'TIDE': 'ft'}
+        self.filenames=['46042w1996.txt.gz', 
+                        '46029w1997.txt.gz', 
+                        '46029w1998.txt.gz']
+        self.swden = pd.read_csv(join(datadir,self.filenames[0]), sep=r'\s+', 
+                                 compression='gzip')
         
     @classmethod
     def tearDownClass(self):
         pass
     
     ### Realtime data
-    def test_read_NDBC_realtime_met(self):
-        data, units = wave.io.read_NDBC_file(join(datadir, '46097.txt'))
-        expected_index0 = pd.datetime(2019,4,2,13,50)
+    def test_ndbc_read_realtime_met(self):
+        data, units = wave.io.ndbc.read_file(join(datadir, '46097.txt'))
+        expected_index0 = datetime(2019,4,2,13,50)
         self.assertSetEqual(set(data.columns), set(self.expected_columns_metRT))
         self.assertEqual(data.index[0], expected_index0)
         self.assertEqual(data.shape, (6490, 14))
         self.assertEqual(units,self.expected_units_metRT)
             
     ### Historical data
-    def test_read_NDBC_historical_met(self):
+    def test_ndbnc_read_historical_met(self):
         # QC'd monthly data, Aug 2019
-        data, units = wave.io.read_NDBC_file(join(datadir, '46097h201908qc.txt'))
-        expected_index0 = pd.datetime(2019,8,1,0,0)
+        data, units = wave.io.ndbc.read_file(join(datadir, '46097h201908qc.txt'))
+        expected_index0 = datetime(2019,8,1,0,0)
         self.assertSetEqual(set(data.columns), set(self.expected_columns_metH))
         self.assertEqual(data.index[0], expected_index0)
         self.assertEqual(data.shape, (4464, 13))
         self.assertEqual(units,self.expected_units_metH)
         
     ### Spectral data
-    def test_read_NDBC_spectral(self):
-        data, units = wave.io.read_NDBC_file(join(datadir, 'data.txt'))
+    def test_ndbc_read_spectral(self):
+        data, units = wave.io.ndbc.read_file(join(datadir, 'data.txt'))
         self.assertEqual(data.shape, (743, 47))
         self.assertEqual(units, None)
+		
+    def test_ndbc_available_data(self):
+        data=wave.io.ndbc.available_data('swden', buoy_number='46029')
+                
+        cols = data.columns.tolist()
+        exp_cols = ['id', 'year', 'filename']
+        self.assertEqual(cols, exp_cols)                
+                
+        years = [int(year) for year in data.year.tolist()]
+        exp_years=[*range(1996,1996+len(years))]
+        self.assertEqual(years, exp_years)
+        self.assertEqual(data.shape, (len(data), 3))
+
+    def test__ndbc_parse_filenames(self):  
+        filenames= pd.Series(self.filenames)
+        buoys = wave.io.ndbc._parse_filenames('swden', filenames)
+        years = buoys.year.tolist()
+        numbers = buoys.id.tolist()
+        fnames = buoys.filename.tolist()
+        
+        self.assertEqual(buoys.shape, (len(filenames),3))    
+        self.assertEqual(years, ['1996','1997','1998'])  
+        self.assertEqual(numbers, ['46042','46029','46029'])          
+        self.assertEqual(fnames, self.filenames)
+        
+    def test_ndbc_request_data(self):
+        filenames= pd.Series(self.filenames[0])
+        ndbc_data = wave.io.ndbc.request_data('swden', filenames)
+        self.assertTrue(self.swden.equals(ndbc_data['1996']))
+
+    def test_ndbc_request_data_from_dataframe(self):
+        filenames= pd.DataFrame(pd.Series(data=self.filenames[0]))
+        ndbc_data = wave.io.ndbc.request_data('swden', filenames)
+        self.assertTrue(self.swden.equals(ndbc_data['1996']))
+
+    def test_ndbc_request_data_filenames_length(self):
+        with self.assertRaises(Exception) as context:
+            wave.io.ndbc.request_data('swden', pd.Series(dtype=float))
+
+        self.assertTrue('At least 1 filename must be passed' in str(context.exception))
+
+    def test_ndbc_request_data_empty_file(self):
+        temp_stdout = StringIO()
+        # known empty file. If NDBC replaces, this test may fail. 
+        filename = "42008h1984.txt.gz"  
+        buoy_id='42008'
+        year = '1984'
+        with contextlib.redirect_stdout(temp_stdout):
+            wave.io.ndbc.request_data('stdmet', pd.Series(filename))
+        output = temp_stdout.getvalue().strip()
+        msg = (f'The NDBC buoy {buoy_id} for year {year} with ' 
+               f'filename {filename} is empty or missing '     
+                'data. Please omit this file from your data '   
+                'request in the future.')
+        self.assertEqual(output, msg)
+
+    def test_ndbc_request_multiple_files_with_empty_file(self):
+        temp_stdout = StringIO()
+        # known empty file. If NDBC replaces, this test may fail. 
+        empty_file = '42008h1984.txt.gz'
+        working_file = '46042h1996.txt.gz'
+        filenames = pd.Series([empty_file, working_file])
+        with contextlib.redirect_stdout(temp_stdout):
+            ndbc_data =wave.io.ndbc.request_data('stdmet', filenames)        
+        self.assertEqual(1, len(ndbc_data))              
+        
+    def test_ndbc_dates_to_datetime(self):
+        dt = wave.io.ndbc.dates_to_datetime('swden', self.swden)
+        self.assertEqual(datetime(1996, 1, 1, 1, 0), dt[1])
+               
+    def test_date_string_to_datetime(self):
+        swden = self.swden.copy(deep=True)
+        swden['mm'] = np.zeros(len(swden)).astype(int).astype(str)
+        year_string='YY'
+        year_fmt='%y'
+        parse_columns = [year_string, 'MM', 'DD', 'hh', 'mm']
+        df = wave.io.ndbc._date_string_to_datetime(swden, parse_columns, 
+                                                   year_fmt) 
+        dt = df['date']
+        self.assertEqual(datetime(1996, 1, 1, 1, 0), dt[1])  
+        
+    def test_parameter_units(self):
+        parameter='swden'
+        units = wave.io.ndbc.parameter_units(parameter)
+        self.assertEqual(units[parameter], '(m*m)/Hz')        
 
 if __name__ == '__main__':
     unittest.main() 
