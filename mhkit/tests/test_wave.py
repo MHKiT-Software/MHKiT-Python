@@ -479,6 +479,33 @@ class TestResourceContours(unittest.TestCase):
         plt.close()
         
         self.assertTrue(isfile(filename))        
+
+    def test_plot_environmental_contour_multiyear(self):
+        filename = abspath(join(testdir, 'wave_plot_environmental_contour_multiyear.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        Hm0Te = self.Hm0Te
+        df = Hm0Te[Hm0Te['Hm0'] < 20]
+        
+        Hm0 = df.Hm0.values  
+        Te = df.Te.values 
+        
+        dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds  
+        time_R = np.array([[100], [105], [110], [120], [150]])  
+        
+        Hm0_contour, Te_contour = wave.resource.environmental_contour(Hm0, Te, 
+                                                    dt_ss, time_R)
+        contour_label = ['100 Year Contour','105 Year Contour','110 Year Contour','120 Year Contour','150 Year Contour']
+        plt.figure()
+        wave.graphics.plot_environmental_contour(Hm0, Te,
+                                                 Hm0_contour, Te_contour,
+                                                 'NDBC 46022',
+                                                 contour_label)
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))        
         
         
 class TestPerformance(unittest.TestCase):
