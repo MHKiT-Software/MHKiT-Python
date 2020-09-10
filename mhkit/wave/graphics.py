@@ -295,50 +295,57 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
 
     plt.tight_layout()
 
-def plot_environmental_contour(x1, x2, x1_contour, x2_contour, 
+def plot_environmental_contour(Hs, T, Hs_contour, T_contour, 
                                data_label=None, 
                                contour_label=None,
                                ax=None):
-    """
-    Plots an overlay of the x1 and x2 variables to the calculated
-    contours.
+    '''
+    Plots an overlay of the Hs and T variables to the calculate
+    environmental contours.
 
     Parameters
     ------------
-    x1: array like
-        Component 1 data
-    x2: array like
-        Component 2 data     
-    x1_Return : np.array
-        Calculated x1 values along the contour boundary following
-        return to original input orientation.
-    x2_Return : np.array
-       Calculated x1 values along the contour boundary following
-        return to original input orientation.
+    Hs: array like
+        Significant Wave Height
+    T: array like
+        Peak period or Energy period     
+    Hs_contour: np.array
+        Calculated Hs contour values
+    T_contour: np.array
+        Calculated contour T values 
     data_label: string
-        Label for x1, x2 data
-    contour_label: string
-        Label for countor data (x1_contour, x2_contour)    
+        Label for Hs, T data (e.g. 'Buoy 46022')
+    contour_label: string or list of strings
+        Label for Hs_contour, T_contour countor data (e.g. '100-year contour')
     ax : matplotlib axes object
         Axes for plotting.  If None, then a new figure is created.
 
     Returns
     ---------
     ax : matplotlib pyplot axes
-
-    """
-
-    #assert isinstance(eta, pd.DataFrame), 'eta must be of type pd.DataFrame'
-    columns = an_array.shape[1]
-    for i in range(columns):
-        
-        ax = _xy_plot(x2_contour, x1_contour, 'k-', 
-                  label=contour_label, ax=ax)
-                  
-    ax = plt.plot(x2, x1, 'bo', alpha=0.1, 
+     
+    '''
+    assert isinstance(Hs, np.ndarray), 'Hs must be of type np.ndarray'
+    assert isinstance(T, np.ndarray), 'T must be of type np.ndarray'
+    assert isinstance(Hs_contour, np.ndarray), 'Hs_contour must be of type np.ndarray'
+    assert isinstance(T_contour, np.ndarray), 'T_contour must be of type np.ndarray'
+    assert isinstance(data_label, str), 'data_label must be of type str'
+    assert isinstance(contour_label, (str,list)), 'contour_label be of type str'
+    
+    if T_contour.ndim > 1: 
+        columns = T_contour.shape[1]
+        assert len(contour_label) == columns, ('The length of contour_label list must '
+                                        'equal number of contour years')
+        for i in range(columns):       
+            ax = _xy_plot(T_contour[:,i], Hs_contour[:,i], '-', 
+                  label=contour_label[i], ax=ax)
+    else:
+         ax = _xy_plot(T_contour, Hs_contour, 'k-', 
+                  label=contour_label, ax=ax)             
+    ax = plt.plot(T, Hs, 'bo', alpha=0.1, 
                   label=data_label) 
     plt.legend(loc='lower right')
-    plt.xlabel('Energy period, $T_e$ [s]')
+    plt.xlabel('Period, $T$ [s]')
     plt.ylabel('Sig. wave height, $H_s$ [m]')
     plt.tight_layout()
     return ax

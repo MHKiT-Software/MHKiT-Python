@@ -700,7 +700,7 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
     distribution is used to find the quantile of each component. 
     Finally, using the improved PCA methodology
     the component 2 contour lines are calculated from component 1 using 
-    the relationships defined in _principal_component_analysis.	
+    the relationships defined in Exkert-Gallup et. al. 2016.	
 
     Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
     Neary, V. S. (2016). Application of principal component 
@@ -715,20 +715,21 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
     x2: array like
         Component 2 data        	
     dt : float
-        x1 and x2 sample rate (seconds) 
-    period : np.array
+        x1 and x2 sample rate (seconds)
+    period : int, float, or numpy array
         Desired return period (years) for calculation of environmental
-        contour, can be a scalar or a vector. If vector, must be an n by 1 array. 
-    PCA: dict (optional)
-	    properties returned from _principal_component_analysis
-    size_bin : float (optional)
+        contour, can be a scalar or a vector.
+    PCA: dict
+	    principal component analysis dictionary from previous function 
+        call. When supplied the function will skip the PCA calculation 
+        for the passe x1, and x2.
+    size_bin : float
         Data points in each bin 		
     nb_steps : int (optional)
         Discretization of the circle in the normal space used for
         IFORM calculation.
-	return_PCA: boolean (optional)
-	    Default False, if True will retun the PCA dictionary from 
-        _principal_component_analysis
+	return_PCA: boolean
+	    Default False, if True will retun the PCA dictionary 
 
     Returns
     -------
@@ -749,6 +750,15 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
        'sigma_param'   : fit to _sig_fits 
 
     '''
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(dt, (int,float)), 'dt must be of type int or float'
+    assert isinstance(period, (int,float,np.ndarray)), 'period must be of type int or float'
+    assert isinstance(PCA, (dict, type(None))), 'If specified PCA must be a dict'
+    assert isinstance(size_bin, int), 'size_bin must be of type int'
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    assert isinstance(return_PCA, bool), 'return_PCA must be of type bool'
+    
     if PCA == None:
         PCA = _principal_component_analysis(x1, x2, size_bin=size_bin)
 	
@@ -806,7 +816,7 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
 def _principal_component_analysis(x1, x2, size_bin=250):
     '''
     Performs a modified principal component analysis (PCA) 
-    [Eckert et. al 2015] on two variables (x1, x2). The additional
+    [Eckert et. al 2016] on two variables (x1, x2). The additional
     PCA is performed in 5 steps:
     1) Transform x1 & x2 into the principal component domain and shift
        the y-axis so that all values are positive and non-zero
@@ -845,6 +855,9 @@ def _principal_component_analysis(x1, x2, size_bin=250):
        'mu_param'      : fit to _mu_fcn
        'sigma_param'   : fit to _sig_fits            
     '''
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(size_bin, int), 'size_bin must be of type int'
     # Step 0: Perform Standard PCA          
     mean_location=0    
     x1_mean_centered = x1 - x1.mean(axis=0)
