@@ -348,7 +348,7 @@ def plot_environmental_contour(Hs, T, Hs_contour, T_contour,
             contour_label = [contour_label] 
         N_c_labels = len(contour_label)
         assert  N_c_labels == N_contours, ('If specified, the '
-            'number of contour lables must be equal to number the '
+             'number of contour lables must be equal to number the '
             f'number of contour years. Got {N_c_labels} and {N_contours}')   
     else:
         contour_label = [None] * N_contours
