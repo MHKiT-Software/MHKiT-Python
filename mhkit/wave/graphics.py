@@ -327,21 +327,36 @@ def plot_environmental_contour(Hs, T, Hs_contour, T_contour,
     '''
     assert isinstance(Hs, np.ndarray), 'Hs must be of type np.ndarray'
     assert isinstance(T, np.ndarray), 'T must be of type np.ndarray'
-    assert isinstance(Hs_contour, np.ndarray), 'Hs_contour must be of type np.ndarray'
-    assert isinstance(T_contour, np.ndarray), 'T_contour must be of type np.ndarray'
+    assert isinstance(Hs_contour, np.ndarray), ('Hs_contour must be of '
+                                                'type np.ndarray')
+    assert isinstance(T_contour, np.ndarray), ('T_contour must be of '
+                                               'type np.ndarray')
     assert isinstance(data_label, str), 'data_label must be of type str'
-    assert isinstance(contour_label, (str,list)), 'contour_label be of type str'
+    assert isinstance(contour_label, (str,list)), ('contour_label be of '
+                                                  'type str')
+    assert T_contour.ndim == Hs_contour.ndim,  ('contour must be of' 
+            f'equal dimesion got {T_contour.ndim} and {Hs_contour.ndim}')
+        
+    if T_contour.ndim == 1:
+        T_contour  = T_contour.reshape(-1,1) 
+        Hs_contour = Hs_contour.reshape(-1,1) 
     
-    if T_contour.ndim > 1: 
-        columns = T_contour.shape[1]
-        assert len(contour_label) == columns, ('The length of contour_label list must '
-                                        'equal number of contour years')
-        for i in range(columns):       
-            ax = _xy_plot(T_contour[:,i], Hs_contour[:,i], '-', 
-                  label=contour_label[i], ax=ax)
+    N_contours = T_contour.shape[1]
+    
+    if contour_label != None:
+        if isinstance(contour_label, str):
+            contour_label = [contour_label] 
+        N_c_labels = len(contour_label)
+        assert  N_c_labels == N_contours, ('If specified, the '
+            'number of contour lables must be equal to number the '
+            f'number of contour years. Got {N_c_labels} and {N_contours}')   
     else:
-         ax = _xy_plot(T_contour, Hs_contour, 'k-', 
-                  label=contour_label, ax=ax)             
+        contour_label = [None] * N_contours
+    
+    for i in range(N_contours):       
+        ax = _xy_plot(T_contour[:,i], Hs_contour[:,i], '-', 
+                      label=contour_label[i], ax=ax)
+            
     ax = plt.plot(T, Hs, 'bo', alpha=0.1, 
                   label=data_label) 
     plt.legend(loc='lower right')
