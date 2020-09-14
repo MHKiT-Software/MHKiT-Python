@@ -481,7 +481,8 @@ class TestResourceContours(unittest.TestCase):
         self.assertTrue(isfile(filename))        
 
     def test_plot_environmental_contour_multiyear(self):
-        filename = abspath(join(testdir, 'wave_plot_environmental_contour_multiyear.png'))
+        filename = abspath(join(testdir, 
+                       'wave_plot_environmental_contour_multiyear.png'))
         if isfile(filename):
             os.remove(filename)
         
@@ -492,11 +493,13 @@ class TestResourceContours(unittest.TestCase):
         Te = df.Te.values 
         
         dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds  
-        time_R = np.array([[100], [105], [110], [120], [150]])  
+
+        time_R = np.array([100, 105, 110, 120, 150])
         
         Hm0_contour, Te_contour = wave.resource.environmental_contour(Hm0, Te, 
                                                     dt_ss, time_R)
-        contour_label = ['100 Year Contour','105 Year Contour','110 Year Contour','120 Year Contour','150 Year Contour']
+        
+        contour_label = [f'{year}-year Contour' for year in time_R]
         plt.figure()
         wave.graphics.plot_environmental_contour(Hm0, Te,
                                                  Hm0_contour, Te_contour,
