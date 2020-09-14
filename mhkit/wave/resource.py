@@ -753,11 +753,15 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
     assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
     assert isinstance(dt, (int,float)), 'dt must be of type int or float'
-    assert isinstance(period, (int,float,np.ndarray)), 'period must be of type int or float'
+    assert isinstance(period, (int,float,np.ndarray)), ('period must be'
+                                          'of type int, float, or array')
     assert isinstance(PCA, (dict, type(None))), 'If specified PCA must be a dict'
     assert isinstance(size_bin, int), 'size_bin must be of type int'
     assert isinstance(nb_steps, int), 'nb_steps must be of type int'
     assert isinstance(return_PCA, bool), 'return_PCA must be of type bool'
+    
+    if isinstance(period, np.ndarray) and len(period) > 1 and period.ndim == 1:
+        period = period.reshape(-1,1)    
     
     if PCA == None:
         PCA = _principal_component_analysis(x1, x2, size_bin=size_bin)
