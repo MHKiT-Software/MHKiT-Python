@@ -49,43 +49,45 @@ class TestLoads(unittest.TestCase):
         assert_frame_equal(self.data['bin_means_std'],b_means_std)
 
 
-    def test_calculate_TSR(self):
+    def test_tip_speed_ratio(self):
         rotor_speed = [15,16,17,18] # create array of rotor speeds
         rotor_diameter = 77 # diameter of rotor for GE 1.5
         inflow_speed = [13,13,13,13] # array of wind speeds
         TSR_answer = [4.7,5.0,5.3,5.6]
         
-        TSR = loads.calculate_TSR(rotor_speed,rotor_diameter,inflow_speed)
-        error = np.abs((TSR_answer - TSR)/TSR_answer)
+        TSR = loads.tip_speed_ratio(rotor_speed,rotor_diameter,inflow_speed)
 
-        self.assertTrue((error < 0.015).all())
+        for i,j in zip(TSR,TSR_answer):
+            self.assertAlmostEqual(i,j,delta=0.05)
 
-    def test_calculate_Cp(self):
+
+    def test_power_coefficient(self):
         # data obtained from power performance report of wind turbine
         inflow_speed = [4,6,8,10,12,14,16,18,20]
-        power_out = [59,304,742,1200,1400,1482,1497,1497,1511]
-        capture_area = 4657
+        power_out = np.asarray([59,304,742,1200,1400,1482,1497,1497,1511])
+        capture_area = 4656.63
         rho = 1.225
-        Cp_answer = [0.318,0.493,0.508,0.421,0.284,0.189,0.128,0.090,0.066]
+        Cp_answer = [0.320,0.493,0.508,0.421,0.284,0.189,0.128,0.090,0.066]
         
-        Cp = loads.calculate_Cp(power_out,inflow_speed,capture_area,rho)
-        error = np.abs((Cp_answer - Cp) / Cp_answer)
+        Cp = loads.power_coefficient(power_out*1000,inflow_speed,capture_area,rho)
 
-        self.assertTrue((error < 0.02).all())
+        for i,j in zip(Cp,Cp_answer):
+            self.assertAlmostEqual(i,j,places=2)
 
-    def test_calculate_blade_moments(self):
+
+    def test_blade_moments(self):
         flap_raw = self.blade_data['flap_raw']
         flap_offset = self.flap_offset
         edge_raw = self.blade_data['edge_raw']
         edge_offset = self.edge_offset
 
-        M_flap, M_edge = loads.calculate_blade_moments(self.blade_matrix,flap_offset,flap_raw,edge_offset,edge_raw)
+        M_flap, M_edge = loads.blade_moments(self.blade_matrix,flap_offset,flap_raw,edge_offset,edge_raw)
 
-        error_flap = np.abs((self.blade_data['flap_scaled']-M_flap)/self.blade_data['flap_scaled'])
-        error_edge = np.abs((self.blade_data['edge_scaled']-M_edge)/self.blade_data['edge_scaled'])
+        for i,j in zip(M_flap,self.blade_data['flap_scaled']):
+            self.assertAlmostEqual(i,j,places=1)
+        for i,j in zip(M_edge,self.blade_data['edge_scaled']):
+            self.assertAlmostEqual(i,j,places=1)
 
-        self.assertTrue((error_flap < 0.02).all())
-        self.assertTrue((error_edge < 0.02).all())
 
     def test_damage_equivalent_loads(self):
         loads_data = self.data['loads']
@@ -94,11 +96,9 @@ class TestLoads(unittest.TestCase):
         DEL_tower = loads.damage_equivalent_load(tower_load, 4,bin_num=100,data_length=600)
         DEL_blade = loads.damage_equivalent_load(blade_load,10,bin_num=100,data_length=600)
 
-        err_tower = np.abs((self.fatigue_tower-DEL_tower)/self.fatigue_tower)
-        err_blade = np.abs((self.fatigue_blade-DEL_blade)/self.fatigue_tower)
+        self.assertAlmostEqual(DEL_tower,self.fatigue_tower,delta=self.fatigue_tower*0.04)
+        self.assertAlmostEqual(DEL_blade,self.fatigue_blade,delta=self.fatigue_blade*0.04)
 
-        self.assertTrue((err_tower < 0.05).all())
-        self.assertTrue((err_blade < 0.05).all())
 
     def test_plot_statistics(self):
         # Define path
@@ -115,6 +115,7 @@ class TestLoads(unittest.TestCase):
                     savepath=savepath)
         
         self.assertTrue(isfile(savepath))
+
 
     def test_plot_bin_statistics(self):
         # Define signal name, path, and bin centers

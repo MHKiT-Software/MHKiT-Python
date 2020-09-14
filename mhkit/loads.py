@@ -33,7 +33,7 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     bin_std : pandas DataFrame
         Standard deviation of each bim
     """
-    # Check data types
+
     try:
         bin_against = np.asarray(bin_against)
         bin_edges = np.asarray(bin_edges)
@@ -80,9 +80,9 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
 
     return bin_mean, bin_std
 
-def calculate_TSR(rotor_speed,rotor_diameter,inflow_speed):
+def tip_speed_ratio(rotor_speed,rotor_diameter,inflow_speed):
     '''
-    Function used to calculate the tip speed ratio (TSR) of a MH device with rotor
+    Function used to calculate the tip speed ratio (TSR) of a MEC device with rotor
 
     Parameters:
     ---------------
@@ -98,7 +98,7 @@ def calculate_TSR(rotor_speed,rotor_diameter,inflow_speed):
     TSR : numpy array
         Calculated tip speed ratio (TSR)
     '''
-    # check data type
+    
     try:
         rotor_speed = np.asarray(rotor_speed)
         inflow_speed = np.asarray(inflow_speed)
@@ -117,14 +117,14 @@ def calculate_TSR(rotor_speed,rotor_diameter,inflow_speed):
 
     return TSR
 
-def calculate_Cp(power,inflow_speed,capture_area,rho):
+def power_coefficient(power,inflow_speed,capture_area,rho):
     '''
-    Function that calculates the power coefficient of device
+    Function that calculates the power coefficient of MEC device
 
     Parameters
     -------------
     power : numpy array
-        Power output signal of device after losses [kW]
+        Power output signal of device after losses [W]
     inflow_speed : numpy array
         Speed of inflow [m/s]
     capture_area : float/int
@@ -138,7 +138,7 @@ def calculate_Cp(power,inflow_speed,capture_area,rho):
         Power coefficient of device [-]
 
     '''
-    # check data types
+    
     try:
         power = np.asarray(power)
         inflow_speed = np.asarray(inflow_speed)
@@ -150,27 +150,26 @@ def calculate_Cp(power,inflow_speed,capture_area,rho):
     assert isinstance(capture_area, (float,int)), 'capture_area must be of type int or float'
     assert isinstance(rho, (float,int)), 'rho must be of type int or float'
 
-    # calculat power in
-    P_in = (0.5 * rho * capture_area * inflow_speed**3)/1000
+    power_in = (0.5 * rho * capture_area * inflow_speed**3)
 
     # calculate Cp ratio
-    Cp = power / P_in 
+    Cp = power / power_in 
 
     return Cp
 
-def calculate_blade_moments(blade_matrix,flap_offset,flap_raw,edge_offset,edge_raw):
+def blade_moments(blade_matrix,flap_offset,flap_raw,edge_offset,edge_raw):
     '''
     Transfer function for deriving blade flap and edge moments using blade matrix.
 
     Parameters
     -------------
     blade_matrix : numpy array
-        Derived blade calibration coefficients [D1,D2,D3,D4]
-    flap_offset : float/int
+        Derived blade calibration coefficients listed in order of D1, D2, D3, D4
+    flap_offset : float
         Derived offset of raw flap signal obtained during calibration process
     flap_raw : numpy array
         Raw strain signal of blade in the flapwise direction
-    edge_offset : float/int
+    edge_offset : float
         Derived offset of raw edge signal obtained during calibration process
     edge_raw : numpy array
         Raw strain signal of blade in the edgewise direction
@@ -178,9 +177,9 @@ def calculate_blade_moments(blade_matrix,flap_offset,flap_raw,edge_offset,edge_r
     Returns:
     -------------
     M_flap : numpy array
-        Blade flapwise moment in engineering units
+        Blade flapwise moment in SI units
     M_edge : numpy array
-        Blade edgewise moment in engineering units
+        Blade edgewise moment in SI units
     '''
     # check data types
     try:
