@@ -295,28 +295,28 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
 
     plt.tight_layout()
 
-def plot_environmental_contour(Hs, T, Hs_contour, T_contour, 
+def plot_environmental_contour(Hm0, T, Hm0_contour, T_contour, 
                                data_label=None, 
                                contour_label=None,
                                ax=None):
     '''
-    Plots an overlay of the Hs and T variables to the calculate
+    Plots an overlay of the Hm0 and T variables to the calculate
     environmental contours.
 
     Parameters
     ------------
-    Hs: array like
-        Significant Wave Height
+    Hm0: array like
+        Significant Wave Height [m]
     T: array like
-        Peak period or Energy period     
-    Hs_contour: np.array
-        Calculated Hs contour values
+        Peak period or Energy period [s]
+    Hm0_contour: np.array
+        Calculated Hm0 contour values
     T_contour: np.array
-        Calculated contour T values 
+        Calculated T contour values 
     data_label: string
-        Label for Hs, T data (e.g. 'Buoy 46022')
+        Label for Hm0, T data (e.g. 'Buoy 46022')
     contour_label: string or list of strings
-        Label for Hs_contour, T_contour countor data (e.g. '100-year contour')
+        Label for Hm0_contour, T_contour countor data (e.g. '100-year contour')
     ax : matplotlib axes object
         Axes for plotting.  If None, then a new figure is created.
 
@@ -325,21 +325,21 @@ def plot_environmental_contour(Hs, T, Hs_contour, T_contour,
     ax : matplotlib pyplot axes
      
     '''
-    assert isinstance(Hs, np.ndarray), 'Hs must be of type np.ndarray'
+    assert isinstance(Hm0, np.ndarray), 'Hm0 must be of type np.ndarray'
     assert isinstance(T, np.ndarray), 'T must be of type np.ndarray'
-    assert isinstance(Hs_contour, np.ndarray), ('Hs_contour must be of '
+    assert isinstance(Hm0_contour, np.ndarray), ('Hm0_contour must be of '
                                                 'type np.ndarray')
     assert isinstance(T_contour, np.ndarray), ('T_contour must be of '
                                                'type np.ndarray')
     assert isinstance(data_label, str), 'data_label must be of type str'
     assert isinstance(contour_label, (str,list)), ('contour_label be of '
                                                   'type str')
-    assert T_contour.ndim == Hs_contour.ndim,  ('contour must be of' 
-            f'equal dimesion got {T_contour.ndim} and {Hs_contour.ndim}')
+    assert T_contour.ndim == Hm0_contour.ndim,  ('contour must be of' 
+            f'equal dimesion got {T_contour.ndim} and {Hm0_contour.ndim}')
         
     if T_contour.ndim == 1:
         T_contour  = T_contour.reshape(-1,1) 
-        Hs_contour = Hs_contour.reshape(-1,1) 
+        Hm0_contour = Hm0_contour.reshape(-1,1) 
     
     N_contours = T_contour.shape[1]
     
@@ -354,10 +354,10 @@ def plot_environmental_contour(Hs, T, Hs_contour, T_contour,
         contour_label = [None] * N_contours
     
     for i in range(N_contours):       
-        ax = _xy_plot(T_contour[:,i], Hs_contour[:,i], '-', 
+        ax = _xy_plot(T_contour[:,i], Hm0_contour[:,i], '-', 
                       label=contour_label[i], ax=ax)
             
-    ax = plt.plot(T, Hs, 'bo', alpha=0.1, 
+    ax = plt.plot(T, Hm0, 'bo', alpha=0.1, 
                   label=data_label) 
     plt.legend(loc='lower right')
     plt.xlabel('Period, $T$ [s]')

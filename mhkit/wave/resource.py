@@ -692,11 +692,13 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
     '''    
     Calculates environmental contours of extreme sea 
     states using the improved joint probability distributions 
-	with the inverse first-order reliability method (IFORM) 
+	with the inverse first-order reliability method (I-FORM) 
     probability for the desired return period (period). Given the 
     period of interest a circle of iso-probability is created in the
-    in the PCA joint probability (x1, x2) reference frame.  
-    Using the joint probability value the CDF of the marginal 
+    in the principal component analysis (PCA) joint probability 
+    (x1, x2) reference frame.  
+    Using the joint probability value the cumulative distribution function 
+    (CDF)) of the marginal 
     distribution is used to find the quantile of each component. 
     Finally, using the improved PCA methodology
     the component 2 contour lines are calculated from component 1 using 
@@ -721,22 +723,22 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
         contour, can be a scalar or a vector.
     PCA: dict
 	    principal component analysis dictionary from previous function 
-        call. When supplied the function will skip the PCA calculation 
-        for the passe x1, and x2.
-    size_bin : float
+        call. When supplied, the function will skip the PCA calculation 
+        for the passed x1 and x2, and instead use the provided PCA.
+    size_bin : int (optional)
         Data points in each bin 		
     nb_steps : int (optional)
         Discretization of the circle in the normal space used for
-        IFORM calculation.
+        I-FORM calculation.
 	return_PCA: boolean
 	    Default False, if True will retun the PCA dictionary 
 
     Returns
     -------
-    x1_Return : np.array
+    x1_contour : np.array
         Calculated x1 values along the contour boundary following
         return to original input orientation.
-    x2_Return : np.array
+    x2_contour : np.array
        Calculated x1 values along the contour boundary following
         return to original input orientation.
     PCA: Dictionary (optional)
