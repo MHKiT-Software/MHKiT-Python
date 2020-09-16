@@ -295,53 +295,59 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
 
     plt.tight_layout()
 
-def plot_environmental_contour(Hm0, T, Hm0_contour, T_contour, 
-                               data_label=None, 
-                               contour_label=None,
-                               ax=None):
+def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     '''
-    Plots an overlay of the Hm0 and T variables to the calculate
+    Plots an overlay of the x1 and x2 variables to the calculate
     environmental contours.
 
     Parameters
-    ------------
-    Hm0: array like
-        Significant Wave Height [m]
-    T: array like
-        Peak period or Energy period [s]
-    Hm0_contour: np.array
-        Calculated Hm0 contour values
-    T_contour: np.array
-        Calculated T contour values 
+    ----------
+    x1: array like
+        x-axis data
+    x2: array like
+        x-axis data
+    x1_contour: np.array
+        Calculated x1 contour values
+    x2_contour: np.array
+        Calculated x2 contour values 
+    x_label: string
+        label for the x-axis
+    y_label: string
+        label for the y-axis        
     data_label: string
-        Label for Hm0, T data (e.g. 'Buoy 46022')
+        Legend label for x1, x2 data (e.g. 'Buoy 46022')
     contour_label: string or list of strings
-        Label for Hm0_contour, T_contour countor data (e.g. '100-year contour')
+        Legend label for x1_contour, x2_contour countor data (e.g. '100-year contour')
     ax : matplotlib axes object
         Axes for plotting.  If None, then a new figure is created.
 
     Returns
-    ---------
+    -------
     ax : matplotlib pyplot axes
-     
     '''
-    assert isinstance(Hm0, np.ndarray), 'Hm0 must be of type np.ndarray'
-    assert isinstance(T, np.ndarray), 'T must be of type np.ndarray'
-    assert isinstance(Hm0_contour, np.ndarray), ('Hm0_contour must be of '
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(x1_contour, np.ndarray), ('x1_contour must be of '
                                                 'type np.ndarray')
-    assert isinstance(T_contour, np.ndarray), ('T_contour must be of '
+    assert isinstance(x2_contour, np.ndarray), ('x2_contour must be of '
                                                'type np.ndarray')
+    x1_label = kwargs.get("x1_label", None)
+    x2_label = kwargs.get("x2_label", None)
+    data_label=kwargs.get("data_label", None)
+    contour_label=kwargs.get("contour_label", None)
+    ax=kwargs.get("ax", None)
     assert isinstance(data_label, str), 'data_label must be of type str'
     assert isinstance(contour_label, (str,list)), ('contour_label be of '
                                                   'type str')
-    assert T_contour.ndim == Hm0_contour.ndim,  ('contour must be of' 
-            f'equal dimesion got {T_contour.ndim} and {Hm0_contour.ndim}')
-        
-    if T_contour.ndim == 1:
-        T_contour  = T_contour.reshape(-1,1) 
-        Hm0_contour = Hm0_contour.reshape(-1,1) 
+    assert x2_contour.ndim == x1_contour.ndim,  ('contour must be of' 
+            f'equal dimesion got {x2_contour.ndim} and {x1_contour.ndim}')                                                  
     
-    N_contours = T_contour.shape[1]
+        
+    if x2_contour.ndim == 1:
+        x2_contour  = x2_contour.reshape(-1,1) 
+        x1_contour = x1_contour.reshape(-1,1) 
+    
+    N_contours = x2_contour.shape[1]
     
     if contour_label != None:
         if isinstance(contour_label, str):
@@ -354,13 +360,13 @@ def plot_environmental_contour(Hm0, T, Hm0_contour, T_contour,
         contour_label = [None] * N_contours
     
     for i in range(N_contours):       
-        ax = _xy_plot(T_contour[:,i], Hm0_contour[:,i], '-', 
+        ax = _xy_plot(x1_contour[:,i], x2_contour[:,i],'-', 
                       label=contour_label[i], ax=ax)
             
-    ax = plt.plot(T, Hm0, 'bo', alpha=0.1, 
+    ax = plt.plot(x1, x2, 'bo', alpha=0.1, 
                   label=data_label) 
     plt.legend(loc='lower right')
-    plt.xlabel('Period, $T$ [s]')
-    plt.ylabel('Sig. wave height, $H_s$ [m]')
+    plt.xlabel(x1_label)
+    plt.ylabel(x2_label)
     plt.tight_layout()
     return ax

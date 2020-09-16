@@ -444,7 +444,7 @@ class TestResourceContours(unittest.TestCase):
         
         Hm0 = df.Hm0.values  
         Te = df.Te.values 
-        PCA = wave.resource._principal_component_analysis(Hm0,Te, size_bin=250)
+        PCA = wave.resource._principal_component_analysis(Hm0,Te, bin_size=250)
         
         assert_allclose(PCA['principal_axes'], self.pca['principal_axes'])
         self.assertAlmostEqual(PCA['shift'], self.pca['shift'])
@@ -471,10 +471,12 @@ class TestResourceContours(unittest.TestCase):
                                                     dt_ss, time_R)
         
         plt.figure()
-        wave.graphics.plot_environmental_contour(Hm0, Te,
-                                                 Hm0_contour, Te_contour,
-                                                 'NDBC 46022',
-                                                 '100-year Contour')
+        wave.graphics.plot_environmental_contour(Te, Hm0,
+                                                 Te_contour, Hm0_contour,
+                                                 data_label='NDBC 46022',
+                                                 contour_label='100-year Contour',
+                                                 x_label = 'Te [s]',
+                                                 y_label = 'Hm0 [m]')
         plt.savefig(filename, format='png')
         plt.close()
         
@@ -501,10 +503,12 @@ class TestResourceContours(unittest.TestCase):
         
         contour_label = [f'{year}-year Contour' for year in time_R]
         plt.figure()
-        wave.graphics.plot_environmental_contour(Hm0, Te,
-                                                 Hm0_contour, Te_contour,
-                                                 'NDBC 46022',
-                                                 contour_label)
+        wave.graphics.plot_environmental_contour(Te, Hm0,
+                                                 Te_contour, Hm0_contour,
+                                                 data_label='NDBC 46022',
+                                                 contour_label=contour_label,
+                                                 x_label = 'Te [s]',
+                                                 y_label = 'Hm0 [m]')
         plt.savefig(filename, format='png')
         plt.close()
         
