@@ -687,7 +687,7 @@ def wave_number(f, h, rho=1025, g=9.80665):
     
     return k
 
-def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250, 
+def environmental_contour(x1, x2, dt, period, PCA=None, bin_size=250, 
                           nb_steps=1000, return_PCA=False):
     '''    
     Calculates environmental contours of extreme sea 
@@ -725,7 +725,7 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
 	    principal component analysis dictionary from previous function 
         call. When supplied, the function will skip the PCA calculation 
         for the passed x1 and x2, and instead use the provided PCA.
-    size_bin : int (optional)
+    bin_size : int (optional)
         Data points in each bin 		
     nb_steps : int (optional)
         Discretization of the circle in the normal space used for
@@ -758,7 +758,7 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
     assert isinstance(period, (int,float,np.ndarray)), ('period must be'
                                           'of type int, float, or array')
     assert isinstance(PCA, (dict, type(None))), 'If specified PCA must be a dict'
-    assert isinstance(size_bin, int), 'size_bin must be of type int'
+    assert isinstance(bin_size, int), 'bin_size must be of type int'
     assert isinstance(nb_steps, int), 'nb_steps must be of type int'
     assert isinstance(return_PCA, bool), 'return_PCA must be of type bool'
     
@@ -766,7 +766,7 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
         period = period.reshape(-1,1)    
     
     if PCA == None:
-        PCA = _principal_component_analysis(x1, x2, size_bin=size_bin)
+        PCA = _principal_component_analysis(x1, x2, bin_size=bin_size)
 	
     exceedance_probability = 1 / (365 * 24 * 3600/ dt * period)
     iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
@@ -819,7 +819,7 @@ def environmental_contour(x1, x2, dt, period, PCA=None, size_bin=250,
         return np.transpose(x1_contour), np.transpose(x2_contour), PCA
     return np.transpose(x1_contour), np.transpose(x2_contour)
 
-def _principal_component_analysis(x1, x2, size_bin=250):
+def _principal_component_analysis(x1, x2, bin_size=250):
     '''
     Performs a modified principal component analysis (PCA) 
     [Eckert et. al 2016] on two variables (x1, x2). The additional
@@ -847,7 +847,7 @@ def _principal_component_analysis(x1, x2, size_bin=250):
         Component 1 data
     x2: array like
         Component 2 data        
-    size_bin : float
+    bin_size : float
         Data points in each bin 
         
     Returns
@@ -863,7 +863,7 @@ def _principal_component_analysis(x1, x2, size_bin=250):
     '''
     assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(size_bin, int), 'size_bin must be of type int'
+    assert isinstance(bin_size, int), 'bin_size must be of type int'
     # Step 0: Perform Standard PCA          
     mean_location=0    
     x1_mean_centered = x1 - x1.mean(axis=0)
@@ -902,14 +902,14 @@ def _principal_component_analysis(x1, x2, size_bin=250):
     # Step 3: Bin Data & find order 1 linear relation between x1 & x2 means
     N = len(x1)  
     minimum_4_bins = np.floor(N*0.25)
-    if size_bin > minimum_4_bins:
-        size_bin = minimum_4_bins
+    if bin_size > minimum_4_bins:
+        bin_size = minimum_4_bins
         msg=('To allow for a minimum of 4 bins the bin size has been' +
              f'set to {minimum_4_bins}')
         print(msg)
 
-    N_multiples = N // size_bin
-    max_N_multiples_index  =  N_multiples*size_bin
+    N_multiples = N // bin_size
+    max_N_multiples_index  =  N_multiples*bin_size
     
     x1_integer_multiples_of_bin_size = x1_sorted[0:max_N_multiples_index]    
     x2_integer_multiples_of_bin_size = x2_sorted[0:max_N_multiples_index] 
