@@ -696,8 +696,8 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
     period of interest a circle of iso-probability is created in the
     in the principal component analysis (PCA) joint probability 
     (x1, x2) reference frame.  
-    Using the joint probability value the cumulative distribution function 
-    (CDF)) of the marginal 
+    Using the joint probability value the cumulative distribution 
+    function (CDF)) of the marginal 
     distribution is used to find the quantile of each component. 
     Finally, using the improved PCA methodology
     the component 2 contour lines are calculated from component 1 using 
@@ -720,17 +720,19 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
     period : int, float, or numpy array
         Desired return period (years) for calculation of environmental
         contour, can be a scalar or a vector.
-    PCA: dict
-	    principal component analysis dictionary from previous function 
-        call. When supplied, the function will skip the PCA calculation 
-        for the passed x1 and x2, and instead use the provided PCA.
-    bin_size : int (optional)
-        Data points in each bin 		
-    nb_steps : int (optional)
-        Discretization of the circle in the normal space used for
-        I-FORM calculation.
-	return_PCA: boolean
-	    Default False, if True will retun the PCA dictionary 
+    **kwargs : optional        
+        PCA: dict
+            If passed the principal component analysis (PCA) on x1, x2 
+            is skipped. PCA will be the same for a given x1, x2 so this 
+            step may be skipped if multiple calls to environmental 
+            contours are called for the same x1, x2 pair.
+        bin_size : int (optional)
+            Data points in each bin for the PCA. Default bin_size=250.		
+        nb_steps : int (optional)
+            Discretization of the circle in the normal space used for
+            I-FORM calculation. Default nb_steps=1000.
+        return_PCA: boolean
+            Default False, if True will retun the PCA dictionary 
 
     Returns
     -------
