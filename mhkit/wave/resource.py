@@ -687,8 +687,7 @@ def wave_number(f, h, rho=1025, g=9.80665):
     
     return k
 
-def environmental_contour(x1, x2, dt, period, PCA=None, bin_size=250, 
-                          nb_steps=1000, return_PCA=False):
+def environmental_contour(x1, x2, dt, period, **kwargs):
     '''    
     Calculates environmental contours of extreme sea 
     states using the improved joint probability distributions 
@@ -756,7 +755,11 @@ def environmental_contour(x1, x2, dt, period, PCA=None, bin_size=250,
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
     assert isinstance(dt, (int,float)), 'dt must be of type int or float'
     assert isinstance(period, (int,float,np.ndarray)), ('period must be'
-                                          'of type int, float, or array')
+                                          'of type int, float, or array')    
+    PCA = kwargs.get("PCA", None)
+    bin_size = kwargs.get("bin_size", 250)
+    nb_steps = kwargs.get("nb_steps", 1000)
+    return_PCA = kwargs.get("return_PCA", False)
     assert isinstance(PCA, (dict, type(None))), 'If specified PCA must be a dict'
     assert isinstance(bin_size, int), 'bin_size must be of type int'
     assert isinstance(nb_steps, int), 'nb_steps must be of type int'
