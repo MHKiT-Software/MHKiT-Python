@@ -692,14 +692,14 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
     Calculates environmental contours of extreme sea 
     states using the improved joint probability distributions 
 	with the inverse first-order reliability method (I-FORM) 
-    probability for the desired return period (period). Given the 
-    period of interest a circle of iso-probability is created in the
+    probability for the desired return period (`period`). Given the 
+    period of interest, a circle of iso-probability is created 
     in the principal component analysis (PCA) joint probability 
-    (x1, x2) reference frame.  
-    Using the joint probability value the cumulative distribution 
-    function (CDF)) of the marginal 
-    distribution is used to find the quantile of each component. 
-    Finally, using the improved PCA methodology
+    (`x1`, `x2`) reference frame.  
+    Using the joint probability value, the cumulative distribution 
+    function (CDF) of the marginal distribution is used to find 
+    the quantile of each component. 
+    Finally, using the improved PCA methodology,
     the component 2 contour lines are calculated from component 1 using 
     the relationships defined in Exkert-Gallup et. al. 2016.	
 
@@ -711,39 +711,39 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
 
     Parameters
     ----------
-    x1: array like
+    x1: numpy array 
         Component 1 data
-    x2: array like
+    x2: numpy array 
         Component 2 data        	
-    dt : float
-        x1 and x2 sample rate (seconds)
-    period : int, float, or numpy array
+    dt : int or float
+        `x1` and `x2` sample rate (seconds)
+    period : int, float, or numpy array 
         Desired return period (years) for calculation of environmental
         contour, can be a scalar or a vector.
     **kwargs : optional        
-        PCA: dict
-            If passed the principal component analysis (PCA) on x1, x2 
+        PCA: dict (optional)
+            If provided, the principal component analysis (PCA) on x1, x2 
             is skipped. The PCA will be the same for a given x1, x2 
             therefore this step may be skipped if multiple calls to 
             environmental contours are made for the same x1, x2 pair. 
-            The PCA dict may be obtained by stetting return_PCA=True.
+            The PCA dict may be obtained by setting return_PCA=True.
         bin_size : int (optional)
             Data points in each bin for the PCA. Default bin_size=250.		
         nb_steps : int (optional)
             Discretization of the circle in the normal space used for
             I-FORM calculation. Default nb_steps=1000.
-        return_PCA: boolean
+        return_PCA: boolean (optional)
             Default False, if True will retun the PCA dictionary 
 
     Returns
     -------
-    x1_contour : np.array
+    x1_contour : numpy array 
         Calculated x1 values along the contour boundary following
         return to original input orientation.
-    x2_contour : np.array
-       Calculated x1 values along the contour boundary following
+    x2_contour : numpy array 
+       Calculated x2 values along the contour boundary following
         return to original input orientation.
-    PCA: Dictionary (optional)
+    PCA: dict (optional)
 	    principal component analysis dictionary 
        Keys:
        -----       
@@ -753,7 +753,7 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
        'mu_param'      : fit to _mu_fcn
        'sigma_param'   : fit to _sig_fits 
 
-    '''
+    '''   
     assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
     assert isinstance(dt, (int,float)), 'dt must be of type int or float'
@@ -828,18 +828,18 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
 def _principal_component_analysis(x1, x2, bin_size=250):
     '''
     Performs a modified principal component analysis (PCA) 
-    [Eckert et. al 2016] on two variables (x1, x2). The additional
+    [Eckert et. al 2016] on two variables (`x1`, `x2`). The additional
     PCA is performed in 5 steps:
-    1) Transform x1 & x2 into the principal component domain and shift
+    1) Transform `x1` & `x2` into the principal component domain and shift
        the y-axis so that all values are positive and non-zero
-    2) Fit the x1 data in the transformed reference frame with an 
+    2) Fit the `x1` data in the transformed reference frame with an 
        inverse Gaussian Distribution
-    3) Bin the transformed data into groups of size bin and fin the 
-       mean of x1, the mean of x2, and the standard deviation of x3
+    3) Bin the transformed data into groups of size bin and find the 
+       mean of `x1`, the mean of `x2`, and the standard deviation of `x2`
     4) Perform a first-order linear regression to determine a continuous
-       the function relating the mean of the x1 bins to mean of the x2 bins
+       the function relating the mean of the `x1` bins to mean of the `x2` bins
     5) Find a second-order polynomial which best relates the means of 
-       x1 to the standard deviation of x2 using constrained optimization
+       `x1` to the standard deviation of `x2` using constrained optimization
          
     Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
     Neary, V. S. (2016). Application of principal component 
@@ -849,16 +849,16 @@ def _principal_component_analysis(x1, x2, bin_size=250):
 
     Parameters
     ----------
-    x1: array like
+    x1: numpy array 
         Component 1 data
-    x2: array like
+    x2: numpy array 
         Component 2 data        
-    bin_size : float
-        Data points in each bin 
+    bin_size : int
+        Number of data points in each bin 
         
     Returns
     -------
-    PCA: Dictionary 
+    PCA: dict 
        Keys:
        -----       
        'principal_axes': sign corrected PCA axes 

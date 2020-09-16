@@ -302,26 +302,26 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
 
     Parameters
     ----------
-    x1: array like
+    x1: numpy array  
         x-axis data
-    x2: array like
+    x2: numpy array 
         x-axis data
-    x1_contour: np.array
+    x1_contour: numpy array 
         Calculated x1 contour values
-    x2_contour: np.array
+    x2_contour: numpy array 
         Calculated x2 contour values 
     **kwargs : optional         
-        x_label: string
+        x_label: string (optional)
             x-axis label. Default None. 
-        y_label: string
+        y_label: string (optional)
             y-axis label. Default None.
-        data_label: string
+        data_label: string (optional)
             Legend label for x1, x2 data (e.g. 'Buoy 46022'). 
             Default None.
-        contour_label: string or list of strings
+        contour_label: string or list of strings (optional)
             Legend label for x1_contour, x2_contour countor data 
             (e.g. '100-year contour'). Default None.
-        ax : matplotlib axes object
+        ax : matplotlib axes object (optional)
             Axes for plotting.  If None, then a new figure is created.
             Default None.
 
