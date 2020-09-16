@@ -723,9 +723,10 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
     **kwargs : optional        
         PCA: dict
             If passed the principal component analysis (PCA) on x1, x2 
-            is skipped. PCA will be the same for a given x1, x2 so this 
-            step may be skipped if multiple calls to environmental 
-            contours are called for the same x1, x2 pair.
+            is skipped. The PCA will be the same for a given x1, x2 
+            therefore this step may be skipped if multiple calls to 
+            environmental contours are made for the same x1, x2 pair. 
+            The PCA dict may be obtained by stetting return_PCA=True.
         bin_size : int (optional)
             Data points in each bin for the PCA. Default bin_size=250.		
         nb_steps : int (optional)
