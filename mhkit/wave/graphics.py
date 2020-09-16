@@ -335,8 +335,8 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
                                                 'type np.ndarray')
     assert isinstance(x2_contour, np.ndarray), ('x2_contour must be of '
                                                'type np.ndarray')
-    x1_label = kwargs.get("x1_label", None)
-    x2_label = kwargs.get("x2_label", None)
+    x_label = kwargs.get("x_label", None)
+    y_label = kwargs.get("y_label", None)
     data_label=kwargs.get("data_label", None)
     contour_label=kwargs.get("contour_label", None)
     ax=kwargs.get("ax", None)
@@ -370,7 +370,7 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     ax = plt.plot(x1, x2, 'bo', alpha=0.1, 
                   label=data_label) 
     plt.legend(loc='lower right')
-    plt.xlabel(x1_label)
-    plt.ylabel(x2_label)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
     plt.tight_layout()
     return ax
