@@ -11,8 +11,8 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     Bins calculated statistics against data signal (or channel) 
     according to IEC TS 62600-3:2020 ED1.
     
-    Parameters
-    -----------------
+    Parameters:
+    -----------
     data : pandas DataFrame
        Time-series statistics of data signal(s)
     
@@ -25,8 +25,8 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     data_signal : list, optional 
         List of data signal(s) to bin, default = all data signals
     
-    Returns
-    ----------------
+    Returns:
+    --------
     bin_mean : pandas DataFrame
         Mean of each bin
 
@@ -85,16 +85,16 @@ def tip_speed_ratio(rotor_speed,rotor_diameter,inflow_speed):
     Function used to calculate the tip speed ratio (TSR) of a MEC device with rotor
 
     Parameters:
-    ---------------
+    -----------
     rotor_speed : numpy array
-        Rotor speed [rpm]
+        Rotor speed [revolutions per second]
     rotor_diameter : float/int
         Diameter of rotor [m]
     inflow_speed : numpy array
         Velocity of inflow condition [m/s]
 
     Returns:
-    -----------------
+    --------
     TSR : numpy array
         Calculated tip speed ratio (TSR)
     '''
@@ -104,13 +104,12 @@ def tip_speed_ratio(rotor_speed,rotor_diameter,inflow_speed):
         inflow_speed = np.asarray(inflow_speed)
     except:
         pass
-
     assert isinstance(rotor_speed, np.ndarray), 'rotor_speed must be of type np.ndarray'
     assert isinstance(rotor_diameter, (float,int)), 'rotor diameter must be of type int or float'
     assert isinstance(inflow_speed, np.ndarray), 'inflow_speed must be of type np.ndarray'
 
     # get rotational velocity in m/s
-    rotor_velocity = rotor_speed / 60 * np.pi*rotor_diameter
+    rotor_velocity = rotor_speed * np.pi*rotor_diameter
 
     # calculate TSR
     TSR = rotor_velocity / inflow_speed
@@ -121,8 +120,8 @@ def power_coefficient(power,inflow_speed,capture_area,rho):
     '''
     Function that calculates the power coefficient of MEC device
 
-    Parameters
-    -------------
+    Parameters:
+    -----------
     power : numpy array
         Power output signal of device after losses [W]
     inflow_speed : numpy array
@@ -132,8 +131,8 @@ def power_coefficient(power,inflow_speed,capture_area,rho):
     rho : float/int
         Density of environment [kg/m^3]
 
-    Returns
-    -------------
+    Returns:
+    --------
     Cp : numpy array
         Power coefficient of device [-]
 
@@ -144,12 +143,12 @@ def power_coefficient(power,inflow_speed,capture_area,rho):
         inflow_speed = np.asarray(inflow_speed)
     except:
         pass
-
     assert isinstance(power, np.ndarray), 'power must be of type np.ndarray'
     assert isinstance(inflow_speed, np.ndarray), 'inflow_speed must be of type np.ndarray'
     assert isinstance(capture_area, (float,int)), 'capture_area must be of type int or float'
     assert isinstance(rho, (float,int)), 'rho must be of type int or float'
 
+    # calculate predicted power from inflow
     power_in = (0.5 * rho * capture_area * inflow_speed**3)
 
     # calculate Cp ratio
@@ -157,13 +156,13 @@ def power_coefficient(power,inflow_speed,capture_area,rho):
 
     return Cp
 
-def blade_moments(blade_matrix,flap_offset,flap_raw,edge_offset,edge_raw):
+def blade_moments(blade_coefficients,flap_offset,flap_raw,edge_offset,edge_raw):
     '''
     Transfer function for deriving blade flap and edge moments using blade matrix.
 
-    Parameters
-    -------------
-    blade_matrix : numpy array
+    Parameters:
+    -----------
+    blade_coefficients : numpy array
         Derived blade calibration coefficients listed in order of D1, D2, D3, D4
     flap_offset : float
         Derived offset of raw flap signal obtained during calibration process
@@ -175,7 +174,7 @@ def blade_moments(blade_matrix,flap_offset,flap_raw,edge_offset,edge_raw):
         Raw strain signal of blade in the edgewise direction
     
     Returns:
-    -------------
+    --------
     M_flap : numpy array
         Blade flapwise moment in SI units
     M_edge : numpy array
@@ -183,13 +182,12 @@ def blade_moments(blade_matrix,flap_offset,flap_raw,edge_offset,edge_raw):
     '''
     # check data types
     try:
-        blade_matrix = np.asarray(blade_matrix)
+        blade_coefficients = np.asarray(blade_coefficients)
         flap_raw = np.asarray(flap_raw)
         edge_raw = np.asarray(edge_raw)
     except:
-        pass
-            
-    assert isinstance(blade_matrix, np.ndarray), 'blade_matrix must be of type np.ndarray'
+        pass            
+    assert isinstance(blade_coefficients, np.ndarray), 'blade_coefficients must be of type np.ndarray'
     assert isinstance(flap_offset, (float,int)), 'flap_offset must be of type int or float'
     assert isinstance(flap_raw, np.ndarray), 'flap_raw must be of type np.ndarray'
     assert isinstance(edge_offset, (float,int)), 'edge_offset must be of type int or float'
@@ -200,8 +198,8 @@ def blade_moments(blade_matrix,flap_offset,flap_raw,edge_offset,edge_raw):
     edge_signal = edge_raw - edge_offset
 
     # apply matrix to get load signals
-    M_flap = blade_matrix[0]*flap_signal + blade_matrix[1]*edge_signal
-    M_edge = blade_matrix[2]*flap_signal + blade_matrix[3]*edge_signal
+    M_flap = blade_coefficients[0]*flap_signal + blade_coefficients[1]*edge_signal
+    M_edge = blade_coefficients[2]*flap_signal + blade_coefficients[3]*edge_signal
 
     return M_flap, M_edge
 
@@ -222,7 +220,7 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
       techniques for accurate fatigue damage estimation. International Journal
       of Fatigue, 82 (2016) 757-765`
     
-    Parameters
+    Parameters:
     -----------
     data_signal : array
         Data signal being analyzed
@@ -236,8 +234,8 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     data_length : float/int
         Length of measured data (seconds)
     
-    Returns
-    -----------
+    Returns:
+    --------
     DEL : float
         Damage equivalent load of single data signal
     """
@@ -270,8 +268,8 @@ def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],xlabel=None,ylabel=None,titl
     """
     Plot showing standard raw statistics of variable
 
-    Parameters
-    ------------------
+    Parameters:
+    -----------
     x : numpy array
         Array of x-axis values
     y_mean : numpy array
@@ -291,8 +289,8 @@ def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],xlabel=None,ylabel=None,titl
     savepath : string, optional
         Path and filename to save figure. Plt.show() is called otherwise
 
-    Returns
-    -------------------
+    Returns:
+    --------
     figure
     """
     # Check data type
@@ -329,8 +327,8 @@ def plot_bin_statistics(bin_centers,bin_mean,bin_max,bin_min,bin_mean_std,bin_ma
     """
     Plot showing standard binned statistics of single variable
 
-    Parameters
-    ------------------
+    Parameters:
+    -----------
     bin_centers : numpy array
         x-axis bin center values
     bin_mean : numpy array
@@ -354,8 +352,8 @@ def plot_bin_statistics(bin_centers,bin_mean,bin_max,bin_min,bin_mean_std,bin_ma
     savepath : string, optional
         Path and filename to save figure. Plt.show() is used by default.
 
-    Returns
-    -------------------
+    Returns:
+    --------
     figure
     """
     fig, ax = plt.subplots(figsize=(7,5))

@@ -55,7 +55,7 @@ class TestLoads(unittest.TestCase):
         inflow_speed = [13,13,13,13] # array of wind speeds
         TSR_answer = [4.7,5.0,5.3,5.6]
         
-        TSR = loads.tip_speed_ratio(rotor_speed,rotor_diameter,inflow_speed)
+        TSR = loads.tip_speed_ratio(np.asarray(rotor_speed)/60,rotor_diameter,inflow_speed)
 
         for i,j in zip(TSR,TSR_answer):
             self.assertAlmostEqual(i,j,delta=0.05)
