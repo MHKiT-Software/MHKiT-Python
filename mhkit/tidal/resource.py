@@ -10,9 +10,9 @@ def _histogram(directions, velocities, width_dir, width_vel):
 
     Parameters
     ----------
-    directions: array like
+    directions: array-like
         Directions in degrees with 0 degrees specified as true north
-    velocities: array like
+    velocities: array-like
         Velocities in m/s
     width_dir: float 
         Width of directional bins for histogram in degrees
