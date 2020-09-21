@@ -99,11 +99,11 @@ def tip_speed_ratio(rotor_speed,rotor_diameter,inflow_speed):
         Calculated tip speed ratio (TSR)
     '''
     
-    try:
-        rotor_speed = np.asarray(rotor_speed)
-        inflow_speed = np.asarray(inflow_speed)
-    except:
-        pass
+    try: rotor_speed = np.asarray(rotor_speed)
+    except:pass        
+    try: inflow_speed = np.asarray(inflow_speed)
+    except: pass
+    
     assert isinstance(rotor_speed, np.ndarray), 'rotor_speed must be of type np.ndarray'
     assert isinstance(rotor_diameter, (float,int)), 'rotor diameter must be of type int or float'
     assert isinstance(inflow_speed, np.ndarray), 'inflow_speed must be of type np.ndarray'
@@ -179,13 +179,14 @@ def blade_moments(blade_coefficients,flap_offset,flap_raw,edge_offset,edge_raw):
     M_edge : numpy array
         Blade edgewise moment in SI units
     '''
-    # check data types
-    try:
-        blade_coefficients = np.asarray(blade_coefficients)
-        flap_raw = np.asarray(flap_raw)
-        edge_raw = np.asarray(edge_raw)
-    except:
-        pass            
+    
+    try: blade_coefficients = np.asarray(blade_coefficients)
+    except: pass
+    try: flap_raw = np.asarray(flap_raw)
+    except: pass    
+    try: edge_raw = np.asarray(edge_raw)
+    except: pass    
+    
     assert isinstance(blade_coefficients, np.ndarray), 'blade_coefficients must be of type np.ndarray'
     assert isinstance(flap_offset, (float,int)), 'flap_offset must be of type int or float'
     assert isinstance(flap_raw, np.ndarray), 'flap_raw must be of type np.ndarray'
@@ -260,8 +261,7 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     
 ################ plotting functions
 
-def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],xlabel=None,
-                    ylabel=None,title=None,savepath=None):
+def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],**kwargs):
     """
     Plot showing standard raw statistics of variable
 
@@ -277,20 +277,20 @@ def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],xlabel=None,
         Array of min statistical values of variable
     y_stdev : numpy array, optional
         Array of standard deviation statistical values of variable
-    xlabel : string, optional
-        xlabel for plot
-    ylabel : string, optional
-        ylabel for plot
-    title : string, optional
-        Title for plot
-    savepath : string, optional
-        Path and filename to save figure. Plt.show() is called otherwise
+    **kwargs : optional             
+        x_label : string
+            x axis label for plot
+        y_label : string
+            y axis label for plot
+        title : string, optional
+            Title for plot
+        save_path : string
+            Path and filename to save figure.
 
     Returns:
     --------
     ax : matplotlib pyplot axes
     """
-    
     try: x = np.array(x)
     except: pass       
     try: y_mean = np.array(y_mean)
@@ -304,21 +304,29 @@ def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],xlabel=None,
     assert isinstance(y_mean, np.ndarray), 'y_mean must be of type np.ndarray'
     assert isinstance(y_max, np.ndarray), 'y_max must be of type np.ndarray'
     assert isinstance(y_min, np.ndarray), 'y_min must be of type np.ndarray'
+    assert isinstance(x_label, str), 'x_label must be of type str'
+    assert isinstance(y_label, str), 'y_label must be of type str'
+    assert isinstance(title, str), 'title must be of type str'
+    assert isinstance(save_path, str), 'save_path must be of type str'
 
     fig, ax = plt.subplots(figsize=(6,4))
     ax.plot(x,y_max,'^',label='max',mfc='none')
     ax.plot(x,y_mean,'o',label='mean',mfc='none')
     ax.plot(x,y_min,'v',label='min',mfc='none')
+    
     if len(y_stdev)>0: ax.plot(x,y_stdev,'+',label='stdev',c='m')
     ax.grid(alpha=0.4)
     ax.legend(loc='best')
-    if xlabel!=None: ax.set_xlabel(xlabel)
-    if ylabel!=None: ax.set_ylabel(ylabel)
+    
+    if x_label!=None: ax.set_xlabel(x_label)
+    if y_label!=None: ax.set_ylabel(y_label)
     if title!=None: ax.set_title(title)
+    
     fig.tight_layout()
-    if savepath==None: plt.show()
+    
+    if save_path==None: plt.show()
     else: 
-        fig.savefig(savepath)
+        fig.savefig(save_path)
         plt.close()
     return ax
 
@@ -394,12 +402,14 @@ def plot_bin_statistics(bin_centers, bin_mean,bin_max, bin_min,
     ax.grid(alpha=0.5)
     ax.legend(loc='best')
     
-    if xlabel!=None: ax.set_xlabel(xlabel)
-    if ylabel!=None: ax.set_ylabel(ylabel)
+    if x_label!=None: ax.set_xlabel(x_label)
+    if y_label!=None: ax.set_ylabel(y_label)
     if title!=None: ax.set_title(title)
+    
     fig.tight_layout()
-    if savepath==None: plt.show()
+    
+    if save_path==None: plt.show()
     else: 
-        fig.savefig(savepath)
+        fig.savefig(save_path)
         plt.close()
     return ax
