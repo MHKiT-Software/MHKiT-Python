@@ -34,14 +34,11 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
         Standard deviation of each bim
     """
 
+    assert isinstance(data, pd.DataFrame), 'data must be of type pd.DataFram'   
     try: bin_against = np.asarray(bin_against) 
-    except: pass
+    except: 'bin_against must be of type np.ndarray'
     try: bin_edges = np.asarray(bin_edges)
-    except: pass
-    
-    assert isinstance(data, pd.DataFrame), 'data must be of type pd.DataFram'
-    assert isinstance(bin_against, np.ndarray), 'bin_against must be of type np.ndarray'
-    assert isinstance(bin_edges, np.ndarray), 'bin_edges must be of type np.ndarray'
+    except: 'bin_edges must be of type np.ndarray'    
 
     # Determine variables to analyze
     if len(data_signal)==0: # if not specified, bin all variables
@@ -56,7 +53,8 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     # loop through data_signal and get binned means
     for signal_name in data_signal:
         # Bin data
-        bin_stat = binned_statistic(bin_against,data[signal_name],statistic='mean',bins=bin_edges)
+        bin_stat = binned_statistic(bin_against,data[signal_name],
+                                    statistic='mean',bins=bin_edges)
         # Calculate std of bins
         std = []
         stdev = pd.DataFrame(data[signal_name])
@@ -100,18 +98,15 @@ def tip_speed_ratio(rotor_speed,rotor_diameter,inflow_speed):
     '''
     
     try: rotor_speed = np.asarray(rotor_speed)
-    except:pass        
+    except: 'rotor_speed must be of type np.ndarray'        
     try: inflow_speed = np.asarray(inflow_speed)
-    except: pass
+    except: 'inflow_speed must be of type np.ndarray'
     
-    assert isinstance(rotor_speed, np.ndarray), 'rotor_speed must be of type np.ndarray'
     assert isinstance(rotor_diameter, (float,int)), 'rotor diameter must be of type int or float'
-    assert isinstance(inflow_speed, np.ndarray), 'inflow_speed must be of type np.ndarray'
 
-    # get rotational velocity in m/s
+
     rotor_velocity = rotor_speed * np.pi*rotor_diameter
 
-    # calculate TSR
     TSR = rotor_velocity / inflow_speed
 
     return TSR
@@ -138,19 +133,16 @@ def power_coefficient(power,inflow_speed,capture_area,rho):
     '''
     
     try: power = np.asarray(power)
-    except:pass
+    except: 'power must be of type np.ndarray'
     try: inflow_speed = np.asarray(inflow_speed)
-    except:pass
+    except: 'inflow_speed must be of type np.ndarray'
     
-    assert isinstance(power, np.ndarray), 'power must be of type np.ndarray'
-    assert isinstance(inflow_speed, np.ndarray), 'inflow_speed must be of type np.ndarray'
     assert isinstance(capture_area, (float,int)), 'capture_area must be of type int or float'
     assert isinstance(rho, (float,int)), 'rho must be of type int or float'
 
-    # calculate predicted power from inflow
+    # Predicted power from inflow
     power_in = (0.5 * rho * capture_area * inflow_speed**3)
 
-    # calculate Cp ratio
     Cp = power / power_in 
 
     return Cp
@@ -181,18 +173,15 @@ def blade_moments(blade_coefficients,flap_offset,flap_raw,edge_offset,edge_raw):
     '''
     
     try: blade_coefficients = np.asarray(blade_coefficients)
-    except: pass
+    except: 'blade_coefficients must be of type np.ndarray'
     try: flap_raw = np.asarray(flap_raw)
-    except: pass    
+    except: 'flap_raw must be of type np.ndarray'    
     try: edge_raw = np.asarray(edge_raw)
-    except: pass    
+    except:  'edge_raw must be of type np.ndarray'    
     
-    assert isinstance(blade_coefficients, np.ndarray), 'blade_coefficients must be of type np.ndarray'
     assert isinstance(flap_offset, (float,int)), 'flap_offset must be of type int or float'
-    assert isinstance(flap_raw, np.ndarray), 'flap_raw must be of type np.ndarray'
     assert isinstance(edge_offset, (float,int)), 'edge_offset must be of type int or float'
-    assert isinstance(edge_raw, np.ndarray), 'edge_raw must be of type np.ndarray'
-
+    
     # remove offset from raw signal
     flap_signal = flap_raw - flap_offset
     edge_signal = edge_raw - edge_offset
@@ -241,9 +230,8 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     """
     
     try: data_signal = np.array(data_signal)
-    except: pass
+    except: 'data_signal must be of type np.ndarray'
     
-    assert isinstance(data_signal, np.ndarray), 'data_signal must be of type np.ndarray'
     assert isinstance(m, (float,int)), 'm must be of type float or int'
     assert isinstance(bin_num, (float,int)), 'bin_num must be of type float or int'
     assert isinstance(data_length, (float,int)), 'data_length must be of type float or int'
@@ -292,22 +280,23 @@ def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],**kwargs):
     ax : matplotlib pyplot axes
     """
     try: x = np.array(x)
-    except: pass       
+    except: 'x must be of type np.ndarray'       
     try: y_mean = np.array(y_mean)
-    except: pass            
+    except: 'y_mean must be of type np.ndarray'           
     try:y_max = np.array(y_max)
-    except: pass
+    except: 'y_max must be of type np.ndarray'
     try: y_min = np.array(y_min)
-    except: pass
+    except: 'y_min must be of type np.ndarray'
     
-    assert isinstance(x, np.ndarray), 'x must be of type np.ndarray'
-    assert isinstance(y_mean, np.ndarray), 'y_mean must be of type np.ndarray'
-    assert isinstance(y_max, np.ndarray), 'y_max must be of type np.ndarray'
-    assert isinstance(y_min, np.ndarray), 'y_min must be of type np.ndarray'
-    assert isinstance(x_label, str), 'x_label must be of type str'
-    assert isinstance(y_label, str), 'y_label must be of type str'
-    assert isinstance(title, str), 'title must be of type str'
-    assert isinstance(save_path, str), 'save_path must be of type str'
+    x_label   = kwargs.get("x_label", None)
+    y_label   = kwargs.get("y_label", None)
+    title     = kwargs.get("title", None)
+    save_path = kwargs.get("save_path", None)
+    
+    assert isinstance(x_label, (str, type(None))), 'x_label must be of type str'
+    assert isinstance(y_label, (str, type(None))), 'y_label must be of type str'
+    assert isinstance(title, (str, type(None))), 'title must be of type str'
+    assert isinstance(save_path, (str, type(None))), 'save_path must be of type str'
 
     fig, ax = plt.subplots(figsize=(6,4))
     ax.plot(x,y_max,'^',label='max',mfc='none')
@@ -346,7 +335,7 @@ def plot_bin_statistics(bin_centers, bin_mean,bin_max, bin_min,
         Binned max statistical values of variable
     bin_min : numpy array
         Binned min statistical values of variable
-     : numpy array
+    bin_mean_std : numpy array
         Standard deviations of mean binned statistics
     bin_max_std : numpy array
         Standard deviations of max binned statistics
@@ -366,30 +355,33 @@ def plot_bin_statistics(bin_centers, bin_mean,bin_max, bin_min,
     --------
     ax : matplotlib pyplot axes
     """
+        
+    try: bin_centers = np.asarray(bin_centers)
+    except: 'bin_centers must be of type np.ndarray'    
+    
+    try: bin_mean = np.asarray(bin_mean)
+    except: 'bin_mean must be of type np.ndarray'    
+    try: bin_max = np.asarray(bin_max)
+    except:'bin_max must be of type np.ndarray'    
+    try: bin_min = np.asarray(bin_min) 
+    except: 'bin_min must be of type type np.ndarray'
+    
+    try: bin_mean_std = np.asarray(bin_mean_std)
+    except: 'bin_mean_std must be of type np.ndarray'
+    try: bin_max_std = np.asarray(bin_max_std)
+    except: 'bin_max_std must be of type np.ndarray'
+    try: bin_min_std = np.asarray(bin_min_std)
+    except: 'bin_min_std must be of type np.ndarray'
     
     x_label   = kwargs.get("x_label", None)
     y_label   = kwargs.get("y_label", None)
     title     = kwargs.get("title", None)
     save_path = kwargs.get("save_path", None)
     
-    assert isinstance(bin_centers, np.ndarray), ('bin_centers must be '
-                                                 'of type np.ndarray')
-    assert isinstance(bin_mean, np.ndarray), ('bin_mean must be of '
-                                               'type np.ndarray')
-    assert isinstance(bin_max, np.ndarray), ('bin_max must be of '
-                                             'type np.ndarray')
-    assert isinstance(bin_min, np.ndarray), ('bin_min must be of type '
-                                                 'type np.ndarray')
-    assert isinstance(bin_mean_std, np.ndarray), ('bin_mean_std must be '
-                                                  'of type np.ndarray')
-    assert isinstance(bin_max_std, np.ndarray), ('bin_max_std must be '
-                                                 'of type np.ndarray')    
-    assert isinstance(bin_min_std, np.ndarray), ('bin_min_std must be '
-                                                 'of type np.ndarray')
-    assert isinstance(x_label, str), 'x_label must be of type str'
-    assert isinstance(y_label, str), 'y_label must be of type str'
-    assert isinstance(title, str), 'title must be of type str'
-    assert isinstance(save_path, str), 'save_path must be of type str'
+    assert isinstance(x_label, (str, type(None))), 'x_label must be of type str'
+    assert isinstance(y_label, (str, type(None))), 'y_label must be of type str'
+    assert isinstance(title, (str, type(None))), 'title must be of type str'
+    assert isinstance(save_path, (str, type(None))), 'save_path must be of type str'
     
     fig, ax = plt.subplots(figsize=(7,5))
     ax.errorbar(bin_centers,bin_max,marker='^',mfc='none',
