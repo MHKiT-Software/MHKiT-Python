@@ -106,13 +106,13 @@ class TestLoads(unittest.TestCase):
         
         # Generate plot
         loads.plot_statistics( self.data['means']['uWind_80m'],
-                           self.data['means']['TB_ForeAft'],
-                           self.data['maxs']['TB_ForeAft'],
-                           self.data['mins']['TB_ForeAft'],
-                    y_stdev=self.data['std']['TB_ForeAft'],
-                    xlabel='Wind Speed [m/s]',
-                    ylabel='Tower Base Mom [kNm]',
-                    savepath=savepath)
+                               self.data['means']['TB_ForeAft'],
+                               self.data['maxs']['TB_ForeAft'],
+                               self.data['mins']['TB_ForeAft'],
+                               y_stdev=self.data['std']['TB_ForeAft'],
+                               x_label='Wind Speed [m/s]',
+                               y_label='Tower Base Mom [kNm]',
+                               save_path=savepath)
         
         self.assertTrue(isfile(savepath))
 
@@ -132,8 +132,13 @@ class TestLoads(unittest.TestCase):
         bin_min_std = self.data['bin_mins_std'][signal_name]
 
         # Generate plot
-        loads.plot_bin_statistics(bin_centers,bin_mean,bin_max,bin_min,bin_mean_std,bin_max_std,bin_min_std,
-            xlabel='Wind Speed [m/s]',ylabel=signal_name,title='Binned Stats',savepath=savepath)
+        loads.plot_bin_statistics(bin_centers, 
+                                  bin_mean, bin_max, bin_min,
+                                  bin_mean_std, bin_max_std, bin_min_std,
+                                  x_label='Wind Speed [m/s]',
+                                  y_label=signal_name,
+                                  title='Binned Stats',
+                                  save_path=savepath)
 
         self.assertTrue(isfile(savepath))
 
