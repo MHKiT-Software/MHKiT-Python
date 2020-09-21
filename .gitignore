@@ -29,5 +29,5 @@ $ cat .gitignore
 .gitignore
 
 # Exemptions
-!**/examples/data/*.mat
-!**/tests/data/*.mat
+!**/examples/data/wave/*.mat
+!**/tests/data/wave/*.mat
