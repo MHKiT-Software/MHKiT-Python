@@ -4,16 +4,16 @@ import pandas as pd
 import mhkit.utils as utils
 from pandas.testing import assert_frame_equal
 import json
-from os.path import abspath, dirname, join, isfile
+from os.path import abspath, dirname, join, isfile, normpath, relpath
 
 testdir = dirname(abspath(__file__))
-datadir = join(testdir, 'data')
+loads_datadir = normpath(join(testdir,relpath('../../examples/data/loads')))
 
 class TestGenUtils(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        loads_data_file = join(datadir, "loads_data_dict.json")
+        loads_data_file = join(loads_datadir, "loads_data_dict.json")
         with open(loads_data_file, 'r') as fp:
             data_dict = json.load(fp)
         # convert dictionaries into dataframes

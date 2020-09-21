@@ -1,10 +1,12 @@
+from sklearn.decomposition import PCA as skPCA
+from sklearn.metrics import mean_squared_error
+from scipy.optimize import fsolve as _fsolve
+from itertools import product as _product
+from scipy import signal as _signal
+import scipy.optimize as optim
+import scipy.stats as stats
 import pandas as pd
 import numpy as np
-from scipy.optimize import fsolve as _fsolve
-from scipy import signal as _signal
-from itertools import product as _product
-
-
 
 ### Spectrum
 def elevation_spectrum(eta, sample_rate, nnft, window='hann', detrend=True, noverlap=None):
@@ -684,3 +686,284 @@ def wave_number(f, h, rho=1025, g=9.80665):
     k = pd.DataFrame(k0, index=f, columns=['k'])
     
     return k
+
+def environmental_contour(x1, x2, dt, period, **kwargs):
+    '''    
+    Calculates environmental contours of extreme sea 
+    states using the improved joint probability distributions 
+	with the inverse first-order reliability method (I-FORM) 
+    probability for the desired return period (`period`). Given the 
+    period of interest, a circle of iso-probability is created 
+    in the principal component analysis (PCA) joint probability 
+    (`x1`, `x2`) reference frame.  
+    Using the joint probability value, the cumulative distribution 
+    function (CDF) of the marginal distribution is used to find 
+    the quantile of each component. 
+    Finally, using the improved PCA methodology,
+    the component 2 contour lines are calculated from component 1 using 
+    the relationships defined in Exkert-Gallup et. al. 2016.	
+
+    Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
+    Neary, V. S. (2016). Application of principal component 
+    analysis (PCA) and improved joint probability distributions to 
+    the inverse first-order reliability method (I-FORM) for predicting 
+    extreme sea states. Ocean Engineering, 112, 307-319.
+
+    Parameters
+    ----------
+    x1: numpy array 
+        Component 1 data
+    x2: numpy array 
+        Component 2 data        	
+    dt : int or float
+        `x1` and `x2` sample rate (seconds)
+    period : int, float, or numpy array 
+        Desired return period (years) for calculation of environmental
+        contour, can be a scalar or a vector.
+    **kwargs : optional        
+        PCA: dict
+            If provided, the principal component analysis (PCA) on x1, x2 
+            is skipped. The PCA will be the same for a given x1, x2 
+            therefore this step may be skipped if multiple calls to 
+            environmental contours are made for the same x1, x2 pair. 
+            The PCA dict may be obtained by setting return_PCA=True.
+        bin_size : int
+            Data points in each bin for the PCA. Default bin_size=250.		
+        nb_steps : int
+            Discretization of the circle in the normal space used for
+            I-FORM calculation. Default nb_steps=1000.
+        return_PCA: boolean
+            Default False, if True will retun the PCA dictionary 
+
+    Returns
+    -------
+    x1_contour : numpy array 
+        Calculated x1 values along the contour boundary following
+        return to original input orientation.
+    x2_contour : numpy array 
+       Calculated x2 values along the contour boundary following
+        return to original input orientation.
+    PCA: dict (optional)
+	    principal component analysis dictionary 
+       Keys:
+       -----       
+       'principal_axes': sign corrected PCA axes 
+       'shift'         : The shift applied to x2 
+       'x1_fit'        : gaussian fit of x1 data
+       'mu_param'      : fit to _mu_fcn
+       'sigma_param'   : fit to _sig_fits 
+
+    '''   
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(dt, (int,float)), 'dt must be of type int or float'
+    assert isinstance(period, (int,float,np.ndarray)), ('period must be'
+                                          'of type int, float, or array')    
+    PCA = kwargs.get("PCA", None)
+    bin_size = kwargs.get("bin_size", 250)
+    nb_steps = kwargs.get("nb_steps", 1000)
+    return_PCA = kwargs.get("return_PCA", False)
+    assert isinstance(PCA, (dict, type(None))), 'If specified PCA must be a dict'
+    assert isinstance(bin_size, int), 'bin_size must be of type int'
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    assert isinstance(return_PCA, bool), 'return_PCA must be of type bool'
+    
+    if isinstance(period, np.ndarray) and len(period) > 1 and period.ndim == 1:
+        period = period.reshape(-1,1)    
+    
+    if PCA == None:
+        PCA = _principal_component_analysis(x1, x2, bin_size=bin_size)
+	
+    exceedance_probability = 1 / (365 * 24 * 3600/ dt * period)
+    iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
+                                             loc=0, scale=1)  
+    discretized_radians = np.linspace(0, 2 * np.pi, nb_steps)
+    
+    x_component_iso_prob = iso_probability_radius * \
+                            np.cos(discretized_radians)
+    y_component_iso_prob = iso_probability_radius * \
+                            np.sin(discretized_radians)
+    
+    x_quantile = stats.norm.cdf(x_component_iso_prob, loc=0, scale=1)
+    y_quantile = stats.norm.cdf(y_component_iso_prob, loc=0, scale=1)
+    
+    # Use the inverse of cdf to calculate component 1 values           
+    component_1 = stats.invgauss.ppf(x_quantile, 
+                                     mu   =PCA['x1_fit']['mu'],
+                                     loc  =PCA['x1_fit']['loc'], 
+                                     scale=PCA['x1_fit']['scale'] )
+    
+    # Find Component 2 mu using first order linear regression
+    mu_slope     = PCA['mu_fit'].slope
+    mu_intercept = PCA['mu_fit'].intercept        
+    component_2_mu = mu_slope * component_1 + mu_intercept
+    
+    # Find Componenet 2 sigma using second order polynomial fit
+    sigma_polynomial_coeffcients =PCA['sigma_fit'].x
+    component_2_sigma = np.polyval(sigma_polynomial_coeffcients, component_1)
+                
+    # Use calculated mu and sigma values to calculate C2 along the contour
+    component_2 = stats.norm.ppf(y_quantile,
+                                 loc  =component_2_mu, 
+                                 scale=component_2_sigma)
+                             
+    # Convert contours back to the original reference frame
+    principal_axes = PCA['principal_axes']
+    shift = PCA['shift']
+    pa00 = principal_axes[0, 0]
+    pa01 = principal_axes[0, 1]
+
+    x1_contour = (( pa00 * component_1 + pa01 * (component_2 - shift)) / \
+                  (pa01**2 + pa00**2))                         
+    x2_contour = (( pa01 * component_1 - pa00 * (component_2 - shift)) / \
+                  (pa01**2 + pa00**2))                                    
+    
+    # Assign 0 value to any negative x1 contour values
+    x1_contour = np.maximum(0, x1_contour)  
+    
+    if return_PCA:
+        return np.transpose(x1_contour), np.transpose(x2_contour), PCA
+    return np.transpose(x1_contour), np.transpose(x2_contour)
+
+def _principal_component_analysis(x1, x2, bin_size=250):
+    '''
+    Performs a modified principal component analysis (PCA) 
+    [Eckert et. al 2016] on two variables (`x1`, `x2`). The additional
+    PCA is performed in 5 steps:
+    1) Transform `x1` & `x2` into the principal component domain and shift
+       the y-axis so that all values are positive and non-zero
+    2) Fit the `x1` data in the transformed reference frame with an 
+       inverse Gaussian Distribution
+    3) Bin the transformed data into groups of size bin and find the 
+       mean of `x1`, the mean of `x2`, and the standard deviation of `x2`
+    4) Perform a first-order linear regression to determine a continuous
+       the function relating the mean of the `x1` bins to mean of the `x2` bins
+    5) Find a second-order polynomial which best relates the means of 
+       `x1` to the standard deviation of `x2` using constrained optimization
+         
+    Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
+    Neary, V. S. (2016). Application of principal component 
+    analysis (PCA) and improved joint probability distributions to 
+    the inverse first-order reliability method (I-FORM) for predicting 
+    extreme sea states. Ocean Engineering, 112, 307-319.
+
+    Parameters
+    ----------
+    x1: numpy array 
+        Component 1 data
+    x2: numpy array 
+        Component 2 data        
+    bin_size : int
+        Number of data points in each bin 
+        
+    Returns
+    -------
+    PCA: dict 
+       Keys:
+       -----       
+       'principal_axes': sign corrected PCA axes 
+       'shift'         : The shift applied to x2 
+       'x1_fit'        : gaussian fit of x1 data
+       'mu_param'      : fit to _mu_fcn
+       'sigma_param'   : fit to _sig_fits            
+    '''
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(bin_size, int), 'bin_size must be of type int'
+    # Step 0: Perform Standard PCA          
+    mean_location=0    
+    x1_mean_centered = x1 - x1.mean(axis=0)
+    x2_mean_centered = x2 - x2.mean(axis=0)
+    n_samples_by_n_features = np.column_stack((x1_mean_centered, 
+                                               x2_mean_centered))
+    pca = skPCA(n_components=2)                                               
+    pca.fit(n_samples_by_n_features)
+    principal_axes = pca.components_
+
+    # STEP 1: Transform data into new reference frame
+    # Apply correct/expected sign convention    
+    principal_axes = abs(principal_axes)  
+    principal_axes[1, 1] = -principal_axes[1, 1]  
+
+    # Rotate data into Principal direction 
+    x1_and_x2 = np.column_stack((x1, x2))
+    x1_x2_components = np.dot(x1_and_x2, principal_axes)  
+    x1_components = x1_x2_components[:, 0]
+    x2_components = x1_x2_components[:, 1]
+
+    # Apply shift to Component 2 to make all values positive
+    shift = abs(min(x2_components)) + 0.1
+    x2_components = x2_components + shift 
+
+    # STEP 2: Fit Component 1 data using a Gaussian Distribution
+    x1_sorted_index = x1_components.argsort()
+    x1_sorted = x1_components[x1_sorted_index]
+    x2_sorted = x2_components[x1_sorted_index]
+    
+    x1_fit_results = stats.invgauss.fit(x1_sorted, floc=mean_location)
+    x1_fit = { 'mu'    : x1_fit_results[0],
+               'loc'   : x1_fit_results[1],
+               'scale' : x1_fit_results[2]}
+
+    # Step 3: Bin Data & find order 1 linear relation between x1 & x2 means
+    N = len(x1)  
+    minimum_4_bins = np.floor(N*0.25)
+    if bin_size > minimum_4_bins:
+        bin_size = minimum_4_bins
+        msg=('To allow for a minimum of 4 bins the bin size has been' +
+             f'set to {minimum_4_bins}')
+        print(msg)
+
+    N_multiples = N // bin_size
+    max_N_multiples_index  =  N_multiples*bin_size
+    
+    x1_integer_multiples_of_bin_size = x1_sorted[0:max_N_multiples_index]    
+    x2_integer_multiples_of_bin_size = x2_sorted[0:max_N_multiples_index] 
+    
+    x1_bins = np.split(x1_integer_multiples_of_bin_size, 
+                       N_multiples)
+    x2_bins = np.split(x2_integer_multiples_of_bin_size, 
+                       N_multiples)
+    
+    x1_last_bin = x1_sorted[max_N_multiples_index:]    
+    x2_last_bin = x2_sorted[max_N_multiples_index:]    
+    
+    x1_bins.append(x1_last_bin)
+    x2_bins.append(x2_last_bin)
+    
+    x1_means = np.array([]) 
+    x2_means = np.array([]) 
+    x2_sigmas  = np.array([])     
+    
+    for x1_bin, x2_bin in zip(x1_bins, x2_bins):                    
+        x1_means = np.append(x1_means, x1_bin.mean())                         
+        x2_means = np.append(x2_means, x2_bin.mean())         
+        x2_sigmas  = np.append(x2_sigmas, x2_bin.std()) 
+    
+    mu_fit = stats.linregress(x1_means, x2_means)    
+    
+    # STEP 4: Find order 2 relation between x1_mean and x2 standard deviation
+    sigma_polynomial_order=2
+    sig_0 = 0.1 * np.ones(sigma_polynomial_order+1)
+    
+    def _objective_function(sig_p, x1_means, x2_sigmas):
+        return mean_squared_error(np.polyval(sig_p, x1_means), x2_sigmas)
+    
+    # Constraint Functions
+    y_intercept_gt_0 = lambda sig_p: (sig_p[2])
+    sig_polynomial_min_gt_0 = lambda sig_p: (sig_p[2] - (sig_p[1]**2) / \
+                                             (4 * sig_p[0]))    
+    constraints = ({'type': 'ineq', 'fun': y_intercept_gt_0},
+                   {'type': 'ineq', 'fun': sig_polynomial_min_gt_0})    
+    
+    sigma_fit = optim.minimize(_objective_function, x0=sig_0, 
+                               args=(x1_means, x2_sigmas),
+                               method='SLSQP',constraints=constraints)     
+
+    PCA = {'principal_axes': principal_axes, 
+           'shift'         : shift, 
+           'x1_fit'        : x1_fit, 
+           'mu_fit'        : mu_fit, 
+           'sigma_fit'     : sigma_fit }
+    
+    return PCA

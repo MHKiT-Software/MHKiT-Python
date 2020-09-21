@@ -1,9 +1,12 @@
 from collections import OrderedDict as _OrderedDict
+from collections import defaultdict as _defaultdict
 from io import BytesIO
 import pandas as pd
 import numpy as np
 import requests
 import zlib
+import pandas.errors
+
 
 
 def read_file(file_name, missing_values=['MM',9999,999,99]):
@@ -128,7 +131,8 @@ def available_data(parameter,
         Buoy Number.  5-character alpha-numeric station identifier   
         
     proxy: dict
-	    Proxy dict passed to python requests, (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
+	    Proxy dict passed to python requests, 
+        (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
         
     Returns
     -------
@@ -164,12 +168,16 @@ def available_data(parameter,
 
     available_data = buoys.copy(deep=True)
     
+	# Set year to numeric (makes year key non-unique)
+    available_data['year']=available_data.year.str.strip('b')
+    available_data['year']=pd.to_numeric(available_data.year.str.strip('_old'))
+
     if isinstance(buoy_number, str):        
-        available_data = buoys[buoys.id==buoy_number]
+        available_data = available_data[available_data.id==buoy_number]
     elif isinstance(buoy_number, list):
-        available_data = buoys[buoys.id==buoy_number[0]]
+        available_data = available_data[available_data.id==buoy_number[0]]
         for i in range(1, len(buoy_number)):
-            data = buoys[buoys.id==buoy_number[i]]
+            data = available_data[available_data.id==buoy_number[i]]
             available_data = available_data.append(data)                  
         
     return available_data
@@ -182,7 +190,7 @@ def _parse_filenames(parameter, filenames):
     Parameters
     ----------
     parameter: string
-        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        'swden'	:    'Raw Spectral Wave Current Year Historical Data'
         
         'stdmet':   'Standard Meteorological Current Year Historical Data'
         
@@ -201,7 +209,7 @@ def _parse_filenames(parameter, filenames):
     file_seps = {
                 'swden' : 'w',
                 'stdmet' : 'h'
-               }
+                }
     file_sep= file_seps[parameter]
     
     filenames = filenames[filenames.str.contains('.txt.gz')]
@@ -226,34 +234,38 @@ def request_data(parameter, filenames, proxy=None):
     Parameters
     ----------
     parameter: string
-        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
-        
+        'swden'	:	'Raw Spectral Wave Current Year Historical Data'       
         'stdmet':   'Standard Meteorological Current Year Historical Data'
         
-    filenames: DataFrame
+    filenames: pandas Series or DataFrame
 	    Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
     
     proxy: dict
-	    Proxy dict passed to python requests, (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
+	    Proxy dict passed to python requests, 
+        (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
         
     Returns
     -------
     ndbc_data: dict
         Dictionary of DataFrames indexed by buoy and year.
     '''
-    assert isinstance(filenames, (pd.Series,pd.DataFrame)), 'filenames must be of type pd.Series' 
+    assert isinstance(filenames, (pd.Series,pd.DataFrame)), (
+        'filenames must be of type pd.Series') 
     assert isinstance(parameter, str), 'parameter must be a string'
-    assert isinstance(proxy, (dict, type(None))), 'If specified proxy must be a dict'    
+    assert isinstance(proxy, (dict, type(None))), ('If specified proxy' 
+      'must be a dict')
+    
     supported =_supported_params(parameter)
     if isinstance(filenames,pd.DataFrame):
-        filenames = filenames.squeeze()
+        filenames = pd.Series(filenames.squeeze())
+    assert len(filenames)>0, "At least 1 filename must be passed"
+       
+
     buoy_data = _parse_filenames(parameter, filenames)
     parameter_url = f'https://www.ndbc.noaa.gov/data/historical/{parameter}'
-    ndbc_data = {}    
+    ndbc_data = _defaultdict(dict)    
     
-    for buoy_id in buoy_data['id'].unique():
-        ndbc_data_buoy={}
-        
+    for buoy_id in buoy_data['id'].unique():        
         buoy = buoy_data[buoy_data['id']== buoy_id]
         years = buoy.year
         filenames = buoy.filename
@@ -263,15 +275,59 @@ def request_data(parameter, filenames, proxy=None):
                 response = requests.get(file_url)
             else:
                 response = requests.get(file_url, proxies=proxy)
-            data = zlib.decompress(response.content, 16+zlib.MAX_WBITS)
-            df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)
-            ndbc_data_buoy[year] = df
-        ndbc_data[buoy_id] = ndbc_data_buoy
-        
+            try: 
+                data = zlib.decompress(response.content, 16+zlib.MAX_WBITS)
+                df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)                
+            except zlib.error: 
+                msg = (f'Issue decompressing the NDBC file {filename}'  
+                       f'(id: {buoy_id}, year: {year}). Please request ' 
+                       'the data again.')
+                print(msg)
+            except pandas.errors.EmptyDataError: 
+                msg = (f'The NDBC buoy {buoy_id} for year {year} with ' 
+                       f'filename {filename} is empty or missing '     
+                        'data. Please omit this file from your data '   
+                        'request in the future.')
+                print(msg)
+            else:
+                ndbc_data[buoy_id][year] = df    
+                             
     if len(ndbc_data) == 1:
         ndbc_data = ndbc_data[buoy_id]
 
     return ndbc_data
+
+def to_datetime_index(parameter, ndbc_data):
+    '''
+    Converts the NDBC date and time information reported in separate
+    columns into a DateTime index and removed the NDBC date & time 
+    columns.        
+
+    Parameters
+    ------------
+    parameter: string
+        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        'stdmet':   'Standard Meteorological Current Year Historical Data'
+    ndbc_data: DataFrame
+        NDBC data in dataframe with date and time columns to be converted
+    Returns
+	-------
+	df_datetime: DataFrame
+	    Dataframe with NDBC date columns removed, and datetime index
+    '''  
+    assert isinstance(parameter, str), 'parameter must be a string'
+    assert isinstance(ndbc_data, pd.DataFrame), 'ndbc_data must be of type pd.DataFrame'
+    
+    df_datetime = ndbc_data.copy(deep=True)
+    df_datetime['date'], ndbc_date_cols = dates_to_datetime(parameter, 
+                                                          df_datetime, 
+                                                          return_date_cols=True)
+    df_datetime = df_datetime.drop(ndbc_date_cols, axis=1)
+    df_datetime = df_datetime.set_index('date')
+    if parameter=='swden':
+        df_datetime.columns = df_datetime.columns.astype(float)         
+        
+    return df_datetime
 
 def dates_to_datetime(parameter, data, 
                       return_date_cols=False, 
@@ -285,7 +341,6 @@ def dates_to_datetime(parameter, data,
     ----------
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
-        
         'stdmet':   'Standard Meteorological Current Year Historical Data'
         
     data: DataFrame
@@ -302,8 +357,8 @@ def dates_to_datetime(parameter, data,
     date: Series
         Series with NDBC dates dropped and new ['date']
         column in DateTime format
-        
-    ndbc_date_cols: list
+
+    ndbc_date_cols: list (optional)
         List of the DataFrame columns headers for dates as provided by 
         NDBC
     '''
@@ -319,6 +374,7 @@ def dates_to_datetime(parameter, data,
         minutes_loc  = cols.index('mm')
         minutes=True
     except:
+        df['mm'] = np.zeros(len(df)).astype(int).astype(str)
         minutes=False
     
     row_0_is_units = False
@@ -339,14 +395,11 @@ def dates_to_datetime(parameter, data,
     elif year_string[0]=='YY':
         year_string = year_string[0]
         year_fmt = '%y' 
-    if minutes:
-        ndbc_date_cols = [year_string, 'MM', 'DD', 'hh', 'mm']
-    else:
-        ndbc_date_cols = [year_string, 'MM', 'DD', 'hh']
-
-               
-    df = _date_string_to_datetime(df, ndbc_date_cols, year_fmt)        
-    date = df['date']    
+        
+    parse_columns = [year_string, 'MM', 'DD', 'hh', 'mm']
+    df = _date_string_to_datetime(df, parse_columns, year_fmt)        
+    date = df['date']        
+    
     if row_0_is_units:
         date = pd.concat([pd.Series([np.nan]),date])               
     del df
@@ -354,6 +407,10 @@ def dates_to_datetime(parameter, data,
     if return_as_dataframe:
         date = pd.DataFrame(date)    
     if return_date_cols:
+        if minutes:
+            ndbc_date_cols = [year_string, 'MM', 'DD', 'hh', 'mm']
+        else:
+            ndbc_date_cols = [year_string, 'MM', 'DD', 'hh']
         return date, ndbc_date_cols        
     
     return date
@@ -368,11 +425,11 @@ def _date_string_to_datetime(df, columns, year_fmt):
     Parameters
     ----------
     df: DataFrame
-        Dataframe with columns (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
+        Dataframe with columns (e.g. ['YY', 'MM', 'DD', 'hh', 'mm'])
         
     columns: list 
         list of strings for the columns to consider   
-        (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
+        (e.g. ['YY', 'MM', 'DD', 'hh', 'mm'])
         
     year_fmt: str
         Specifies if year is 2 digit or 4 digit for datetime 
@@ -593,6 +650,7 @@ def parameter_units(parameter=''):
                  'DIR01' : 'deg',
                  'SPD01' : 'cm/s',
                  }
+
         
     units = _OrderedDict(sorted(units.items()))
         
