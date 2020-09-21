@@ -34,14 +34,11 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
         Standard deviation of each bim
     """
 
-    try:
-        bin_against = np.asarray(bin_against)
-        bin_edges = np.asarray(bin_edges)
-    except:
-        pass
-    assert isinstance(data, pd.DataFrame), 'data must be of type pd.DataFram'
-    assert isinstance(bin_against, np.ndarray), 'bin_against must be of type np.ndarray'
-    assert isinstance(bin_edges, np.ndarray), 'bin_edges must be of type np.ndarray'
+    assert isinstance(data, pd.DataFrame), 'data must be of type pd.DataFram'   
+    try: bin_against = np.asarray(bin_against) 
+    except: 'bin_against must be of type np.ndarray'
+    try: bin_edges = np.asarray(bin_edges)
+    except: 'bin_edges must be of type np.ndarray'    
 
     # Determine variables to analyze
     if len(data_signal)==0: # if not specified, bin all variables
@@ -56,7 +53,8 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     # loop through data_signal and get binned means
     for signal_name in data_signal:
         # Bin data
-        bin_stat = binned_statistic(bin_against,data[signal_name],statistic='mean',bins=bin_edges)
+        bin_stat = binned_statistic(bin_against,data[signal_name],
+                                    statistic='mean',bins=bin_edges)
         # Calculate std of bins
         std = []
         stdev = pd.DataFrame(data[signal_name])
@@ -99,19 +97,16 @@ def tip_speed_ratio(rotor_speed,rotor_diameter,inflow_speed):
         Calculated tip speed ratio (TSR)
     '''
     
-    try:
-        rotor_speed = np.asarray(rotor_speed)
-        inflow_speed = np.asarray(inflow_speed)
-    except:
-        pass
-    assert isinstance(rotor_speed, np.ndarray), 'rotor_speed must be of type np.ndarray'
+    try: rotor_speed = np.asarray(rotor_speed)
+    except: 'rotor_speed must be of type np.ndarray'        
+    try: inflow_speed = np.asarray(inflow_speed)
+    except: 'inflow_speed must be of type np.ndarray'
+    
     assert isinstance(rotor_diameter, (float,int)), 'rotor diameter must be of type int or float'
-    assert isinstance(inflow_speed, np.ndarray), 'inflow_speed must be of type np.ndarray'
 
-    # get rotational velocity in m/s
+
     rotor_velocity = rotor_speed * np.pi*rotor_diameter
 
-    # calculate TSR
     TSR = rotor_velocity / inflow_speed
 
     return TSR
@@ -135,23 +130,19 @@ def power_coefficient(power,inflow_speed,capture_area,rho):
     --------
     Cp : numpy array
         Power coefficient of device [-]
-
     '''
     
-    try:
-        power = np.asarray(power)
-        inflow_speed = np.asarray(inflow_speed)
-    except:
-        pass
-    assert isinstance(power, np.ndarray), 'power must be of type np.ndarray'
-    assert isinstance(inflow_speed, np.ndarray), 'inflow_speed must be of type np.ndarray'
+    try: power = np.asarray(power)
+    except: 'power must be of type np.ndarray'
+    try: inflow_speed = np.asarray(inflow_speed)
+    except: 'inflow_speed must be of type np.ndarray'
+    
     assert isinstance(capture_area, (float,int)), 'capture_area must be of type int or float'
     assert isinstance(rho, (float,int)), 'rho must be of type int or float'
 
-    # calculate predicted power from inflow
+    # Predicted power from inflow
     power_in = (0.5 * rho * capture_area * inflow_speed**3)
 
-    # calculate Cp ratio
     Cp = power / power_in 
 
     return Cp
@@ -180,19 +171,17 @@ def blade_moments(blade_coefficients,flap_offset,flap_raw,edge_offset,edge_raw):
     M_edge : numpy array
         Blade edgewise moment in SI units
     '''
-    # check data types
-    try:
-        blade_coefficients = np.asarray(blade_coefficients)
-        flap_raw = np.asarray(flap_raw)
-        edge_raw = np.asarray(edge_raw)
-    except:
-        pass            
-    assert isinstance(blade_coefficients, np.ndarray), 'blade_coefficients must be of type np.ndarray'
+    
+    try: blade_coefficients = np.asarray(blade_coefficients)
+    except: 'blade_coefficients must be of type np.ndarray'
+    try: flap_raw = np.asarray(flap_raw)
+    except: 'flap_raw must be of type np.ndarray'    
+    try: edge_raw = np.asarray(edge_raw)
+    except:  'edge_raw must be of type np.ndarray'    
+    
     assert isinstance(flap_offset, (float,int)), 'flap_offset must be of type int or float'
-    assert isinstance(flap_raw, np.ndarray), 'flap_raw must be of type np.ndarray'
     assert isinstance(edge_offset, (float,int)), 'edge_offset must be of type int or float'
-    assert isinstance(edge_raw, np.ndarray), 'edge_raw must be of type np.ndarray'
-
+    
     # remove offset from raw signal
     flap_signal = flap_raw - flap_offset
     edge_signal = edge_raw - edge_offset
@@ -239,23 +228,19 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     DEL : float
         Damage equivalent load of single data signal
     """
-    # check data types
-    try:
-        data_signal = np.array(data_signal)
-    except:
-        pass
-    assert isinstance(data_signal, np.ndarray), 'data_signal must be of type np.ndarray'
+    
+    try: data_signal = np.array(data_signal)
+    except: 'data_signal must be of type np.ndarray'
+    
     assert isinstance(m, (float,int)), 'm must be of type float or int'
     assert isinstance(bin_num, (float,int)), 'bin_num must be of type float or int'
     assert isinstance(data_length, (float,int)), 'data_length must be of type float or int'
 
-    # find rainflow ranges
-    ranges = fatpack.find_rainflow_ranges(data_signal,k=256)
+    rainflow_ranges = fatpack.find_rainflow_ranges(data_signal,k=256)
 
-    # find range count and bin
-    Nrf, Srf = fatpack.find_range_count(ranges, bin_num)
+    # Range count and bin
+    Nrf, Srf = fatpack.find_range_count(rainflow_ranges, bin_num)
 
-    # get DEL
     DELs = Srf**m * Nrf / data_length
     DEL = DELs.sum() ** (1/m)
 
@@ -264,7 +249,7 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     
 ################ plotting functions
 
-def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],xlabel=None,ylabel=None,title=None,savepath=None):
+def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],**kwargs):
     """
     Plot showing standard raw statistics of variable
 
@@ -280,50 +265,63 @@ def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],xlabel=None,ylabel=None,titl
         Array of min statistical values of variable
     y_stdev : numpy array, optional
         Array of standard deviation statistical values of variable
-    xlabel : string, optional
-        xlabel for plot
-    ylabel : string, optional
-        ylabel for plot
-    title : string, optional
-        Title for plot
-    savepath : string, optional
-        Path and filename to save figure. Plt.show() is called otherwise
+    **kwargs : optional             
+        x_label : string
+            x axis label for plot
+        y_label : string
+            y axis label for plot
+        title : string, optional
+            Title for plot
+        save_path : string
+            Path and filename to save figure.
 
     Returns:
     --------
-    figure
+    ax : matplotlib pyplot axes
     """
-    # Check data type
-    try:
-        x = np.array(x)
-        y_mean = np.array(y_mean)
-        y_max = np.array(y_max)
-        y_min = np.array(y_min)
-    except:
-        pass
-    assert isinstance(x, np.ndarray), 'x must be of type np.ndarray'
-    assert isinstance(y_mean, np.ndarray), 'y_mean must be of type np.ndarray'
-    assert isinstance(y_max, np.ndarray), 'y_max must be of type np.ndarray'
-    assert isinstance(y_min, np.ndarray), 'y_min must be of type np.ndarray'
+    try: x = np.array(x)
+    except: 'x must be of type np.ndarray'       
+    try: y_mean = np.array(y_mean)
+    except: 'y_mean must be of type np.ndarray'           
+    try:y_max = np.array(y_max)
+    except: 'y_max must be of type np.ndarray'
+    try: y_min = np.array(y_min)
+    except: 'y_min must be of type np.ndarray'
+    
+    x_label   = kwargs.get("x_label", None)
+    y_label   = kwargs.get("y_label", None)
+    title     = kwargs.get("title", None)
+    save_path = kwargs.get("save_path", None)
+    
+    assert isinstance(x_label, (str, type(None))), 'x_label must be of type str'
+    assert isinstance(y_label, (str, type(None))), 'y_label must be of type str'
+    assert isinstance(title, (str, type(None))), 'title must be of type str'
+    assert isinstance(save_path, (str, type(None))), 'save_path must be of type str'
 
     fig, ax = plt.subplots(figsize=(6,4))
     ax.plot(x,y_max,'^',label='max',mfc='none')
     ax.plot(x,y_mean,'o',label='mean',mfc='none')
     ax.plot(x,y_min,'v',label='min',mfc='none')
+    
     if len(y_stdev)>0: ax.plot(x,y_stdev,'+',label='stdev',c='m')
     ax.grid(alpha=0.4)
     ax.legend(loc='best')
-    if xlabel!=None: ax.set_xlabel(xlabel)
-    if ylabel!=None: ax.set_ylabel(ylabel)
+    
+    if x_label!=None: ax.set_xlabel(x_label)
+    if y_label!=None: ax.set_ylabel(y_label)
     if title!=None: ax.set_title(title)
+    
     fig.tight_layout()
-    if savepath==None: plt.show()
+    
+    if save_path==None: plt.show()
     else: 
-        fig.savefig(savepath)
+        fig.savefig(save_path)
         plt.close()
+    return ax
 
-
-def plot_bin_statistics(bin_centers,bin_mean,bin_max,bin_min,bin_mean_std,bin_max_std,bin_min_std,xlabel=None,ylabel=None,title=None,savepath=None):
+def plot_bin_statistics(bin_centers, bin_mean,bin_max, bin_min,
+                        bin_mean_std, bin_max_std, bin_min_std,
+                        **kwargs):
     """
     Plot showing standard binned statistics of single variable
 
@@ -343,30 +341,67 @@ def plot_bin_statistics(bin_centers,bin_mean,bin_max,bin_min,bin_mean_std,bin_ma
         Standard deviations of max binned statistics
     bin_min_std : numpy array
         Standard deviations of min binned statistics
-    xlabel : string, optional
-        xlabel for plot
-    ylabel : string, optional
-        ylabel for plot
-    title : string, optional
-        Title for plot
-    savepath : string, optional
-        Path and filename to save figure. Plt.show() is used by default.
+    **kwargs : optional             
+        x_label : string
+            x axis label for plot
+        y_label : string
+            y axis label for plot
+        title : string, optional
+            Title for plot
+        save_path : string
+            Path and filename to save figure.
 
     Returns:
     --------
-    figure
+    ax : matplotlib pyplot axes
     """
+        
+    try: bin_centers = np.asarray(bin_centers)
+    except: 'bin_centers must be of type np.ndarray'    
+    
+    try: bin_mean = np.asarray(bin_mean)
+    except: 'bin_mean must be of type np.ndarray'    
+    try: bin_max = np.asarray(bin_max)
+    except:'bin_max must be of type np.ndarray'    
+    try: bin_min = np.asarray(bin_min) 
+    except: 'bin_min must be of type type np.ndarray'
+    
+    try: bin_mean_std = np.asarray(bin_mean_std)
+    except: 'bin_mean_std must be of type np.ndarray'
+    try: bin_max_std = np.asarray(bin_max_std)
+    except: 'bin_max_std must be of type np.ndarray'
+    try: bin_min_std = np.asarray(bin_min_std)
+    except: 'bin_min_std must be of type np.ndarray'
+    
+    x_label   = kwargs.get("x_label", None)
+    y_label   = kwargs.get("y_label", None)
+    title     = kwargs.get("title", None)
+    save_path = kwargs.get("save_path", None)
+    
+    assert isinstance(x_label, (str, type(None))), 'x_label must be of type str'
+    assert isinstance(y_label, (str, type(None))), 'y_label must be of type str'
+    assert isinstance(title, (str, type(None))), 'title must be of type str'
+    assert isinstance(save_path, (str, type(None))), 'save_path must be of type str'
+    
     fig, ax = plt.subplots(figsize=(7,5))
-    ax.errorbar(bin_centers,bin_max,marker='^',mfc='none',yerr=bin_max_std,capsize=4,label='max')
-    ax.errorbar(bin_centers,bin_mean,marker='o',mfc='none',yerr=bin_mean_std,capsize=4,label='mean')
-    ax.errorbar(bin_centers,bin_min,marker='v',mfc='none',yerr=bin_min_std,capsize=4,label='min')
+    ax.errorbar(bin_centers,bin_max,marker='^',mfc='none',
+                yerr=bin_max_std,capsize=4,label='max')
+    ax.errorbar(bin_centers,bin_mean,marker='o',mfc='none',
+                yerr=bin_mean_std,capsize=4,label='mean')
+    ax.errorbar(bin_centers,bin_min,marker='v',mfc='none',
+               yerr=bin_min_std,capsize=4,label='min')
+    
     ax.grid(alpha=0.5)
     ax.legend(loc='best')
-    if xlabel!=None: ax.set_xlabel(xlabel)
-    if ylabel!=None: ax.set_ylabel(ylabel)
+    
+    if x_label!=None: ax.set_xlabel(x_label)
+    if y_label!=None: ax.set_ylabel(y_label)
     if title!=None: ax.set_title(title)
+    
     fig.tight_layout()
-    if savepath==None: plt.show()
+    
+    if save_path==None: plt.show()
     else: 
-        fig.savefig(savepath)
+        fig.savefig(save_path)
         plt.close()
+    return ax
