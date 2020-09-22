@@ -11,14 +11,14 @@ import matplotlib.pyplot as plt
 ######################################
 # no Mooring
 ######################################
-file_name = './data/wave/RM3_matlabWorkspace_structure.mat'
-ws_output = mhkit.wave.io.wecsim.read_output(file_name)
+# file_name = './data/wave/RM3_matlabWorkspace_structure.mat'
+# ws_output = mhkit.wave.io.wecsim.read_output(file_name)
 
 ######################################
 # with Mooring
 ######################################
-# file_name = './data/wave/RM3MooringMatrix_matlabWorkspace_structure.mat'
-# ws_output = mhkit.wave.io.wecsim.read_output(file_name)
+file_name = './data/wave/RM3MooringMatrix_matlabWorkspace_structure.mat'
+ws_output = mhkit.wave.io.wecsim.read_output(file_name)
 
 ######################################
 # with moorDyn
@@ -40,7 +40,7 @@ plt.figure()
 wave.plot()
 
 ######################################
-# Bodies
+# Body
 ######################################
 ws_output['bodies'].keys()
 bodies = ws_output['bodies']
@@ -73,7 +73,7 @@ plt.figure()
 (-1*ptos.powerInternalMechanics_dof3).plot()
 
 ######################################
-# Constraints
+# Constraint
 ######################################
 constraints = ws_output['constraints']
 constraints.head()
@@ -86,8 +86,10 @@ constraints['forceConstraint_dof4'].plot()
 if len(ws_output['mooring']) > 0:
     ws_output['mooring'].head()
     mooring = ws_output['mooring']
-    mooring.forceMooring_dof5.plot()
-
+    mooring.forceMooring_dof1.plot()
+else:
+    print("no mooring used") 
+    
 ######################################
 # MoorDyn
 ######################################
@@ -97,11 +99,11 @@ if len(ws_output['moorDyn']) > 0:
     moorDyn['Lines'].plot()
 
 else:
-    print("no mooring used") 
+    print("moorDyn not used") 
 
 
 ######################################
-## Run MHKiT modules
+## Run MHKiT Wave Module
 ######################################
 ws_spectrum = mhkit.wave.resource.elevation_spectrum(wave,60,1000)
 
