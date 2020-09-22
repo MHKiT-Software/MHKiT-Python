@@ -11,14 +11,14 @@ import matplotlib.pyplot as plt
 ######################################
 # no Mooring
 ######################################
-# file_name = './data/wave/RM3_matlabWorkspace_structure.mat'
-# ws_output = mhkit.wave.io.wecsim.read_output(file_name)
+file_name = './data/wave/RM3_matlabWorkspace_structure.mat'
+ws_output = mhkit.wave.io.wecsim.read_output(file_name)
 
 ######################################
 # with Mooring
 ######################################
-file_name = './data/wave/RM3MooringMatrix_matlabWorkspace_structure.mat'
-ws_output = mhkit.wave.io.wecsim.read_output(file_name)
+# file_name = './data/wave/RM3MooringMatrix_matlabWorkspace_structure.mat'
+# ws_output = mhkit.wave.io.wecsim.read_output(file_name)
 
 ######################################
 # with moorDyn

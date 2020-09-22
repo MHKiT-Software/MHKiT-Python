@@ -115,8 +115,7 @@ def read_output(file_name):
         return tmp_body
 
     if num_bodies >= 1:
-        if num_bodies > 1:
-            body_num_output = {}          
+        body_output = {}
         for body in range(num_bodies):
             tmp_body = pd.DataFrame(data = time[0],columns=['time'])   
             tmp_body = tmp_body.set_index('time') 
@@ -124,9 +123,7 @@ def read_output(file_name):
             if num_bodies == 1:
                 body_output = _write_body_output(body)
             elif num_bodies > 1:
-                body_num_output[f'body{body+1}'] = _write_body_output(body) 
-        if num_bodies > 1:
-            body_output = body_num_output.copy()               
+                body_output[f'body{body+1}'] = _write_body_output(body) 
     else:
         print("body class not used") 
         body_output = []    
@@ -189,8 +186,7 @@ def read_output(file_name):
         return tmp_pto
 
     if num_ptos >= 1:
-        if num_ptos > 1:
-            pto_num_output = {}     
+        pto_output = {}     
         for pto in range(num_ptos):
             tmp_pto = pd.DataFrame(data = time[0],columns=['time'])   
             tmp_pto = tmp_pto.set_index('time') 
@@ -198,9 +194,7 @@ def read_output(file_name):
             if num_ptos == 1:  
                 pto_output = _write_pto_output(pto)
             elif num_ptos > 1:
-                pto_num_output[f'pto{pto+1}'] = _write_pto_output(pto)
-        if num_ptos > 1:
-            pto_output = pto_num_output.copy()  
+                pto_output[f'pto{pto+1}'] = _write_pto_output(pto)
     else:
         print("pto class not used") 
         pto_output = []
@@ -247,8 +241,7 @@ def read_output(file_name):
         return tmp_constraint
 
     if num_constraints >= 1:
-        if num_constraints > 1:
-            constraint_num_output = {}
+        constraint_output = {}
         for constraint in range(num_constraints):
             tmp_constraint = pd.DataFrame(data = time[0],columns=['time'])   
             tmp_constraint = tmp_constraint.set_index('time') 
@@ -256,9 +249,7 @@ def read_output(file_name):
             if num_constraints == 1:
                 constraint_output = _write_constraint_output(constraint)
             elif num_constraints > 1:
-                constraint_num_output[f'constraint{constraint+1}'] = _write_constraint_output(constraint)
-        if num_constraints > 1:
-            constraint_output = constraint_num_output.copy()            
+                constraint_output[f'constraint{constraint+1}'] = _write_constraint_output(constraint)         
     else:
         print("constraint class not used") 
         constraint_output = []
@@ -301,8 +292,7 @@ def read_output(file_name):
         return tmp_mooring
 
     if num_moorings >= 1:   
-        if num_moorings > 1:   
-            mooring_num_output = {}
+        mooring_output = {}
         for mooring in range(num_moorings):
             tmp_mooring = pd.DataFrame(data = time[0],columns=['time'])   
             tmp_mooring = tmp_mooring.set_index('time') 
@@ -310,9 +300,7 @@ def read_output(file_name):
             if num_moorings == 1:   
                 mooring_output = _write_mooring_output(mooring)
             elif num_moorings > 1:   
-                mooring_num_output[f'mooring{mooring+1}'] = _write_mooring_output(mooring)
-        if num_moorings > 1:  
-            mooring_output = mooring_num_output.copy()          
+                mooring_output[f'mooring{mooring+1}'] = _write_mooring_output(mooring)
     else:
         print("mooring class not used") 
         mooring_output = []
@@ -342,22 +330,21 @@ def read_output(file_name):
         Lines = Lines.set_index('time')       
         for signal in range(1,num_signals):
             Lines[signals[signal]] = data[signal]        
-        Lines_output= {'Lines': Lines}
+        moorDyn_output= {'Lines': Lines}
 
         Line_num_output = {}  
         for line_num in range(1,num_lines+1):
-          tmp =  moorDyn[0][0][f'Line{line_num}'][0][0][0]
-          signals = tmp.dtype.names
-          num_signals = len(tmp.dtype.names)
-          data = tmp[0]
+          tmp_moordyn =  moorDyn[0][0][f'Line{line_num}'][0][0][0]
+          signals = tmp_moordyn.dtype.names
+          num_signals = len(tmp_moordyn.dtype.names)
+          data = tmp_moordyn[0]
           time = data[0]
-          tmp = pd.DataFrame(data = time,columns=['time'])   
-          tmp = tmp.set_index('time')       
+          tmp_moordyn = pd.DataFrame(data = time,columns=['time'])   
+          tmp_moordyn = tmp_moordyn.set_index('time')       
           for signal in range(1,num_signals):
-            tmp[signals[signal]] = data[signal]              
-          Line_num_output[f'Line{line_num}'] = tmp
+            tmp_moordyn[signals[signal]] = data[signal]              
+          Line_num_output[f'Line{line_num}'] = tmp_moordyn
         
-        moorDyn_output = Lines_output.copy()
         moorDyn_output.update(Line_num_output)
       
     except:
