@@ -114,21 +114,19 @@ def read_output(file_name):
             tmp_body[f'forceLinearDamping_dof{dof+1}'] = forceLinearDamping[body][:,dof]                            
         return tmp_body
 
-    if num_bodies == 1:
-        tmp_body = pd.DataFrame(data = time[0],columns=['time'])   
-        tmp_body = tmp_body.set_index('time') 
-        tmp_body.name = name
-        for body in range(num_bodies): 
-            body_output = _write_body_output(body)
-    elif num_bodies > 1:
-        body_num_output = {}          
+    if num_bodies >= 1:
+        if num_bodies > 1:
+            body_num_output = {}          
         for body in range(num_bodies):
             tmp_body = pd.DataFrame(data = time[0],columns=['time'])   
             tmp_body = tmp_body.set_index('time') 
             tmp_body.name = name[body]
-            tmp_body = _write_body_output(body)                          
-            body_num_output[f'body{body+1}'] = tmp_body            
-        body_output = body_num_output.copy()               
+            if num_bodies == 1:
+                body_output = _write_body_output(body)
+            elif num_bodies > 1:
+                body_num_output[f'body{body+1}'] = _write_body_output(body) 
+        if num_bodies > 1:
+            body_output = body_num_output.copy()               
     else:
         print("body class not used") 
         body_output = []    
@@ -190,21 +188,19 @@ def read_output(file_name):
             tmp_pto[f'powerInternalMechanics_dof{dof+1}'] = powerInternalMechanics[pto][:,dof]
         return tmp_pto
 
-    if num_ptos == 1:     
-        for pto in range(num_ptos):
-            tmp_pto = pd.DataFrame(data = time[0],columns=['time'])   
-            tmp_pto = tmp_pto.set_index('time')      
-            tmp_pto.name = name[pto]
-            pto_output = _write_pto_output(pto)
-    elif num_ptos > 1:
-        pto_num_output = {}     
+    if num_ptos >= 1:
+        if num_ptos > 1:
+            pto_num_output = {}     
         for pto in range(num_ptos):
             tmp_pto = pd.DataFrame(data = time[0],columns=['time'])   
             tmp_pto = tmp_pto.set_index('time') 
             tmp_pto.name = name[pto]
-            tmp_pto = _write_pto_output(pto)
-            pto_num_output[f'pto{pto+1}'] = tmp_pto
-        pto_output = pto_num_output.copy()  
+            if num_ptos == 1:  
+                pto_output = _write_pto_output(pto)
+            elif num_ptos > 1:
+                pto_num_output[f'pto{pto+1}'] = _write_pto_output(pto)
+        if num_ptos > 1:
+            pto_output = pto_num_output.copy()  
     else:
         print("pto class not used") 
         pto_output = []
@@ -250,21 +246,19 @@ def read_output(file_name):
             tmp_constraint[f'forceConstraint_dof{dof+1}'] = forceConstraint[constraint][:,dof]
         return tmp_constraint
 
-    if num_constraints == 1:
-        for constraint in range(num_constraints):          
-            tmp_constraint = pd.DataFrame(data = time[0],columns=['time'])   
-            tmp_constraint = tmp_constraint.set_index('time') 
-            tmp_constraint.name = name[constraint]
-            constraint_output = _write_constraint_output(constraint)
-    elif num_constraints > 1:
-        constraint_num_output = {}
+    if num_constraints >= 1:
+        if num_constraints > 1:
+            constraint_num_output = {}
         for constraint in range(num_constraints):
             tmp_constraint = pd.DataFrame(data = time[0],columns=['time'])   
             tmp_constraint = tmp_constraint.set_index('time') 
             tmp_constraint.name = name[constraint]
-            tmp_constraint = _write_constraint_output(constraint)
-            constraint_num_output[f'constraint{constraint+1}'] = tmp_constraint         
-        constraint_output = constraint_num_output.copy()            
+            if num_constraints == 1:
+                constraint_output = _write_constraint_output(constraint)
+            elif num_constraints > 1:
+                constraint_num_output[f'constraint{constraint+1}'] = _write_constraint_output(constraint)
+        if num_constraints > 1:
+            constraint_output = constraint_num_output.copy()            
     else:
         print("constraint class not used") 
         constraint_output = []
@@ -306,25 +300,23 @@ def read_output(file_name):
             tmp_mooring[f'forceMooring_dof{dof+1}'] = forceMooring[mooring][:,dof]
         return tmp_mooring
 
-    if num_moorings == 1:
-        for mooring in range(num_moorings):
-            tmp_mooring = pd.DataFrame(data = time[0],columns=['time'])   
-            tmp_mooring = tmp_mooring.set_index('time')         
-            tmp_mooring.name = name[mooring]
-            mooring_output = _write_mooring_output(mooring)
-    elif num_moorings > 1:   
-        mooring_num_output = {}
+    if num_moorings >= 1:   
+        if num_moorings > 1:   
+            mooring_num_output = {}
         for mooring in range(num_moorings):
             tmp_mooring = pd.DataFrame(data = time[0],columns=['time'])   
             tmp_mooring = tmp_mooring.set_index('time') 
             tmp_mooring.name = name[mooring]
-            tmp_mooring = _write_mooring_output(mooring)
-            mooring_num_output[f'mooring{mooring+1}'] = tmp_mooring   
-        mooring_output = mooring_num_output.copy()          
+            if num_moorings == 1:   
+                mooring_output = _write_mooring_output(mooring)
+            elif num_moorings > 1:   
+                mooring_num_output[f'mooring{mooring+1}'] = _write_mooring_output(mooring)
+        if num_moorings > 1:  
+            mooring_output = mooring_num_output.copy()          
     else:
         print("mooring class not used") 
         mooring_output = []
-
+        
     
     ######################################
     ## import wecSim moorDyn class
