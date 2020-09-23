@@ -374,3 +374,28 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     plt.ylabel(y_label)
     plt.tight_layout()
     return ax
+
+
+
+def plot_compendium(data, ax=None):
+    """
+    Create subplots showing: Significant Wave Height (Hs), Peak Period (Tp), 
+    and Direction (Dp) using OPeNDAP service from CDIP THREDDS Server.
+    
+    Developed based on: http://cdip.ucsd.edu/themes/media/docs/documents/html_pages/compendium.html
+
+    Parameters
+    ------------
+    data: pandas DataFrame
+        Spectral density [m^2/Hz] indexed frequency [Hz]
+    ax : matplotlib axes object
+        Axes for plotting.  If None, then a new figure is created.
+    Returns
+    ---------
+    ax : matplotlib pyplot axes
+
+    """
+
+
+
+    return ax
