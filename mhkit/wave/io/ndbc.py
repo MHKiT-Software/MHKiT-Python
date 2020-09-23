@@ -471,31 +471,29 @@ def parameter_units(parameter=''):
     Parameters
     ----------
     parameter: string (optional)        
-        'adcp':     'Acoustic Doppler Current Profiler Current Year Historical Data'
-        
+ 
         'cwind':    'Continuous Winds Current Year Historical Data'
         
         'dart':     'Water Column Height (DART) Current Year Historical Data'
         
-        'derived2': 'Derived Met Values'
+        'derived2': 'Derived Met Values'       
         
-        'ocean' :   'Oceanographic Current Year Historical Data'
+        'ocean' :   'Oceanographic Current Year Historical Data'    
         
-        'rain'	:	'Hourly Rain Current Year Historical Data'	
+        'rain'	:	'Hourly Rain Current Year Historical Data'	    
         
         'rain10':	'10-Minute Rain Current Year Historical Data'	
         
-        'rain24':	'24-Hour Rain Current Year Historical Data'	
+        'rain24':	'24-Hour Rain Current Year Historical Data'	        
+        'realtime2':'Detailed Wave Summary (Realtime ".spec" data files only)'  
         
-        'realtime2':'Detailed Wave Summary (Realtime *.spec data files only)'
+        'srad':     'Solar Radiation Current Year Historical Data' 
         
-        'srad':     'Solar Radiation Current Year Historical Data'
+        'stdmet':   ''Standard Meteorological Current Year Historical Data' 
         
-        'stdmet':   ''Standard Meteorological Current Year Historical Data'
+        'supl':     'Supplemental Measurements Current Year Historical Data' 
         
-        'supl':     'Supplemental Measurements Current Year Historical Data'
-        
-        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        'swden'	:	'Raw Spectral Wave Current Year Historical Data'        
         
     Returns
     -------
