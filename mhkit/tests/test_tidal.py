@@ -95,7 +95,8 @@ class TestResource(unittest.TestCase):
         plt.close()
         
         self.assertTrue(isfile(filename))
-        
+
+
 if __name__ == '__main__':
     unittest.main() 
 
