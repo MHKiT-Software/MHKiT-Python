@@ -59,6 +59,7 @@ def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
                 ax=None):
     """
     Plots values in the matrix as a scatter diagram
+    
     Parameters
     ------------
     M: pandas DataFrame
@@ -81,6 +82,7 @@ def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
     ax : matplotlib pyplot axes
 
     """
+    
     assert isinstance(M, pd.DataFrame), 'M must be of type pd.DataFrame'
 
     if ax is None:
