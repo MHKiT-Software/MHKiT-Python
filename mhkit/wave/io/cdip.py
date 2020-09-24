@@ -23,7 +23,8 @@ def request_data(stn,startdate,enddate):
     Returns
     ---------
     data: pandas DataFrame 
-        Data indexed by datetime with columns named according to header row 
+        Data indexed by datetime with columns named according to the data 
+        signal, for it includes: Hs, Tp, and Dp
         
     """
     # CDIP Archived Dataset URL
@@ -79,7 +80,9 @@ def request_data(stn,startdate,enddate):
     Tp = Tp[nearIndex:futureIndex]
     Dp = Dp[nearIndex:futureIndex]
     
-    return timeall, Hs, Tp, Dp
+    data = pd.DataFrame(data = {'Hs': Hs,'Tp': Tp,'Dp': Dp}, index = timeall)
+    
+    return data, buoytitle
 
 
 def _read_file(file_name, missing_values=['MM',9999,999,99]):
