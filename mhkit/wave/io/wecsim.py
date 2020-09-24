@@ -100,41 +100,30 @@ def read_output(file_name):
     ######################################
     ## create body_output DataFrame
     ######################################            
-    if num_bodies == 1:
-        body_output = pd.DataFrame(data = time[0],columns=['time'])   
-        body_output = body_output.set_index('time') 
-        body_output.name = name
+    def _write_body_output(body):
+        for dof in range(6):                
+            tmp_body[f'position_dof{dof+1}'] = position[body][:,dof]
+            tmp_body[f'velocity_dof{dof+1}'] = velocity[body][:,dof]
+            tmp_body[f'acceleration_dof{dof+1}'] = acceleration[body][:,dof]            
+            tmp_body[f'forceTotal_dof{dof+1}'] = forceTotal[body][:,dof]
+            tmp_body[f'forceExcitation_dof{dof+1}'] = forceExcitation[body][:,dof]
+            tmp_body[f'forceRadiationDamping_dof{dof+1}'] = forceRadiationDamping[body][:,dof]
+            tmp_body[f'forceAddedMass_dof{dof+1}'] = forceAddedMass[body][:,dof]
+            tmp_body[f'forceRestoring_dof{dof+1}'] = forceRestoring[body][:,dof]
+            tmp_body[f'forceMorrisonAndViscous_dof{dof+1}'] = forceMorrisonAndViscous[body][:,dof]
+            tmp_body[f'forceLinearDamping_dof{dof+1}'] = forceLinearDamping[body][:,dof]                            
+        return tmp_body
+
+    if num_bodies >= 1:
+        body_output = {}
         for body in range(num_bodies):
-            for dof in range(6):
-                body_output[f'position_dof{dof+1}'] = position[body][:,dof]
-                body_output[f'velocity_dof{dof+1}'] = velocity[body][:,dof]
-                body_output[f'acceleration_dof{dof+1}'] = acceleration[body][:,dof]            
-                body_output[f'forceTotal_dof{dof+1}'] = forceTotal[body][:,dof]
-                body_output[f'forceExcitation_dof{dof+1}'] = forceExcitation[body][:,dof]
-                body_output[f'forceRadiationDamping_dof{dof+1}'] = forceRadiationDamping[body][:,dof]
-                body_output[f'forceAddedMass_dof{dof+1}'] = forceAddedMass[body][:,dof]
-                body_output[f'forceRestoring_dof{dof+1}'] = forceRestoring[body][:,dof]
-                body_output[f'forceMorrisonAndViscous_dof{dof+1}'] = forceMorrisonAndViscous[body][:,dof]
-                body_output[f'forceLinearDamping_dof{dof+1}'] = forceLinearDamping[body][:,dof]              
-    elif num_bodies > 1:
-        body_num_output = {}          
-        for body in range(num_bodies):
-            tmp2 = pd.DataFrame(data = time[0],columns=['time'])   
-            tmp2 = tmp2.set_index('time') 
-            tmp2.name = name[body]
-            for dof in range(6):                
-                tmp2[f'position_dof{dof+1}'] = position[body][:,dof]
-                tmp2[f'velocity_dof{dof+1}'] = velocity[body][:,dof]
-                tmp2[f'acceleration_dof{dof+1}'] = acceleration[body][:,dof]            
-                tmp2[f'forceTotal_dof{dof+1}'] = forceTotal[body][:,dof]
-                tmp2[f'forceExcitation_dof{dof+1}'] = forceExcitation[body][:,dof]
-                tmp2[f'forceRadiationDamping_dof{dof+1}'] = forceRadiationDamping[body][:,dof]
-                tmp2[f'forceAddedMass_dof{dof+1}'] = forceAddedMass[body][:,dof]
-                tmp2[f'forceRestoring_dof{dof+1}'] = forceRestoring[body][:,dof]
-                tmp2[f'forceMorrisonAndViscous_dof{dof+1}'] = forceMorrisonAndViscous[body][:,dof]
-                tmp2[f'forceLinearDamping_dof{dof+1}'] = forceLinearDamping[body][:,dof]                            
-            body_num_output[f'body{body+1}'] = tmp2            
-        body_output = body_num_output.copy()               
+            tmp_body = pd.DataFrame(data = time[0],columns=['time'])   
+            tmp_body = tmp_body.set_index('time') 
+            tmp_body.name = name[body]
+            if num_bodies == 1:
+                body_output = _write_body_output(body)
+            elif num_bodies > 1:
+                body_output[f'body{body+1}'] = _write_body_output(body) 
     else:
         print("body class not used") 
         body_output = []    
@@ -183,39 +172,29 @@ def read_output(file_name):
     ######################################
     ## create pto_output DataFrame
     ######################################      
-    if num_ptos == 1:  
+    def _write_pto_output(pto):
+        for dof in range(6):                
+            tmp_pto[f'position_dof{dof+1}'] = position[pto][:,dof]
+            tmp_pto[f'velocity_dof{dof+1}'] = velocity[pto][:,dof]
+            tmp_pto[f'acceleration_dof{dof+1}'] = acceleration[pto][:,dof]                 
+            tmp_pto[f'forceTotal_dof{dof+1}'] = forceTotal[pto][:,dof]            
+            tmp_pto[f'forceTotal_dof{dof+1}'] = forceTotal[pto][:,dof]     
+            tmp_pto[f'forceActuation_dof{dof+1}'] = forceActuation[pto][:,dof]                 
+            tmp_pto[f'forceConstraint_dof{dof+1}'] = forceConstraint[pto][:,dof]            
+            tmp_pto[f'forceInternalMechanics_dof{dof+1}'] = forceInternalMechanics[pto][:,dof]     
+            tmp_pto[f'powerInternalMechanics_dof{dof+1}'] = powerInternalMechanics[pto][:,dof]
+        return tmp_pto
+
+    if num_ptos >= 1:
+        pto_output = {}     
         for pto in range(num_ptos):
-            pto_output = pd.DataFrame(data = time[0],columns=['time'])   
-            pto_output = pto_output.set_index('time') 
-            pto_output.name = name[pto]
-            for dof in range(6):                
-                pto_output[f'position_dof{dof+1}'] = position[pto][:,dof]
-                pto_output[f'velocity_dof{dof+1}'] = velocity[pto][:,dof]
-                pto_output[f'acceleration_dof{dof+1}'] = acceleration[pto][:,dof]                 
-                pto_output[f'forceTotal_dof{dof+1}'] = forceTotal[pto][:,dof]            
-                pto_output[f'forceTotal_dof{dof+1}'] = forceTotal[pto][:,dof]     
-                pto_output[f'forceActuation_dof{dof+1}'] = forceActuation[pto][:,dof]                 
-                pto_output[f'forceConstraint_dof{dof+1}'] = forceConstraint[pto][:,dof]            
-                pto_output[f'forceInternalMechanics_dof{dof+1}'] = forceInternalMechanics[pto][:,dof]     
-                pto_output[f'powerInternalMechanics_dof{dof+1}'] = powerInternalMechanics[pto][:,dof]   
-    elif num_ptos > 1:
-        pto_num_output = {}     
-        for pto in range(num_ptos):
-            tmp3 = pd.DataFrame(data = time[0],columns=['time'])   
-            tmp3 = tmp3.set_index('time') 
-            tmp3.name = name[pto]
-            for dof in range(6):                
-                tmp3[f'position_dof{dof+1}'] = position[pto][:,dof]
-                tmp3[f'velocity_dof{dof+1}'] = velocity[pto][:,dof]
-                tmp3[f'acceleration_dof{dof+1}'] = acceleration[pto][:,dof]                 
-                tmp3[f'forceTotal_dof{dof+1}'] = forceTotal[pto][:,dof]            
-                tmp3[f'forceTotal_dof{dof+1}'] = forceTotal[pto][:,dof]     
-                tmp3[f'forceActuation_dof{dof+1}'] = forceActuation[pto][:,dof]                 
-                tmp3[f'forceConstraint_dof{dof+1}'] = forceConstraint[pto][:,dof]            
-                tmp3[f'forceInternalMechanics_dof{dof+1}'] = forceInternalMechanics[pto][:,dof]     
-                tmp3[f'powerInternalMechanics_dof{dof+1}'] = powerInternalMechanics[pto][:,dof]                 
-            pto_num_output[f'pto{pto+1}'] = tmp3
-        pto_output = pto_num_output.copy()  
+            tmp_pto = pd.DataFrame(data = time[0],columns=['time'])   
+            tmp_pto = tmp_pto.set_index('time') 
+            tmp_pto.name = name[pto]
+            if num_ptos == 1:  
+                pto_output = _write_pto_output(pto)
+            elif num_ptos > 1:
+                pto_output[f'pto{pto+1}'] = _write_pto_output(pto)
     else:
         print("pto class not used") 
         pto_output = []
@@ -253,29 +232,24 @@ def read_output(file_name):
     ######################################
     ## create constraint_output DataFrame
     ######################################    
-    if num_constraints == 1:
-        for constraint in range(num_constraints):          
-            constraint_output = pd.DataFrame(data = time[0],columns=['time'])   
-            constraint_output = constraint_output.set_index('time') 
-            constraint_output.name = name[constraint]        
-            for dof in range(6):
-                constraint_output[f'position_dof{dof+1}'] = position[constraint][:,dof]
-                constraint_output[f'velocity_dof{dof+1}'] = velocity[constraint][:,dof]
-                constraint_output[f'acceleration_dof{dof+1}'] = acceleration[constraint][:,dof]            
-                constraint_output[f'forceConstraint_dof{dof+1}'] = forceConstraint[constraint][:,dof]
-    elif num_constraints > 1:
-        constraint_num_output = {}
+    def _write_constraint_output(constraint):
+        for dof in range(6):                
+            tmp_constraint[f'position_dof{dof+1}'] = position[constraint][:,dof]
+            tmp_constraint[f'velocity_dof{dof+1}'] = velocity[constraint][:,dof]
+            tmp_constraint[f'acceleration_dof{dof+1}'] = acceleration[constraint][:,dof]            
+            tmp_constraint[f'forceConstraint_dof{dof+1}'] = forceConstraint[constraint][:,dof]
+        return tmp_constraint
+
+    if num_constraints >= 1:
+        constraint_output = {}
         for constraint in range(num_constraints):
-            tmp4 = pd.DataFrame(data = time[0],columns=['time'])   
-            tmp4 = tmp4.set_index('time') 
-            tmp4.name = name[constraint]
-            for dof in range(6):                
-                tmp4[f'position_dof{dof+1}'] = position[constraint][:,dof]
-                tmp4[f'velocity_dof{dof+1}'] = velocity[constraint][:,dof]
-                tmp4[f'acceleration_dof{dof+1}'] = acceleration[constraint][:,dof]            
-                tmp4[f'forceConstraint_dof{dof+1}'] = forceConstraint[constraint][:,dof]
-            constraint_num_output[f'constraint{constraint+1}'] = tmp4         
-        constraint_output = constraint_num_output.copy()            
+            tmp_constraint = pd.DataFrame(data = time[0],columns=['time'])   
+            tmp_constraint = tmp_constraint.set_index('time') 
+            tmp_constraint.name = name[constraint]
+            if num_constraints == 1:
+                constraint_output = _write_constraint_output(constraint)
+            elif num_constraints > 1:
+                constraint_output[f'constraint{constraint+1}'] = _write_constraint_output(constraint)         
     else:
         print("constraint class not used") 
         constraint_output = []
@@ -310,32 +284,27 @@ def read_output(file_name):
     ######################################
     ## create mooring_output DataFrame
     ######################################    
-    if num_moorings == 1:
-        mooring_output = pd.DataFrame(data = time[0],columns=['time'])   
-        mooring_output = mooring_output.set_index('time')         
-        mooring_output.name = name[mooring]
+    def _write_mooring_output(mooring):
+        for dof in range(6):                
+            tmp_mooring[f'position_dof{dof+1}'] = position[mooring][:,dof]
+            tmp_mooring[f'velocity_dof{dof+1}'] = velocity[mooring][:,dof]
+            tmp_mooring[f'forceMooring_dof{dof+1}'] = forceMooring[mooring][:,dof]
+        return tmp_mooring
+
+    if num_moorings >= 1:   
+        mooring_output = {}
         for mooring in range(num_moorings):
-            for dof in range(6):
-                mooring_output[f'position_dof{dof+1}'] = position[mooring][:,dof]
-                mooring_output[f'velocity_dof{dof+1}'] = velocity[mooring][:,dof]
-                mooring_output[f'forceMooring_dof{dof+1}'] = forceMooring[mooring][:,dof]
-        mooring_output
-    elif num_moorings > 1:   
-        mooring_num_output = {}
-        for mooring in range(num_moorings):
-            tmp5 = pd.DataFrame(data = time[0],columns=['time'])   
-            tmp5 = tmp5.set_index('time') 
-            tmp5.name = name[mooring]
-            for dof in range(6):                
-                tmp5[f'position_dof{dof+1}'] = position[mooring][:,dof]
-                tmp5[f'velocity_dof{dof+1}'] = velocity[mooring][:,dof]
-                tmp5[f'forceMooring_dof{dof+1}'] = forceMooring[mooring][:,dof]
-            mooring_num_output[f'mooring{mooring+1}'] = tmp5   
-        mooring_output = mooring_num_output.copy()          
+            tmp_mooring = pd.DataFrame(data = time[0],columns=['time'])   
+            tmp_mooring = tmp_mooring.set_index('time') 
+            tmp_mooring.name = name[mooring]
+            if num_moorings == 1:   
+                mooring_output = _write_mooring_output(mooring)
+            elif num_moorings > 1:   
+                mooring_output[f'mooring{mooring+1}'] = _write_mooring_output(mooring)
     else:
         print("mooring class not used") 
         mooring_output = []
-
+        
     
     ######################################
     ## import wecSim moorDyn class
@@ -361,22 +330,21 @@ def read_output(file_name):
         Lines = Lines.set_index('time')       
         for signal in range(1,num_signals):
             Lines[signals[signal]] = data[signal]        
-        Lines_output= {'Lines': Lines}
+        moorDyn_output= {'Lines': Lines}
 
         Line_num_output = {}  
         for line_num in range(1,num_lines+1):
-          tmp =  moorDyn[0][0][f'Line{line_num}'][0][0][0]
-          signals = tmp.dtype.names
-          num_signals = len(tmp.dtype.names)
-          data = tmp[0]
+          tmp_moordyn =  moorDyn[0][0][f'Line{line_num}'][0][0][0]
+          signals = tmp_moordyn.dtype.names
+          num_signals = len(tmp_moordyn.dtype.names)
+          data = tmp_moordyn[0]
           time = data[0]
-          tmp = pd.DataFrame(data = time,columns=['time'])   
-          tmp = tmp.set_index('time')       
+          tmp_moordyn = pd.DataFrame(data = time,columns=['time'])   
+          tmp_moordyn = tmp_moordyn.set_index('time')       
           for signal in range(1,num_signals):
-            tmp[signals[signal]] = data[signal]              
-          Line_num_output[f'Line{line_num}'] = tmp
+            tmp_moordyn[signals[signal]] = data[signal]              
+          Line_num_output[f'Line{line_num}'] = tmp_moordyn
         
-        moorDyn_output = Lines_output.copy()
         moorDyn_output.update(Line_num_output)
       
     except:

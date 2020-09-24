@@ -294,3 +294,83 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     ax.set_ylabel('KC parameter, $\\frac{H}{D}$')
 
     plt.tight_layout()
+
+def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
+    '''
+    Plots an overlay of the x1 and x2 variables to the calculate
+    environmental contours.
+
+    Parameters
+    ----------
+    x1: numpy array  
+        x-axis data
+    x2: numpy array 
+        x-axis data
+    x1_contour: numpy array 
+        Calculated x1 contour values
+    x2_contour: numpy array 
+        Calculated x2 contour values 
+    **kwargs : optional         
+        x_label: string (optional)
+            x-axis label. Default None. 
+        y_label: string (optional)
+            y-axis label. Default None.
+        data_label: string (optional)
+            Legend label for x1, x2 data (e.g. 'Buoy 46022'). 
+            Default None.
+        contour_label: string or list of strings (optional)
+            Legend label for x1_contour, x2_contour countor data 
+            (e.g. '100-year contour'). Default None.
+        ax : matplotlib axes object (optional)
+            Axes for plotting.  If None, then a new figure is created.
+            Default None.
+
+    Returns
+    -------
+    ax : matplotlib pyplot axes
+    '''
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(x1_contour, np.ndarray), ('x1_contour must be of '
+                                                'type np.ndarray')
+    assert isinstance(x2_contour, np.ndarray), ('x2_contour must be of '
+                                               'type np.ndarray')
+    x_label = kwargs.get("x_label", None)
+    y_label = kwargs.get("y_label", None)
+    data_label=kwargs.get("data_label", None)
+    contour_label=kwargs.get("contour_label", None)
+    ax=kwargs.get("ax", None)
+    assert isinstance(data_label, str), 'data_label must be of type str'
+    assert isinstance(contour_label, (str,list)), ('contour_label be of '
+                                                  'type str')
+    assert x2_contour.ndim == x1_contour.ndim,  ('contour must be of' 
+            f'equal dimesion got {x2_contour.ndim} and {x1_contour.ndim}')                                                  
+    
+        
+    if x2_contour.ndim == 1:
+        x2_contour  = x2_contour.reshape(-1,1) 
+        x1_contour = x1_contour.reshape(-1,1) 
+    
+    N_contours = x2_contour.shape[1]
+    
+    if contour_label != None:
+        if isinstance(contour_label, str):
+            contour_label = [contour_label] 
+        N_c_labels = len(contour_label)
+        assert  N_c_labels == N_contours, ('If specified, the '
+             'number of contour lables must be equal to number the '
+            f'number of contour years. Got {N_c_labels} and {N_contours}')   
+    else:
+        contour_label = [None] * N_contours
+    
+    for i in range(N_contours):       
+        ax = _xy_plot(x1_contour[:,i], x2_contour[:,i],'-', 
+                      label=contour_label[i], ax=ax)
+            
+    ax = plt.plot(x1, x2, 'bo', alpha=0.1, 
+                  label=data_label) 
+    plt.legend(loc='lower right')
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.tight_layout()
+    return ax
