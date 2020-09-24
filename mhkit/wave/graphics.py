@@ -382,6 +382,8 @@ def plot_compendium(data, buoytitle=None, ax=None):
     Create subplots showing: Significant Wave Height (Hs), Peak Period (Tp), 
     and Direction (Dp) using OPeNDAP service from CDIP THREDDS Server.
     
+    See http://cdip.ucsd.edu/themes/cdip?pb=1&bl=cdip?pb=1&d2=p70&u3=s:100:st:1:v:compendium:dt:201204 for example Compendium plot.
+    
     Developed based on: http://cdip.ucsd.edu/themes/media/docs/documents/html_pages/compendium.html
 
     Parameters
@@ -444,3 +446,32 @@ def plot_compendium(data, buoytitle=None, ax=None):
     ax = f
 
     return ax
+
+
+def plot_boxplot(data, buoytitle=None, ax=None):
+    """
+    Create plot of monthly-averaged boxes of Significant Wave Height (Hs) data across one year using OPeNDAP service from CDIP THREDDS Server.
+
+    See http://cdip.ucsd.edu/themes/cdip?pb=1&bl=cdip?pb=1&d2=p70&u3=s:093:st:1:v:hs_box_plot:dt:2011 for example Hs Boxplot.
+
+    Developed based on: http://cdip.ucsd.edu/themes/media/docs/documents/html_pages/annualHs_plot.html
+    
+    Parameters
+    ------------
+    data: pandas DataFrame
+        Spectral density [m^2/Hz] indexed frequency [Hz]
+    buoytitle: string (optional)
+        Buoy title from the CDIP THREDDS Server
+    ax : matplotlib axes object (optional)
+        Axes for plotting.  If None, then a new figure is created.
+    Returns
+    ---------
+    ax : matplotlib pyplot axes
+
+    """
+
+   
+
+    return ax
+
+
