@@ -691,7 +691,7 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
     '''    
     Calculates environmental contours of extreme sea 
     states using the improved joint probability distributions 
-	with the inverse first-order reliability method (I-FORM) 
+    with the inverse first-order reliability method (I-FORM) 
     probability for the desired return period (`period`). Given the 
     period of interest, a circle of iso-probability is created 
     in the principal component analysis (PCA) joint probability 
@@ -741,17 +741,17 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
         Calculated x1 values along the contour boundary following
         return to original input orientation.
     x2_contour : numpy array 
-       Calculated x2 values along the contour boundary following
+        Calculated x2 values along the contour boundary following
         return to original input orientation.
     PCA: dict (optional)
 	    principal component analysis dictionary 
-       Keys:
-       -----       
-       'principal_axes': sign corrected PCA axes 
-       'shift'         : The shift applied to x2 
-       'x1_fit'        : gaussian fit of x1 data
-       'mu_param'      : fit to _mu_fcn
-       'sigma_param'   : fit to _sig_fits 
+        Keys:
+        -----       
+        'principal_axes': sign corrected PCA axes 
+        'shift'         : The shift applied to x2 
+        'x1_fit'        : gaussian fit of x1 data
+        'mu_param'      : fit to _mu_fcn
+        'sigma_param'   : fit to _sig_fits 
 
     '''   
     assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
