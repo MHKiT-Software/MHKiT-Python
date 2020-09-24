@@ -11,14 +11,11 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     Parameters:
     -----------
     data : pandas DataFrame
-       Time-series statistics of data signal(s)
-    
+       Time-series statistics of data signal(s) 
     bin_against : array
         Data signal to bin data against (e.g. wind speed)
-    
     bin_edges : array
         Bin edges with consistent step size
-
     data_signal : list, optional 
         List of data signal(s) to bin, default = all data signals
     
@@ -26,7 +23,6 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     --------
     bin_mean : pandas DataFrame
         Mean of each bin
-
     bin_std : pandas DataFrame
         Standard deviation of each bim
     """
@@ -123,7 +119,7 @@ def blade_moments(blade_coefficients,flap_offset,flap_raw,edge_offset,edge_raw):
 
 
 def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
-    """
+    '''
     Calculates the damage equivalent load of a single data signal (or channel) 
     based on IEC TS 62600-3:2020 ED1. 4-point rainflow counting algorithm from 
     fatpack module is based on the following resources:
@@ -140,21 +136,18 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     -----------
     data_signal : array
         Data signal being analyzed
-    
     m : float/int
         Fatigue slope factor of material
-    
     bin_num : int
         Number of bins for rainflow counting method (minimum=100)
-    
     data_length : float/int
         Length of measured data (seconds)
     
     Returns:
     --------
     DEL : float
-        Damage equivalent load of single data signal
-    """
+        Damage equivalent load (DEL) of single data signal
+    '''
     
     try: data_signal = np.array(data_signal)
     except: 'data_signal must be of type np.ndarray'
@@ -172,6 +165,3 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     DEL = DELs.sum() ** (1/m)
 
     return DEL
-
-
-
