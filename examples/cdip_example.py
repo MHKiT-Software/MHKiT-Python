@@ -1,12 +1,10 @@
 import mhkit 
 
-
 import netCDF4
 import numpy as np
-import matplotlib.pyplot as plt
 import datetime
 import time
-
+import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib import pylab
 
@@ -15,63 +13,68 @@ from matplotlib import pylab
 ########################################################################
 
 stn = '067'
-yeardate = '2011'
+year_date = '2011'
 
-# Comment out the URL that you are not using
+[data, buoytitle] = mhkit.wave.io.cdip.request_data(stn,'','',year_date)
+data.head()
 
-# CDIP Archived Dataset URL
-data_url = 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/archive/' + stn + 'p1/' + stn + 'p1_historic.nc'
+# # Comment out the URL that you are not using
+# # CDIP Archived Dataset URL
+# data_url = 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/archive/' + stn + 'p1/' + stn + 'p1_historic.nc'
+# # CDIP Realtime Dataset URL
+# # data_url = 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/realtime/' + stn + 'p1_rt.nc'
 
-# CDIP Realtime Dataset URL
-# data_url = 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/realtime/' + stn + 'p1_rt.nc'
+# nc = netCDF4.Dataset(data_url)
 
+# ncTime = nc.variables['sstTime'][:]
+# timeall = [datetime.datetime.fromtimestamp(t) for t in ncTime] # Convert ncTime variable to datetime stamps
+# Hs = nc.variables['waveHs']
 
-nc = netCDF4.Dataset(data_url)
+# # Create a variable of the buoy name, to use in plot title
+# buoyname = nc.variables['metaStationName'][:]
+# buoytitle = buoyname[:-40].data.tostring().decode()
 
-ncTime = nc.variables['sstTime'][:]
-timeall = [datetime.datetime.fromtimestamp(t) for t in ncTime] # Convert ncTime variable to datetime stamps
-Hs = nc.variables['waveHs']
+# # Find nearest value in numpy array to inputted value
+# def _find_nearest(array,value):
+#     idx = (np.abs(array-value)).argmin()
+#     return array[idx]
 
-# Create a variable of the buoy name, to use in plot title
-buoyname = nc.variables['metaStationName'][:]
-buoytitle = buoyname[:-40].data.tostring().decode()
+# # Convert human-formatted date to UNIX timestamp
+# def _getUnixTimestamp(humanTime,dateFormat):
+#     unixTimestamp = int(time.mktime(datetime.datetime.strptime(humanTime, dateFormat).timetuple()))
+#     return unixTimestamp
 
-# Find nearest value in numpy array to inputted value
-def find_nearest(array,value):
-    idx = (np.abs(array-value)).argmin()
-    return array[idx]
+# # Create array of month numbers to cycle through to grab Hs data
+# months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
 
-# Convert human-formatted date to UNIX timestamp
-def getUnixTimestamp(humanTime,dateFormat):
-    unixTimestamp = int(time.mktime(datetime.datetime.strptime(humanTime, dateFormat).timetuple()))
-    return unixTimestamp
+# # Create array of lists of Hs data for each month 
+# timeindex_start = []
+# timeindex_end = []
+# monthcount = 0
 
-# Create array of month numbers to cycle through to grab Hs data
-months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
-
-
-# Create array of lists of Hs data for each month 
-
-timeindex_start = []
-timeindex_end = []
-monthcount = 0
-
-
-for monthi in months:
-    startdate = months[monthcount] + "/" + "01/" + str(yeardate) # Set start and end dates of each month, using the above 'months' array
-    enddate = months[monthcount] + "/" + "28/" + str(yeardate) # Set the end date to Day 28, to account for February's short length
+# for monthi in months:
+#     startdate = months[monthcount] + "/" + "01/" + str(yeardate) # Set start and end dates of each month, using the above 'months' array
+#     enddate = months[monthcount] + "/" + "28/" + str(yeardate) # Set the end date to Day 28, to account for February's short length
    
-    unixstart = getUnixTimestamp(startdate,"%m/%d/%Y")
-    nearest_date = find_nearest(ncTime, unixstart)  # Find the closest unix timestamp
-    near_index = np.where(ncTime==nearest_date)[0][0]  # Grab the index number of found date
+#     unixstart = _getUnixTimestamp(startdate,"%m/%d/%Y")
+#     nearest_date = _find_nearest(ncTime, unixstart)  # Find the closest unix timestamp
+#     near_index = np.where(ncTime==nearest_date)[0][0]  # Grab the index number of found date
     
-    unixend = getUnixTimestamp(enddate,"%m/%d/%Y")
-    future_date = find_nearest(ncTime, unixend)  # Find the closest unix timestamp
-    future_index = np.where(ncTime==future_date)[0][0]  # Grab the index number of found date    
+#     unixend = _getUnixTimestamp(enddate,"%m/%d/%Y")
+#     future_date = _find_nearest(ncTime, unixend)  # Find the closest unix timestamp
+#     future_index = np.where(ncTime==future_date)[0][0]  # Grab the index number of found date    
     
-    monthcount = monthcount+1
-    timeindex_start.append(near_index) # Append 'month start date' and 'month end date' index numbers for each month to corresponding array
-    timeindex_end.append(future_index)
+    # monthcount = monthcount+1
+    # timeindex_start.append(near_index) # Append 'month start date' and 'month end date' index numbers for each month to corresponding array
+    # timeindex_end.append(future_index)
+
+
+# data[data.index.month == 6]
+
+
+months = data.index.month.unique()
+for monthi in months:
+    data[data.index.month == f'monthi'.mean()
 
 
 box_data = []
@@ -83,6 +86,8 @@ for Hsi in range(len(Hs[timeindex_start])):
     box_data.append(monthHs)
     
 means = np.asarray([(np.mean(m)) for m in box_data]) 
+
+
 
 meansround = [round(k,2) for k in means] # Round each monthly mean value to 2 decimal points, for plotting
 
@@ -177,41 +182,41 @@ bp2.axes.get_yaxis().set_visible(False)
 # Compendium Exampe
 ########################################################################
 
-# #########################
-# # Historic data
-# #########################
-# # stn = '100'
-# # start_date = "04/01/2012" # MM/DD/YYYY
-# # end_date = "04/30/2012"
+#########################
+# Historic data
+#########################
+# stn = '100'
+# start_date = "04/01/2012" # MM/DD/YYYY
+# end_date = "04/30/2012"
 
-# stn = '179'
-# start_date = "04/01/2019" # MM/DD/YYYY
-# end_date = "04/30/2019"
+stn = '179'
+start_date = "04/01/2019" # MM/DD/YYYY
+end_date = "04/30/2019"
 
-# # stn = '187'
-# # start_date = "08/01/2018" # MM/DD/YYYY
-# # end_date = "08/31/2018"
+# stn = '187'
+# start_date = "08/01/2018" # MM/DD/YYYY
+# end_date = "08/31/2018"
 
-# # stn = '213'
-# # start_date = "08/01/2018" # MM/DD/YYYY
-# # end_date = "08/31/2018"
+# stn = '213'
+# start_date = "08/01/2018" # MM/DD/YYYY
+# end_date = "08/31/2018"
 
-# [data, buoytitle] = mhkit.wave.io.cdip.request_data(stn,start_date,end_date)
+[data, buoytitle] = mhkit.wave.io.cdip.request_data(stn,start_date,end_date,'')
+data.head()
+
+#########################
+# Realtime data
+#########################
+# stn = '187'
+# start_date = "05/01/2020" # MM/DD/YYYY
+# end_date = "05/31/2020"
+
+# [data, buoytitle] = mhkit.wave.io.cdip.request_data(stn,start_date,end_date,data_type='Realtime')
 # data.head()
 
-# #########################
-# # Realtime data
-# #########################
-# # stn = '187'
-# # start_date = "05/01/2020" # MM/DD/YYYY
-# # end_date = "05/31/2020"
-
-# # [data, buoytitle] = mhkit.wave.io.cdip.request_data(stn,start_date,end_date,data_type='Realtime')
-# # data.head()
-
-# #########################
-# # Plot data Compendium
-# #########################
-# mhkit.wave.graphics.plot_compendium(data, buoytitle)
+#########################
+# Plot data Compendium
+#########################
+mhkit.wave.graphics.plot_compendium(data, buoytitle)
 
 
