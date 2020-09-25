@@ -1,13 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Sep 25 12:15:58 2020
-
-@author: kmruehl
-"""
-
-import mhkit 
-
-
 import netCDF4
 import numpy as np
 import matplotlib.pyplot as plt
