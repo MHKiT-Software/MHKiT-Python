@@ -1,65 +1,111 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Sep 25 12:15:58 2020
+
+@author: kmruehl
+"""
+
 import mhkit 
+
 
 import netCDF4
 import numpy as np
+import matplotlib.pyplot as plt
 import datetime
 import time
-import matplotlib.pyplot as plt
+
 from matplotlib import gridspec
 from matplotlib import pylab
-
-stn = '067'
-year_date = '2011'
-
-[data, buoytitle] = mhkit.wave.io.cdip.request_data(stn,'','',year_date)
-data.head()
-
-# mhkit.wave.graphics.plot_boxplot(data, buoytitle)
 
 ########################################################################
 # Boxplot Exampe
 ########################################################################
 
+stn = '067'
+yeardate = '2011'
+
+# Comment out the URL that you are not using
+
+# CDIP Archived Dataset URL
+data_url = 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/archive/' + stn + 'p1/' + stn + 'p1_historic.nc'
+
+# CDIP Realtime Dataset URL
+# data_url = 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/realtime/' + stn + 'p1_rt.nc'
+
+
+nc = netCDF4.Dataset(data_url)
+
+ncTime = nc.variables['sstTime'][:]
+timeall = [datetime.datetime.fromtimestamp(t) for t in ncTime] # Convert ncTime variable to datetime stamps
+Hs = nc.variables['waveHs']
+
+# Create a variable of the buoy name, to use in plot title
+buoyname = nc.variables['metaStationName'][:]
+buoytitle = buoyname[:-40].data.tostring().decode()
+
+# Find nearest value in numpy array to inputted value
+def find_nearest(array,value):
+    idx = (np.abs(array-value)).argmin()
+    return array[idx]
+
+# Convert human-formatted date to UNIX timestamp
+def getUnixTimestamp(humanTime,dateFormat):
+    unixTimestamp = int(time.mktime(datetime.datetime.strptime(humanTime, dateFormat).timetuple()))
+    return unixTimestamp
+
 # Create array of month numbers to cycle through to grab Hs data
 months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
-         
-# Create array of month-long chunks of Hs data, to be plotted as a series of 
-# boxplots. Use a for-loop to cycle through the Hs variable and define 
-# each month-long array using the above-specified time index numbers.
-# Calculate the monthly mean (average) using each month-long chunk of data.
-# Calculate the number of instances of the variable being incorporated 
-# into each month-long average
-box_data=[]
-means=[]
-monthlengths=[]
-for imonth in range(len(data.index.month.unique())):
-    tmp1 = data[data.index.month == imonth+1]
-    tmp2 = data[data.index.month == imonth+1].mean()
-    tmp3 = len(data[data.index.month == imonth+1])
 
-    box_data.append(tmp1)
-    means.append(tmp2)
-    monthlengths.append(tmp3)
-means = np.array(means)
-meansround = means.round(2)
+# Create array of lists of Hs data for each month 
+timeindex_start = []
+timeindex_end = []
+monthcount = 0
+for monthi in months:
+    startdate = months[monthcount] + "/" + "01/" + str(yeardate) # Set start and end dates of each month, using the above 'months' array
+    enddate = months[monthcount] + "/" + "28/" + str(yeardate) # Set the end date to Day 28, to account for February's short length
+   
+    unixstart = getUnixTimestamp(startdate,"%m/%d/%Y")
+    nearest_date = find_nearest(ncTime, unixstart)  # Find the closest unix timestamp
+    near_index = np.where(ncTime==nearest_date)[0][0]  # Grab the index number of found date
+    
+    unixend = getUnixTimestamp(enddate,"%m/%d/%Y")
+    future_date = find_nearest(ncTime, unixend)  # Find the closest unix timestamp
+    future_index = np.where(ncTime==future_date)[0][0]  # Grab the index number of found date    
+    
+    monthcount = monthcount+1
+    timeindex_start.append(near_index) # Append 'month start date' and 'month end date' index numbers for each month to corresponding array
+    timeindex_end.append(future_index)
 
-Jan = box_data[0].Hs
-Feb = box_data[1].Hs
-Mar = box_data[2].Hs
-Apr = box_data[3].Hs
-May = box_data[4].Hs
-Jun = box_data[6].Hs
-Jul = box_data[6].Hs
-Aug = box_data[7].Hs
-Sep = box_data[8].Hs
-Oct = box_data[9].Hs
-Nov = box_data[10].Hs
-Dec = box_data[11].Hs
+box_data = []
+i = 0
+for Hsi in range(len(Hs[timeindex_start])):
+    monthHs = Hs[timeindex_start[i]:timeindex_end[i]]
+    i = i+1
+    box_data.append(monthHs)
+    
+means = np.asarray([(np.mean(m)) for m in box_data]) 
+meansround = [round(k,2) for k in means] # Round each monthly mean value to 2 decimal points, for plotting
+
+monthlengths = []
+j = 0
+for Hsj in range(len(Hs[timeindex_start])):
+    monthlenHs = len(Hs[timeindex_start[j]:timeindex_end[j]])
+    j = j+1
+    monthlengths.append(monthlenHs)
 
 #########################
 # Plot data Boxplot
+# 
+# Create boxplot graph of month-long datasets
+# Each box includes:
+#     Median (red line)
+#     25th and 75th percentiles (top and bottom of box)
+#     Remaining data within 1.5L above and below (whiskers) the quartiles, where L = length (m) from 25th to 75th percentile
+#     Outliers (red crosses) - data beyond whiskers
+#     Mean position (green line) and value (green number)
+# Adjust colors and labels of graphical display
+# Include a second plot of a sample 'legend' boxplot
 #########################
-
 # Create overall figure and specify size, and grid to specify positions of subplots
 fig = plt.figure(figsize=(12,15)) 
 gs = gridspec.GridSpec(2,2,height_ratios=[5,1]) 
@@ -70,10 +116,8 @@ bp_sample2 = np.random.normal(2.5,0.5,500)
 # Create two subplots - actual monthly-averaged data (top) and example 'legend' boxplot (bottom)
 # Subplot of monthly-averaged boxplot data
 bp = plt.subplot(gs[0,:])
-# bp_data = bp.boxplot(box_data) # Add 'meanlineprops' to include the above-defined properties
-bp_data =bp.boxplot([Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct])  
+bp_data = bp.boxplot(box_data) # Add 'meanlineprops' to include the above-defined properties
 bp.scatter(months,means,marker="_",color='g',linewidths=2.5,s=900) # Overlay monthly means as green lines using 'scatter' function.
-
 # Subplot to show example 'legend' boxplot below actual monthly-averaged boxplot graph
 bp2 = plt.subplot(gs[1,:])
 bp2_example = bp2.boxplot(bp_sample2,vert=False) # Plot horizontal example boxplot with labels
@@ -111,7 +155,7 @@ pylab.setp(bp2_example['fliers'], color='r')
 
 # Set Titles
 plt.suptitle(buoytitle, fontsize=30, y=0.97) # Overall plot title using 'buoytitle' variable
-bp.set_title("Significant Wave Height by month for " + year_date, fontsize=20, y=1.01) # Subtitle for top plot
+bp.set_title("Significant Wave Height by month for " + yeardate, fontsize=20, y=1.01) # Subtitle for top plot
 bp2.set_title("Sample Boxplot", fontsize=16, y=1.02) # Subtitle for bottom plot
 
 # Set axes labels and ticks
@@ -134,48 +178,5 @@ bp.grid(axis='y', which='major', color='b', linestyle='-', alpha=0.25)
 bp2.axes.get_xaxis().set_visible(False)
 bp2.axes.get_yaxis().set_visible(False)
 
-
-
-
-########################################################################
-# Compendium Exampe
-########################################################################
-
-#########################
-# Historic data
-#########################
-# stn = '100'
-# start_date = "04/01/2012" # MM/DD/YYYY
-# end_date = "04/30/2012"
-
-# stn = '179'
-# start_date = "04/01/2019" # MM/DD/YYYY
-# end_date = "04/30/2019"
-
-# stn = '187'
-# start_date = "08/01/2018" # MM/DD/YYYY
-# end_date = "08/31/2018"
-
-# stn = '213'
-# start_date = "08/01/2018" # MM/DD/YYYY
-# end_date = "08/31/2018"
-
-# [data, buoytitle] = mhkit.wave.io.cdip.request_data(stn,start_date,end_date,'')
-# data.head()
-
-#########################
-# Realtime data
-#########################
-# stn = '187'
-# start_date = "05/01/2020" # MM/DD/YYYY
-# end_date = "05/31/2020"
-
-# [data, buoytitle] = mhkit.wave.io.cdip.request_data(stn,start_date,end_date,data_type='Realtime')
-# data.head()
-
-#########################
-# Plot data Compendium
-#########################
-# mhkit.wave.graphics.plot_compendium(data, buoytitle)
 
 
