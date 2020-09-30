@@ -304,17 +304,20 @@ def to_datetime_index(parameter, ndbc_data):
     columns.        
 
     Parameters
-    ------------
+    ----------
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+    
     ndbc_data: DataFrame
         NDBC data in dataframe with date and time columns to be converted
+
     Returns
-	-------
+    -------
 	df_datetime: DataFrame
 	    Dataframe with NDBC date columns removed, and datetime index
-    '''  
+    '''
+
     assert isinstance(parameter, str), 'parameter must be a string'
     assert isinstance(ndbc_data, pd.DataFrame), 'ndbc_data must be of type pd.DataFrame'
     
@@ -466,41 +469,31 @@ def parameter_units(parameter=''):
     that case the returned dictionary will contain the NDBC measurement
     name and associated unit for all the measurements associated with 
     the specified parameter. Optional parameter values are given below.
-    All units are based on  https://www.ndbc.noaa.gov/measdes.shtml.
+    All units are based on https://www.ndbc.noaa.gov/measdes.shtml.
     
     Parameters
     ----------
     parameter: string (optional)        
- 
-        'cwind':    'Continuous Winds Current Year Historical Data'
-        
-        'dart':     'Water Column Height (DART) Current Year Historical Data'
-        
-        'derived2': 'Derived Met Values'       
-        
-        'ocean' :   'Oceanographic Current Year Historical Data'    
-        
-        'rain'	:	'Hourly Rain Current Year Historical Data'	    
-        
+        'adcp':     'Acoustic Doppler Current Profiler Current Year Historical Data'        
+        'cwind':    'Continuous Winds Current Year Historical Data'        
+        'dart':     'Water Column Height (DART) Current Year Historical Data'        
+        'derived2': 'Derived Met Values'        
+        'ocean' :   'Oceanographic Current Year Historical Data'        
+        'rain'	:	'Hourly Rain Current Year Historical Data'	        
         'rain10':	'10-Minute Rain Current Year Historical Data'	
-        
-        'rain24':	'24-Hour Rain Current Year Historical Data'	    
-        
-        'realtime2':'Detailed Wave Summary (Realtime ".spec" data files only)'  
-        
-        'srad':     'Solar Radiation Current Year Historical Data' 
-        
-        'stdmet':   ''Standard Meteorological Current Year Historical Data' 
-        
-        'supl':     'Supplemental Measurements Current Year Historical Data' 
-        
-        'swden'	:	'Raw Spectral Wave Current Year Historical Data'        
-        
+        'rain24':	'24-Hour Rain Current Year Historical Data'	        
+        'realtime2': 'Detailed Wave Summary (Realtime `.spec` data files only)'        
+        'srad':     'Solar Radiation Current Year Historical Data'        
+        'stdmet':   'Standard Meteorological Current Year Historical Data'        
+        'supl':     'Supplemental Measurements Current Year Historical Data'        
+        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+
     Returns
     -------
     units: dict
         Dictionary of parameter units
     '''
+
     assert isinstance(parameter, str), 'parameter must be a string'
     # supported = _supported_params(parameter)
     

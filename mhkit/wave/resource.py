@@ -688,14 +688,14 @@ def wave_number(f, h, rho=1025, g=9.80665):
     return k
 
 def environmental_contour(x1, x2, dt, period, **kwargs):
-    '''    
+    '''
     Calculates environmental contours of extreme sea 
     states using the improved joint probability distributions 
     with the inverse first-order reliability method (I-FORM) 
     probability for the desired return period (`period`). Given the 
     period of interest, a circle of iso-probability is created 
     in the principal component analysis (PCA) joint probability 
-    (`x1`, `x2`) reference frame.  
+    (`x1`, `x2`) reference frame.
     Using the joint probability value, the cumulative distribution 
     function (CDF) of the marginal distribution is used to find 
     the quantile of each component. 
@@ -753,7 +753,8 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
         'mu_param'      : fit to _mu_fcn
         'sigma_param'   : fit to _sig_fits 
 
-    '''   
+    '''
+
     assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
     assert isinstance(dt, (int,float)), 'dt must be of type int or float'
