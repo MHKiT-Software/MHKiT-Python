@@ -4,7 +4,7 @@ import scipy.io as sio
 
 def read_output(file_name):
     """
-    Loads the wecSim response class once 'output' has been saved to a *.mat 
+    Loads the wecSim response class once 'output' has been saved to a `.mat` 
     structure. 
     
     NOTE: Python is unable to import MATLAB objects. 
@@ -13,7 +13,7 @@ def read_output(file_name):
     Parameters
     ------------
     file_name: string
-        Name of wecSim output file saved as a *.mat structure
+        Name of wecSim output file saved as a `.mat` structure
         
         
     Returns
