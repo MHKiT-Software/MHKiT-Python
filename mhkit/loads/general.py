@@ -8,7 +8,7 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     Bins calculated statistics against data signal (or channel) 
     according to IEC TS 62600-3:2020 ED1.
     
-    Parameters:
+    Parameters
     -----------
     data : pandas DataFrame
        Time-series statistics of data signal(s) 
@@ -19,7 +19,7 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     data_signal : list, optional 
         List of data signal(s) to bin, default = all data signals
     
-    Returns:
+    Returns
     --------
     bin_mean : pandas DataFrame
         Mean of each bin
@@ -76,7 +76,7 @@ def blade_moments(blade_coefficients,flap_offset,flap_raw,edge_offset,edge_raw):
     '''
     Transfer function for deriving blade flap and edge moments using blade matrix.
 
-    Parameters:
+    Parameters
     -----------
     blade_coefficients : numpy array
         Derived blade calibration coefficients listed in order of D1, D2, D3, D4
@@ -89,7 +89,7 @@ def blade_moments(blade_coefficients,flap_offset,flap_raw,edge_offset,edge_raw):
     edge_raw : numpy array
         Raw strain signal of blade in the edgewise direction
     
-    Returns:
+    Returns
     --------
     M_flap : numpy array
         Blade flapwise moment in SI units
@@ -132,7 +132,7 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
       techniques for accurate fatigue damage estimation. International Journal
       of Fatigue, 82 (2016) 757-765`
     
-    Parameters:
+    Parameters
     -----------
     data_signal : array
         Data signal being analyzed
@@ -143,7 +143,7 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     data_length : float/int
         Length of measured data (seconds)
     
-    Returns:
+    Returns
     --------
     DEL : float
         Damage equivalent load (DEL) of single data signal
