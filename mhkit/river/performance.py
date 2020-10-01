@@ -104,7 +104,7 @@ def tip_speed_ratio(rotor_speed,rotor_diameter,inflow_speed):
     '''
     Function used to calculate the tip speed ratio (TSR) of a MEC device with rotor
 
-    Parameters:
+    Parameters
     -----------
     rotor_speed : numpy array
         Rotor speed [revolutions per second]
@@ -113,7 +113,7 @@ def tip_speed_ratio(rotor_speed,rotor_diameter,inflow_speed):
     inflow_speed : numpy array
         Velocity of inflow condition [m/s]
 
-    Returns:
+    Returns
     --------
     TSR : numpy array
         Calculated tip speed ratio (TSR)
@@ -137,7 +137,7 @@ def power_coefficient(power,inflow_speed,capture_area,rho):
     '''
     Function that calculates the power coefficient of MEC device
 
-    Parameters:
+    Parameters
     -----------
     power : numpy array
         Power output signal of device after losses [W]
@@ -148,7 +148,7 @@ def power_coefficient(power,inflow_speed,capture_area,rho):
     rho : float/int
         Density of environment [kg/m^3]
 
-    Returns:
+    Returns
     --------
     Cp : numpy array
         Power coefficient of device [-]
