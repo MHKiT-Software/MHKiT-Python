@@ -5,7 +5,7 @@ def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],**kwargs):
     '''
     Plot showing standard raw statistics of variable
 
-    Parameters:
+    Parameters
     -----------
     x : numpy array
         Array of x-axis values
@@ -27,7 +27,7 @@ def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],**kwargs):
         save_path : string
             Path and filename to save figure.
 
-    Returns:
+    Returns
     --------
     ax : matplotlib pyplot axes
     '''
@@ -79,7 +79,7 @@ def plot_bin_statistics(bin_centers, bin_mean,bin_max, bin_min,
     '''
     Plot showing standard binned statistics of single variable
 
-    Parameters:
+    Parameters
     -----------
     bin_centers : numpy array
         x-axis bin center values
@@ -105,7 +105,7 @@ def plot_bin_statistics(bin_centers, bin_mean,bin_max, bin_min,
         save_path : string
             Path and filename to save figure.
 
-    Returns:
+    Returns
     --------
     ax : matplotlib pyplot axes
     '''
