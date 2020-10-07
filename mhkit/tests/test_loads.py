@@ -62,32 +62,6 @@ class TestLoads(unittest.TestCase):
             self.assertAlmostEqual(i,j,places=1)
 
 
-    def test_tip_speed_ratio(self):
-        rotor_speed = [15,16,17,18] # create array of rotor speeds
-        rotor_diameter = 77 # diameter of rotor for GE 1.5
-        inflow_speed = [13,13,13,13] # array of wind speeds
-        TSR_answer = [4.7,5.0,5.3,5.6]
-        
-        TSR = loads.tip_speed_ratio(rotor_speed,rotor_diameter,inflow_speed)
-
-        for i,j in zip(TSR,TSR_answer):
-            self.assertAlmostEqual(i,j,delta=0.05)
-
-
-    def test_power_coefficient(self):
-        # data obtained from power performance report of wind turbine
-        inflow_speed = [4,6,8,10,12,14,16,18,20]
-        power_out = np.asarray([59,304,742,1200,1400,1482,1497,1497,1511])
-        capture_area = 4656.63
-        rho = 1.225
-        Cp_answer = [0.320,0.493,0.508,0.421,0.284,0.189,0.128,0.090,0.066]
-        
-        Cp = loads.power_coefficient(power_out*1000,inflow_speed,capture_area,rho)
-
-        for i,j in zip(Cp,Cp_answer):
-            self.assertAlmostEqual(i,j,places=2)
-
-
     def test_blade_moments(self):
         flap_raw = self.blade_data['flap_raw']
         flap_offset = self.flap_offset
