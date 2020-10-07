@@ -62,20 +62,6 @@ class TestLoads(unittest.TestCase):
             self.assertAlmostEqual(i,j,places=1)
 
 
-    def test_blade_moments(self):
-        flap_raw = self.blade_data['flap_raw']
-        flap_offset = self.flap_offset
-        edge_raw = self.blade_data['edge_raw']
-        edge_offset = self.edge_offset
-
-        M_flap, M_edge = loads.blade_moments(self.blade_matrix,flap_offset,flap_raw,edge_offset,edge_raw)
-
-        for i,j in zip(M_flap,self.blade_data['flap_scaled']):
-            self.assertAlmostEqual(i,j,places=1)
-        for i,j in zip(M_edge,self.blade_data['edge_scaled']):
-            self.assertAlmostEqual(i,j,places=1)
-
-
     def test_damage_equivalent_loads(self):
         loads_data = self.data['loads']
         tower_load = loads_data['TB_ForeAft']
