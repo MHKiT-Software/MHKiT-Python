@@ -13,13 +13,13 @@ def request_data(stn,start_date='',end_date='',yeardate='',data_type='Historic')
     ------------
     stn: string
         Station number of CDIP wave buoy
-    start_date: string
+    start_date: string 
         Start date in MM/DD/YYYY, e.g. '04/01/2012'
-    end_date: string
+    end_date: string 
         End date in MM/DD/YYYY, e.g. '04/30/2012'
-    yeardate: string
+    yeardate: string 
         Year date, e.g. '2001'
-    data_type: string
+    data_type: string 
         'Realtime' or 'Historic', default = 'Historic'
     
     Returns
@@ -50,10 +50,17 @@ def request_data(stn,start_date='',end_date='',yeardate='',data_type='Historic')
     if yeardate !='':
         assert len(yeardate) == 4, ('Year date must be of format YYYY'
         f' got: {end_date}')
+        assert data_type == 'Historic', ('If specifying yeardate, data_type must be "Historic"')
 
     if isinstance(data_type, str):        
         assert data_type == 'Realtime' or data_type == 'Historic', ('Data type must be either Historic or Realtime'
         f' got: {data_type}')
+    
+    if len(start_date) == 0 and data_type == 'Historic': 
+        assert yeardate !='', ('If not setting a date range, you must set a year')
+    
+    if len(yeardate) == 0 and data_type == 'Historic':
+        assert start_date !='', ('If not setting a year, you must set a date')
         
     # Access Historic or Realtime data from CDIP Thredds
     if data_type == 'Historic':
@@ -104,10 +111,13 @@ def request_data(stn,start_date='',end_date='',yeardate='',data_type='Historic')
         unixstart = _getUnixTimestamp(start_date,"%m/%d/%Y") 
         neareststart = _find_nearest(ncTime, unixstart)  # Find the closest unix timestamp
         nearIndex = np.where(ncTime==neareststart)[0][0]  # Grab the index number of found date
-        
-        unixend = _getUnixTimestamp(end_date,"%m/%d/%Y")
-        future = _find_nearest(ncTime, unixend)  # Find the closest unix timestamp
-        futureIndex = np.where(ncTime==future)[0][0]  # Grab the index number of found date    
+        if end_date !='':
+            unixend = _getUnixTimestamp(end_date,"%m/%d/%Y")
+            assert unixend > unixstart, ('end_date must be later than start_date')
+            future = _find_nearest(ncTime, unixend)  # Find the closest unix timestamp
+            futureIndex = np.where(ncTime==future)[0][0]  # Grab the index number of found date
+        else:
+            futureIndex = -1   
         
         timeall = timeall[nearIndex:futureIndex]
         Hs = Hs[nearIndex:futureIndex]
