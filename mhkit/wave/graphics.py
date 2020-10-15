@@ -7,6 +7,7 @@ from mhkit.wave.resource import peak_period as _peak_period
 from mhkit.river.graphics import _xy_plot
 from matplotlib import gridspec
 from matplotlib import pylab
+import datetime
 
 
 def plot_spectrum(S, ax=None):
@@ -476,7 +477,7 @@ def plot_boxplot(data, buoytitle=None, ax=None):
     """
 
     # Create array of month numbers to cycle through to grab Hs data
-    months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
+    #months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
     year_date = max(data.index.year.unique())
     
     # Create array of month-long chunks of Hs data, to be plotted as a series of 
@@ -488,29 +489,21 @@ def plot_boxplot(data, buoytitle=None, ax=None):
     box_data=[]
     means=[]
     monthlengths=[]
-    for imonth in range(len(data.index.month.unique())):
-        tmp1 = data[data.index.month == imonth+1]
-        tmp2 = data[data.index.month == imonth+1].mean()
-        tmp3 = len(data[data.index.month == imonth+1])    
-        box_data.append(tmp1)
+    months = []
+    months_text = []
+    for imonth in data.index.month.unique():
+        tmp1 = data[data.index.month == imonth]
+        tmp2 = data[data.index.month == imonth].Hs.mean()
+        tmp3 = len(data[data.index.month == imonth])    
+        box_data.append(tmp1.Hs.values)
         means.append(tmp2)
         monthlengths.append(tmp3)
+        months.append(imonth)
+        months_text.append(datetime.datetime.strptime(str(imonth), "%m").strftime("%b"))
     means = np.array(means)
     meansround = means.round(2)
     
-    Jan = box_data[0].Hs
-    Feb = box_data[1].Hs
-    Mar = box_data[2].Hs
-    Apr = box_data[3].Hs
-    May = box_data[4].Hs
-    Jun = box_data[6].Hs
-    Jul = box_data[6].Hs
-    Aug = box_data[7].Hs
-    Sep = box_data[8].Hs
-    Oct = box_data[9].Hs
-    Nov = box_data[10].Hs
-    Dec = box_data[11].Hs
-    
+
     # Create overall figure and specify size, and grid to specify positions of subplots
     fig = plt.figure(figsize=(12,15)) 
     gs = gridspec.GridSpec(2,2,height_ratios=[5,1]) 
@@ -521,7 +514,7 @@ def plot_boxplot(data, buoytitle=None, ax=None):
     # Create two subplots - actual monthly-averaged data (top) and example 'legend' boxplot (bottom)
     # Subplot of monthly-averaged boxplot data
     bp = plt.subplot(gs[0,:])
-    bp_data =bp.boxplot([Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec])  
+    bp_data =bp.boxplot(box_data)#[Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec])  
     # Add 'meanlineprops' to include the above-defined properties
     bp.scatter(months,means,marker="_",color='g',linewidths=2.5,s=900) # Overlay monthly means as green lines using 'scatter' function.
     
@@ -565,7 +558,7 @@ def plot_boxplot(data, buoytitle=None, ax=None):
     bp2.set_title("Sample Boxplot", fontsize=16, y=1.02) # Subtitle for bottom plot
     
     # Set axes labels and ticks
-    bp.set_xticklabels(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],fontsize=12)
+    bp.set_xticklabels(months_text,fontsize=12)
     bp.set_ylabel('Significant Wave Height, Hs (m)', fontsize=20)
     bp.tick_params(axis='y', which='major', labelsize=12, right='off')
     bp.tick_params(axis='x', which='major', labelsize=12, top='off')
