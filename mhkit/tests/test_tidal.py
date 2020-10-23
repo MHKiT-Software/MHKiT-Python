@@ -1,5 +1,5 @@
 import unittest
-from os.path import abspath, dirname, join, isfile
+from os.path import abspath, dirname, join, isfile, normpath, relpath
 import os
 import numpy as np
 import pandas as pd
@@ -7,7 +7,7 @@ import matplotlib.pylab as plt
 import mhkit.tidal as tidal
 
 testdir = dirname(abspath(__file__))
-datadir = join(testdir, 'data')
+datadir = normpath(join(testdir,relpath('../../examples/data/tidal')))
 
 
 class TestIO(unittest.TestCase):
@@ -79,7 +79,7 @@ class TestResource(unittest.TestCase):
         
         plt.figure()
         tidal.graphics.plot_joint_probability_distribution(self.data.d, self.data.s, 1, 0.1)
-        plt.savefig(filename, format='png')
+        plt.savefig(f'{filename}')
         plt.close()
         
         self.assertTrue(isfile(filename))
@@ -91,11 +91,12 @@ class TestResource(unittest.TestCase):
         
         plt.figure()
         tidal.graphics.plot_rose(self.data.d, self.data.s, 1, 0.1)
-        plt.savefig(filename, format='png')
+        plt.savefig(f'{filename}')
         plt.close()
         
         self.assertTrue(isfile(filename))
-        
+
+
 if __name__ == '__main__':
     unittest.main() 
 

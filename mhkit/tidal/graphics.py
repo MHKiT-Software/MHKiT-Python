@@ -78,9 +78,9 @@ def plot_rose(directions, velocities, width_dir, width_vel, metadata=None,
 
     Parameters
     ----------
-    directions: array like
+    directions: array-like
         Directions in degrees with 0 degrees specified as true north
-    velocities: array like
+    velocities: array-like
         Velocities in m/s
     width_dir: float 
         Width of directional bins for histogram in degrees
@@ -140,9 +140,9 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
 
     Parameters
     ----------
-    directions: array like
+    directions: array-like
         Directions in degrees with 0 degrees specified as true north
-    velocities: array like
+    velocities: array-like
         Velocities in m/s
     width_dir: float 
         Width of directional bins for histogram in degrees
@@ -182,8 +182,8 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
     idx=z.argsort()
     # Convert to radians and order points by probability
     theta,r,z = directions.values[idx]*np.pi/180. , velocities.values[idx], z[idx]
-    # Create scatter plot colored by probability density
-    sx=ax.scatter(theta, r, c=z, s=5, edgecolor='')
+    # Create scatter plot colored by probability density    
+    sx=ax.scatter(theta, r, c=z, s=5, edgecolor=None)
     # Create colorbar
     plt.colorbar(sx, label='Joint Probability [%]')
     # Get the r-ticks (polar y-ticks)
@@ -203,9 +203,9 @@ def plot_current_timeseries(directions, speeds, principal_direction,
 
     Parameters
     ----------
-    direction: array like
+    direction: array-like
         Time-series of directions [degrees]
-    speed: array like
+    speed: array-like
         Time-series of speeds [m/s]
     principal_direction: float
         Direction to compute the velocity in [degrees]

@@ -4,16 +4,16 @@ import pandas as pd
 import mhkit.utils as utils
 from pandas.testing import assert_frame_equal
 import json
-from os.path import abspath, dirname, join, isfile
+from os.path import abspath, dirname, join, isfile, normpath, relpath
 
 testdir = dirname(abspath(__file__))
-datadir = join(testdir, 'data')
+loads_datadir = normpath(join(testdir,relpath('../../examples/data/loads')))
 
 class TestGenUtils(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        loads_data_file = join(datadir, "loads_data_dict.json")
+        loads_data_file = join(loads_datadir, "loads_data_dict.json")
         with open(loads_data_file, 'r') as fp:
             data_dict = json.load(fp)
         # convert dictionaries into dataframes
@@ -25,6 +25,7 @@ class TestGenUtils(unittest.TestCase):
 
         self.freq = 50 # Hz
         self.period = 600 # seconds
+        
 
     def test_get_statistics(self):
         # load in file
@@ -77,7 +78,7 @@ class TestGenUtils(unittest.TestCase):
         answer2 = answer.round('s') # round to nearest second for comparison
         
         # check if answer is correct
-        self.assertTrue(answer2 == time)
+        self.assertTrue(answer2 == time)     
 
 if __name__ == '__main__':
     unittest.main()
