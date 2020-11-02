@@ -770,5 +770,30 @@ class TestWECSim(unittest.TestCase):
         self.assertEqual(len(ws_output['moorDyn']),7)
         self.assertEqual(len(ws_output['ptosim']),0)
 
+class TestWPTOhindcast(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(self):
+        self.sy_swh = pd.read_csv(join(datadir,'single_year_hindcast.csv'),index_col = 'time_index',
+        names = ['time_index',int(413889)],header = 0, dtype = {413889:'float32'})
+        self.sy_swh.index = pd.to_datetime(self.sy_swh.index)
+            
+    @classmethod
+    def tearDownClass(self):
+        pass
+
+    ### WPTO hindcast data
+    def test_single_year_sig_wave_height(self):
+        single_year_waves = f'/nrel/US_wave/US_wave_1995.h5'
+        lat_lon = (44.624076,-124.280097)
+        parameters = 'significant_wave_height'
+
+        wave_singleyear = wave.io.wave_hindcast.read_US_wave_dataset(single_year_waves,parameters,lat_lon)
+        print(wave_singleyear)
+        print(self.sy_swh)
+        assert_frame_equal(self.sy_swh,wave_singleyear)
+
+    
+
 if __name__ == '__main__':
     unittest.main() 
