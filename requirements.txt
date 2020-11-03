@@ -3,5 +3,5 @@ numpy
 scipy
 matplotlib
 requests
-pecos>=0.1.8
+pecos>=0.1.9
 fatpack
