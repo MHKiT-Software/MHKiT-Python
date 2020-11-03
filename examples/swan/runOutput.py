@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from mhkit.wave.io import swan
 
 inputFile='INPUT'
-input_params = parse_input(inputFile)
+input_params = swan.parse_input(inputFile)
 
 df = swan.read_output('SWANOUT.DAT')
 

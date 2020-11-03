@@ -16,7 +16,7 @@ def parse_input(input_file):
         Dictionary of model inputs
     '''
     f = open(input_file,'r')
-
+    import ipdb; ipdb.set_trace()
 
 def read_output(output_file):
     '''
