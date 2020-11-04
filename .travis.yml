@@ -8,11 +8,10 @@ install:
   - pip install coveralls
   - pip install -e .
 script:
-  - nosetests -v --with-coverage --cover-package=mhkit mhkit
   - export hS_ENDPOINT=https://developer.nrel.gov/api/hsds
   - export hs_username = None
   - export hs_password = None
   - export hs_api_key = 3K3JQbjZmWctY0xmIfSYvYgtIcM3CN0cb1Y2w9bf
-      
+  - nosetests -v --with-coverage --cover-package=mhkit mhkit    
 after_success:
   - coveralls
