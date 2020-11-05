@@ -68,9 +68,7 @@ def read_US_wave_dataset(wave_path, parameter, lat_lon, tree=None,
         with rex_accessor(wave_path, **waveKwargs) as waves:
             data = waves.get_lat_lon_df(parameter,lat_lon)
             col = data.columns[0]
-            print(col)
             meta = waves.meta.loc[col,:]
-            print(meta)
-            #meta2 = meta
+
         
         return data, meta
