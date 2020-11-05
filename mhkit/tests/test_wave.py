@@ -788,11 +788,15 @@ class TestWPTOhindcast(unittest.TestCase):
         lat_lon = (44.624076,-124.280097)
         parameters = 'significant_wave_height'
 
-        wave_singleyear = wave.io.wave_hindcast.read_US_wave_dataset(single_year_waves,parameters,lat_lon)
-        print(wave_singleyear)
-        print(self.sy_swh)
+        wave_singleyear, meta = wave.io.wave_hindcast.read_US_wave_dataset(single_year_waves,parameters,lat_lon)
         assert_frame_equal(self.sy_swh,wave_singleyear)
 
+        self.assertEqual(float(meta.water_depth),77.42949676513672)
+        self.assertEqual(float(meta.latitude),44.624298095703125)
+        self.assertEqual(float(meta.longitude),-124.27899932861328)
+        self.assertEqual(float(meta.distance_to_shore),15622.17578125)
+        self.assertEqual(float(meta.timezone),-8)
+        self.assertEqual(meta.jurisdiction,"Federal")
     
 
 if __name__ == '__main__':
