@@ -781,6 +781,10 @@ class TestWPTOhindcast(unittest.TestCase):
         self.my_swh = pd.read_csv(join(datadir,'multi_year_hindcast.csv'),index_col = 'time_index',
         names = ['time_index',int(413889)],header = 0, dtype = {413889:'float32'})
         self.my_swh.index = pd.to_datetime(self.my_swh.index)
+
+        self.sy_per = pd.read_csv(join(datadir,'single_year_hindcast_period.csv'),index_col = 'time_index',
+        names = ['time_index',int(413889)],header = 0, dtype = {413889:'float32'})
+        self.sy_per.index = pd.to_datetime(self.sy_per.index)
             
     @classmethod
     def tearDownClass(self):
@@ -794,6 +798,21 @@ class TestWPTOhindcast(unittest.TestCase):
 
         wave_singleyear, meta = wave.io.wave_hindcast.read_US_wave_dataset(single_year_waves,parameters,lat_lon)
         assert_frame_equal(self.sy_swh,wave_singleyear)
+
+        self.assertEqual(float(meta.water_depth),77.42949676513672)
+        self.assertEqual(float(meta.latitude),44.624298095703125)
+        self.assertEqual(float(meta.longitude),-124.27899932861328)
+        self.assertEqual(float(meta.distance_to_shore),15622.17578125)
+        self.assertEqual(float(meta.timezone),-8)
+        self.assertEqual(meta.jurisdiction,"Federal")
+
+    def test_single_year_mean_per(self):
+        single_year_waves = f'/nrel/US_wave/US_wave_1995.h5'
+        lat_lon = (44.624076,-124.280097)
+        parameters = 'mean_absolute_period'
+
+        wave_singleyear, meta = wave.io.wave_hindcast.read_US_wave_dataset(single_year_waves,parameters,lat_lon)
+        assert_frame_equal(self.sy_per,wave_singleyear)
 
         self.assertEqual(float(meta.water_depth),77.42949676513672)
         self.assertEqual(float(meta.latitude),44.624298095703125)
