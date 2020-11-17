@@ -785,6 +785,16 @@ class TestWPTOhindcast(unittest.TestCase):
         self.sy_per = pd.read_csv(join(datadir,'single_year_hindcast_period.csv'),index_col = 'time_index',
         names = ['time_index',int(413889)],header = 0, dtype = {413889:'float32'})
         self.sy_per.index = pd.to_datetime(self.sy_per.index)
+
+        self.ml = pd.read_csv(join(datadir,'single_year_hindcast_multiloc.csv'),index_col = 'time_index',
+        names = ['time_index',int(413889),int(296246)],header = 0, dtype = {413889:'float32',296246:'float32'})
+        self.ml.index = pd.to_datetime(self.ml.index)
+
+        self.ml_meta = pd.read_csv(join(datadir,'multiloc_meta.csv'),index_col = 0,
+        names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
+        ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
+        ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
+        
             
     @classmethod
     def tearDownClass(self):
@@ -798,13 +808,13 @@ class TestWPTOhindcast(unittest.TestCase):
 
         wave_singleyear, meta = wave.io.wave_hindcast.read_US_wave_dataset(single_year_waves,parameters,lat_lon)
         assert_frame_equal(self.sy_swh,wave_singleyear)
-
+        print(type(meta.jurisdiction.values))
         self.assertEqual(float(meta.water_depth),77.42949676513672)
         self.assertEqual(float(meta.latitude),44.624298095703125)
         self.assertEqual(float(meta.longitude),-124.27899932861328)
         self.assertEqual(float(meta.distance_to_shore),15622.17578125)
         self.assertEqual(float(meta.timezone),-8)
-        self.assertEqual(meta.jurisdiction,"Federal")
+        self.assertEqual(meta.jurisdiction.values,"Federal")
 
     def test_single_year_mean_per(self):
         single_year_waves = f'/nrel/US_wave/US_wave_1995.h5'
@@ -819,7 +829,7 @@ class TestWPTOhindcast(unittest.TestCase):
         self.assertEqual(float(meta.longitude),-124.27899932861328)
         self.assertEqual(float(meta.distance_to_shore),15622.17578125)
         self.assertEqual(float(meta.timezone),-8)
-        self.assertEqual(meta.jurisdiction,"Federal")
+        self.assertEqual(meta.jurisdiction.values,"Federal")
 
     def test_multi_year_sig_wave_height(self):
         multi_year_waves = f'/nrel/US_wave/US_wave_199*.h5'
@@ -834,8 +844,19 @@ class TestWPTOhindcast(unittest.TestCase):
         self.assertEqual(float(meta.longitude),-124.27899932861328)
         self.assertEqual(float(meta.distance_to_shore),15622.17578125)
         self.assertEqual(float(meta.timezone),-8)
-        self.assertEqual(meta.jurisdiction,"Federal")
-    
+        self.assertEqual(meta.jurisdiction.values,"Federal")
+
+    def test_multi_loc(self):
+        single_year_waves = f'/nrel/US_wave/US_wave_1995.h5'
+        lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137)) 
+        parameters = 'mean_absolute_period'
+
+        wave_multiloc, meta= wave.io.wave_hindcast.read_US_wave_dataset(single_year_waves,
+        parameters,lat_lon,hsds= True)
+
+        assert_frame_equal(self.ml,wave_multiloc)
+        assert_frame_equal(self.ml_meta,meta)
+        
 
 if __name__ == '__main__':
     unittest.main() 

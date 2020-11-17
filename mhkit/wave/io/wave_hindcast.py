@@ -52,6 +52,8 @@ def read_US_wave_dataset(wave_path, parameter, lat_lon, tree=None,
         ---------
         data: pandas DataFrame 
             Data indexed by datetime with columns named according to header row 
+        meta: pandas DataFrame 
+            location metadata for the requested data location   
         """
         
         assert isinstance(parameter, str), 'parameter must be of type string'
@@ -67,7 +69,9 @@ def read_US_wave_dataset(wave_path, parameter, lat_lon, tree=None,
             
         with rex_accessor(wave_path, **waveKwargs) as waves:
             data = waves.get_lat_lon_df(parameter,lat_lon)
-            col = data.columns[0]
+            #print(data)
+            col = data.columns[:]
+            #print(data.columns)
             meta = waves.meta.loc[col,:]
 
         
