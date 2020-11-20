@@ -59,6 +59,7 @@ def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
                 ax=None):
     """
     Plots values in the matrix as a scatter diagram
+    
     Parameters
     ------------
     M: pandas DataFrame
@@ -81,6 +82,7 @@ def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
     ax : matplotlib pyplot axes
 
     """
+    
     assert isinstance(M, pd.DataFrame), 'M must be of type pd.DataFrame'
 
     if ax is None:
@@ -329,6 +331,7 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     -------
     ax : matplotlib pyplot axes
     '''
+    
     assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
     assert isinstance(x1_contour, np.ndarray), ('x1_contour must be of '

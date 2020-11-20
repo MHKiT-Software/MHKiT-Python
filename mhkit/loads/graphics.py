@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],**kwargs):
-    """
+    '''
     Plot showing standard raw statistics of variable
 
-    Parameters:
+    Parameters
     -----------
     x : numpy array
         Array of x-axis values
@@ -26,10 +27,11 @@ def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],**kwargs):
         save_path : string
             Path and filename to save figure.
 
-    Returns:
+    Returns
     --------
     ax : matplotlib pyplot axes
-    """
+    '''
+    
     try: x = np.array(x)
     except: 'x must be of type np.ndarray'       
     try: y_mean = np.array(y_mean)
@@ -74,10 +76,10 @@ def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],**kwargs):
 def plot_bin_statistics(bin_centers, bin_mean,bin_max, bin_min,
                         bin_mean_std, bin_max_std, bin_min_std,
                         **kwargs):
-    """
+    '''
     Plot showing standard binned statistics of single variable
 
-    Parameters:
+    Parameters
     -----------
     bin_centers : numpy array
         x-axis bin center values
@@ -103,10 +105,10 @@ def plot_bin_statistics(bin_centers, bin_mean,bin_max, bin_min,
         save_path : string
             Path and filename to save figure.
 
-    Returns:
+    Returns
     --------
     ax : matplotlib pyplot axes
-    """
+    '''
         
     try: bin_centers = np.asarray(bin_centers)
     except: 'bin_centers must be of type np.ndarray'    
@@ -157,3 +159,4 @@ def plot_bin_statistics(bin_centers, bin_mean,bin_max, bin_min,
         fig.savefig(save_path)
         plt.close()
     return ax
+    
