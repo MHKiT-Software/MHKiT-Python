@@ -18,7 +18,7 @@ CLASSIFIERS=['Development Status :: 3 - Alpha',
              'Operating System :: OS Independent',
             ]
 DEPENDENCIES = ['pandas>=1.0.0', 
-                'numpy', 
+                'numpy>=1.17.5', 
                 'scipy',
                 'matplotlib', 
                 'requests', 
@@ -26,7 +26,7 @@ DEPENDENCIES = ['pandas>=1.0.0',
                 'fatpack',
                 'lxml',
                 'scikit-learn',
-		'NREL-rex']
+		'NREL-rex==0.2.30']
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))
