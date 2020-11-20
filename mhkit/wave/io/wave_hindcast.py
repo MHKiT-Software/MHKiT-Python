@@ -20,20 +20,15 @@ def read_US_wave_dataset(wave_path, parameter, lat_lon, tree=None,
         hs_api_key = {your key}
         Parameters
         ----------
-        wave_path : string
+        wave_path : string or list of strings
             Path to US_Wave .h5 files
             Available formats:
                 /nrel/US_wave/US_wave$_{year}.h5
-                /nrel/US_wave/virtual_buoy/US_virtual_buoy_{year}.h5
         parameter: string
             dataset parameter to be downloaded
             spatial dataset options: directionality_coefficient, energy_period, maximum_energy_direction
                 mean_absolute_period, mean_zero-crossing_period, omni-directional_wave_power, peak_period
                 significant_wave_height, spectral_width, water_depth 
-            virtual buoy options: directional_wave_spectrum, directionality_coefficient
-                energy_period, maximum_energy_direction, mean_absolute_period, mean_wave_direction
-                mean_zero-crossing_period, omni_directional_wave_power, peak_period, significant_wave_height
-                spectral_width, water_depth
         lat_lon: tuple or list of tuples
             latitude longitude pairs at which to extract data 
         tree : str | cKDTree (optional)
@@ -51,7 +46,7 @@ def read_US_wave_dataset(wave_path, parameter, lat_lon, tree=None,
         Returns
         ---------
         data: pandas DataFrame 
-            Data indexed by datetime with columns named according to header row 
+            Data indexed by datetime with columns named for parameter and lat_lon 
         meta: pandas DataFrame 
             location metadata for the requested data location   
         """
@@ -66,13 +61,18 @@ def read_US_wave_dataset(wave_path, parameter, lat_lon, tree=None,
             rex_accessor = MultiYearWaveX
         else: 
             rex_accessor = WaveX
-            
+        names = []    
         with rex_accessor(wave_path, **waveKwargs) as waves:
             data = waves.get_lat_lon_df(parameter,lat_lon)
-            #print(data)
             col = data.columns[:]
-            #print(data.columns)
             meta = waves.meta.loc[col,:]
-
+            
+            if isinstance(lat_lon[0], (list,tuple)):
+                for c,l in zip(col,lat_lon):
+                    temp = parameter+'_'+str(l[0])+'_'+str(l[1])
+                    data = data.rename(columns={c:temp})
+            else:
+                temp = parameter+'_'+str(lat_lon[0])+'_'+str(lat_lon[1])
+                data = data.rename(columns={col[0]:temp})
         
         return data, meta

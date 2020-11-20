@@ -775,19 +775,24 @@ class TestWPTOhindcast(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.sy_swh = pd.read_csv(join(datadir,'single_year_hindcast.csv'),index_col = 'time_index',
-        names = ['time_index',int(413889)],header = 0, dtype = {413889:'float32'})
+        names = ['time_index','significant_wave_height_44.624076_-124.280097'],header = 0, 
+        dtype = {'significant_wave_height_44.624076_-124.280097':'float32'})
         self.sy_swh.index = pd.to_datetime(self.sy_swh.index)
 
         self.my_swh = pd.read_csv(join(datadir,'multi_year_hindcast.csv'),index_col = 'time_index',
-        names = ['time_index',int(413889)],header = 0, dtype = {413889:'float32'})
+        names = ['time_index','significant_wave_height_44.624076_-124.280097'],header = 0, 
+        dtype = {'significant_wave_height_44.624076_-124.280097':'float32'})
         self.my_swh.index = pd.to_datetime(self.my_swh.index)
 
         self.sy_per = pd.read_csv(join(datadir,'single_year_hindcast_period.csv'),index_col = 'time_index',
-        names = ['time_index',int(413889)],header = 0, dtype = {413889:'float32'})
+        names = ['time_index','mean_absolute_period_44.624076_-124.280097'],header = 0, 
+        dtype = {'mean_absolute_period_44.624076_-124.280097':'float32'})
         self.sy_per.index = pd.to_datetime(self.sy_per.index)
 
         self.ml = pd.read_csv(join(datadir,'single_year_hindcast_multiloc.csv'),index_col = 'time_index',
-        names = ['time_index',int(413889),int(296246)],header = 0, dtype = {413889:'float32',296246:'float32'})
+        names = ['time_index','mean_absolute_period_44.624076_-124.280097','mean_absolute_period_43.489171_-125.152137'],
+        header = 0, dtype = {'mean_absolute_period_44.624076_-124.280097':'float32',
+        'mean_absolute_period_43.489171_-125.152137':'float32'})
         self.ml.index = pd.to_datetime(self.ml.index)
 
         self.ml_meta = pd.read_csv(join(datadir,'multiloc_meta.csv'),index_col = 0,
