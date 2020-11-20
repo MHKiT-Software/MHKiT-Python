@@ -136,6 +136,7 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     Parameters:
     -----------
     data_signal : array
+        Data signal being analyzed
     m : float/int
         Fatigue slope factor of material
     bin_num : int
