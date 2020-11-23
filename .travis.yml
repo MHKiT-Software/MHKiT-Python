@@ -6,7 +6,7 @@ python:
 cache: pip
 install:
   - pip install coveralls
-  - pip install -e .
+  - pip install .
 import:
   - .hscfg
 script:
