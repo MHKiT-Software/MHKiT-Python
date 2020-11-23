@@ -5,6 +5,7 @@ python:
   - "3.9"
 cache: pip
 install:
+  - python -m pip install --upgrade pip wheel
   - pip install coveralls
   - pip install .
 import:
