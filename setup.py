@@ -26,8 +26,8 @@ DEPENDENCIES = ['pandas>=1.0.0',
                 'fatpack',
                 'lxml',
                 'scikit-learn',
-		'NREL-rex>=0.2.30',
-        'six>=1.13.0']
+		        'NREL-rex>=0.2.30',
+                'six>=1.13.0']
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))
