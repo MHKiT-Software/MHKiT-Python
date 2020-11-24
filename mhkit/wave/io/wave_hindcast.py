@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from rex import WaveX, MultiYearWaveX
 
-def read_US_wave_dataset(wave_path, parameter, lat_lon, tree=None, 
+def read_US_wave_dataset(wave_path, parameter, lat_lon, years=None, tree=None, 
                                  unscale=True, str_decode=True, hsds=True):
     
         """
@@ -20,10 +20,11 @@ def read_US_wave_dataset(wave_path, parameter, lat_lon, tree=None,
         hs_api_key = {your key}
         Parameters
         ----------
-        wave_path : string or list of strings
+        wave_path : string
             Path to US_Wave .h5 files
             Available formats:
                 /nrel/US_wave/US_wave$_{year}.h5
+                /nrel/US_wave/US_wave$_*.h5 (Only use when specifying years parameter)
         parameter: string
             dataset parameter to be downloaded
             spatial dataset options: directionality_coefficient, energy_period, maximum_energy_direction
@@ -31,6 +32,8 @@ def read_US_wave_dataset(wave_path, parameter, lat_lon, tree=None,
                 significant_wave_height, spectral_width, water_depth 
         lat_lon: tuple or list of tuples
             latitude longitude pairs at which to extract data 
+        years : list, optional
+            List of years to access, by default None
         tree : str | cKDTree (optional)
             cKDTree or path to .pkl file containing pre-computed tree
             of lat, lon coordinates
@@ -54,12 +57,15 @@ def read_US_wave_dataset(wave_path, parameter, lat_lon, tree=None,
         assert isinstance(parameter, str), 'parameter must be of type string'
         assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
 
-        waveKwargs = {'tree':tree,'unscale':unscale,'str_decode':str_decode, 'hsds':hsds}
         
         
-        if isinstance(wave_path,list) or '*' in wave_path:
+        
+        if years != None or '*' in wave_path:
+            waveKwargs = {'tree':tree,'unscale':unscale,'str_decode':str_decode, 'hsds':hsds,
+            'years':years}
             rex_accessor = MultiYearWaveX
-        else: 
+        else:
+            waveKwargs = {'tree':tree,'unscale':unscale,'str_decode':str_decode, 'hsds':hsds}
             rex_accessor = WaveX
         names = []    
         with rex_accessor(wave_path, **waveKwargs) as waves:
