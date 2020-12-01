@@ -3,7 +3,7 @@ import numpy as np
 from rex import WaveX, MultiYearWaveX
 
 def request_wpto_dataset(wave_path, parameter, lat_lon, years=None, tree=None, 
-                                 unscale=True, str_decode=True, hsds=True):
+                                 unscale=True, str_decode=True,hsds=True):
     
         """
         Accesses data from the WPTO wave hindcast data hosted on AWS. 
@@ -44,10 +44,11 @@ def request_wpto_dataset(wave_path, parameter, lat_lon, years=None, tree=None,
             Boolean flag to decode the bytestring meta data into normal
             strings. Setting this to False will speed up the meta data read.
             Default = True
+
         hsds : bool (optional)
-            Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
-            behind HSDS. Setting to False will indicate to look for files on 
-            local machine, not AWS. Default = True
+             Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
+             behind HSDS. Setting to False will indicate to look for files on 
+             local machine, not AWS. Default = True
 
         Returns
         ---------
@@ -57,12 +58,12 @@ def request_wpto_dataset(wave_path, parameter, lat_lon, years=None, tree=None,
             location metadata for the requested data location   
         """
         
-        assert isinstance(parameter, str), 'parameter must be of type string'
+        assert isinstance(parameter, (str, list)), 'parameter must be of type string'
         assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
 
         
         
-        
+        data_list = []
         if years != None or '*' in wave_path:
             waveKwargs = {'tree':tree,'unscale':unscale,'str_decode':str_decode, 'hsds':hsds,
             'years':years}
@@ -72,16 +73,30 @@ def request_wpto_dataset(wave_path, parameter, lat_lon, years=None, tree=None,
             rex_accessor = WaveX
             
         with rex_accessor(wave_path, **waveKwargs) as rex_waves:
-            data = rex_waves.get_lat_lon_df(parameter,lat_lon)
-            col = data.columns[:]
-            meta = rex_waves.meta.loc[col,:]
-            
-            if isinstance(lat_lon[0], (list,tuple)):
-                for c,l in zip(col,lat_lon):
-                    temp = f'{parameter}_{l[0]}_{l[1]}'
-                    data = data.rename(columns={c:temp})
+            if isinstance(parameter, list):
+                for p in parameter:
+                    temp_data = rex_waves.get_lat_lon_df(p,lat_lon)
+                    col = temp_data.columns[:]
+                    if isinstance(lat_lon[0], (list,tuple)):
+                        for c,l in zip(col,lat_lon):
+                            temp = f'{p}_{l[0]}_{l[1]}'
+                            temp_data = temp_data.rename(columns={c:temp})
+                    else:
+                        temp = f'{p}_{lat_lon[0]}_{lat_lon[1]}'
+                        temp_data = temp_data.rename(columns={col[0]:temp})
+                    data_list.append(temp_data)
+                data= pd.concat(data_list)
+                meta = rex_waves.meta.loc[col,:]
             else:
-                temp = f'{parameter}_{lat_lon[0]}_{lat_lon[1]}'
-                data = data.rename(columns={col[0]:temp})
-        
+                data = rex_waves.get_lat_lon_df(parameter,lat_lon)
+                col = data.columns[:]
+                meta = rex_waves.meta.loc[col,:]
+                if isinstance(lat_lon[0], (list,tuple)):
+                    for c,l in zip(col,lat_lon):
+                        temp = f'{parameter}_{l[0]}_{l[1]}'
+                        data = data.rename(columns={c:temp})
+                else:
+                    temp = f'{parameter}_{lat_lon[0]}_{lat_lon[1]}'
+                    data = data.rename(columns={col[0]:temp})
+                
         return data, meta

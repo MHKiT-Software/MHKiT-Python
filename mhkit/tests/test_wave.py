@@ -800,6 +800,12 @@ class TestWPTOhindcast(unittest.TestCase):
         'mean_absolute_period_43.489171_-125.152137':'float32'})
         self.ml.index = pd.to_datetime(self.ml.index)
 
+        self.mp = pd.read_csv(join(datadir,'multiparm.csv'),index_col = 'time_index',
+        names = ['time_index','omni-directional_wave_power_44.624076_-124.280097','energy_period_44.624076_-124.280097'],
+        header = 0, dtype = {'omni-directional_wave_power_44.624076_-124.280097':'float32',
+        'energy_period_44.624076_-124.280097':'float32'})
+        self.mp.index = pd.to_datetime(self.mp.index)
+
         self.ml_meta = pd.read_csv(join(datadir,'multiloc_meta.csv'),index_col = 0,
         names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
         ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
@@ -863,7 +869,17 @@ class TestWPTOhindcast(unittest.TestCase):
 
         assert_frame_equal(self.ml,wave_multiloc)
         assert_frame_equal(self.ml_meta,meta)
-        
+
+    def test_multi_parm(self):
+        single_year_waves = f'/nrel/US_wave/US_wave_1995.h5'
+        lat_lon = (44.624076,-124.280097) 
+        parameters = ['omni-directional_wave_power','energy_period']
+
+        wave_multiparm, meta= wave.io.wpto_hindcast.request_wpto_dataset(single_year_waves,
+        parameters,lat_lon)
+
+        assert_frame_equal(self.mp,wave_multiparm)
+        assert_frame_equal(self.metadata,meta)   
 
 if __name__ == '__main__':
     unittest.main() 
