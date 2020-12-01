@@ -2,11 +2,11 @@ import pandas as pd
 import numpy as np
 from rex import WaveX, MultiYearWaveX
 
-def read_US_wave_dataset(wave_path, parameter, lat_lon, years=None, tree=None, 
+def request_wpto_dataset(wave_path, parameter, lat_lon, years=None, tree=None, 
                                  unscale=True, str_decode=True, hsds=True):
     
         """
-        Reads data from the WPTO wave hindcast data hosted on AWS. 
+        Accesses data from the WPTO wave hindcast data hosted on AWS. 
 
         Note: To access the WPTO hindcast data, you will need to configure h5pyd for data access on HSDS. 
         To get your own API key, visit https://developer.nrel.gov/signup/. 

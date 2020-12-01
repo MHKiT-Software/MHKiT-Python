@@ -821,7 +821,7 @@ class TestWPTOhindcast(unittest.TestCase):
         lat_lon = (44.624076,-124.280097)
         parameters = 'significant_wave_height'
 
-        wave_singleyear, meta = wave.io.wpto_hindcast.read_US_wave_dataset(single_year_waves,parameters,lat_lon)
+        wave_singleyear, meta = wave.io.wpto_hindcast.request_wpto_dataset(single_year_waves,parameters,lat_lon)
         assert_frame_equal(self.sy_swh,wave_singleyear)
         assert_frame_equal(self.metadata,meta)
 
@@ -830,7 +830,7 @@ class TestWPTOhindcast(unittest.TestCase):
         lat_lon = (44.624076,-124.280097)
         parameters = 'mean_absolute_period'
 
-        wave_singleyear, meta = wave.io.wpto_hindcast.read_US_wave_dataset(single_year_waves,parameters,lat_lon)
+        wave_singleyear, meta = wave.io.wpto_hindcast.request_wpto_dataset(single_year_waves,parameters,lat_lon)
         assert_frame_equal(self.sy_per,wave_singleyear)
         assert_frame_equal(self.metadata,meta)
 
@@ -839,7 +839,7 @@ class TestWPTOhindcast(unittest.TestCase):
         lat_lon = (44.624076,-124.280097) 
         parameters = 'significant_wave_height'
 
-        wave_multiyear, meta = wave.io.wpto_hindcast.read_US_wave_dataset(multi_year_waves,parameters,lat_lon)
+        wave_multiyear, meta = wave.io.wpto_hindcast.request_wpto_dataset(multi_year_waves,parameters,lat_lon)
         assert_frame_equal(self.my_swh,wave_multiyear)
         assert_frame_equal(self.metadata,meta)
         
@@ -848,7 +848,7 @@ class TestWPTOhindcast(unittest.TestCase):
         years = [1995,1996]
         parameter = 'omni-directional_wave_power'
         lat_lon = (44.624076,-124.280097) # setting lat/lon pair of interest
-        odwp, meta= wave.io.wpto_hindcast.read_US_wave_dataset(file,parameter,lat_lon,years=years)
+        odwp, meta= wave.io.wpto_hindcast.request_wpto_dataset(file,parameter,lat_lon,years=years)
 
         assert_frame_equal(self.my2,odwp)
         assert_frame_equal(self.metadata,meta)
@@ -858,8 +858,8 @@ class TestWPTOhindcast(unittest.TestCase):
         lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137)) 
         parameters = 'mean_absolute_period'
 
-        wave_multiloc, meta= wave.io.wpto_hindcast.read_US_wave_dataset(single_year_waves,
-        parameters,lat_lon,hsds= True)
+        wave_multiloc, meta= wave.io.wpto_hindcast.request_wpto_dataset(single_year_waves,
+        parameters,lat_lon)
 
         assert_frame_equal(self.ml,wave_multiloc)
         assert_frame_equal(self.ml_meta,meta)
