@@ -46,8 +46,8 @@ def read_US_wave_dataset(wave_path, parameter, lat_lon, years=None, tree=None,
             Default = True
         hsds : bool (optional)
             Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
-            behind HSDS. Setting to True will indicate to look for files on 
-            local machine, not AWS. Default = False
+            behind HSDS. Setting to False will indicate to look for files on 
+            local machine, not AWS. Default = True
 
         Returns
         ---------
@@ -78,7 +78,7 @@ def read_US_wave_dataset(wave_path, parameter, lat_lon, years=None, tree=None,
             
             if isinstance(lat_lon[0], (list,tuple)):
                 for c,l in zip(col,lat_lon):
-                    temp = f'{parameter}_{l[0]}_{l[1]}
+                    temp = f'{parameter}_{l[0]}_{l[1]}'
                     data = data.rename(columns={c:temp})
             else:
                 temp = f'{parameter}_{lat_lon[0]}_{lat_lon[1]}'
