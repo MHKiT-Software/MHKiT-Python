@@ -2,10 +2,25 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mhkit.wave.io import swan
 
-inputFile='INPUT'
-input_params = swan.parse_input(inputFile)
+# User manual
+#http://swanmodel.sourceforge.net/download/zip/swanuse.pdf
 
-df = swan.read_output('SWANOUT.DAT')
+
+
+#data = swan.read_output_mat('SWANOUT.mat')
+
+swan.read_output_dat('SWANOUTBlock.DAT')
+
+
+#inputFile='INPUT'
+#input_params = swan.parse_input(inputFile)
+
+
+
+#df = swan.read_output('SWANOUT.DAT')
+
+
+
 
 plt.tricontourf(df.Xp, df.Yp, df.Hsig, levels=256, cmap='jet')
 plt.colorbar()
