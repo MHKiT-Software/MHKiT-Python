@@ -27,30 +27,33 @@ def read_US_wave_dataset(wave_path, parameter, lat_lon, years=None, tree=None,
                 /nrel/US_wave/US_wave$_*.h5 (Only use when specifying years parameter)
         parameter: string
             dataset parameter to be downloaded
-            spatial dataset options: directionality_coefficient, energy_period, maximum_energy_direction
-                mean_absolute_period, mean_zero-crossing_period, omni-directional_wave_power, peak_period
-                significant_wave_height, spectral_width, water_depth 
+            spatial dataset options: 'directionality_coefficient', 'energy_period', 'maximum_energy_direction'
+                'mean_absolute_period', 'mean_zero-crossing_period', 'omni-directional_wave_power', 'peak_period'
+                'significant_wave_height', 'spectral_width', 'water_depth' 
         lat_lon: tuple or list of tuples
             latitude longitude pairs at which to extract data 
-        years : list, optional
-            List of years to access, by default None
+        years : list (optional)
+            List of years to access. Default = None. The years 1979-2010 available. 
         tree : str | cKDTree (optional)
             cKDTree or path to .pkl file containing pre-computed tree
-            of lat, lon coordinates
+            of lat, lon coordinates, default = None
         unscale : bool (optional)
             Boolean flag to automatically unscale variables on extraction
+            Default = True
         str_decode : bool (optional)
             Boolean flag to decode the bytestring meta data into normal
             strings. Setting this to False will speed up the meta data read.
+            Default = True
         hsds : bool (optional)
             Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
-            behind HSDS
+            behind HSDS. Setting to True will indicate to look for files on 
+            local machine, not AWS. Default = False
 
         Returns
         ---------
-        data: pandas DataFrame 
+        data: DataFrame 
             Data indexed by datetime with columns named for parameter and lat_lon 
-        meta: pandas DataFrame 
+        meta: DataFrame 
             location metadata for the requested data location   
         """
         
@@ -67,18 +70,18 @@ def read_US_wave_dataset(wave_path, parameter, lat_lon, years=None, tree=None,
         else:
             waveKwargs = {'tree':tree,'unscale':unscale,'str_decode':str_decode, 'hsds':hsds}
             rex_accessor = WaveX
-        names = []    
-        with rex_accessor(wave_path, **waveKwargs) as waves:
-            data = waves.get_lat_lon_df(parameter,lat_lon)
+            
+        with rex_accessor(wave_path, **waveKwargs) as rex_waves:
+            data = rex_waves.get_lat_lon_df(parameter,lat_lon)
             col = data.columns[:]
-            meta = waves.meta.loc[col,:]
+            meta = rex_waves.meta.loc[col,:]
             
             if isinstance(lat_lon[0], (list,tuple)):
                 for c,l in zip(col,lat_lon):
-                    temp = parameter+'_'+str(l[0])+'_'+str(l[1])
+                    temp = f'{parameter}_{l[0]}_{l[1]}
                     data = data.rename(columns={c:temp})
             else:
-                temp = parameter+'_'+str(lat_lon[0])+'_'+str(lat_lon[1])
+                temp = f'{parameter}_{lat_lon[0]}_{lat_lon[1]}'
                 data = data.rename(columns={col[0]:temp})
         
         return data, meta
