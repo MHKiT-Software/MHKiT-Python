@@ -23,8 +23,8 @@ def request_wpto_dataset(wave_path, parameter, lat_lon, years=None, tree=None,
         wave_path : string
             Path to US_Wave .h5 files
             Available formats:
-                /nrel/US_wave/US_wave$_{year}.h5
-                /nrel/US_wave/US_wave$_*.h5 (Only use when specifying years parameter)
+                f'/nrel/US_wave/US_wave$_{year}.h5'
+                f'/nrel/US_wave/US_wave$_*.h5' (Only use when specifying years parameter)
         parameter: string
             dataset parameter to be downloaded
             spatial dataset options: 'directionality_coefficient', 'energy_period', 'maximum_energy_direction'
