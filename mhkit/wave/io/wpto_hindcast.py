@@ -44,7 +44,6 @@ def request_wpto_dataset(wave_path, parameter, lat_lon, years=None, tree=None,
             Boolean flag to decode the bytestring meta data into normal
             strings. Setting this to False will speed up the meta data read.
             Default = True
-
         hsds : bool (optional)
              Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
              behind HSDS. Setting to False will indicate to look for files on 
@@ -58,10 +57,14 @@ def request_wpto_dataset(wave_path, parameter, lat_lon, years=None, tree=None,
             location metadata for the requested data location   
         """
         
-        assert isinstance(parameter, (str, list)), 'parameter must be of type string'
+        assert isinstance(parameter, (str, list)), 'parameter must be of type string or list'
         assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
-
-        
+        assert isinstance(wave_path, str), 'wave_path must be a string'
+        assert isinstance(years,(list,None)), 'years must be a list'
+        assert isinstance(tree,(str,None)), 'tree must be a sring'
+        assert isinstance(unscale,bool), 'unscale must be bool type'
+        assert isinstance(str_decode,bool), 'str_decode must be bool type'
+        assert isinstance(hsds,bool), 'hsds must be bool type'
         
         data_list = []
         if years != None or '*' in wave_path:
