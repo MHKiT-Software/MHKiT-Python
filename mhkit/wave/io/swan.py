@@ -1,5 +1,6 @@
 from scipy.io import loadmat
 import pandas as pd
+import numpy as np
 import re 
 
 def parse_input(input_file):
@@ -60,7 +61,7 @@ def _parse_line_metadata(line):
         Dictionary of variable metadata
     '''
     metaDict={}        
-    meta=re.sub('\s+', " ", line.replace(',', ' ').strip('% \n').replace('**', 'var:'))
+    meta=re.sub('\s+', " ", line.replace(',', ' ').strip('% \n').replace('**', 'vars:'))
     mList = meta.split(':')
     elms = [elm.split(' ') for elm in mList]
     for elm in elms:
@@ -73,11 +74,32 @@ def _parse_line_metadata(line):
         key = elm[-1]
         val = ' '.join(elms[i+1][:-1])
         metaDict[key] = val
-    metaDict[key] = ' '.join(elms[-1])  
+    metaDict[key] = ' '.join(elms[-1]) 
+    metaDict['unitMultiplier'] = float(metaDict['Unit'].split(' ')[0])
+        
     return metaDict    
-    
 
-def read_output_dat(output_file):
+
+def block_to_table(data, name='values'):
+    '''
+    Converts structured 2D grid to Table format
+    
+    Parameters
+    ----------
+    data: DataFrame
+        DataFrame in with columns as X indicie and Y as index.
+    name: string (Optional)
+        Name of data column in returned table. Default='values'
+    Returns
+    -------
+    table: DataFrame
+        DataFrame with columns x,y,values           
+    '''
+    table = data.unstack().reset_index(name=name)
+    table = table.rename(columns={'level_0':'x', 'level_1': 'y'})
+    return table
+    
+def read_block_output_txt(output_file):
     '''
     Reads in SWAN output and creates a dictionary of DataFrames
     for each SWAN output variable.
@@ -94,43 +116,70 @@ def read_output_dat(output_file):
     '''
     f = open(output_file) 
     runLines=[]
-    metaData = []
+    metaDict = {}
     column_position = None
+    dataDict={}
     for position, line in enumerate(f):
         
         if line.startswith('% Run'):
+            varPosition = position
             runLines.extend([position])
             column_position = position + 5                       
-            metaDict = _parse_line_metadata(line)            
-            metaData.extend([metaDict])
-        
-        if column_position != None and position == column_position:
+            varDict = _parse_line_metadata(line)            
+            
+            metaDict[varPosition] = varDict            
+            variable = varDict['vars']
+            dataDict[variable] = {}
+            
+        if position==column_position and column_position!=None:
            columns = line.strip('% \n').split()
+           metaDict[varPosition]['cols'] = columns
            N_columns = len(columns)
            columns_position = None
+           
         
         if not line.startswith('%'):
-            raw_data = line.strip(' \n').split()
-            data=[raw_data[0]]
-            if len(raw_data) != N_columns:
-                for vals in raw_data[1:]:
-                    data = [data.extend([np.nan]) for i in range(vals.count('100.'))]
-                    import ipdb; ipdb.set_trace()
-    nAfter = 6
-    nBefore = 2
-    for i in range(len(runLines)-1):    
-        n = runLines[i]
-        nNext=runLines[i+1]
-        data = pd.read_csv(output_file, sep='\s+|.', names=[str(i) for i in range(99)],
-                           skiprows=n+nAfter+1, 
-                           nrows=nNext-n-nAfter-nBefore-1)            
+            raw_data = ' '.join(re.split(' |\.', line.strip(' \n'))).split()
+            index_number = int(raw_data[0])
+            columns_data = raw_data[1:]
+            data=[]
+            possibleNaNs = ['****']
+            NNaNsTotal = sum([line.count(nanVal) for nanVal in possibleNaNs])
             
-        import ipdb; ipdb.set_trace()
+            if NNaNsTotal>0:
+                for vals in columns_data:
+                    NNaNs = 0                                      
+                    for nanVal in possibleNaNs:
+                        NNaNs += vals.count(nanVal)
+                    if NNaNs > 0:
+                        for i in range(NNaNs):
+                            data.extend([np.nan]) 
+                    else:
+                        data.extend([float(vals)])
+            else:                
+                data.extend([float(val) for val in columns_data])             
+                
+            dataDict[variable][index_number] = data
+                
+    metaData = pd.DataFrame(metaDict).T        
+    
+    for var in metaData.vars.values: 
+        df = pd.DataFrame(dataDict[var]).T        
+        varCols =  metaData[metaData.vars == var].cols.values.tolist()[0]
+        colsDict = dict(zip(df.columns.values.tolist(), varCols))
+        df.rename(columns=colsDict)
+        unitMultiplier = metaData[metaData.vars == var].unitMultiplier.values[0]
+        dataDict[var] = df * unitMultiplier
+        #import ipdb;ipdb.set_trace()
+    
+    
+    return dataDict, metaData        
+    #import ipdb; ipdb.set_trace()
 
     
     
 
-def read_output_mat(output_file):
+def read_block_output_mat(output_file):
     '''
     Reads in SWAN matlab output and creates a dictionary of DataFrames
     for each swan output variable.
