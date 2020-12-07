@@ -1,29 +1,13 @@
+from os.path import isfile
 from scipy.io import loadmat
 import pandas as pd
 import numpy as np
 import re 
+  
 
-def parse_input(input_file):
+def read_table(output_file):
     '''
-    Parses Inputfile to define variables
-    
-    Parameters
-    ----------
-    input_file: str
-        Name of SWAN input file
-    
-    Returns
-    -------
-    inputs: Dict
-        Dictionary of model inputs
-    '''
-    f = open(input_file,'r')
-    import ipdb; ipdb.set_trace()
-    
-
-def read_output(output_file):
-    '''
-    Reads in SWAN output
+    Reads in SWAN table format output
     
     Parameters
     ----------
@@ -35,6 +19,9 @@ def read_output(output_file):
     swan_data: DataFrame
         Dataframe of swan output
     '''
+    assert isinstance(output_file, str), 'output_file must be of type str'
+    assert isfile(output_file)==True, 'output file not found please chact name/ path'
+    
     f = open(output_file,'r')
     header_line_number = 5
     for i in range(header_line_number):
@@ -46,74 +33,54 @@ def read_output(output_file):
     return swan_data    
 
 
-def _parse_line_metadata(line):
+def read_block(output_file):
     '''
-    Parses the variable meta data into a dictionary
-    
-    Parameters
-    ----------
-    line: str
-        line from block swan data to parse
-        
-    Returns
-    -------
-    metaDict: Dictionary
-        Dictionary of variable metadata
-    '''
-    metaDict={}        
-    meta=re.sub('\s+', " ", line.replace(',', ' ').strip('% \n').replace('**', 'vars:'))
-    mList = meta.split(':')
-    elms = [elm.split(' ') for elm in mList]
-    for elm in elms:
-        try:
-            elm.remove('')
-        except:
-            pass                
-    for i in range(len(elms)-1):
-        elm = elms[i]
-        key = elm[-1]
-        val = ' '.join(elms[i+1][:-1])
-        metaDict[key] = val
-    metaDict[key] = ' '.join(elms[-1]) 
-    metaDict['unitMultiplier'] = float(metaDict['Unit'].split(' ')[0])
-        
-    return metaDict    
-
-
-def block_to_table(data, name='values'):
-    '''
-    Converts structured 2D grid to Table format
-    
-    Parameters
-    ----------
-    data: DataFrame
-        DataFrame in with columns as X indicie and Y as index.
-    name: string (Optional)
-        Name of data column in returned table. Default='values'
-    Returns
-    -------
-    table: DataFrame
-        DataFrame with columns x,y,values           
-    '''
-    table = data.unstack().reset_index(name=name)
-    table = table.rename(columns={'level_0':'x', 'level_1': 'y'})
-    return table
-    
-def read_block_output_txt(output_file):
-    '''
-    Reads in SWAN output and creates a dictionary of DataFrames
-    for each SWAN output variable.
+    Reads in SWAN block output with headers and creates a dictionary 
+    of DataFrames for each SWAN output variable in the output file.
     
     Parameters
     ----------
     output_file: str
-        filename to import
+        swan block file to import
         
     Returns
     -------
     data: Dictionary
+        Dictionary of DataFrame of swan output variables  
+    metaDict: Dictionary
+        Dictionary of metaData dependent on file type    
+    '''
+    assert isinstance(output_file, str), 'output_file must be of type str'
+    assert isfile(output_file)==True, 'output file not found please chact name/ path'
+    
+    extension = output_file.split('.')[1].lower()
+    if extension == 'mat':
+        dataDict = _read_block_mat(output_file)
+        metaData = {'filetype': 'mat',
+                    'variables': [var for var in dataDict.keys()]}
+    else:
+        dataDict, metaData = _read_block_txt(output_file)
+    return dataDict, metaData
+    
+
+def _read_block_txt(output_file):
+    '''
+    Reads in SWAN block output with headers and creates a dictionary 
+    of DataFrames for each SWAN output variable in the output file.
+    
+    Parameters
+    ----------
+    output_file: str
+        swan block file to import (must be written with headers)
+        
+    Returns
+    -------
+    dataDict: Dictionary
         Dictionary of DataFrame of swan output variables
     '''
+    assert isinstance(output_file, str), 'output_file must be of type str'
+    assert isfile(output_file)==True, 'output file not found please chact name/ path'
+    
     f = open(output_file) 
     runLines=[]
     metaDict = {}
@@ -169,17 +136,11 @@ def read_block_output_txt(output_file):
         colsDict = dict(zip(df.columns.values.tolist(), varCols))
         df.rename(columns=colsDict)
         unitMultiplier = metaData[metaData.vars == var].unitMultiplier.values[0]
-        dataDict[var] = df * unitMultiplier
-        #import ipdb;ipdb.set_trace()
-    
-    
-    return dataDict, metaData        
-    #import ipdb; ipdb.set_trace()
-
-    
+        dataDict[var] = df * unitMultiplier   
+    return dataDict, metaData              
     
 
-def read_block_output_mat(output_file):
+def _read_block_mat(output_file):
     '''
     Reads in SWAN matlab output and creates a dictionary of DataFrames
     for each swan output variable.
@@ -194,6 +155,10 @@ def read_block_output_mat(output_file):
     data: Dictionary
         Dictionary of DataFrame of swan output variables
     '''
+    assert isinstance(output_file, str), 'output_file must be of type str'
+    assert isfile(output_file)==True, 'output file not found please chact name/ path'
+    
+    
     data = loadmat(output_file, struct_as_record=False, squeeze_me=True)
     removeKeys = ['__header__', '__version__', '__globals__']
     for key in removeKeys:
@@ -203,84 +168,108 @@ def read_block_output_mat(output_file):
     return data
     
     
-def swan_units(variable=None)    :
+def _parse_line_metadata(line):
     '''
-    Returns a dictionary of swan units if none is supplied. If a specific
-    variable is supplied then only those units are returned.
-    
-    SWAN expects all quantities that are given by the user to be 
-    expressed in S.I. units: m, kg, s and composites of these with 
-    accepted compounds, such as Newton (N) and Watt(W). Consequently, 
-    the wave height and water depth are in m, wave period in s, etc. 
-    For wind and wave direction both the Cartesian and a nautical 
-    convention can be used (see below). Directions and spherical 
-    coordinates are in degrees (0) and not in radians.
-    
-    For the output of wave energy the user can choose between 
-    variance (m2) or energy (spatial) density (Joule/m2, i.e. energy 
-    per unit sea surface) and the equivalents in case of energy 
-    transport (m3/s or W/m, i.e. energy transport per unit length) 
-    and spectral energy density (m2/Hz/Degr or Js/m2/rad, i.e. 
-    energy per unit frequency and direction per unit sea surface area). 
-    The wave−induced stress components (obtained as spatial derivatives 
-    of wave-induced radiation stress) are always expressed in N/m2 even
-    if the wave energy is in terms of variance. Note that the energy 
-    density is also in Joule/m2 in the case of spherical coordinates.
-
-    SWAN operates either in a Cartesian coordinate system or in a 
-    spherical coordinate system, i.e. in a flat plane or on a spherical 
-    Earth. In the Cartesian system, all geographic locations and 
-    orientations in SWAN, e.g. for the bottom grid or for output points, 
-    are defined in one common Cartesian coordinate system with 
-    origin (0,0) by definition. This geographic origin may be chosen 
-    totally arbitrarily by the user. However, be careful, the numbers 
-    for the origin should not be chosen too large; the user is advised 
-    to translate the coordinates with an offset. In the spherical 
-    system, all geographic locations and orientations in SWAN, e.g. 
-    for the bottom grid or for output points, are defined in geographic
-    longitude and latitude. Both coordinate systems are designated in 
-    this manual as the problem coordinate system.
-    
-    In the input and output of SWAN the direction of wind and waves 
-    are defined according to either
-        • the Cartesian convention, i.e. the direction to where the 
-          vector points, measured counterclockwise from the positive 
-          x−axis of this system (in degrees) or
-        • a nautical convention (there are more such conventions), 
-        i.e. the direction where the wind or the waves come from, 
-        measured clockwise from geographic North.
-
-    All other directions, such as orientation of grids, are according 
-    to the Cartesian convention!
-    
-    For regular grids, i.e. uniform and rectangular, Figure 4.1 
-    (in Section 4.5) shows how the locations of the various grids are 
-    determined with respect to the problem coordinates. All grid points 
-    of curvilinear and unstructured grids are relative to the problem 
-    coordinate system.
-    
+    Parses the variable meta data into a dictionary
     
     Parameters
     ----------
-    variable: string (optional)
-        If supplied only returns the requested units
-
+    line: str
+        line from block swan data to parse
+        
     Returns
     -------
-    units: Dictionary
-        If variable is none the dictionary is returned
-    unit: String
-        If Variable is specified the units of that variable are returned
-    '''        
+    metaDict: Dictionary
+        Dictionary of variable metadata
+    '''
+    assert isinstance(line, str), 'line must be of type str'
     
-    units = { 'Xp' : 'm',
-              'Yp' : 'm',
-              'Hsig' : 'm',
-              'Dir' : 'degr',
-              'RTpeak' : 's',
-              'TDir' : 'degr',
-             
-            }
+    metaDict={}        
+    meta=re.sub('\s+', " ", line.replace(',', ' ').strip('% \n').replace('**', 'vars:'))
+    mList = meta.split(':')
+    elms = [elm.split(' ') for elm in mList]
+    for elm in elms:
+        try:
+            elm.remove('')
+        except:
+            pass                
+    for i in range(len(elms)-1):
+        elm = elms[i]
+        key = elm[-1]
+        val = ' '.join(elms[i+1][:-1])
+        metaDict[key] = val
+    metaDict[key] = ' '.join(elms[-1]) 
+    metaDict['unitMultiplier'] = float(metaDict['Unit'].split(' ')[0])
+        
+    return metaDict    
+
+
+def dictionary_of_grid_to_table(dictionary_of_DataFrames, names=None):
+    '''
+    Converts a dictionary of structured 2D grid SWAN block format 
+    x (columns),y (index) to SWAN table format x (column),y (column), 
+    values (column)  DataFrame.
     
+    Parameters
+    ----------
+    dictionary_of_DataFrames: Dictionary 
+        Dictionary of DataFrames in with columns as X indicie and Y as index.
+    names: List (Optional)
+        Name of data column in returned table. Default=Dictionary.keys()
+    Returns
+    -------
+    swanTables: DataFrame
+        DataFrame with columns x,y,values where values = Dictionary.keys()
+        or names        
+    '''
+    assert isinstance(dictionary_of_DataFrames, dict), (
+                          'dictionary_of_DataFrames must be of type Dict')
+    assert bool(dictionary_of_DataFrames), 'dictionary_of_DataFrames is empty'
+    for key in dictionary_of_DataFrames:  
+        assert isinstance(dictionary_of_DataFrames[key],pd.DataFrame), (
+                          f'Dictionary key:{key} must be of type pd.DataFrame')
+    if not isinstance(names, type(None)):
+        assert isinstance(names, list), (
+                'If specified names must be of type list')         
+        assert all([isinstance(elm, str) for elm in names]), (
+                'If specified all elements in names must be of type string')
+        assert len(names) == len(dictionary_of_DataFrames), (
+                'If specified names must the same length as dictionary_of_DataFrames')
     
+    if names == None:
+        variables = [var for var in  dictionary_of_DataFrames.keys() ]
+    else:
+        variables = names
     
+    var0 = variables[0]
+    swanTables = grid_to_table(dictionary_of_DataFrames[var0], name=var0)
+    for var in variables[1:]:    
+        tmp_dat = grid_to_table(dictionary_of_DataFrames[var], name=var)
+        swanTables[var] = tmp_dat[var]
+    
+    return swanTables
+        
+
+def grid_to_table(data, name='values'):
+    '''
+    Converts structured 2D grid SWAN block format x (columns),y (index) 
+    to SWAN table format x (column),y (column), values (column) 
+    DataFrame.
+    
+    Parameters
+    ----------
+    data: DataFrame
+        DataFrame in with columns as X indicie and Y as index.
+    name: string (Optional)
+        Name of data column in returned table. Default='values'
+    Returns
+    -------
+    table: DataFrame
+        DataFrame with columns x,y,values           
+    '''
+    assert isinstance(data,pd.DataFrame), 'data must be of type pd.DataFrame'
+    assert isinstance(name, str), 'Name must be of type str'
+    
+    table = data.unstack().reset_index(name=name)
+    table = table.rename(columns={'level_0':'x', 'level_1': 'y'})
+    return table
