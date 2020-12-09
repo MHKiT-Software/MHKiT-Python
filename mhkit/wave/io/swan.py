@@ -1,5 +1,5 @@
-from os.path import isfile
 from scipy.io import loadmat
+from os.path import isfile
 import pandas as pd
 import numpy as np
 import re 
@@ -18,19 +18,32 @@ def read_table(output_file):
     -------
     swan_data: DataFrame
         Dataframe of swan output
+    metaDict: Dictionary
+        Dictionary of metaData
     '''
     assert isinstance(output_file, str), 'output_file must be of type str'
     assert isfile(output_file)==True, 'output file not found please chact name/ path'
     
     f = open(output_file,'r')
-    header_line_number = 5
-    for i in range(header_line_number):
+    header_line_number = 4
+    for i in range(header_line_number+2):
         line = f.readline()
-    header = re.split("\s+",line.rstrip().strip('%').lstrip())
+        if line.startswith('% Run'):
+            metaDict = _parse_line_metadata(line)
+            if metaDict['Table'].endswith('SWAN'):
+                metaDict['Table'] = metaDict['Table'].split(' SWAN')[:-1]    
+        if  i == header_line_number:         
+            header = re.split("\s+",line.rstrip().strip('%').lstrip())
+            metaDict['header'] = header
+        if i == header_line_number+1:
+            units = re.split('\s+',line.strip(' %\n').replace('[','').replace(']',''))
+            metaDict['units'] = units
+        
     
     swan_data = pd.read_csv(output_file, sep='\s+', comment='%', 
-                            names=header) 
-    return swan_data    
+                            names=metaDict['header']) 
+    import ipdb; ipdb.set_trace()                            
+    return swan_data, metaDict    
 
 
 def read_block(output_file):
@@ -93,6 +106,7 @@ def _read_block_txt(output_file):
             runLines.extend([position])
             column_position = position + 5                       
             varDict = _parse_line_metadata(line)            
+            varDict['unitMultiplier'] = float(varDict['Unit'].split(' ')[0])
             
             metaDict[varPosition] = varDict            
             variable = varDict['vars']
@@ -199,7 +213,6 @@ def _parse_line_metadata(line):
         val = ' '.join(elms[i+1][:-1])
         metaDict[key] = val
     metaDict[key] = ' '.join(elms[-1]) 
-    metaDict['unitMultiplier'] = float(metaDict['Unit'].split(' ')[0])
         
     return metaDict    
 
