@@ -38,11 +38,10 @@ def read_table(output_file):
         if i == header_line_number+1:
             units = re.split('\s+',line.strip(' %\n').replace('[','').replace(']',''))
             metaDict['units'] = units
-        
+    f.close()    
     
     swan_data = pd.read_csv(output_file, sep='\s+', comment='%', 
-                            names=metaDict['header']) 
-    import ipdb; ipdb.set_trace()                            
+                            names=metaDict['header'])                
     return swan_data, metaDict    
 
 
