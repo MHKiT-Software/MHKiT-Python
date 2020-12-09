@@ -31,7 +31,7 @@ def request_wpto_dataset(data_type, parameter, lat_lon, years, tree=None,
         lat_lon: tuple or list of tuples
             latitude longitude pairs at which to extract data 
         years : list 
-            List of years to access. The years 1979-2010 available. 
+            List of years to access. The years 1979-2010 available. Examples: [1996] or [2004,2006,2007]
         tree : str | cKDTree (optional)
             cKDTree or path to .pkl file containing pre-computed tree
             of lat, lon coordinates, default = None
@@ -58,7 +58,7 @@ def request_wpto_dataset(data_type, parameter, lat_lon, years, tree=None,
         assert isinstance(parameter, (str, list)), 'parameter must be of type string or list'
         assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
         assert isinstance(data_type, str), 'data_type must be a string'
-        assert isinstance(years,list), 'years must be a list'
+        assert isinstance(years,(list,int)), 'years must be a list'
         assert isinstance(tree,(str,type(None))), 'tree must be a sring'
         assert isinstance(unscale,bool), 'unscale must be bool type'
         assert isinstance(str_decode,bool), 'str_decode must be bool type'
@@ -69,7 +69,7 @@ def request_wpto_dataset(data_type, parameter, lat_lon, years, tree=None,
         else:
             print(f'ERROR: invalid data_type')
             pass
-        print(wave_path)
+        
         data_list = []
         if isinstance(years,list):
             waveKwargs = {'tree':tree,'unscale':unscale,'str_decode':str_decode, 'hsds':hsds,
