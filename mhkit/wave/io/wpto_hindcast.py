@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from rex import WaveX, MultiYearWaveX
 
-def request_wpto_dataset(wave_path, parameter, lat_lon, years=None, tree=None, 
+def request_wpto_dataset(data_type, parameter, lat_lon, years, tree=None, 
                                  unscale=True, str_decode=True,hsds=True):
     
         """
@@ -20,11 +20,9 @@ def request_wpto_dataset(wave_path, parameter, lat_lon, years=None, tree=None,
         hs_api_key = {your key}
         Parameters
         ----------
-        wave_path : string
-            Path to US_Wave .h5 files
-            Available formats:
-                f'/nrel/US_wave/US_wave$_{year}.h5'
-                f'/nrel/US_wave/US_wave$_*.h5' (Only use when specifying years parameter)
+        data_type : string
+            data set type of interst
+            Options: 'spatial'
         parameter: string
             dataset parameter to be downloaded
             spatial dataset options: 'directionality_coefficient', 'energy_period', 'maximum_energy_direction'
@@ -32,8 +30,8 @@ def request_wpto_dataset(wave_path, parameter, lat_lon, years=None, tree=None,
                 'significant_wave_height', 'spectral_width', 'water_depth' 
         lat_lon: tuple or list of tuples
             latitude longitude pairs at which to extract data 
-        years : list (optional)
-            List of years to access. Default = None. The years 1979-2010 available. 
+        years : list 
+            List of years to access. The years 1979-2010 available. 
         tree : str | cKDTree (optional)
             cKDTree or path to .pkl file containing pre-computed tree
             of lat, lon coordinates, default = None
@@ -59,15 +57,21 @@ def request_wpto_dataset(wave_path, parameter, lat_lon, years=None, tree=None,
         
         assert isinstance(parameter, (str, list)), 'parameter must be of type string or list'
         assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
-        assert isinstance(wave_path, str), 'wave_path must be a string'
-        assert isinstance(years,(list,type(None))), 'years must be a list'
+        assert isinstance(data_type, str), 'data_type must be a string'
+        assert isinstance(years,list), 'years must be a list'
         assert isinstance(tree,(str,type(None))), 'tree must be a sring'
         assert isinstance(unscale,bool), 'unscale must be bool type'
         assert isinstance(str_decode,bool), 'str_decode must be bool type'
         assert isinstance(hsds,bool), 'hsds must be bool type'
-        
+
+        if data_type == 'spatial':
+            wave_path = f'/nrel/US_wave/US_wave_*.h5'
+        else:
+            print(f'ERROR: invalid data_type')
+            pass
+        print(wave_path)
         data_list = []
-        if years != None or '*' in wave_path:
+        if isinstance(years,list):
             waveKwargs = {'tree':tree,'unscale':unscale,'str_decode':str_decode, 'hsds':hsds,
             'years':years}
             rex_accessor = MultiYearWaveX
