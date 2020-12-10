@@ -104,7 +104,7 @@ def _read_block_txt(output_file):
             varPosition = position
             runLines.extend([position])
             column_position = position + 5                       
-            varDict = _parse_line_metadata(line)            
+            varDict = _parse_line_metadata(line)         
             varDict['unitMultiplier'] = float(varDict['Unit'].split(' ')[0])
             
             metaDict[varPosition] = varDict            
@@ -142,6 +142,7 @@ def _read_block_txt(output_file):
             dataDict[variable][index_number] = data
                 
     metaData = pd.DataFrame(metaDict).T        
+    f.close()
     
     for var in metaData.vars.values: 
         df = pd.DataFrame(dataDict[var]).T        
