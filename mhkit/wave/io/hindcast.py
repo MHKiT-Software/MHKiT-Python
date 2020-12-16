@@ -65,7 +65,7 @@ def request_wpto_dataset(data_type, parameter, lat_lon, years, tree=None,
         assert isinstance(hsds,bool), 'hsds must be bool type'
 
         if data_type == 'spatial':
-            wave_path = f'/nrel/US_wave/US_wave_*.h5'
+            wave_path = f'/nrel/US_wave/'
         else:
             print(f'ERROR: invalid data_type')
             pass
