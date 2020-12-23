@@ -802,22 +802,22 @@ class TestSWAN(unittest.TestCase):
         self.assertAlmostEqual(self.expected_table['Hsig'].sum(), 
                                sumSum, places=-2)
                                
-    def test_grid_to_table(self):
+    def test_block_to_table(self):
         x=np.arange(5)
         y=np.arange(5,10)
         df = pd.DataFrame(np.random.rand(5,5), columns=x, index=y)
-        dff = wave.io.swan.grid_to_table(df)
+        dff = wave.io.swan.block_to_table(df)
         self.assertEqual(dff.shape, (len(x)*len(y), 3))
         self.assertTrue(all(dff.x.unique() == np.unique(x)))
         
-    def test_dictionary_of_grid_to_table(self):
+    def test_dictionary_of_block_to_table(self):
         x=np.arange(5)
         y=np.arange(5,10)
         df = pd.DataFrame(np.random.rand(5,5), columns=x, index=y)
         keys = ['data1', 'data2']
         data = [df, df]
         dict_of_dfs = dict(zip(keys,data)) 
-        dff = wave.io.swan.dictionary_of_grid_to_table(dict_of_dfs) 
+        dff = wave.io.swan.dictionary_of_block_to_table(dict_of_dfs) 
         self.assertEqual(dff.shape, (len(x)*len(y), 2+len(keys)))
         self.assertTrue(all(dff.x.unique() == np.unique(x)))
         for key in keys:

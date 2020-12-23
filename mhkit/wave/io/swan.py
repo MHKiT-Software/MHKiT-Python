@@ -217,7 +217,7 @@ def _parse_line_metadata(line):
     return metaDict    
 
 
-def dictionary_of_grid_to_table(dictionary_of_DataFrames, names=None):
+def dictionary_of_block_to_table(dictionary_of_DataFrames, names=None):
     '''
     Converts a dictionary of structured 2D grid SWAN block format 
     x (columns),y (index) to SWAN table format x (column),y (column), 
@@ -255,15 +255,15 @@ def dictionary_of_grid_to_table(dictionary_of_DataFrames, names=None):
         variables = names
     
     var0 = variables[0]
-    swanTables = grid_to_table(dictionary_of_DataFrames[var0], name=var0)
+    swanTables = block_to_table(dictionary_of_DataFrames[var0], name=var0)
     for var in variables[1:]:    
-        tmp_dat = grid_to_table(dictionary_of_DataFrames[var], name=var)
+        tmp_dat = block_to_table(dictionary_of_DataFrames[var], name=var)
         swanTables[var] = tmp_dat[var]
     
     return swanTables
         
 
-def grid_to_table(data, name='values'):
+def block_to_table(data, name='values'):
     '''
     Converts structured 2D grid SWAN block format x (columns),y (index) 
     to SWAN table format x (column),y (column), values (column) 
