@@ -180,35 +180,7 @@ def _read_block_mat(output_file):
     for key in data.keys():
         data[key] = pd.DataFrame(data[key])
     return data
-
-
-def _read_block_netcdf(output_file):
-    '''
-    Reads in SWAN netcdf output and creates a dictionary of DataFrames
-    for each swan output variable.
-    
-    Parameters
-    ----------
-    output_file: str
-        filename to import
-        
-    Returns
-    -------
-    data: Dictionary
-        Dictionary of DataFrame of swan output variables
-    '''
-    #assert isinstance(output_file, str), 'output_file must be of type str'
-    #assert isfile(output_file)==True, 'output file not found please chact name/ path'
-    
-    
-    data = loadmat(output_file, struct_as_record=False, squeeze_me=True)
-    removeKeys = ['__header__', '__version__', '__globals__']
-    for key in removeKeys:
-        data.pop(key, None)
-    for key in data.keys():
-        data[key] = pd.DataFrame(data[key])
-    return data
-    
+   
     
 def _parse_line_metadata(line):
     '''
