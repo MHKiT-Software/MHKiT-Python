@@ -777,7 +777,7 @@ class TestSWAN(unittest.TestCase):
         swan_datadir = join(datadir,'swan')
         self.table_file = join(swan_datadir,'SWANOUT.DAT')
         self.swan_block_mat_file = join(swan_datadir,'SWANOUT.MAT')
-        self.swan_block_txt_file = join(swan_datadir,'SWANOUTBlock.dat')
+        self.swan_block_txt_file = join(swan_datadir,'SWANOUTBlock.DAT')
         self.expected_table = pd.read_csv(self.table_file, sep='\s+', comment='%', 
                   names=['Xp', 'Yp', 'Hsig', 'Dir', 'RTpeak', 'TDir'])   
             

@@ -63,8 +63,7 @@ def read_block(output_file):
         Dictionary of metaData dependent on file type    
     '''
     assert isinstance(output_file, str), 'output_file must be of type str'
-    print(output_file)
-    assert isfile(output_file)==True, 'output file not found please chact name/ path'
+    assert isfile(output_file)==True, 'output file not found'
     
     extension = output_file.split('.')[1].lower()
     if extension == 'mat':
