@@ -26,7 +26,7 @@ DEPENDENCIES = ['pandas>=1.0.0',
                 'fatpack',
                 'lxml',
                 'scikit-learn',
-		        'NREL-rex>=0.2.30',
+		        'NREL-rex>=0.2.35',
                 'six>=1.13.0']
 
 # use README file as the long description
