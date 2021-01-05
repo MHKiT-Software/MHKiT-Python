@@ -1,23 +1,121 @@
 import pandas as pd
 import numpy as np
-import netCDF4
 import datetime
+import netCDF4
 import time
 
-def request_data(stn,start_date='',end_date='',yeardate='',data_type='Historic'):
+def _validate_date(date_text):
+    '''
+    Checks date format to ensure MM/DD/YYYY format
+    
+    Parameters
+    ----------
+    date_text: string
+        Date string format to check
+    Returns
+    -------
+    dt: datetime
+    '''
+    
+    try:
+        dt = datetime.datetime.strptime(date_text, '%m/%d/%Y')
+    except ValueError:
+        raise ValueError("Incorrect data format, should be MM/DD/YYYY")
+    return dt
+
+def request_historic(station_number, year=None, start_date=None, end_date=None, ):
     """
     Requests CDIP data by wave buoy data file (from http://cdip.ucsd.edu/).
     
 
     Parameters
     ------------
-    stn: string
+    station_number: string
+        Station number of CDIP wave buoy
+    year: string 
+        Year date, e.g. '2001'        
+    start_date: string 
+        Start date in MM/DD/YYYY, e.g. '04/01/2012'
+    end_date: string 
+        End date in MM/DD/YYYY, e.g. '04/30/2012'
+    
+    Returns
+    ---------
+    data: pandas DataFrame 
+        Data indexed by datetime with columns named according to the data 
+        signal, for it includes: Hs, Tp, and Dp       
+    """
+
+    assert isinstance(station_number, str), f'station_number must be of type str'
+    assert isinstance(start_date, (str, type(None))), 'start_date must be of type str'
+    assert isinstance(end_date, (str, type(None))), 'end_date must be of type str'
+    assert isinstance(year, (str,type(None))), 'year must be of type str'
+  
+    if not any([year, start_date, end_date]):
+        Exception('Must specify either a year, a start_date, or start_date & end_date')
+    
+    if year:
+        try:
+            start_year = datetime.datetime.strptime(year, '%Y')
+        except ValueError:
+            raise ValueError("Incorrect year format, should be YYYY")
+        else:            
+            end_year = datetime.datetime.strptime(f'{int(year)+1}', '%Y')
+
+    if start_date:        
+        start_date = _validate_date(start_date)   
+    if end_date:
+        end_date = _validate_date(end_date)
+        if not start_date:
+            raise Exception('start_date must be speficied with end_date')         
+            
+             
+    cdip_archive= 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/archive'
+    data_url =  f'{cdip_archive}/{station_number}p1/{station_number}p1_historic.nc'
+           
+    nc = netCDF4.Dataset(data_url) 
+    
+    nc_time = nc.variables['waveTime'][:]
+    time_all = nc_time.compressed().astype('datetime64[s]')
+    
+    Hs = nc.variables['waveHs']
+    Tp = nc.variables['waveTp']
+    Dp = nc.variables['waveDp'] 
+        
+    data = pd.DataFrame(data = {'Hs': Hs,'Tp': Tp,'Dp': Dp}, index = time_all)    
+     
+    if start_date:
+        start_index = data.index.get_loc( np.datetime64(start_date), method='nearest')
+        end_index = -1
+        if end_date:
+            end_index = data.index.get_loc( np.datetime64(end_date), method='nearest')        
+                        
+    elif year:        
+        start_index = data.index.get_loc( np.datetime64(start_year), method='nearest')
+        end_index = data.index.get_loc( np.datetime64(end_year), method='nearest') 
+        import ipdb; ipdb.set_trace()
+        data = data[start_year:end_year]
+                    
+    buoy_name = nc.variables['metaStationName'][:].compressed().tostring()           
+    data.name = buoy_name
+    return data
+
+
+def request_realtime(station_number, start_date='', end_date='', year_date='',
+                     data_type='Historic'):
+    """
+    Requests CDIP data by wave buoy data file (from http://cdip.ucsd.edu/).
+    
+
+    Parameters
+    ------------
+    station_number: string
         Station number of CDIP wave buoy
     start_date: string 
         Start date in MM/DD/YYYY, e.g. '04/01/2012'
     end_date: string 
         End date in MM/DD/YYYY, e.g. '04/30/2012'
-    yeardate: string 
+    year_date: string 
         Year date, e.g. '2001'
     data_type: string 
         'Realtime' or 'Historic', default = 'Historic'
@@ -29,7 +127,7 @@ def request_data(stn,start_date='',end_date='',yeardate='',data_type='Historic')
         signal, for it includes: Hs, Tp, and Dp
         
     """
-    assert isinstance(stn, str), 'stn must be of type str'
+    assert isinstance(stn, str), f'station_number must be of type str'
     assert isinstance(start_date, str), 'start_date must be of type str'
     assert isinstance(end_date, str), 'end_date must be of type str'
     assert isinstance(yeardate, str), 'yeardate must be of type str'
@@ -73,10 +171,6 @@ def request_data(stn,start_date='',end_date='',yeardate='',data_type='Historic')
     
     # Open Remote Dataset from CDIP THREDDS Server
     nc = netCDF4.Dataset(data_url)
-    ##################################
-    # Avilable CDIP data
-    ##################################
-    # nc.variables.keys()
 
     # Create a variable of the Buoy Name and Month Name, to use in plot title
     buoyname = nc.variables['metaStationName'][:]
@@ -157,5 +251,3 @@ def request_data(stn,start_date='',end_date='',yeardate='',data_type='Historic')
         data = pd.DataFrame(data = {'Hs': Hs}, index = timeall)        
     
     return data, buoytitle
-
-
