@@ -89,9 +89,11 @@ def _read_block_txt(output_file):
     -------
     dataDict: Dictionary
         Dictionary of DataFrame of swan output variables
+    metaDict: Dictionary
+        Dictionary of metaData dependent on file type    
     '''
     assert isinstance(output_file, str), 'output_file must be of type str'
-    assert isfile(output_file)==True, 'output file not found please chact name/ path'
+    assert isfile(output_file)==True, f'File not found: {output_file}'
     
     f = open(output_file) 
     runLines=[]
@@ -150,7 +152,10 @@ def _read_block_txt(output_file):
         colsDict = dict(zip(df.columns.values.tolist(), varCols))
         df.rename(columns=colsDict)
         unitMultiplier = metaData[metaData.vars == var].unitMultiplier.values[0]
-        dataDict[var] = df * unitMultiplier   
+        dataDict[var] = df * unitMultiplier 
+    
+    metaData.pop('cols')
+    metaData = metaData.set_index('vars').T.to_dict()           
     return dataDict, metaData              
     
 
@@ -166,20 +171,19 @@ def _read_block_mat(output_file):
         
     Returns
     -------
-    data: Dictionary
+    dataDict: Dictionary
         Dictionary of DataFrame of swan output variables
     '''
     assert isinstance(output_file, str), 'output_file must be of type str'
     assert isfile(output_file)==True, 'output file not found please chact name/ path'
-    
-    
-    data = loadmat(output_file, struct_as_record=False, squeeze_me=True)
+        
+    dataDict = loadmat(output_file, struct_as_record=False, squeeze_me=True)
     removeKeys = ['__header__', '__version__', '__globals__']
     for key in removeKeys:
-        data.pop(key, None)
-    for key in data.keys():
-        data[key] = pd.DataFrame(data[key])
-    return data
+        dataDict.pop(key, None)
+    for key in dataDict.keys():
+        dataDict[key] = pd.DataFrame(dataDict[key])
+    return dataDict
    
     
 def _parse_line_metadata(line):
