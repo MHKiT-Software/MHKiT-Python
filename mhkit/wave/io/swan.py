@@ -184,7 +184,7 @@ def _read_block_mat(output_file):
     
 def _parse_line_metadata(line):
     '''
-    Parses the variable meta data into a dictionary
+    Parses the variable metadata into a dictionary
     
     Parameters
     ----------
@@ -265,7 +265,7 @@ def dictionary_of_block_to_table(dictionary_of_DataFrames, names=None):
 
 def block_to_table(data, name='values'):
     '''
-    Converts structured 2D grid SWAN block format x (columns),y (index) 
+    Converts structured 2D grid SWAN block format x (columns), y (index) 
     to SWAN table format x (column),y (column), values (column) 
     DataFrame.
     
@@ -286,3 +286,4 @@ def block_to_table(data, name='values'):
     table = data.unstack().reset_index(name=name)
     table = table.rename(columns={'level_0':'x', 'level_1': 'y'})
     return table
+
