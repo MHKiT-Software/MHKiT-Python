@@ -23,11 +23,38 @@ def _validate_date(date_text):
         raise ValueError("Incorrect data format, should be MM-DD-YYYY")
     return dt
 
-def request_historic(station_number, year=None, start_date=None, end_date=None, ):
+
+def request_netCDF(station_number, data_type):
+    '''
+    Returns historic or realtime data from CDIP THREDDS server
+   
+    Parameters:
+    station_number: string
+        CDIP station number of interest
+    data_type: string
+        Either 'Historic' or 'Realtime'
+   
+    Returns
+    -------
+    nc: netCDF Object
+        netCDF data for the given station number and data type
+    '''
+   
+    if data_type == 'Historic':
+        cdip_archive= 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/archive'
+        data_url =  f'{cdip_archive}/{station_number}p1/{station_number}p1_historic.nc'
+    elif data_type == 'Realtime':
+        cdip_realtime = 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/realtime'
+        data_url = f'{cdip_realtime}/{station_number}p1_rt.nc'
+    nc = netCDF4.Dataset(data_url)
+    return nc
+
+
+def request_data(station_number, year=None, start_date=None, 
+                     end_date=None, data_type='Historic', include2DVars=False):
     """
     Requests CDIP data by wave buoy data file (from http://cdip.ucsd.edu/).
     
-
     Parameters
     ------------
     station_number: string
@@ -38,6 +65,11 @@ def request_historic(station_number, year=None, start_date=None, end_date=None, 
         Start date in MM-DD-YYYY, e.g. '04-01-2012'
     end_date: string 
         End date in MM/DD/YYYY, e.g. '04-30-2012'
+    data_type: string
+        Either 'Historic' or 'Realtime'   
+    include2DVars: boolean
+        Will return 2D data from cdip. Enabling this will add significant 
+        processing time.        
     
     Returns
     ---------
@@ -45,7 +77,6 @@ def request_historic(station_number, year=None, start_date=None, end_date=None, 
         Data indexed by datetime with columns named according to the data 
         signal, for it includes: Hs, Tp, and Dp       
     """
-
     assert isinstance(station_number, str), f'station_number must be of type str'
     assert isinstance(start_date, (str, type(None))), 'start_date must be of type str'
     assert isinstance(end_date, (str, type(None))), 'end_date must be of type str'
@@ -69,19 +100,41 @@ def request_historic(station_number, year=None, start_date=None, end_date=None, 
         if not start_date:
             raise Exception('start_date must be speficied with end_date')         
             
-             
-    cdip_archive= 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/archive'
-    data_url =  f'{cdip_archive}/{station_number}p1/{station_number}p1_historic.nc'
-           
-    nc = netCDF4.Dataset(data_url) 
+    
+    nc = request_netCDF(station_number, data_type)    
+
+       
+     
     
     time_all = nc.variables['waveTime'][:].compressed().astype('datetime64[s]')
+    time_steps = len(time_all)
     
-    Hs = nc.variables['waveHs']
-    Tp = nc.variables['waveTp']
-    Dp = nc.variables['waveDp'] 
-        
-    data = pd.DataFrame(data = {'Hs': Hs,'Tp': Tp,'Dp': Dp}, index = time_all)    
+    time_variables={}
+    metadata={}
+    
+    allVariables = [var for var in nc.variables]
+    allVariables.remove('waveTime')
+    
+    twoDimensionalVars = [ 'waveEnergyDensity', 'waveMeanDirection', 
+                           'waveA1Value', 'waveB1Value', 'waveA2Value', 
+                           'waveB2Value', 'waveCheckFactor', 'waveSpread', 
+                           'waveM2Value', 'waveN2Value']
+    
+    if not include2DVars:
+        for var in twoDimensionalVars:
+            allVariables.remove(var)
+    
+    for var in allVariables:
+        print(var)
+        #if var == 'waveEnergyDensity':
+        #   import ipdb; ipdb.set_trace()
+        variable = nc.variables[var][:].compressed()
+        if len(variable) == time_steps:
+            time_variables[var] = variable
+        else:
+            metadata[var] = variable
+     
+    data = pd.DataFrame(time_variables, index=time_all)   
      
     if start_date:
         start_string = start_date.strftime('%Y-%m-%d')
@@ -99,7 +152,12 @@ def request_historic(station_number, year=None, start_date=None, end_date=None, 
 
     buoy_name = nc.variables['metaStationName'][:].compressed().tostring()           
     data.name = buoy_name
-    return data
+    return data, metadata
+
+
+
+
+
 
 
 def request_realtime(station_number, start_date='', end_date='', year_date='',

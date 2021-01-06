@@ -383,7 +383,7 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     return ax
 
 
-def plot_compendium(data, buoytitle=None, ax=None):
+def plot_compendium(Hs, Tp, Dp, buoytitle=None, ax=None):
     """
     Create subplots showing: Significant Wave Height (Hs), Peak Period (Tp), 
     and Direction (Dp) using OPeNDAP service from CDIP THREDDS Server.
@@ -410,9 +410,9 @@ def plot_compendium(data, buoytitle=None, ax=None):
     f, (pHs, pTp, pDp) = plt.subplots(3, 1, sharex=True, figsize=(15,10)) 
     
     # Create 3 stacked subplots for three PARAMETERS (Hs, Tp, Dp)
-    pHs.plot(data.index,data.Hs,'b')
-    pTp.plot(data.index,data.Tp,'b')
-    pDp.scatter(data.index,data.Dp,color='blue',s=5) # Plot Dp variable as a scatterplot, rather than line
+    pHs.plot(Hs.index,Hs,'b')
+    pTp.plot(Tp.index,Tp,'b')
+    pDp.scatter(Dp.index,Dp,color='blue',s=5) # Plot Dp variable as a scatterplot, rather than line
     
     # Significant Wave Height, Hs
     pHs.tick_params(axis='x', which='major', labelsize=12, top='off')
@@ -444,8 +444,8 @@ def plot_compendium(data, buoytitle=None, ax=None):
     plt.gca().xaxis.set_major_formatter(daysFmt)
     
     # Set Titles
-    month_name = data.index.month_name()[-1]
-    year_num = data.index.year[-1]
+    month_name = Hs.index.month_name()[-1]
+    year_num = Hs.index.year[-1]
     plt.suptitle(buoytitle, fontsize=30) 
     plt.title(month_name + " " + str(year_num), fontsize=20)
 
@@ -454,7 +454,7 @@ def plot_compendium(data, buoytitle=None, ax=None):
     return ax
 
 
-def plot_boxplot(data, buoytitle=None, ax=None):
+def plot_boxplot(Hs, buoytitle=None, ax=None):
     """
     Create plot of monthly-averaged boxes of Significant Wave Height (Hs) data across one year using OPeNDAP service from CDIP THREDDS Server.
 
@@ -478,7 +478,7 @@ def plot_boxplot(data, buoytitle=None, ax=None):
 
     # Create array of month numbers to cycle through to grab Hs data
     #months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
-    year_date = max(data.index.year.unique())
+    year_date = max(Hs.index.year.unique())
     
     # Create array of month-long chunks of Hs data, to be plotted as a series of 
     # boxplots. Use a for-loop to cycle through the Hs variable and define 
@@ -491,11 +491,11 @@ def plot_boxplot(data, buoytitle=None, ax=None):
     monthlengths=[]
     months = []
     months_text = []
-    for imonth in data.index.month.unique():
-        tmp1 = data[data.index.month == imonth]
-        tmp2 = data[data.index.month == imonth].Hs.mean()
-        tmp3 = len(data[data.index.month == imonth])    
-        box_data.append(tmp1.Hs.values)
+    for imonth in Hs.index.month.unique():
+        tmp1 = Hs[Hs.index.month == imonth]
+        tmp2 = Hs[Hs.index.month == imonth].mean()
+        tmp3 = len(Hs[Hs.index.month == imonth])    
+        box_data.append(tmp1.values)
         means.append(tmp2)
         monthlengths.append(tmp3)
         months.append(imonth)

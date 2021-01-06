@@ -9,14 +9,14 @@ import mhkit
 station_number = '067'
 year_date = '2011'
 
-data = cdip.request_historic(station_number,year=year_date)
+data, metadata = cdip.request_data(station_number,year=year_date)
 
 # Plot Boxplot
-mhkit.wave.graphics.plot_boxplot(data, data.name)
+mhkit.wave.graphics.plot_boxplot(data.waveHs, data.name)
 #Kelley FIX 
 # Boxplot scatter plot of means not properly alligned
 # Boxplot doens't matach CDIP example
-import ipdb; ipdb.set_trace()
+#import ipdb; ipdb.set_trace()
 ########################################################################
 # Compendium Example
 ########################################################################
@@ -25,8 +25,8 @@ import ipdb; ipdb.set_trace()
 # Load Historic data
 #########################
 stn = '100'
-start_date = "04/01/2012" # MM/DD/YYYY
-end_date = "04/30/2012"
+start_date = "04-01-2012" # MM/DD/YYYY
+end_date = "04-30-2012"
 
 # stn = '179'
 # start_date = "04/01/2019" # MM/DD/YYYY
@@ -40,7 +40,7 @@ end_date = "04/30/2012"
 # start_date = "08/01/2018" # MM/DD/YYYY
 # end_date = "08/31/2018"
 
-data = cdip.request_historic(stn,start_date= start_date,end_date=start_date)
+data, metadata = cdip.request_data(stn,start_date= start_date,end_date=start_date)
 # data.head()
 
 #########################
@@ -56,7 +56,8 @@ data = cdip.request_historic(stn,start_date= start_date,end_date=start_date)
 #########################
 # Plot data Compendium
 #########################
-mhkit.wave.graphics.plot_compendium(data, data.name)
+mhkit.wave.graphics.plot_compendium(data.waveHs, data.waveTp, 
+                                    data.waveDp, data.name)
 
 import ipdb; ipdb.set_trace()
 
