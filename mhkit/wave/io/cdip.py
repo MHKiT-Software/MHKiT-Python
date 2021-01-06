@@ -18,9 +18,9 @@ def _validate_date(date_text):
     '''
     
     try:
-        dt = datetime.datetime.strptime(date_text, '%m/%d/%Y')
+        dt = datetime.datetime.strptime(date_text, '%m-%d-%Y')
     except ValueError:
-        raise ValueError("Incorrect data format, should be MM/DD/YYYY")
+        raise ValueError("Incorrect data format, should be MM-DD-YYYY")
     return dt
 
 def request_historic(station_number, year=None, start_date=None, end_date=None, ):
@@ -35,13 +35,13 @@ def request_historic(station_number, year=None, start_date=None, end_date=None, 
     year: string 
         Year date, e.g. '2001'        
     start_date: string 
-        Start date in MM/DD/YYYY, e.g. '04/01/2012'
+        Start date in MM-DD-YYYY, e.g. '04-01-2012'
     end_date: string 
-        End date in MM/DD/YYYY, e.g. '04/30/2012'
+        End date in MM/DD/YYYY, e.g. '04-30-2012'
     
     Returns
     ---------
-    data: pandas DataFrame 
+    data: DataFrame 
         Data indexed by datetime with columns named according to the data 
         signal, for it includes: Hs, Tp, and Dp       
     """
@@ -60,8 +60,8 @@ def request_historic(station_number, year=None, start_date=None, end_date=None, 
         except ValueError:
             raise ValueError("Incorrect year format, should be YYYY")
         else:            
-            end_year = datetime.datetime.strptime(f'{int(year)+1}', '%Y')
-
+            next_year = datetime.datetime.strptime(f'{int(year)+1}', '%Y')
+            end_year = next_year - datetime.timedelta(days=1)
     if start_date:        
         start_date = _validate_date(start_date)   
     if end_date:
@@ -75,8 +75,7 @@ def request_historic(station_number, year=None, start_date=None, end_date=None, 
            
     nc = netCDF4.Dataset(data_url) 
     
-    nc_time = nc.variables['waveTime'][:]
-    time_all = nc_time.compressed().astype('datetime64[s]')
+    time_all = nc.variables['waveTime'][:].compressed().astype('datetime64[s]')
     
     Hs = nc.variables['waveHs']
     Tp = nc.variables['waveTp']
@@ -85,17 +84,19 @@ def request_historic(station_number, year=None, start_date=None, end_date=None, 
     data = pd.DataFrame(data = {'Hs': Hs,'Tp': Tp,'Dp': Dp}, index = time_all)    
      
     if start_date:
-        start_index = data.index.get_loc( np.datetime64(start_date), method='nearest')
-        end_index = -1
+        start_string = start_date.strftime('%Y-%m-%d')
+
         if end_date:
-            end_index = data.index.get_loc( np.datetime64(end_date), method='nearest')        
+            end_string = end_date.strftime('%Y-%m-%d')
+            data = data[start_string:end_string]     
+        else:
+            data = data[start_string:end_string]        
                         
-    elif year:        
-        start_index = data.index.get_loc( np.datetime64(start_year), method='nearest')
-        end_index = data.index.get_loc( np.datetime64(end_year), method='nearest') 
-        import ipdb; ipdb.set_trace()
-        data = data[start_year:end_year]
-                    
+    elif year: 
+        start_string = start_year.strftime('%Y-%m-%d')
+        end_string = end_year.strftime('%Y-%m-%d')
+        data = data[start_string:end_string]
+
     buoy_name = nc.variables['metaStationName'][:].compressed().tostring()           
     data.name = buoy_name
     return data
