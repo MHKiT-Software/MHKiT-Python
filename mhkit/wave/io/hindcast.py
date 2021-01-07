@@ -50,7 +50,7 @@ def request_wpto_dataset(data_type, parameter, lat_lon, years, tree=None,
         Returns
         ---------
         data: DataFrame 
-            Data indexed by datetime with columns named for parameter and lat_lon 
+            Data indexed by datetime with columns named for parameter and cooresponding metadata index 
         meta: DataFrame 
             location metadata for the requested data location   
         """
@@ -65,7 +65,7 @@ def request_wpto_dataset(data_type, parameter, lat_lon, years, tree=None,
         assert isinstance(hsds,bool), 'hsds must be bool type'
 
         if data_type == 'spatial':
-            wave_path = f'/nrel/US_wave/'
+            wave_path = f'/nrel/US_wave/US_wave_*.h5'
         else:
             print(f'ERROR: invalid data_type')
             pass
@@ -78,26 +78,21 @@ def request_wpto_dataset(data_type, parameter, lat_lon, years, tree=None,
                 for p in parameter:
                     temp_data = rex_waves.get_lat_lon_df(p,lat_lon)
                     col = temp_data.columns[:]
-                    if isinstance(lat_lon[0], (list,tuple)):
-                        for c,l in zip(col,lat_lon):
-                            temp = f'{p}_{l[0]}_{l[1]}'
-                            temp_data = temp_data.rename(columns={c:temp})
-                    else:
-                        temp = f'{p}_{lat_lon[0]}_{lat_lon[1]}'
-                        temp_data = temp_data.rename(columns={col[0]:temp})
+                    for i,c in zip(range(len(col)),col):
+                        temp = f'{p}_{i}'
+                        temp_data = temp_data.rename(columns={c:temp})
+
                     data_list.append(temp_data)
                 data= pd.concat(data_list)
-                meta = rex_waves.meta.loc[col,:]
+                
             else:
                 data = rex_waves.get_lat_lon_df(parameter,lat_lon)
                 col = data.columns[:]
-                meta = rex_waves.meta.loc[col,:]
-                if isinstance(lat_lon[0], (list,tuple)):
-                    for c,l in zip(col,lat_lon):
-                        temp = f'{parameter}_{l[0]}_{l[1]}'
-                        data = data.rename(columns={c:temp})
-                else:
-                    temp = f'{parameter}_{lat_lon[0]}_{lat_lon[1]}'
-                    data = data.rename(columns={col[0]:temp})
-                
+
+                for i,c in zip(range(len(col)),col):
+                    temp = f'{parameter}_{i}'
+                    data = data.rename(columns={c:temp})
+
+            meta = rex_waves.meta.loc[col,:]
+            meta = meta.reset_index(drop=True)    
         return data, meta
