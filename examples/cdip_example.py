@@ -9,7 +9,8 @@ import mhkit
 station_number = '067'
 year_date = '2011'
 
-#data, metadata = cdip.request_data(station_number,year=year_date)
+data, metadata = cdip.request_data(station_number,year=year_date,
+                                   include_2D_variables=True)
 
 # Plot Boxplot
 #mhkit.wave.graphics.plot_boxplot(data.waveHs, data.name)

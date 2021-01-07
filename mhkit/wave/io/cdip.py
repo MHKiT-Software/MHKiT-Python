@@ -48,12 +48,12 @@ def request_netCDF(station_number, data_type):
         data_url = f'{cdip_realtime}/{station_number}p1_rt.nc'
     nc = netCDF4.Dataset(data_url)
     nc.set_auto_mask(False)
-    import ipdb; ipdb.set_trace()
     return nc
 
 
 def request_data(station_number, year=None, start_date=None, 
-                     end_date=None, data_type='Historic', include2DVars=False):
+                     end_date=None, data_type='Historic', 
+                     include_2D_variables=False):
     """
     Requests CDIP data by wave buoy data file (from http://cdip.ucsd.edu/).
     
@@ -71,7 +71,8 @@ def request_data(station_number, year=None, start_date=None,
         Either 'Historic' or 'Realtime'   
     include2DVars: boolean
         Will return 2D data from cdip. Enabling this will add significant 
-        processing time.        
+        processing time. It is reccomened to call `request_netCDF` function
+        directly for 2D data.        
     
     Returns
     ---------
@@ -106,10 +107,9 @@ def request_data(station_number, year=None, start_date=None,
     nc = request_netCDF(station_number, data_type)    
 
        
-     
     
-    time_all = nc.variables['waveTime'][:].compressed().astype('datetime64[s]')
-    time_steps = len(time_all)
+    
+    time_all = nc.variables['waveTime'][:].astype('datetime64[s]')
     
     time_variables={}
     metadata={}
@@ -122,16 +122,18 @@ def request_data(station_number, year=None, start_date=None,
                            'waveB2Value', 'waveCheckFactor', 'waveSpread', 
                            'waveM2Value', 'waveN2Value']
     
-    if not include2DVars:
+    if not include_2D_variables:
         for var in twoDimensionalVars:
             allVariables.remove(var)
     
     for var in allVariables:
         print(var)
-        #if var == 'waveEnergyDensity':
-        #   import ipdb; ipdb.set_trace()
-        variable = nc.variables[var][:].compressed()
-        if len(variable) == time_steps:
+        # if var == 'waveEnergyDensity':
+           # import ipdb; ipdb.set_trace()
+        # elif var == 'metaDeployLatitude':
+           # import ipdb; ipdb.set_trace()           
+        variable = nc.variables[var][:]
+        if variable.size == time_all.size:
             time_variables[var] = variable
         else:
             metadata[var] = variable
@@ -152,7 +154,7 @@ def request_data(station_number, year=None, start_date=None,
         end_string = end_year.strftime('%Y-%m-%d')
         data = data[start_string:end_string]
 
-    buoy_name = nc.variables['metaStationName'][:].compressed().tostring()           
+    buoy_name = nc.variables['metaStationName'][:].tostring()           
     data.name = buoy_name
     return data, metadata
 
