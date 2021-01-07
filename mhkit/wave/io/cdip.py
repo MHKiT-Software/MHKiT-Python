@@ -18,9 +18,9 @@ def _validate_date(date_text):
     '''
     
     try:
-        dt = datetime.datetime.strptime(date_text, '%m-%d-%Y')
+        dt = datetime.datetime.strptime(date_text, '%Y-%m-%d')
     except ValueError:
-        raise ValueError("Incorrect data format, should be MM-DD-YYYY")
+        raise ValueError("Incorrect data format, should be YYYY-MM-DD")
     return dt
 
 
@@ -47,6 +47,8 @@ def request_netCDF(station_number, data_type):
         cdip_realtime = 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/realtime'
         data_url = f'{cdip_realtime}/{station_number}p1_rt.nc'
     nc = netCDF4.Dataset(data_url)
+    nc.set_auto_mask(False)
+    import ipdb; ipdb.set_trace()
     return nc
 
 
