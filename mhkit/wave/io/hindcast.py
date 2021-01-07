@@ -1,23 +1,16 @@
 import pandas as pd
 import numpy as np
-from rex import WaveX, MultiYearWaveX
+from rex import MultiYearWaveX
 
 def request_wpto_dataset(data_type, parameter, lat_lon, years, tree=None, 
                                  unscale=True, str_decode=True,hsds=True):
     
-        """
-        Accesses data from the WPTO wave hindcast data hosted on AWS. 
+        """ 
+        Returns data from the WPTO wave hindcast hosted on AWS at the specified latitude and longitude points.
 
         Note: To access the WPTO hindcast data, you will need to configure h5pyd for data access on HSDS. 
-        To get your own API key, visit https://developer.nrel.gov/signup/. 
+        Please see the WPTO_hindcast_example notebook for more information.  
 
-        To configure h5phd type 
-        hsconfigure
-        and enter at the prompt:
-        hs_endpoint = https://developer.nrel.gov/api/hsds
-        hs_username = None
-        hs_password = None
-        hs_api_key = {your key}
         Parameters
         ----------
         data_type : string
@@ -31,7 +24,7 @@ def request_wpto_dataset(data_type, parameter, lat_lon, years, tree=None,
         lat_lon: tuple or list of tuples
             latitude longitude pairs at which to extract data 
         years : list 
-            Year(s) to be accessed. The years 1979-2010 available. Examples: 1996 or [2004,2006,2007]
+            Year(s) to be accessed. The years 1979-2010 available. Examples: [1996] or [2004,2006,2007]
         tree : str | cKDTree (optional)
             cKDTree or path to .pkl file containing pre-computed tree
             of lat, lon coordinates, default = None
