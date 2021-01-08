@@ -7,6 +7,8 @@ def request_wpto_dataset(data_type, parameter, lat_lon, years, tree=None,
     
         """ 
         Returns data from the WPTO wave hindcast hosted on AWS at the specified latitude and longitude points.
+        Visit https://registry.opendata.aws/wpto-pds-us-wave/ for more information about the dataset and available 
+        locations and years. 
 
         Note: To access the WPTO hindcast data, you will need to configure h5pyd for data access on HSDS. 
         Please see the WPTO_hindcast_example notebook for more information.  
