@@ -21,8 +21,8 @@ def read_table(swan_file):
     metaDict: Dictionary
         Dictionary of metaData
     '''
-    assert isinstance(swan_file, str), 'output_file must be of type str'
-    assert isfile(swan_file)==True, 'output file not found please chact name/ path'
+    assert isinstance(swan_file, str), 'swan_file must be of type str'
+    assert isfile(swan_file)==True, f'File not found: {swan_file}'
     
     f = open(swan_file,'r')
     header_line_number = 4
@@ -62,8 +62,8 @@ def read_block(swan_file):
     metaDict: Dictionary
         Dictionary of metaData dependent on file type    
     '''
-    assert isinstance(swan_file, str), 'output_file must be of type str'
-    assert isfile(swan_file)==True, 'output file not found'
+    assert isinstance(swan_file, str), 'swan_file must be of type str'
+    assert isfile(swan_file)==True, f'File not found: {swan_file}'
     
     extension = swan_file.split('.')[1].lower()
     if extension == 'mat':
@@ -175,7 +175,7 @@ def _read_block_mat(swan_file):
         Dictionary of DataFrame of swan output variables
     '''
     assert isinstance(swan_file, str), 'swan_file must be of type str'
-    assert isfile(swan_file)==True, 'swan file not found please chact name/ path'
+    assert isfile(swan_file)==True, f'File not found: {swan_file}'
         
     dataDict = loadmat(swan_file, struct_as_record=False, squeeze_me=True)
     removeKeys = ['__header__', '__version__', '__globals__']
