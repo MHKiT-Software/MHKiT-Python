@@ -5,13 +5,13 @@ import numpy as np
 import re 
   
 
-def read_table(output_file):
+def read_table(swan_file):
     '''
     Reads in SWAN table format output
     
     Parameters
     ----------
-    output_file: str
+    swan_file: str
         filename to import
         
     Returns
@@ -21,10 +21,10 @@ def read_table(output_file):
     metaDict: Dictionary
         Dictionary of metaData
     '''
-    assert isinstance(output_file, str), 'output_file must be of type str'
-    assert isfile(output_file)==True, 'output file not found please chact name/ path'
+    assert isinstance(swan_file, str), 'output_file must be of type str'
+    assert isfile(swan_file)==True, 'output file not found please chact name/ path'
     
-    f = open(output_file,'r')
+    f = open(swan_file,'r')
     header_line_number = 4
     for i in range(header_line_number+2):
         line = f.readline()
@@ -40,19 +40,19 @@ def read_table(output_file):
             metaDict['units'] = units
     f.close()    
     
-    swan_data = pd.read_csv(output_file, sep='\s+', comment='%', 
+    swan_data = pd.read_csv(swan_file, sep='\s+', comment='%', 
                             names=metaDict['header'])                
     return swan_data, metaDict    
 
 
-def read_block(output_file):
+def read_block(swan_file):
     '''
     Reads in SWAN block output with headers and creates a dictionary 
     of DataFrames for each SWAN output variable in the output file.
     
     Parameters
     ----------
-    output_file: str
+    swan_file: str
         swan block file to import
         
     Returns
@@ -62,27 +62,27 @@ def read_block(output_file):
     metaDict: Dictionary
         Dictionary of metaData dependent on file type    
     '''
-    assert isinstance(output_file, str), 'output_file must be of type str'
-    assert isfile(output_file)==True, 'output file not found'
+    assert isinstance(swan_file, str), 'output_file must be of type str'
+    assert isfile(swan_file)==True, 'output file not found'
     
-    extension = output_file.split('.')[1].lower()
+    extension = swan_file.split('.')[1].lower()
     if extension == 'mat':
-        dataDict = _read_block_mat(output_file)
+        dataDict = _read_block_mat(swan_file)
         metaData = {'filetype': 'mat',
                     'variables': [var for var in dataDict.keys()]}
     else:
-        dataDict, metaData = _read_block_txt(output_file)
+        dataDict, metaData = _read_block_txt(swan_file)
     return dataDict, metaData
     
 
-def _read_block_txt(output_file):
+def _read_block_txt(swan_file):
     '''
     Reads in SWAN block output with headers and creates a dictionary 
     of DataFrames for each SWAN output variable in the output file.
     
     Parameters
     ----------
-    output_file: str
+    swan_file: str
         swan block file to import (must be written with headers)
         
     Returns
@@ -92,10 +92,10 @@ def _read_block_txt(output_file):
     metaDict: Dictionary
         Dictionary of metaData dependent on file type    
     '''
-    assert isinstance(output_file, str), 'output_file must be of type str'
-    assert isfile(output_file)==True, f'File not found: {output_file}'
+    assert isinstance(swan_file, str), 'swan_file must be of type str'
+    assert isfile(swan_file)==True, f'File not found: {swan_file}'
     
-    f = open(output_file) 
+    f = open(swan_file) 
     runLines=[]
     metaDict = {}
     column_position = None
@@ -159,14 +159,14 @@ def _read_block_txt(output_file):
     return dataDict, metaData              
     
 
-def _read_block_mat(output_file):
+def _read_block_mat(swan_file):
     '''
     Reads in SWAN matlab output and creates a dictionary of DataFrames
     for each swan output variable.
     
     Parameters
     ----------
-    output_file: str
+    swan_file: str
         filename to import
         
     Returns
@@ -174,10 +174,10 @@ def _read_block_mat(output_file):
     dataDict: Dictionary
         Dictionary of DataFrame of swan output variables
     '''
-    assert isinstance(output_file, str), 'output_file must be of type str'
-    assert isfile(output_file)==True, 'output file not found please chact name/ path'
+    assert isinstance(swan_file, str), 'swan_file must be of type str'
+    assert isfile(swan_file)==True, 'swan file not found please chact name/ path'
         
-    dataDict = loadmat(output_file, struct_as_record=False, squeeze_me=True)
+    dataDict = loadmat(swan_file, struct_as_record=False, squeeze_me=True)
     removeKeys = ['__header__', '__version__', '__globals__']
     for key in removeKeys:
         dataDict.pop(key, None)
