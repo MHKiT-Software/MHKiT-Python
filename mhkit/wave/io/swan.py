@@ -290,6 +290,6 @@ def block_to_table(data, name='values'):
     table = data.unstack().reset_index(name=name)
     table = table.rename(columns={'level_0':'x', 'level_1': 'y'})
     table.sort_values(['x', 'y'], ascending=[True, True],  inplace=True)
-    #import ipdb; ipdb.set_trace()
+
     return table
 
