@@ -1,18 +1,14 @@
 import numpy as np
 import pandas as pd
-import matplotlib
 import matplotlib.pyplot as plt
 from mhkit.wave.resource import significant_wave_height as _sig_wave_height
 from mhkit.wave.resource import peak_period as _peak_period
 from mhkit.river.graphics import _xy_plot
-from matplotlib import gridspec
-from matplotlib import pylab
 
 
 def plot_spectrum(S, ax=None):
     """
     Plots wave amplitude spectrum versus omega
-
     Parameters
     ------------
     S: pandas DataFrame
@@ -22,7 +18,6 @@ def plot_spectrum(S, ax=None):
     Returns
     ---------
     ax : matplotlib pyplot axes
-
     """
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
 
@@ -37,18 +32,15 @@ def plot_spectrum(S, ax=None):
 def plot_elevation_timeseries(eta, ax=None):
     """
     Plot wave surface elevation time-series
-
     Parameters
     ------------
     eta: pandas DataFrame
         Wave surface elevation [m] indexed by time [datetime or s]
     ax : matplotlib axes object
         Axes for plotting.  If None, then a new figure is created.
-
     Returns
     ---------
     ax : matplotlib pyplot axes
-
     """
 
     assert isinstance(eta, pd.DataFrame), 'eta must be of type pd.DataFrame'
@@ -79,11 +71,9 @@ def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
         Show values on the scatter diagram
     ax : matplotlib axes object
         Axes for plotting.  If None, then a new figure is created.
-
     Returns
     ---------
     ax : matplotlib pyplot axes
-
     """
     
     assert isinstance(M, pd.DataFrame), 'M must be of type pd.DataFrame'
@@ -123,10 +113,8 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     """
     Plots, in the style of Chakrabart (2005), relative importance of viscous,
     inertia, and diffraction phemonena
-
     Chakrabarti, Subrata. Handbook of Offshore Engineering (2-volume set).
     Elsevier, 2005.
-
     Parameters
     ------------
     H: float or numpy array or pandas Series
@@ -137,32 +125,24 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
         Characteristic length [m]
     ax : matplotlib axes object (optional)
         Axes for plotting.  If None, then a new figure is created.
-
-
     Returns
     ---------
     ax : matplotlib pyplot axes
-
     Examples
     --------
     **Using floats**
-
     >>> plt.figure()
     >>> D = 5
     >>> H = 8
     >>> lambda_w = 200
     >>> wave.graphics.plot_chakrabarti(H, lambda_w, D)
-
     **Using numpy array**
-
     >>> plt.figure()
     >>> D = np.linspace(5,15,5)
     >>> H = 8*np.ones_like(D)
     >>> lambda_w = 200*np.ones_like(D)
     >>> wave.graphics.plot_chakrabarti(H, lambda_w, D)
-
     **Using pandas DataFrame**
-
     >>> plt.figure()
     >>> D = np.linspace(5,15,5)
     >>> H = 8*np.ones_like(D)
@@ -304,7 +284,6 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     '''
     Plots an overlay of the x1 and x2 variables to the calculate
     environmental contours.
-
     Parameters
     ----------
     x1: numpy array  
@@ -329,7 +308,6 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
         ax : matplotlib axes object (optional)
             Axes for plotting.  If None, then a new figure is created.
             Default None.
-
     Returns
     -------
     ax : matplotlib pyplot axes
@@ -380,3 +358,4 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     plt.ylabel(y_label)
     plt.tight_layout()
     return ax
+    
