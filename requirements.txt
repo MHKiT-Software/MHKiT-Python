@@ -1,7 +1,7 @@
 pandas>=1.0.0
-numpy
+numpy>=1.16.5
 scipy
 matplotlib
 requests
-pecos>=0.1.8
+pecos>=0.1.9
 fatpack
