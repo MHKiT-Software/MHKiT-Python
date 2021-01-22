@@ -787,9 +787,9 @@ class TestWPTOhindcast(unittest.TestCase):
         self.ml.index = pd.to_datetime(self.ml.index)
 
         self.mp = pd.read_csv(join(datadir,'hindcast/multiparm.csv'),index_col = 'time_index',
-        names = ['time_index','omni-directional_wave_power_0','energy_period_0'],
-        header = 0, dtype = {'omni-directional_wave_power_0':'float32',
-        'energy_period_0':'float32'})
+        names = ['time_index','energy_period_0','mean_zero-crossing_period_0'],
+        header = 0, dtype = {'energy_period_0':'float32',
+        'mean_zero-crossing_period_0':'float32'})
         self.mp.index = pd.to_datetime(self.mp.index)
 
         self.ml_meta = pd.read_csv(join(datadir,'hindcast/multiloc_meta.csv'),index_col = 0,
@@ -802,7 +802,10 @@ class TestWPTOhindcast(unittest.TestCase):
         ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
         ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
         
- 
+        self.mp_meta = pd.read_csv(join(datadir,'hindcast/multiparm_meta.csv'),index_col = 0,
+        names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
+        ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
+        ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
             
     @classmethod
     def tearDownClass(self):
@@ -842,7 +845,7 @@ class TestWPTOhindcast(unittest.TestCase):
         parameters,lat_lon,years)
 
         assert_frame_equal(self.mp,wave_multiparm)
-        assert_frame_equal(self.metadata,meta) 
+        assert_frame_equal(self.mp_meta,meta) 
 
 class TestSWAN(unittest.TestCase):
 
