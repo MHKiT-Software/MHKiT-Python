@@ -2,11 +2,12 @@ import pandas as pd
 import numpy as np
 from rex import MultiYearWaveX
 
-def request_wpto_dataset(data_type, parameter, lat_lon, years, tree=None, 
+def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None, 
                                  unscale=True, str_decode=True,hsds=True):
     
         """ 
-        Returns data from the WPTO wave hindcast hosted on AWS at the specified latitude and longitude points.
+        Returns data from the WPTO wave hindcast hosted on AWS at the specified latitude and longitude point(s), 
+        or the closest available pont(s).
         Visit https://registry.opendata.aws/wpto-pds-us-wave/ for more information about the dataset and available 
         locations and years. 
 
@@ -17,12 +18,16 @@ def request_wpto_dataset(data_type, parameter, lat_lon, years, tree=None,
         ----------
         data_type : string
             data set type of interst
-            Options: 'spatial'
+            Options: '3-hour' '1-hour'
         parameter: string or list of strings
             dataset parameter to be downloaded
-            spatial dataset options: 'directionality_coefficient', 'energy_period', 'maximum_energy_direction'
+            3-hour dataset options: 'directionality_coefficient', 'energy_period', 'maximum_energy_direction'
                 'mean_absolute_period', 'mean_zero-crossing_period', 'omni-directional_wave_power', 'peak_period'
                 'significant_wave_height', 'spectral_width', 'water_depth' 
+            1-hour dataset options: 'directionality_coefficient', 'energy_period', 'maximum_energy_direction'
+                'mean_absolute_period', 'mean_zero-crossing_period', 'omni-directional_wave_power', 'peak_period'
+                'significant_wave_height', 'spectral_width', 'water_depth', 'maximim_energy_direction',
+                'mean_wave_direction', 'frequency_bin_edges'
         lat_lon: tuple or list of tuples
             latitude longitude pairs at which to extract data 
         years : list 
@@ -59,8 +64,10 @@ def request_wpto_dataset(data_type, parameter, lat_lon, years, tree=None,
         assert isinstance(str_decode,bool), 'str_decode must be bool type'
         assert isinstance(hsds,bool), 'hsds must be bool type'
 
-        if data_type == 'spatial':
+        if data_type == '3-hour':
             wave_path = f'/nrel/US_wave/US_wave_*.h5'
+        elif data_type == '1-hour':
+            wave_path = f'/nrel/US_wave/virtual_buoy/US_virtual_buoy_*.h5'
         else:
             print(f'ERROR: invalid data_type')
             pass
