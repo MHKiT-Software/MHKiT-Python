@@ -12,6 +12,7 @@ def _validate_date(date_text):
     ----------
     date_text: string
         Date string format to check
+        
     Returns
     -------
     dt: datetime
@@ -28,7 +29,8 @@ def request_netCDF(station_number, data_type):
     '''
     Returns historic or realtime data from CDIP THREDDS server
    
-    Parameters:
+    Parameters
+    ----------
     station_number: string
         CDIP station number of interest
     data_type: string
@@ -54,11 +56,11 @@ def request_netCDF(station_number, data_type):
 def request_data(station_number, year=None, start_date=None, 
                      end_date=None, data_type='Historic', 
                      include_2D_variables=False):
-    """
+    '''
     Requests CDIP data by wave buoy data file (from http://cdip.ucsd.edu/).
     
     Parameters
-    ------------
+    ----------
     station_number: string
         Station number of CDIP wave buoy
     year: string 
@@ -70,16 +72,16 @@ def request_data(station_number, year=None, start_date=None,
     data_type: string
         Either 'Historic' or 'Realtime'   
     include2DVars: boolean
-        Will return 2D data from cdip. Enabling this will add significant 
+        Will return all 2D data. Enabling this will add significant 
         processing time. It is reccomened to call `request_netCDF` function
-        directly for 2D data.        
+        directly and process 2D of interest.        
     
     Returns
-    ---------
+    -------
     data: DataFrame 
         Data indexed by datetime with columns named according to the data 
         signal, for it includes: Hs, Tp, and Dp       
-    """
+    '''
     assert isinstance(station_number, str), f'station_number must be of type str'
     assert isinstance(start_date, (str, type(None))), 'start_date must be of type str'
     assert isinstance(end_date, (str, type(None))), 'end_date must be of type str'
@@ -126,12 +128,7 @@ def request_data(station_number, year=None, start_date=None,
         for var in twoDimensionalVars:
             allVariables.remove(var)
     
-    for var in allVariables:
-        print(var)
-        # if var == 'waveEnergyDensity':
-           # import ipdb; ipdb.set_trace()
-        # elif var == 'metaDeployLatitude':
-           # import ipdb; ipdb.set_trace()           
+    for var in allVariables:       
         variable = nc.variables[var][:]
         if variable.size == time_all.size:
             time_variables[var] = variable
