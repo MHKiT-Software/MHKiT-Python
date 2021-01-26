@@ -797,7 +797,7 @@ class TestWPTOhindcast(unittest.TestCase):
         ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
         ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
 
-        self.metadata = pd.read_csv(join(datadir,'hindcast/meta.csv'),index_col = 0,
+        self.my_meta = pd.read_csv(join(datadir,'hindcast/multi_year_meta.csv'),index_col = 0,
         names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
         ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
         ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
@@ -821,7 +821,7 @@ class TestWPTOhindcast(unittest.TestCase):
 
         wave_multiyear, meta = wave.io.hindcast.request_wpto_point_data(data_type,parameters,lat_lon,years)
         assert_frame_equal(self.my_swh,wave_multiyear)
-        assert_frame_equal(self.metadata,meta)
+        assert_frame_equal(self.my_meta,meta)
         
     def test_multi_loc(self):
         data_type = '3-hour'
