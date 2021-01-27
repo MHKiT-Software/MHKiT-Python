@@ -7,10 +7,10 @@ import mhkit
 ########################################################################
 # Load Historic data
 station_number = '067'
-year_date = '2011'
+year = 2011
 
-data, metadata = cdip.request_data(station_number,year=year_date,
-                                   include_2D_variables=True)
+#data, metadata = cdip.request_data(station_number,years=year,
+#                                   include_2D_variables=True)
 
 # Plot Boxplot
 #mhkit.wave.graphics.plot_boxplot(data.waveHs, data.name)
@@ -25,9 +25,9 @@ data, metadata = cdip.request_data(station_number,year=year_date,
 #########################
 # Load Historic data
 #########################
-# stn = '100'
-# start_date = "04-01-2012" # MM/DD/YYYY
-# end_date = "04-30-2012"
+stn = '100'
+start_date = "2012-04-01" # MM/DD/YYYY
+end_date = "2012-04-30"
 
 # stn = '179'
 # start_date = "04/01/2019" # MM/DD/YYYY
@@ -41,7 +41,7 @@ data, metadata = cdip.request_data(station_number,year=year_date,
 # start_date = "08/01/2018" # MM/DD/YYYY
 # end_date = "08/31/2018"
 
-#data, metadata = cdip.request_data(stn,start_date= start_date,end_date=start_date)
+data, metadata = cdip.request_data(stn,start_date= start_date,end_date=end_date)
 # data.head()
 
 #########################

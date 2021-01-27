@@ -49,11 +49,98 @@ def request_netCDF(station_number, data_type):
         cdip_realtime = 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/realtime'
         data_url = f'{cdip_realtime}/{station_number}p1_rt.nc'
     nc = netCDF4.Dataset(data_url)
-    nc.set_auto_mask(False)
+    #nc.set_auto_mask(False)
     return nc
 
+def _start_and_end_of_year(year):
+    '''
+    Returns a datetime start and end for a given year
+    
+    Parameters
+    ----------
+    year: int
+        Year to get start and end dates
+        
+    Returns
+    -------
+    start_year: datetime object
+        start of the year
+    end_year: datetime object
+        end of the year
+    
+    '''
+    assert isinstance(year, (type(None),int,list)), 'year must be of type int'
+    
+    try:
+        year = str(year)
+        start_year = datetime.datetime.strptime(year, '%Y')
+    except ValueError:
+        raise ValueError("Incorrect years format, should be YYYY")
+    else:            
+        next_year = datetime.datetime.strptime(f'{int(year)+1}', '%Y')
+        end_year = next_year - datetime.timedelta(days=1)
+    return start_year, end_year
 
-def request_data(station_number, year=None, start_date=None, 
+
+def get_netcdf_variables(nc, start_stamp=None, end_stamp=None, 
+                             include_2D_variables=False):
+    '''
+    interates over and extracts variables from CDIP Bouy data
+    
+    Parameters
+    ----------
+    nc: netCDF Object
+        netCDF data for the given station number and data type
+    start_stamp: float
+        Data of interest start in seconds since epoch
+    end_stamp: float
+        Data of interest end in seconds since epoch   
+    include2DVars: boolean
+        Will return all 2D data. Enabling this will add significant 
+        processing time. It is reccomened to call `request_netCDF` 
+        function directly and process 2D of interest.        
+    Returns
+    -------
+    time_variable: dictionary
+        1D variables indexed by time    
+    metadata: dictionary
+        Anything not of len time            
+    '''
+    
+    time_variables={}
+    metadata={}
+    
+    masked_time = np.ma.masked_inside(nc.variables['waveTime'][:], 
+                               start_stamp, end_stamp)
+    mask = masked_time.mask                               
+    time_variables['waveTime'] = masked_time.compressed()
+
+    
+    allVariables = [var for var in nc.variables]
+    allVariables.remove('waveTime')
+        
+    twoDimensionalVars = [ 'waveEnergyDensity', 'waveMeanDirection', 
+                           'waveA1Value', 'waveB1Value', 'waveA2Value', 
+                           'waveB2Value', 'waveCheckFactor', 'waveSpread', 
+                           'waveM2Value', 'waveN2Value']
+    
+    if not include_2D_variables:
+        for var in twoDimensionalVars:
+            allVariables.remove(var)
+    
+    for var in allVariables:      
+        variable = nc.variables[var][:].compressed()
+        if variable.size == masked_time.size:
+            import ipdb; ipdb.set_trace()    
+            variable = np.ma.masked_outside(nc.variables[var][:], 
+                                            start_stamp, end_stamp)
+            time_variables[var] = variable            
+        else:
+            metadata[var] = nc.variables[var][:].compressed()
+    return time_variables, metadata
+
+
+def request_data(station_number, years=None, start_date=None, 
                      end_date=None, data_type='Historic', 
                      include_2D_variables=False):
     '''
@@ -63,8 +150,8 @@ def request_data(station_number, year=None, start_date=None,
     ----------
     station_number: string
         Station number of CDIP wave buoy
-    year: string 
-        Year date, e.g. '2001'        
+    years: int or list of int
+        Year date, e.g. 2001 or [2009, 2010]        
     start_date: string 
         Start date in MM-DD-YYYY, e.g. '04-01-2012'
     end_date: string 
@@ -73,8 +160,8 @@ def request_data(station_number, year=None, start_date=None,
         Either 'Historic' or 'Realtime'   
     include2DVars: boolean
         Will return all 2D data. Enabling this will add significant 
-        processing time. It is reccomened to call `request_netCDF` function
-        directly and process 2D of interest.        
+        processing time. It is reccomened to call `request_netCDF` 
+        function directly and process 2D of interest.
     
     Returns
     -------
@@ -85,55 +172,81 @@ def request_data(station_number, year=None, start_date=None,
     assert isinstance(station_number, str), f'station_number must be of type str'
     assert isinstance(start_date, (str, type(None))), 'start_date must be of type str'
     assert isinstance(end_date, (str, type(None))), 'end_date must be of type str'
-    assert isinstance(year, (str,type(None))), 'year must be of type str'
+    assert isinstance(years, (type(None),int,list)), 'years must be of type int or list of ints'
   
-    if not any([year, start_date, end_date]):
+    if not any([years, start_date, end_date]):
         Exception('Must specify either a year, a start_date, or start_date & end_date')
     
-    if year:
-        try:
-            start_year = datetime.datetime.strptime(year, '%Y')
-        except ValueError:
-            raise ValueError("Incorrect year format, should be YYYY")
-        else:            
-            next_year = datetime.datetime.strptime(f'{int(year)+1}', '%Y')
-            end_year = next_year - datetime.timedelta(days=1)
+    multiyear=False
+    if years:
+        if isinstance(years,int):
+            start_year, end_year = _start_and_end_of_year(years)
+        elif isinstance(years,list):
+            if len(years)==1:
+                start_year, end_year = _start_and_end_of_year(years[0])
+            else:
+                multiyear=True
+            
     if start_date:        
         start_date = _validate_date(start_date)   
     if end_date:
         end_date = _validate_date(end_date)
         if not start_date:
-            raise Exception('start_date must be speficied with end_date')         
+            raise Exception('start_date must be speficied with end_date')      
+        elif start_date > end_date:
+            raise Exception(f'start_date ({start_date}) must be before end_date ({end_date})')
+        elif start_date == end_date:
+            raise Exception(f'start_date ({start_date}) cannot be the same as end_date ({end_date})')
+            
             
     
-    nc = request_netCDF(station_number, data_type)    
+    nc = request_netCDF(station_number, data_type)
+    
+    time_all = nc.variables['waveTime'][:].compressed()
+    time_range = [time_all[0].astype('datetime64[s]'), 
+                  time_all[-1].astype('datetime64[s]')]
 
-       
     
-    
-    time_all = nc.variables['waveTime'][:].astype('datetime64[s]')
-    
-    time_variables={}
-    metadata={}
-    
-    allVariables = [var for var in nc.variables]
-    allVariables.remove('waveTime')
-    
-    twoDimensionalVars = [ 'waveEnergyDensity', 'waveMeanDirection', 
-                           'waveA1Value', 'waveB1Value', 'waveA2Value', 
-                           'waveB2Value', 'waveCheckFactor', 'waveSpread', 
-                           'waveM2Value', 'waveN2Value']
-    
-    if not include_2D_variables:
-        for var in twoDimensionalVars:
-            allVariables.remove(var)
-    
-    for var in allVariables:       
-        variable = nc.variables[var][:]
-        if variable.size == time_all.size:
-            time_variables[var] = variable
+    if start_date:
+        if start_date > time_range[0] and start_date < time_range[1]:
+            start_stamp = start_date.timestamp()
+
+        if end_date:
+            end_stamp = end_date.timestamp()
+
+            data = get_netcdf_variables(nc, 
+                       start_stamp=start_stamp, end_stamp=end_stamp, 
+                       include_2D_variables=include_2D_variables)                                  
         else:
-            metadata[var] = variable
+            data = get_netcdf_variables(nc, 
+                       start_stamp=start_stamp,  
+                       include_2D_variables=include_2D_variables)       
+                        
+    elif multiyear:
+        mYear={}
+        for year in years: 
+            start_year, end_year = _start_and_end_of_year(years) 
+            start_stamp = start_year.timestamp()
+            end_stamp = end_year.timestamp()
+            
+            data = get_netcdf_variables(nc, 
+                       start_stamp=start_stamp, end_stamp=end_stamp,  
+                       include_2D_variables=include_2D_variables) 
+            mYear[year] = data
+        import ipdb;ipdb.set_trace()
+    else:        
+        start_stamp = start_year.timestamp()
+        end_stamp = end_year.timestamp()
+        
+        data = get_netcdf_variables(nc, 
+                   start_stamp=start_stamp, end_stamp=end_stamp,  
+                   include_2D_variables=include_2D_variables) 
+    
+    
+    
+    
+    
+
      
     data = pd.DataFrame(time_variables, index=time_all)   
      
@@ -146,7 +259,16 @@ def request_data(station_number, year=None, start_date=None,
         else:
             data = data[start_string:end_string]        
                         
-    elif year: 
+    elif multiyear:
+        mYear={}
+        for year in years: 
+            start_year, end_year = _start_and_end_of_year(years)    
+            start_string = start_year.strftime('%Y-%m-%d')
+            end_string = end_year.strftime('%Y-%m-%d')
+            data = data[start_string:end_string]
+            mYear[year] = data
+        import ipdb;ipdb.set_trace()
+    else:        
         start_string = start_year.strftime('%Y-%m-%d')
         end_string = end_year.strftime('%Y-%m-%d')
         data = data[start_string:end_string]
