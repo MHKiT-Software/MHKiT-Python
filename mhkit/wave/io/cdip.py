@@ -131,9 +131,8 @@ def get_netcdf_variables(nc, start_stamp=None, end_stamp=None,
     for var in allVariables:      
         variable = nc.variables[var][:].compressed()
         if variable.size == masked_time.size:
-            import ipdb; ipdb.set_trace()    
-            variable = np.ma.masked_outside(nc.variables[var][:], 
-                                            start_stamp, end_stamp)
+            #import ipdb; ipdb.set_trace()    
+            variable = np.ma.masked_array(variable, masked_time.mask)
             time_variables[var] = variable            
         else:
             metadata[var] = nc.variables[var][:].compressed()
@@ -214,11 +213,11 @@ def request_data(station_number, years=None, start_date=None,
         if end_date:
             end_stamp = end_date.timestamp()
 
-            data = get_netcdf_variables(nc, 
+            time_variables, metadata = get_netcdf_variables(nc, 
                        start_stamp=start_stamp, end_stamp=end_stamp, 
                        include_2D_variables=include_2D_variables)                                  
         else:
-            data = get_netcdf_variables(nc, 
+            time_variables, metadata = get_netcdf_variables(nc, 
                        start_stamp=start_stamp,  
                        include_2D_variables=include_2D_variables)       
                         
@@ -229,7 +228,7 @@ def request_data(station_number, years=None, start_date=None,
             start_stamp = start_year.timestamp()
             end_stamp = end_year.timestamp()
             
-            data = get_netcdf_variables(nc, 
+            time_variables, metadata = get_netcdf_variables(nc, 
                        start_stamp=start_stamp, end_stamp=end_stamp,  
                        include_2D_variables=include_2D_variables) 
             mYear[year] = data
@@ -238,7 +237,7 @@ def request_data(station_number, years=None, start_date=None,
         start_stamp = start_year.timestamp()
         end_stamp = end_year.timestamp()
         
-        data = get_netcdf_variables(nc, 
+        time_variables, metadata = get_netcdf_variables(nc, 
                    start_stamp=start_stamp, end_stamp=end_stamp,  
                    include_2D_variables=include_2D_variables) 
     
@@ -247,7 +246,7 @@ def request_data(station_number, years=None, start_date=None,
     
     
 
-     
+    import ipdb;ipdb.set_trace() 
     data = pd.DataFrame(time_variables, index=time_all)   
      
     if start_date:
