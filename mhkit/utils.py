@@ -7,7 +7,7 @@ from mhkit import qc
 
 _matlab = False # Private variable indicating if mhkit is run through matlab
 
-def get_statistics(data,freq,period=600):
+def get_statistics(data,freq,period=600,vector_channels=[]):
     """
     Calculate mean, max, min and stdev statistics of continuous data for a 
     given statistical window. Default length of statistical window (period) is
@@ -22,7 +22,9 @@ def get_statistics(data,freq,period=600):
         Sample rate of data [Hz]
     period : float/int
         Statistical window of interest [sec], default = 600 
-    
+    vector_channels : list
+        List of channel names that are to be vector averaged
+
     Returns
     ---------
     means,maxs,mins,stdevs : pandas DataFrame
@@ -32,6 +34,9 @@ def get_statistics(data,freq,period=600):
     assert isinstance(data, pd.DataFrame), 'data must be of type pd.DataFrame'
     assert isinstance(freq, (float,int)), 'freq must be of type int or float'
     assert isinstance(period, (float,int)), 'freq must be of type int or float'
+    # catch if vector_channels is not an string array
+    if isinstance(vector_channels,str): vector_channels = [vector_channels]
+    assert isinstance(vector_channels, list), 'vector_channels must be string array'
 
     # Check timestamp using qc module
     data.index = data.index.round('1ms')
@@ -62,12 +67,27 @@ def get_statistics(data,freq,period=600):
             continue
         else:
             # Get stats
-            time.append(datachunk.index.values[0])
-            means.append(datachunk.mean())
-            maxs.append(datachunk.max())
-            mins.append(datachunk.min())
-            stdev.append(datachunk.std())
-
+            time.append(datachunk.index.values[0]) # time vector
+            maxs.append(datachunk.max()) # maxes
+            mins.append(datachunk.min()) # mins
+            means.append(datachunk.mean()) # means
+            stdev.append(datachunk.std()) # standard deviation
+            # calculate vector averages and std
+            for v in vector_channels:
+                Ux = sum(np.sin(datachunk[v]*np.pi/180))/len(datachunk)
+                Uy = sum(np.cos(datachunk[v]*np.pi/180))/len(datachunk)
+                vector_avg = (90 - np.arctan2(Uy,Ux)*180/np.pi) # number doesnt seem right
+                if vector_avg<0: vector_avg = vector_avg+360
+                elif vector_avg>360: vector_avg = vector_avg-360              
+                means[i][v] = vector_avg # overwrite scalar average for channel
+                magsum = round((Ux**2 + Uy**2)*1e8)/1e8 # round to 8th decimal place
+                epsilon = (1-magsum)**0.5
+                if epsilon<0:
+                    vector_std = 0
+                else:
+                    vector_std = np.arcsin(epsilon)*(1+0.1547*epsilon**3)*180/np.pi
+                stdev[i][v] = vector_std # overwrite scalar std for channel
+        
     # Convert to DataFrames and set index
     means = pd.DataFrame(means,index=time)
     maxs = pd.DataFrame(maxs,index=time)
