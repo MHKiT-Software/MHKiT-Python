@@ -448,7 +448,7 @@ class TestResourceContours(unittest.TestCase):
         
         assert_allclose(PCA['principal_axes'], self.pca['principal_axes'])
         self.assertAlmostEqual(PCA['shift'], self.pca['shift'])
-        self.assertAlmostEqual(PCA['x1_fit'], self.pca['x1_fit'])
+        self.assertAlmostEqual(PCA['x1_fit']['mu'], self.pca['x1_fit']['mu'])
         self.assertAlmostEqual(PCA['mu_fit'].slope, self.pca['mu_fit'].slope)
         self.assertAlmostEqual(PCA['mu_fit'].intercept, self.pca['mu_fit'].intercept)
         assert_allclose(PCA['sigma_fit']['x'], self.pca['sigma_fit']['x'])
@@ -769,6 +769,136 @@ class TestWECSim(unittest.TestCase):
         self.assertEqual(len(ws_output['mooring']),40001)
         self.assertEqual(len(ws_output['moorDyn']),7)
         self.assertEqual(len(ws_output['ptosim']),0)
+
+class TestWPTOhindcast(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(self):
+
+        self.my_swh = pd.read_csv(join(datadir,'hindcast/multi_year_hindcast.csv'),index_col = 'time_index',
+        names = ['time_index','significant_wave_height_0'],header = 0, 
+        dtype = {'significant_wave_height_0':'float32'})
+        self.my_swh.index = pd.to_datetime(self.my_swh.index)
+
+        self.ml = pd.read_csv(join(datadir,'hindcast/single_year_hindcast_multiloc.csv'),index_col = 'time_index',
+        names = ['time_index','mean_absolute_period_0','mean_absolute_period_1'],
+        header = 0, dtype = {'mean_absolute_period_0':'float32',
+        'mean_absolute_period_1':'float32'})
+        self.ml.index = pd.to_datetime(self.ml.index)
+
+        self.mp = pd.read_csv(join(datadir,'hindcast/multiparm.csv'),index_col = 'time_index',
+        names = ['time_index','energy_period_0','mean_zero-crossing_period_0'],
+        header = 0, dtype = {'energy_period_0':'float32',
+        'mean_zero-crossing_period_0':'float32'})
+        self.mp.index = pd.to_datetime(self.mp.index)
+
+        self.ml_meta = pd.read_csv(join(datadir,'hindcast/multiloc_meta.csv'),index_col = 0,
+        names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
+        ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
+        ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
+
+        self.my_meta = pd.read_csv(join(datadir,'hindcast/multi_year_meta.csv'),index_col = 0,
+        names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
+        ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
+        ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
+        
+        self.mp_meta = pd.read_csv(join(datadir,'hindcast/multiparm_meta.csv'),index_col = 0,
+        names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
+        ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
+        ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
+            
+    @classmethod
+    def tearDownClass(self):
+        pass
+
+    ### WPTO hindcast data
+
+    def test_multi_year_sig_wave_height(self):
+        data_type = '3-hour'
+        years = [1990,1991]
+        lat_lon = (44.624076,-124.280097) 
+        parameters = 'significant_wave_height'
+
+        wave_multiyear, meta = wave.io.hindcast.request_wpto_point_data(data_type,parameters,lat_lon,years)
+        assert_frame_equal(self.my_swh,wave_multiyear)
+        assert_frame_equal(self.my_meta,meta)
+        
+    def test_multi_loc(self):
+        data_type = '3-hour'
+        years = [1995]
+        lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137)) 
+        parameters = 'mean_absolute_period'
+
+        wave_multiloc, meta= wave.io.hindcast.request_wpto_point_data(data_type,
+        parameters,lat_lon,years)
+
+        assert_frame_equal(self.ml,wave_multiloc)
+        assert_frame_equal(self.ml_meta,meta)
+
+    def test_multi_parm(self):
+        data_type = '1-hour'
+        years = [1996]
+        lat_lon = (44.624076,-124.280097) 
+        parameters = ['energy_period','mean_zero-crossing_period']
+
+        wave_multiparm, meta= wave.io.hindcast.request_wpto_point_data(data_type,
+        parameters,lat_lon,years)
+
+        assert_frame_equal(self.mp,wave_multiparm)
+        assert_frame_equal(self.mp_meta,meta) 
+
+class TestSWAN(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(self):
+        swan_datadir = join(datadir,'swan')
+        self.table_file = join(swan_datadir,'SWANOUT.DAT')
+        self.swan_block_mat_file = join(swan_datadir,'SWANOUT.MAT')
+        self.swan_block_txt_file = join(swan_datadir,'SWANOUTBlock.DAT')
+        self.expected_table = pd.read_csv(self.table_file, sep='\s+', comment='%', 
+                  names=['Xp', 'Yp', 'Hsig', 'Dir', 'RTpeak', 'TDir'])  
+                  
+    @classmethod
+    def tearDownClass(self):
+        pass
+
+    def test_read_table(self):
+        swan_table, swan_meta = wave.io.swan.read_table(self.table_file)
+        assert_frame_equal(self.expected_table, swan_table)
+        
+    def test_read_block_mat(self):        
+        swanBlockMat, metaDataMat = wave.io.swan.read_block(self.swan_block_mat_file )
+        self.assertEqual(len(swanBlockMat), 4)
+        self.assertAlmostEqual(self.expected_table['Hsig'].sum(), 
+                               swanBlockMat['Hsig'].sum().sum(), places=1)
+        
+    def test_read_block_txt(self):        
+        swanBlockTxt, metaData = wave.io.swan.read_block(self.swan_block_txt_file)
+        self.assertEqual(len(swanBlockTxt), 4)
+        sumSum = swanBlockTxt['Significant wave height'].sum().sum()
+        self.assertAlmostEqual(self.expected_table['Hsig'].sum(), 
+                               sumSum, places=-2)
+                               
+    def test_block_to_table(self):
+        x=np.arange(5)
+        y=np.arange(5,10)
+        df = pd.DataFrame(np.random.rand(5,5), columns=x, index=y)
+        dff = wave.io.swan.block_to_table(df)
+        self.assertEqual(dff.shape, (len(x)*len(y), 3))
+        self.assertTrue(all(dff.x.unique() == np.unique(x)))
+        
+    def test_dictionary_of_block_to_table(self):
+        x=np.arange(5)
+        y=np.arange(5,10)
+        df = pd.DataFrame(np.random.rand(5,5), columns=x, index=y)
+        keys = ['data1', 'data2']
+        data = [df, df]
+        dict_of_dfs = dict(zip(keys,data)) 
+        dff = wave.io.swan.dictionary_of_block_to_table(dict_of_dfs) 
+        self.assertEqual(dff.shape, (len(x)*len(y), 2+len(keys)))
+        self.assertTrue(all(dff.x.unique() == np.unique(x)))
+        for key in keys:
+            self.assertTrue(key in dff.keys())
 
 if __name__ == '__main__':
     unittest.main() 

@@ -61,6 +61,7 @@ class TestLoads(unittest.TestCase):
         for i,j in zip(M_edge,self.blade_data['edge_scaled']):
             self.assertAlmostEqual(i,j,places=1)
 
+
     def test_damage_equivalent_loads(self):
         loads_data = self.data['loads']
         tower_load = loads_data['TB_ForeAft']
@@ -70,6 +71,7 @@ class TestLoads(unittest.TestCase):
 
         self.assertAlmostEqual(DEL_tower,self.fatigue_tower,delta=self.fatigue_tower*0.04)
         self.assertAlmostEqual(DEL_blade,self.fatigue_blade,delta=self.fatigue_blade*0.04)
+
 
     def test_plot_statistics(self):
         # Define path
@@ -86,6 +88,7 @@ class TestLoads(unittest.TestCase):
                                save_path=savepath)
         
         self.assertTrue(isfile(savepath))
+
 
     def test_plot_bin_statistics(self):
         # Define signal name, path, and bin centers

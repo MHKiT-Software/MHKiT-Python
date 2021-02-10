@@ -1,14 +1,16 @@
 language: python
 python:
-  - "3.6"
   - "3.7"
   - "3.8"
+  - "3.9"
 cache: pip
 install:
+  - python -m pip install --upgrade pip wheel
   - pip install coveralls
-  - pip install -e .
+  - pip install .
+import:
+  - .hscfg
 script:
-  - nosetests -v --with-coverage --cover-package=mhkit mhkit
-      
+  - nosetests -v --with-coverage --cover-package=mhkit mhkit    
 after_success:
   - coveralls
