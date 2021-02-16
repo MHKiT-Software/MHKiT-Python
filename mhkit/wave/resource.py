@@ -599,7 +599,7 @@ def energy_flux(S, h, rho=1025, g=9.80665):
     return J
 
 
-def wave_celerity(k, h, g=9.80665):
+def wave_celerity(k, h, depth_check = False, g=9.80665):
     """
     Calculates wave celerity (group velocity)
     
@@ -609,9 +609,11 @@ def wave_celerity(k, h, g=9.80665):
         Wave number [1/m] indexed by frequency [Hz]
     h: float
         Water depth [m]
+    depth_check: bool
+        If true check depth regime, if false don't check depth
     g : float (optional)
         Gravitational acceleration [m/s^2]
-        
+
     Returns
     -------
     Cg: pandas DataFrame
@@ -621,16 +623,64 @@ def wave_celerity(k, h, g=9.80665):
     assert isinstance(k, pd.DataFrame), 'S must be of type pd.DataFrame'
     assert isinstance(h, (int,float)), 'h must be of type int or float'
     assert isinstance(g, (int,float)), 'g must be of type int or float'
+    assert isinstance(depth_check, bool), 'depth_check must be of type bool'
 
-    f = k.index
-    k = k.squeeze() # convert to Series for calculation (returns a copy)
-    
-    # Eq 10 in IEC 62600-101
-    Cg = (np.pi*f/k)*(1+(2*h*k)/np.sinh(2*h*k))
-    Cg = pd.DataFrame(Cg, index=f, columns=["Cg"])
+    if depth_check == False:
+        f = k.index
+        k = k.squeeze()  # convert to Series for calculation (returns a copy)
+
+        # Eq 10 in IEC 62600-101
+        Cg = (np.pi * f / k) * (1 + (2 * h * k) / np.sinh(2 * h * k))
+        Cg = pd.DataFrame(Cg, index=f, columns=["Cg"])
+    else:
+        # check the depth for each of the frequencies using depth_regime()
+        # get wavelength
+        wl = wave_length(k)
+        # get depth regime
+        dr = depth_regime(wl, h)
+        k['deep'] = dr
+
+        # shallow frequencies
+        shallow = k[k['deep'] == False]
+        sf = shallow.index
+        sk = shallow['k'].squeeze()
+        sCg = (np.pi * sf / sk) * (1 + (2 * h * sk) / np.sinh(2 * h * sk))
+        sCg = pd.DataFrame(sCg, index = sf, columns = ["Cg"])
+
+        # deep frequencies
+        deep = k[k['deep'] == True]
+        df = deep.index
+        dk = deep['k'].squeeze()
+        # deep water approximation
+        dCg = (np.pi * df / dk)
+        dCg = pd.DataFrame(dCg, index=df, columns=["Cg"])
+
+        Cg = pd.concat([sCg, dCg])
    
     return Cg
 
+def wave_length(k):
+    """
+    Calculates wave length from wave number
+    Assumes input from wave_number() func
+    To compute: 2*pi/wavenumber
+
+    Parameters
+    -------------
+    k: pandas Dataframe
+        Wave number [1/m] indexed by frequency
+
+    Returns
+    ---------
+    l: pandas Dataframe
+        Wave length [m] indexed by frequency
+    """
+
+    assert isinstance(k, pd.DataFrame), 'k must be of type pandas.Dataframe'
+    f = k.index
+    l = pd.DataFrame(index = f, columns = ['L'])
+    l['L'] = 2*np.pi/k['k']
+    return l
 
 def wave_number(f, h, rho=1025, g=9.80665):
     """
@@ -687,21 +737,52 @@ def wave_number(f, h, rho=1025, g=9.80665):
     
     return k
 
+def depth_regime(L, h):
+    '''
+    Calculates the depth regime based on wavelength and height
+    Deep water: h/L > 1/2
+    This function exists so sinh in wave celerity doesn't blow
+    up to infinity.
+    
+    Parameters
+    ----------
+    L: numpy array
+        wavelength [m]
+    h: float
+        water column depth [m[
+
+    Returns
+    -------
+    depth_reg: numpy array
+        Boolean [true/false] for deepwater characteristics indexed
+        by frequency
+    '''
+
+    assert isinstance(L, pd.DataFrame), "L must be of type pandas.DataFrame"
+    assert isinstance(h, (int, float)), "h must be of type int or float"
+
+    f = L.index
+    depth_reg = pd.DataFrame(index = f, columns = ["deep"])
+    depth_reg["deep"] = h/L > 0.5
+
+    return  depth_reg
+
+
 def environmental_contour(x1, x2, dt, period, **kwargs):
     '''
-    Calculates environmental contours of extreme sea 
-    states using the improved joint probability distributions 
-    with the inverse first-order reliability method (I-FORM) 
-    probability for the desired return period (`period`). Given the 
-    period of interest, a circle of iso-probability is created 
-    in the principal component analysis (PCA) joint probability 
+    Calculates environmental contours of extreme sea
+    states using the improved joint probability distributions
+    with the inverse first-order reliability method (I-FORM)
+    probability for the desired return period (`period`). Given the
+    period of interest, a circle of iso-probability is created
+    in the principal component analysis (PCA) joint probability
     (`x1`, `x2`) reference frame.
-    Using the joint probability value, the cumulative distribution 
-    function (CDF) of the marginal distribution is used to find 
-    the quantile of each component. 
+    Using the joint probability value, the cumulative distribution
+    function (CDF) of the marginal distribution is used to find
+    the quantile of each component.
     Finally, using the improved PCA methodology,
-    the component 2 contour lines are calculated from component 1 using 
-    the relationships defined in Exkert-Gallup et. al. 2016.	
+    the component 2 contour lines are calculated from component 1 using
+    the relationships defined in Exkert-Gallup et. al. 2016.
 
     Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
     Neary, V. S. (2016). Application of principal component 
