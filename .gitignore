@@ -1,5 +1,9 @@
 $ cat .gitignore
 
+# scratch file
+scratch.py
+scratch_data.txt
+
 # File Types
 *.asv
 *.m

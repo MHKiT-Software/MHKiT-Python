@@ -638,17 +638,18 @@ def wave_celerity(k, h, depth_check = False, g=9.80665):
         wl = wave_length(k)
         # get depth regime
         dr = depth_regime(wl, h)
-        k['deep'] = dr
+        kc = k.copy(deep = True)
+        kc['deep'] = dr
 
         # shallow frequencies
-        shallow = k[k['deep'] == False]
+        shallow = kc[kc['deep'] == False]
         sf = shallow.index
         sk = shallow['k'].squeeze()
         sCg = (np.pi * sf / sk) * (1 + (2 * h * sk) / np.sinh(2 * h * sk))
         sCg = pd.DataFrame(sCg, index = sf, columns = ["Cg"])
 
         # deep frequencies
-        deep = k[k['deep'] == True]
+        deep = kc[kc['deep'] == True]
         df = deep.index
         dk = deep['k'].squeeze()
         # deep water approximation
