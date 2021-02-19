@@ -552,7 +552,7 @@ def spectral_width(S,frequency_bins=None):
     return v
 
 
-def energy_flux(S, h, rho=1025, g=9.80665):
+def energy_flux(S, h, deep = False, rho=1025, g=9.80665):
     """
     Calculates the omnidirectional wave energy flux of the spectra
     
@@ -562,6 +562,8 @@ def energy_flux(S, h, rho=1025, g=9.80665):
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     h: float
         Water depth [m]
+    deep: bool
+        Use deep water approximation
     rho: float (optional)
         Water Density [kg/m3]
     g : float (optional)
@@ -575,31 +577,43 @@ def energy_flux(S, h, rho=1025, g=9.80665):
     # TODO: Add deep water flag
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     assert isinstance(h, (int,float)), 'h must be of type int or float'
+    assert isinstance(deep, bool), 'deep must be of type bool'
     assert isinstance(rho, (int,float)), 'rho must be of type int or float'
     assert isinstance(g, (int,float)), 'g must be of type int or float'
     
-    f = S.index
-    
-    k = wave_number(f,h,rho,g)
-        
-    # wave celerity (group velocity)
-    Cg = wave_celerity(k,h,g).squeeze()
-    
-    # Calculating the wave energy flux, Eq 9 in IEC 62600-101 
-    delta_f = pd.Series(f).diff()
-    delta_f.index = f
-    delta_f[f[0]] = delta_f[f[1]] # fill the initial NaN
-    
-    CgSdelF = S.multiply(delta_f, axis=0).multiply(Cg, axis=0)
-    
-    J = rho*g*CgSdelF.sum(axis=0)
-    
-    J = pd.DataFrame(J, index=S.columns, columns=["J"])
-    
+    if deep == False:
+        # deep water flag is false
+        f = S.index
+
+        k = wave_number(f, h, rho, g)
+
+        # wave celerity (group velocity)
+        Cg = wave_celerity(k, h, g).squeeze()
+
+        # Calculating the wave energy flux, Eq 9 in IEC 62600-101
+        delta_f = pd.Series(f).diff()
+        delta_f.index = f
+        delta_f[f[0]] = delta_f[f[1]]  # fill the initial NaN
+
+        CgSdelF = S.multiply(delta_f, axis=0).multiply(Cg, axis=0)
+
+        J = rho * g * CgSdelF.sum(axis=0)
+
+        J = pd.DataFrame(J, index=S.columns, columns=["J"])
+    else:
+        # Eq 8 in IEC 62600-100, deep water simpilification
+        Te = energy_period(S)
+        Hm_zero = significant_wave_height(S)
+        # print(Hm_zero)
+        coeff = rho*(g**2)/(64*np.pi)
+
+        J = coeff*(Hm_zero['Hm0']**2)*Te['Te']
+        J = pd.DataFrame(J, index=S.columns, columns=["J"])
+
     return J
 
 
-def wave_celerity(k, h, depth_check = False, g=9.80665):
+def wave_celerity(k, h, g=9.80665, depth_check = False):
     """
     Calculates wave celerity (group velocity)
     
@@ -738,13 +752,18 @@ def wave_number(f, h, rho=1025, g=9.80665):
     
     return k
 
-def depth_regime(L, h):
+def depth_regime(L, h, ratio = 2):
     '''
     Calculates the depth regime based on wavelength and height
-    Deep water: h/L > 1/2
+    Deep water: h/L > ratio
     This function exists so sinh in wave celerity doesn't blow
     up to infinity.
-    
+
+    P.K. Kundu, I.M. Cohen (2000) suggest h/L >> 1 for deep water (pg 209)
+    Same citation as above, they also suggest for 3% accuracy, h/L > 0.28 (pg 210)
+    However, since this function has multiple wavelengths, higher ratio numbers are
+    more accurate across varying wavelengths.
+
     Parameters
     ----------
     L: numpy array
@@ -764,7 +783,7 @@ def depth_regime(L, h):
 
     f = L.index
     depth_reg = pd.DataFrame(index = f, columns = ["deep"])
-    depth_reg["deep"] = h/L > 0.5
+    depth_reg["deep"] = h/L > ratio
 
     return  depth_reg
 
