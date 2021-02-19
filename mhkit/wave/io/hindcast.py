@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from rex import MultiYearWaveX
+from rex import MultiYearWaveX, WaveX
 
 def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None, 
                                  unscale=True, str_decode=True,hsds=True):
@@ -98,3 +98,67 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
             meta = rex_waves.meta.loc[col,:]
             meta = meta.reset_index(drop=True)    
         return data, meta
+
+def request_wpto_directional_spectrum(lat_lon, year, tree=None, 
+                                 unscale=True, str_decode=True,hsds=True):
+    
+    """ 
+    Returns data from the WPTO wave hindcast hosted on AWS at the specified latitude and longitude point(s), 
+    or the closest available pont(s).
+    Visit https://registry.opendata.aws/wpto-pds-us-wave/ for more information about the dataset and available 
+    locations and years. 
+
+    Note: To access the WPTO hindcast data, you will need to configure h5pyd for data access on HSDS. 
+    Please see the WPTO_hindcast_example notebook for more information.  
+
+    Parameters
+    ----------
+    lat_lon: tuple or list of tuples
+        latitude longitude pairs at which to extract data 
+    year : string 
+        Year to be accessed. The years 1979-2010 available.
+    tree : str | cKDTree (optional)
+        cKDTree or path to .pkl file containing pre-computed tree
+        of lat, lon coordinates, default = None
+    unscale : bool (optional)
+        Boolean flag to automatically unscale variables on extraction
+        Default = True
+    str_decode : bool (optional)
+        Boolean flag to decode the bytestring meta data into normal
+        strings. Setting this to False will speed up the meta data read.
+                Default = True
+    hsds : bool (optional)
+         Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
+         behind HSDS. Setting to False will indicate to look for files on 
+         local machine, not AWS. Default = True
+
+    Returns
+    ---------
+    data: DataFrame 
+        Data indexed by datetime with columns named for parameter and cooresponding metadata index 
+    meta: DataFrame 
+        location metadata for the requested data location   
+    """
+        
+    assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
+    assert isinstance(year,str), 'years must be a string'
+    assert isinstance(tree,(str,type(None))), 'tree must be a sring'
+    assert isinstance(unscale,bool), 'unscale must be bool type'
+    assert isinstance(str_decode,bool), 'str_decode must be bool type'
+    assert isinstance(hsds,bool), 'hsds must be bool type'
+
+    wave_path = f'/nrel/US_wave/virtual_buoy/US_virtual_buoy_'+year+'.h5'
+    parameter = 'directional_wave_spectrum'
+    waveKwargs = {'tree':tree,'unscale':unscale,'str_decode':str_decode, 'hsds':hsds}
+    data_list = []
+        
+    with WaveX(wave_path, **waveKwargs) as rex_waves:
+        data = rex_waves.get_lat_lon_df(parameter,lat_lon)
+        col = data.columns[:]
+
+        meta = rex_waves.meta.loc[col,:]
+        meta = meta.reset_index(drop=True) 
+    print(data)
+    data.columns = data.index.get_level_values(1)  
+    data.index = data.index.get_level_values(0)
+    return data, meta    
