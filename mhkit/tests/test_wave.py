@@ -814,8 +814,9 @@ class TestWPTOhindcast(unittest.TestCase):
     ### WPTO hindcast data
 
     def test_multi_year_sig_wave_height(self):
+    
         data_type = '3-hour'
-        years = [1990,1991]
+        years = [1990,1992]
         lat_lon = (44.624076,-124.280097) 
         parameters = 'significant_wave_height'
 
@@ -824,6 +825,7 @@ class TestWPTOhindcast(unittest.TestCase):
         assert_frame_equal(self.my_meta,meta)
         
     def test_multi_loc(self):
+        
         data_type = '3-hour'
         years = [1995]
         lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137)) 
