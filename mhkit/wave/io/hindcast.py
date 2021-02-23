@@ -65,9 +65,9 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
         assert isinstance(hsds,bool), 'hsds must be bool type'
 
         if data_type == '3-hour':
-            wave_path = f'/nrel/US_wave/US_wave_*.h5'
+            wave_path = f'/nrel/US_wave/West_Coast/West_Coast_wave_*.h5'
         elif data_type == '1-hour':
-            wave_path = f'/nrel/US_wave/virtual_buoy/US_virtual_buoy_*.h5'
+            wave_path = f'/nrel/US_wave/virtual_buoy/West_Coast/West_Coast_virtual_buoy_*.h5'
         else:
             print(f'ERROR: invalid data_type')
             pass
