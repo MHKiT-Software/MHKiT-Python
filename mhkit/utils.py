@@ -22,7 +22,7 @@ def get_statistics(data,freq,period=600,vector_channels=[]):
         Sample rate of data [Hz]
     period : float/int
         Statistical window of interest [sec], default = 600 
-    vector_channels : list
+    vector_channels : string or list (optional)
         List of channel names that are to be vector averaged
 
     Returns
@@ -36,7 +36,7 @@ def get_statistics(data,freq,period=600,vector_channels=[]):
     assert isinstance(period, (float,int)), 'freq must be of type int or float'
     # catch if vector_channels is not an string array
     if isinstance(vector_channels,str): vector_channels = [vector_channels]
-    assert isinstance(vector_channels, list), 'vector_channels must be string array'
+    assert isinstance(vector_channels, list), 'vector_channels must be a list of strings'
 
     # Check timestamp using qc module
     data.index = data.index.round('1ms')
