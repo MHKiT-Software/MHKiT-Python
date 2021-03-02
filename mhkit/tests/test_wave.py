@@ -255,7 +255,7 @@ class TestResourceMetrics(unittest.TestCase):
             temp.index = temp.index.astype(float)
             self.valdata2['CDiP'][i]['S'] = temp
 
-            
+                    
     @classmethod
     def tearDownClass(self):
         pass
@@ -279,7 +279,14 @@ class TestResourceMetrics(unittest.TestCase):
             error_l = ((expected-calculated)**2).sum() # SSE
             
             self.assertLess(error_l, 1e-6)
-    
+
+    def test_depth_regime(self):
+        expected = [True,True,False,True]
+        l = pd.DataFrame([1,2,10,3],index = [1,2,3,4])
+        h = 10
+        calculated = wave.resource.depth_regime(l,h).loc[:,"deep"].values.tolist()
+        self.assertListEqual(expected,calculated)
+
     def test_moments(self):
         for file_i in self.valdata2.keys(): # for each file MC, AH, CDiP
             datasets = self.valdata2[file_i]
