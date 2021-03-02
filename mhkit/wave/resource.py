@@ -562,7 +562,7 @@ def energy_flux(S, h, deep = False, rho=1025, g=9.80665):
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     h: float
         Water depth [m]
-    deep: bool
+    deep: bool (optional)
         Use deep water approximation
     rho: float (optional)
         Water Density [kg/m3]
@@ -603,7 +603,7 @@ def energy_flux(S, h, deep = False, rho=1025, g=9.80665):
     else:
         # Eq 8 in IEC 62600-100, deep water simpilification
         Te = energy_period(S)
-        Hm_zero = significant_wave_height(S)
+        Hm0 = significant_wave_height(S)
         # print(Hm_zero)
         coeff = rho*(g**2)/(64*np.pi)
 
@@ -623,8 +623,8 @@ def wave_celerity(k, h, g=9.80665, depth_check = False):
         Wave number [1/m] indexed by frequency [Hz]
     h: float
         Water depth [m]
-    depth_check: bool
-        If true check depth regime, if false don't check depth
+    depth_check: bool (optional)
+        If true check depth regime
     g : float (optional)
         Gravitational acceleration [m/s^2]
 
@@ -677,7 +677,6 @@ def wave_celerity(k, h, g=9.80665, depth_check = False):
 def wave_length(k):
     """
     Calculates wave length from wave number
-    Assumes input from wave_number() func
     To compute: 2*pi/wavenumber
 
     Parameters
@@ -694,7 +693,7 @@ def wave_length(k):
     assert isinstance(k, pd.DataFrame), 'k must be of type pandas.Dataframe'
     f = k.index
     l = pd.DataFrame(index = f, columns = ['L'])
-    l['L'] = 2*np.pi/k['k']
+    l['l'] = 2*np.pi/k['k']
     return l
 
 def wave_number(f, h, rho=1025, g=9.80665):
@@ -752,28 +751,30 @@ def wave_number(f, h, rho=1025, g=9.80665):
     
     return k
 
-def depth_regime(L, h, ratio = 2):
+def depth_regime(l, h, ratio = 2):
     '''
     Calculates the depth regime based on wavelength and height
-    Deep water: h/L > ratio
+    Deep water: h/l > ratio
     This function exists so sinh in wave celerity doesn't blow
     up to infinity.
 
-    P.K. Kundu, I.M. Cohen (2000) suggest h/L >> 1 for deep water (pg 209)
-    Same citation as above, they also suggest for 3% accuracy, h/L > 0.28 (pg 210)
+    P.K. Kundu, I.M. Cohen (2000) suggest h/l >> 1 for deep water (pg 209)
+    Same citation as above, they also suggest for 3% accuracy, h/l > 0.28 (pg 210)
     However, since this function has multiple wavelengths, higher ratio numbers are
     more accurate across varying wavelengths.
 
     Parameters
     ----------
-    L: numpy array
+    l: pandas DataFrame
         wavelength [m]
-    h: float
-        water column depth [m[
+    h: float or int
+        water column depth [m]
+    ratio: float or int (optional)
+        if h/l > ratio, water depth will be set to deep. ratio = 2 by default 
 
     Returns
     -------
-    depth_reg: numpy array
+    depth_reg: pandas DataFrmae
         Boolean [true/false] for deepwater characteristics indexed
         by frequency
     '''
@@ -781,7 +782,7 @@ def depth_regime(L, h, ratio = 2):
     assert isinstance(L, pd.DataFrame), "L must be of type pandas.DataFrame"
     assert isinstance(h, (int, float)), "h must be of type int or float"
 
-    f = L.index
+    f = l.index
     depth_reg = pd.DataFrame(index = f, columns = ["deep"])
     depth_reg["deep"] = h/L > ratio
 

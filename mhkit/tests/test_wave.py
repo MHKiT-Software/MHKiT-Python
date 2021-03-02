@@ -267,10 +267,18 @@ class TestResourceMetrics(unittest.TestCase):
             rho = self.valdata1[i]['rho']
             
             expected = self.valdata1[i]['k']
-            calculated = wave.resource.wave_number(f, h, rho).loc[:,'k'].values
+            k = wave.resource.wave_number(f, h, rho)
+            calculated = k.loc[:,'k'].values
             error = ((expected-calculated)**2).sum() # SSE
             
             self.assertLess(error, 1e-6)
+
+            expected_l = (2*np.pi)/np.array(self.valdata1[i]['k'])
+        
+            calculated_l = wave.resource.wave_length(k).loc[:,'l'].values
+            error_l = ((expected-calculated)**2).sum() # SSE
+            
+            self.assertLess(error_l, 1e-6)
     
     def test_moments(self):
         for file_i in self.valdata2.keys(): # for each file MC, AH, CDiP
