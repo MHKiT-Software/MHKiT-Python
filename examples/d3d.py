@@ -1,8 +1,8 @@
-import netCDF4
-import matplotlib.pyplot as plt
-import scipy.interpolate as interp
-import numpy as np
 from os.path import abspath, dirname, join, isfile, normpath, relpath
+import scipy.interpolate as interp
+import matplotlib.pyplot as plt
+import numpy as np
+import netCDF4
 
 
 exdir= dirname(abspath(__file__))
@@ -78,6 +78,8 @@ def get_variable(data,variable,layer,TS=-1):
 vars= ['ucx', 'turkin1']
 for var in vars: 
    plot_variable(data,var, 4)
+   
+plt.show()
 #plot_variable(data, 'ucx', 'velocity', 3)
 
 # interpolate turbulence data onto velocity grid 
