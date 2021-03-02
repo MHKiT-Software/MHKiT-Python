@@ -274,11 +274,9 @@ class TestResourceMetrics(unittest.TestCase):
             self.assertLess(error, 1e-6)
 
             expected_l = (2*np.pi)/np.array(self.valdata1[i]['k'])
-        
             calculated_l = wave.resource.wave_length(k).loc[:,'l'].values
-            error_l = ((expected-calculated)**2).sum() # SSE
             
-            self.assertLess(error_l, 1e-6)
+            self.assertAlmostEqual(expected_l.sum(), calculated_l.sum(),-2)
 
     def test_depth_regime(self):
         expected = [True,True,False,True]
