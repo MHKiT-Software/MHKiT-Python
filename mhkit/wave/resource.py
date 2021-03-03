@@ -692,7 +692,7 @@ def wave_length(k):
 
     assert isinstance(k, pd.DataFrame), 'k must be of type pandas.Dataframe'
     f = k.index
-    l = pd.DataFrame(index = f, columns = ['L'])
+    l = pd.DataFrame(index = f, columns = ['l'])
     l['l'] = 2*np.pi/k['k']
     return l
 
@@ -779,12 +779,12 @@ def depth_regime(l, h, ratio = 2):
         by frequency
     '''
 
-    assert isinstance(L, pd.DataFrame), "L must be of type pandas.DataFrame"
+    assert isinstance(l, pd.DataFrame), "l must be of type pandas.DataFrame"
     assert isinstance(h, (int, float)), "h must be of type int or float"
 
     f = l.index
     depth_reg = pd.DataFrame(index = f, columns = ["deep"])
-    depth_reg["deep"] = h/L > ratio
+    depth_reg["deep"] = h/l > ratio
 
     return  depth_reg
 
