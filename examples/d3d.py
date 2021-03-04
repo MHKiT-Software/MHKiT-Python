@@ -1,4 +1,5 @@
 from os.path import abspath, dirname, join, isfile, normpath, relpath
+from sklearn.neighbors import NearestNeighbors
 import scipy.interpolate as interp
 import matplotlib.pyplot as plt
 import numpy as np
@@ -103,15 +104,52 @@ plt.show()
 
 
 #Centerline Plot 
-def plot_centerline(data,variable,layer, TS=-1):
+def plot_centerline(data,variable,layer, TS=-1,CT=3):
+    '''
+    Parameters
+    ----------
+    data : netcdf4 object 
+        d3d netcdf file 
+    variable : string
+        variable to call.
+    Layer: float
+        Delft3D layer.      
+    TS: float 
+        time step. Defalt is late tiem step -1  
+    CT : float, optional
+        centerline location. The default is 3.
+    Returns
+    -------
+    None.
+
+    '''
+
     x,y,z= get_variable(data, variable, layer,TS)
+    
+    y_unique= np.unique(y)
+    
+    
+    if CT ==  any(CTL==y_unique):
+        CTL = np.where(y== idx)
+        
+    else: 
+         NearestNeighbors(n_neighbors=2, algorithm='ball_tree').fit(y_unique)
+    
+    
+    Yidx=len(np.unique(y))//2
+    idx= Y[Yidx]
+    CTL= np.where(y== idx)
+    
+   
+    
+    x= x[CTL]
+    z= z[CTL]
     plt.plot(x,z)
     plt.title(f'Layer {layer}')
     units= data.variables[variable].units
     cname=data.variables[variable].long_name
     plt.xlabel('x (m)')
     plt.ylabel(f'{cname} [{units}]')
-       
     plt.show()
     
     
