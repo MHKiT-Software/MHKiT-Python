@@ -77,10 +77,10 @@ def get_variable(data,variable,layer,TS=-1):
     return x,y,z 
 #==============================================================================
 vars= ['ucx', 'turkin1']
-for var in vars: 
-   plot_variable(data,var, 4)
+#for var in vars: 
+#   plot_variable(data,var, 4)
    
-plt.show()
+#plt.show()
 #plot_variable(data, 'ucx', 'velocity', 3)
 
 # interpolate turbulence data onto velocity grid 
@@ -129,11 +129,32 @@ def plot_centerline(data,variable,layer, TS=-1,CT=3):
     y_unique= np.unique(y)
     
     
-    if CT ==  any(CTL==y_unique):
+    if any(CT==y_unique):
         CTL = np.where(y== idx)
         
     else: 
-         NearestNeighbors(n_neighbors=2, algorithm='ball_tree').fit(y_unique)
+         imax = np.searchsorted(y_unique, CT)
+         imin=imax-1
+         
+         ymin = y_unique[imin]
+         ymax = y_unique[imax]
+         
+         var_max = np.ma.getdata(z[np.where(y == ymax)], False)
+         var_min = np.ma.getdata(z[np.where(y == ymin)], False)
+         
+         N= len(var_max)
+         y_vector_max = np.array(N * [ymax])
+         y_vector_min = np.array(N * [ymin])
+         y_vector_CT  = np.array(N * [CT])
+         
+         # manual interpolation
+                 
+         
+         ucx = var_min + (CT - ymin) * (ymax - ymin) / (var_max - var_min)
+               
+         
+         
+         import ipdb; ipdb.set_trace()
     
     
     Yidx=len(np.unique(y))//2
@@ -150,7 +171,7 @@ def plot_centerline(data,variable,layer, TS=-1,CT=3):
     cname=data.variables[variable].long_name
     plt.xlabel('x (m)')
     plt.ylabel(f'{cname} [{units}]')
-    plt.show()
+    #plt.show()
     
     
 vars= ['ucx', 'turkin1']
