@@ -103,9 +103,18 @@ plt.show()
 
 
 #Centerline Plot 
-
-def get_centerline(data,variable,layer, TS=-1):
-   x,y,z= get_variable(data, variable, layer,TS)
-   
-   
-
+def plot_centerline(data,variable,layer, TS=-1):
+    x,y,z= get_variable(data, variable, layer,TS)
+    plt.plot(x,z)
+    plt.title(f'Layer {layer}')
+    units= data.variables[variable].units
+    cname=data.variables[variable].long_name
+    plt.xlabel('x (m)')
+    plt.ylabel(f'{cname} [{units}]')
+       
+    plt.show()
+    
+    
+vars= ['ucx', 'turkin1']
+for var in vars:
+    plot_centerline(data,var,2) 
