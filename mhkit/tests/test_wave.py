@@ -14,6 +14,7 @@ import inspect
 import pickle
 import json
 import os
+import time
 
 testdir = dirname(abspath(__file__))
 datadir = normpath(join(testdir,relpath('../../examples/data/wave')))
@@ -836,7 +837,8 @@ class TestWPTOhindcast(unittest.TestCase):
         wave_multiyear, meta = wave.io.hindcast.request_wpto_point_data(data_type,parameters,lat_lon,years)
         assert_frame_equal(self.my_swh,wave_multiyear)
         assert_frame_equal(self.my_meta,meta)
-        
+        time.sleep(5)
+
     def test_multi_loc(self):
         
         data_type = '3-hour'
@@ -849,6 +851,7 @@ class TestWPTOhindcast(unittest.TestCase):
 
         assert_frame_equal(self.ml,wave_multiloc)
         assert_frame_equal(self.ml_meta,meta)
+        time.sleep(5)
 
     def test_multi_parm(self):
         data_type = '1-hour'
@@ -861,6 +864,7 @@ class TestWPTOhindcast(unittest.TestCase):
 
         assert_frame_equal(self.mp,wave_multiparm)
         assert_frame_equal(self.mp_meta,meta) 
+        time.sleep(5)
 
 class TestSWAN(unittest.TestCase):
 
