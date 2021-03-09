@@ -15,6 +15,7 @@ import pickle
 import json
 import os
 import time
+from random import seed, randint
 
 testdir = dirname(abspath(__file__))
 datadir = normpath(join(testdir,relpath('../../examples/data/wave')))
@@ -833,11 +834,13 @@ class TestWPTOhindcast(unittest.TestCase):
         years = [1990,1992]
         lat_lon = (44.624076,-124.280097) 
         parameters = 'significant_wave_height'
-
+        seed(1)
+        value = randint(1,10)
+        time.sleep(value)
         wave_multiyear, meta = wave.io.hindcast.request_wpto_point_data(data_type,parameters,lat_lon,years)
         assert_frame_equal(self.my_swh,wave_multiyear)
         assert_frame_equal(self.my_meta,meta)
-        time.sleep(5)
+        
 
     def test_multi_loc(self):
         
@@ -845,26 +848,28 @@ class TestWPTOhindcast(unittest.TestCase):
         years = [1995]
         lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137)) 
         parameters = 'mean_absolute_period'
-
+        seed(1)
+        value = randint(1,10)
+        time.sleep(value)
         wave_multiloc, meta= wave.io.hindcast.request_wpto_point_data(data_type,
         parameters,lat_lon,years)
 
         assert_frame_equal(self.ml,wave_multiloc)
         assert_frame_equal(self.ml_meta,meta)
-        time.sleep(5)
 
     def test_multi_parm(self):
         data_type = '1-hour'
         years = [1996]
         lat_lon = (44.624076,-124.280097) 
         parameters = ['energy_period','mean_zero-crossing_period']
-
+        seed(1)
+        value = randint(1,10)
+        time.sleep(value)
         wave_multiparm, meta= wave.io.hindcast.request_wpto_point_data(data_type,
         parameters,lat_lon,years)
 
         assert_frame_equal(self.mp,wave_multiparm)
         assert_frame_equal(self.mp_meta,meta) 
-        time.sleep(5)
 
 class TestSWAN(unittest.TestCase):
 
