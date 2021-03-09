@@ -1,5 +1,4 @@
 from os.path import abspath, dirname, join, isfile, normpath, relpath
-from sklearn.neighbors import NearestNeighbors
 import scipy.interpolate as interp
 import matplotlib.pyplot as plt
 import numpy as np
@@ -123,28 +122,47 @@ def plot_centerline(data,variable,layer, TS=-1,CT=3):
     None.
 
     '''
-
     x,y,z= get_variable(data, variable, layer,TS)
     
     y_unique= np.unique(y)
+    x_unique=np.unique(x)
     
-    
-    if CT ==  any(CTL==y_unique):
+    if  any(CT==y_unique):
+        Yidx=len(np.unique(y))//2
+        idx= y_unique[Yidx]
         CTL = np.where(y== idx)
+        zCT= z[CTL]
+        
         
     else: 
-         NearestNeighbors(n_neighbors=2, algorithm='ball_tree').fit(y_unique)
+         imax= np.searchsorted(y_unique,CT)
+         imin= imax-1
+         if imax== 0 or imin == y_unique[-1] :
+             print('error')
+         else:
+             CTmax =np.where(y==y_unique[imax])
+             CTmin= np.where(y==y_unique[imin])
+             ymax=y_unique[imax]
+             ymin=y_unique[imin]
+             
+             zmax=z[CTmax]
+             zmin=z[CTmin]
+         
+         
+             zCT=[];
+             for i in range (0,len(x_unique)):
+                 Z=[zmax[i],zmin[i]]
+                 Y=[ymax,ymin]
+             
+                 Zi = np.interp(CT,Y,Z)
+                 zCT.append(Zi)
+                 
+                 
+             zCT=np.array(zCT)
+             
+        
     
-    
-    Yidx=len(np.unique(y))//2
-    idx= Y[Yidx]
-    CTL= np.where(y== idx)
-    
-   
-    
-    x= x[CTL]
-    z= z[CTL]
-    plt.plot(x,z)
+    plt.plot(x_unique,zCT)
     plt.title(f'Layer {layer}')
     units= data.variables[variable].units
     cname=data.variables[variable].long_name
@@ -153,6 +171,6 @@ def plot_centerline(data,variable,layer, TS=-1,CT=3):
     plt.show()
     
     
-vars= ['ucx', 'turkin1']
+vars= [ 'turkin1']
 for var in vars:
     plot_centerline(data,var,2) 
