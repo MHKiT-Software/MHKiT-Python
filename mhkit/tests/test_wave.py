@@ -790,10 +790,10 @@ class TestWPTOhindcast(unittest.TestCase):
     @classmethod
     def setUpClass(self):
 
-        self.my_swh = pd.read_csv(join(datadir,'hindcast/multi_year_hindcast.csv'),index_col = 'time_index',
-        names = ['time_index','significant_wave_height_0'],header = 0, 
-        dtype = {'significant_wave_height_0':'float32'})
-        self.my_swh.index = pd.to_datetime(self.my_swh.index)
+        # self.my_swh = pd.read_csv(join(datadir,'hindcast/multi_year_hindcast.csv'),index_col = 'time_index',
+        # names = ['time_index','significant_wave_height_0'],header = 0, 
+        # dtype = {'significant_wave_height_0':'float32'})
+        # self.my_swh.index = pd.to_datetime(self.my_swh.index)
 
         self.ml = pd.read_csv(join(datadir,'hindcast/single_year_hindcast_multiloc.csv'),index_col = 'time_index',
         names = ['time_index','mean_absolute_period_0','mean_absolute_period_1'],
@@ -812,10 +812,10 @@ class TestWPTOhindcast(unittest.TestCase):
         ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
         ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
 
-        self.my_meta = pd.read_csv(join(datadir,'hindcast/multi_year_meta.csv'),index_col = 0,
-        names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
-        ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
-        ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
+        # self.my_meta = pd.read_csv(join(datadir,'hindcast/multi_year_meta.csv'),index_col = 0,
+        # names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
+        # ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
+        # ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
         
         self.mp_meta = pd.read_csv(join(datadir,'hindcast/multiparm_meta.csv'),index_col = 0,
         names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
@@ -828,18 +828,18 @@ class TestWPTOhindcast(unittest.TestCase):
 
     ### WPTO hindcast data
 
-    def test_multi_year_sig_wave_height(self):
+    # def test_multi_year_sig_wave_height(self):
     
-        data_type = '3-hour'
-        years = [1990,1992]
-        lat_lon = (44.624076,-124.280097) 
-        parameters = 'significant_wave_height'
-        seed(1)
-        value = randint(5,15)
-        time.sleep(value)
-        wave_multiyear, meta = wave.io.hindcast.request_wpto_point_data(data_type,parameters,lat_lon,years)
-        assert_frame_equal(self.my_swh,wave_multiyear)
-        assert_frame_equal(self.my_meta,meta)
+    #     data_type = '3-hour'
+    #     years = [1990,1992]
+    #     lat_lon = (44.624076,-124.280097) 
+    #     parameters = 'significant_wave_height'
+    #     seed(1)
+    #     value = randint(5,15)
+    #     time.sleep(value)
+    #     wave_multiyear, meta = wave.io.hindcast.request_wpto_point_data(data_type,parameters,lat_lon,years)
+    #     assert_frame_equal(self.my_swh,wave_multiyear)
+    #     assert_frame_equal(self.my_meta,meta)
         
 
     def test_multi_loc(self):
