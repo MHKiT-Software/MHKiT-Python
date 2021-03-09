@@ -835,7 +835,7 @@ class TestWPTOhindcast(unittest.TestCase):
         lat_lon = (44.624076,-124.280097) 
         parameters = 'significant_wave_height'
         seed(1)
-        value = randint(1,10)
+        value = randint(5,15)
         time.sleep(value)
         wave_multiyear, meta = wave.io.hindcast.request_wpto_point_data(data_type,parameters,lat_lon,years)
         assert_frame_equal(self.my_swh,wave_multiyear)
@@ -849,7 +849,7 @@ class TestWPTOhindcast(unittest.TestCase):
         lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137)) 
         parameters = 'mean_absolute_period'
         seed(1)
-        value = randint(1,10)
+        value = randint(5,15)
         time.sleep(value)
         wave_multiloc, meta= wave.io.hindcast.request_wpto_point_data(data_type,
         parameters,lat_lon,years)
@@ -863,7 +863,7 @@ class TestWPTOhindcast(unittest.TestCase):
         lat_lon = (44.624076,-124.280097) 
         parameters = ['energy_period','mean_zero-crossing_period']
         seed(1)
-        value = randint(1,10)
+        value = randint(5,15)
         time.sleep(value)
         wave_multiparm, meta= wave.io.hindcast.request_wpto_point_data(data_type,
         parameters,lat_lon,years)
