@@ -103,7 +103,7 @@ vars= ['ucx', 'turkin1']
 
 
 #Centerline Plot 
-def plot_centerline(data,variable,layer, TS=-1,CT=3):
+def plot_centerline(data,variable,layer, TS=-1,CT=2.95):
     '''
     Parameters
     ----------
@@ -126,56 +126,58 @@ def plot_centerline(data,variable,layer, TS=-1,CT=3):
     
     y_unique= np.unique(y)
     x_unique=np.unique(x)
-    
-
-    
-
+      
+    #import ipdb; ipdb.set_trace()
     if  any(CT==y_unique):
         Yidx=len(np.unique(y))//2
         idx= y_unique[Yidx]
         CTL = np.where(y== idx)
         zCT= z[CTL]
         
-        
+           
+    
     else: 
-         imax = np.searchsorted(y_unique, CT)
-         imin=imax-1
+        imax = np.searchsorted(y_unique, CT)
+        imin=imax-1
 
-         if imax== 0 or imin == y_unique[-1] :
-             print('error')
-         else:
-             CTmax =np.where(y==y_unique[imax])
-             CTmin= np.where(y==y_unique[imin])
-             ymax=y_unique[imax]
-             ymin=y_unique[imin]
-             
-             zmax=z[CTmax]
-             zmin=z[CTmin]
-         
-         
-             zCT=[];
-             for i in range (0,len(x_unique)):
-                 Z=[zmax[i],zmin[i]]
-                 Y=[ymax,ymin]
-             
-                 Zi = np.interp(CT,Y,Z)
-                 zCT.append(Zi)
-                 
-                 
-             zCT=np.array(zCT)
-             
+        if imax== 0 or imin == y_unique[-1] :
+            print('error')
+        else:
         
+            ymin = y_unique[imin]
+            ymax = y_unique[imax]
+        
+            idx_cl_max = np.where(y == ymax)[0]
+            idx_cl_min = np.where(y == ymin)[0]
+        
+            var_max = np.ma.getdata(z[idx_cl_max], False)
+            var_min = np.ma.getdata(z[idx_cl_min], False)
+    
 
     
+            zCT=[]
+            Y=[ymax,ymin]
+            
+            for i in range(len(idx_cl_max)):
+            
+                Z=[var_max[i],var_min[i]]
+                Zi = np.interp(CT,Y,Z)
+                zCT.append(Zi)
+                
+            zCT=np.array(zCT)
+    import ipdb; ipdb.set_trace()
+    x_cl_unique_max =x[idx_cl_max]
+    x_cl_unique_min =x[idx_cl_min]    
     plt.plot(x_unique,zCT)
-    plt.title(f'Layer {layer}')
-    units= data.variables[variable].units
-    cname=data.variables[variable].long_name
-    plt.xlabel('x (m)')
-    plt.ylabel(f'{cname} [{units}]')
-    #plt.show()
+    # plt.title(f'Layer {layer}')
+    # units= data.variables[variable].units
+    # cname=data.variables[variable].long_name
+    # plt.xlabel('x (m)')
+    # plt.ylabel(f'{cname} [{units}]')
+    # plt.show()
     
-    
-vars= [ 'turkin1']
+   
+   
+vars= [ 'ucx']
 for var in vars:
     plot_centerline(data,var,2) 
