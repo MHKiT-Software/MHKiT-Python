@@ -3,12 +3,8 @@ import scipy.interpolate as interp
 import matplotlib.pyplot as plt
 import numpy as np
 import netCDF4
+import pandas as pd
 
-
-exdir= dirname(abspath(__file__))
-datadir = normpath(join(exdir,relpath('data/river/d3d')))
-filename= 'turbineTest_map.nc'
-data = netCDF4.Dataset(join(datadir,filename))
 
 def plot_variable(data,variable, layer, TS=-1):
 
@@ -75,6 +71,13 @@ def get_variable(data,variable,layer,TS=-1):
     z= var[itime,:,layer]
     return x,y,z 
 #==============================================================================
+
+
+exdir= dirname(abspath(__file__))
+datadir = normpath(join(exdir,relpath('data/river/d3d')))
+filename= 'turbineTest_map.nc'
+data = netCDF4.Dataset(join(datadir,filename))
+
 vars= ['ucx', 'turkin1']
 #for var in vars: 
 #   plot_variable(data,var, 4)
@@ -124,6 +127,14 @@ def plot_centerline(data,variable,layer, TS=-1,CT=2.95):
     '''
     x,y,z= get_variable(data, variable, layer,TS)
     
+    x = np.ma.getdata(x, False)
+    y = np.ma.getdata(y, False)
+    z = np.ma.getdata(z, False)
+    
+    df = pd.DataFrame(x, columns=['x'])
+    df['y'] = y
+    df['z'] = z
+    
     y_unique= np.unique(y)
     x_unique=np.unique(x)
       
@@ -147,27 +158,30 @@ def plot_centerline(data,variable,layer, TS=-1,CT=2.95):
             ymin = y_unique[imin]
             ymax = y_unique[imax]
         
-            idx_cl_max = np.where(y == ymax)[0]
-            idx_cl_min = np.where(y == ymin)[0]
+            #idx_cl_max = np.where(y == ymax)[0]
+            #idx_cl_min = np.where(y == ymin)[0]
         
-            var_max = np.ma.getdata(z[idx_cl_max], False)
-            var_min = np.ma.getdata(z[idx_cl_min], False)
+            #var_max = np.ma.getdata(z[idx_cl_max], False)
+            #var_min = np.ma.getdata(z[idx_cl_min], False)
     
-
+            z_mins = df[df.y==ymin].z
+            z_maxs = df[df.y==ymax].z
     
             zCT=[]
-            Y=[ymax,ymin]
+            Y=[ymin, ymax]
             
-            for i in range(len(idx_cl_max)):
+            for z_min, z_max in zip(z_mins, z_maxs):
             
-                Z=[var_max[i],var_min[i]]
+                Z=[z_min, z_max]
                 Zi = np.interp(CT,Y,Z)
                 zCT.append(Zi)
                 
             zCT=np.array(zCT)
     import ipdb; ipdb.set_trace()
-    x_cl_unique_max =x[idx_cl_max]
-    x_cl_unique_min =x[idx_cl_min]    
+    
+    z_mins = df[df.y==ymin].z
+    z_maxs = df[df.y==ymax].z   
+    
     plt.plot(x_unique,zCT)
     # plt.title(f'Layer {layer}')
     # units= data.variables[variable].units
@@ -178,6 +192,6 @@ def plot_centerline(data,variable,layer, TS=-1,CT=2.95):
     
    
    
-vars= [ 'ucx']
+vars= [ 'turkin1']
 for var in vars:
     plot_centerline(data,var,2) 
