@@ -828,19 +828,19 @@ class TestWPTOhindcast(unittest.TestCase):
         assert_frame_equal(self.my_meta,meta)
 
 
-    def test_multi_loc(self):
+    # def test_multi_loc(self):
         
-        data_type = '3-hour'
-        years = [1995]
-        lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137)) 
-        parameters = 'mean_absolute_period'
-        value = randint(60,300)
-        time.sleep(value)
-        wave_multiloc, meta= wave.io.hindcast.request_wpto_point_data(data_type,
-        parameters,lat_lon,years)
+    #     data_type = '3-hour'
+    #     years = [1995]
+    #     lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137)) 
+    #     parameters = 'mean_absolute_period'
+    #     value = randint(60,300)
+    #     time.sleep(value)
+    #     wave_multiloc, meta= wave.io.hindcast.request_wpto_point_data(data_type,
+    #     parameters,lat_lon,years)
 
-        assert_frame_equal(self.ml,wave_multiloc)
-        assert_frame_equal(self.ml_meta,meta)
+    #     assert_frame_equal(self.ml,wave_multiloc)
+    #     assert_frame_equal(self.ml_meta,meta)
 
 
     def test_multi_parm(self):
