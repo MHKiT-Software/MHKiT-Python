@@ -821,7 +821,7 @@ class TestWPTOhindcast(unittest.TestCase):
         years = [1990,1992]
         lat_lon = (44.624076,-124.280097) 
         parameters = 'significant_wave_height'
-        value = randint(300,600)
+        value = randint(300,596)
         print(value)
         time.sleep(value)
         wave_multiyear, meta = wave.io.hindcast.request_wpto_point_data(data_type,parameters,lat_lon,years)
@@ -849,7 +849,7 @@ class TestWPTOhindcast(unittest.TestCase):
         years = [1996]
         lat_lon = (44.624076,-124.280097) 
         parameters = ['energy_period','mean_zero-crossing_period']
-        value = randint(300,600)
+        value = randint(300,596)
         print(value)
         time.sleep(value)
         wave_multiparm, meta= wave.io.hindcast.request_wpto_point_data(data_type,
