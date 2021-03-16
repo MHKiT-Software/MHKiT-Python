@@ -146,7 +146,7 @@ def plot_centerline(data,variable,layer, TS=-1,CT=2.95):
         zCT= z[CTL]
         
            
-    
+        from scipy import interpolate  
     else: 
         imax = np.searchsorted(y_unique, CT)
         imin=imax-1
@@ -157,6 +157,9 @@ def plot_centerline(data,variable,layer, TS=-1,CT=2.95):
         
             ymin = y_unique[imin]
             ymax = y_unique[imax]
+            
+            xmin= x_unique[imin]
+            xmax= x_unique[imax]
         
             #idx_cl_max = np.where(y == ymax)[0]
             #idx_cl_min = np.where(y == ymin)[0]
@@ -169,11 +172,11 @@ def plot_centerline(data,variable,layer, TS=-1,CT=2.95):
     
             zCT=[]
             Y=[ymin, ymax]
-            
+            X=[xmin, xmax]
             for z_min, z_max in zip(z_mins, z_maxs):
             
                 Z=[z_min, z_max]
-                Zi = np.interp(CT,Y,Z)
+                Zi = interpolate.intep2d(X,Y,Z, )
                 zCT.append(Zi)
                 
             zCT=np.array(zCT)
@@ -190,8 +193,6 @@ def plot_centerline(data,variable,layer, TS=-1,CT=2.95):
     # plt.ylabel(f'{cname} [{units}]')
     # plt.show()
     
-   
-   
 vars= [ 'turkin1']
 for var in vars:
     plot_centerline(data,var,2) 
