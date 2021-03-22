@@ -843,18 +843,18 @@ class TestWPTOhindcast(unittest.TestCase):
     #     assert_frame_equal(self.ml_meta,meta)
 
 
-    # def test_multi_parm(self):
-        # data_type = '1-hour'
-        # years = [1996]
-        # lat_lon = (44.624076,-124.280097) 
-        # parameters = ['energy_period','mean_zero-crossing_period']
-        # value = randint(300,500)
-        # time.sleep(value)
-        # wave_multiparm, meta= wave.io.hindcast.request_wpto_point_data(data_type,
-        # parameters,lat_lon,years)
+    def test_multi_parm(self):
+        data_type = '1-hour'
+        years = [1996]
+        lat_lon = (44.624076,-124.280097) 
+        parameters = ['energy_period','mean_zero-crossing_period']
+        value = randint(300,500)
+        time.sleep(value)
+        wave_multiparm, meta= wave.io.hindcast.request_wpto_point_data(data_type,
+        parameters,lat_lon,years)
 
-        # assert_frame_equal(self.mp,wave_multiparm)
-        # assert_frame_equal(self.mp_meta,meta) 
+        assert_frame_equal(self.mp,wave_multiparm)
+        assert_frame_equal(self.mp_meta,meta) 
 
 class TestSWAN(unittest.TestCase):
 
