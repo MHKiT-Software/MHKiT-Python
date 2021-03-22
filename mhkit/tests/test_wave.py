@@ -847,9 +847,9 @@ class TestWPTOhindcast(unittest.TestCase):
         data_type = '1-hour'
         years = [1996]
         lat_lon = (44.624076,-124.280097) 
-        parameters = ['energy_period','mean_zero-crossing_period']
-        #value = randint(300,500)
-        #time.sleep(value)
+        parameters = ['energy_period','mean_zero-crossing_period']        
+        value = randint(120,600)
+        time.sleep(value)
         wave_multiparm, meta= wave.io.hindcast.request_wpto_point_data(data_type,
         parameters,lat_lon,years)
 
