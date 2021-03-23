@@ -7,7 +7,7 @@ import pandas as pd
 
 
 exdir= dirname(abspath(__file__))
-datadir = normpath(join(exdir,relpath('examples/data/river/d3d')))
+datadir = normpath(join(exdir,relpath('data/river/d3d')))
 filename= 'turbineTest_map.nc'
 data = netCDF4.Dataset(join(datadir,filename))
 
@@ -141,7 +141,8 @@ def plot_centerline(data,variable,layer, TS=-1, center_line=3):
         Yidx=len(y_unique)//2
         idx= y_unique[Yidx]
         center_line_index = np.where(y== idx)
-        value_center_line= v[center_line_index]
+        x_plot = x[center_line_index]
+        v_plot = v[center_line_index]
                 
      
     else: 
@@ -177,17 +178,17 @@ def plot_centerline(data,variable,layer, TS=-1, center_line=3):
             X_interpolated_centerline= []
             V_interpolated_centerline= []
             
-            # 
     
             for i in range(len(points_sorted)-1):
                 X = np.interp(center_line, (points_sorted.Y[i],points_sorted.Y[i+1]), (points_sorted.X[i],points_sorted.X[i+1]))
                 V = np.interp(center_line, (points_sorted.Y[i],points_sorted.Y[i+1]), (points_sorted.V[i],points_sorted.V[i+1]))      
                 X_interpolated_centerline.append(X)
                 V_interpolated_centerline.append(V)
-             
+            x_plot = X_interpolated_centerline
+            v_plot = V_interpolated_centerline
         
     
-    plt.plot(X_interpolated_centerline,V_interpolated_centerline)
+    plt.plot(x_plot,v_plot)
     plt.title(f'Layer {layer}')
     units= data.variables[variable].units
     cname=data.variables[variable].long_name
@@ -198,4 +199,4 @@ def plot_centerline(data,variable,layer, TS=-1, center_line=3):
     
 variables= [ 'ucx', 'turkin1']
 for var in variables:
-    plot_centerline(data,var,2) 
+    plot_centerline(data,var,2, -1, 3) 
