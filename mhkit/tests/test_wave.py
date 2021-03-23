@@ -815,7 +815,8 @@ class TestWPTOhindcast(unittest.TestCase):
         pass
 
     ### WPTO hindcast data
-    # only run test for one version of python to not spam the server
+    # only run test for one version of python per to not spam the server
+    # yet keep coverage high on each test
     if float(sys.version[0:3]) == 3.7:
         def test_multi_year_sig_wave_height(self):
         
