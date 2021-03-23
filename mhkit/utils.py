@@ -74,19 +74,8 @@ def get_statistics(data,freq,period=600,vector_channels=[]):
             stdev.append(datachunk.std()) # standard deviation
             # calculate vector averages and std
             for v in vector_channels:
-                Ux = sum(np.sin(datachunk[v]*np.pi/180))/len(datachunk)
-                Uy = sum(np.cos(datachunk[v]*np.pi/180))/len(datachunk)
-                vector_avg = (90 - np.arctan2(Uy,Ux)*180/np.pi)
-                if vector_avg<0: vector_avg = vector_avg+360
-                elif vector_avg>360: vector_avg = vector_avg-360              
+                vector_avg, vector_std = vector_averaging(datachunk[v])            
                 means[i][v] = vector_avg # overwrite scalar average for channel
-                magsum = round((Ux**2 + Uy**2)*1e8)/1e8 # round to 8th decimal place to reduce roundoff error
-                epsilon = (1-magsum)**0.5
-                if not np.isreal(epsilon): # check if epsilon is imaginary (error)
-                    vector_std = 0
-                    print('WARNING: vector averaging error in calculating epsilon')
-                else:
-                    vector_std = np.arcsin(epsilon)*(1+0.1547*epsilon**3)*180/np.pi
                 stdev[i][v] = vector_std # overwrite scalar std for channel
         
     # Convert to DataFrames and set index
@@ -96,6 +85,43 @@ def get_statistics(data,freq,period=600,vector_channels=[]):
     stdevs = pd.DataFrame(stdev,index=time)
 
     return means,maxs,mins,stdevs
+
+def vector_averaging(data):
+    """
+    Function used to calculate statistics for vector/directional channels
+
+    Parameters
+    ----------
+    data : pandas Series, numpy array, list
+        Vector channel to calculate statistics on
+    
+    Returns
+    -------
+    vector_avg : numpy array
+        Vector mean statistic
+    vector_std : numpy array
+        Vector standard deviation statistic
+    """
+    try: data = np.array(data)
+    except: pass
+    assert isinstance(data, np.ndarray), 'data must be of type np.ndarray'
+    
+    # calculate mean
+    Ux = sum(np.sin(data*np.pi/180))/len(data)
+    Uy = sum(np.cos(data*np.pi/180))/len(data)
+    vector_avg = (90 - np.arctan2(Uy,Ux)*180/np.pi)
+    if vector_avg<0: vector_avg = vector_avg+360
+    elif vector_avg>360: vector_avg = vector_avg-360
+    # calculate standard deviation              
+    magsum = round((Ux**2 + Uy**2)*1e8)/1e8 # round to 8th decimal place to reduce roundoff error
+    epsilon = (1-magsum)**0.5
+    if not np.isreal(epsilon): # check if epsilon is imaginary (error)
+        vector_std = 0
+        print('WARNING: vector averaging error in calculating epsilon')
+    else:
+        vector_std = np.arcsin(epsilon)*(1+0.1547*epsilon**3)*180/np.pi
+
+    return vector_avg, vector_std
 
 def unwrap_vector(data):
     """
