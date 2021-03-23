@@ -843,7 +843,7 @@ class TestWPTOhindcast(unittest.TestCase):
 
     elif float(sys.version[0:3]) == 3.9:
         # wait ten minutes to ensure python 3.7 and 3.8 call is complete
-        time.sleep(600)
+        time.sleep(500)
         def test_multi_parm(self):
             data_type = '1-hour'
             years = [1996]
