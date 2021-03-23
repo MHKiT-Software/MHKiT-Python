@@ -6,6 +6,11 @@ import netCDF4
 import pandas as pd
 
 
+exdir= dirname(abspath(__file__))
+datadir = normpath(join(exdir,relpath('examples/data/river/d3d')))
+filename= 'turbineTest_map.nc'
+data = netCDF4.Dataset(join(datadir,filename))
+
 def plot_variable(data,variable, layer, TS=-1):
 
     '''
@@ -71,18 +76,11 @@ def get_variable(data,variable,layer,TS=-1):
     z= var[itime,:,layer]
     return x,y,z 
 #==============================================================================
-
-
-exdir= dirname(abspath(__file__))
-datadir = normpath(join(exdir,relpath('data/river/d3d')))
-filename= 'turbineTest_map.nc'
-data = netCDF4.Dataset(join(datadir,filename))
-
 vars= ['ucx', 'turkin1']
-#for var in vars: 
-#   plot_variable(data,var, 4)
+for var in vars: 
+   plot_variable(data,var, 4)
    
-#plt.show()
+plt.show()
 #plot_variable(data, 'ucx', 'velocity', 3)
 
 # interpolate turbulence data onto velocity grid 
@@ -106,7 +104,7 @@ vars= ['ucx', 'turkin1']
 
 
 #Centerline Plot 
-def plot_centerline(data,variable,layer, TS=-1,CT=2.95):
+def plot_centerline(data,variable,layer, TS=-1, center_line=3):
     '''
     Parameters
     ----------
@@ -118,81 +116,86 @@ def plot_centerline(data,variable,layer, TS=-1,CT=2.95):
         Delft3D layer.      
     TS: float 
         time step. Defalt is late tiem step -1  
-    CT : float, optional
+    center_line : float, optional
         centerline location. The default is 3.
     Returns
     -------
     None.
 
     '''
-    x,y,z= get_variable(data, variable, layer,TS)
-    
+    x,y,v= get_variable(data, variable, layer,TS)
+        
     x = np.ma.getdata(x, False)
     y = np.ma.getdata(y, False)
-    z = np.ma.getdata(z, False)
-    
+    v = np.ma.getdata(v, False)
+            
     df = pd.DataFrame(x, columns=['x'])
     df['y'] = y
-    df['z'] = z
-    
+    df['v'] = v
+            
     y_unique= np.unique(y)
-    x_unique=np.unique(x)
-      
+    x_unique= np.unique(x)
+              
     #import ipdb; ipdb.set_trace()
-    if  any(CT==y_unique):
-        Yidx=len(np.unique(y))//2
+    if  any(center_line==y_unique):
+        Yidx=len(y_unique)//2
         idx= y_unique[Yidx]
-        CTL = np.where(y== idx)
-        zCT= z[CTL]
-        
-           
-        from scipy import interpolate  
+        center_line_index = np.where(y== idx)
+        value_center_line= v[center_line_index]
+                
+     
     else: 
-        imax = np.searchsorted(y_unique, CT)
+        imax = np.searchsorted(y_unique, center_line)
         imin=imax-1
-
+        
         if imax== 0 or imin == y_unique[-1] :
             print('error')
         else:
-        
+                
             ymin = y_unique[imin]
             ymax = y_unique[imax]
             
-            xmin= x_unique[imin]
-            xmax= x_unique[imax]
-        
-            #idx_cl_max = np.where(y == ymax)[0]
-            #idx_cl_min = np.where(y == ymin)[0]
-        
-            #var_max = np.ma.getdata(z[idx_cl_max], False)
-            #var_min = np.ma.getdata(z[idx_cl_min], False)
-    
-            z_mins = df[df.y==ymin].z
-            z_maxs = df[df.y==ymax].z
-    
-            zCT=[]
-            Y=[ymin, ymax]
-            X=[xmin, xmax]
-            for z_min, z_max in zip(z_mins, z_maxs):
+            y_mins = df[df.y==ymin].y
+            y_maxs = df[df.y==ymax].y
+            Y=np.concatenate((y_mins.values, y_maxs.values))
             
-                Z=[z_min, z_max]
-                Zi = interpolate.intep2d(X,Y,Z, )
-                zCT.append(Zi)
+                            
+            x_mins = df[df.y==ymin].x
+            x_maxs = df[df.y==ymax].x
+            X=np.concatenate((x_mins.values, x_maxs.values))
                 
-            zCT=np.array(zCT)
-    import ipdb; ipdb.set_trace()
+            
+            v_mins = df[df.y==ymin].v
+            v_maxs = df[df.y==ymax].v
+            V=np.concatenate((v_mins.values, v_maxs.values))
     
-    z_mins = df[df.y==ymin].z
-    z_maxs = df[df.y==ymax].z   
+            points= np.concatenate((X.reshape(-1,1), Y.reshape(-1,1), V.reshape(-1,1)), axis=1)
+            points= pd.DataFrame(points, columns=['X','Y','V'])
+            points_sorted= points.sort_values(by= 'X')
+            points_sorted = points_sorted.reset_index(drop=True)
+            
+            X_interpolated_centerline= []
+            V_interpolated_centerline= []
+            
+            # 
     
-    plt.plot(x_unique,zCT)
-    # plt.title(f'Layer {layer}')
-    # units= data.variables[variable].units
-    # cname=data.variables[variable].long_name
-    # plt.xlabel('x (m)')
-    # plt.ylabel(f'{cname} [{units}]')
-    # plt.show()
+            for i in range(len(points_sorted)-1):
+                X = np.interp(center_line, (points_sorted.Y[i],points_sorted.Y[i+1]), (points_sorted.X[i],points_sorted.X[i+1]))
+                V = np.interp(center_line, (points_sorted.Y[i],points_sorted.Y[i+1]), (points_sorted.V[i],points_sorted.V[i+1]))      
+                X_interpolated_centerline.append(X)
+                V_interpolated_centerline.append(V)
+             
+        
     
-vars= [ 'turkin1']
-for var in vars:
+    plt.plot(X_interpolated_centerline,V_interpolated_centerline)
+    plt.title(f'Layer {layer}')
+    units= data.variables[variable].units
+    cname=data.variables[variable].long_name
+    plt.xlabel('x (m)')
+    plt.ylabel(f'{cname} [{units}]')
+    plt.show()
+    
+    
+variables= [ 'ucx', 'turkin1']
+for var in variables:
     plot_centerline(data,var,2) 
