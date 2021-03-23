@@ -816,36 +816,30 @@ class TestWPTOhindcast(unittest.TestCase):
 
     ### WPTO hindcast data
     # only run test for one version of python to not spam the server
-    if float(sys.version[0:3]) == 3.8:
-
+    if float(sys.version[0:3]) == 3.7:
         def test_multi_year_sig_wave_height(self):
         
             data_type = '3-hour'
             years = [1990,1992]
             lat_lon = (44.624076,-124.280097) 
             parameters = 'significant_wave_height'
-            value = randint(300,500)
-            #time.sleep(value)
             wave_multiyear, meta = wave.io.hindcast.request_wpto_point_data(data_type,parameters,lat_lon,years)
             assert_frame_equal(self.my_swh,wave_multiyear)
             assert_frame_equal(self.my_meta,meta)
 
-
+    elif float(sys.version[0:3]) == 3.8:
         def test_multi_loc(self):
             
             data_type = '3-hour'
             years = [1995]
             lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137)) 
             parameters = 'mean_absolute_period'
-            value = randint(60,300)
-            time.sleep(value)
             wave_multiloc, meta= wave.io.hindcast.request_wpto_point_data(data_type,
             parameters,lat_lon,years)
-
             assert_frame_equal(self.ml,wave_multiloc)
             assert_frame_equal(self.ml_meta,meta)
 
-
+    elif float(sys.version[0:3]) == 3.9:
         def test_multi_parm(self):
             data_type = '1-hour'
             years = [1996]
