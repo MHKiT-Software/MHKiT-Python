@@ -829,8 +829,9 @@ class TestWPTOhindcast(unittest.TestCase):
             assert_frame_equal(self.my_meta,meta)
 
     elif float(sys.version[0:3]) == 3.8:
-        def test_multi_loc(self):
-            
+        # wait five minute to ensure python 3.7 call is complete
+        time.sleep(300)
+        def test_multi_loc(self):            
             data_type = '3-hour'
             years = [1995]
             lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137)) 
@@ -841,6 +842,8 @@ class TestWPTOhindcast(unittest.TestCase):
             assert_frame_equal(self.ml_meta,meta)
 
     elif float(sys.version[0:3]) == 3.9:
+        # wait ten minutes to ensure python 3.7 and 3.8 call is complete
+        time.sleep(600)
         def test_multi_parm(self):
             data_type = '1-hour'
             years = [1996]
