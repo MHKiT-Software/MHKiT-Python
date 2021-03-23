@@ -12,7 +12,7 @@ def get_statistics(data,freq,period=600,vector_channels=[]):
     Calculate mean, max, min and stdev statistics of continuous data for a 
     given statistical window. Default length of statistical window (period) is
     based on IEC TS 62600-3:2020 ED1. Also allows calculation of statistics for multiple statistical
-    windows of continuous data.
+    windows of continuous data and accounts for vector/directional channels.
 
     Parameters
     ------------
@@ -23,7 +23,7 @@ def get_statistics(data,freq,period=600,vector_channels=[]):
     period : float/int
         Statistical window of interest [sec], default = 600 
     vector_channels : string or list (optional)
-        List of channel names that are to be vector averaged
+        List of vector/directional channel names formatted in deg (0-360)
 
     Returns
     ---------
@@ -74,7 +74,7 @@ def get_statistics(data,freq,period=600,vector_channels=[]):
             stdev.append(datachunk.std()) # standard deviation
             # calculate vector averages and std
             for v in vector_channels:
-                vector_avg, vector_std = vector_averaging(datachunk[v])            
+                vector_avg, vector_std = vector_statistics(datachunk[v])            
                 means[i][v] = vector_avg # overwrite scalar average for channel
                 stdev[i][v] = vector_std # overwrite scalar std for channel
         
@@ -86,14 +86,15 @@ def get_statistics(data,freq,period=600,vector_channels=[]):
 
     return means,maxs,mins,stdevs
 
-def vector_averaging(data):
+def vector_statistics(data):
     """
-    Function used to calculate statistics for vector/directional channels
+    Function used to calculate statistics for vector/directional channels based on
+    routine from Campbell data logger and Yamartino algorithm
 
     Parameters
     ----------
     data : pandas Series, numpy array, list
-        Vector channel to calculate statistics on
+        Vector channel to calculate statistics on [deg, 0-360]
     
     Returns
     -------
@@ -117,7 +118,7 @@ def vector_averaging(data):
     epsilon = (1-magsum)**0.5
     if not np.isreal(epsilon): # check if epsilon is imaginary (error)
         vector_std = 0
-        print('WARNING: vector averaging error in calculating epsilon')
+        print('WARNING: epsilon contains imaginary value')
     else:
         vector_std = np.arcsin(epsilon)*(1+0.1547*epsilon**3)*180/np.pi
 
