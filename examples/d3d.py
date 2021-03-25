@@ -123,79 +123,86 @@ def plot_centerline(data,variable,layer, TS=-1, center_line=3):
     None.
 
     '''
-    x,y,v= get_variable(data, variable, layer,TS)
-        
-    x = np.ma.getdata(x, False)
-    y = np.ma.getdata(y, False)
-    v = np.ma.getdata(v, False)
+    lower_layer= np.floor(layer)
+
+    upper_layer= lower_layer + 1 
+
+    if layer == lower_layer:
+        x,y,v= get_variable(data, variable, layer,TS)
             
-    df = pd.DataFrame(x, columns=['x'])
-    df['y'] = y
-    df['v'] = v
-            
-    y_unique= np.unique(y)
-    x_unique= np.unique(x)
-              
-    #import ipdb; ipdb.set_trace()
-    if  any(center_line==y_unique):
-        Yidx=len(y_unique)//2
-        idx= y_unique[Yidx]
-        center_line_index = np.where(y== idx)
-        x_plot = x[center_line_index]
-        v_plot = v[center_line_index]
+        x = np.ma.getdata(x, False)
+        y = np.ma.getdata(y, False)
+        v = np.ma.getdata(v, False)
                 
-     
-    else: 
-        imax = np.searchsorted(y_unique, center_line)
-        imin=imax-1
-        
-        if imax== 0 or imin == y_unique[-1] :
-            print('error')
-        else:
+        df = pd.DataFrame(x, columns=['x'])
+        df['y'] = y
+        df['v'] = v
                 
-            ymin = y_unique[imin]
-            ymax = y_unique[imax]
+        y_unique= np.unique(y)
+        x_unique= np.unique(x)
+                  
+        #import ipdb; ipdb.set_trace()
+        if  any(center_line==y_unique):
+            Yidx=len(y_unique)//2
+            idx= y_unique[Yidx]
+            center_line_index = np.where(y== idx)
+            x_plot = x[center_line_index]
+            v_plot = v[center_line_index]
+                    
+         
+        else: 
+            imax = np.searchsorted(y_unique, center_line)
+            imin=imax-1
             
-            y_mins = df[df.y==ymin].y
-            y_maxs = df[df.y==ymax].y
-            Y=np.concatenate((y_mins.values, y_maxs.values))
-            
-                            
-            x_mins = df[df.y==ymin].x
-            x_maxs = df[df.y==ymax].x
-            X=np.concatenate((x_mins.values, x_maxs.values))
+            if imax== 0 or imin == y_unique[-1] :
+                print('error')
+            else:
+
+                ymin = y_unique[imin]
+                ymax = y_unique[imax]
                 
-            
-            v_mins = df[df.y==ymin].v
-            v_maxs = df[df.y==ymax].v
-            V=np.concatenate((v_mins.values, v_maxs.values))
-    
-            points= np.concatenate((X.reshape(-1,1), Y.reshape(-1,1), V.reshape(-1,1)), axis=1)
-            points= pd.DataFrame(points, columns=['X','Y','V'])
-            points_sorted= points.sort_values(by= 'X')
-            points_sorted = points_sorted.reset_index(drop=True)
-            
-            X_interpolated_centerline= []
-            V_interpolated_centerline= []
-            
-    
-            for i in range(len(points_sorted)-1):
-                X = np.interp(center_line, (points_sorted.Y[i],points_sorted.Y[i+1]), (points_sorted.X[i],points_sorted.X[i+1]))
-                V = np.interp(center_line, (points_sorted.Y[i],points_sorted.Y[i+1]), (points_sorted.V[i],points_sorted.V[i+1]))      
-                X_interpolated_centerline.append(X)
-                V_interpolated_centerline.append(V)
-            x_plot = X_interpolated_centerline
-            v_plot = V_interpolated_centerline
+                y_mins = df[df.y==ymin].y
+                y_maxs = df[df.y==ymax].y
+                Y=np.concatenate((y_mins.values, y_maxs.values))
+                
+                                
+                x_mins = df[df.y==ymin].x
+                x_maxs = df[df.y==ymax].x
+                X=np.concatenate((x_mins.values, x_maxs.values))
+                    
+                
+                v_mins = df[df.y==ymin].v
+                v_maxs = df[df.y==ymax].v
+                V=np.concatenate((v_mins.values, v_maxs.values))
         
-    
-    plt.plot(x_plot,v_plot)
-    plt.title(f'Layer {layer}')
-    units= data.variables[variable].units
-    cname=data.variables[variable].long_name
-    plt.xlabel('x (m)')
-    plt.ylabel(f'{cname} [{units}]')
-    plt.show()
-    
+                points= np.concatenate((X.reshape(-1,1), Y.reshape(-1,1), V.reshape(-1,1)), axis=1)
+                points= pd.DataFrame(points, columns=['X','Y','V'])
+                points_sorted= points.sort_values(by= 'X')
+                points_sorted = points_sorted.reset_index(drop=True)
+                
+                X_interpolated_centerline= []
+                V_interpolated_centerline= []
+                
+        
+                for i in range(len(points_sorted)-1):
+                    X = np.interp(center_line, (points_sorted.Y[i],points_sorted.Y[i+1]), (points_sorted.X[i],points_sorted.X[i+1]))
+                    V = np.interp(center_line, (points_sorted.Y[i],points_sorted.Y[i+1]), (points_sorted.V[i],points_sorted.V[i+1]))      
+                    X_interpolated_centerline.append(X)
+                    V_interpolated_centerline.append(V)
+                x_plot = X_interpolated_centerline
+                v_plot = V_interpolated_centerline
+            
+        
+        plt.plot(x_plot,v_plot)
+        plt.title(f'Layer {layer}')
+        units= data.variables[variable].units
+        cname=data.variables[variable].long_name
+        plt.xlabel('x (m)')
+        plt.ylabel(f'{cname} [{units}]')
+        plt.show()
+    else:
+        print('error')
+        
     
 variables= [ 'ucx', 'turkin1']
 for var in variables:
