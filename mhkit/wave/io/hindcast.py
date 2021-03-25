@@ -85,7 +85,7 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
                         temp_data = temp_data.rename(columns={c:temp})
 
                     data_list.append(temp_data)
-                data= pd.concat(data_list)
+                data= pd.concat(data_list, axis=1)
                 
             else:
                 data = rex_waves.get_lat_lon_df(parameter,lat_lon)

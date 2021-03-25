@@ -13,6 +13,7 @@ import unittest
 import inspect
 import pickle
 import json
+import sys
 import os
 import time
 from random import seed, randint
@@ -827,49 +828,45 @@ class TestWPTOhindcast(unittest.TestCase):
         pass
 
     ### WPTO hindcast data
-
-    def test_multi_year_sig_wave_height(self):
-    
-        data_type = '3-hour'
-        years = [1990,1992]
-        lat_lon = (44.624076,-124.280097) 
-        parameters = 'significant_wave_height'
-        seed(1)
-        value = randint(5,15)
-        time.sleep(value)
-        wave_multiyear, meta = wave.io.hindcast.request_wpto_point_data(data_type,parameters,lat_lon,years)
-        assert_frame_equal(self.my_swh,wave_multiyear)
-        assert_frame_equal(self.my_meta,meta)
+    # only run test for one version of python per to not spam the server
+    # yet keep coverage high on each test
+    if float(sys.version[0:3]) == 3.7:
+        def test_multi_year_sig_wave_height(self):
         
+            data_type = '3-hour'
+            years = [1990,1992]
+            lat_lon = (44.624076,-124.280097) 
+            parameters = 'significant_wave_height'
+            wave_multiyear, meta = wave.io.hindcast.request_wpto_point_data(data_type,parameters,lat_lon,years)
+            assert_frame_equal(self.my_swh,wave_multiyear)
+            assert_frame_equal(self.my_meta,meta)
 
-    def test_multi_loc(self):
-        
-        data_type = '3-hour'
-        years = [1995]
-        lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137)) 
-        parameters = 'mean_absolute_period'
-        seed(1)
-        value = randint(5,15)
-        time.sleep(value)
-        wave_multiloc, meta= wave.io.hindcast.request_wpto_point_data(data_type,
-        parameters,lat_lon,years)
+    elif float(sys.version[0:3]) == 3.8:
+        # wait five minute to ensure python 3.7 call is complete
+        time.sleep(300)
+        def test_multi_loc(self):            
+            data_type = '3-hour'
+            years = [1995]
+            lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137)) 
+            parameters = 'mean_absolute_period'
+            wave_multiloc, meta= wave.io.hindcast.request_wpto_point_data(data_type,
+            parameters,lat_lon,years)
+            assert_frame_equal(self.ml,wave_multiloc)
+            assert_frame_equal(self.ml_meta,meta)
 
-        assert_frame_equal(self.ml,wave_multiloc)
-        assert_frame_equal(self.ml_meta,meta)
+    elif float(sys.version[0:3]) == 3.9:
+        # wait ten minutes to ensure python 3.7 and 3.8 call is complete
+        time.sleep(500)
+        def test_multi_parm(self):
+            data_type = '1-hour'
+            years = [1996]
+            lat_lon = (44.624076,-124.280097) 
+            parameters = ['energy_period','mean_zero-crossing_period']        
+            wave_multiparm, meta= wave.io.hindcast.request_wpto_point_data(data_type,
+            parameters,lat_lon,years)
 
-    def test_multi_parm(self):
-        data_type = '1-hour'
-        years = [1996]
-        lat_lon = (44.624076,-124.280097) 
-        parameters = ['energy_period','mean_zero-crossing_period']
-        seed(1)
-        value = randint(5,15)
-        time.sleep(value)
-        wave_multiparm, meta= wave.io.hindcast.request_wpto_point_data(data_type,
-        parameters,lat_lon,years)
-
-        assert_frame_equal(self.mp,wave_multiparm)
-        assert_frame_equal(self.mp_meta,meta) 
+            assert_frame_equal(self.mp,wave_multiparm)
+            assert_frame_equal(self.mp_meta,meta) 
 
 class TestSWAN(unittest.TestCase):
 
