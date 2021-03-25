@@ -33,17 +33,28 @@ class TestGenUtils(unittest.TestCase):
         df.Timestamp = pd.to_datetime(df.Timestamp)
         df.set_index('Timestamp',inplace=True)
         # run function
-        means,maxs,mins,stdevs = utils.get_statistics(df,self.freq,period=self.period)
+        means,maxs,mins,stdevs = utils.get_statistics(df,self.freq,period=self.period,vector_channels=['WD_Nacelle','WD_NacelleMod'])
         # check statistics
         self.assertAlmostEqual(means.reset_index().loc[0,'uWind_80m'],7.773,2) # mean
         self.assertAlmostEqual(maxs.reset_index().loc[0,'uWind_80m'],13.271,2) # max
         self.assertAlmostEqual(mins.reset_index().loc[0,'uWind_80m'],3.221,2) # min
         self.assertAlmostEqual(stdevs.reset_index().loc[0,'uWind_80m'],1.551,2) # standard deviation
+        self.assertAlmostEqual(means.reset_index().loc[0,'WD_Nacelle'],178.1796,2) # mean - vector 
+        self.assertAlmostEqual(stdevs.reset_index().loc[0,'WD_Nacelle'],36.093,2) # standard devaition - vector 
         # check timestamp
         string_time = '2017-03-01 01:28:41'
         time = pd.to_datetime(string_time)
         self.assertTrue(means.index[0]==time)
-        
+    
+    def test_vector_statistics(self):
+        # load in vector variable
+        df = self.data['loads']
+        vector_data = df['WD_Nacelle']
+        vector_avg, vector_std = utils.vector_statistics(vector_data)
+        # check answers
+        self.assertAlmostEqual(vector_avg,178.1796,2) # mean - vector 
+        self.assertAlmostEqual(vector_std,36.093,2) # standard devaition - vector
+
     def test_unwrap_vector(self):
         # create array of test values and corresponding expected answers
         test = [-740,-400,-50,0,50,400,740]
