@@ -43,8 +43,9 @@ def get_variable(data,variable,layer = -1 ,TS=-1):
         z= np.ma.getdata(var[itime,:,layer], False)
     return x,y,z
 
-def plot_centerline(data, variable, depth, time_step = -1, Center_line=3):
-   
+
+def get_variable_points(data, variable,x=None,y=None,z=None,points=None,
+                        time_step=-1):
     '''
     Parameters
     ----------
@@ -64,6 +65,45 @@ def plot_centerline(data, variable, depth, time_step = -1, Center_line=3):
     None.
 
     '''
+    try:
+        x = np.array([x])
+    except:
+        pass
+    try:
+        y = np.array([y])
+    except:
+        pass
+    try:
+        z = np.array([z])
+    except:
+        pass
+    
+    assert(sum([len(x) == 1, len(y)==1, len(z)==1]) >= 2), ('must provide'/
+           f'at least 2 points. got x={x}, y={y}, z={z}') 
+    
+    if not points:
+        assert(all([x,y,z]), 'Must specify either x,y,&z or provide points'
+    
+    
+    # x = vector; y,z are floats
+    if len(x) != len(y) or len(x) != len(z):
+        # Now find greatest length
+        length = 0
+        directions = {0: {'name' : 'x',
+                         'values': x},
+                      1:{'name' : 'y',
+                         'values' : y},
+                      2:{'name' : 'z',
+                         'values' : z}}
+        directions_vals = [directions[n]['values'] for n in directions]
+        lens = np.array([np.size(d)  for d in directions])
+        max_len = lens.argmax()
+        not_maxs = [  d for d in [0,1,2] if d != max_len]
+        for not_max in not_maxs:           
+            vals = [directions[not_max]['values'] for i in range(lens[max_len])]
+            directions[not_max]['values'] = np.array(vals)
+        
+    
     # variable= 'ucx'
     # time_step= -1
     # Center_line=3
@@ -96,6 +136,31 @@ def plot_centerline(data, variable, depth, time_step = -1, Center_line=3):
     request= np.array([ [x_new, y_new, z_new] for x_new, y_new, z_new in zip(x_new, y_new, z_new)])
     
     v_new = interp.griddata(points, v_all, request)
+
+
+def plot_centerline(data, variable, depth, time_step = -1, Center_line=3):
+   
+    '''
+    Parameters
+    ----------
+    data : netcdf4 object 
+        d3d netcdf file 
+    variable : string 
+        variable to call.
+    depth : float
+        depth 
+    time_step : float 
+        time step The default is -1.
+    Center_line : float
+        location of center line. The default is 3.
+
+    Returns
+    -------
+    None.
+
+    '''
+   
+    get_variable_points(data, variable,x,y,z,points,time_step)
     
     
     plt.plot(x_new, v_new)
