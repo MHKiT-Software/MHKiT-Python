@@ -4,6 +4,7 @@ import datetime
 import netCDF4
 import time
 
+
 def _validate_date(date_text):
     '''
     Checks date format to ensure MM/DD/YYYY format
@@ -51,6 +52,7 @@ def request_netCDF(station_number, data_type):
     nc = netCDF4.Dataset(data_url)
     #nc.set_auto_mask(False)
     return nc
+
 
 def _start_and_end_of_year(year):
     '''
@@ -114,7 +116,7 @@ def get_netcdf_variables(nc, start_stamp=None, end_stamp=None,
                                start_stamp, end_stamp)
     mask = masked_time.mask                               
     time_variables['waveTime'] = masked_time.compressed()
-
+    
     
     allVariables = [var for var in nc.variables]
     allVariables.remove('waveTime')
@@ -127,13 +129,13 @@ def get_netcdf_variables(nc, start_stamp=None, end_stamp=None,
     if not include_2D_variables:
         for var in twoDimensionalVars:
             allVariables.remove(var)
-    
+
     for var in allVariables:      
         variable = nc.variables[var][:].compressed()
-        if variable.size == masked_time.size:
-            #import ipdb; ipdb.set_trace()    
-            variable = np.ma.masked_array(variable, masked_time.mask)
-            time_variables[var] = variable            
+        if variable.size == masked_time.size:              
+            variable = np.ma.masked_array(variable, mask)
+            #import ipdb; ipdb.set_trace()
+            time_variables[var] = variable.compressed()
         else:
             metadata[var] = nc.variables[var][:].compressed()
     return time_variables, metadata
@@ -160,7 +162,7 @@ def request_data(station_number, years=None, start_date=None,
     include2DVars: boolean
         Will return all 2D data. Enabling this will add significant 
         processing time. It is reccomened to call `request_netCDF` 
-        function directly and process 2D of interest.
+        function directly and process 2D variable of interest.
     
     Returns
     -------
@@ -168,13 +170,15 @@ def request_data(station_number, years=None, start_date=None,
         Data indexed by datetime with columns named according to the data 
         signal, for it includes: Hs, Tp, and Dp       
     '''
-    assert isinstance(station_number, str), f'station_number must be of type str'
+    assert isinstance(station_number, str), (f'station_number must be' / 
+                                              'of type string')
     assert isinstance(start_date, (str, type(None))), 'start_date must be of type str'
     assert isinstance(end_date, (str, type(None))), 'end_date must be of type str'
     assert isinstance(years, (type(None),int,list)), 'years must be of type int or list of ints'
   
     if not any([years, start_date, end_date]):
-        Exception('Must specify either a year, a start_date, or start_date & end_date')
+        raise Exception('Must specify either a year, a start_date,'
+                        'a end date or start_date & end_date')
     
     multiyear=False
     if years:
@@ -189,10 +193,8 @@ def request_data(station_number, years=None, start_date=None,
     if start_date:        
         start_date = _validate_date(start_date)   
     if end_date:
-        end_date = _validate_date(end_date)
-        if not start_date:
-            raise Exception('start_date must be speficied with end_date')      
-        elif start_date > end_date:
+        end_date = _validate_date(end_date)   
+        if start_date > end_date:
             raise Exception(f'start_date ({start_date}) must be before end_date ({end_date})')
         elif start_date == end_date:
             raise Exception(f'start_date ({start_date}) cannot be the same as end_date ({end_date})')
@@ -202,25 +204,47 @@ def request_data(station_number, years=None, start_date=None,
     nc = request_netCDF(station_number, data_type)
     
     time_all = nc.variables['waveTime'][:].compressed()
-    time_range = [time_all[0].astype('datetime64[s]'), 
+    time_range_all = [time_all[0].astype('datetime64[s]'), 
                   time_all[-1].astype('datetime64[s]')]
 
-    
     if start_date:
-        if start_date > time_range[0] and start_date < time_range[1]:
+        if start_date > time_range_all[0] and start_date < time_range_all[1]:
             start_stamp = start_date.timestamp()
 
-        if end_date:
+        else:
+            print(f'WARNING: Provided start_date ({start_date}) is ' 
+            f'not in the returned data range {time_range_all} \n' 
+            f'Setting start_date to the earliest date in range '
+            f'{time_range_all[0]}')
+            start_stamp = pd.to_datetime(time_range_all[0]).timestamp()         
+    
+    if end_date:
+        if end_date > time_range_all[0] and end_date < time_range_all[1]:
             end_stamp = end_date.timestamp()
 
-            time_variables, metadata = get_netcdf_variables(nc, 
-                       start_stamp=start_stamp, end_stamp=end_stamp, 
-                       include_2D_variables=include_2D_variables)                                  
         else:
-            time_variables, metadata = get_netcdf_variables(nc, 
-                       start_stamp=start_stamp,  
-                       include_2D_variables=include_2D_variables)       
-                        
+            print(f'WARNING: Provided end_date ({end_date}) is ' 
+            f'not in the returned data range {time_range_all} \n' 
+            f'Setting end_date to the latest date in range '
+            f'{time_range_all[1]}')
+            end_stamp = pd.to_datetime(time_range_all[1]).timestamp()        
+    
+    
+    if start_date and not end_date:           
+        time_variables, metadata = get_netcdf_variables(nc, 
+                              start_stamp=start_stamp,  
+                              include_2D_variables=include_2D_variables)  
+
+    elif end_date and not start_date:
+        time_variables, metadata = get_netcdf_variables(nc, 
+                              end_stamp=end_stamp, 
+                              include_2D_variables=include_2D_variables)     
+    
+    elif start_date and end_date:
+        time_variables, metadata = get_netcdf_variables(nc, 
+                       start_stamp=start_stamp, end_stamp=end_stamp, 
+                       include_2D_variables=include_2D_variables)
+    
     elif multiyear:
         mYear={}
         for year in years: 
@@ -243,11 +267,10 @@ def request_data(station_number, years=None, start_date=None,
     
     
     
-    
-    
-
-    import ipdb;ipdb.set_trace() 
-    data = pd.DataFrame(time_variables, index=time_all)   
+    time_slice = pd.to_datetime(time_variables['waveTime'][:])
+    #del time_variables['waveTime']
+    #import ipdb;ipdb.set_trace() 
+    data = pd.DataFrame(time_variables, index=time_slice)   
      
     if start_date:
         start_string = start_date.strftime('%Y-%m-%d')

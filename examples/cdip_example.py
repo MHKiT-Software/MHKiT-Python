@@ -26,22 +26,22 @@ year = 2011
 # Load Historic data
 #########################
 stn = '100'
-start_date = "2012-04-01" # MM/DD/YYYY
+start_date = "2012-04-01" 
 end_date = "2012-04-30"
 
 # stn = '179'
-# start_date = "04/01/2019" # MM/DD/YYYY
+# start_date = "04/01/2019" 
 # end_date = "04/30/2019"
 
 # stn = '187'
-# start_date = "08/01/2018" # MM/DD/YYYY
+# start_date = "08/01/2018" 
 # end_date = "08/31/2018"
 
 # stn = '213'
-# start_date = "08/01/2018" # MM/DD/YYYY
+# start_date = "08/01/2018" 
 # end_date = "08/31/2018"
 
-data, metadata = cdip.request_data(stn,start_date= start_date,end_date=end_date)
+data, metadata = cdip.request_data(stn,start_date=start_date,end_date=end_date)
 # data.head()
 
 #########################
