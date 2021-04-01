@@ -41,7 +41,7 @@ end_date = "2012-04-30"
 # start_date = "08/01/2018" 
 # end_date = "08/31/2018"
 
-data, metadata = cdip.request_data(stn,start_date=start_date,end_date=end_date)
+#data, metadata = cdip.request_data(stn,start_date=start_date,end_date=end_date)
 # data.head()
 
 #########################

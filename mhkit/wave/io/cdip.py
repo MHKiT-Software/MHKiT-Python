@@ -112,7 +112,7 @@ def get_netcdf_variables(nc, start_stamp=None, end_stamp=None,
     time_variables={}
     metadata={}
     
-    masked_time = np.ma.masked_inside(nc.variables['waveTime'][:], 
+    masked_time = np.ma.masked_outside(nc.variables['waveTime'][:], 
                                start_stamp, end_stamp)
     mask = masked_time.mask                               
     time_variables['waveTime'] = masked_time.compressed()
@@ -129,9 +129,10 @@ def get_netcdf_variables(nc, start_stamp=None, end_stamp=None,
     if not include_2D_variables:
         for var in twoDimensionalVars:
             allVariables.remove(var)
-
+    
     for var in allVariables:      
         variable = nc.variables[var][:].compressed()
+        
         if variable.size == masked_time.size:              
             variable = np.ma.masked_array(variable, mask)
             #import ipdb; ipdb.set_trace()
@@ -198,11 +199,9 @@ def request_data(station_number, years=None, start_date=None,
             raise Exception(f'start_date ({start_date}) must be before end_date ({end_date})')
         elif start_date == end_date:
             raise Exception(f'start_date ({start_date}) cannot be the same as end_date ({end_date})')
-            
-            
     
     nc = request_netCDF(station_number, data_type)
-    
+    #import ipdb; ipdb.set_trace()
     time_all = nc.variables['waveTime'][:].compressed()
     time_range_all = [time_all[0].astype('datetime64[s]'), 
                   time_all[-1].astype('datetime64[s]')]
@@ -230,21 +229,17 @@ def request_data(station_number, years=None, start_date=None,
             end_stamp = pd.to_datetime(time_range_all[1]).timestamp()        
     
     
-    if start_date and not end_date:           
-        time_variables, metadata = get_netcdf_variables(nc, 
-                              start_stamp=start_stamp,  
-                              include_2D_variables=include_2D_variables)  
+    if start_date and not end_date:
+        end_stamp = pd.to_datetime(time_range_all[1]).timestamp()            
 
     elif end_date and not start_date:
-        time_variables, metadata = get_netcdf_variables(nc, 
-                              end_stamp=end_stamp, 
-                              include_2D_variables=include_2D_variables)     
-    
-    elif start_date and end_date:
+        start_stamp = pd.to_datetime(time_range_all[0]).timestamp()
+      
+    if not multiyear:
         time_variables, metadata = get_netcdf_variables(nc, 
                        start_stamp=start_stamp, end_stamp=end_stamp, 
-                       include_2D_variables=include_2D_variables)
-    
+                       include_2D_variables=include_2D_variables)  
+                      
     elif multiyear:
         mYear={}
         for year in years: 
@@ -269,31 +264,31 @@ def request_data(station_number, years=None, start_date=None,
     
     time_slice = pd.to_datetime(time_variables['waveTime'][:])
     #del time_variables['waveTime']
-    #import ipdb;ipdb.set_trace() 
+    
     data = pd.DataFrame(time_variables, index=time_slice)   
      
-    if start_date:
-        start_string = start_date.strftime('%Y-%m-%d')
+    # if start_date:
+        # start_string = start_date.strftime('%Y-%m-%d')
 
-        if end_date:
-            end_string = end_date.strftime('%Y-%m-%d')
-            data = data[start_string:end_string]     
-        else:
-            data = data[start_string:end_string]        
+        # if end_date:
+            # end_string = end_date.strftime('%Y-%m-%d')
+            # data = data[start_string:end_string]     
+        # else:
+            # data = data[start_string:end_string]        
                         
-    elif multiyear:
-        mYear={}
-        for year in years: 
-            start_year, end_year = _start_and_end_of_year(years)    
-            start_string = start_year.strftime('%Y-%m-%d')
-            end_string = end_year.strftime('%Y-%m-%d')
-            data = data[start_string:end_string]
-            mYear[year] = data
-        import ipdb;ipdb.set_trace()
-    else:        
-        start_string = start_year.strftime('%Y-%m-%d')
-        end_string = end_year.strftime('%Y-%m-%d')
-        data = data[start_string:end_string]
+    # elif multiyear:
+        # mYear={}
+        # for year in years: 
+            # start_year, end_year = _start_and_end_of_year(years)    
+            # start_string = start_year.strftime('%Y-%m-%d')
+            # end_string = end_year.strftime('%Y-%m-%d')
+            # data = data[start_string:end_string]
+            # mYear[year] = data
+        # import ipdb;ipdb.set_trace()
+    # else:        
+        # start_string = start_year.strftime('%Y-%m-%d')
+        # end_string = end_year.strftime('%Y-%m-%d')
+        # data = data[start_string:end_string]
 
     buoy_name = nc.variables['metaStationName'][:].tostring()           
     data.name = buoy_name
