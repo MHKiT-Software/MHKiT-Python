@@ -3,5 +3,6 @@ from mhkit.wave.io import wecsim
 try:
     from mhkit.wave.io import hindcast
 except ImportError:
+    print("WARNING: Wave WPTO hindcast functions not imported from MHKiT-Python. If you are using windows and calling from MHKiT-MATLAB this is expected.")
     pass
 from mhkit.wave.io import swan
