@@ -588,7 +588,7 @@ def energy_flux(S, h, deep = False, rho=1025, g=9.80665):
         k = wave_number(f, h, rho, g)
 
         # wave celerity (group velocity)
-        Cg = wave_celerity(k, h, g).squeeze()
+        Cg = wave_celerity(k, h, g, depth_check = True).squeeze()
 
         # Calculating the wave energy flux, Eq 9 in IEC 62600-101
         delta_f = pd.Series(f).diff()

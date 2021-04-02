@@ -379,6 +379,14 @@ class TestResourceMetrics(unittest.TestCase):
                 #print('e', expected, calculated, error)
                 self.assertLess(error, 0.001) 
 
+                # J
+                for i,j in zip(data['h'],data['J']):
+                    expected = j
+                    calculated = wave.resource.energy_flux(S,i)
+                    error = np.abs(expected-calculated)/expected
+                    self.assertLess(error, 0.001)
+                 
+
                 # v
                 if file_i == 'CDiP': 
                     # this should be updated to run on other datasets
@@ -388,7 +396,9 @@ class TestResourceMetrics(unittest.TestCase):
                     error = np.abs(expected-calculated)/expected
 
                        
-                    self.assertLess(error, 0.01) 
+                    self.assertLess(error, 0.01)
+
+                    
 
                 if file_i == 'MC':
                     expected = data['metrics']['v']
