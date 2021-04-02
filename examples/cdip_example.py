@@ -53,7 +53,7 @@ end_date = "2020-11-30"
 
 data, metadata = cdip.request_data(stn,start_date=start_date,
                                    end_date=end_date,data_type='Realtime')
-import ipdb; ipdb.set_trace()
+#import ipdb; ipdb.set_trace()
 
 #########################
 # Plot data Compendium

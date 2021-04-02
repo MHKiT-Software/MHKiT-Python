@@ -260,44 +260,13 @@ def request_data(station_number, years=None, start_date=None,
                    start_stamp=start_stamp, end_stamp=end_stamp,  
                    include_2D_variables=include_2D_variables) 
     
-    
-    
-    time_slice = pd.to_datetime(time_variables['waveTime'][:])
-    #del time_variables['waveTime']
-    
-    data = pd.DataFrame(time_variables, index=time_slice)   
-     
-    # if start_date:
-        # start_string = start_date.strftime('%Y-%m-%d')
+    time_slice = pd.to_datetime(time_variables['waveTime'][:], unit='s')
+    data = pd.DataFrame(time_variables, index=time_slice)        
 
-        # if end_date:
-            # end_string = end_date.strftime('%Y-%m-%d')
-            # data = data[start_string:end_string]     
-        # else:
-            # data = data[start_string:end_string]        
-                        
-    # elif multiyear:
-        # mYear={}
-        # for year in years: 
-            # start_year, end_year = _start_and_end_of_year(years)    
-            # start_string = start_year.strftime('%Y-%m-%d')
-            # end_string = end_year.strftime('%Y-%m-%d')
-            # data = data[start_string:end_string]
-            # mYear[year] = data
-        # import ipdb;ipdb.set_trace()
-    # else:        
-        # start_string = start_year.strftime('%Y-%m-%d')
-        # end_string = end_year.strftime('%Y-%m-%d')
-        # data = data[start_string:end_string]
-
-    buoy_name = nc.variables['metaStationName'][:].tostring()           
+    buoy_name = nc.variables['metaStationName'][:].compressed().tostring()           
     data.name = buoy_name
+    
     return data, metadata
-
-
-
-
-
 
 
 def request_realtime(station_number, start_date='', end_date='', year_date='',
