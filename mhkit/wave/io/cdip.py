@@ -180,17 +180,8 @@ def request_data(station_number, years=None, start_date=None,
     if not any([years, start_date, end_date]):
         raise Exception('Must specify either a year, a start_date,'
                         'a end date or start_date & end_date')
-    
-    multiyear=False
-    if years:
-        if isinstance(years,int):
-            start_year, end_year = _start_and_end_of_year(years)
-        elif isinstance(years,list):
-            if len(years)==1:
-                start_year, end_year = _start_and_end_of_year(years[0])
-            else:
-                multiyear=True
-            
+
+
     if start_date:        
         start_date = _validate_date(start_date)   
     if end_date:
@@ -199,6 +190,20 @@ def request_data(station_number, years=None, start_date=None,
             raise Exception(f'start_date ({start_date}) must be before end_date ({end_date})')
         elif start_date == end_date:
             raise Exception(f'start_date ({start_date}) cannot be the same as end_date ({end_date})')
+
+    
+    multiyear=False
+    if years:
+        if isinstance(years,int):
+            start_date, end_date = _start_and_end_of_year(years)
+            #import ipdb; ipdb.set_trace()
+        elif isinstance(years,list):
+            if len(years)==1:
+                start_date, end_date = _start_and_end_of_year(years[0])
+            else:
+                multiyear=True
+            
+
     
     nc = request_netCDF(station_number, data_type)
     #import ipdb; ipdb.set_trace()
