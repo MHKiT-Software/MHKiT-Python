@@ -7,7 +7,8 @@ import time
 
 def _validate_date(date_text):
     '''
-    Checks date format to ensure MM/DD/YYYY format
+    Checks date format to ensure YYYY-MM-DD format and return date in
+    datetime format.
     
     Parameters
     ----------
@@ -17,8 +18,9 @@ def _validate_date(date_text):
     Returns
     -------
     dt: datetime
-    '''
-    
+    '''  
+    assert isinstance(date_text, str), (f'date_text must be' / 
+                                              'of type string')
     try:
         dt = datetime.datetime.strptime(date_text, '%Y-%m-%d')
     except ValueError:
@@ -35,22 +37,27 @@ def request_netCDF(station_number, data_type):
     station_number: string
         CDIP station number of interest
     data_type: string
-        Either 'Historic' or 'Realtime'
+        Either 'historic' or 'realtime'
    
     Returns
     -------
     nc: netCDF Object
         netCDF data for the given station number and data type
     '''
-   
-    if data_type == 'Historic':
+    assert isinstance(station_number, str), (f'station_number must be' / 
+                                              'of type string')
+    assert isinstance(data_type, str), (f'data_type must be' / 
+                                              'of type string')
+    assert data_type in ['historic', 'realtime'], 'data_type must be'\
+        f' "historic" or "realtime". Got: {data_type}'                                              
+    if data_type == 'historic':
         cdip_archive= 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/archive'
         data_url =  f'{cdip_archive}/{station_number}p1/{station_number}p1_historic.nc'
-    elif data_type == 'Realtime':
+    elif data_type == 'realtime':
         cdip_realtime = 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/realtime'
         data_url = f'{cdip_realtime}/{station_number}p1_rt.nc'
+    
     nc = netCDF4.Dataset(data_url)
-    #nc.set_auto_mask(False)
     return nc
 
 
@@ -135,7 +142,6 @@ def get_netcdf_variables(nc, start_stamp=None, end_stamp=None,
         
         if variable.size == masked_time.size:              
             variable = np.ma.masked_array(variable, mask)
-            #import ipdb; ipdb.set_trace()
             time_variables[var] = variable.compressed()
         else:
             metadata[var] = nc.variables[var][:].compressed()
@@ -143,7 +149,7 @@ def get_netcdf_variables(nc, start_stamp=None, end_stamp=None,
 
 
 def request_data(station_number, years=None, start_date=None, 
-                     end_date=None, data_type='Historic', 
+                     end_date=None, data_type='historic', 
                      include_2D_variables=False):
     '''
     Requests CDIP data by wave buoy data file (from http://cdip.ucsd.edu/).
@@ -159,7 +165,7 @@ def request_data(station_number, years=None, start_date=None,
     end_date: string 
         End date in MM/DD/YYYY, e.g. '04-30-2012'
     data_type: string
-        Either 'Historic' or 'Realtime'   
+        Either 'historic' or 'realtime'   
     include2DVars: boolean
         Will return all 2D data. Enabling this will add significant 
         processing time. It is reccomened to call `request_netCDF` 
@@ -173,14 +179,20 @@ def request_data(station_number, years=None, start_date=None,
     '''
     assert isinstance(station_number, str), (f'station_number must be' / 
                                               'of type string')
-    assert isinstance(start_date, (str, type(None))), 'start_date must be of type str'
-    assert isinstance(end_date, (str, type(None))), 'end_date must be of type str'
-    assert isinstance(years, (type(None),int,list)), 'years must be of type int or list of ints'
+    assert isinstance(start_date, (str, type(None))), 'start_date' /
+        'must be of type str'
+    assert isinstance(end_date, (str, type(None))), 'end_date must be' / 
+        'of type str'
+    assert isinstance(years, (type(None),int,list)), 'years must be of'/
+        'type int or list of ints'
+    assert isinstance(data_type, str), (f'data_type must be' / 
+                                              'of type string')        
+    assert data_type in ['historic', 'realtime'], 'data_type must be'\
+        f' "historic" or "realtime". Got: {data_type}'
   
     if not any([years, start_date, end_date]):
         raise Exception('Must specify either a year, a start_date,'
                         'a end date or start_date & end_date')
-
 
     if start_date:        
         start_date = _validate_date(start_date)   
@@ -190,7 +202,6 @@ def request_data(station_number, years=None, start_date=None,
             raise Exception(f'start_date ({start_date}) must be before end_date ({end_date})')
         elif start_date == end_date:
             raise Exception(f'start_date ({start_date}) cannot be the same as end_date ({end_date})')
-
     
     multiyear=False
     if years:
@@ -202,11 +213,9 @@ def request_data(station_number, years=None, start_date=None,
                 start_date, end_date = _start_and_end_of_year(years[0])
             else:
                 multiyear=True
-            
-
-    
+                
     nc = request_netCDF(station_number, data_type)
-    #import ipdb; ipdb.set_trace()
+
     time_all = nc.variables['waveTime'][:].compressed()
     time_range_all = [time_all[0].astype('datetime64[s]'), 
                   time_all[-1].astype('datetime64[s]')]
@@ -244,29 +253,36 @@ def request_data(station_number, years=None, start_date=None,
         time_variables, metadata = get_netcdf_variables(nc, 
                        start_stamp=start_stamp, end_stamp=end_stamp, 
                        include_2D_variables=include_2D_variables)  
-                      
+        
+        time_slice = pd.to_datetime(time_variables['waveTime'][:], unit='s')
+        data = pd.DataFrame(time_variables, index=time_slice)                         
     elif multiyear:
         mYear={}
+        multiyear_metadata={}
         for year in years: 
-            start_year, end_year = _start_and_end_of_year(years) 
+            start_year, end_year = _start_and_end_of_year(year) 
             start_stamp = start_year.timestamp()
             end_stamp = end_year.timestamp()
             
             time_variables, metadata = get_netcdf_variables(nc, 
                        start_stamp=start_stamp, end_stamp=end_stamp,  
                        include_2D_variables=include_2D_variables) 
+                       
+            time_slice = pd.to_datetime(time_variables['waveTime'][:], unit='s')
+            data = pd.DataFrame(time_variables, index=time_slice)                        
             mYear[year] = data
-        import ipdb;ipdb.set_trace()
-    else:        
-        start_stamp = start_year.timestamp()
-        end_stamp = end_year.timestamp()
+            multiyear_metadata[year] = metadata
+        data = pd.concat([v for k,v in mYear.items()])
+        #import ipdb;ipdb.set_trace()
+    # else:        
+        # start_stamp = start_year.timestamp()
+        # end_stamp = end_year.timestamp()
         
-        time_variables, metadata = get_netcdf_variables(nc, 
-                   start_stamp=start_stamp, end_stamp=end_stamp,  
-                   include_2D_variables=include_2D_variables) 
+        # time_variables, metadata = get_netcdf_variables(nc, 
+                   # start_stamp=start_stamp, end_stamp=end_stamp,  
+                   # include_2D_variables=include_2D_variables) 
     
-    time_slice = pd.to_datetime(time_variables['waveTime'][:], unit='s')
-    data = pd.DataFrame(time_variables, index=time_slice)        
+      
 
     buoy_name = nc.variables['metaStationName'][:].compressed().tostring()           
     data.name = buoy_name
