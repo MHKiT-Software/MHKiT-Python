@@ -48,8 +48,8 @@ def request_netCDF(station_number, data_type):
                                               'of type string')
     assert isinstance(data_type, str), (f'data_type must be' / 
                                               'of type string')
-    assert data_type in ['historic', 'realtime'], 'data_type must be'\
-        f' "historic" or "realtime". Got: {data_type}'                                              
+    assert data_type in ['historic', 'realtime'], ('data_type must be'\
+        f' "historic" or "realtime". Got: {data_type}')                                              
     if data_type == 'historic':
         cdip_archive= 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/archive'
         data_url =  f'{cdip_archive}/{station_number}p1/{station_number}p1_historic.nc'
@@ -94,7 +94,7 @@ def _start_and_end_of_year(year):
 def get_netcdf_variables(nc, start_stamp=None, end_stamp=None, 
                              include_2D_variables=False):
     '''
-    interates over and extracts variables from CDIP Bouy data
+    Interates over and extracts variables from CDIP Bouy data
     
     Parameters
     ----------
@@ -107,17 +107,34 @@ def get_netcdf_variables(nc, start_stamp=None, end_stamp=None,
     include2DVars: boolean
         Will return all 2D data. Enabling this will add significant 
         processing time. It is reccomened to call `request_netCDF` 
-        function directly and process 2D of interest.        
+        function directly and process 2D data of interest. 
     Returns
     -------
     time_variable: dictionary
         1D variables indexed by time    
     metadata: dictionary
-        Anything not of len time            
+        Anything not of length time            
     '''
     
+    assert isinstance(nc, netCDF4.Dataset), 'nc must be netCDF4 dataset'
+    assert isinstance(start_stamp, (float,int,type(None))), ('start_stamp'/
+        'must be float or None')
+    assert isinstance(start_stamp, (float,int, type(None))), ('end_stamp'/
+        'must be float or None')
+    assert isinstance(include_2D_variables, bool), ('include_2D_variables'/
+        'must be a boolean')
     time_variables={}
     metadata={}
+       
+    time_all = nc.variables['waveTime'][:].compressed()
+    time_range_all = [time_all[0].astype('datetime64[s]'), 
+                  time_all[-1].astype('datetime64[s]')]
+
+    if not start_stamp:
+        start_stamp = pd.to_datetime(time_range_all[0]).timestamp() 
+    if not end_stamp:
+        end_stamp = pd.to_datetime(time_range_all[1]).timestamp() 
+    
     
     masked_time = np.ma.masked_outside(nc.variables['waveTime'][:], 
                                start_stamp, end_stamp)
@@ -133,9 +150,9 @@ def get_netcdf_variables(nc, start_stamp=None, end_stamp=None,
                            'waveB2Value', 'waveCheckFactor', 'waveSpread', 
                            'waveM2Value', 'waveN2Value']
     
-    if not include_2D_variables:
-        for var in twoDimensionalVars:
-            allVariables.remove(var)
+    
+    for var in twoDimensionalVars:
+        allVariables.remove(var)
     
     for var in allVariables:      
         variable = nc.variables[var][:].compressed()
@@ -145,6 +162,16 @@ def get_netcdf_variables(nc, start_stamp=None, end_stamp=None,
             time_variables[var] = variable.compressed()
         else:
             metadata[var] = nc.variables[var][:].compressed()
+            
+    if include_2D_variables:
+        vars2D={}
+        columns=metadata['waveFrequency']
+        for var in twoDimensionalVars:
+            data = nc.variables[var][:].data
+            variable = pd.DataFrame(data,index=time_variables['waveTime'],
+                                    columns=columns)
+            vars2D[var] = variable
+            import ipdb;ipdb.set_trace()
     return time_variables, metadata
 
 
@@ -179,12 +206,12 @@ def request_data(station_number, years=None, start_date=None,
     '''
     assert isinstance(station_number, str), (f'station_number must be' / 
                                               'of type string')
-    assert isinstance(start_date, (str, type(None))), 'start_date' /
-        'must be of type str'
-    assert isinstance(end_date, (str, type(None))), 'end_date must be' / 
-        'of type str'
-    assert isinstance(years, (type(None),int,list)), 'years must be of'/
-        'type int or list of ints'
+    assert isinstance(start_date, (str, type(None))), ('start_date' /
+        'must be of type str')
+    assert isinstance(end_date, (str, type(None))), ('end_date must be' / 
+        'of type str')
+    assert isinstance(years, (type(None),int,list)), ('years must be of'/
+        'type int or list of ints')
     assert isinstance(data_type, str), (f'data_type must be' / 
                                               'of type string')        
     assert data_type in ['historic', 'realtime'], 'data_type must be'\
@@ -199,21 +226,21 @@ def request_data(station_number, years=None, start_date=None,
     if end_date:
         end_date = _validate_date(end_date)   
         if start_date > end_date:
-            raise Exception(f'start_date ({start_date}) must be before end_date ({end_date})')
+            raise Exception(f'start_date ({start_date}) must be'/
+                f'before end_date ({end_date})')
         elif start_date == end_date:
-            raise Exception(f'start_date ({start_date}) cannot be the same as end_date ({end_date})')
+            raise Exception(f'start_date ({start_date}) cannot be'/
+                f'the same as end_date ({end_date})')
     
     multiyear=False
     if years:
         if isinstance(years,int):
             start_date, end_date = _start_and_end_of_year(years)
-            #import ipdb; ipdb.set_trace()
         elif isinstance(years,list):
             if len(years)==1:
                 start_date, end_date = _start_and_end_of_year(years[0])
             else:
                 multiyear=True
-                
     nc = request_netCDF(station_number, data_type)
 
     time_all = nc.variables['waveTime'][:].compressed()
@@ -223,7 +250,6 @@ def request_data(station_number, years=None, start_date=None,
     if start_date:
         if start_date > time_range_all[0] and start_date < time_range_all[1]:
             start_stamp = start_date.timestamp()
-
         else:
             print(f'WARNING: Provided start_date ({start_date}) is ' 
             f'not in the returned data range {time_range_all} \n' 
@@ -234,7 +260,6 @@ def request_data(station_number, years=None, start_date=None,
     if end_date:
         if end_date > time_range_all[0] and end_date < time_range_all[1]:
             end_stamp = end_date.timestamp()
-
         else:
             print(f'WARNING: Provided end_date ({end_date}) is ' 
             f'not in the returned data range {time_range_all} \n' 
@@ -273,18 +298,8 @@ def request_data(station_number, years=None, start_date=None,
             mYear[year] = data
             multiyear_metadata[year] = metadata
         data = pd.concat([v for k,v in mYear.items()])
-        #import ipdb;ipdb.set_trace()
-    # else:        
-        # start_stamp = start_year.timestamp()
-        # end_stamp = end_year.timestamp()
-        
-        # time_variables, metadata = get_netcdf_variables(nc, 
-                   # start_stamp=start_stamp, end_stamp=end_stamp,  
-                   # include_2D_variables=include_2D_variables) 
-    
-      
 
-    buoy_name = nc.variables['metaStationName'][:].compressed().tostring()           
+    buoy_name = nc.variables['metaStationName'][:].compressed().tostring()
     data.name = buoy_name
     
     return data, metadata
