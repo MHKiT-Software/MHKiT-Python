@@ -9,9 +9,12 @@ import mhkit
 station_number = '067'
 year = 2011
 
-#data, metadata = cdip.request_data(station_number,years=year,
-#                                   include_2D_variables=True)
+#data = cdip.parse_data(station_number=station_number,years=year,
+#                                   include_2D_variables=False)
 
+data = cdip.parse_data(station_number=station_number,years=year,
+                                   include_2D_variables=True)
+import ipdb; ipdb.set_trace()                                   
 # Plot Boxplot
 #mhkit.wave.graphics.plot_boxplot(data.waveHs, data.name)
 #Kelley FIX 
