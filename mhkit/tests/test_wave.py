@@ -973,7 +973,8 @@ class TestIOcdip(unittest.TestCase):
         b067_1996='http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/' + \
                    'archive/067p1/067p1_d04.nc'
         nc = netCDF4.Dataset(b067_1996)
-        data = wave.io.cdip.get_netcdf_variables(nc, include_2D_variables=True)
+        data = wave.io.cdip.get_netcdf_variables(nc, 
+            all_2D_variables=True)
         
         import ipdb; ipdb.set_trace()
         

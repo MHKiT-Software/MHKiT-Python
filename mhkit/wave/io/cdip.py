@@ -374,7 +374,8 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         for var in twoDimensionalVars:
             include_vars.remove(var)
             
-        if include_2D_variables:
+        if all_2D_variables:
+            include_2D_variables=True
             include_2D_vars = twoDimensionalVars
     
     
@@ -400,6 +401,8 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         columns=metadata['waveFrequency']
         N_time= len(time_slice)
         N_frequency = len(columns)
+        if not mask:
+            mask = np.array([False] * N_time).reshape(1,-1)
         mask2D= np.tile(mask, (len(columns),1)).T
         for var in include_2D_vars:
             print(var)
@@ -410,5 +413,5 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
                                     columns=columns)
             vars2D[var] = variable
         results['vars2D'] = vars2D           
-        
+
     return results
