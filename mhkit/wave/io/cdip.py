@@ -189,6 +189,8 @@ def parse_data(nc=None, station_number=None, parameters=None,
     '''
     assert isinstance(station_number, str), (f'station_number must be '+     
                                               'of type string')
+    assert isinstance(parameters, (str, type(None), list)), ('parameters' /
+        'must be of type str or list of strings')
     assert isinstance(start_date, (str, type(None))), ('start_date' /
         'must be of type str')
     assert isinstance(end_date, (str, type(None))), ('end_date must be' / 
@@ -199,6 +201,7 @@ def parse_data(nc=None, station_number=None, parameters=None,
                                               'of type string')        
     assert data_type in ['historic', 'realtime'], 'data_type must be'\
         f' "historic" or "realtime". Got: {data_type}'
+
   
     if not any([nc, station_number]):
         Exception('Must provide either a CDIP netCDF file or a station'/ 
@@ -222,6 +225,7 @@ def parse_data(nc=None, station_number=None, parameters=None,
     if not multiyear:
         data = get_netcdf_variables(nc, 
                        start_date=start_date, end_date=end_date, 
+                       parameters=parameters, 
                        include_2D_variables=include_2D_variables)  
 
     elif multiyear:
@@ -234,6 +238,7 @@ def parse_data(nc=None, station_number=None, parameters=None,
             
             data = get_netcdf_variables(nc, 
                        start_stamp=start_stamp, end_stamp=end_stamp,  
+                       parameters=parameters, 
                        include_2D_variables=include_2D_variables) 
             multiyear_data[year] = data
             
@@ -241,7 +246,7 @@ def parse_data(nc=None, station_number=None, parameters=None,
         data = pd.concat([v for k,v in multiyear_data['time_variables'].items()])
 
     buoy_name = nc.variables['metaStationName'][:].compressed().tostring()
-    data['time_variables'].name = buoy_name
+    data['vars1D'].name = buoy_name
     
     return data
     
@@ -280,9 +285,17 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         'must be of type str')
     assert isinstance(end_date, (str, type(None))), ('end_date must be' / 
         'of type str')
+    assert isinstance(parameters, (str, type(None), list)), ('parameters' /
+        'must be of type str or list of strings')        
     assert isinstance(include_2D_variables, bool), ('include_2D_variables'/
         'must be a boolean')
-    
+
+    if parameters:
+        if isinstance(parameters,str):
+            parameters = [parameters]        
+        assert all([isinstance(param , str) for param in parameters]), ('All'/
+           'elements of parameters must be strings')
+
     results={}
     time_variables={}
     metadata={}
@@ -296,18 +309,44 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
     time_variables['waveTime'] = masked_time.compressed()    
     
     allVariables = [var for var in nc.variables]
-    allVariables.remove('waveTime')
-        
+    
     twoDimensionalVars = [ 'waveEnergyDensity', 'waveMeanDirection', 
                            'waveA1Value', 'waveB1Value', 'waveA2Value', 
                            'waveB2Value', 'waveCheckFactor', 'waveSpread', 
-                           'waveM2Value', 'waveN2Value']
+                           'waveM2Value', 'waveN2Value']    
     
+    if parameters:
+        params = set(parameters)
+        include_params = params.intersection(set(allVariables))
+        
+        if params != include_params:
+           not_found = params.difference(include_params)
+           print(f'WARNING: {not_found} was not found in data.\n' \
+                 f'Possible parameters are:\n {allVariables}')
+                 
+        include_params_2D = include_params.intersection(set(twoDimensionalVars))
+                
+        include_params = include_params.difference(include_params_2D)
+        
+       
+        if include_params_2D:
+            include_2D_variables=True
+            include_params.add('waveFrequency')
+            include_2D_vars = sorted(include_params_2D)
+        
+        include_vars = sorted(include_params)
+            
+    else:
+        include_vars = allVariables
+        include_vars.remove('waveTime')
+        
+        for var in twoDimensionalVars:
+            include_vars.remove(var)
+            
+        if include_2D_variables:
+            include_2D_vars = twoDimensionalVars
     
-    for var in twoDimensionalVars:
-        allVariables.remove(var)
-    
-    for var in allVariables:      
+    for var in include_vars:      
         variable = nc.variables[var][:].compressed()
         
         if variable.size == masked_time.size:              
@@ -319,16 +358,17 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
     time_slice = pd.to_datetime(time_variables['waveTime'][:], unit='s')
     data = pd.DataFrame(time_variables, index=time_slice)
 
-    results['time_variables'] = data
+    results['vars1D'] = data
     results['metadata'] = metadata
     
     if include_2D_variables:
+        print('Processing 2D Variables:')
         vars2D={}
         columns=metadata['waveFrequency']
         N_time= len(time_slice)
         N_frequency = len(columns)
         mask2D= np.tile(mask, (len(columns),1)).T
-        for var in twoDimensionalVars:
+        for var in include_2D_vars:
             print(var)
             variable2D = nc.variables[var][:].data
             variable2D = np.ma.masked_array(variable2D, mask2D)
@@ -341,7 +381,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
     return results
 
 
-def netCDF2D_var_to_dataframe(nc, variable_2D, columns='waveFrequency'):
+def nc_var2D_to_dataframe(nc, variable_2D, mask=None, columns='waveFrequency'):
     '''
     Extracts a passed 2D varaibel from the CDIP netCDF object.
     
