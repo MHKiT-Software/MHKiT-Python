@@ -21,6 +21,6 @@ install:
 import:
   - .hscfg
 script:
-  - nosetests -v --with-coverage --cover-package=mhkit mhkit    
+  - python -m nosetests -v --with-coverage --cover-package=mhkit mhkit    
 after_success:
   - coveralls
