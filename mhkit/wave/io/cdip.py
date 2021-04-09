@@ -337,7 +337,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
     masked_time = np.ma.masked_outside(nc.variables['waveTime'][:], 
                                        start_stamp, end_stamp)
     mask = masked_time.mask                               
-    time_variables['waveTime'] = masked_time.compressed()    
+    waveTime = masked_time.compressed()    
     
     allVariables = [var for var in nc.variables]
     
@@ -388,7 +388,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         else:
             metadata[var] = nc.variables[var][:].compressed()
 
-    time_slice = pd.to_datetime(time_variables['waveTime'][:], unit='s')
+    time_slice = pd.to_datetime(waveTime, unit='s')
     data = pd.DataFrame(time_variables, index=time_slice)
 
     results['vars1D'] = data

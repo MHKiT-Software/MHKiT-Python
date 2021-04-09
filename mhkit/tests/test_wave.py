@@ -913,24 +913,14 @@ class TestIOcdip(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        self.expected_columns_metRT = ['WDIR', 'WSPD', 'GST', 'WVHT', 'DPD', 
-            'APD', 'MWD', 'PRES', 'ATMP', 'WTMP', 'DEWP', 'VIS', 'PTDY', 'TIDE']
-        self.expected_units_metRT = {'WDIR': 'degT', 'WSPD': 'm/s', 'GST': 'm/s', 
-            'WVHT': 'm', 'DPD': 'sec', 'APD': 'sec', 'MWD': 'degT', 'PRES': 'hPa', 
-            'ATMP': 'degC', 'WTMP': 'degC', 'DEWP': 'degC', 'VIS': 'nmi', 
-            'PTDY': 'hPa', 'TIDE': 'ft'}
-        
-        self.expected_columns_metH = ['WDIR', 'WSPD', 'GST', 'WVHT', 'DPD', 
-            'APD', 'MWD', 'PRES', 'ATMP', 'WTMP', 'DEWP', 'VIS', 'TIDE']
-        self.expected_units_metH = {'WDIR': 'degT', 'WSPD': 'm/s', 'GST': 'm/s', 
-            'WVHT': 'm', 'DPD': 'sec', 'APD': 'sec', 'MWD': 'deg', 'PRES': 'hPa', 
-            'ATMP': 'degC', 'WTMP': 'degC', 'DEWP': 'degC', 'VIS': 'nmi', 
-            'TIDE': 'ft'}
-        self.filenames=['46042w1996.txt.gz', 
-                        '46029w1997.txt.gz', 
-                        '46029w1998.txt.gz']
-        self.swden = pd.read_csv(join(datadir,self.filenames[0]), sep=r'\s+', 
-                                 compression='gzip')
+        b067_1996='http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/' + \
+                   'archive/067p1/067p1_d04.nc'
+        self.test_nc = netCDF4.Dataset(b067_1996)
+       
+        self.vars2D = [ 'waveEnergyDensity', 'waveMeanDirection', 
+                        'waveA1Value', 'waveB1Value', 'waveA2Value', 
+                        'waveB2Value', 'waveCheckFactor', 'waveSpread', 
+                        'waveM2Value', 'waveN2Value'] 
         
     @classmethod
     def tearDownClass(self):
@@ -969,12 +959,17 @@ class TestIOcdip(unittest.TestCase):
         self.assertEqual(end_day, expected_end)
 
 
-    def test_get_netcdf_variables(self):
-        b067_1996='http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/' + \
-                   'archive/067p1/067p1_d04.nc'
-        nc = netCDF4.Dataset(b067_1996)
-        data = wave.io.cdip.get_netcdf_variables(nc, 
-            all_2D_variables=True)
+    # def test_get_netcdf_variables_all2Dvars(self):
+        # data = wave.io.cdip.get_netcdf_variables(self.test_nc, 
+            # all_2D_variables=True)
+        # returned_keys = [key for key in data['vars2D'].keys()]
+        # self.assertTrue( returned_keys == self.vars2D)
+        
+    def test_get_netcdf_variables_params(self):
+        parameters =['waveHs', 'waveTp','notParam', 'waveMeanDirection']
+        data = wave.io.cdip.get_netcdf_variables(self.test_nc, 
+            parameters=parameters)        
+        
         
         import ipdb; ipdb.set_trace()
         
