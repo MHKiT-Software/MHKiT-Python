@@ -15,12 +15,12 @@ jobs:
 cache: pip
 install:
   - python -m pip install --upgrade pip wheel
-  - pip install nose
+  - pip install pytest
   - pip install coveralls
   - pip install .
 import:
   - .hscfg
 script:
-  - nosetests -v --with-coverage --cover-package=mhkit mhkit    
+  - pytest --cov=mhkit mhkit    
 after_success:
   - coveralls
