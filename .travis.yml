@@ -15,6 +15,7 @@ jobs:
 cache: pip
 install:
   - python -m pip install --upgrade pip wheel
+  - pip install nose
   - pip install coveralls
   - pip install .
 import:
