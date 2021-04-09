@@ -255,21 +255,39 @@ def parse_data(nc=None, station_number=None, parameters=None,
                        all_2D_variables=all_2D_variables)  
 
     elif multiyear:
-        mYear={}
-        multiyear_metadata={}
+        data={}
+        multiyear_data={}
+        multiyear_data_2D={}
         for year in years: 
-            start_year, end_year = _start_and_end_of_year(year) 
-            start_stamp = start_year.timestamp()
-            end_stamp = end_year.timestamp()
+            start_date = f'{year}-01-01'
+            end_date = f'{year}-12-31'   
             
-            data = get_netcdf_variables(nc, 
-                       start_stamp=start_stamp, end_stamp=end_stamp,  
+            year_data = get_netcdf_variables(nc, 
+                       start_date=start_date, end_date=end_date,  
                        parameters=parameters, 
                        all_2D_variables=all_2D_variables) 
-            multiyear_data[year] = data
-            
-        data = pd.concat([v for k,v in multiyear_data['time_variables'].items()])
-
+            multiyear_data[year] = year_data['vars1D']
+            try:
+                multiyear_data_2D[year] = year_data['vars2D']
+            except:
+                pass
+            else:
+                print(f'Processed year {year} completed \n')
+           
+        data_1D = pd.concat([v for k,v in multiyear_data.items()])
+        data['vars1D'] = data_1D
+        data['metadata'] = year_data['metadata']
+        
+        if multiyear_data_2D:
+            data_2D={}
+            for var in multiyear_data_2D[years[0]].keys():
+                var_per_year={}
+                for year in multiyear_data_2D.keys():
+                    var_per_year[year] = multiyear_data_2D[year][var]
+                var_2D = pd.concat([v for k,v in var_per_year.items()])
+                data_2D[var] = var_2D
+            data['vars2D'] = data_2D
+                
     buoy_name = nc.variables['metaStationName'][:].compressed().tostring()
     data['vars1D'].name = buoy_name
     
@@ -341,6 +359,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
     
     allVariables = [var for var in nc.variables]
     
+    include_2D_variables=False
     twoDimensionalVars = [ 'waveEnergyDensity', 'waveMeanDirection', 
                            'waveA1Value', 'waveB1Value', 'waveA2Value', 
                            'waveB2Value', 'waveCheckFactor', 'waveSpread', 
@@ -359,7 +378,6 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
                 
         include_params = include_params.difference(include_params_2D)
         
-       
         if include_params_2D:
             include_2D_variables=True
             include_params.add('waveFrequency')
@@ -401,12 +419,16 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         columns=metadata['waveFrequency']
         N_time= len(time_slice)
         N_frequency = len(columns)
-        if not mask:
-            mask = np.array([False] * N_time).reshape(1,-1)
+        try:
+            l = len(mask)
+        except:
+            mask = np.array([False] * N_time)
+            
         mask2D= np.tile(mask, (len(columns),1)).T
         for var in include_2D_vars:
             print(var)
             variable2D = nc.variables[var][:].data
+            #import ipdb; ipdb.set_trace()
             variable2D = np.ma.masked_array(variable2D, mask2D)
             variable2D = variable2D.compressed().reshape(N_time, N_frequency)            
             variable = pd.DataFrame(variable2D,index=time_slice,
