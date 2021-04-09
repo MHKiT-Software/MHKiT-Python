@@ -21,6 +21,6 @@ install:
 import:
   - .hscfg
 script:
-  - pytest --cov=mhkit mhkit    
+  - pytest mhkit    
 after_success:
   - coveralls
