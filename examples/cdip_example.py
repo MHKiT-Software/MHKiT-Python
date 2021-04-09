@@ -10,11 +10,11 @@ station_number = '067'
 year = 2011
 
 #data = cdip.parse_data(station_number=station_number,years=year,
-#                                   include_2D_variables=False)
+#                                   all_2D_variables=False)
 
 data = cdip.parse_data(station_number=station_number,years=year,
                        parameters =['waveHs', 'waveTp','notParam', 'waveMeanDirection'],
-                                   include_2D_variables=False)
+                                   all_2D_variables=False)
 import ipdb; ipdb.set_trace()                                   
 # Plot Boxplot
 #mhkit.wave.graphics.plot_boxplot(data.waveHs, data.name)

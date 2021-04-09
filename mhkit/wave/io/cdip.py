@@ -97,10 +97,19 @@ def _dates_to_timestamp(nc, start_date=None, end_date=None):
     
     Parameters
     ----------
-    
+    nc: netCDF Object
+        netCDF data for the given station number and data type   
+    start_date: string 
+        Start date in YYYY-MM-DD, e.g. '2012-04-01'
+    end_date: string 
+        End date in YYYY-MM-DD, e.g. '2012-04-30'        
+        
     Returns
     -------
-    
+    start_stamp: float
+         seconds since the Epoch to start_date    
+    end_stamp: float
+         seconds since the Epoch to end_date
     '''
     assert isinstance(start_date, (str, type(None))), ('start_date' /
         'must be of type str')
@@ -153,39 +162,56 @@ def _dates_to_timestamp(nc, start_date=None, end_date=None):
         start_stamp = pd.to_datetime(time_range_all[0]).timestamp()
     if not end_date:
         end_stamp = pd.to_datetime(time_range_all[1]).timestamp()
-        
+
     return start_stamp, end_stamp 
     
    
 def parse_data(nc=None, station_number=None, parameters=None, 
                years=None, start_date=None, end_date=None, 
-               data_type='historic', include_2D_variables=False):
+               data_type='historic', all_2D_variables=False):
     '''
     Parses a passed CDIP netCDF file or requests a station number 
-    from http://cdip.ucsd.edu/).
+    from http://cdip.ucsd.edu/). This function can return specific 
+    parameters is passed. Years may be non-consecutive e.g. [2001, 2010].
+    Time may be sliced by dates (start_date or end date in YYYY-MM-DD).
+    data_type defaults to historic but may also be set to 'realtime'.
+    By default 2D variables are not parsed if all 2D varaibles are needed
+    
     
     Parameters
     ----------
+    nc: netCDF Object
+        netCDF data for the given station number and data type    
     station_number: string
         Station number of CDIP wave buoy
+    parameters: string or list of stings
+        Parameters to return. If None will return all varaibles except
+        2D-variables.        
     years: int or list of int
-        Year date, e.g. 2001 or [2009, 2010]        
+        Year date, e.g. 2001 or [2001, 2010]        
     start_date: string 
         Start date in YYYY-MM-DD, e.g. '2012-04-01'
     end_date: string 
         End date in YYYY-MM-DD, e.g. '2012-04-30'
     data_type: string
         Either 'historic' or 'realtime'   
-    include2DVars: boolean
+    all_2D_variables: boolean
         Will return all 2D data. Enabling this will add significant 
-        processing time. It is reccomened to call `request_netCDF` 
-        function directly and process 2D variable of interest.
+        processing time. If all 2D variables are not needed it is
+        recomended to pass 2D parameters of interest using the 
+        'parameters' keyword and leave this set to False. Default False.
     
     Returns
     -------
-    data: DataFrame 
-        Data indexed by datetime with columns named according to the data 
-        signal, for it includes: Hs, Tp, and Dp       
+    data: dictionary
+        'vars1D': DataFrame
+            1D variables indexed by time    
+        'metadata': dictionary
+            Anything not of length time
+        'vars2D': dictionary of DataFrames, optional
+            If 2D-vars are passed in the 'parameters key' or if run 
+            with all_2D_variables=True, then this key will appear 
+            with a dictonary of DataFrames of 2D variables.     
     '''
     assert isinstance(station_number, str), (f'station_number must be '+     
                                               'of type string')
@@ -226,7 +252,7 @@ def parse_data(nc=None, station_number=None, parameters=None,
         data = get_netcdf_variables(nc, 
                        start_date=start_date, end_date=end_date, 
                        parameters=parameters, 
-                       include_2D_variables=include_2D_variables)  
+                       all_2D_variables=all_2D_variables)  
 
     elif multiyear:
         mYear={}
@@ -239,10 +265,9 @@ def parse_data(nc=None, station_number=None, parameters=None,
             data = get_netcdf_variables(nc, 
                        start_stamp=start_stamp, end_stamp=end_stamp,  
                        parameters=parameters, 
-                       include_2D_variables=include_2D_variables) 
+                       all_2D_variables=all_2D_variables) 
             multiyear_data[year] = data
             
-        import ipdb; ipdb.set_trace()
         data = pd.concat([v for k,v in multiyear_data['time_variables'].items()])
 
     buoy_name = nc.variables['metaStationName'][:].compressed().tostring()
@@ -252,7 +277,7 @@ def parse_data(nc=None, station_number=None, parameters=None,
     
     
 def get_netcdf_variables(nc, start_date=None, end_date=None, 
-                         parameters=None, include_2D_variables=False):
+                         parameters=None, all_2D_variables=False):
     '''
     Iterates over and extracts variables from CDIP bouy data
     
@@ -263,20 +288,26 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
     start_stamp: float
         Data of interest start in seconds since epoch
     end_stamp: float
-        Data of interest end in seconds since epoch   
-    include2DVars: boolean
+        Data of interest end in seconds since epoch  
+    parameters: string or list of stings
+        Parameters to return. If None will return all varaibles except
+        2D-variables. Default None.
+    all_2D_variables: boolean
         Will return all 2D data. Enabling this will add significant 
-        processing time. It is reccomened to call `request_netCDF` 
-        function directly and process 2D data of interest. 
+        processing time. If all 2D variables are not needed it is
+        recomended to pass 2D parameters of interest using the 
+        'parameters' keyword and leave this set to False. Default False.
+
     Returns
     -------
     results: dictionary
-        'time_variables': DataFrame
+        'vars1D': DataFrame
             1D variables indexed by time    
         'metadata': dictionary
             Anything not of length time
         'vars2D': dictionary of DataFrames, optional
-            If run with include2DVars True, then this key will appear
+            If 2D-vars are passed in the 'parameters key' or if run 
+            with all_2D_variables=True, then this key will appear 
             with a dictonary of DataFrames of 2D variables.
     '''
     
@@ -287,7 +318,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         'of type str')
     assert isinstance(parameters, (str, type(None), list)), ('parameters' /
         'must be of type str or list of strings')        
-    assert isinstance(include_2D_variables, bool), ('include_2D_variables'/
+    assert isinstance(all_2D_variables, bool), ('all_2D_variables'/
         'must be a boolean')
 
     if parameters:
@@ -346,6 +377,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         if include_2D_variables:
             include_2D_vars = twoDimensionalVars
     
+    
     for var in include_vars:      
         variable = nc.variables[var][:].compressed()
         
@@ -360,6 +392,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
 
     results['vars1D'] = data
     results['metadata'] = metadata
+    
     
     if include_2D_variables:
         print('Processing 2D Variables:')
@@ -379,19 +412,3 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         results['vars2D'] = vars2D           
         
     return results
-
-
-def nc_var2D_to_dataframe(nc, variable_2D, mask=None, columns='waveFrequency'):
-    '''
-    Extracts a passed 2D varaibel from the CDIP netCDF object.
-    
-    Parameters
-    ----------
-    nc: netCDF Object
-        netCDF data for the given station number and data type
-    start_stamp: float
-        Data of interest start in seconds since epoch
-    end_stamp: float
-        Data of interest end in seconds since epoch  
-   '''
-    pass
