@@ -6,7 +6,7 @@ python:
 cache: pip
 install:
   - python -m pip install --upgrade pip wheel
-  - pip install h5pyd -upgrade
+  - pip install h5pyd --upgrade
   - pip install coveralls
   - pip install .
 import:
