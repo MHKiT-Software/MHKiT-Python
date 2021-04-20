@@ -5,14 +5,11 @@ import numpy as np
 import netCDF4
 import pandas as pd
 
-exdir= dirname(abspath(__file__))
-datadir = normpath(join(exdir,relpath('data/river/d3d')))
-filename= 'turbineTest_map.nc'
-data = netCDF4.Dataset(join(datadir,filename))
 
-def get_variable(data,variable,layer = -1 ,TS=-1):
+
+def _get_layer_data(data, variable, layer = -1 , TS=-1):
     '''
-    get variable data from netcdf4 object
+    get variable data from netcdf4 object at specified layer and timestep 
 
     Parameters
     ----------
@@ -20,14 +17,16 @@ def get_variable(data,variable,layer = -1 ,TS=-1):
         d3d netcdf file 
     variable : string
         variable to call.
-    TS: float 
-        time step. Defalt is late tiem step -1  
     Layer: float
         Delft3D layer. layer must be a positve interger 
+    TS: float 
+        time step. Defalt is late tiem step -1  
+
 
     Returns
     -------
-    None.
+    x,y,v: float
+        "x" and "y" location on specified layer with the variables values "v"
 
     '''
     coords = str(data.variables[variable].coordinates).split()
@@ -38,84 +37,87 @@ def get_variable(data,variable,layer = -1 ,TS=-1):
     y=np.ma.getdata(data.variables[coords[1]][:], False)
     if layer > max_layer:
         print ('layer out of range')
-        z=[0]*len(x)
+        v=[0]*len(x)
     else:
-        z= np.ma.getdata(var[itime,:,layer], False)
-    return x,y,z
+        v= np.ma.getdata(var[itime,:,layer], False)
+    return x,y,v
 
 
 
-def get_variable_points(data, variable,x,y,z, time_step=-1):
+def create_points( x, y, z):
 
     '''
+    Turns x, y, and z into a DataFrame of points to interpolate over,
+    Must be provided two points and one array 
+    
     Parameters
     ----------
-    data : netcdf4 object 
-        d3d netcdf file 
-    variable : string 
-        variable to call.
-    depth : float
-        depth 
-    time_step : float 
-        time step The default is -1.
-    Center_line : float
-        location of center line. The default is 3.
+   
+    x:float, array or int 
+        x values to create points
+    y:float, array or int
+        y values to create points
+    z:float, array or int
+        z values to create points
 
     Returns
     -------
-    points 
+    points: DateFrame 
+        DataFrame of x, y and z points 
 
     '''
-    try:
-        x = np.array([x])
-    except:
-        pass
-    try:
-        y = np.array([y])
-    except:
-        pass
-    try:
-        z = np.array([z])
-    except:
-        pass
+    #TODO: make this a for loop 
+    for x in [x, y, z]:
+        try:
+            len(x)
+        except:
+            x = np.array([x])   
+    # try:
+    #     len(y)
+    # except:
+    #     y = np.array([y])  
+    # try:
+    #     len(z)
+    # except:
+    #     z = np.array([z])  
     
-    assert(sum([len(x) == 1, len(y)==1, len(z)==1]) >= 2), ('must provide'/
+    assert(sum([len(x) == 1, len(y)==1, len(z)==1]) >= 2), ('must provide'\
            f'at least 2 points. got x={x}, y={y}, z={z}') 
-    
-    if not points:
-        assert(all([x,y,z])), 'Must specify either x,y,& z or provide points'
-    
+
     
     # x = vector; y,z are floats
     if ((len(x) != len(y)) or (len(x) != len(z)) or (len(y) != len(z))):
          
         # Now find greatest length
-        length = 0
         directions = {0: {'name' : 'x',
                          'values': x},
                       1:{'name' : 'y',
                          'values' : y},
                       2:{'name' : 'z',
                          'values' : z}}
-        directions_vals = [directions[n]['values'] for n in directions]
         lens = np.array([np.size(d)  for d in directions])
         max_len_idx = lens.argmax()
         not_max_idxs= [i for i in directions.keys()]
         del not_max_idxs[max_len_idx]
         
             
-        for not_max in not_maxs:           
-            vals = [directions[not_max]['values'] for i in range(lens[max_len])]
+        for not_max in not_max_idxs:     
+            N= len(directions[max_len_idx]['values'])
+            vals =np.ones(N)*directions[not_max]['values']
             directions[not_max]['values'] = np.array(vals)
-        
+            
+        x_new = directions[0]['values']
+        y_new = directions[1]['values']
+        z_new = directions[2]['values']
     
-
+        request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x_new, y_new, z_new)]) 
+        points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
+        return points
  
 
 
 
-
-def get_all_data_points(data, variable,time_step):
+def get_all_data_points(data, variable ,time_step):
     '''
     get data points from all layers in netcdf file generated from Delft3D  
 
@@ -134,14 +136,7 @@ def get_all_data_points(data, variable,time_step):
         Data frame of x , y, z, and variable 
 
     '''
-
-        
-    
-    # variable= 'ucx'
-    # time_step= -1
-    # Center_line=3
-    # depth= 3
-
+ # TODO loop between Velocity and turbulence data 
     Layer_percentages= np.ma.getdata(data.variables['LayCoord_cc'][:], False) # velocity data 
    # Layer_percentages= np.ma.getdata(data.variables['LayCoord_w'][:], False) # turbulent data 
     
@@ -155,7 +150,7 @@ def get_all_data_points(data, variable,time_step):
     N_layers = range(len(Layer_percentages))
     
     for layer in N_layers:
-        x,y,v= get_variable(data, variable, layer, time_step)
+        x,y,v= _get_layer_data(data, variable, layer, time_step)
         z = [bottom_depth*Layer_percentages[layer]]
         x_all=np.append(x_all, x)
         y_all=np.append(y_all, y)
@@ -168,73 +163,74 @@ def get_all_data_points(data, variable,time_step):
     
     return all_data
 
-def plot_data(data, variable, x=None , y=None, z=None, points=None , time_step = -1):
+def interpolate_data(data_points, values , request_points):
    
     '''
+    interpolate for "requested_points" vales over the known "data_points" wiuth corresponding "values" 
     Parameters
     ----------
     data : netcdf4 object 
         d3d netcdf file 
-    variable : string 
-        variable to call.
-    depth : float
-        depth 
-    time_step : float 
-        time step The default is -1.
-    Center_line : float
-        location of center line. The default is 3.
+    points: DataFrame 
+        Data Frame of x, y, z, points 
+    request_points: DataFrame 
+        x, y and z, locations of points calculate the values 
 
     Returns
     -------
-    None.
+    v_new: array 
+        interpolared values for locations in request_points 
 
     '''
-    all_data = get_all_data_points(data, variable, time_step)
-    
-   # if points:
-    v_new = interp.griddata(all_data[['x','y','z']], all_data[f'{variable}'], points)
+    v_new = interp.griddata(data_points, values , request_points)
+    # for var in variables:
+    #     all_data = get_all_data_points(data, var, time_step)
         
-      #  if len(v_new)> 1
-            
-        
-        
-    # if not points: 
-    #     get_variable_points(data, variable, x, y, z, time_step)
-    #     v_new = interp.griddata(known_points, v_all, points)
+    #     if points:
+    #        new_points= points.copy(deep=True) 
+    #        v_new = interp.griddata(all_data[['x','y','z']], all_data[f'{var}'], new_points[['x','y','z']])
+    #        new_points[f'{variable}']=v_new   
+    #       #  if len(v_new)> 1
+                
+    #     else:
+    #          points= creat_points(data, var, x, y, z, time_step)
+    #          v_new = interp.griddata(all_data[['x','y','z']], all_data[f'{var}'], points[['x','y','z']])
      
-    
+    return v_new
 
-    
-
-
-    x_new= points[:,0]
-   
-
-   # v_new = interp.griddata(points, v_all, request)
-
-    
-   # returnt Point 
-    
-   #ploting centerl line 
-    plt.plot(x_new, v_new)
-    #plt.title(f'Depth {depth}')
-    units= data.variables[variable].units
-    cname=data.variables[variable].long_name
-    plt.xlabel('x (m)')
-    #plt.ylabel(f'{cname} [{units}]')
-    plt.show() 
+# def plot_cross_section(x, y)
+#  #### NEW FUNCTION 
+#     plt.plot(x, y)
+#     # #plt.title(f'Depth {depth}')
+#     # units= data.variables[variable].units
+#     # cname=data.variables[variable].long_name
+#     # plt.xlabel('x (m)')
+#     # #plt.ylabel(f'{cname} [{units}]')
+#     # plt.show() 
     
     #plot contor plot 
     
+exdir= dirname(abspath(__file__))
+datadir = normpath(join(exdir,relpath('data/river/d3d')))
+filename= 'turbineTest_map.nc'
+data = netCDF4.Dataset(join(datadir,filename))
 
 
-# End loop section 
-x_new = np.linspace (0, 18)
-y_new = [3] *len(x_new)
-z_new = [1]*len(x_new)
+x = np.linspace (0, 18)
+y = 3 #*len(x_new)
+z=  1 #*len(x_new)
     
-request= np.array([ [x, y, z] for x, y, z in zip(x_new, y_new, z_new)]) 
+#request= np.array([ [x, y, z] for x, y, z in zip(x_new, y_new, z_new)]) 
+#request_points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
+#points=request_points
    
 variables= [ 'ucx']# , 'turkin1"]
-for var in variables:
-    plot_data(data,var, points=request)  # data, variable, (x, y, z) or (points), timestep 
+#
+var_data_df=get_all_data_points(data, variables[0],time_step=-1)
+points = create_points(x, y, z)
+df=interpolate_data(var_data_df[['x','y','z']], var_data_df[['ucx']], points)  # data, variable, (x, y, z) or (points), timestep 
+
+
+plt.plot(points['x'], df)
+
+plot_cross_section(points['x'], df)
