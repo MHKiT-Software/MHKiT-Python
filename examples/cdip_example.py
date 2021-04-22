@@ -2,6 +2,21 @@ from mhkit.wave.io import cdip
 import matplotlib.pyplot as plt
 import mhkit 
 
+
+station_number='100'
+data_type='historic'
+nc = cdip.request_netCDF(station_number, data_type)
+data = cdip.get_netcdf_variables(nc, )
+import ipdb; ipdb.set_trace() 
+
+parameters =['waveHs', 'waveTp', 'waveMeanDirection']
+
+
+
+
+
+
+
 ########################################################################
 # Boxplot Exampe
 ########################################################################
