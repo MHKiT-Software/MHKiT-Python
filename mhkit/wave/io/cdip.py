@@ -397,10 +397,11 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         variables_by_type[prefix] = [var for var in include_vars 
             if var.startswith(prefix)]
         remainingVariables -= set(variables_by_type[prefix])
-
+        if not variables_by_type[prefix]:
+            del variables_by_type[prefix]
 
     results={'data':{}, 'metadata':{}}
-    for prefix in prefixs:
+    for prefix in variables_by_type:
         var_results={}
         time_variables={}
         metadata={}
