@@ -7,9 +7,9 @@ import pandas as pd
 
 
 
-def _get_layer_data(data, variable, layer = -1 , TS=-1):
+def _get_layer_data(data, variable, layer = -1 , time_step=-1):
     '''
-    get variable data from netcdf4 object at specified layer and timestep 
+    Get variable data from netcdf4 object at specified layer and timestep. 
 
     Parameters
     ----------
@@ -32,7 +32,7 @@ def _get_layer_data(data, variable, layer = -1 , TS=-1):
     coords = str(data.variables[variable].coordinates).split()
     var=data.variables[variable][:]
     max_layer= len(var[0][0])
-    itime= TS 
+    itime= time_step
     x=np.ma.getdata(data.variables[coords[0]][:], False) 
     y=np.ma.getdata(data.variables[coords[1]][:], False)
     if layer > max_layer:
@@ -48,16 +48,16 @@ def create_points( x, y, z):
 
     '''
     Turns x, y, and z into a DataFrame of points to interpolate over,
-    Must be provided two points and one array 
+    Must be provided at least two points and at most one array 
     
     Parameters
     ----------
    
-    x:float, array or int 
+    x: float, array or int 
         x values to create points
-    y:float, array or int
+    y: float, array or int
         y values to create points
-    z:float, array or int
+    z: float, array or int
         z values to create points
 
     Returns
@@ -67,59 +67,71 @@ def create_points( x, y, z):
 
     '''
     #TODO: make this a for loop 
-    for x in [x, y, z]:
-        try:
-            len(x)
-        except:
-            x = np.array([x])   
-    # try:
-    #     len(y)
-    # except:
-    #     y = np.array([y])  
-    # try:
-    #     len(z)
-    # except:
-    #     z = np.array([z])  
-    
-    assert(sum([len(x) == 1, len(y)==1, len(z)==1]) >= 2), ('must provide'\
-           f'at least 2 points. got x={x}, y={y}, z={z}') 
+    directions = {0: {'name' : 'x',
+                     'values': x,
+                     'type': type(x)},
+                 1:{'name' : 'y',
+                    'values' : y,
+                    'type': type(y)},
+                 2:{'name' : 'z',
+                    'values' : z,
+                    'type': type(z)}}
 
-    
-    # x = vector; y,z are floats
-    if ((len(x) != len(y)) or (len(x) != len(z)) or (len(y) != len(z))):
-         
-        # Now find greatest length
-        directions = {0: {'name' : 'x',
-                         'values': x},
-                      1:{'name' : 'y',
-                         'values' : y},
-                      2:{'name' : 'z',
-                         'values' : z}}
-        lens = np.array([np.size(d)  for d in directions])
-        max_len_idx = lens.argmax()
-        not_max_idxs= [i for i in directions.keys()]
-        del not_max_idxs[max_len_idx]
+    for i in directions:
+        try:
+            len(directions[i]['values'])
+        except:
+            directions[i]['values'] = np.array(directions[i]['values'] )   
+
+
+    #CENTERLINE or POINT 
+    if (sum([len(directions[0]['values']) == 1, len(directions[1]['values'])==1, len(directions[2]['values'])==1]) >= 2): # is there a way to loop this? 
+            
+            # CENTERLINE
+            if ((len(x) != len(y)) or (len(x) != len(z)) or (len(y) != len(z))):
+                 
+                # Now find greatest length
         
+                lens = np.array([np.size(d)  for d in directions])
+                max_len_idx = lens.argmax()
+                not_max_idxs= [i for i in directions.keys()]
+                del not_max_idxs[max_len_idx]
+                
+                    
+                for not_max in not_max_idxs:     
+                    N= len(directions[max_len_idx]['values'])
+                    vals =np.ones(N)*directions[not_max]['values']
+                    directions[not_max]['values'] = np.array(vals)
+                    
+                x_new = directions[0]['values']
+                y_new = directions[1]['values']
+                z_new = directions[2]['values']
             
-        for not_max in not_max_idxs:     
-            N= len(directions[max_len_idx]['values'])
-            vals =np.ones(N)*directions[not_max]['values']
-            directions[not_max]['values'] = np.array(vals)
-            
-        x_new = directions[0]['values']
-        y_new = directions[1]['values']
-        z_new = directions[2]['values']
-    
-        request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x_new, y_new, z_new)]) 
-        points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
+                request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x_new, y_new, z_new)]) 
+                points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
+                #Point? 
+                #else
+        # PLANE
+        else if (sum([len(directions[0]['values']) == 1, len(directions[1]['values'])==1, len(directions[2]['values'])==1]) = 1): 
+            lens = np.array([np.size(d)  for d in directions])
+            not_max_len_idx = lens.argmin()
+            max_idxs= [i for i in directions.keys()]
+            del max_idxs[not_mag_len_idx]
+            #find vectors 
+            directions[max_indxs[0]]['values'], directions[max_indxs[1]]['values'] = np.meshgrid(directions[max_indxs[0]]['values'], directions[max_indxs[1]]['values'] )
+            directions[not_max_len_idx]['values']= np.ones(XX)*directions[not_max_len_idx]['values'] 
+            x_new = directions[0]['values']
+            y_new = directions[1]['values']
+            z_new = directions[2]['values']
+            request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x_new, y_new, z_new)]) 
+            points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
         return points
  
 
 
-
-def get_all_data_points(data, variable ,time_step):
+def get_all_data_points(data, variable, time_step):
     '''
-    get data points from all layers in netcdf file generated from Delft3D  
+    Get data points from all layers in netcdf file generated from Delft3D  
 
     Parameters
     ----------
@@ -231,6 +243,6 @@ points = create_points(x, y, z)
 df=interpolate_data(var_data_df[['x','y','z']], var_data_df[['ucx']], points)  # data, variable, (x, y, z) or (points), timestep 
 
 
-plt.plot(points['x'], df)
+# plt.plot(points['x'], df)
 
-plot_cross_section(points['x'], df)
+# plot_cross_section(points['x'], df)
