@@ -84,47 +84,47 @@ def create_points( x, y, z):
             directions[i]['values'] = np.array(directions[i]['values'] )   
 
 
-    #CENTERLINE or POINT 
+    # POINT or CENTERLINE
     if (sum([len(directions[0]['values']) == 1, len(directions[1]['values'])==1, len(directions[2]['values'])==1]) >= 2): # is there a way to loop this? 
             
             # CENTERLINE
-            if ((len(x) != len(y)) or (len(x) != len(z)) or (len(y) != len(z))):
+         #if (sum([len(directions[0]['values']) == 1, len(directions[1]['values'])==1, len(directions[2]['values'])==1]) == 2):      
                  
                 # Now find greatest length
         
-                lens = np.array([np.size(d)  for d in directions])
-                max_len_idx = lens.argmax()
-                not_max_idxs= [i for i in directions.keys()]
-                del not_max_idxs[max_len_idx]
+        lens = np.array([np.size(d)  for d in directions])
+        max_len_idx = lens.argmax()
+        not_max_idxs= [i for i in directions.keys()]
+        del not_max_idxs[max_len_idx]
                 
                     
-                for not_max in not_max_idxs:     
-                    N= len(directions[max_len_idx]['values'])
-                    vals =np.ones(N)*directions[not_max]['values']
-                    directions[not_max]['values'] = np.array(vals)
+        for not_max in not_max_idxs:     
+            N= len(directions[max_len_idx]['values'])
+            vals =np.ones(N)*directions[not_max]['values']
+            directions[not_max]['values'] = np.array(vals)
                     
-                x_new = directions[0]['values']
-                y_new = directions[1]['values']
-                z_new = directions[2]['values']
+        x_new = directions[0]['values']
+        y_new = directions[1]['values']
+        z_new = directions[2]['values']
             
-                request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x_new, y_new, z_new)]) 
-                points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
-                #Point? 
-                #else
+        request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x_new, y_new, z_new)]) 
+        points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
+
+
         # PLANE
-        else if (sum([len(directions[0]['values']) == 1, len(directions[1]['values'])==1, len(directions[2]['values'])==1]) = 1): 
-            lens = np.array([np.size(d)  for d in directions])
-            not_max_len_idx = lens.argmin()
-            max_idxs= [i for i in directions.keys()]
-            del max_idxs[not_mag_len_idx]
-            #find vectors 
-            directions[max_indxs[0]]['values'], directions[max_indxs[1]]['values'] = np.meshgrid(directions[max_indxs[0]]['values'], directions[max_indxs[1]]['values'] )
-            directions[not_max_len_idx]['values']= np.ones(XX)*directions[not_max_len_idx]['values'] 
-            x_new = directions[0]['values']
-            y_new = directions[1]['values']
-            z_new = directions[2]['values']
-            request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x_new, y_new, z_new)]) 
-            points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
+        # else if (sum([len(directions[0]['values']) == 1, len(directions[1]['values'])==1, len(directions[2]['values'])==1]) = 1): 
+        #     lens = np.array([np.size(d)  for d in directions])
+        #     not_max_len_idx = lens.argmin()
+        #     max_idxs= [i for i in directions.keys()]
+        #     del max_idxs[not_mag_len_idx]
+        #     #find vectors 
+        #     directions[max_indxs[0]]['values'], directions[max_indxs[1]]['values'] = np.meshgrid(directions[max_indxs[0]]['values'], directions[max_indxs[1]]['values'] )
+        #     directions[not_max_len_idx]['values']= np.ones(XX)*directions[not_max_len_idx]['values'] 
+        #     x_new = directions[0]['values']
+        #     y_new = directions[1]['values']
+        #     z_new = directions[2]['values']
+        #     request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x_new, y_new, z_new)]) 
+        #     points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
         return points
  
 
