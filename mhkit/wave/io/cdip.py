@@ -1,3 +1,4 @@
+from datetime import timezone
 import pandas as pd
 import numpy as np
 import datetime
@@ -100,35 +101,35 @@ def _dates_to_timestamp(nc, start_date=None, end_date=None):
     
     if start_date:
         if start_datetime > time_range_all[0] and start_datetime < time_range_all[1]:
-            start_stamp = start_datetime.timestamp()
+            start_stamp = start_datetime.replace(tzinfo=timezone.utc).timestamp()
         else:
             print(f'WARNING: Provided start_date ({start_datetime}) is ' 
             f'not in the returned data range {time_range_all} \n' 
             f'Setting start_date to the earliest date in range '
             f'{time_range_all[0]}')
-            start_stamp = pd.to_datetime(time_range_all[0]).timestamp()         
+            start_stamp = pd.to_datetime(time_range_all[0]).replace(tzinfo=timezone.utc).timestamp()         
     
     if end_date:
         if end_datetime > time_range_all[0] and end_datetime < time_range_all[1]:
-            end_stamp = end_datetime.timestamp()
+            end_stamp = end_datetime.replace(tzinfo=timezone.utc).timestamp()
         else:
             print(f'WARNING: Provided end_date ({end_datetime}) is ' 
             f'not in the returned data range {time_range_all} \n' 
             f'Setting end_date to the latest date in range '
             f'{time_range_all[1]}')
-            end_stamp = pd.to_datetime(time_range_all[1]).timestamp()        
+            end_stamp = pd.to_datetime(time_range_all[1]).replace(tzinfo=timezone.utc).timestamp()        
     
     
     if start_date and not end_date:
-        end_stamp = pd.to_datetime(time_range_all[1]).timestamp()            
+        end_stamp = pd.to_datetime(time_range_all[1]).replace(tzinfo=timezone.utc).timestamp()            
 
     elif end_date and not start_date:
-        start_stamp = pd.to_datetime(time_range_all[0]).timestamp()
+        start_stamp = pd.to_datetime(time_range_all[0]).replace(tzinfo=timezone.utc).timestamp()
         
     if not start_date:
-        start_stamp = pd.to_datetime(time_range_all[0]).timestamp()
+        start_stamp = pd.to_datetime(time_range_all[0]).replace(tzinfo=timezone.utc).timestamp()
     if not end_date:
-        end_stamp = pd.to_datetime(time_range_all[1]).timestamp()
+        end_stamp = pd.to_datetime(time_range_all[1]).replace(tzinfo=timezone.utc).timestamp()
 
     return start_stamp, end_stamp 
 
@@ -385,6 +386,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
     start_stamp, end_stamp =_dates_to_timestamp(nc, start_date=start_date, 
                                                  end_date=end_date)
     print(end_date)
+    print(end_stamp)
     
     variables_by_type={}       
     prefixs = ['wave', 'sst', 'gps', 'dwr', 'meta']
