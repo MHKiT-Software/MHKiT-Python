@@ -385,8 +385,6 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
     
     start_stamp, end_stamp =_dates_to_timestamp(nc, start_date=start_date, 
                                                  end_date=end_date)
-    print(end_date)
-    print(end_stamp)
     
     variables_by_type={}       
     prefixs = ['wave', 'sst', 'gps', 'dwr', 'meta']
