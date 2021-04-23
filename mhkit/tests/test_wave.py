@@ -1022,8 +1022,10 @@ class TestIOcdip(unittest.TestCase):
         
         wave1D = data['data']['wave']
         self.assertEqual(wave1D.index[0].floor('d').to_pydatetime(), expected_index0)
+        print(wave1D.index[-1])
+        print(wave1D.index[-1].floor('d'))
         self.assertEqual(wave1D.index[-1].floor('d').to_pydatetime(), expected_index_final) 
-        
+        breakpoint()
         for key,wave2D  in data['data']['wave2D'].items():
             self.assertEqual(wave2D.index[0].floor('d').to_pydatetime(), expected_index0)
             self.assertEqual(wave2D.index[-1].floor('d').to_pydatetime(), expected_index_final) 
