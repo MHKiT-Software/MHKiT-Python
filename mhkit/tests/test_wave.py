@@ -1,6 +1,3 @@
-        
-        
-    def test_parse_data_multiyear(self):
 from os.path import abspath, dirname, join, isfile, normpath, relpath
 from pandas.testing import assert_frame_equal
 from numpy.testing import assert_allclose
@@ -1009,6 +1006,9 @@ class TestIOcdip(unittest.TestCase):
         
         # self.assertTrue(data['data']['wave'].index[-1] < end_dt)
         # self.assertTrue(data['data']['wave'].index[0] > start_dt)
+        
+        
+    def test_parse_data_multiyear(self):
         station_number = '067'
         year1=2011
         year2=2013
