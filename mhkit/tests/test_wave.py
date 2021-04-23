@@ -1018,14 +1018,14 @@ class TestIOcdip(unittest.TestCase):
             years=years, parameters =parameters )
         
         expected_index0 = datetime(year1,1,1)   
-        expected_index_final = datetime(year2,12,01)
+        expected_index_final = datetime(year2,12,31)
         
         wave1D = data['data']['wave']
         self.assertEqual(wave1D.index[0].floor('d').to_pydatetime(), expected_index0)
         print(wave1D.index[-1])
         print(wave1D.index[-1].floor('d'))
         self.assertEqual(wave1D.index[-1].floor('d').to_pydatetime(), expected_index_final) 
-        breakpoint()
+        #breakpoint()
         for key,wave2D  in data['data']['wave2D'].items():
             self.assertEqual(wave2D.index[0].floor('d').to_pydatetime(), expected_index0)
             self.assertEqual(wave2D.index[-1].floor('d').to_pydatetime(), expected_index_final) 
