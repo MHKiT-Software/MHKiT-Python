@@ -285,7 +285,6 @@ def parse_data(nc=None, station_number=None, parameters=None,
 
         data['metadata'] = year_data['metadata']
         
-
     buoy_name = nc.variables['metaStationName'][:].compressed().tostring()
     data['name'] = buoy_name
     

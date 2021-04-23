@@ -1004,8 +1004,8 @@ class TestIOcdip(unittest.TestCase):
         start_dt = datetime.strptime(start_date, '%Y-%m-%d')
         end_dt = datetime.strptime(end_date, '%Y-%m-%d')
         
-        self.assertTrue(data['data']['wave'].index[0] > start_dt)
         self.assertTrue(data['data']['wave'].index[-1] < end_dt)
+        self.assertTrue(data['data']['wave'].index[0] > start_dt)
         
         
     def test_parse_data_multiyear(self):
@@ -1025,8 +1025,8 @@ class TestIOcdip(unittest.TestCase):
         self.assertEqual(wave1D.index[-1].floor('d'), expected_index_final) 
         
         for key,wave2D  in data['data']['wave2D'].items():
-            self.assertEqual(wave2D.index[0].floor('d'), expected_index0)
-            self.assertEqual(wave2D.index[-1].floor('d'), expected_index_final) 
+            self.assertEqual(wave2D.index[0].floor('d').to_pydatetime(), expected_index0)
+            self.assertEqual(wave2D.index[-1].floor('d').to_pydatetime(), expected_index_final) 
         
 if __name__ == '__main__':
     unittest.main() 
