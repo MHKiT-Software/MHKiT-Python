@@ -256,7 +256,7 @@ def parse_data(nc=None, station_number=None, parameters=None,
                        all_2D_variables=all_2D_variables)  
 
     elif multiyear:
-        data={}
+        data={'data':{},'metadata':{}}
         multiyear_data={}
         multiyear_data_2D={}
         for year in years: 
@@ -267,30 +267,27 @@ def parse_data(nc=None, station_number=None, parameters=None,
                        start_date=start_date, end_date=end_date,  
                        parameters=parameters, 
                        all_2D_variables=all_2D_variables) 
-            multiyear_data[year] = year_data['vars1D']
-            try:
-                multiyear_data_2D[year] = year_data['vars2D']
-            except:
-                pass
-            else:
-                print(f'Processed year {year} completed \n')
-           
-        data_1D = pd.concat([v for k,v in multiyear_data.items()])
-        data['vars1D'] = data_1D
+            multiyear_data[year] = year_data['data']
+          
+        for data_key in year_data['data'].keys():
+            if data_key.endswith('2D'):
+                data['data'][data_key]={}
+                for data_key2D in year_data['data'][data_key].keys():
+                    data_list=[]
+                    for year in years:    
+                        data2D = multiyear_data[year][data_key][data_key2D]
+                        data_list.append(data2D)
+                    data['data'][data_key][data_key2D]=pd.concat(data_list)
+            else:                
+                data_list = [multiyear_data[year][data_key] for year in years]
+                data['data'][data_key] = pd.concat(data_list)
+                
+
         data['metadata'] = year_data['metadata']
         
-        if multiyear_data_2D:
-            data_2D={}
-            for var in multiyear_data_2D[years[0]].keys():
-                var_per_year={}
-                for year in multiyear_data_2D.keys():
-                    var_per_year[year] = multiyear_data_2D[year][var]
-                var_2D = pd.concat([v for k,v in var_per_year.items()])
-                data_2D[var] = var_2D
-            data['vars2D'] = data_2D
-                
+
     buoy_name = nc.variables['metaStationName'][:].compressed().tostring()
-    data['vars1D'].name = buoy_name
+    data['name'] = buoy_name
     
     return data
     
