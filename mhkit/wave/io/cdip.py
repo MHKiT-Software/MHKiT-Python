@@ -373,7 +373,6 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
             
     else:
         include_vars = allVariables
-        #include_vars.remove('waveTime')
         
         for var in twoDimensionalVars:
             include_vars.remove(var)
@@ -385,6 +384,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
     
     start_stamp, end_stamp =_dates_to_timestamp(nc, start_date=start_date, 
                                                  end_date=end_date)
+    print(end_date)
     
     variables_by_type={}       
     prefixs = ['wave', 'sst', 'gps', 'dwr', 'meta']
