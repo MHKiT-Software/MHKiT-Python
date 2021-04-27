@@ -66,32 +66,31 @@ def create_points( x, y, z):
         DataFrame of x, y and z points 
 
     '''
-    #TODO: make this a for loop 
     directions = {0: {'name' : 'x',
-                     'values': x,
-                     'type': type(x)},
+                     'values': x},
                  1:{'name' : 'y',
-                    'values' : y,
-                    'type': type(y)},
+                    'values' : y},
                  2:{'name' : 'z',
-                    'values' : z,
-                    'type': type(z)}}
+                    'values' : z}}
 
     for i in directions:
         try:
             len(directions[i]['values'])
         except:
-            directions[i]['values'] = np.array(directions[i]['values'] )   
-
-
-    # POINT or CENTERLINE
-    if (sum([len(directions[0]['values']) == 1, len(directions[1]['values'])==1, len(directions[2]['values'])==1]) >= 2): # is there a way to loop this? 
-            
-            # CENTERLINE
-         #if (sum([len(directions[0]['values']) == 1, len(directions[1]['values'])==1, len(directions[2]['values'])==1]) == 2):      
-                 
-                # Now find greatest length
-        
+            directions[i]['values'] = np.array([directions[i]['values']])  
+        N= len(directions[i]['values'])
+        if N== 1 :
+            directions[i]['type']= 'point'
+        elif N > 1 :
+            directions[i]['type']= 'vector'
+        else:
+            raise Exception(f'length of direction {directions[i]["name"]} was neagative or zero')
+    
+    types= [directions[i]['type'] for i in directions]
+    #check how many times point is in "types" 
+    N_points = types.count('point')
+    if N_points >= 2: 
+        treat_as= 'centerline'
         lens = np.array([np.size(d)  for d in directions])
         max_len_idx = lens.argmax()
         not_max_idxs= [i for i in directions.keys()]
@@ -109,23 +108,32 @@ def create_points( x, y, z):
             
         request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x_new, y_new, z_new)]) 
         points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
+    elif N_points ==1: 
+        treat_as = 'plane'
+        #find inded of point 
+        idx_point = types.index('point')
+        max_idxs= [i for i in directions.keys()]
+        del max_idxs[idx_point]
+        #find vectors 
+        # 
+        XX, YY = np.meshgrid(directions[max_idxs[0]]['values'], directions[max_idxs[1]]['values'] )
+        N_X=np.shape(XX)[1]#or take len of original vectors 
+        N_Y=np.shape(YY)[0]
+        
+        ZZ= np.ones((N_Y,N_X))*directions[idx_point]['values'] #make sure is the same shape as XX , YY 
+     
+        request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(XX.ravel(),
+                            YY.ravel() , ZZ.ravel())]) 
+        columns=[ directions[max_idxs[0]]['name'],  
+                 directions[max_idxs[1]]['name'],  directions[idx_point]['name']]
+        
+        points= pd.DataFrame(request, columns=columns)
+    else: 
+        raise Exception('Can provide at most two vectors')
+    
 
 
-        # PLANE
-        # else if (sum([len(directions[0]['values']) == 1, len(directions[1]['values'])==1, len(directions[2]['values'])==1]) = 1): 
-        #     lens = np.array([np.size(d)  for d in directions])
-        #     not_max_len_idx = lens.argmin()
-        #     max_idxs= [i for i in directions.keys()]
-        #     del max_idxs[not_mag_len_idx]
-        #     #find vectors 
-        #     directions[max_indxs[0]]['values'], directions[max_indxs[1]]['values'] = np.meshgrid(directions[max_indxs[0]]['values'], directions[max_indxs[1]]['values'] )
-        #     directions[not_max_len_idx]['values']= np.ones(XX)*directions[not_max_len_idx]['values'] 
-        #     x_new = directions[0]['values']
-        #     y_new = directions[1]['values']
-        #     z_new = directions[2]['values']
-        #     request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x_new, y_new, z_new)]) 
-        #     points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
-        return points
+    return points
  
 
 
@@ -194,33 +202,36 @@ def interpolate_data(data_points, values , request_points):
         interpolared values for locations in request_points 
 
     '''
-    v_new = interp.griddata(data_points, values , request_points)
-    # for var in variables:
-    #     all_data = get_all_data_points(data, var, time_step)
-        
-    #     if points:
-    #        new_points= points.copy(deep=True) 
-    #        v_new = interp.griddata(all_data[['x','y','z']], all_data[f'{var}'], new_points[['x','y','z']])
-    #        new_points[f'{variable}']=v_new   
-    #       #  if len(v_new)> 1
-                
-    #     else:
-    #          points= creat_points(data, var, x, y, z, time_step)
-    #          v_new = interp.griddata(all_data[['x','y','z']], all_data[f'{var}'], points[['x','y','z']])
-     
+    v_new = interp.griddata(data_points, values, request_points)
+
     return v_new
 
-# def plot_cross_section(x, y)
-#  #### NEW FUNCTION 
-#     plt.plot(x, y)
-#     # #plt.title(f'Depth {depth}')
-#     # units= data.variables[variable].units
-#     # cname=data.variables[variable].long_name
-#     # plt.xlabel('x (m)')
-#     # #plt.ylabel(f'{cname} [{units}]')
-#     # plt.show() 
+
+# def plot(points, values, data, variable) :
     
-    #plot contor plot 
+#     if  treat_as == 'centerline'
+#         plt.plot(x, y)
+#         #plt.title(f'Depth {depth}')
+#         units= data.variables[variable].units
+#         cname=data.variables[variable].long_name
+#         plt.xlabel('x (m)')
+#         #plt.ylabel(f'{cname} [{units}]')
+#         plt.show()
+#     elif treat_as == 'plane'
+#         x=np.array (points['x'])
+#         yy=np.array (points['y'])
+#         df=squeez(df)
+        
+#         plt.tricontourf(xx,yy,df)
+#         cbar=plt.colorbar()
+#         units= data.variables[variable].units
+#         cname=data.variables[variable].long_name
+#         cbar.set_label(f'{cname} [{units}]')
+#         plt.xlabel('x (m)')
+#         plt.ylabel('y (m)')
+#         plt.show()
+#     else 
+
     
 exdir= dirname(abspath(__file__))
 datadir = normpath(join(exdir,relpath('data/river/d3d')))
@@ -228,21 +239,17 @@ filename= 'turbineTest_map.nc'
 data = netCDF4.Dataset(join(datadir,filename))
 
 
-x = np.linspace (0, 18)
-y = 3 #*len(x_new)
-z=  1 #*len(x_new)
+x = np.linspace (0.1, 17.9, num=10)
+y = np.linspace (1.1, 4.9, num=10)
+z=  1# np.linspace (0.2, 1.8, num=10) 
     
 #request= np.array([ [x, y, z] for x, y, z in zip(x_new, y_new, z_new)]) 
 #request_points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
 #points=request_points
    
-variables= [ 'ucx']# , 'turkin1"]
+variables= ['ucx']# , 'turkin1"]
 #
 var_data_df=get_all_data_points(data, variables[0],time_step=-1)
 points = create_points(x, y, z)
-df=interpolate_data(var_data_df[['x','y','z']], var_data_df[['ucx']], points)  # data, variable, (x, y, z) or (points), timestep 
+df=interpolate_data(var_data_df[['x','y','z']], var_data_df[['ucx']], points[['x','y','z']]  # data, variable, (x, y, z) or (points), timestep 
 
-
-# plt.plot(points['x'], df)
-
-# plot_cross_section(points['x'], df)
