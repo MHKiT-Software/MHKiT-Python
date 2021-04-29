@@ -137,7 +137,7 @@ def create_points( x, y, z):
  
 
 
-def get_all_data_points(data, variable, time_step):
+def get_all_data_points(data, variable, time_step):  
     '''
     Get data points from all layers in netcdf file generated from Delft3D  
 
@@ -155,10 +155,20 @@ def get_all_data_points(data, variable, time_step):
     all_data: DataFrame 
         Data frame of x , y, z, and variable 
 
-    '''
- # TODO loop between Velocity and turbulence data 
-    Layer_percentages= np.ma.getdata(data.variables['LayCoord_cc'][:], False) # velocity data 
-   # Layer_percentages= np.ma.getdata(data.variables['LayCoord_w'][:], False) # turbulent data 
+    '''  
+    cords_to_layers= {0: {'key' : 'FlowElem_xcc FlowElem_ycc',
+                              'values': data.variables['LayCoord_cc'][:]},
+                      1:{'key' : 'FlowLink_xu FlowLink_yu',
+                             'values': data.variables['LayCoord_w'][:]}}
+
+    if  data[variable].coordinates == 'FlowElem_xcc FlowElem_ycc':
+        i=0 
+    elif data[variable].coordinates == 'FlowLink_xu FlowLink_yu':
+        i=1
+    else :
+        raise Exception('corrdinates not reconized')
+        
+    Layer_percentages= np.ma.getdata(cords_to_layers[i]['values'], False) 
     
     bottom_depth=np.ma.getdata(data.variables['waterdepth'][time_step, :], False)# add Time_step
     
@@ -222,15 +232,15 @@ z=  1#np.linspace (0.2, 1.8, num=100)
 #request_points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
 #points=request_points
    
-variables= ['ucx']# , 'turkin1"]
+variables= ['turkin1']# , 'turkin1"]
 #
 var_data_df=get_all_data_points(data, variables[0],time_step=-1)
 points = create_points(x, y, z)
-points['ucx']=interpolate_data(var_data_df[['x','y','z']], var_data_df[['ucx']],
+points['turkin1']=interpolate_data(var_data_df[['x','y','z']], var_data_df[['turkin1']],
             points[['x','y','z']])  
 
 points.dropna(inplace=True)
-plt.tricontourf(points.x,points.y,points.ucx)
+plt.tricontourf(points.x,points.y,points.turkin1)
 #         units= data.variables[variable].units
 #         cname=data.variables[variable].long_name
 #         cbar.set_label(f'{cname} [{units}]')
