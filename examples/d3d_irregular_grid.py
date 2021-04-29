@@ -90,7 +90,7 @@ def create_points( x, y, z):
     #check how many times point is in "types" 
     N_points = types.count('point')
     if N_points >= 2: 
-        treat_as= 'centerline'
+        #  treat_as centerline 
         lens = np.array([np.size(d)  for d in directions])
         max_len_idx = lens.argmax()
         not_max_idxs= [i for i in directions.keys()]
@@ -109,7 +109,7 @@ def create_points( x, y, z):
         request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x_new, y_new, z_new)]) 
         points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
     elif N_points ==1: 
-        treat_as = 'plane'
+        # treat as plane
         #find inded of point 
         idx_point = types.index('point')
         max_idxs= [i for i in directions.keys()]
@@ -227,7 +227,7 @@ def interpolate_data(data_points, values , request_points):
 #         units= data.variables[variable].units
 #         cname=data.variables[variable].long_name
 #         cbar.set_label(f'{cname} [{units}]')
-#         plt.xlabel('x (m)')
+#         plt.xlabel('x (m)')# user input 
 #         plt.ylabel('y (m)')
 #         plt.show()
 #     else 
@@ -239,9 +239,9 @@ filename= 'turbineTest_map.nc'
 data = netCDF4.Dataset(join(datadir,filename))
 
 
-x = np.linspace (0.1, 17.9, num=10)
-y = np.linspace (1.1, 4.9, num=10)
-z=  1# np.linspace (0.2, 1.8, num=10) 
+x = 6.2#  np.linspace (0.1, 17.9, num=100)
+y = np.linspace (1.1, 4.9, num=100)
+z=  np.linspace (0.2, 1.8, num=10) 
     
 #request= np.array([ [x, y, z] for x, y, z in zip(x_new, y_new, z_new)]) 
 #request_points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
@@ -251,5 +251,8 @@ variables= ['ucx']# , 'turkin1"]
 #
 var_data_df=get_all_data_points(data, variables[0],time_step=-1)
 points = create_points(x, y, z)
-df=interpolate_data(var_data_df[['x','y','z']], var_data_df[['ucx']], points[['x','y','z']]  # data, variable, (x, y, z) or (points), timestep 
-
+points['ucx']=interpolate_data(var_data_df[['x','y','z']], var_data_df[['ucx']],
+            points[['x','y','z']])  
+points.dropna(inplace=True)
+plt.tricontourf(points.y,points.z,points.ucx)
+cbar=plt.colorbar()
