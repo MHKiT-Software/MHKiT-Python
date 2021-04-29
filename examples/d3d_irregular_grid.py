@@ -239,9 +239,9 @@ filename= 'turbineTest_map.nc'
 data = netCDF4.Dataset(join(datadir,filename))
 
 
-x = 6.2#  np.linspace (0.1, 17.9, num=100)
+x =  np.linspace (0.1, 17.9, num=100)
 y = np.linspace (1.1, 4.9, num=100)
-z=  np.linspace (0.2, 1.8, num=10) 
+z=  1#np.linspace (0.2, 1.8, num=100) 
     
 #request= np.array([ [x, y, z] for x, y, z in zip(x_new, y_new, z_new)]) 
 #request_points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
@@ -253,6 +253,6 @@ var_data_df=get_all_data_points(data, variables[0],time_step=-1)
 points = create_points(x, y, z)
 points['ucx']=interpolate_data(var_data_df[['x','y','z']], var_data_df[['ucx']],
             points[['x','y','z']])  
+
 points.dropna(inplace=True)
-plt.tricontourf(points.y,points.z,points.ucx)
-cbar=plt.colorbar()
+plt.tricontourf(points.x,points.y,points.ucx)
