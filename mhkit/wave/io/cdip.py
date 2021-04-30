@@ -237,7 +237,10 @@ def parse_data(nc=None, station_number=None, parameters=None,
    
     if not nc:
         nc = request_netCDF(station_number, data_type)
-      
+    
+    buoy_name = nc.variables['metaStationName'][:].compressed().tostring()
+    
+    
     multiyear=False
     if years:
         if isinstance(years,int):
@@ -282,13 +285,13 @@ def parse_data(nc=None, station_number=None, parameters=None,
             else:                
                 data_list = [multiyear_data[year][data_key] for year in years]
                 data['data'][data_key] = pd.concat(data_list)
+
+
                 
 
         data['metadata'] = year_data['metadata']
-        
-    buoy_name = nc.variables['metaStationName'][:].compressed().tostring()
-    data['name'] = buoy_name
-    
+    data['metadata']['name'] = buoy_name    
+
     return data
     
     
@@ -344,7 +347,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
            'elements of parameters must be strings')
 
 
-                
+    buoy_name = nc.variables['metaStationName'][:].compressed().tostring()           
     allVariables = [var for var in nc.variables]
     
     include_2D_variables=False
@@ -426,6 +429,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
          
         if prefix != 'meta':         
             results['data'][prefix] = data
+            results['data'][prefix].name = buoy_name
         results['metadata'][prefix] = metadata
             
         if (prefix == 'wave') and (include_2D_variables):
@@ -448,5 +452,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
                 variable = pd.DataFrame(variable2D,index=time_slice,
                                         columns=columns)
                 vars2D[var] = variable
-            results['data']['wave2D'] = vars2D           
+            results['data']['wave2D'] = vars2D
+    results['metadata']['name'] = buoy_name
+        
     return results

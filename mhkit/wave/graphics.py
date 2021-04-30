@@ -435,7 +435,7 @@ def plot_compendium(Hs, Tp, Dp, buoytitle=None, ax=None):
     return ax
 
 
-def plot_boxplot(Hs, buoytitle=None, ax=None):
+def plot_boxplot(Hs, buoytitle=None):
     """
     Create plot of monthly-averaged boxes of Significant Wave Height (Hs) data across one year using OPeNDAP service from CDIP THREDDS Server.
 
@@ -456,14 +456,12 @@ def plot_boxplot(Hs, buoytitle=None, ax=None):
     ax : matplotlib pyplot axes
 
     """
-
-    # Create array of month numbers to cycle through to grab Hs data
-    #months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
-    year_date = max(Hs.index.year.unique())
+  
     
-    # Create array of month-long chunks of Hs data, to be plotted as a series of 
-    # boxplots. Use a for-loop to cycle through the Hs variable and define 
-    # each month-long array using the above-specified time index numbers.
+    # Create array of month-long chunks of Hs data, to be plotted as a
+    #   series of  boxplots. Use a for-loop to cycle through the Hs 
+    #   variable and define each month-long array using the 
+    #   above-specified time index numbers.
     # Calculate the monthly mean (average) using each month-long chunk of data.
     # Calculate the number of instances of the variable being incorporated 
     # into each month-long average
@@ -473,70 +471,70 @@ def plot_boxplot(Hs, buoytitle=None, ax=None):
     months = []
     months_text = []
     for imonth in Hs.index.month.unique():
-        tmp1 = Hs[Hs.index.month == imonth]
-        tmp2 = Hs[Hs.index.month == imonth].mean()
-        tmp3 = len(Hs[Hs.index.month == imonth])    
-        box_data.append(tmp1.values)
-        means.append(tmp2)
-        monthlengths.append(tmp3)
+        month_data = Hs[Hs.index.month == imonth]
+        box_data.append(month_data.values)
+        means.append(month_data.mean())
+        monthlengths.append( len(month_data) )
         months.append(imonth)
-        months_text.append(datetime.datetime.strptime(str(imonth), "%m").strftime("%b"))
+        months_text.append(
+           datetime.datetime.strptime(str(imonth), "%m").strftime("%b"))
     means = np.array(means)
-    meansround = means.round(2)
     
-
-    # Create overall figure and specify size, and grid to specify positions of subplots
-    fig = plt.figure(figsize=(12,15)) 
-    gs = gridspec.GridSpec(2,2,height_ratios=[5,1]) 
     
-    # Create a dataset for sample 'legend' boxplot, to go underneath actual boxplot
-    bp_sample2 = np.random.normal(2.5,0.5,500)
+    fig = plt.figure(figsize=(15,10)) 
+    # grid to specify positions of subplots
+    gs = gridspec.GridSpec(2,1,height_ratios=[5,1]) 
     
-    # Create two subplots - actual monthly-averaged data (top) and example 'legend' boxplot (bottom)
-    # Subplot of monthly-averaged boxplot data
+    flierprops = dict(marker='+', color='r',markeredgecolor='r',markerfacecolor='r')
+    medianprops = dict(linewidth=2.5,color='firebrick')
+    meanprops = dict(linewidth=2.5, marker='_',  markersize=25)
+    
     bp = plt.subplot(gs[0,:])
-    bp_data =bp.boxplot(box_data)#[Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec])  
-    # Add 'meanlineprops' to include the above-defined properties
-    bp.scatter(months,means,marker="_",color='g',linewidths=2.5,s=900) # Overlay monthly means as green lines using 'scatter' function.
-    
-    # Subplot to show example 'legend' boxplot below actual monthly-averaged boxplot graph
-    bp2 = plt.subplot(gs[1,:])
-    bp2_example = bp2.boxplot(bp_sample2,vert=False) # Plot horizontal example boxplot with labels
-    bp2.scatter(2.3,1,marker="|",color='g',linewidths=2.5,s=400)
+    bp_data =bp.boxplot(box_data, flierprops=flierprops, 
+                        medianprops=medianprops, showmeans=True, meanprops=meanprops)
         
     # Add values of monthly means as text
-    for i, txt in enumerate(meansround):
-        bp.annotate(txt, (months[i],means[i]),fontsize=12,horizontalalignment='center',verticalalignment='bottom',color='g')
+    for i, txt in enumerate(means.round(2)):
+        bp.annotate(txt, (months[i],means[i]),fontsize=12,
+                    horizontalalignment='center',verticalalignment='bottom',
+                    color='g')
+    
+    #Create a second row of x-axis labels for top subplot
+    newax = bp.twiny()
+    newax.xaxis.set_ticks_position('top')
+    newax.xaxis.set_label_position('top')
+    #newax.spines['bottom'].set_position(('outward',25))
+    newax.set_xticklabels(monthlengths,fontsize=10)
+    newax.set_xticks(np.arange(1,13,1))                    
+           
+    # Sample 'legend' boxplot, to go underneath actual boxplot
+    bp_sample2 = np.random.normal(2.5,0.5,500)
         
-    # Get positions of Median, Quartiles and Outliers to use in 'legend' text labels 
+    bp2 = plt.subplot(gs[1,:])
+    meanprops = dict(linewidth=2.5, marker='|',  markersize=25)
+    bp2_example = bp2.boxplot(bp_sample2,vert=False,flierprops=flierprops, 
+                        medianprops=medianprops) 
+    sample_mean=2.3
+    bp2.scatter(sample_mean,1,marker="|",color='g',linewidths=1.0,s=200)
+    
     for line in bp2_example['medians']:
-        xm, ym = line.get_xydata()[0] # location of Median line   
+        xm, ym = line.get_xydata()[0] 
     for line in bp2_example['boxes']:
-        xb, yb = line.get_xydata()[0] # location of Box edges (Quartiles)
+        xb, yb = line.get_xydata()[0] 
     for line in bp2_example['whiskers']:
-        xw, yw = line.get_xydata()[0] # location of Whisker ends (Outliers)    
+        xw, yw = line.get_xydata()[0] 
     
-    # Add text labels for 'Median', Mean', '25th/75th %iles' and 'Outliers' to subplot2, to create sample 'legend' boxplot
-    bp2.annotate("Median",[xm,ym-0.3*ym],fontsize=14,color='r')
-    bp2.annotate("Mean",[2.2,0.65],fontsize=14,color='g')
-    bp2.annotate("25%ile",[xb-0.01*xb,yb-0.15*yb],fontsize=12)
-    bp2.annotate("75%ile",[xb+0.2*xb,yb-0.15*yb],fontsize=12)
-    bp2.annotate("Outliers",[xw+0.38*xw,yw-0.3*yw],fontsize=14,color='r')
-    
-    # Set colors of box aspects for top subplot    
-    pylab.setp(bp_data['boxes'], color='black')
-    pylab.setp(bp_data['whiskers'], color='black')
-    pylab.setp(bp_data['fliers'], color='r')
-    
-    # Set colors of box aspects for bottom (sample) subplot   
-    pylab.setp(bp2_example['boxes'], color='black')
-    pylab.setp(bp2_example['whiskers'], color='black')
-    pylab.setp(bp2_example['fliers'], color='r')
-    
-    # Set Titles
-    plt.suptitle(buoytitle, fontsize=30, y=0.97) # Overall plot title using 'buoytitle' variable
-    bp.set_title("Significant Wave Height by month for " + str(year_date), fontsize=20, y=1.01) # Subtitle for top plot
-    bp2.set_title("Sample Boxplot", fontsize=16, y=1.02) # Subtitle for bottom plot
+    bp2.annotate("Median",[xm,ym-0.3*ym],fontsize=14,color='firebrick')
+    bp2.annotate("Mean",[sample_mean-.1,0.65],fontsize=14,color='g')
+    bp2.annotate("25%ile",[xb-0.05*xb,yb-0.15*yb],fontsize=12)
+    bp2.annotate("75%ile",[xb+0.26*xb,yb-0.15*yb],fontsize=12)
+    bp2.annotate("Outliers",[xw+0.3*xw,yw-0.3*yw],fontsize=14,color='r')
+       
+
+    if buoytitle:
+        plt.suptitle(buoytitle, fontsize=30, y=0.97)
+    bp.set_title("Significant Wave Height by Month", fontsize=20, y=1.01)
+    bp2.set_title("Sample Boxplot", fontsize=16, y=1.02)
     
     # Set axes labels and ticks
     bp.set_xticklabels(months_text,fontsize=12)
@@ -544,12 +542,7 @@ def plot_boxplot(Hs, buoytitle=None, ax=None):
     bp.tick_params(axis='y', which='major', labelsize=12, right='off')
     bp.tick_params(axis='x', which='major', labelsize=12, top='off')
     
-    # Create a second row of x-axis labels for top subplot
-    newax = bp.twiny()
-    newax.xaxis.set_ticks_position('bottom')
-    newax.xaxis.set_label_position('bottom')
-    newax.spines['bottom'].set_position(('outward',25))
-    newax.set_xticklabels(monthlengths,fontsize=10)
+
     
     # Plot horizontal gridlines onto top subplot
     bp.grid(axis='y', which='major', color='b', linestyle='-', alpha=0.25)
@@ -558,6 +551,7 @@ def plot_boxplot(Hs, buoytitle=None, ax=None):
     bp2.axes.get_xaxis().set_visible(False)
     bp2.axes.get_yaxis().set_visible(False)
 
+    plt.tight_layout()
     ax = fig
 
     return ax

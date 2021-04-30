@@ -3,13 +3,13 @@ import matplotlib.pyplot as plt
 import mhkit 
 
 
-station_number='100'
-data_type='historic'
-nc = cdip.request_netCDF(station_number, data_type)
-data = cdip.get_netcdf_variables(nc, )
-import ipdb; ipdb.set_trace() 
+#station_number='100'
+#data_type='historic'
+#nc = cdip.request_netCDF(station_number, data_type)
+#data = cdip.get_netcdf_variables(nc, )
+#import ipdb; ipdb.set_trace() 
 
-parameters =['waveHs', 'waveTp', 'waveMeanDirection']
+#parameters =['waveHs', 'waveTp', 'waveMeanDirection']
 
 
 
@@ -28,11 +28,13 @@ year = 2011
 #                                   all_2D_variables=False)
 
 data = cdip.parse_data(station_number=station_number,years=year,
-                       parameters =['waveHs', 'waveTp','notParam', 'waveMeanDirection'],
-                                   all_2D_variables=False)
-import ipdb; ipdb.set_trace()                                   
+                       parameters =['waveHs'],
+                       all_2D_variables=False)
+                                 
 # Plot Boxplot
-#mhkit.wave.graphics.plot_boxplot(data.waveHs, data.name)
+mhkit.wave.graphics.plot_boxplot(data['data']['wave']['waveHs'])
+plt.show()
+import ipdb; ipdb.set_trace()  
 #Kelley FIX 
 # Boxplot scatter plot of means not properly alligned
 # Boxplot doens't matach CDIP example
