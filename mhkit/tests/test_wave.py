@@ -1028,6 +1028,44 @@ class TestIOcdip(unittest.TestCase):
         for key,wave2D  in data['data']['wave2D'].items():
             self.assertEqual(wave2D.index[0].floor('d').to_pydatetime(), expected_index0)
             self.assertEqual(wave2D.index[-1].floor('d').to_pydatetime(), expected_index_final) 
+
+
+    def test_plot_boxplot(self):            
+        filename = abspath(join(testdir, 'wave_plot_boxplot.png'))
+        if isfile(filename):
+            os.remove(filename)
+            
+        station_number = '067'
+        year = 2011
+        data = wave.io.cdip.parse_data(station_number=station_number,years=year,
+                       parameters =['waveHs'],
+                       all_2D_variables=False)
+                                 
+        plt.figure()
+        wave.graphics.plot_boxplot(data['data']['wave']['waveHs'])
+        plt.savefig(filename, format='png')
+        plt.close()
         
+        self.assertTrue(isfile(filename))            
+        
+        
+    def test_plot_compendium(self):            
+        filename = abspath(join(testdir, 'wave_plot_boxplot.png'))
+        if isfile(filename):
+            os.remove(filename)
+            
+        station_number = '067'
+        year = 2011
+        data = wave.io.cdip.parse_data(station_number=station_number,years=year,
+                       parameters =['waveHs', 'waveTp', 'waveDp'],
+                       all_2D_variables=False)
+                                 
+        plt.figure()
+        wave.graphics.plot_compendium(data['data']['wave']['waveHs'], 
+            data['data']['wave']['waveTp'], data['data']['wave']['waveDp'] )
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))          
 if __name__ == '__main__':
     unittest.main() 
