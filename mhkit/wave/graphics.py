@@ -438,19 +438,19 @@ def plot_compendium(Hs, Tp, Dp, buoytitle=None, ax=None):
     return ax
 
 
-def plot_boxplot(Hs, buoytitle=None):
+def plot_boxplot(Hs, buoy_title=None):
     """
-    Create plot of monthly-averaged boxes of Significant Wave Height (Hs) data across one year using OPeNDAP service from CDIP THREDDS Server.
+    Create plot of monthly-averaged boxes of Significant Wave Height (Hs)
+    data.
 
-    See http://cdip.ucsd.edu/themes/cdip?pb=1&bl=cdip?pb=1&d2=p70&u3=s:093:st:1:v:hs_box_plot:dt:2011 for example Hs Boxplot.
-
-    Developed based on: http://cdip.ucsd.edu/themes/media/docs/documents/html_pages/annualHs_plot.html
+    Developed based on: 
+        http://cdip.ucsd.edu/themes/media/docs/documents/html_pages/annualHs_plot.html
     
     Parameters
     ------------
     data: pandas DataFrame
         Spectral density [m^2/Hz] indexed frequency [Hz]
-    buoytitle: string (optional)
+    buoy_title: string (optional)
         Buoy title from the CDIP THREDDS Server
     ax : matplotlib axes object (optional)
         Axes for plotting.  If None, then a new figure is created.
@@ -517,9 +517,8 @@ def plot_boxplot(Hs, buoytitle=None):
     bp2.annotate("75%ile",[xb+0.26*xb,yb-0.15*yb],fontsize=10)
     bp2.annotate("Outliers",[xw+0.3*xw,yw-0.3*yw],fontsize=10,color='r')
        
-
-    if buoytitle:
-        plt.suptitle(buoytitle, fontsize=30, y=0.97)
+    if buoy_title:
+        plt.suptitle(buoy_title, fontsize=30, y=0.97)
     bp.set_title("Significant Wave Height by Month", fontsize=20, y=1.01)
     bp2.set_title("Sample Boxplot", fontsize=10, y=1.02)
     
@@ -529,9 +528,7 @@ def plot_boxplot(Hs, buoytitle=None):
     bp.set_ylabel('Significant Wave Height, Hs (m)', fontsize=14)
     bp.tick_params(axis='y', which='major', labelsize=12, right='off')
     bp.tick_params(axis='x', which='major', labelsize=12, top='off')
-    
-
-    
+        
     # Plot horizontal gridlines onto top subplot
     bp.grid(axis='x', which='major', color='b', linestyle='-', alpha=0.25)
     
