@@ -238,7 +238,7 @@ def parse_data(nc=None, station_number=None, parameters=None,
     if not nc:
         nc = request_netCDF(station_number, data_type)
     
-    buoy_name = nc.variables['metaStationName'][:].compressed().tostring()
+    buoy_name = nc.variables['metaStationName'][:].compressed().tobytes()
     
     
     multiyear=False
@@ -347,7 +347,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
            'elements of parameters must be strings')
 
 
-    buoy_name = nc.variables['metaStationName'][:].compressed().tostring()           
+    buoy_name = nc.variables['metaStationName'][:].compressed().tobytes()           
     allVariables = [var for var in nc.variables]
     
     include_2D_variables=False
