@@ -364,7 +364,7 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     return ax
 
 
-def plot_compendium(Hs, Tp, Dp, buoytitle=None, ax=None):
+def plot_compendium(Hs, Tp, Dp, buoy_title=None, ax=None):
     """
     Create subplots showing: Significant Wave Height (Hs), Peak Period (Tp), 
     and Direction (Dp) using OPeNDAP service from CDIP THREDDS Server.
@@ -374,18 +374,26 @@ def plot_compendium(Hs, Tp, Dp, buoytitle=None, ax=None):
     Developed based on: http://cdip.ucsd.edu/themes/media/docs/documents/html_pages/compendium.html
 
     Parameters
-    ------------
-    data: pandas DataFrame
-        Spectral density [m^2/Hz] indexed frequency [Hz]
-    buoytitle: string (optional)
+    ----------
+    Hs: pandas Series
+        significant wave height
+    Tp: pandas Series
+        significant wave height
+    Dp: pandas Series
+        significant wave height
+    buoy_title: string (optional)
         Buoy title from the CDIP THREDDS Server
     ax : matplotlib axes object (optional)
         Axes for plotting.  If None, then a new figure is created.
     Returns
-    ---------
+    -------
     ax : matplotlib pyplot axes
 
     """
+    assert isinstance(Hs, pd.Series), 'Hs must be of type pd.Series'
+    assert isinstance(Tp, pd.Series), 'Tp must be of type pd.Series'
+    assert isinstance(Dp, pd.Series), 'Dp must be of type pd.Series'
+    assert isinstance(buoy_title, (str, type(None)), 'buoy_title must be of type string'
 
     f, (pHs, pTp, pDp) = plt.subplots(3, 1, sharex=True, figsize=(15,10)) 
     
@@ -429,7 +437,7 @@ def plot_compendium(Hs, Tp, Dp, buoytitle=None, ax=None):
     year_start = Hs.index.year[0]
     month_name_end = Hs.index.month_name()[-1][:3]
     year_end = Hs.index.year[-1]
-    plt.suptitle(buoytitle, fontsize=30) 
+    plt.suptitle(buoy_title, fontsize=30) 
     
     plt.title(f'{Hs.index[0].date()} to {Hs.index[-1].date()}', fontsize=20)
 
@@ -458,6 +466,8 @@ def plot_boxplot(Hs, buoy_title=None):
     ---------
     ax : matplotlib pyplot axes
     """
+    assert isinstance(Hs, pd.Series), 'Hs must be of type pd.Series'
+    assert isinstance(buoy_title, (str, type(None)), 'buoy_title must be of type string'
    
     months = Hs.index.month
     means = Hs.groupby(months).mean()
