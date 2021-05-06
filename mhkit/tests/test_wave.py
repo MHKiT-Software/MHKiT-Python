@@ -966,8 +966,8 @@ class TestIOcdip(unittest.TestCase):
         start_stamp, end_stamp = wave.io.cdip._dates_to_timestamp(self.test_nc, 
             start_date=start_date, end_date=end_date)
         
-        start_dt =  datetime.fromtimestamp(start_stamp)
-        end_dt =  datetime.fromtimestamp(end_stamp)
+        start_dt =  datetime.utcfromtimestamp(start_stamp)
+        end_dt =  datetime.utcfromtimestamp(end_stamp)
         
         self.assertTrue(start_dt.strftime('%Y-%m-%d') == start_date)
         self.assertTrue(end_dt.strftime('%Y-%m-%d') == end_date)

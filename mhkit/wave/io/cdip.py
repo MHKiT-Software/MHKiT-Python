@@ -88,8 +88,8 @@ def _dates_to_timestamp(nc, start_date=None, end_date=None):
         'of type str')
         
     time_all = nc.variables['waveTime'][:].compressed()
-    time_range_all = [time_all[0].astype('datetime64[s]'), 
-                  time_all[-1].astype('datetime64[s]')]
+    time_range_all = [datetime.datetime.fromtimestamp(time_all[0]).replace(tzinfo=timezone.utc), 
+                      datetime.datetime.fromtimestamp(time_all[-1]).replace(tzinfo=timezone.utc)]
     
     if start_date:        
         start_datetime = _validate_date(start_date)   
