@@ -393,7 +393,7 @@ def plot_compendium(Hs, Tp, Dp, buoy_title=None, ax=None):
     assert isinstance(Hs, pd.Series), 'Hs must be of type pd.Series'
     assert isinstance(Tp, pd.Series), 'Tp must be of type pd.Series'
     assert isinstance(Dp, pd.Series), 'Dp must be of type pd.Series'
-    assert isinstance(buoy_title, (str, type(None)), 'buoy_title must be of type string'
+    assert isinstance(buoy_title, (str, type(None))), 'buoy_title must be of type string'
 
     f, (pHs, pTp, pDp) = plt.subplots(3, 1, sharex=True, figsize=(15,10)) 
     
@@ -467,7 +467,7 @@ def plot_boxplot(Hs, buoy_title=None):
     ax : matplotlib pyplot axes
     """
     assert isinstance(Hs, pd.Series), 'Hs must be of type pd.Series'
-    assert isinstance(buoy_title, (str, type(None)), 'buoy_title must be of type string'
+    assert isinstance(buoy_title, (str, type(None))), 'buoy_title must be of type string'
    
     months = Hs.index.month
     means = Hs.groupby(months).mean()
