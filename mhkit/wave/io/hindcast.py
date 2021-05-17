@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from rex import MultiYearWaveX, WaveX
+import sys
 
 
 def region_selection(lat_lon):
@@ -100,7 +101,17 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
         assert isinstance(str_decode,bool), 'str_decode must be bool type'
         assert isinstance(hsds,bool), 'hsds must be bool type'
 
-        region = region_selection(lat_lon)
+        # check for multiple region selection
+        if isinstance(lat_lon[0], float):
+            region = region_selection(lat_lon)
+        else:
+            reglist = []
+            for loc in lat_lon:
+                reglist.append(region_selection(loc))
+            if reglist.count(reglist[0]) == len(lat_lon):
+                region = reglist[0]
+            else:
+                sys.exit('Coordinates must be within the same region!')
 
         if data_type == '3-hour':
             wave_path = f'/nrel/US_wave/'+region+'/'+region+'_wave_*.h5'
@@ -184,7 +195,17 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
     assert isinstance(str_decode,bool), 'str_decode must be bool type'
     assert isinstance(hsds,bool), 'hsds must be bool type'
 
-    region = region_selection(lat_lon)
+    # check for multiple region selection
+    if isinstance(lat_lon[0], float):
+        region = region_selection(lat_lon)
+    else:
+        reglist = []
+        for loc in lat_lon:
+            reglist.append(region_selection(loc))
+        if reglist.count(reglist[0]) == len(lat_lon):
+            region = reglist[0]
+        else:
+            sys.exit('Coordinates must be within the same region!')
 
     wave_path = f'/nrel/US_wave/virtual_buoy/'+region+'/'+region+'_virtual_buoy_'+year+'.h5'
     parameter = 'directional_wave_spectrum'
