@@ -2,6 +2,42 @@ import pandas as pd
 import numpy as np
 from rex import MultiYearWaveX, WaveX
 
+
+def region_selection(lat_lon):
+    '''
+    Returns the name of the predefined region in which the given coordinates reside.
+
+    Parameters
+    ----------
+    lat : float
+        Latitude coordinate
+    lon : float
+        Longitude coordinate
+    
+    Returns
+    -------
+    region : string
+        Name of predefined region for given coordinates
+    '''
+    assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
+
+    rDict = {
+        'Hawaii':{      'lat':[15.0,27.000002], 'lon':[-164.0,-151.0] },
+        'West_Coast':{  'lat':[30.0906, 48.8641], 'lon':[-130.072, -116.899] },
+        'Atlantic':{    'lat':[24.382, 44.8247], 'lon':[-81.552, -65.721] },
+    }
+
+    region_search = lambda x: all( ( True if rDict[x][dk][0] <= d <= rDict[x][dk][1] else False
+                                    for dk, d in {'lat':lat_lon[0],'lon':lat_lon[1]}.items() ) )
+    region = [key for key in rDict if region_search(key)]
+    
+    if len(region)==0:
+        print('ERROR: coordinates out of bounds')
+    else:
+        return region[0]
+
+
+
 def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None, 
                                  unscale=True, str_decode=True,hsds=True):
     
@@ -64,8 +100,10 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
         assert isinstance(str_decode,bool), 'str_decode must be bool type'
         assert isinstance(hsds,bool), 'hsds must be bool type'
 
+        region = region_selection(lat_lon)
+
         if data_type == '3-hour':
-            wave_path = f'/nrel/US_wave/West_Coast/West_Coast_wave_*.h5'
+            wave_path = f'/nrel/US_wave/'+region+'/'+region+'_wave_*.h5'
         elif data_type == '1-hour':
             wave_path = f'/nrel/US_wave/virtual_buoy/West_Coast/West_Coast_virtual_buoy_*.h5'
         else:
@@ -139,7 +177,6 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
     meta: DataFrame 
         location metadata for the requested data location   
     """
-        
     assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
     assert isinstance(year,str), 'years must be a string'
     assert isinstance(tree,(str,type(None))), 'tree must be a sring'
@@ -147,18 +184,25 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
     assert isinstance(str_decode,bool), 'str_decode must be bool type'
     assert isinstance(hsds,bool), 'hsds must be bool type'
 
-    wave_path = f'/nrel/US_wave/virtual_buoy/US_virtual_buoy_'+year+'.h5'
+    region = region_selection(lat_lon)
+
+    wave_path = f'/nrel/US_wave/virtual_buoy/'+region+'/'+region+'_virtual_buoy_'+year+'.h5'
     parameter = 'directional_wave_spectrum'
     waveKwargs = {'tree':tree,'unscale':unscale,'str_decode':str_decode, 'hsds':hsds}
-    data_list = []
         
     with WaveX(wave_path, **waveKwargs) as rex_waves:
         data = rex_waves.get_lat_lon_df(parameter,lat_lon)
+        # get metadata
         col = data.columns[:]
-
         meta = rex_waves.meta.loc[col,:]
         meta = meta.reset_index(drop=True) 
-    print(data)
-    data.columns = data.index.get_level_values(1)  
-    data.index = data.index.get_level_values(0)
+    # datadict = {}
+    # timestamps = data.index.get_level_values(0).drop_duplicates()
+    # frequency = data.index.get_level_values(1).drop_duplicates()
+    # wavedir = data.index.get_level_values(2).drop_duplicates()
+    # for t in timestamps:
+    #     df = pd.DataFrame(columns=wavedir,index=frequency)
+    #     for f in frequency:
+    #         df.loc[f,:] = data.loc[(t,f),col[0]].values
+    #     datadict[t] = df
     return data, meta    
