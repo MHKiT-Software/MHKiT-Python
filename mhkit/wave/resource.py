@@ -552,7 +552,7 @@ def spectral_width(S,frequency_bins=None):
     return v
 
 
-def energy_flux(S, h, deep = False, rho=1025, g=9.80665):
+def energy_flux(S, h, deep=False, rho=1025, g=9.80665):
     """
     Calculates the omnidirectional wave energy flux of the spectra
     
@@ -574,14 +574,22 @@ def energy_flux(S, h, deep = False, rho=1025, g=9.80665):
     J: pandas DataFrame
         Omni-directional wave energy flux [W/m] indexed by S.columns
     """
-    # TODO: Add deep water flag
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     assert isinstance(h, (int,float)), 'h must be of type int or float'
     assert isinstance(deep, bool), 'deep must be of type bool'
     assert isinstance(rho, (int,float)), 'rho must be of type int or float'
     assert isinstance(g, (int,float)), 'g must be of type int or float'
     
-    if deep == False:
+    if deep:
+        # Eq 8 in IEC 62600-100, deep water simpilification
+        Te = energy_period(S)
+        Hm0 = significant_wave_height(S)
+        # print(Hm_zero)
+        coeff = rho*(g**2)/(64*np.pi)
+
+        J = coeff*(Hm_zero['Hm0']**2)*Te['Te']
+        J = pd.DataFrame(J, index=S.columns, columns=["J"])
+    else:
         # deep water flag is false
         f = S.index
 
@@ -600,15 +608,7 @@ def energy_flux(S, h, deep = False, rho=1025, g=9.80665):
         J = rho * g * CgSdelF.sum(axis=0)
 
         J = pd.DataFrame(J, index=S.columns, columns=["J"])
-    else:
-        # Eq 8 in IEC 62600-100, deep water simpilification
-        Te = energy_period(S)
-        Hm0 = significant_wave_height(S)
-        # print(Hm_zero)
-        coeff = rho*(g**2)/(64*np.pi)
 
-        J = coeff*(Hm_zero['Hm0']**2)*Te['Te']
-        J = pd.DataFrame(J, index=S.columns, columns=["J"])
 
     return J
 
