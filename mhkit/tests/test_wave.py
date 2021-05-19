@@ -283,10 +283,20 @@ class TestResourceMetrics(unittest.TestCase):
 
     def test_depth_regime(self):
         expected = [True,True,False,True]
-        l = pd.DataFrame([1,2,10,3],index = [1,2,3,4])
+        l_list=[1,2,10,3]
+        l_df = pd.DataFrame(l_list,index = [1,2,3,4])
+        l_series= l_df[0]
+        l_array=np.array(l_list)
         h = 10
-        calculated = wave.resource.depth_regime(l,h).loc[:,"deep"].values.tolist()
-        self.assertListEqual(expected,calculated)
+        for l in [l_list, l_df, l_series, l_array]:
+            calculated = wave.resource.depth_regime(l,h)            
+            self.assertListEqual(expected,calculated.tolist())
+        
+        idx=0
+        l_int = l_list[idx]
+        calculated = wave.resource.depth_regime(l_int,h)
+        self.assertEqual(expected[idx],calculated)
+        
 
     def test_moments(self):
         for file_i in self.valdata2.keys(): # for each file MC, AH, CDiP

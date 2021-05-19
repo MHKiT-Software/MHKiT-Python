@@ -613,7 +613,7 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665):
     return J
 
 
-def wave_celerity(k, h, g=9.80665, depth_check = False):
+def wave_celerity(k, h, g=9.80665, depth_check=False):
     """
     Calculates wave celerity (group velocity)
     
@@ -623,10 +623,10 @@ def wave_celerity(k, h, g=9.80665, depth_check = False):
         Wave number [1/m] indexed by frequency [Hz]
     h: float
         Water depth [m]
-    depth_check: bool (optional)
-        If true check depth regime
     g : float (optional)
         Gravitational acceleration [m/s^2]
+    depth_check: bool (optional)
+        If true check depth regime        
 
     Returns
     -------
@@ -639,19 +639,11 @@ def wave_celerity(k, h, g=9.80665, depth_check = False):
     assert isinstance(g, (int,float)), 'g must be of type int or float'
     assert isinstance(depth_check, bool), 'depth_check must be of type bool'
 
-    if depth_check == False:
-        f = k.index
-        k = k.squeeze()  # convert to Series for calculation (returns a copy)
-
-        # Eq 10 in IEC 62600-101
-        Cg = (np.pi * f / k) * (1 + (2 * h * k) / np.sinh(2 * h * k))
-        Cg = pd.DataFrame(Cg, index=f, columns=["Cg"])
-    else:
+    if depth_check:
         # check the depth for each of the frequencies using depth_regime()
-        # get wavelength
-        wl = wave_length(k)
+        l = wave_length(k)
         # get depth regime
-        dr = depth_regime(wl, h)
+        dr = depth_regime(l, h)
         kc = k.copy(deep = True)
         kc['deep'] = dr
 
@@ -671,6 +663,13 @@ def wave_celerity(k, h, g=9.80665, depth_check = False):
         dCg = pd.DataFrame(dCg, index=df, columns=["Cg"])
 
         Cg = pd.concat([sCg, dCg])
+    else:
+        f = k.index
+        k = k.squeeze()  # convert to Series for calculation (returns a copy)
+
+        # Eq 10 in IEC 62600-101
+        Cg = (np.pi * f / k) * (1 + (2 * h * k) / np.sinh(2 * h * k))
+        Cg = pd.DataFrame(Cg, index=f, columns=["Cg"])        
    
     return Cg
 
@@ -751,7 +750,7 @@ def wave_number(f, h, rho=1025, g=9.80665):
     
     return k
 
-def depth_regime(l, h, ratio = 2):
+def depth_regime(l, h, ratio=2):
     '''
     Calculates the depth regime based on wavelength and height
     Deep water: h/l > ratio
@@ -760,32 +759,36 @@ def depth_regime(l, h, ratio = 2):
 
     P.K. Kundu, I.M. Cohen (2000) suggest h/l >> 1 for deep water (pg 209)
     Same citation as above, they also suggest for 3% accuracy, h/l > 0.28 (pg 210)
-    However, since this function has multiple wavelengths, higher ratio numbers are
-    more accurate across varying wavelengths.
+    However, since this function allows multiple wavelengths, higher ratio
+    numbers are more accurate across varying wavelengths.
 
     Parameters
     ----------
-    l: pandas DataFrame
+    l: array-like
         wavelength [m]
     h: float or int
         water column depth [m]
     ratio: float or int (optional)
-        if h/l > ratio, water depth will be set to deep. ratio = 2 by default 
+        if h/l > ratio, water depth will be set to deep. Default ratio = 2  
 
     Returns
     -------
-    depth_reg: pandas DataFrmae
-        Boolean [true/false] for deepwater characteristics indexed
-        by frequency
+    depth_reg: boolean or boolean array
+        Boolean True if deep water, False otherwise
     '''
-
-    assert isinstance(l, pd.DataFrame), "l must be of type pandas.DataFrame"
+        
+    if isinstance(l, (int, float, list)):
+        l = np.array(l)    
+    elif isinstance(l, pd.DataFrame):        
+        l = l.squeeze().values
+    elif isinstance(l, pd.Series):           
+        l = l.values
+    
+    assert isinstance(l, (np.ndarray)), "l must be array-like"
     assert isinstance(h, (int, float)), "h must be of type int or float"
 
-    f = l.index
-    depth_reg = pd.DataFrame(index = f, columns = ["deep"])
-    depth_reg["deep"] = h/l > ratio
-
+    depth_reg = h/l > ratio
+    
     return  depth_reg
 
 
