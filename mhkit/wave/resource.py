@@ -584,7 +584,7 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665):
         # Eq 8 in IEC 62600-100, deep water simpilification
         Te = energy_period(S)
         Hm0 = significant_wave_height(S)
-        # print(Hm_zero)
+        
         coeff = rho*(g**2)/(64*np.pi)
 
         J = coeff*(Hm_zero['Hm0']**2)*Te['Te']
