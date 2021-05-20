@@ -685,14 +685,20 @@ def wave_length(k):
 
     Returns
     ---------
-    l: pandas Dataframe
+    l: float or array
         Wave length [m] indexed by frequency
     """
+    if isinstance(k, (int, float, list)):
+        k = np.array(k)    
+    elif isinstance(k, pd.DataFrame):        
+        k = k.squeeze().values
+    elif isinstance(k, pd.Series):           
+        k = k.values
 
-    assert isinstance(k, pd.DataFrame), 'k must be of type pandas.Dataframe'
-    f = k.index
-    l = pd.DataFrame(index = f, columns = ['l'])
-    l['l'] = 2*np.pi/k['k']
+    assert isinstance(k, np.ndarray), 'k must be array-like'
+
+    l = 2*np.pi/k
+    
     return l
 
 def wave_number(f, h, rho=1025, g=9.80665):
