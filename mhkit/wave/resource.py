@@ -625,8 +625,10 @@ def wave_celerity(k, h, g=9.80665, depth_check=False):
         Water depth [m]
     g : float (optional)
         Gravitational acceleration [m/s^2]
-    depth_check: bool (optional)
-        If True check depth regime. Default False.
+    depth_check: bool or float (optional)
+        Default False. If True check depth regime using default ratio 
+        of 2 (see depth_regime function). If float use that values as 
+        the depth ratio instead of the default ratio of 2. 
 
     Returns
     -------
@@ -637,18 +639,24 @@ def wave_celerity(k, h, g=9.80665, depth_check=False):
     assert isinstance(k, pd.DataFrame), 'S must be of type pd.DataFrame'
     assert isinstance(h, (int,float)), 'h must be of type int or float'
     assert isinstance(g, (int,float)), 'g must be of type int or float'
-    assert isinstance(depth_check, bool), 'depth_check must be of type bool'
+    assert isinstance(depth_check, (bool, float, int)), ('depth_check',
+        'must be of type bool, or float')
 
-    if depth_check:
-        # check the depth for each of the frequencies using depth_regime()
+    f = k.index
+    k = k.values
+    
+    if depth_check:        
         l = wave_length(k)
-        # get depth regime
-        dr = depth_regime(l, h)
-        kc = k.copy(deep = True)
-        kc['deep'] = dr
-
+        
+        if isinstance(depth_check, (float, int)):
+            dr = depth_regime(l, h, ratio=depth_check)
+        else:
+            dr = depth_regime(l, h)
+        
+        #k['deep'] = dr
+        import ipdb; ipdb.set_trace()
         # shallow frequencies
-        shallow = kc[kc['deep'] == False]
+        shallow = k[k['deep'] == False]
         sf = shallow.index
         sk = shallow['k'].squeeze()
         sCg = (np.pi * sf / sk) * (1 + (2 * h * sk) / np.sinh(2 * h * sk))
@@ -663,10 +671,7 @@ def wave_celerity(k, h, g=9.80665, depth_check=False):
         dCg = pd.DataFrame(dCg, index=df, columns=["Cg"])
 
         Cg = pd.concat([sCg, dCg])
-    else:
-        f = k.index
-        k = k.squeeze()  # convert to Series for calculation (returns a copy)
-
+    else: 
         # Eq 10 in IEC 62600-101
         Cg = (np.pi * f / k) * (1 + (2 * h * k) / np.sinh(2 * h * k))
         Cg = pd.DataFrame(Cg, index=f, columns=["Cg"])        
