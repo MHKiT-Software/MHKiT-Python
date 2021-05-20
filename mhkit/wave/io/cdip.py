@@ -427,7 +427,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         for var in variables_by_type[prefix]:   
             variable = np.ma.filled(nc.variables[var])
             if variable.size == N_time:              
-                variable = np.ma.masked_array(variable, mask)
+                variable = np.ma.masked_array(variable, mask).astype(float)
                 time_variables[var] = variable.compressed()
             else:
                 metadata[var] = nc.variables[var][:].compressed()
@@ -435,7 +435,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         time_slice = pd.to_datetime(var_time, unit='s')
         data = pd.DataFrame(time_variables, index=time_slice)        
          
-        if prefix != 'meta':         
+        if prefix != 'meta':      
             results['data'][prefix] = data
             results['data'][prefix].name = buoy_name
         results['metadata'][prefix] = metadata
