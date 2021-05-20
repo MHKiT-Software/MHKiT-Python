@@ -7,6 +7,7 @@ import pandas as pd
 
 
 
+
 def _get_layer_data(data, variable, layer = -1 , time_step=-1):
     '''
     Get variable data from netcdf4 object at specified layer and timestep. 
@@ -36,10 +37,11 @@ def _get_layer_data(data, variable, layer = -1 , time_step=-1):
     x=np.ma.getdata(data.variables[coords[0]][:], False) 
     y=np.ma.getdata(data.variables[coords[1]][:], False)
     if layer > max_layer:
-        print ('layer out of range')
         v=[0]*len(x)
     else:
         v= np.ma.getdata(var[itime,:,layer], False)
+        if variable == 'unorm':
+                print(len(x), len(y), len(v))
     return x,y,v
 
 
@@ -156,20 +158,19 @@ def get_all_data_points(data, variable, time_step):
         Data frame of x , y, z, and variable 
 
     '''  
-    cords_to_layers= {0: {'key' : 'FlowElem_xcc FlowElem_ycc',
-                              'values': data.variables['LayCoord_cc'][:]},
-                      1:{'key' : 'FlowLink_xu FlowLink_yu',
-                             'values': data.variables['LayCoord_w'][:]}}
-
-    if  data[variable].coordinates == 'FlowElem_xcc FlowElem_ycc':
-        i=0 
-    elif data[variable].coordinates == 'FlowLink_xu FlowLink_yu':
-        i=1
-    else :
-        raise Exception('corrdinates not reconized')
-        
-    Layer_percentages= np.ma.getdata(cords_to_layers[i]['values'], False) 
+    cords_to_layers= {'laydim': data.variables['LayCoord_cc'][:],
+                       'wdim': data.variables['LayCoord_w'][:]}
+    lay_element= 2 
+    layer_dim =  [v.name for v in data[variable].get_dims()][lay_element]
     
+    try:    
+        cord_sys= cords_to_layers[layer_dim]
+    except: 
+        raise Exception('coordinates not recognized')
+    else: 
+        Layer_percentages= np.ma.getdata(cord_sys, False) 
+        
+        
     bottom_depth=np.ma.getdata(data.variables['waterdepth'][time_step, :], False)# add Time_step
     
     x_all=[]
@@ -178,7 +179,7 @@ def get_all_data_points(data, variable, time_step):
     v_all=[]
     
     N_layers = range(len(Layer_percentages))
-    
+    print(variable, N_layers)
     for layer in N_layers:
         x,y,v= _get_layer_data(data, variable, layer, time_step)
         z = [bottom_depth*Layer_percentages[layer]]
@@ -209,14 +210,46 @@ def interpolate_data(data_points, values , request_points):
     Returns
     -------
     v_new: array 
-        interpolared values for locations in request_points 
+        interpolated values for locations in request_points 
 
     '''
     v_new = interp.griddata(data_points, values, request_points)
 
     return v_new
 
+def turbulent_intensity(data, points):
+    '''
+    Calculated the turbulent intesity for a given data set for the specified points 
 
+    Parameters
+    ----------
+    data : netcdf4 object 
+        d3d netcdf4 object, assumes variable names: turkin1, ucx, ucy and ucz
+    points : data frame 
+        Data frame of x, y, and z corrdinates 
+
+    Returns
+    -------
+    turbulent_intensity : array   
+        turbulent kinetic energy devided by the root mean squared velocity
+
+    '''
+
+    turbulent_intesity_variables = {0:{'name' : 'turkin1'},
+                                    1:{'name' : 'ucx'},
+                                    2:{'name' : 'ucy'},
+                                    3:{'name' : 'ucz'}}
+    for i in turbulent_intesity_variables:
+        #get all data
+        var_data_df = get_all_data_points(data, turbulent_intesity_variables[i]['name'],time_step=-1)   
+        
+        #interpolate data 
+        turbulent_intesity_variables[i]['values'] = interpolate_data(var_data_df[['x','y','z']], var_data_df[turbulent_intesity_variables[i]['name']],
+                points[['x','y','z']])   
+    #calculate turbulent intensity 
+    turbulent_intensity= np.sqrt((2/3*turbulent_intesity_variables[0]['values'])/(turbulent_intesity_variables[1]['values']**2 + turbulent_intesity_variables[2]['values']**2 + turbulent_intesity_variables[3]['values']**2))
+
+    return turbulent_intensity 
     
 exdir= dirname(abspath(__file__))
 datadir = normpath(join(exdir,relpath('data/river/d3d')))
@@ -232,15 +265,23 @@ z=  1#np.linspace (0.2, 1.8, num=100)
 #request_points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
 #points=request_points
    
-variables= ['turkin1']# , 'turkin1"]
-#
+variables= ['unorm'] # , 'turkin1', 'ucx', 'ucy', 'ucz'] 
+
+#ccheck that variable is in data set 
+
 var_data_df=get_all_data_points(data, variables[0],time_step=-1)
 points = create_points(x, y, z)
-points['turkin1']=interpolate_data(var_data_df[['x','y','z']], var_data_df[['turkin1']],
-            points[['x','y','z']])  
+points[variables[0]]=interpolate_data(var_data_df[['x','y','z']], var_data_df[variables[0]],
+            points[['x','y','z']])  # 
+TI = turbulent_intensity
 
+#Tunrbulent intensity 
+#Turbulent_intensity = math.sqrt(2/3* #tunrkin1)/
+
+# Plots 
 points.dropna(inplace=True)
-plt.tricontourf(points.x,points.y,points.turkin1)
+plt.tricontourf(points.x,points.y,points.unorm)
+
 #         units= data.variables[variable].units
 #         cname=data.variables[variable].long_name
 #         cbar.set_label(f'{cname} [{units}]')
