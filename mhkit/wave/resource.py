@@ -563,7 +563,7 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665):
     h: float
         Water depth [m]
     deep: bool (optional)
-        Use deep water approximation
+        If True use the deep water approximation. Default False.
     rho: float (optional)
         Water Density [kg/m3]
     g : float (optional)
@@ -626,7 +626,7 @@ def wave_celerity(k, h, g=9.80665, depth_check=False):
     g : float (optional)
         Gravitational acceleration [m/s^2]
     depth_check: bool (optional)
-        If true check depth regime        
+        If True check depth regime. Default False.
 
     Returns
     -------
