@@ -609,7 +609,6 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665):
 
         J = pd.DataFrame(J, index=S.columns, columns=["J"])
 
-
     return J
 
 
@@ -618,13 +617,13 @@ def wave_celerity(k, h, g=9.80665, depth_check=False):
     Calculates wave celerity (group velocity)
     
     Parameters
-    -----------
-    k: pandas DataFrame
+    ----------
+    k: pandas DataFrame or Series
         Wave number [1/m] indexed by frequency [Hz]
     h: float
         Water depth [m]
     g : float (optional)
-        Gravitational acceleration [m/s^2]
+        Gravitational acceleration [m/s^2]. Default 9.80665 m/s.
     depth_check: bool or float (optional)
         Default False. If True check depth regime using default ratio 
         of 2 (see depth_regime function). If float use that values as 
@@ -633,10 +632,12 @@ def wave_celerity(k, h, g=9.80665, depth_check=False):
     Returns
     -------
     Cg: pandas DataFrame
-        Water celerity [?] indexed by frequency [Hz]
+        Water celerity [m/s] indexed by frequency [Hz]
     """
+    if isinstance(k, pd.DataFrame):
+        k = k.squeeze()
 
-    assert isinstance(k, pd.DataFrame), 'S must be of type pd.DataFrame'
+    assert isinstance(k, pd.Series), 'S must be of type pd.Series'
     assert isinstance(h, (int,float)), 'h must be of type int or float'
     assert isinstance(g, (int,float)), 'g must be of type int or float'
     assert isinstance(depth_check, (bool, float, int)), ('depth_check',
@@ -653,24 +654,21 @@ def wave_celerity(k, h, g=9.80665, depth_check=False):
         else:
             dr = depth_regime(l, h)
         
-        #k['deep'] = dr
-        import ipdb; ipdb.set_trace()
-        # shallow frequencies
-        shallow = k[k['deep'] == False]
-        sf = shallow.index
-        sk = shallow['k'].squeeze()
-        sCg = (np.pi * sf / sk) * (1 + (2 * h * sk) / np.sinh(2 * h * sk))
-        sCg = pd.DataFrame(sCg, index = sf, columns = ["Cg"])
-
         # deep frequencies
-        deep = kc[kc['deep'] == True]
-        df = deep.index
-        dk = deep['k'].squeeze()
+        df = f[dr]
+        dk = k[dr]
         # deep water approximation
         dCg = (np.pi * df / dk)
         dCg = pd.DataFrame(dCg, index=df, columns=["Cg"])
+        
+        # shallow frequencies
+        sf = f[~dr]
+        sk = k[~dr]
+        sCg = (np.pi * sf / sk) * (1 + (2 * h * sk) / np.sinh(2 * h * sk))
+        sCg = pd.DataFrame(sCg, index = sf, columns = ["Cg"])
+        
+        Cg = pd.concat([dCg, sCg]).sort_index()
 
-        Cg = pd.concat([sCg, dCg])
     else: 
         # Eq 10 in IEC 62600-101
         Cg = (np.pi * f / k) * (1 + (2 * h * k) / np.sinh(2 * h * k))
