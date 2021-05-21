@@ -310,6 +310,30 @@ class TestResourceMetrics(unittest.TestCase):
         self.assertEqual(expected[idx],calculated)
         
 
+    def test_wave_celerity(self):
+        # Depth regime ratio
+        dr_ratio=2
+
+        # small change in f will give similar value cg
+        f=np.linspace(20.0001,20.0005,5)
+        
+        # Choose index to spike at. cg spike is inversly proportional to k
+        k_idx=2
+        k_tmp=[1, 1, 0.5, 1, 1]
+        k = pd.DataFrame(k_tmp, index=f)
+        
+        # all shallow
+        cg_shallow1 = wave.resource.wave_celerity(k, h=0.0001,depth_check=True)
+        cg_shallow2 = wave.resource.wave_celerity(k, h=0.0001,depth_check=False)
+        self.assertTrue(all(cg_shallow1.squeeze().values == 
+                            cg_shallow2.squeeze().values))
+        
+        
+        # all deep 
+        cg = wave.resource.wave_celerity(k, h=1000,depth_check=True)
+        self.assertTrue(all(np.pi*f/k.squeeze().values == cg.squeeze().values))
+        
+
     def test_moments(self):
         for file_i in self.valdata2.keys(): # for each file MC, AH, CDiP
             datasets = self.valdata2[file_i]

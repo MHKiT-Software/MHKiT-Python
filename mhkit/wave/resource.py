@@ -646,17 +646,17 @@ def wave_celerity(k, h, g=9.80665, depth_check=False):
     f = k.index
     k = k.values
     
-    if depth_check:        
+    if depth_check:           
         l = wave_length(k)
         
         if isinstance(depth_check, (float, int)):
             dr = depth_regime(l, h, ratio=depth_check)
         else:
             dr = depth_regime(l, h)
-        
         # deep frequencies
         df = f[dr]
         dk = k[dr]
+        
         # deep water approximation
         dCg = (np.pi * df / dk)
         dCg = pd.DataFrame(dCg, index=df, columns=["Cg"])
