@@ -614,7 +614,7 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665):
     return J
 
 
-def wave_celerity(k, h, g=9.80665, depth_check=False):
+def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2):
     """
     Calculates wave celerity (group velocity)
     
@@ -626,10 +626,11 @@ def wave_celerity(k, h, g=9.80665, depth_check=False):
         Water depth [m]
     g : float (optional)
         Gravitational acceleration [m/s^2]. Default 9.80665 m/s.
-    depth_check: bool or float (optional)
-        Default False. If True check depth regime using default ratio 
-        of 2 (see depth_regime function). If float use that values as 
-        the depth ratio instead of the default ratio of 2. 
+    depth_check: bool (optional)
+        If True check depth regime. Default False.
+    ratio: float or int (optional)
+        Only applied if depth_check=True. If h/l > ratio,
+        water depth will be set to deep. Default ratio = 2
 
     Returns
     -------
@@ -650,11 +651,10 @@ def wave_celerity(k, h, g=9.80665, depth_check=False):
     
     if depth_check:           
         l = wave_length(k)
-        
-        if isinstance(depth_check, (float, int)):
-            dr = depth_regime(l, h, ratio=depth_check)
-        else:
-            dr = depth_regime(l, h)
+
+        # get depth regime
+        dr = depth_regime(l, h, ratio=ratio)
+
         # deep frequencies
         df = f[dr]
         dk = k[dr]
