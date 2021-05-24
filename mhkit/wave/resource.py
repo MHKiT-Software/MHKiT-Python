@@ -643,8 +643,8 @@ def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2):
     assert isinstance(k, pd.Series), 'S must be of type pd.Series'
     assert isinstance(h, (int,float)), 'h must be of type int or float'
     assert isinstance(g, (int,float)), 'g must be of type int or float'
-    assert isinstance(depth_check, (bool, float, int)), ('depth_check',
-        'must be of type bool, or float')
+    assert isinstance(depth_check, bool), 'depth_check must be of type bool'
+    assert isinstance(ratio, (int,float)), 'ratio must be of type int or float'
 
     f = k.index
     k = k.values
