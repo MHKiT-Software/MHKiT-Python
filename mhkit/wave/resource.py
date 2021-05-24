@@ -558,7 +558,7 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665):
     
     Parameters
     -----------
-    S: pandas DataFrame
+    S: pandas DataFrame or Series
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     h: float
         Water depth [m]
@@ -574,7 +574,9 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665):
     J: pandas DataFrame
         Omni-directional wave energy flux [W/m] indexed by S.columns
     """
-    assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
+    if isinstance(S, pd.DataFrame):
+        S = S.squeeze()
+    assert isinstance(S, pd.DataFrame), 'S must be of type pd.Series'
     assert isinstance(h, (int,float)), 'h must be of type int or float'
     assert isinstance(deep, bool), 'deep must be of type bool'
     assert isinstance(rho, (int,float)), 'rho must be of type int or float'
