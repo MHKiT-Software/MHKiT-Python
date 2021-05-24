@@ -306,7 +306,9 @@ def frequency_moment(S, N, frequency_bins=None):
     m: pandas DataFrame 
         Nth Frequency Moment indexed by S.columns
     """
-    assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
+    if isinstance(S, pd.DataFrame):
+        S = S.squeeze()
+    assert isinstance(S, pd.Series), 'S must be of type pd.DataFrame or pd.Series'
     assert isinstance(N, int), 'N must be of type int'
     
     # Eq 8 in IEC 62600-101 
@@ -328,7 +330,7 @@ def frequency_moment(S, N, frequency_bins=None):
     m = spec.multiply(fn,axis=0).multiply(delta_f,axis=0)
     m = m.sum(axis=0)
     
-    m = pd.DataFrame(m, index=S.columns, columns = ['m'+str(N)])
+    m = pd.DataFrame(m, index=S.values, columns = ['m'+str(N)])
 
     return m
 
@@ -349,7 +351,9 @@ def significant_wave_height(S, frequency_bins=None):
     Hm0: pandas DataFrame 
         Significant wave height [m] index by S.columns
     """
-    assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
+    if isinstance(S, pd.DataFrame):
+        S = S.squeeze()
+    assert isinstance(S, pd.Series), 'S must be of type pd.DataFrame'
     
     # Eq 12 in IEC 62600-101
     
@@ -483,14 +487,16 @@ def energy_period(S,frequency_bins=None):
     Te: pandas DataFrame
         Wave energy period [s] indexed by S.columns
     """
-    assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
+    if isinstance(S, pd.DataFrame):
+        S = S.squeeze()
+    assert isinstance(S, pd.Series), 'S must be of type pd.DataFrame'
     
     mn1 = frequency_moment(S,-1,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
     m0  = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze()
     
     # Eq 13 in IEC 62600-101 
     Te = mn1/m0
-    Te = pd.DataFrame(Te, index=S.columns, columns=['Te'])
+    Te = pd.DataFrame(Te, index=S.values, columns=['Te'])
     
     return Te
 
@@ -552,7 +558,7 @@ def spectral_width(S,frequency_bins=None):
     return v
 
 
-def energy_flux(S, h, deep=False, rho=1025, g=9.80665):
+def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2):
     """
     Calculates the omnidirectional wave energy flux of the spectra
     
@@ -563,11 +569,17 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665):
     h: float
         Water depth [m]
     deep: bool (optional)
-        If True use the deep water approximation. Default False.
+        If True use the deep water approximation. Default False. When
+        False a depth check is run to check for shallow water. The ratio
+        of the shallow water regime can be changed using the ratio
+        keyword.
     rho: float (optional)
         Water Density [kg/m3]
     g : float (optional)
         Gravitational acceleration [m/s^2]
+    ratio: float or int (optional)
+        Only applied if depth=False. If h/l > ratio,
+        water depth will be set to deep. Default ratio = 2.
 
     Returns
     -------
@@ -576,11 +588,12 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665):
     """
     if isinstance(S, pd.DataFrame):
         S = S.squeeze()
-    assert isinstance(S, pd.DataFrame), 'S must be of type pd.Series'
+    assert isinstance(S, pd.Series), 'S must be of type pd.Series'
     assert isinstance(h, (int,float)), 'h must be of type int or float'
     assert isinstance(deep, bool), 'deep must be of type bool'
     assert isinstance(rho, (int,float)), 'rho must be of type int or float'
     assert isinstance(g, (int,float)), 'g must be of type int or float'
+    assert isinstance(ratio, (int,float)), 'ratio must be of type int or float'
     
     if deep:
         # Eq 8 in IEC 62600-100, deep water simpilification
@@ -589,8 +602,8 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665):
         
         coeff = rho*(g**2)/(64*np.pi)
 
-        J = coeff*(Hm_zero['Hm0']**2)*Te['Te']
-        J = pd.DataFrame(J, index=S.columns, columns=["J"])
+        J = coeff*(Hm0.squeeze()**2)*Te.squeeze()
+        J = pd.DataFrame(J, index=S.values, columns=["J"])        
     else:
         # deep water flag is false
         f = S.index
