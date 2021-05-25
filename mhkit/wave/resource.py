@@ -329,8 +329,8 @@ def frequency_moment(S, N, frequency_bins=None):
  
     m = spec.multiply(fn,axis=0).multiply(delta_f,axis=0)
     m = m.sum(axis=0)
-    
-    m = pd.DataFrame(m, index=S.values, columns = ['m'+str(N)])
+
+    m = pd.DataFrame(m, index=[0], columns = ['m'+str(N)])
 
     return m
 
@@ -386,7 +386,7 @@ def average_zero_crossing_period(S,frequency_bins=None):
     m2 = frequency_moment(S,2,frequency_bins=frequency_bins).squeeze()
     
     Tz = np.sqrt(m0/m2)
-    Tz = pd.DataFrame(Tz, index=S.columns, columns = ['Tz'])
+    Tz = pd.DataFrame(Tz, index=[0], columns = ['Tz'])
     
     return Tz
 
@@ -496,7 +496,7 @@ def energy_period(S,frequency_bins=None):
     
     # Eq 13 in IEC 62600-101 
     Te = mn1/m0
-    Te = pd.DataFrame(Te, index=S.values, columns=['Te'])
+    Te = pd.DataFrame(Te, index=[0], columns=['Te'])
     
     return Te
 
@@ -603,7 +603,8 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2):
         coeff = rho*(g**2)/(64*np.pi)
 
         J = coeff*(Hm0.squeeze()**2)*Te.squeeze()
-        J = pd.DataFrame(J, index=S.values, columns=["J"])        
+        J = pd.DataFrame(J, index=[0], columns=["J"])
+        
     else:
         # deep water flag is false
         f = S.index
@@ -622,7 +623,7 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2):
 
         J = rho * g * CgSdelF.sum(axis=0)
 
-        J = pd.DataFrame(J, index=S.columns, columns=["J"])
+        J = pd.DataFrame(J, index=[0], columns=["J"])
 
     return J
 
