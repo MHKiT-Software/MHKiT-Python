@@ -215,6 +215,11 @@ class TestResourceMetrics(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
+        omega = np.arange(0.1,3.5,0.01)
+        self.f = omega/(2*np.pi)
+        self.Hs = 2.5
+        self.Tp = 8
+    
         file_name = join(datadir, 'ValData1.json')
         with open(file_name, "r") as read_file:
             self.valdata1 = pd.DataFrame(json.load(read_file))
@@ -333,6 +338,21 @@ class TestResourceMetrics(unittest.TestCase):
         cg = wave.resource.wave_celerity(k, h=1000,depth_check=True)
         self.assertTrue(all(np.pi*f/k.squeeze().values == cg.squeeze().values))
         
+    def test_energy_flux_deep(self):
+        # Dependent on mhkit.resource.BS spectrum
+        S = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
+        Te = wave.resource.energy_period(S)
+        Hm0 = wave.resource.significant_wave_height(S)
+        rho=1025
+        g=9.80665
+        coeff = rho*(g**2)/(64*np.pi)
+        J = coeff*(Hm0.squeeze()**2)*Te.squeeze()
+        
+        h=-1 # not used when deep=True
+        J_calc = wave.resource.energy_flux(S, h, deep=True)
+        
+        self.assertTrue(J_calc.squeeze() == J)
+
 
     def test_moments(self):
         for file_i in self.valdata2.keys(): # for each file MC, AH, CDiP
