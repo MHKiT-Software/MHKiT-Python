@@ -574,9 +574,9 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2):
         of the shallow water regime can be changed using the ratio
         keyword.
     rho: float (optional)
-        Water Density [kg/m3]
+        Water Density [kg/m^3]. Default = 1025 kg/m^3
     g : float (optional)
-        Gravitational acceleration [m/s^2]
+        Gravitational acceleration [m/s^2]. Default = 9.80665 m/s^2
     ratio: float or int (optional)
         Only applied if depth=False. If h/l > ratio,
         water depth will be set to deep. Default ratio = 2.
