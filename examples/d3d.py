@@ -257,7 +257,7 @@ def turbulent_intensity(data, points = None):
 
     '''
     TI_vars= ['turkin1', 'ucx', 'ucy', 'ucz']
-    turbulent_intesity_variables = {}
+    TI_data = {}
     for var in TI_vars:
         #get all data
         var_data_df = get_all_data_points(data, var,time_step=-1)   
@@ -265,14 +265,14 @@ def turbulent_intensity(data, points = None):
         #interpolate data 
         if points == None: 
             
-            turbulent_intesity_variables[var]=var_data_df[['x','y','z']]
+            TI_data[var]=var_data_df[['x','y','z']]
            
         else: 
-            turbulent_intesity_variables[var] = interpolate_data(var_data_df[['x','y','z']], var_data_df[var],
+            TI_data[var] = interpolate_data(var_data_df[['x','y','z']], var_data_df[var],
                                                                  points[['x','y','z']])
     #calculate turbulent intensity 
-    u_mag=unorm(turbulent_intesity_variables['ucx'],turbulent_intesity_variables['ucy'], turbulent_intesity_variables['ucz'])
-    turbulent_intensity= np.sqrt(2/3*turbulent_intesity_variables['turkin1'])/u_mag
+    u_mag=unorm(TI_data['ucx'],TI_data['ucy'], TI_data['ucz'])
+    turbulent_intensity= np.sqrt(2/3*TI_data['turkin1'])/u_mag
                                  
 
     return turbulent_intensity 
@@ -293,7 +293,7 @@ z=  1#np.linspace (0.2, 1.8, num=100)
    
 variables= ['unorm'] # , 'turkin1', 'ucx', 'ucy', 'ucz'] 
 
-#ccheck that variable is in data set 
+#check that variable is in data set 
 
 var_data_df=get_all_data_points(data, variables[0],time_step=-1)
 points = create_points(x, y, z)
