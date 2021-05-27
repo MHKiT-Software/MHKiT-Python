@@ -121,7 +121,6 @@ def create_points( x, y, z):
         XX, YY = np.meshgrid(directions[max_idxs[0]]['values'], directions[max_idxs[1]]['values'] )
         N_X=np.shape(XX)[1]#or take len of original vectors 
         N_Y=np.shape(YY)[0]
-        
         ZZ= np.ones((N_Y,N_X))*directions[idx_point]['values'] #make sure is the same shape as XX , YY 
      
         request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(XX.ravel(),
@@ -217,7 +216,30 @@ def interpolate_data(data_points, values , request_points):
 
     return v_new
 
-def turbulent_intensity(data, points):
+def unorm(x, y ,z):
+    '''
+    Calculates the root mean squared value given three arrays 
+
+    Parameters
+    ----------
+    x : Array 
+       one input for the root mean squared calculation.(eq. x velocity) 
+    y : Array
+        one input for the root mean squared calculation.(eq. y velocity) 
+    z : Array
+        one input for the root mean squared calculation.(eq. z velocity) 
+
+    Returns
+    -------
+    unorm : array 
+        root mean squared output 
+
+    '''
+    unorm=np.sqrt(x**2 + y**2 + z**2)
+
+    return unorm
+
+def turbulent_intensity(data, points = None):
     '''
     Calculated the turbulent intesity for a given data set for the specified points 
 
@@ -225,8 +247,8 @@ def turbulent_intensity(data, points):
     ----------
     data : netcdf4 object 
         d3d netcdf4 object, assumes variable names: turkin1, ucx, ucy and ucz
-    points : data frame 
-        Data frame of x, y, and z corrdinates 
+    points : data frame  
+        Data frame of x, y, and z corrdinates. Defalt none assumes all point in data 
 
     Returns
     -------
@@ -241,10 +263,15 @@ def turbulent_intensity(data, points):
         var_data_df = get_all_data_points(data, var,time_step=-1)   
         
         #interpolate data 
-        turbulent_intesity_variables[var] = interpolate_data(var_data_df[['x','y','z']], var_data_df[var],
-                points[['x','y','z']])   
+        if points == None: 
+            
+            turbulent_intesity_variables[var]=var_data_df[['x','y','z']]
+           
+        else: 
+            turbulent_intesity_variables[var] = interpolate_data(var_data_df[['x','y','z']], var_data_df[var],
+                                                                 points[['x','y','z']])
     #calculate turbulent intensity 
-    u_mag=np.sqrt(turbulent_intesity_variables['ucx']**2 + turbulent_intesity_variables['ucy']**2 + turbulent_intesity_variables['ucz']**2)
+    u_mag=unorm(turbulent_intesity_variables['ucx'],turbulent_intesity_variables['ucy'], turbulent_intesity_variables['ucz'])
     turbulent_intensity= np.sqrt(2/3*turbulent_intesity_variables['turkin1'])/u_mag
                                  
 
@@ -272,14 +299,13 @@ var_data_df=get_all_data_points(data, variables[0],time_step=-1)
 points = create_points(x, y, z)
 points[variables[0]]=interpolate_data(var_data_df[['x','y','z']], var_data_df[variables[0]],
             points[['x','y','z']])  # 
-TI = turbulent_intensity
+TI = turbulent_intensity(data,points)
 
-#Tunrbulent intensity 
-#Turbulent_intensity = math.sqrt(2/3* #tunrkin1)/
+
 
 # Plots 
 points.dropna(inplace=True)
-plt.tricontourf(points.x,points.y,points.unorm)
+plt.tricontourf(points.x,points.y,TI)
 
 #         units= data.variables[variable].units
 #         cname=data.variables[variable].long_name
