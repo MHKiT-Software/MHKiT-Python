@@ -234,20 +234,19 @@ def turbulent_intensity(data, points):
         turbulent kinetic energy devided by the root mean squared velocity
 
     '''
-
-    turbulent_intesity_variables = {0:{'name' : 'turkin1'},
-                                    1:{'name' : 'ucx'},
-                                    2:{'name' : 'ucy'},
-                                    3:{'name' : 'ucz'}}
-    for i in turbulent_intesity_variables:
+    TI_vars= ['turkin1', 'ucx', 'ucy', 'ucz']
+    turbulent_intesity_variables = {}
+    for var in TI_vars:
         #get all data
-        var_data_df = get_all_data_points(data, turbulent_intesity_variables[i]['name'],time_step=-1)   
+        var_data_df = get_all_data_points(data, var,time_step=-1)   
         
         #interpolate data 
-        turbulent_intesity_variables[i]['values'] = interpolate_data(var_data_df[['x','y','z']], var_data_df[turbulent_intesity_variables[i]['name']],
+        turbulent_intesity_variables[var] = interpolate_data(var_data_df[['x','y','z']], var_data_df[var],
                 points[['x','y','z']])   
     #calculate turbulent intensity 
-    turbulent_intensity= np.sqrt((2/3*turbulent_intesity_variables[0]['values'])/(turbulent_intesity_variables[1]['values']**2 + turbulent_intesity_variables[2]['values']**2 + turbulent_intesity_variables[3]['values']**2))
+    u_mag=np.sqrt(turbulent_intesity_variables['ucx']**2 + turbulent_intesity_variables['ucy']**2 + turbulent_intesity_variables['ucz']**2)
+    turbulent_intensity= np.sqrt(2/3*turbulent_intesity_variables['turkin1'])/u_mag
+                                 
 
     return turbulent_intensity 
     
