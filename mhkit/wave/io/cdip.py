@@ -180,13 +180,15 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
     parameters is passed. Years may be non-consecutive e.g. [2001, 2010].
     Time may be sliced by dates (start_date or end date in YYYY-MM-DD).
     data_type defaults to historic but may also be set to 'realtime'.
-    By default 2D variables are not parsed if all 2D varaibles are needed
+    By default 2D variables are not parsed if all 2D varaibles are needed. See
+    the MHKiT CDiP example Jupyter notbook for information on available parameters. 
     
     
     Parameters
     ----------
     nc: netCDF Object
-        netCDF data for the given station number and data type    
+        netCDF data for the given station number and data type. Can be the output of 
+        request_netCDF   
     station_number: string
         Station number of CDIP wave buoy
     parameters: string or list of stings
@@ -301,7 +303,10 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
 def get_netcdf_variables(nc, start_date=None, end_date=None, 
                          parameters=None, all_2D_variables=False):
     '''
-    Iterates over and extracts variables from CDIP bouy data
+    Iterates over and extracts variables from CDIP bouy data. See
+    the MHKiT CDiP example Jupyter notbook for information on available 
+    parameters. 
+    
     
     Parameters
     ----------
@@ -422,7 +427,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         for var in variables_by_type[prefix]:   
             variable = np.ma.filled(nc.variables[var])
             if variable.size == N_time:              
-                variable = np.ma.masked_array(variable, mask)
+                variable = np.ma.masked_array(variable, mask).astype(float)
                 time_variables[var] = variable.compressed()
             else:
                 metadata[var] = nc.variables[var][:].compressed()
@@ -430,7 +435,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         time_slice = pd.to_datetime(var_time, unit='s')
         data = pd.DataFrame(time_variables, index=time_slice)        
          
-        if prefix != 'meta':         
+        if prefix != 'meta':      
             results['data'][prefix] = data
             results['data'][prefix].name = buoy_name
         results['metadata'][prefix] = metadata
