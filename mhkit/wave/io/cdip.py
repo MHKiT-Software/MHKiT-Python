@@ -171,12 +171,12 @@ def request_netCDF(station_number, data_type):
     return nc
 
     
-def parse_data(nc=None, station_number=None, parameters=None, 
+def request_parse_workflow(nc=None, station_number=None, parameters=None, 
                years=None, start_date=None, end_date=None, 
                data_type='historic', all_2D_variables=False):
     '''
     Parses a passed CDIP netCDF file or requests a station number 
-    from http://cdip.ucsd.edu/). This function can return specific 
+    from http://cdip.ucsd.edu/) and parses. This function can return specific 
     parameters is passed. Years may be non-consecutive e.g. [2001, 2010].
     Time may be sliced by dates (start_date or end date in YYYY-MM-DD).
     data_type defaults to historic but may also be set to 'realtime'.
