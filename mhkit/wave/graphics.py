@@ -394,7 +394,7 @@ def plot_avg_annual_scatter_table(Hm0, Te, J, time_index=None, Hm0_bin_size=None
 
     Returns
     -------
-    ax: Figure
+    fig: Figure
         Average annual scatter table plot
     '''
     fig = plt.figure()
@@ -411,16 +411,13 @@ def plot_avg_annual_scatter_table(Hm0, Te, J, time_index=None, Hm0_bin_size=None
         Te_max = data.Te.max()
         Te_edges = np.arange(0, Te_max+Te_bin_size,Te_bin_size)
     
-        
     # Dict for number of hours each sea state occurs
     hist_counts={}
     hist_J={}
 
-
     # Create hist of counts, and weghted by J for each year
     for year in years:
         year_data = data.loc[str(year)].copy(deep=True)
-
         
         # Get the counts of each bin
         counts, xedges, yedges= np.histogram2d(year_data.Te,  
@@ -457,18 +454,16 @@ def plot_avg_annual_scatter_table(Hm0, Te, J, time_index=None, Hm0_bin_size=None
         avg_annual_counts_hist = (avg_annual_counts_hist+ hist_counts[year])/2
         avg_annual_J_hist = (avg_annual_J_hist+ hist_J[year])/2
 
-    # Create a mask of non-zero weights to hide from inshow    
+    # Create a mask of non-zero weights to hide from imshow    
     Hmasked = np.ma.masked_where(~(avg_annual_J_hist>0),avg_annual_J_hist)
     plt.imshow(Hmasked.T, interpolation = 'none', vmin = 0.005, origin='lower', aspect='auto',
                extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]])
-
 
     # Plot number of counts as text on the hist of annual avg J
     for xi in range(len(xcenters)):
         for yi in range(len(ycenters)):
             if avg_annual_counts_hist[xi][yi] != 0:
                 plt.text(xedges[xi], yedges[yi], int(np.ceil(avg_annual_counts_hist[xi][yi])), fontsize=10) 
-
     plt.xlabel('Wave Energy Period (s)')
     plt.ylabel('Significant Wave Height (m)')
 
@@ -476,5 +471,5 @@ def plot_avg_annual_scatter_table(Hm0, Te, J, time_index=None, Hm0_bin_size=None
     cbar.set_label('Mean Normalized Annual Energy')
 
     plt.tight_layout()
-    return fig       
+    return fig   
     

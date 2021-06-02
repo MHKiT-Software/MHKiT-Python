@@ -209,7 +209,6 @@ class TestResourceSpectrum(unittest.TestCase):
         plt.savefig(filename)
         
         self.assertTrue(isfile(filename))
-        
 
 class TestResourceMetrics(unittest.TestCase):
 
@@ -405,7 +404,6 @@ class TestResourceMetrics(unittest.TestCase):
         
         self.assertTrue(isfile(filename))
 
-
 class TestResourceContours(unittest.TestCase):
 
     @classmethod
@@ -516,8 +514,7 @@ class TestResourceContours(unittest.TestCase):
         plt.close()
         
         self.assertTrue(isfile(filename))        
-        
-        
+
 class TestPerformance(unittest.TestCase):
 
     @classmethod
@@ -641,10 +638,9 @@ class TestIOndbc(unittest.TestCase):
         data, units = wave.io.ndbc.read_file(join(datadir, 'data.txt'))
         self.assertEqual(data.shape, (743, 47))
         self.assertEqual(units, None)
-		
+
     def test_ndbc_available_data(self):
-        data=wave.io.ndbc.available_data('swden', buoy_number='46029')
-                
+        data=wave.io.ndbc.available_data('swden', buoy_number='46029')      
         cols = data.columns.tolist()
         exp_cols = ['id', 'year', 'filename']
         self.assertEqual(cols, exp_cols)                
@@ -908,6 +904,33 @@ class TestSWAN(unittest.TestCase):
         self.assertTrue(all(dff.x.unique() == np.unique(x)))
         for key in keys:
             self.assertTrue(key in dff.keys())
+
+class TestPlotResouceCharacterizations(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(self):
+        f_name= 'Hm0_Te_46022.json'
+        self.Hm0Te = pd.read_json(join(datadir,f_name)) 
+    @classmethod
+    def tearDownClass(self):
+        pass
+    def test_plot_avg_annual_scatter_table(self):
+    
+        filename = abspath(join(testdir, 'avg_annual_scatter_table.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        Hm0Te = self.Hm0Te
+        Hm0Te.drop(Hm0Te[Hm0Te.Hm0 > 20].index, inplace=True)
+        J = np.random.random(len(Hm0Te))*100 
+        
+        plt.figure()
+        fig = wave.graphics.plot_avg_annual_scatter_table(Hm0Te.Hm0, 
+            Hm0Te.Te, J, Hm0_bin_size=0.5, Te_bin_size=1)
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))  
 
 if __name__ == '__main__':
     unittest.main() 
