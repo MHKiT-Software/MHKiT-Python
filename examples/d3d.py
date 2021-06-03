@@ -239,7 +239,9 @@ def unorm(x, y ,z):
 
     return unorm
 
-def turbulent_intensity(data, points = None):
+
+def turbulent_intensity(data, points='cells'):
+
     '''
     Calculated the turbulent intesity for a given data set for the specified points 
 
@@ -247,8 +249,10 @@ def turbulent_intensity(data, points = None):
     ----------
     data : netcdf4 object 
         d3d netcdf4 object, assumes variable names: turkin1, ucx, ucy and ucz
-    points : data frame  
-        Data frame of x, y, and z corrdinates. Defalt none assumes all point in data 
+    points : string, DataFrame  
+        'cells', 'faces', or DataFrame of x, y, and z corrdinates. 
+        Default 'Cells' uses velocity coordinate system. 'faces' will
+        use the turbulence coordinate system
 
     Returns
     -------
@@ -256,20 +260,27 @@ def turbulent_intensity(data, points = None):
         turbulent kinetic energy devided by the root mean squared velocity
 
     '''
+
+
+    
     TI_vars= ['turkin1', 'ucx', 'ucy', 'ucz']
-    TI_data = {}
+    TI_data_raw = {}
     for var in TI_vars:
         #get all data
-        var_data_df = get_all_data_points(data, var,time_step=-1)   
-        
-        #interpolate data 
-        if points == None: 
-            
-            TI_data[var]=var_data_df[['x','y','z']]
+        var_data_df = get_all_data_points(data, var,time_step=-1)           
+        TI_data_raw[var] = var_data_df 
            
-        else: 
-            TI_data[var] = interpolate_data(var_data_df[['x','y','z']], var_data_df[var],
-                                                                 points[['x','y','z']])
+    if points=='faces':
+        points = TI_data_raw['ucx'][['x','y','z']]
+    elif points=='cells':
+        points = TI_data_raw['turkin1'][['x','y','z']]
+    
+    TI_data= points.copy(deep=True)
+    
+    for var in TI_vars:    
+        TI_data[var] = interpolate_data(TI_data_raw[['x','y','z']],
+            TI_data_raw[var], points[['x','y','z']])
+
     #calculate turbulent intensity 
     u_mag=unorm(TI_data['ucx'],TI_data['ucy'], TI_data['ucz'])
     turbulent_intensity= np.sqrt(2/3*TI_data['turkin1'])/u_mag
