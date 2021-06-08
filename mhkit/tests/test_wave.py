@@ -215,6 +215,11 @@ class TestResourceMetrics(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
+        omega = np.arange(0.1,3.5,0.01)
+        self.f = omega/(2*np.pi)
+        self.Hs = 2.5
+        self.Tp = 8
+    
         file_name = join(datadir, 'ValData1.json')
         with open(file_name, "r") as read_file:
             self.valdata1 = pd.DataFrame(json.load(read_file))
@@ -258,7 +263,7 @@ class TestResourceMetrics(unittest.TestCase):
             temp.index = temp.index.astype(float)
             self.valdata2['CDiP'][i]['S'] = temp
 
-            
+                    
     @classmethod
     def tearDownClass(self):
         pass
@@ -270,11 +275,85 @@ class TestResourceMetrics(unittest.TestCase):
             rho = self.valdata1[i]['rho']
             
             expected = self.valdata1[i]['k']
-            calculated = wave.resource.wave_number(f, h, rho).loc[:,'k'].values
+            k = wave.resource.wave_number(f, h, rho)
+            calculated = k.loc[:,'k'].values
             error = ((expected-calculated)**2).sum() # SSE
             
             self.assertLess(error, 1e-6)
-    
+
+    def test_wave_length(self):
+        k_list=[1,2,10,3]
+        l_expected = (2.*np.pi/np.array(k_list)).tolist()
+        
+        k_df = pd.DataFrame(k_list,index = [1,2,3,4])
+        k_series= k_df[0]
+        k_array=np.array(k_list)
+        
+        for l in [k_list, k_df, k_series, k_array]:
+            l_calculated = wave.resource.wave_length(l)            
+            self.assertListEqual(l_expected,l_calculated.tolist())
+        
+        idx=0
+        k_int = k_list[idx]
+        l_calculated = wave.resource.wave_length(k_int)
+        self.assertEqual(l_expected[idx],l_calculated)
+
+    def test_depth_regime(self):
+        expected = [True,True,False,True]
+        l_list=[1,2,10,3]
+        l_df = pd.DataFrame(l_list,index = [1,2,3,4])
+        l_series= l_df[0]
+        l_array=np.array(l_list)
+        h = 10
+        for l in [l_list, l_df, l_series, l_array]:
+            calculated = wave.resource.depth_regime(l,h)            
+            self.assertListEqual(expected,calculated.tolist())
+        
+        idx=0
+        l_int = l_list[idx]
+        calculated = wave.resource.depth_regime(l_int,h)
+        self.assertEqual(expected[idx],calculated)
+        
+
+    def test_wave_celerity(self):
+        # Depth regime ratio
+        dr_ratio=2
+
+        # small change in f will give similar value cg
+        f=np.linspace(20.0001,20.0005,5)
+        
+        # Choose index to spike at. cg spike is inversly proportional to k
+        k_idx=2
+        k_tmp=[1, 1, 0.5, 1, 1]
+        k = pd.DataFrame(k_tmp, index=f)
+        
+        # all shallow
+        cg_shallow1 = wave.resource.wave_celerity(k, h=0.0001,depth_check=True)
+        cg_shallow2 = wave.resource.wave_celerity(k, h=0.0001,depth_check=False)
+        self.assertTrue(all(cg_shallow1.squeeze().values == 
+                            cg_shallow2.squeeze().values))
+        
+        
+        # all deep 
+        cg = wave.resource.wave_celerity(k, h=1000,depth_check=True)
+        self.assertTrue(all(np.pi*f/k.squeeze().values == cg.squeeze().values))
+        
+    def test_energy_flux_deep(self):
+        # Dependent on mhkit.resource.BS spectrum
+        S = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
+        Te = wave.resource.energy_period(S)
+        Hm0 = wave.resource.significant_wave_height(S)
+        rho=1025
+        g=9.80665
+        coeff = rho*(g**2)/(64*np.pi)
+        J = coeff*(Hm0.squeeze()**2)*Te.squeeze()
+        
+        h=-1 # not used when deep=True
+        J_calc = wave.resource.energy_flux(S, h, deep=True)
+        
+        self.assertTrue(J_calc.squeeze() == J)
+
+
     def test_moments(self):
         for file_i in self.valdata2.keys(): # for each file MC, AH, CDiP
             datasets = self.valdata2[file_i]
@@ -366,6 +445,15 @@ class TestResourceMetrics(unittest.TestCase):
                 #print('e', expected, calculated, error)
                 self.assertLess(error, 0.001) 
 
+                # J
+                if file_i != 'CDiP': 
+                    for i,j in zip(data['h'],data['J']):
+                        expected = data['J'][j]
+                        calculated = wave.resource.energy_flux(S,i)
+                        error = np.abs(expected-calculated.values)/expected
+                        self.assertLess(error, 0.1)
+                 
+
                 # v
                 if file_i == 'CDiP': 
                     # this should be updated to run on other datasets
@@ -375,7 +463,9 @@ class TestResourceMetrics(unittest.TestCase):
                     error = np.abs(expected-calculated)/expected
 
                        
-                    self.assertLess(error, 0.01) 
+                    self.assertLess(error, 0.01)
+
+                    
 
                 if file_i == 'MC':
                     expected = data['metrics']['v']
