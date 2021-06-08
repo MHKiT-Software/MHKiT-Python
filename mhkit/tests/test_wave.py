@@ -1008,13 +1008,13 @@ class TestIOcdip(unittest.TestCase):
         self.assertTrue(data['data']['wave'].index[0] > start_dt)
         
         
-    def test_parse_data_multiyear(self):
+    def test_request_parse_workflow_multiyear(self):
         station_number = '067'
         year1=2011
         year2=2013
         years = [year1, year2]
         parameters =['waveHs', 'waveMeanDirection', 'waveA1Value']
-        data = wave.io.cdip.parse_data(station_number=station_number,
+        data = wave.io.cdip.request_parse_workflow(station_number=station_number,
             years=years, parameters =parameters )
         
         expected_index0 = datetime(year1,1,1)   
@@ -1037,7 +1037,7 @@ class TestIOcdip(unittest.TestCase):
             
         station_number = '067'
         year = 2011
-        data = wave.io.cdip.parse_data(station_number=station_number,years=year,
+        data = wave.io.cdip.request_parse_workflow(station_number=station_number,years=year,
                        parameters =['waveHs'],
                        all_2D_variables=False)
                                  
@@ -1056,7 +1056,7 @@ class TestIOcdip(unittest.TestCase):
             
         station_number = '067'
         year = 2011
-        data = wave.io.cdip.parse_data(station_number=station_number,years=year,
+        data = wave.io.cdip.request_parse_workflow(station_number=station_number,years=year,
                        parameters =['waveHs', 'waveTp', 'waveDp'],
                        all_2D_variables=False)
                                  
