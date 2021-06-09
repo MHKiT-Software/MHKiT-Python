@@ -931,6 +931,20 @@ class TestPlotResouceCharacterizations(unittest.TestCase):
         plt.close()
         
         self.assertTrue(isfile(filename))  
+        
+    def test_plot_monthly_cumulative_distribution(self):
+    
+        filename = abspath(join(testdir, 'monthly_cumulative_distribution.png'))
+        if isfile(filename):
+            os.remove(filename)
+            
+        a = pd.date_range(start='1/1/2010',  periods=10000, freq='h')
+        S = pd.Series(np.random.random(len(a)) , index=a)
+        ax=wave.graphics.monthly_cumulative_distribution(S)
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename)) 
 
 if __name__ == '__main__':
     unittest.main() 

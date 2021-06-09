@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from mhkit.wave.resource import significant_wave_height as _sig_wave_height
 from mhkit.wave.resource import peak_period as _peak_period
 from mhkit.river.graphics import _xy_plot
+from mhkit.river.resource import exceedance_probability
+import calendar
 
 
 def plot_spectrum(S, ax=None):
@@ -474,3 +476,40 @@ def plot_avg_annual_scatter_table(Hm0, Te, J, time_index=None,
     plt.tight_layout()
     return fig   
     
+    
+def monthly_cumulative_distribution(J):
+    '''
+    Creates a cumulative distribution of energy flux as described in 
+    IEC TS 62600-101.
+    
+    Parameters
+    ----------
+    J: Series
+        Energy Flux with DateTime index
+    
+    Returns
+    -------
+    ax: axes
+        Figure of monthly cumulative distribution
+    '''
+    cumSum={}
+    months=J.index.month.unique()
+    for month in months:    
+        F = exceedance_probability(J[J.index.month==month])
+        cumSum[month] = 1-F/100
+        cumSum[month].sort_values('F', inplace=True)
+    plt.figure(figsize=(12,8) )
+    for month in months:
+        plt.semilogx(J.loc[cumSum[month].index], cumSum[month].F, '--', 
+            label=calendar.month_abbr[month])
+
+    F = exceedance_probability(J)
+    F.sort_values('F', inplace=True)
+    ax = plt.semilogx(J.loc[F.index], 1-F/100, 'k-', fillstyle='none', label='All')
+
+    #plt.xlim([1000, 1E6])    
+    plt.grid()
+    plt.xlabel('Energy Flux')
+    plt.ylabel('Cumulative Distribution')
+    plt.legend()
+    return ax
