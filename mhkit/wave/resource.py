@@ -306,9 +306,7 @@ def frequency_moment(S, N, frequency_bins=None):
     m: pandas DataFrame 
         Nth Frequency Moment indexed by S.columns
     """
-    if isinstance(S, pd.DataFrame):
-        S = S.squeeze()
-    assert isinstance(S, pd.Series), 'S must be of type pd.DataFrame or pd.Series'
+    assert isinstance(S, (pd.Series,pd.DataFrame)), 'S must be of type pd.DataFrame or pd.Series'
     assert isinstance(N, int), 'N must be of type int'
     
     # Eq 8 in IEC 62600-101 
@@ -329,8 +327,10 @@ def frequency_moment(S, N, frequency_bins=None):
  
     m = spec.multiply(fn,axis=0).multiply(delta_f,axis=0)
     m = m.sum(axis=0)
-
-    m = pd.DataFrame(m, index=[0], columns = ['m'+str(N)])
+    if isinstance(S,pd.Series):
+        m = pd.DataFrame(m, index=[0], columns = ['m'+str(N)])
+    else:
+        m = pd.DataFrame(m, index=S.columns, columns = ['m'+str(N)])
 
     return m
 
@@ -386,7 +386,7 @@ def average_zero_crossing_period(S,frequency_bins=None):
     m2 = frequency_moment(S,2,frequency_bins=frequency_bins).squeeze()
     
     Tz = np.sqrt(m0/m2)
-    Tz = pd.DataFrame(Tz, index=[0], columns = ['Tz'])
+    Tz = pd.DataFrame(Tz, index=S.columns, columns = ['Tz'])
     
     return Tz
 
@@ -487,9 +487,8 @@ def energy_period(S,frequency_bins=None):
     Te: pandas DataFrame
         Wave energy period [s] indexed by S.columns
     """
-    if isinstance(S, pd.DataFrame):
-        S = S.squeeze()
-    assert isinstance(S, pd.Series), 'S must be of type pd.DataFrame'
+
+    assert isinstance(S, (pd.Series,pd.DataFrame)), 'S must be of type pd.DataFrame or pd.Series'
     
     mn1 = frequency_moment(S,-1,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
     m0  = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze()
@@ -586,9 +585,7 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2):
     J: pandas DataFrame
         Omni-directional wave energy flux [W/m] indexed by S.columns
     """
-    if isinstance(S, pd.DataFrame):
-        S = S.squeeze()
-    assert isinstance(S, pd.Series), 'S must be of type pd.Series'
+    assert isinstance(S, (pd.Series,pd.DataFrame)), 'S must be of type pd.DataFrame or pd.Series'
     assert isinstance(h, (int,float)), 'h must be of type int or float'
     assert isinstance(deep, bool), 'deep must be of type bool'
     assert isinstance(rho, (int,float)), 'rho must be of type int or float'
@@ -603,7 +600,11 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2):
         coeff = rho*(g**2)/(64*np.pi)
 
         J = coeff*(Hm0.squeeze()**2)*Te.squeeze()
-        J = pd.DataFrame(J, index=[0], columns=["J"])
+        if isinstance(S,pd.Series):
+            J = pd.DataFrame(J, index=[0], columns=["J"])
+        else:
+            J = pd.DataFrame(J, S.columns, columns=["J"])
+        
         
     else:
         # deep water flag is false
@@ -623,7 +624,10 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2):
 
         J = rho * g * CgSdelF.sum(axis=0)
 
-        J = pd.DataFrame(J, index=[0], columns=["J"])
+        if isinstance(S,pd.Series):
+            J = pd.DataFrame(J, index=[0], columns=["J"])
+        else:
+            J = pd.DataFrame(J, S.columns, columns=["J"])
 
     return J
 
