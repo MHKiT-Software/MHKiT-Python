@@ -351,9 +351,7 @@ def significant_wave_height(S, frequency_bins=None):
     Hm0: pandas DataFrame 
         Significant wave height [m] index by S.columns
     """
-    if isinstance(S, pd.DataFrame):
-        S = S.squeeze()
-    assert isinstance(S, pd.Series), 'S must be of type pd.DataFrame'
+    assert isinstance(S, (pd.Series,pd.DataFrame)), 'S must be of type pd.DataFrame or pd.Series'
     
     # Eq 12 in IEC 62600-101
     
@@ -495,7 +493,11 @@ def energy_period(S,frequency_bins=None):
     
     # Eq 13 in IEC 62600-101 
     Te = mn1/m0
-    Te = pd.DataFrame(Te, index=[0], columns=['Te'])
+    if isinstance(S,pd.Series):
+            Te = pd.DataFrame(Te, index=[0], columns=['Te'])
+    else:
+            Te = pd.DataFrame(Te, S.columns, columns=['Te'])
+    
     
     return Te
 
