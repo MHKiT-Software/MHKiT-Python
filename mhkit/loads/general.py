@@ -132,7 +132,8 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
       techniques for accurate fatigue damage estimation. International Journal
       of Fatigue, 82 (2016) 757-765`
     
-    Parameters
+
+    Parameters:
     -----------
     data_signal : array
         Data signal being analyzed
@@ -151,7 +152,6 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     
     try: data_signal = np.array(data_signal)
     except: 'data_signal must be of type np.ndarray'
-    
     assert isinstance(m, (float,int)), 'm must be of type float or int'
     assert isinstance(bin_num, (float,int)), 'bin_num must be of type float or int'
     assert isinstance(data_length, (float,int)), 'data_length must be of type float or int'

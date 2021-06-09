@@ -13,7 +13,10 @@ import unittest
 import inspect
 import pickle
 import json
+import sys
 import os
+import time
+from random import seed, randint
 
 testdir = dirname(abspath(__file__))
 datadir = normpath(join(testdir,relpath('../../examples/data/wave')))
@@ -212,6 +215,11 @@ class TestResourceMetrics(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
+        omega = np.arange(0.1,3.5,0.01)
+        self.f = omega/(2*np.pi)
+        self.Hs = 2.5
+        self.Tp = 8
+    
         file_name = join(datadir, 'ValData1.json')
         with open(file_name, "r") as read_file:
             self.valdata1 = pd.DataFrame(json.load(read_file))
@@ -255,7 +263,7 @@ class TestResourceMetrics(unittest.TestCase):
             temp.index = temp.index.astype(float)
             self.valdata2['CDiP'][i]['S'] = temp
 
-            
+                    
     @classmethod
     def tearDownClass(self):
         pass
@@ -267,11 +275,85 @@ class TestResourceMetrics(unittest.TestCase):
             rho = self.valdata1[i]['rho']
             
             expected = self.valdata1[i]['k']
-            calculated = wave.resource.wave_number(f, h, rho).loc[:,'k'].values
+            k = wave.resource.wave_number(f, h, rho)
+            calculated = k.loc[:,'k'].values
             error = ((expected-calculated)**2).sum() # SSE
             
             self.assertLess(error, 1e-6)
-    
+
+    def test_wave_length(self):
+        k_list=[1,2,10,3]
+        l_expected = (2.*np.pi/np.array(k_list)).tolist()
+        
+        k_df = pd.DataFrame(k_list,index = [1,2,3,4])
+        k_series= k_df[0]
+        k_array=np.array(k_list)
+        
+        for l in [k_list, k_df, k_series, k_array]:
+            l_calculated = wave.resource.wave_length(l)            
+            self.assertListEqual(l_expected,l_calculated.tolist())
+        
+        idx=0
+        k_int = k_list[idx]
+        l_calculated = wave.resource.wave_length(k_int)
+        self.assertEqual(l_expected[idx],l_calculated)
+
+    def test_depth_regime(self):
+        expected = [True,True,False,True]
+        l_list=[1,2,10,3]
+        l_df = pd.DataFrame(l_list,index = [1,2,3,4])
+        l_series= l_df[0]
+        l_array=np.array(l_list)
+        h = 10
+        for l in [l_list, l_df, l_series, l_array]:
+            calculated = wave.resource.depth_regime(l,h)            
+            self.assertListEqual(expected,calculated.tolist())
+        
+        idx=0
+        l_int = l_list[idx]
+        calculated = wave.resource.depth_regime(l_int,h)
+        self.assertEqual(expected[idx],calculated)
+        
+
+    def test_wave_celerity(self):
+        # Depth regime ratio
+        dr_ratio=2
+
+        # small change in f will give similar value cg
+        f=np.linspace(20.0001,20.0005,5)
+        
+        # Choose index to spike at. cg spike is inversly proportional to k
+        k_idx=2
+        k_tmp=[1, 1, 0.5, 1, 1]
+        k = pd.DataFrame(k_tmp, index=f)
+        
+        # all shallow
+        cg_shallow1 = wave.resource.wave_celerity(k, h=0.0001,depth_check=True)
+        cg_shallow2 = wave.resource.wave_celerity(k, h=0.0001,depth_check=False)
+        self.assertTrue(all(cg_shallow1.squeeze().values == 
+                            cg_shallow2.squeeze().values))
+        
+        
+        # all deep 
+        cg = wave.resource.wave_celerity(k, h=1000,depth_check=True)
+        self.assertTrue(all(np.pi*f/k.squeeze().values == cg.squeeze().values))
+        
+    def test_energy_flux_deep(self):
+        # Dependent on mhkit.resource.BS spectrum
+        S = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
+        Te = wave.resource.energy_period(S)
+        Hm0 = wave.resource.significant_wave_height(S)
+        rho=1025
+        g=9.80665
+        coeff = rho*(g**2)/(64*np.pi)
+        J = coeff*(Hm0.squeeze()**2)*Te.squeeze()
+        
+        h=-1 # not used when deep=True
+        J_calc = wave.resource.energy_flux(S, h, deep=True)
+        
+        self.assertTrue(J_calc.squeeze() == J)
+
+
     def test_moments(self):
         for file_i in self.valdata2.keys(): # for each file MC, AH, CDiP
             datasets = self.valdata2[file_i]
@@ -363,6 +445,15 @@ class TestResourceMetrics(unittest.TestCase):
                 #print('e', expected, calculated, error)
                 self.assertLess(error, 0.001) 
 
+                # J
+                if file_i != 'CDiP': 
+                    for i,j in zip(data['h'],data['J']):
+                        expected = data['J'][j]
+                        calculated = wave.resource.energy_flux(S,i)
+                        error = np.abs(expected-calculated.values)/expected
+                        self.assertLess(error, 0.1)
+                 
+
                 # v
                 if file_i == 'CDiP': 
                     # this should be updated to run on other datasets
@@ -372,7 +463,9 @@ class TestResourceMetrics(unittest.TestCase):
                     error = np.abs(expected-calculated)/expected
 
                        
-                    self.assertLess(error, 0.01) 
+                    self.assertLess(error, 0.01)
+
+                    
 
                 if file_i == 'MC':
                     expected = data['metrics']['v']
@@ -770,6 +863,88 @@ class TestWECSim(unittest.TestCase):
         self.assertEqual(len(ws_output['moorDyn']),7)
         self.assertEqual(len(ws_output['ptosim']),0)
 
+class TestWPTOhindcast(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(self):
+
+        self.my_swh = pd.read_csv(join(datadir,'hindcast/multi_year_hindcast.csv'),index_col = 'time_index',
+        names = ['time_index','significant_wave_height_0'],header = 0, 
+        dtype = {'significant_wave_height_0':'float32'})
+        self.my_swh.index = pd.to_datetime(self.my_swh.index)
+
+        self.ml = pd.read_csv(join(datadir,'hindcast/single_year_hindcast_multiloc.csv'),index_col = 'time_index',
+        names = ['time_index','mean_absolute_period_0','mean_absolute_period_1'],
+        header = 0, dtype = {'mean_absolute_period_0':'float32',
+        'mean_absolute_period_1':'float32'})
+        self.ml.index = pd.to_datetime(self.ml.index)
+
+        self.mp = pd.read_csv(join(datadir,'hindcast/multiparm.csv'),index_col = 'time_index',
+        names = ['time_index','energy_period_0','mean_zero-crossing_period_0'],
+        header = 0, dtype = {'energy_period_0':'float32',
+        'mean_zero-crossing_period_0':'float32'})
+        self.mp.index = pd.to_datetime(self.mp.index)
+
+        self.ml_meta = pd.read_csv(join(datadir,'hindcast/multiloc_meta.csv'),index_col = 0,
+        names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
+        ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
+        ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
+
+        self.my_meta = pd.read_csv(join(datadir,'hindcast/multi_year_meta.csv'),index_col = 0,
+        names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
+        ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
+        ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
+        
+        self.mp_meta = pd.read_csv(join(datadir,'hindcast/multiparm_meta.csv'),index_col = 0,
+        names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
+        ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
+        ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
+            
+    @classmethod
+    def tearDownClass(self):
+        pass
+
+    ### WPTO hindcast data
+    # only run test for one version of python per to not spam the server
+    # yet keep coverage high on each test
+    if float(sys.version[0:3]) == 3.7:
+        def test_multi_year_sig_wave_height(self):
+        
+            data_type = '3-hour'
+            years = [1990,1992]
+            lat_lon = (44.624076,-124.280097) 
+            parameters = 'significant_wave_height'
+            wave_multiyear, meta = wave.io.hindcast.request_wpto_point_data(data_type,parameters,lat_lon,years)
+            assert_frame_equal(self.my_swh,wave_multiyear)
+            assert_frame_equal(self.my_meta,meta)
+
+    elif float(sys.version[0:3]) == 3.8:
+        # wait five minute to ensure python 3.7 call is complete
+        time.sleep(300)
+        def test_multi_loc(self):            
+            data_type = '3-hour'
+            years = [1995]
+            lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137)) 
+            parameters = 'mean_absolute_period'
+            wave_multiloc, meta= wave.io.hindcast.request_wpto_point_data(data_type,
+            parameters,lat_lon,years)
+            assert_frame_equal(self.ml,wave_multiloc)
+            assert_frame_equal(self.ml_meta,meta)
+
+    elif float(sys.version[0:3]) == 3.9:
+        # wait ten minutes to ensure python 3.7 and 3.8 call is complete
+        time.sleep(500)
+        def test_multi_parm(self):
+            data_type = '1-hour'
+            years = [1996]
+            lat_lon = (44.624076,-124.280097) 
+            parameters = ['energy_period','mean_zero-crossing_period']        
+            wave_multiparm, meta= wave.io.hindcast.request_wpto_point_data(data_type,
+            parameters,lat_lon,years)
+
+            assert_frame_equal(self.mp,wave_multiparm)
+            assert_frame_equal(self.mp_meta,meta) 
+
 class TestSWAN(unittest.TestCase):
 
     @classmethod
@@ -779,8 +954,8 @@ class TestSWAN(unittest.TestCase):
         self.swan_block_mat_file = join(swan_datadir,'SWANOUT.MAT')
         self.swan_block_txt_file = join(swan_datadir,'SWANOUTBlock.DAT')
         self.expected_table = pd.read_csv(self.table_file, sep='\s+', comment='%', 
-                  names=['Xp', 'Yp', 'Hsig', 'Dir', 'RTpeak', 'TDir'])   
-            
+                  names=['Xp', 'Yp', 'Hsig', 'Dir', 'RTpeak', 'TDir'])  
+                  
     @classmethod
     def tearDownClass(self):
         pass

@@ -10,5 +10,6 @@ dependencies:
     - matplotlib
     - requests
     - nose
+    - NREL-rex
     - pip:
         - coveralls
