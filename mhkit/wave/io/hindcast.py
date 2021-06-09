@@ -101,6 +101,9 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
         assert isinstance(str_decode,bool), 'str_decode must be bool type'
         assert isinstance(hsds,bool), 'hsds must be bool type'
 
+        if 'directional_wave_spectrum' in parameter:
+            sys.exit('This function does not support directional_wave_spectrum output')
+
         # check for multiple region selection
         if isinstance(lat_lon[0], float):
             region = region_selection(lat_lon)
@@ -116,7 +119,7 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
         if data_type == '3-hour':
             wave_path = f'/nrel/US_wave/'+region+'/'+region+'_wave_*.h5'
         elif data_type == '1-hour':
-            wave_path = f'/nrel/US_wave/virtual_buoy/West_Coast/West_Coast_virtual_buoy_*.h5'
+            wave_path = f'/nrel/US_wave/virtual_buoy/'+region+'/'+region+'_virtual_buoy_*.h5'
         else:
             print(f'ERROR: invalid data_type')
             pass
@@ -212,18 +215,11 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
     waveKwargs = {'tree':tree,'unscale':unscale,'str_decode':str_decode, 'hsds':hsds}
         
     with WaveX(wave_path, **waveKwargs) as rex_waves:
+        # get data
         data = rex_waves.get_lat_lon_df(parameter,lat_lon)
         # get metadata
         col = data.columns[:]
         meta = rex_waves.meta.loc[col,:]
         meta = meta.reset_index(drop=True) 
-    # datadict = {}
-    # timestamps = data.index.get_level_values(0).drop_duplicates()
-    # frequency = data.index.get_level_values(1).drop_duplicates()
-    # wavedir = data.index.get_level_values(2).drop_duplicates()
-    # for t in timestamps:
-    #     df = pd.DataFrame(columns=wavedir,index=frequency)
-    #     for f in frequency:
-    #         df.loc[f,:] = data.loc[(t,f),col[0]].values
-    #     datadict[t] = df
+
     return data, meta    
