@@ -40,8 +40,6 @@ def _get_layer_data(data, variable, layer = -1 , time_step=-1):
         v=[0]*len(x)
     else:
         v= np.ma.getdata(var[itime,:,layer], False)
-        if variable == 'unorm':
-                print(len(x), len(y), len(v))
     return x,y,v
 
 
@@ -68,6 +66,10 @@ def create_points( x, y, z):
         DataFrame of x, y and z points 
 
     '''
+    # assert (instance( x,(int, float, array),' x must be a int, float or array'))
+    # assert (instance( y,(int, float, array),' x must be a int, float or array'))
+    # assert (instance( z,(int, float, array),' x must be a int, float or array'))
+    
     directions = {0: {'name' : 'x',
                      'values': x},
                  1:{'name' : 'y',
@@ -157,6 +159,10 @@ def get_all_data_points(data, variable, time_step):
         Data frame of x , y, z, and variable 
 
     '''  
+#    assert instance (variable, ['turbkin1', 'ucx', 'ucy', 'ucz','s1',
+#    's0', 'waterdepth', 'numlimdt', 'taus', 'unorm', 'u0', 'q1', 'viu', 'diu',
+#    'ucxa', 'ucya', 'rho', 'turkin1', 'vicwwu', 'tureps1', 'czs'], 'variable not reconized')
+    
     cords_to_layers= {'laydim': data.variables['LayCoord_cc'][:],
                        'wdim': data.variables['LayCoord_w'][:]}
     lay_element= 2 
@@ -178,7 +184,6 @@ def get_all_data_points(data, variable, time_step):
     v_all=[]
     
     N_layers = range(len(Layer_percentages))
-    print(variable, N_layers)
     for layer in N_layers:
         x,y,v= _get_layer_data(data, variable, layer, time_step)
         z = [bottom_depth*Layer_percentages[layer]]
@@ -235,8 +240,12 @@ def unorm(x, y ,z):
         root mean squared output 
 
     '''
-    unorm=np.sqrt(x**2 + y**2 + z**2)
-
+    assert(isinstance(x,np.array),'x input not reconized')
+    if len(x) == len(y) & len (y) ==len (z) :
+        unorm=np.sqrt(x**2 + y**2 + z**2)
+    else:
+        raise Exception ('lengths of arrays do not mathch')
+    
     return unorm
 
 
@@ -269,8 +278,9 @@ def turbulent_intensity(data, points='cells'):
         #get all data
         var_data_df = get_all_data_points(data, var,time_step=-1)           
         TI_data_raw[var] = var_data_df 
-           
-    if points=='faces':
+    if type(points) == pd.DataFrame:  
+        print('points provided')
+    elif points=='faces':
         points = TI_data_raw['ucx'][['x','y','z']]
     elif points=='cells':
         points = TI_data_raw['turkin1'][['x','y','z']]
@@ -278,15 +288,14 @@ def turbulent_intensity(data, points='cells'):
     TI_data= points.copy(deep=True)
     
     for var in TI_vars:    
-        TI_data[var] = interpolate_data(TI_data_raw[['x','y','z']],
-            TI_data_raw[var], points[['x','y','z']])
+        TI_data[var] = interpolate_data(TI_data_raw[var][['x','y','z']],
+                                        TI_data_raw[var][var], points[['x','y','z']])
 
     #calculate turbulent intensity 
     u_mag=unorm(TI_data['ucx'],TI_data['ucy'], TI_data['ucz'])
     turbulent_intensity= np.sqrt(2/3*TI_data['turkin1'])/u_mag
                                  
-
-    return turbulent_intensity 
+    return turbulent_intensity
     
 exdir= dirname(abspath(__file__))
 datadir = normpath(join(exdir,relpath('data/river/d3d')))
@@ -294,33 +303,34 @@ filename= 'turbineTest_map.nc'
 data = netCDF4.Dataset(join(datadir,filename))
 
 
-x =  np.linspace (0.1, 17.9, num=100)
-y = np.linspace (1.1, 4.9, num=100)
+x =  np.linspace (0.1, 17.9, num=1000)
+y = np.linspace (1.1, 4.9, num=1000)
 z=  1#np.linspace (0.2, 1.8, num=100) 
     
 #request= np.array([ [x, y, z] for x, y, z in zip(x_new, y_new, z_new)]) 
 #request_points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
 #points=request_points
    
-variables= ['unorm'] # , 'turkin1', 'ucx', 'ucy', 'ucz'] 
+variables= ['ucx'] # , 'turkin1', 'ucx', 'ucy', 'ucz'] 
 
 #check that variable is in data set 
 
 var_data_df=get_all_data_points(data, variables[0],time_step=-1)
-points = create_points(x, y, z)
+
+var_data_df['TI' ] = turbulent_intensity(data,points='cells')
+points = create_points(var_data_df.x, var_data_df.y, z)
 points[variables[0]]=interpolate_data(var_data_df[['x','y','z']], var_data_df[variables[0]],
-            points[['x','y','z']])  # 
-TI = turbulent_intensity(data,points)
-
-
+            points[['x','y','z']])   
 
 # Plots 
-points.dropna(inplace=True)
-plt.tricontourf(points.x,points.y,TI)
+var_data_df.dropna(inplace=True)
 
-#         units= data.variables[variable].units
-#         cname=data.variables[variable].long_name
-#         cbar.set_label(f'{cname} [{units}]')
-#         plt.xlabel('x (m)')# user input 
-#         plt.ylabel('y (m)')
+contour_plot= plt.tricontourf(var_data_df.x,var_data_df.y,var_data_df.ucx) 
+units= data.variables['unorm'].units
+cname='Turbulent Intesity'
+cbar= plt.colorbar(contour_plot)
+cbar.set_label(f'{cname} [{units}]')
+plt.xlabel('x (m)')# user input 
+plt.ylabel('y (m)')
+plt.title('Cells')
 #         plt.show()
