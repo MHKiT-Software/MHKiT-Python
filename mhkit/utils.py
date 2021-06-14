@@ -215,82 +215,60 @@ def excel_to_datetime(excel_num):
     return time                
 
 
-def joint_probability_distribution(var1,var2,var1_bins,var2_bins):
+def joint_probability_distribution(x, y, z=None, x_edges, y_edges, 
+                                   z_edges=None):
     """
-    Calculates the joint probability distribution between two variables
+    Calculates the joint probability distribution between two or 3
+    variables.
     
     Parameters
-    ------------
-    var1: numpy array or pandas Series 
+    ----------
+    x: numpy array or pandas Series 
         first varialbe for JPD
-    var2: numpy array or pandas Series 
+    y: numpy array or pandas Series 
         second varialbe for JPD
-    var1_bins: numpy array  
+    z: numpy array or pandas Series 
+        third varialbe for JPD        
+    x_edges: numpy array  
         first varialbe bins for JPD
-    var2: numpy array  
+    y_edges: numpy array  
         second varialbe bins for JPD
+    z_edges: numpy array  
+        second varialbe bins for JPD        
+        
     Returns
-    ---------
+    -------
     jpd: pandas DataFrame
         jpd indexed by var1_bins with var2_bins columns
     """
-    # Combine data for better handling
-    jpd_data = array([var1.flatten(),var2.flatten()]).T
-    # Calculate the bin centers of the data
-    var1_center = array([
-        mean([var1_bins[i+1],var1_bins[i]]) 
-            for i in range(var1_bins.shape[0]-1)
-            ])
-    var2_center = array([
-        mean([var2_bins[i+1],var2_bins[i]]) 
-            for i in range(var2_bins.shape[0]-1)
-            ])
 
-    # Calculate the JPD and pack into a DataFrame
-    probability, edges = np.histogramdd(jpd_data,bins=[var1_bins,var2_bins],density=True)
-    jpd = DataFrame(probability, index=var1_center, columns=var2_center)
+
+    # Calculate the bin centers of the data
+    def bin_edges_to_centers(bins):
+        centers=[]
+        for i in range(bins.shape[0]-1):
+            centers = centers.append(mean([var1_bins[i+1], var1_bins[i]]))
+        return centers
+    x_center = bin_edges_to_centers(x_edges)
+    y_center = bin_edges_to_centers(y_edges)
+
+    
+    
+    # Combine data for better handling
+    if z:
+        jpd_data = array([x.flatten(),y.flatten(), z.flatten()]).T
+        
+        bins=[x_bins,y_bins,z_bins]
+        probability, edges = np.histogramdd(jpd_data,bins=bins,density=True)  
+        
+        z_center = bin_edges_to_centers(z_edges)  
+    else:
+        jpd_data = array([x.flatten(),y.flatten()]).T
+        bins=[x_bins,y_bins]
+        probability, edges = np.histogramdd(jpd_data,bins=bins,density=True)
+    
+
+    jpd = DataFrame(probability, index=x_center, columns=y_center)
 
     return jpd
-
-
-def directional_joint_probability_distribution(var1,var2,direction,var1_bins,var2_bins,dir_bins):
-    """
-    Calculates the joint probability distribution between two variables
     
-    Parameters
-    ------------
-    var1: numpy array or pandas Series 
-        first varialbe for JPD
-    var2: numpy array or pandas Series 
-        second varialbe for JPD
-    var1_bins: numpy array  
-        first varialbe bins for JPD
-    var2: numpy array  
-        second varialbe bins for JPD
-    Returns
-    ---------
-    dir_jpd: pandas DataFrame
-        jpd indexed by var1_bins with var2_bins columns
-    """
-    # Combine data for better handling
-    jpd_data = array([var1.flatten(),var2.flatten(),
-                    direction.flatten()]).T
-    # Calculate the bin centers of the data
-    var1_center = array([
-        mean([var1_bins[i+1],var1_bins[i]]) 
-            for i in range(var1_bins.shape[0]-1)
-            ])
-    var2_center = array([
-        mean([var2_bins[i+1],var2_bins[i]]) 
-            for i in range(var2_bins.shape[0]-1)
-            ])
-    dir_center = array([
-                    mean([dir_bins[i+1],Dir_bins[i]]) 
-                    for i in range(dir_bins.shape[0]-1)
-                ])
-
-    # Calculate the JPD and pack into a DataFrame
-    probability, edges = np.histogramdd(jpd_data,bins=[var1_bins,var2_bins,Dir_bins],density=True)
-    dir_jpd = DataFrame(probability, index=var1_center, columns=var2_center)
-
-    return dir_jpd    
