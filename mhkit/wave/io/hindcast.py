@@ -54,10 +54,10 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
         Parameters
         ----------
         data_type : string
-            data set type of interst
+            Data set type of interest
             Options: '3-hour' '1-hour'
         parameter: string or list of strings
-            dataset parameter to be downloaded
+            Dataset parameter to be downloaded
             3-hour dataset options: 'directionality_coefficient', 'energy_period', 'maximum_energy_direction'
                 'mean_absolute_period', 'mean_zero-crossing_period', 'omni-directional_wave_power', 'peak_period'
                 'significant_wave_height', 'spectral_width', 'water_depth' 
@@ -66,7 +66,7 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
                 'significant_wave_height', 'spectral_width', 'water_depth', 'maximim_energy_direction',
                 'mean_wave_direction', 'frequency_bin_edges'
         lat_lon: tuple or list of tuples
-            latitude longitude pairs at which to extract data 
+            Latitude longitude pairs at which to extract data 
         years : list 
             Year(s) to be accessed. The years 1979-2010 available. Examples: [1996] or [2004,2006,2007]
         tree : str | cKDTree (optional)
@@ -80,16 +80,16 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
             strings. Setting this to False will speed up the meta data read.
             Default = True
         hsds : bool (optional)
-             Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
-             behind HSDS. Setting to False will indicate to look for files on 
-             local machine, not AWS. Default = True
+            Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
+            behind HSDS. Setting to False will indicate to look for files on 
+            local machine, not AWS. Default = True
 
         Returns
         ---------
         data: DataFrame 
             Data indexed by datetime with columns named for parameter and cooresponding metadata index 
         meta: DataFrame 
-            location metadata for the requested data location   
+            Location metadata for the requested data location   
         """
         
         assert isinstance(parameter, (str, list)), 'parameter must be of type string or list'
@@ -166,7 +166,7 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
     Parameters
     ----------
     lat_lon: tuple or list of tuples
-        latitude longitude pairs at which to extract data 
+        Latitude longitude pairs at which to extract data 
     year : string 
         Year to be accessed. The years 1979-2010 available.
     tree : str | cKDTree (optional)
@@ -180,16 +180,16 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
         strings. Setting this to False will speed up the meta data read.
                 Default = True
     hsds : bool (optional)
-         Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
-         behind HSDS. Setting to False will indicate to look for files on 
-         local machine, not AWS. Default = True
+        Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
+        behind HSDS. Setting to False will indicate to look for files on 
+        local machine, not AWS. Default = True
 
     Returns
     ---------
-    data: DataFrame 
-        Data indexed by datetime with columns named for parameter and cooresponding metadata index 
+    data: xarray 
+        Coordinates as datetime, frequency, and direction for data at specified location(s)
     meta: DataFrame 
-        location metadata for the requested data location   
+        Location metadata for the requested data location   
     """
     assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
     assert isinstance(year,str), 'years must be a string'
@@ -216,10 +216,12 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
         
     with WaveX(wave_path, **waveKwargs) as rex_waves:
         # get data
-        data = rex_waves.get_lat_lon_df(parameter,lat_lon)
+        data_raw = rex_waves.get_lat_lon_df(parameter,lat_lon)
         # get metadata
-        col = data.columns[:]
+        col = data_raw.columns[:]
         meta = rex_waves.meta.loc[col,:]
         meta = meta.reset_index(drop=True) 
+
+    data = data_raw.to_xarray()
 
     return data, meta    

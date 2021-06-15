@@ -1,5 +1,6 @@
 from os.path import abspath, dirname, join, isfile, normpath, relpath
 from pandas.testing import assert_frame_equal
+import xarray.testing as xrt
 from numpy.testing import assert_allclose
 from scipy.interpolate import interp1d
 import matplotlib.pylab as plt
@@ -903,7 +904,8 @@ class TestWPTOhindcast(unittest.TestCase):
         my_dir = pd.read_csv(join(datadir,'hindcast/multi_year_dir.csv'),header = 0,
         dtype={'87':'float32','58':'float32'})
         my_dir['time_index'] = pd.to_datetime(my_dir['time_index'])
-        self.my_dir = my_dir.set_index(['time_index','frequency','direction'])
+        my_dir = my_dir.set_index(['time_index','frequency','direction'])
+        self.my_dir = my_dir.to_xarray()
 
         self.my_dir_meta = pd.read_csv(join(datadir,'hindcast/multi_year_dir_meta.csv'),
         names = ['water_depth','latitude','longitude','distance_to_shore','timezone'
@@ -929,7 +931,7 @@ class TestWPTOhindcast(unittest.TestCase):
 
     elif float(sys.version[0:3]) == 3.8:
         # wait five minute to ensure python 3.7 call is complete
-        time.sleep(300)
+        #time.sleep(300)
         def test_multi_loc(self):            
             data_type = '3-hour'
             years = [1995]
@@ -938,14 +940,12 @@ class TestWPTOhindcast(unittest.TestCase):
             wave_multiloc, meta= wave.io.hindcast.request_wpto_point_data(data_type,
             parameters,lat_lon,years)
             dir_multiyear, meta_dir = wave.io.hindcast.request_wpto_directional_spectrum(lat_lon,year='1995')
-            times = dir_multiyear.index.get_level_values(0)
-            times = times.drop_duplicates()
-            dir_my = dir_multiyear.loc[times[0:100]]
-            dir_my.rename(columns={87:'87',58:'58'},inplace=True)
+            dir_multiyear = dir_multiyear.sel(time_index=slice(dir_multiyear.time_index[0],dir_multiyear.time_index[99]))
+            dir_multiyear = dir_multiyear.rename_vars({87:'87',58:'58'})
 
             assert_frame_equal(self.ml,wave_multiloc)
             assert_frame_equal(self.ml_meta,meta)
-            assert_frame_equal(self.my_dir,dir_my)
+            xrt.assert_allclose(self.my_dir,dir_multiyear)
             assert_frame_equal(self.my_dir_meta,meta_dir)
 
     elif float(sys.version[0:3]) == 3.9:
