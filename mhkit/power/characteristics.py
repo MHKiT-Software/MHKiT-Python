@@ -110,3 +110,79 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
     P = P.to_frame('Power')
     
     return P
+
+def peak_to_average_power_ratio(power,interval=None):
+    """
+    Calculates the peak to average power ratio.  
+
+    Parameters
+    -----------
+    power: pandas Series or single column DataFrame
+        Time-series of power [W] indexed by time
+    interval: float (optional)
+        Time in seconds over which to compute statistics. If None, entire timeseries is averaged
+    
+    Returns
+    --------
+    peak_to_average_ratio: pandas DataFrame
+        Peak to average power ratio indexed by start time of each average period. 
+    """
+    assert isinstance(power, (pd.DataFrame,pd.Series)), 'power must be of type pd.DataFrame or pd.Series'
+    assert isinstance(interval, (type(None),float)), 'interval must be None or a float'
+    
+    if isinstance(power, pd.DataFrame):
+        power = power.squeeze()
+    
+    indices = peakutils.indexes(power,thres=0.2/max(power), min_dist=20)
+    pow_max = power[indices]
+    if interval == None:
+        peak = abs(pow_max).quantile([.999]) 
+        mean = (power**2).sum()**(1/2) #RMS
+    else:
+        mean = (power.resample(str(interval)+'S', label='center')**2).sum().pow(1/2) #RMS
+        peak = pow_max.resample(str(interval)+'S', label='center').describe(percentiles=[.999])
+        #power_ratio = pd.DataFrame(power_peak/power_mean)
+    #mean = np.trapz(power.values,x=power.index)/(power.index[-1]-power.index[0])
+    #peak = np.percentile(power, 99.9)  ##### using 99.9th percetile to weed out outliers 
+    peak_to_average_ratio = pd.DataFrame([peak**2/mean**2], columns = ['peak_to_average'])
+
+    return peak_to_average_ratio
+
+def power_ratio_matrix(xarray,yarray,power_ratio,statistic,x_bins,y_bins):
+    """
+    Generates a power ratio matrix for a given statistic
+    
+    Parameters
+    ------------
+    yarray: numpy array or pandas Series
+        array or Series of data to bin along the y-axis
+    xarray: numpy array or pandas Series
+        array or Series of data to bin along the x-axis
+    power_ratio : numpy array or pandas Series
+        power ratio
+    statistic: string
+        Statistic for each bin, options include: 'mean', 'std', 'median', 
+        'count', 'sum', 'min', 'max', and 'frequency'.  Note that 'std' uses 
+        a degree of freedom of 1 in accordance with IEC/TS 62600-100.
+    y_bins: numpy array
+        Bin centers for yarray
+    x_bins: numpy array
+        Bin centers for xarray
+        
+    Returns
+    ---------
+    PRM: pandas DataFrames
+        power ratio matrix with index equal to yarray and columns 
+        equal to xarray
+    
+    """
+    assert isinstance(yarray, (np.ndarray, pd.Series)), 'yarray must be of type np.ndarray or pd.Series'
+    assert isinstance(xarray, (np.ndarray, pd.Series)), 'xarray must be of type np.ndarray or pd.Series'
+    assert isinstance(power_ratio, (np.ndarray, pd.Series)), 'power_ratio must be of type np.ndarray or pd.Series'
+    assert isinstance(statistic, (str, types.FunctionType)), 'statistic must be of type str or callable'
+    assert isinstance(y_bins, np.ndarray), 'y_bins must be of type np.ndarray'
+    assert isinstance(x_bins, np.ndarray), 'x_bins must be of type np.ndarray'
+    
+    PRM = _performance_matrix(yarray, xarray, power_ratio, statistic, y_bins, x_bins)
+    
+    return PRM
