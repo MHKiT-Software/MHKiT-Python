@@ -914,7 +914,7 @@ class TestPlotResouceCharacterizations(unittest.TestCase):
     @classmethod
     def tearDownClass(self):
         pass
-    def test_plot_avg_annual_scatter_table(self):
+    def test_plot_avg_annual_energy_matrix(self):
     
         filename = abspath(join(testdir, 'avg_annual_scatter_table.png'))
         if isfile(filename):
@@ -925,7 +925,7 @@ class TestPlotResouceCharacterizations(unittest.TestCase):
         J = np.random.random(len(Hm0Te))*100 
         
         plt.figure()
-        fig = wave.graphics.plot_avg_annual_scatter_table(Hm0Te.Hm0, 
+        fig = wave.graphics.plot_avg_annual_energy_matrix(Hm0Te.Hm0, 
             Hm0Te.Te, J, Hm0_bin_size=0.5, Te_bin_size=1)
         plt.savefig(filename, format='png')
         plt.close()

@@ -371,10 +371,10 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     return ax
     
     
-def plot_avg_annual_scatter_table(Hm0, Te, J, time_index=None, 
+def plot_avg_annual_energy_matrix(Hm0, Te, J, time_index=None, 
     Hm0_bin_size=None, Te_bin_size=None, Hm0_edges=None, Te_edges=None):
     '''
-    Creates an average annual scatter table plot.
+    Creates an average annual energy matrix with frequency of occurance.
 
     Parameters
     ----------
@@ -398,7 +398,7 @@ def plot_avg_annual_scatter_table(Hm0, Te, J, time_index=None,
     Returns
     -------
     fig: Figure
-        Average annual scatter table plot
+        Average annual energy table plot
     '''
     fig = plt.figure()
     if isinstance(time_index, type(None)):
@@ -492,6 +492,7 @@ def monthly_cumulative_distribution(J):
     ax: axes
         Figure of monthly cumulative distribution
     '''
+    assert isinstance(J, pd.Series), 'J must be of type pd.Series'
     cumSum={}
     months=J.index.month.unique()
     for month in months:    
