@@ -28,7 +28,8 @@ DEPENDENCIES = ['pandas>=1.0.0',
                 'scikit-learn',
 		        'NREL-rex>=0.2.35',
                 'six>=1.13.0',
-                'netCDF4']
+                'netCDF4',
+                'xarray']
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))

@@ -7,3 +7,4 @@ pecos>=0.1.9
 fatpack
 NREL-rex>=0.2.35
 six>=1.13.0
+xarray
