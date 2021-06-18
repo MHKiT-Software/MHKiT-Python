@@ -7,13 +7,12 @@ import sys
 def region_selection(lat_lon):
     '''
     Returns the name of the predefined region in which the given coordinates reside.
+    Can be used to check if the passed lat/lon pair is within the WPTO hindcast dataset. 
 
     Parameters
     ----------
-    lat : float
-        Latitude coordinate
-    lon : float
-        Longitude coordinate
+    lat_lon : list or tuple
+        Latitude and longitude coordinates as flaots or intigers
     
     Returns
     -------
@@ -21,6 +20,8 @@ def region_selection(lat_lon):
         Name of predefined region for given coordinates
     '''
     assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
+    assert isinstance(lat_lon[0], (float,int)), 'lat_lon  values must be of type float or int'
+    assert isinstance(lat_lon[1], (float,int)), 'lat_lon  values must be of type float or int'
 
     rDict = {
         'Hawaii':{      'lat':[15.0,27.000002], 'lon':[-164.0,-151.0] },
@@ -155,7 +156,7 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
                                  unscale=True, str_decode=True,hsds=True):
     
     """ 
-    Returns data from the WPTO wave hindcast hosted on AWS at the specified latitude and longitude point(s), 
+    Returns directional spectra data from the WPTO wave hindcast hosted on AWS at the specified latitude and longitude point(s), 
     or the closest available pont(s).
     Visit https://registry.opendata.aws/wpto-pds-us-wave/ for more information about the dataset and available 
     locations and years. 
@@ -168,7 +169,7 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
     lat_lon: tuple or list of tuples
         Latitude longitude pairs at which to extract data 
     year : string 
-        Year to be accessed. The years 1979-2010 available.
+        Year to be accessed. The years 1979-2010 available. Only one year can be requested at a time. 
     tree : str | cKDTree (optional)
         cKDTree or path to .pkl file containing pre-computed tree
         of lat, lon coordinates, default = None
