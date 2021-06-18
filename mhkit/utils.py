@@ -1,9 +1,10 @@
 from pecos.utils import index_to_datetime
+import matplotlib.pyplot as plt 
+import datetime as dt
+from mhkit import qc
 import pandas as pd 
 import numpy as np 
-import datetime as dt
-import matplotlib.pyplot as plt 
-from mhkit import qc
+
 
 _matlab = False # Private variable indicating if mhkit is run through matlab
 
@@ -213,4 +214,51 @@ def excel_to_datetime(excel_num):
     time = pd.to_datetime('1899-12-30')+pd.to_timedelta(excel_num,'D')
 
     return time                
+    
+    
+def magnitude_phase(x,y,z=None):
+    '''
+    Retuns magnitude and phase in two or three dimensions. 
+    
+    Parameters
+    ----------
+    x: array_like
+        x-component
+    y: array_like
+        y-component
+    z: array_like
+        z-component defined positive up. (Optional) Default None.
+    
+    Returns
+    -------
+    mag: float or array
+        magnitude of the vector
+    theta: float or array
+        radians from the x-axis
+    phi: float or array
+        radians from z-axis defined as positive up. Optional: only 
+        returned when z is passed.
+    '''
+    x=np.array(x)
+    y=np.array(y)
+
+    threeD=False
+    if not isinstance(z, type(None)):
+        z=np.array(z)
+        threeD=True
+        
+    assert isinstance(x, (float,int,np.ndarray))
+    assert isinstance(y, (float,int,np.ndarray))
+    assert isinstance(z, (type(None),float,int,np.ndarray))
+        
+    if threeD:
+        mag = np.sqrt(x**2 + y**2 + z**2)
+        theta = np.arctan2(y,x)
+        phi = np.arctan2(np.sqrt(x**2+y**2),z)
+        return mag, theta, phi
+    else:
+        mag = np.sqrt(x**2 + y**2)
+        theta = np.arctan2(y, x)
+        return mag, theta
+        
     
