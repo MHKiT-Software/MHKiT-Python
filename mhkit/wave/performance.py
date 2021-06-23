@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
+import xarray as xr
 import types
 from scipy.stats import binned_statistic_2d as _binned_statistic_2d
+import matplotlib.pylab as plt
 
 
 def capture_length(P, J):
@@ -259,6 +261,108 @@ def mean_annual_energy_production_matrix(LM, JM, frequency):
         
     return maep
 
+def power_performance_workflow(S, h, P, statistic, frequency_bins=None, deep=False, rho=1205, g=9.80665, ratio=2, show_values=False, savepath=""):
+    """
+    High-level function to compute power performance quantities of 
+    interest following IEC TS 62600-100 for given wave spectra.
+
+    Parameters
+    ------------
+    S: pandas DataFrame or Series           
+        Spectral density [m^2/Hz] indexed by frequency [Hz]
+    h: float
+        Water depth [m]
+    P: numpy array or pandas Series
+        Power [W]
+    statistic: string or list of strings                 
+        Statistics for plotting capture length matrices,
+        options include: "mean", "std", "median",
+        "count", "sum", "min", "max", and "frequency". 
+        Note that "std" uses a degree of freedom of 1 in accordance with IEC/TS 62600-100.
+        To output capture length matrices for multiple binning parameters,
+        define as a list of strings: statistic = ["", "", ""]       
+    frequency_bins: numpy array or pandas Series (optional)                                 
+       Bin widths for frequency of S. Required for unevenly sized bins
+    deep: bool (optional)
+        If True use the deep water approximation. Default False. When
+        False a depth check is run to check for shallow water. The ratio
+        of the shallow water regime can be changed using the ratio
+        keyword.
+    rho: float (optional)
+        Water density [kg/m^3]. Default = 1025 kg/m^3
+    g: float (optional)
+        Gravitational acceleration [m/s^2]. Default = 9.80665 m/s^2
+    ratio: float or int (optional)
+        Only applied if depth=False. If h/l > ratio,
+        water depth will be set to deep. Default ratio = 2.
+    show_values : bool (optional)
+        Show values on the scatter diagram. Default = False.
+    savepath: string (optional)
+        Path to save figure. Terminate with '\'. Default="".
+
+    Returns
+    ---------
+    LM: xarray dataset
+        Capture length matrices
+
+    maep_matrix: float
+        Mean annual energy production
+    """
+    assert isinstance(S, (pd.DataFrame,pd.Series)), 'S must be of type pd.DataFrame or pd.Series'
+    assert isinstance(h, (int,float)), 'h must be of type int or float'
+    assert isinstance(P, (np.ndarray, pd.Series)), 'P must be of type np.ndarray or pd.Series'
+    assert isinstance(deep, bool), 'deep must be of type bool'
+    assert isinstance(rho, (int,float)), 'rho must be of type int or float'
+    assert isinstance(g, (int,float)), 'g must be of type int or float'
+    assert isinstance(ratio, (int,float)), 'ratio must be of type int or float'
+
+    # Compute the enegy periods from the spectra data
+    Te = wave.resource.energy_period(S, frequency_bins=frequency_bins)
+    Te = Te['Te']
+
+    # Compute the significant wave height from the NDBC spectra data
+    Hm0 = wave.resource.significant_wave_height(S, frequency_bins=frequency_bins)
+    Hm0 = Hm0['Hm0']
+
+    # Compute the energy flux from spectra data and water depth
+    J = wave.resource.energy_flux(S, h, deep=deep, rho=rho, g=g, ratio=ratio)
+    J = J['J']
+
+    # Calculate capture length from power and energy flux
+    L = wave.performance.capture_length(P,J)
+
+    # Generate bins for Hm0 and Te, input format (start, stop, step_size)
+    Hm0_bins = np.arange(0, Hm0.values.max() + .5, .5)
+    Te_bins = np.arange(0, Te.values.max() + 1, 1)
+
+    # Create capture length matrices for each statistic based on IEC/TS 62600-100
+    # Median, sum, frequency additionally provided
+    LM = xr.Dataset()
+    LM['mean'] = wave.performance.capture_length_matrix(Hm0, Te, L, 'mean', Hm0_bins, Te_bins)
+    LM['std'] = wave.performance.capture_length_matrix(Hm0, Te, L, 'std', Hm0_bins, Te_bins)
+    LM['median'] = wave.performance.capture_length_matrix(Hm0, Te, L, 'median', Hm0_bins, Te_bins)
+    LM['count'] = wave.performance.capture_length_matrix(Hm0, Te, L, 'count', Hm0_bins, Te_bins)
+    LM['sum'] = wave.performance.capture_length_matrix(Hm0, Te, L, 'sum', Hm0_bins, Te_bins)
+    LM['min'] = wave.performance.capture_length_matrix(Hm0, Te, L, 'min', Hm0_bins, Te_bins)
+    LM['max'] = wave.performance.capture_length_matrix(Hm0, Te, L, 'max', Hm0_bins, Te_bins)
+    LM['freq'] = wave.performance.capture_length_matrix(Hm0, Te, L,'frequency', Hm0_bins, Te_bins)
+
+    # Create wave energy flux matrix using mean
+    JM = wave.performance.wave_energy_flux_matrix(Hm0, Te, J, 'mean', Hm0_bins, Te_bins)
+
+    # Calculate maep from matrix
+    maep_matrix = wave.performance.mean_annual_energy_production_matrix(LM['mean'].to_pandas(), JM, LM['freq'].to_pandas())
+    
+    # Plot capture length matrices using statistic
+    for str in statistic:
+        if str not in list(LM.data_vars):
+            continue
+        plt.figure(figsize=(12,12), num='Capture Length Matrix ' + str)
+        ax = plt.gca()
+        wave.graphics.plot_matrix(LM[str].to_pandas(), xlabel='Te (s)', ylabel='Hm0 (m)', zlabel= str + ' of Capture Length', show_values=show_values, ax=ax)
+        plt.savefig(savepath + 'Capture Length Matrx ' + str + '.png')
+
+    return LM, maep_matrix
 
 
 
