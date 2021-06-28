@@ -274,6 +274,16 @@ class TestResourceMetrics(unittest.TestCase):
             error = ((expected-calculated)**2).sum() # SSE
             
             self.assertLess(error, 1e-6)
+
+    def test_kfromw_one_freq(self):
+        g = 9.81
+        f = 0.1
+        h = 1e9
+        w = np.pi*2*f # deep water dispersion
+        expected = w**2 / g
+        calculated = wave.resource.wave_number(f=f, h=h, g=g).values[0][0]
+        error = np.abs(expected-calculated)
+        self.assertLess(error, 1e-6)
     
     def test_moments(self):
         for file_i in self.valdata2.keys(): # for each file MC, AH, CDiP
