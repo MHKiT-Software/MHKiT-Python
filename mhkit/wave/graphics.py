@@ -1,9 +1,13 @@
 import numpy as np
 import pandas as pd
+import matplotlib
 import matplotlib.pyplot as plt
 from mhkit.wave.resource import significant_wave_height as _sig_wave_height
 from mhkit.wave.resource import peak_period as _peak_period
 from mhkit.river.graphics import _xy_plot
+from matplotlib import gridspec
+from matplotlib import pylab
+import datetime
 
 
 def plot_spectrum(S, ax=None):
@@ -358,4 +362,190 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     plt.ylabel(y_label)
     plt.tight_layout()
     return ax
+
+
+def plot_compendium(Hs, Tp, Dp, buoy_title=None, ax=None):
+    """
+    Create subplots showing: Significant Wave Height (Hs), Peak Period (Tp), 
+    and Direction (Dp) using OPeNDAP service from CDIP THREDDS Server.
     
+    See http://cdip.ucsd.edu/themes/cdip?pb=1&bl=cdip?pb=1&d2=p70&u3=s:100:st:1:v:compendium:dt:201204 for example Compendium plot.
+    
+    Developed based on: http://cdip.ucsd.edu/themes/media/docs/documents/html_pages/compendium.html
+
+    Parameters
+    ----------
+    Hs: pandas Series
+        significant wave height
+    Tp: pandas Series
+        significant wave height
+    Dp: pandas Series
+        significant wave height
+    buoy_title: string (optional)
+        Buoy title from the CDIP THREDDS Server
+    ax : matplotlib axes object (optional)
+        Axes for plotting.  If None, then a new figure is created.
+    Returns
+    -------
+    ax : matplotlib pyplot axes
+
+    """
+    assert isinstance(Hs, pd.Series), 'Hs must be of type pd.Series'
+    assert isinstance(Tp, pd.Series), 'Tp must be of type pd.Series'
+    assert isinstance(Dp, pd.Series), 'Dp must be of type pd.Series'
+    assert isinstance(buoy_title, (str, type(None))), 'buoy_title must be of type string'
+
+    f, (pHs, pTp, pDp) = plt.subplots(3, 1, sharex=True, figsize=(15,10)) 
+    
+    pHs.plot(Hs.index,Hs,'b')
+    pTp.plot(Tp.index,Tp,'b')
+    pDp.scatter(Dp.index,Dp,color='blue',s=5) 
+    
+    pHs.tick_params(axis='x', which='major', labelsize=12, top='off')
+    pHs.set_ylim(0,8)
+    pHs.tick_params(axis='y', which='major', labelsize=12, right='off')
+    pHs.set_ylabel('Hs [m]', fontsize=18)
+    pHs.grid(b=True, which='major', color='b', linestyle='--')
+
+    pHs2 = pHs.twinx()
+    pHs2.set_ylim(0,25)
+    pHs2.set_ylabel('Hs [ft]', fontsize=18)
+
+    
+    # Peak Period, Tp
+    pTp.set_ylim(0,28)
+    pTp.set_ylabel('Tp [s]', fontsize=18)
+    pTp.grid(b=True, which='major', color='b', linestyle='--')
+    
+    
+    # Direction, Dp 
+    pDp.set_ylim(0,360)
+    pDp.set_ylabel('Dp [deg]', fontsize=18)
+    pDp.grid(b=True, which='major', color='b', linestyle='--')
+    pDp.set_xlabel('Day', fontsize=18)
+    
+    # Set x-axis tick interval to every 5 days
+    degrees = 70    
+    days = matplotlib.dates.DayLocator(interval=5) 
+    daysFmt = matplotlib.dates.DateFormatter('%Y-%m-%d')
+    plt.gca().xaxis.set_major_locator(days)
+    plt.gca().xaxis.set_major_formatter(daysFmt)
+    plt.setp( pDp.xaxis.get_majorticklabels(), rotation=degrees )
+
+    # Set Titles
+    month_name_start = Hs.index.month_name()[0][:3]
+    year_start = Hs.index.year[0]
+    month_name_end = Hs.index.month_name()[-1][:3]
+    year_end = Hs.index.year[-1]
+    plt.suptitle(buoy_title, fontsize=30) 
+    
+    plt.title(f'{Hs.index[0].date()} to {Hs.index[-1].date()}', fontsize=20)
+
+    ax = f
+
+    return ax
+
+
+def plot_boxplot(Hs, buoy_title=None):
+    """
+    Create plot of monthly-averaged boxes of Significant Wave Height (Hs)
+    data.
+
+    Developed based on: 
+        http://cdip.ucsd.edu/themes/media/docs/documents/html_pages/annualHs_plot.html
+    
+    Parameters
+    ------------
+    data: pandas DataFrame
+        Spectral density [m^2/Hz] indexed frequency [Hz]
+    buoy_title: string (optional)
+        Buoy title from the CDIP THREDDS Server
+    ax : matplotlib axes object (optional)
+        Axes for plotting.  If None, then a new figure is created.
+    Returns
+    ---------
+    ax : matplotlib pyplot axes
+    """
+    assert isinstance(Hs, pd.Series), 'Hs must be of type pd.Series'
+    assert isinstance(buoy_title, (str, type(None))), 'buoy_title must be of type string'
+   
+    months = Hs.index.month
+    means = Hs.groupby(months).mean()
+    monthlengths = Hs.groupby(months).count()
+    
+    fig = plt.figure(figsize=(10,12)) 
+    gs = gridspec.GridSpec(2,1, height_ratios=[4,1]) 
+    
+    boxprops = dict(color='k')
+    whiskerprops = dict(linestyle='--', color='k')
+    flierprops = dict(marker='+', color='r',markeredgecolor='r',markerfacecolor='r')
+    medianprops = dict(linewidth=2.5,color='firebrick')
+    meanprops = dict(linewidth=2.5, marker='_',  markersize=25)
+    
+    bp = plt.subplot(gs[0,:])    
+    
+    Hs_months = Hs.to_frame().groupby(months)
+    bp = Hs_months.boxplot(subplots=False, boxprops=boxprops,
+        whiskerprops=whiskerprops, flierprops=flierprops,
+        medianprops=medianprops, showmeans=True, meanprops=meanprops)
+    
+    # Add values of monthly means as text
+    for i, mean in enumerate(means):
+        bp.annotate(np.round(mean,2), (means.index[i],mean),fontsize=12,
+                    horizontalalignment='center',verticalalignment='bottom',
+                    color='g')
+
+    #Create a second row of x-axis labels for top subplot
+    newax = bp.twiny()
+    newax.tick_params(which='major', direction='in', pad=-18)
+    newax.set_xlim(bp.get_xlim())
+    newax.xaxis.set_ticks_position('top')
+    newax.xaxis.set_label_position('top')
+    newax.set_xticks(np.arange(1,13,1)) 
+    newax.set_xticklabels(monthlengths,fontsize=10)
+                       
+
+    # Sample 'legend' boxplot, to go underneath actual boxplot
+    bp_sample2 = np.random.normal(2.5,0.5,500)        
+    bp2 = plt.subplot(gs[1,:])
+    meanprops = dict(linewidth=2.5, marker='|',  markersize=25)
+    bp2_example = bp2.boxplot(bp_sample2,vert=False,flierprops=flierprops, 
+                        medianprops=medianprops) 
+    sample_mean=2.3
+    bp2.scatter(sample_mean,1,marker="|",color='g',linewidths=1.0,s=200)
+    
+    for line in bp2_example['medians']:
+        xm, ym = line.get_xydata()[0] 
+    for line in bp2_example['boxes']:
+        xb, yb = line.get_xydata()[0] 
+    for line in bp2_example['whiskers']:
+        xw, yw = line.get_xydata()[0] 
+    
+    bp2.annotate("Median",[xm-0.1,ym-0.3*ym],fontsize=10,color='firebrick')
+    bp2.annotate("Mean",[sample_mean-0.1,0.65],fontsize=10,color='g')
+    bp2.annotate("25%ile",[xb-0.05*xb,yb-0.15*yb],fontsize=10)
+    bp2.annotate("75%ile",[xb+0.26*xb,yb-0.15*yb],fontsize=10)
+    bp2.annotate("Outliers",[xw+0.3*xw,yw-0.3*yw],fontsize=10,color='r')
+       
+    if buoy_title:
+        plt.suptitle(buoy_title, fontsize=30, y=0.97)
+    bp.set_title("Significant Wave Height by Month", fontsize=20, y=1.01)
+    bp2.set_title("Sample Boxplot", fontsize=10, y=1.02)
+    
+    # Set axes labels and ticks    
+    months_text = [ m[:3] for m in Hs.index.month_name().unique()]
+    bp.set_xticklabels(months_text,fontsize=12)
+    bp.set_ylabel('Significant Wave Height, Hs (m)', fontsize=14)
+    bp.tick_params(axis='y', which='major', labelsize=12, right='off')
+    bp.tick_params(axis='x', which='major', labelsize=12, top='off')
+        
+    # Plot horizontal gridlines onto top subplot
+    bp.grid(axis='x', which='major', color='b', linestyle='-', alpha=0.25)
+    
+    # Remove tickmarks from bottom subplot
+    bp2.axes.get_xaxis().set_visible(False)
+    bp2.axes.get_yaxis().set_visible(False)
+
+    ax = fig
+
+    return ax

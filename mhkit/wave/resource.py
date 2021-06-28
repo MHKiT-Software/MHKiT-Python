@@ -306,7 +306,7 @@ def frequency_moment(S, N, frequency_bins=None):
     m: pandas DataFrame 
         Nth Frequency Moment indexed by S.columns
     """
-    assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
+    assert isinstance(S, (pd.Series,pd.DataFrame)), 'S must be of type pd.DataFrame or pd.Series'
     assert isinstance(N, int), 'N must be of type int'
     
     # Eq 8 in IEC 62600-101 
@@ -327,8 +327,10 @@ def frequency_moment(S, N, frequency_bins=None):
  
     m = spec.multiply(fn,axis=0).multiply(delta_f,axis=0)
     m = m.sum(axis=0)
-    
-    m = pd.DataFrame(m, index=S.columns, columns = ['m'+str(N)])
+    if isinstance(S,pd.Series):
+        m = pd.DataFrame(m, index=[0], columns = ['m'+str(N)])
+    else:
+        m = pd.DataFrame(m, index=S.columns, columns = ['m'+str(N)])
 
     return m
 
@@ -349,7 +351,7 @@ def significant_wave_height(S, frequency_bins=None):
     Hm0: pandas DataFrame 
         Significant wave height [m] index by S.columns
     """
-    assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
+    assert isinstance(S, (pd.Series,pd.DataFrame)), 'S must be of type pd.DataFrame or pd.Series'
     
     # Eq 12 in IEC 62600-101
     
@@ -483,14 +485,19 @@ def energy_period(S,frequency_bins=None):
     Te: pandas DataFrame
         Wave energy period [s] indexed by S.columns
     """
-    assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
+
+    assert isinstance(S, (pd.Series,pd.DataFrame)), 'S must be of type pd.DataFrame or pd.Series'
     
     mn1 = frequency_moment(S,-1,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
     m0  = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze()
     
     # Eq 13 in IEC 62600-101 
     Te = mn1/m0
-    Te = pd.DataFrame(Te, index=S.columns, columns=['Te'])
+    if isinstance(S,pd.Series):
+            Te = pd.DataFrame(Te, index=[0], columns=['Te'])
+    else:
+            Te = pd.DataFrame(Te, S.columns, columns=['Te'])
+    
     
     return Te
 
@@ -552,85 +559,172 @@ def spectral_width(S,frequency_bins=None):
     return v
 
 
-def energy_flux(S, h, rho=1025, g=9.80665):
+def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2):
     """
     Calculates the omnidirectional wave energy flux of the spectra
     
     Parameters
     -----------
-    S: pandas DataFrame
+    S: pandas DataFrame or Series
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     h: float
         Water depth [m]
+    deep: bool (optional)
+        If True use the deep water approximation. Default False. When
+        False a depth check is run to check for shallow water. The ratio
+        of the shallow water regime can be changed using the ratio
+        keyword.
     rho: float (optional)
-        Water Density [kg/m3]
+        Water Density [kg/m^3]. Default = 1025 kg/m^3
     g : float (optional)
-        Gravitational acceleration [m/s^2]
+        Gravitational acceleration [m/s^2]. Default = 9.80665 m/s^2
+    ratio: float or int (optional)
+        Only applied if depth=False. If h/l > ratio,
+        water depth will be set to deep. Default ratio = 2.
 
     Returns
     -------
     J: pandas DataFrame
         Omni-directional wave energy flux [W/m] indexed by S.columns
     """
-    # TODO: Add deep water flag
-    assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
+    assert isinstance(S, (pd.Series,pd.DataFrame)), 'S must be of type pd.DataFrame or pd.Series'
     assert isinstance(h, (int,float)), 'h must be of type int or float'
+    assert isinstance(deep, bool), 'deep must be of type bool'
     assert isinstance(rho, (int,float)), 'rho must be of type int or float'
     assert isinstance(g, (int,float)), 'g must be of type int or float'
+    assert isinstance(ratio, (int,float)), 'ratio must be of type int or float'
     
-    f = S.index
-    
-    k = wave_number(f,h,rho,g)
+    if deep:
+        # Eq 8 in IEC 62600-100, deep water simpilification
+        Te = energy_period(S)
+        Hm0 = significant_wave_height(S)
         
-    # wave celerity (group velocity)
-    Cg = wave_celerity(k,h,g).squeeze()
-    
-    # Calculating the wave energy flux, Eq 9 in IEC 62600-101 
-    delta_f = pd.Series(f).diff()
-    delta_f.index = f
-    delta_f[f[0]] = delta_f[f[1]] # fill the initial NaN
-    
-    CgSdelF = S.multiply(delta_f, axis=0).multiply(Cg, axis=0)
-    
-    J = rho*g*CgSdelF.sum(axis=0)
-    
-    J = pd.DataFrame(J, index=S.columns, columns=["J"])
-    
+        coeff = rho*(g**2)/(64*np.pi)
+
+        J = coeff*(Hm0.squeeze()**2)*Te.squeeze()
+        if isinstance(S,pd.Series):
+            J = pd.DataFrame(J, index=[0], columns=["J"])
+        else:
+            J = pd.DataFrame(J, S.columns, columns=["J"])
+        
+        
+    else:
+        # deep water flag is false
+        f = S.index
+
+        k = wave_number(f, h, rho, g)
+
+        # wave celerity (group velocity)
+        Cg = wave_celerity(k, h, g, depth_check=True, ratio=ratio).squeeze()
+
+        # Calculating the wave energy flux, Eq 9 in IEC 62600-101
+        delta_f = pd.Series(f).diff()
+        delta_f.index = f
+        delta_f[f[0]] = delta_f[f[1]]  # fill the initial NaN
+
+        CgSdelF = S.multiply(delta_f, axis=0).multiply(Cg, axis=0)
+
+        J = rho * g * CgSdelF.sum(axis=0)
+
+        if isinstance(S,pd.Series):
+            J = pd.DataFrame(J, index=[0], columns=["J"])
+        else:
+            J = pd.DataFrame(J, S.columns, columns=["J"])
+
     return J
 
 
-def wave_celerity(k, h, g=9.80665):
+def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2):
     """
     Calculates wave celerity (group velocity)
     
     Parameters
-    -----------
-    k: pandas DataFrame
+    ----------
+    k: pandas DataFrame or Series
         Wave number [1/m] indexed by frequency [Hz]
     h: float
         Water depth [m]
     g : float (optional)
-        Gravitational acceleration [m/s^2]
-        
+        Gravitational acceleration [m/s^2]. Default 9.80665 m/s.
+    depth_check: bool (optional)
+        If True check depth regime. Default False.
+    ratio: float or int (optional)
+        Only applied if depth_check=True. If h/l > ratio,
+        water depth will be set to deep. Default ratio = 2
+
     Returns
     -------
     Cg: pandas DataFrame
-        Water celerity [?] indexed by frequency [Hz]
+        Water celerity [m/s] indexed by frequency [Hz]
     """
+    if isinstance(k, pd.DataFrame):
+        k = k.squeeze()
 
-    assert isinstance(k, pd.DataFrame), 'S must be of type pd.DataFrame'
+    assert isinstance(k, pd.Series), 'S must be of type pd.Series'
     assert isinstance(h, (int,float)), 'h must be of type int or float'
     assert isinstance(g, (int,float)), 'g must be of type int or float'
+    assert isinstance(depth_check, bool), 'depth_check must be of type bool'
+    assert isinstance(ratio, (int,float)), 'ratio must be of type int or float'
 
     f = k.index
-    k = k.squeeze() # convert to Series for calculation (returns a copy)
+    k = k.values
     
-    # Eq 10 in IEC 62600-101
-    Cg = (np.pi*f/k)*(1+(2*h*k)/np.sinh(2*h*k))
-    Cg = pd.DataFrame(Cg, index=f, columns=["Cg"])
+    if depth_check:           
+        l = wave_length(k)
+
+        # get depth regime
+        dr = depth_regime(l, h, ratio=ratio)
+
+        # deep frequencies
+        df = f[dr]
+        dk = k[dr]
+        
+        # deep water approximation
+        dCg = (np.pi * df / dk)
+        dCg = pd.DataFrame(dCg, index=df, columns=["Cg"])
+        
+        # shallow frequencies
+        sf = f[~dr]
+        sk = k[~dr]
+        sCg = (np.pi * sf / sk) * (1 + (2 * h * sk) / np.sinh(2 * h * sk))
+        sCg = pd.DataFrame(sCg, index = sf, columns = ["Cg"])
+        
+        Cg = pd.concat([dCg, sCg]).sort_index()
+
+    else: 
+        # Eq 10 in IEC 62600-101
+        Cg = (np.pi * f / k) * (1 + (2 * h * k) / np.sinh(2 * h * k))
+        Cg = pd.DataFrame(Cg, index=f, columns=["Cg"])        
    
     return Cg
 
+def wave_length(k):
+    """
+    Calculates wave length from wave number
+    To compute: 2*pi/wavenumber
+
+    Parameters
+    -------------
+    k: pandas Dataframe
+        Wave number [1/m] indexed by frequency
+
+    Returns
+    ---------
+    l: float or array
+        Wave length [m] indexed by frequency
+    """
+    if isinstance(k, (int, float, list)):
+        k = np.array(k)    
+    elif isinstance(k, pd.DataFrame):        
+        k = k.squeeze().values
+    elif isinstance(k, pd.Series):           
+        k = k.values
+
+    assert isinstance(k, np.ndarray), 'k must be array-like'
+
+    l = 2*np.pi/k
+    
+    return l
 
 def wave_number(f, h, rho=1025, g=9.80665):
     """
@@ -687,21 +781,63 @@ def wave_number(f, h, rho=1025, g=9.80665):
     
     return k
 
+def depth_regime(l, h, ratio=2):
+    '''
+    Calculates the depth regime based on wavelength and height
+    Deep water: h/l > ratio
+    This function exists so sinh in wave celerity doesn't blow
+    up to infinity.
+
+    P.K. Kundu, I.M. Cohen (2000) suggest h/l >> 1 for deep water (pg 209)
+    Same citation as above, they also suggest for 3% accuracy, h/l > 0.28 (pg 210)
+    However, since this function allows multiple wavelengths, higher ratio
+    numbers are more accurate across varying wavelengths.
+
+    Parameters
+    ----------
+    l: array-like
+        wavelength [m]
+    h: float or int
+        water column depth [m]
+    ratio: float or int (optional)
+        if h/l > ratio, water depth will be set to deep. Default ratio = 2  
+
+    Returns
+    -------
+    depth_reg: boolean or boolean array
+        Boolean True if deep water, False otherwise
+    '''
+        
+    if isinstance(l, (int, float, list)):
+        l = np.array(l)    
+    elif isinstance(l, pd.DataFrame):        
+        l = l.squeeze().values
+    elif isinstance(l, pd.Series):           
+        l = l.values
+    
+    assert isinstance(l, (np.ndarray)), "l must be array-like"
+    assert isinstance(h, (int, float)), "h must be of type int or float"
+
+    depth_reg = h/l > ratio
+    
+    return  depth_reg
+
+
 def environmental_contour(x1, x2, dt, period, **kwargs):
     '''
-    Calculates environmental contours of extreme sea 
-    states using the improved joint probability distributions 
-    with the inverse first-order reliability method (I-FORM) 
-    probability for the desired return period (`period`). Given the 
-    period of interest, a circle of iso-probability is created 
-    in the principal component analysis (PCA) joint probability 
+    Calculates environmental contours of extreme sea
+    states using the improved joint probability distributions
+    with the inverse first-order reliability method (I-FORM)
+    probability for the desired return period (`period`). Given the
+    period of interest, a circle of iso-probability is created
+    in the principal component analysis (PCA) joint probability
     (`x1`, `x2`) reference frame.
-    Using the joint probability value, the cumulative distribution 
-    function (CDF) of the marginal distribution is used to find 
-    the quantile of each component. 
+    Using the joint probability value, the cumulative distribution
+    function (CDF) of the marginal distribution is used to find
+    the quantile of each component.
     Finally, using the improved PCA methodology,
-    the component 2 contour lines are calculated from component 1 using 
-    the relationships defined in Exkert-Gallup et. al. 2016.	
+    the component 2 contour lines are calculated from component 1 using
+    the relationships defined in Exkert-Gallup et. al. 2016.
 
     Eckert-Gallup, A. C., Sallaberry, C. J., Dallman, A. R., & 
     Neary, V. S. (2016). Application of principal component 
