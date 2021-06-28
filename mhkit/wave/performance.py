@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import xarray as xr
+import xarray 
 import types
 from scipy.stats import binned_statistic_2d as _binned_statistic_2d
 from mhkit import wave
@@ -338,7 +338,7 @@ def power_performance_workflow(S, h, P, statistic, frequency_bins=None, deep=Fal
 
     # Create capture length matrices for each statistic based on IEC/TS 62600-100
     # Median, sum, frequency additionally provided
-    LM = xr.Dataset()
+    LM = xarray.Dataset()
     LM['mean'] = wave.performance.capture_length_matrix(Hm0, Te, L, 'mean', Hm0_bins, Te_bins)
     LM['std'] = wave.performance.capture_length_matrix(Hm0, Te, L, 'std', Hm0_bins, Te_bins)
     LM['median'] = wave.performance.capture_length_matrix(Hm0, Te, L, 'median', Hm0_bins, Te_bins)
