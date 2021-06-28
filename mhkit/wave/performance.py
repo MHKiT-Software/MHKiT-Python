@@ -357,10 +357,11 @@ def power_performance_workflow(S, h, P, statistic, frequency_bins=None, deep=Fal
     # Plot capture length matrices using statistic
     for str in statistic:
         if str not in list(LM.data_vars):
+            print('ERROR: Invalid Statistics passed')
             continue
         plt.figure(figsize=(12,12), num='Capture Length Matrix ' + str)
         ax = plt.gca()
         wave.graphics.plot_matrix(LM[str].to_pandas(), xlabel='Te (s)', ylabel='Hm0 (m)', zlabel= str + ' of Capture Length', show_values=show_values, ax=ax)
-        plt.savefig(savepath + 'Capture Length Matrx ' + str + '.png')
+        plt.savefig(savepath + 'Capture Length Matrix ' + str + '.png')
 
     return LM, maep_matrix
