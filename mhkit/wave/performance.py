@@ -5,7 +5,7 @@ import types
 from scipy.stats import binned_statistic_2d as _binned_statistic_2d
 from mhkit import wave
 import matplotlib.pylab as plt
-
+from os.path import join
 
 def capture_length(P, J):
     """
@@ -362,6 +362,6 @@ def power_performance_workflow(S, h, P, statistic, frequency_bins=None, deep=Fal
         plt.figure(figsize=(12,12), num='Capture Length Matrix ' + str)
         ax = plt.gca()
         wave.graphics.plot_matrix(LM[str].to_pandas(), xlabel='Te (s)', ylabel='Hm0 (m)', zlabel= str + ' of Capture Length', show_values=show_values, ax=ax)
-        plt.savefig(savepath + 'Capture Length Matrix ' + str + '.png')
+        plt.savefig(join(savepath,'Capture Length Matrix ' + str + '.png'))
 
     return LM, maep_matrix

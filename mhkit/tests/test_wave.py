@@ -692,15 +692,14 @@ class TestPerformance(unittest.TestCase):
             os.remove(filename)
         P = pd.Series(np.random.normal(200, 40, 743),index = self.S.columns)
         statistic = ['mean']
-        savepath = ""
+        savepath = testdir
         show_values = True
         h = 60
         expected = 401239.4822345051
         x = self.S.T
         CM,MAEP = wave.performance.power_performance_workflow(self.S, h, 
                         P, statistic, savepath=savepath, show_values=show_values)
-        
-        
+
         self.assertTrue(isfile(filename))
         self.assertEqual(list(CM.data_vars),self.expected_stats)
 
