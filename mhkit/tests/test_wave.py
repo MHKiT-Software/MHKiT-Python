@@ -619,7 +619,7 @@ class TestPerformance(unittest.TestCase):
         Te = np.random.normal(4.5, .8, 100000)
         P = np.random.normal(200, 40, 100000)
         J = np.random.normal(300, 10, 100000)
-        ndbc_data_file = '../../examples/data/wave/data.txt'
+        ndbc_data_file = join(datadir,'data.txt')
         [raw_ndbc_data, meta] = wave.io.ndbc.read_file(ndbc_data_file)
         self.S = raw_ndbc_data.T
         
@@ -697,7 +697,6 @@ class TestPerformance(unittest.TestCase):
         h = 60
         expected = 401239.4822345051
         x = self.S.T
-        print(x.describe())
         CM,MAEP = wave.performance.power_performance_workflow(self.S, h, 
                         P, statistic, savepath=savepath, show_values=show_values)
         
