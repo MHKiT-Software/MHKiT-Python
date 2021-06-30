@@ -18,7 +18,7 @@ CLASSIFIERS=['Development Status :: 3 - Alpha',
              'Operating System :: OS Independent',
             ]
 DEPENDENCIES = ['pandas>=1.0.0', 
-                'numpy>=1.16.5', 
+                'numpy<1.21.0', 
                 'scipy',
                 'matplotlib', 
                 'requests', 
@@ -28,7 +28,7 @@ DEPENDENCIES = ['pandas>=1.0.0',
                 'scikit-learn',
 		        'NREL-rex>=0.2.35',
                 'six>=1.13.0',
-                'netCDF4',
+                'netCDF4', 
                 'xarray']
 
 # use README file as the long description
