@@ -1,5 +1,6 @@
 from os.path import abspath, dirname, join, isfile, normpath, relpath
 from pandas.testing import assert_frame_equal
+import xarray.testing as xrt
 from numpy.testing import assert_allclose
 from scipy.interpolate import interp1d
 import matplotlib.pylab as plt
@@ -615,10 +616,14 @@ class TestPerformance(unittest.TestCase):
         Te = np.random.normal(4.5, .8, 100000)
         P = np.random.normal(200, 40, 100000)
         J = np.random.normal(300, 10, 100000)
+        ndbc_data_file = join(datadir,'data.txt')
+        [raw_ndbc_data, meta] = wave.io.ndbc.read_file(ndbc_data_file)
+        self.S = raw_ndbc_data.T
         
         self.data = pd.DataFrame({'Hm0': Hm0, 'Te': Te, 'P': P,'J': J})
         self.Hm0_bins = np.arange(0,19,0.5)
         self.Te_bins = np.arange(0,9,1)
+        self.expected_stats = ["mean","std","median","count","sum","min","max","freq"]
 
     @classmethod
     def tearDownClass(self):
@@ -677,6 +682,28 @@ class TestPerformance(unittest.TestCase):
         plt.close()
         
         self.assertTrue(isfile(filename))
+
+    def test_powerperformance_workflow(self):
+        filename = abspath(join(testdir, 'Capture Length Matrix mean.png'))
+        if isfile(filename):
+            os.remove(filename)
+        P = pd.Series(np.random.normal(200, 40, 743),index = self.S.columns)
+        statistic = ['mean']
+        savepath = testdir
+        show_values = True
+        h = 60
+        expected = 401239.4822345051
+        x = self.S.T
+        CM,MAEP = wave.performance.power_performance_workflow(self.S, h, 
+                        P, statistic, savepath=savepath, show_values=show_values)
+
+        self.assertTrue(isfile(filename))
+        self.assertEqual(list(CM.data_vars),self.expected_stats)
+
+        error = (expected-MAEP)/expected # SSE
+            
+        self.assertLess(error, 1e-6)
+
     
 class TestIOndbc(unittest.TestCase):
 
