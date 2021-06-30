@@ -750,7 +750,7 @@ def wave_number(f, h, rho=1025, g=9.80665):
         Wave number [1/m] indexed by frequency [Hz]
     """
     try:
-        f = np.array(f)
+        f = np.atleast_1d(np.array(f))
     except:
         pass
     assert isinstance(f, np.ndarray), 'f must be of type np.ndarray'

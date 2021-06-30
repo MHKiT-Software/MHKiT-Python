@@ -282,6 +282,16 @@ class TestResourceMetrics(unittest.TestCase):
             
             self.assertLess(error, 1e-6)
 
+    def test_kfromw_one_freq(self):
+        g = 9.81
+        f = 0.1
+        h = 1e9
+        w = np.pi*2*f # deep water dispersion
+        expected = w**2 / g
+        calculated = wave.resource.wave_number(f=f, h=h, g=g).values[0][0]
+        error = np.abs(expected-calculated)
+        self.assertLess(error, 1e-6)
+    
     def test_wave_length(self):
         k_list=[1,2,10,3]
         l_expected = (2.*np.pi/np.array(k_list)).tolist()
