@@ -890,8 +890,11 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
         'sigma_param'   : fit to _sig_fits 
 
     '''
-
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
+    try: x1 = np.array(x1); 
+    except: pass
+    try: x2 = np.array(x2); 
+    except: pass
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
     assert isinstance(dt, (int,float)), 'dt must be of type int or float'
     assert isinstance(period, (int,float,np.ndarray)), ('period must be'
@@ -911,7 +914,8 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
     if PCA == None:
         PCA = _principal_component_analysis(x1, x2, bin_size=bin_size)
 	
-    exceedance_probability = 1 / (365 * 24 * 3600/ dt * period)
+    dt_yrs = dt / ( 3600 * 24 * 365 )
+    exceedance_probability = 1 / ( period / dt_yrs)
     iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
                                              loc=0, scale=1)  
     discretized_radians = np.linspace(0, 2 * np.pi, nb_steps)
@@ -943,7 +947,7 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
     component_2 = stats.norm.ppf(y_quantile,
                                  loc  =component_2_mu, 
                                  scale=component_2_sigma)
-                             
+                           
     # Convert contours back to the original reference frame
     principal_axes = PCA['principal_axes']
     shift = PCA['shift']
@@ -957,7 +961,7 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
     
     # Assign 0 value to any negative x1 contour values
     x1_contour = np.maximum(0, x1_contour)  
-    
+ 
     if return_PCA:
         return np.transpose(x1_contour), np.transpose(x2_contour), PCA
     return np.transpose(x1_contour), np.transpose(x2_contour)
@@ -1016,7 +1020,7 @@ def _principal_component_analysis(x1, x2, bin_size=250):
     pca = skPCA(n_components=2)                                               
     pca.fit(n_samples_by_n_features)
     principal_axes = pca.components_
-
+    
     # STEP 1: Transform data into new reference frame
     # Apply correct/expected sign convention    
     principal_axes = abs(principal_axes)  
@@ -1031,7 +1035,7 @@ def _principal_component_analysis(x1, x2, bin_size=250):
     # Apply shift to Component 2 to make all values positive
     shift = abs(min(x2_components)) + 0.1
     x2_components = x2_components + shift 
-
+    
     # STEP 2: Fit Component 1 data using a Gaussian Distribution
     x1_sorted_index = x1_components.argsort()
     x1_sorted = x1_components[x1_sorted_index]
@@ -1041,7 +1045,7 @@ def _principal_component_analysis(x1, x2, bin_size=250):
     x1_fit = { 'mu'    : x1_fit_results[0],
                'loc'   : x1_fit_results[1],
                'scale' : x1_fit_results[2]}
-
+    
     # Step 3: Bin Data & find order 1 linear relation between x1 & x2 means
     N = len(x1)  
     minimum_4_bins = np.floor(N*0.25)
@@ -1096,7 +1100,7 @@ def _principal_component_analysis(x1, x2, bin_size=250):
     sigma_fit = optim.minimize(_objective_function, x0=sig_0, 
                                args=(x1_means, x2_sigmas),
                                method='SLSQP',constraints=constraints)     
-
+    
     PCA = {'principal_axes': principal_axes, 
            'shift'         : shift, 
            'x1_fit'        : x1_fit, 

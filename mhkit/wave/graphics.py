@@ -5,20 +5,25 @@ import matplotlib.pyplot as plt
 from mhkit.wave.resource import significant_wave_height as _sig_wave_height
 from mhkit.wave.resource import peak_period as _peak_period
 from mhkit.river.graphics import _xy_plot
+from mhkit.river.resource import exceedance_probability
+import calendar
 from matplotlib import gridspec
 from matplotlib import pylab
 import datetime
 
 
+
 def plot_spectrum(S, ax=None):
     """
     Plots wave amplitude spectrum versus omega
+    
     Parameters
     ------------
     S: pandas DataFrame
         Spectral density [m^2/Hz] indexed frequency [Hz]
     ax : matplotlib axes object
         Axes for plotting.  If None, then a new figure is created.
+        
     Returns
     ---------
     ax : matplotlib pyplot axes
@@ -33,17 +38,20 @@ def plot_spectrum(S, ax=None):
 
     return ax
 
+
 def plot_elevation_timeseries(eta, ax=None):
     """
     Plot wave surface elevation time-series
+    
     Parameters
-    ------------
+    ----------
     eta: pandas DataFrame
         Wave surface elevation [m] indexed by time [datetime or s]
     ax : matplotlib axes object
         Axes for plotting.  If None, then a new figure is created.
+        
     Returns
-    ---------
+    -------
     ax : matplotlib pyplot axes
     """
 
@@ -53,6 +61,7 @@ def plot_elevation_timeseries(eta, ax=None):
                   ylabel='$\eta$ [m]', ax=ax)
 
     return ax
+
 
 def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
                 ax=None):
@@ -119,8 +128,9 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     inertia, and diffraction phemonena
     Chakrabarti, Subrata. Handbook of Offshore Engineering (2-volume set).
     Elsevier, 2005.
+    
     Parameters
-    ------------
+    ----------
     H: float or numpy array or pandas Series
         Wave height [m]
     lambda_w: float or numpy array or pandas Series
@@ -129,9 +139,11 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
         Characteristic length [m]
     ax : matplotlib axes object (optional)
         Axes for plotting.  If None, then a new figure is created.
+        
     Returns
-    ---------
+    -------
     ax : matplotlib pyplot axes
+    
     Examples
     --------
     **Using floats**
@@ -362,7 +374,150 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     plt.ylabel(y_label)
     plt.tight_layout()
     return ax
+    
+def plot_avg_annual_energy_matrix(Hm0, Te, J, time_index=None, 
+    Hm0_bin_size=None, Te_bin_size=None, Hm0_edges=None, Te_edges=None):
+    '''
+    Creates an average annual energy matrix with frequency of occurance.
 
+    Parameters
+    ----------
+    Hm0: array-like
+        Significant wave height
+    Te: array-like
+        Energy period
+    J: array-like
+        Energy flux
+    time_index: DateTime Index
+        time to index by. Optional default None. If None Passed parameters must be series indexed by Datetime.
+    Hm0_bin_size: float, int
+        Creates edges of bin using this discrtization. Optional default None. If not passed must pass Hm0_edges.
+    Te_bin_size: float, int
+        Creates edges of bin using this discrtization. Optional default None. If not passed must pass Te_edges.
+    Hm0_edges: array-like
+        Defines the Hm0 bin edges to use. Optional default None. 
+    Te_edges: array-like
+        Defines the Te bin edges to use. Optional default None. 
+
+    Returns
+    -------
+    fig: Figure
+        Average annual energy table plot
+    '''
+    fig = plt.figure()
+    if isinstance(time_index, type(None)):
+        data = pd.DataFrame(dict(Hm0=Hm0, Te=Te, J=J))        
+    else:
+        data= pd.DataFrame(dict(Hm0=Hm0, Te=Te, J=J), index=time_index)
+    years=data.index.year.unique()    
+    
+    if isinstance(Hm0_edges, type(None)):
+        Hm0_max = data.Hm0.max()
+        Hm0_edges = np.arange(0,Hm0_max+Hm0_bin_size,Hm0_bin_size)
+    if isinstance(Te_edges, type(None)):    
+        Te_max = data.Te.max()
+        Te_edges = np.arange(0, Te_max+Te_bin_size,Te_bin_size)
+    
+    # Dict for number of hours each sea state occurs
+    hist_counts={}
+    hist_J={}
+
+    # Create hist of counts, and weghted by J for each year
+    for year in years:
+        year_data = data.loc[str(year)].copy(deep=True)
+        
+        # Get the counts of each bin
+        counts, xedges, yedges= np.histogram2d(year_data.Te,  
+                                     year_data.Hm0, 
+                                     bins = (Te_edges,Hm0_edges), 
+                                     )
+
+        # Get centers for number of counts plot location
+        xcenters = xedges[:-1]+ np.diff(xedges)
+        ycenters = yedges[:-1]+ np.diff(yedges)
+
+        year_data['xbins'] = np.digitize(year_data.Te, xcenters)
+        year_data['ybins'] = np.digitize(year_data.Hm0, ycenters)
+
+        total_year_J = year_data.J.sum()
+
+        H=counts.copy()
+
+        for i in range(len(xcenters)):
+            for j in range(len(ycenters)):
+                bin_J = year_data[(year_data.xbins == i) & (year_data.ybins == j)].J.sum()
+                H[i][j] = bin_J / total_year_J
+
+        # Save in results dict
+        hist_counts[year] = counts
+        hist_J[year] = H
+
+    # Initialize average annually with first year
+    avg_annual_counts_hist = hist_counts[years[0]]
+    avg_annual_J_hist = hist_J[years[0]]
+
+    # Iterate over each year and average
+    for year in years[1:]:
+        avg_annual_counts_hist = (avg_annual_counts_hist+ hist_counts[year])/2
+        avg_annual_J_hist = (avg_annual_J_hist+ hist_J[year])/2
+
+    # Create a mask of non-zero weights to hide from imshow    
+    Hmasked = np.ma.masked_where(~(avg_annual_J_hist>0),avg_annual_J_hist)
+    plt.imshow(Hmasked.T, interpolation = 'none', vmin = 0.005, origin='lower', aspect='auto',
+               extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]])
+
+    # Plot number of counts as text on the hist of annual avg J
+    for xi in range(len(xcenters)):
+        for yi in range(len(ycenters)):
+            if avg_annual_counts_hist[xi][yi] != 0:
+                plt.text(xedges[xi], yedges[yi], int(np.ceil(avg_annual_counts_hist[xi][yi])), fontsize=10) 
+    plt.xlabel('Wave Energy Period (s)')
+    plt.ylabel('Significant Wave Height (m)')
+
+    cbar=plt.colorbar()
+    cbar.set_label('Mean Normalized Annual Energy')
+
+    plt.tight_layout()
+    return fig   
+    
+    
+def monthly_cumulative_distribution(J):
+    '''
+    Creates a cumulative distribution of energy flux as described in 
+    IEC TS 62600-101.
+    
+    Parameters
+    ----------
+    J: Series
+        Energy Flux with DateTime index
+    
+    Returns
+    -------
+    ax: axes
+        Figure of monthly cumulative distribution
+    '''
+    assert isinstance(J, pd.Series), 'J must be of type pd.Series'
+    cumSum={}
+    months=J.index.month.unique()
+    for month in months:    
+        F = exceedance_probability(J[J.index.month==month])
+        cumSum[month] = 1-F/100
+        cumSum[month].sort_values('F', inplace=True)
+    plt.figure(figsize=(12,8) )
+    for month in months:
+        plt.semilogx(J.loc[cumSum[month].index], cumSum[month].F, '--', 
+            label=calendar.month_abbr[month])
+
+    F = exceedance_probability(J)
+    F.sort_values('F', inplace=True)
+    ax = plt.semilogx(J.loc[F.index], 1-F/100, 'k-', fillstyle='none', label='All')
+
+    #plt.xlim([1000, 1E6])    
+    plt.grid()
+    plt.xlabel('Energy Flux')
+    plt.ylabel('Cumulative Distribution')
+    plt.legend()
+    return ax
 
 def plot_compendium(Hs, Tp, Dp, buoy_title=None, ax=None):
     """
@@ -549,3 +704,4 @@ def plot_boxplot(Hs, buoy_title=None):
     ax = fig
 
     return ax
+
