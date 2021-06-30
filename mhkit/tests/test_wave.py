@@ -211,7 +211,6 @@ class TestResourceSpectrum(unittest.TestCase):
         plt.savefig(filename)
         
         self.assertTrue(isfile(filename))
-        
 
 class TestResourceMetrics(unittest.TestCase):
 
@@ -497,7 +496,6 @@ class TestResourceMetrics(unittest.TestCase):
         
         self.assertTrue(isfile(filename))
 
-
 class TestResourceContours(unittest.TestCase):
 
     @classmethod
@@ -608,8 +606,7 @@ class TestResourceContours(unittest.TestCase):
         plt.close()
         
         self.assertTrue(isfile(filename))        
-        
-        
+
 class TestPerformance(unittest.TestCase):
 
     @classmethod
@@ -759,10 +756,9 @@ class TestIOndbc(unittest.TestCase):
         data, units = wave.io.ndbc.read_file(join(datadir, 'data.txt'))
         self.assertEqual(data.shape, (743, 47))
         self.assertEqual(units, None)
-		
+
     def test_ndbc_available_data(self):
-        data=wave.io.ndbc.available_data('swden', buoy_number='46029')
-                
+        data=wave.io.ndbc.available_data('swden', buoy_number='46029')      
         cols = data.columns.tolist()
         exp_cols = ['id', 'year', 'filename']
         self.assertEqual(cols, exp_cols)                
@@ -978,6 +974,7 @@ class TestWPTOhindcast(unittest.TestCase):
     elif float(sys.version[0:3]) == 3.9:
         # wait ten minutes to ensure python 3.7 and 3.8 call is complete
         time.sleep(500)
+
         def test_multi_parm(self):
             data_type = '1-hour'
             years = [1996]
@@ -1105,7 +1102,6 @@ class TestIOcdip(unittest.TestCase):
         self.assertTrue(start_dt.strftime('%Y-%m-%d') == start_date)
         self.assertTrue(end_dt.strftime('%Y-%m-%d') == end_date)
         
-
     def test_get_netcdf_variables_all2Dvars(self):
         data = wave.io.cdip.get_netcdf_variables(self.test_nc, 
             all_2D_variables=True)
@@ -1199,6 +1195,48 @@ class TestIOcdip(unittest.TestCase):
         plt.savefig(filename, format='png')
         plt.close()
         
-        self.assertTrue(isfile(filename))          
+        self.assertTrue(isfile(filename))  
+
+class TestPlotResouceCharacterizations(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(self):
+        f_name= 'Hm0_Te_46022.json'
+        self.Hm0Te = pd.read_json(join(datadir,f_name)) 
+    @classmethod
+    def tearDownClass(self):
+        pass
+    def test_plot_avg_annual_energy_matrix(self):
+    
+        filename = abspath(join(testdir, 'avg_annual_scatter_table.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        Hm0Te = self.Hm0Te
+        Hm0Te.drop(Hm0Te[Hm0Te.Hm0 > 20].index, inplace=True)
+        J = np.random.random(len(Hm0Te))*100 
+        
+        plt.figure()
+        fig = wave.graphics.plot_avg_annual_energy_matrix(Hm0Te.Hm0, 
+            Hm0Te.Te, J, Hm0_bin_size=0.5, Te_bin_size=1)
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))  
+        
+    def test_plot_monthly_cumulative_distribution(self):
+    
+        filename = abspath(join(testdir, 'monthly_cumulative_distribution.png'))
+        if isfile(filename):
+            os.remove(filename)
+            
+        a = pd.date_range(start='1/1/2010',  periods=10000, freq='h')
+        S = pd.Series(np.random.random(len(a)) , index=a)
+        ax=wave.graphics.monthly_cumulative_distribution(S)
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))        
+
 if __name__ == '__main__':
     unittest.main() 
