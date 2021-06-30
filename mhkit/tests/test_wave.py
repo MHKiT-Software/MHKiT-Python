@@ -923,6 +923,17 @@ class TestWPTOhindcast(unittest.TestCase):
         names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
         ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
         ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
+
+        my_dir = pd.read_csv(join(datadir,'hindcast/multi_year_dir.csv'),header = 0,
+        dtype={'87':'float32','58':'float32'})
+        my_dir['time_index'] = pd.to_datetime(my_dir['time_index'])
+        my_dir = my_dir.set_index(['time_index','frequency','direction'])
+        self.my_dir = my_dir.to_xarray()
+
+        self.my_dir_meta = pd.read_csv(join(datadir,'hindcast/multi_year_dir_meta.csv'),
+        names = ['water_depth','latitude','longitude','distance_to_shore','timezone'
+        ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
+        ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
             
     @classmethod
     def tearDownClass(self):
@@ -932,8 +943,7 @@ class TestWPTOhindcast(unittest.TestCase):
     # only run test for one version of python per to not spam the server
     # yet keep coverage high on each test
     if float(sys.version[0:3]) == 3.7:
-        def test_multi_year_sig_wave_height(self):
-        
+        def test_multi_year(self):
             data_type = '3-hour'
             years = [1990,1992]
             lat_lon = (44.624076,-124.280097) 
@@ -944,7 +954,7 @@ class TestWPTOhindcast(unittest.TestCase):
 
     elif float(sys.version[0:3]) == 3.8:
         # wait five minute to ensure python 3.7 call is complete
-        time.sleep(300)
+        #time.sleep(300)
         def test_multi_loc(self):            
             data_type = '3-hour'
             years = [1995]
@@ -952,8 +962,14 @@ class TestWPTOhindcast(unittest.TestCase):
             parameters = 'mean_absolute_period'
             wave_multiloc, meta= wave.io.hindcast.request_wpto_point_data(data_type,
             parameters,lat_lon,years)
+            dir_multiyear, meta_dir = wave.io.hindcast.request_wpto_directional_spectrum(lat_lon,year='1995')
+            dir_multiyear = dir_multiyear.sel(time_index=slice(dir_multiyear.time_index[0],dir_multiyear.time_index[99]))
+            dir_multiyear = dir_multiyear.rename_vars({87:'87',58:'58'})
+
             assert_frame_equal(self.ml,wave_multiloc)
             assert_frame_equal(self.ml_meta,meta)
+            xrt.assert_allclose(self.my_dir,dir_multiyear)
+            assert_frame_equal(self.my_dir_meta,meta_dir)
 
     elif float(sys.version[0:3]) == 3.9:
         # wait ten minutes to ensure python 3.7 and 3.8 call is complete
