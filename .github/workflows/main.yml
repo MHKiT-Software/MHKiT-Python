@@ -2,9 +2,9 @@ name: Py 3.7, 3.8, 3.9 | Windows Mac Linux
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
   build:
