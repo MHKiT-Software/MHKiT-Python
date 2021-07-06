@@ -27,13 +27,18 @@ jobs:
     - name: Set up Git repository
       uses: actions/checkout@v2
       
-    - name: Install pip flake8 and pytest
+    - name: Update and install packages
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install flake8 pytest 
+        python -m pip install --upgrade pip wheel
+        pip install h5pyd --upgrade
+        pip install coveralls
+        pip install .
+        
+      # python -m pip install --upgrade pip
+        # python -m pip install flake8 pytest 
         
     - name: Run pytest
       shell: bash -l {0}
       run: |          
-        pip install -e .
-        pytest
+        nosetests -v --with-coverage --cover-package=mhkit mhkit
+        coveralls
