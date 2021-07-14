@@ -3,8 +3,10 @@ import pandas as pd
 import math
 import bisect
 from scipy.interpolate import interpn as _interpn
+from scipy.interpolate import  interp1d
 import matplotlib.pyplot as plt 
-from mhkit.tidal.resource import _histogram
+from  mhkit.river.resource import exceedance_probability
+from mhkit.tidal.resource import _histogram, _flood_or_ebb
 from mhkit.river.graphics import plot_velocity_duration_curve, _xy_plot
 
 
@@ -228,3 +230,103 @@ def plot_current_timeseries(directions, speeds, principal_direction,
     ax = _xy_plot(velocities.index, velocities, fmt='-', label=label, xlabel='Time',
                      ylabel='Velocity [$m/s$]', ax=ax)
     return ax
+
+def probaility_ebb_flood(speed, direction, flood, ebb):
+    '''
+
+    XXX
+
+    Parameters
+    ----------
+    direction: array-like
+        Time-series of directions [degrees]
+    speed: array-like
+        Time-series of speeds [m/s]
+    flood: float or int
+        Principal component of flow in the flood direction in degrees
+    ebb: float or int
+        Principal component of flow in the ebb direction in degrees        
+        
+    Returns
+    -------
+    ax: figure  
+    '''
+
+    isEbb = _flood_or_ebb(direction, flood, ebb)
+
+    N_bins = int(round(speed.max(),1)/0.1)
+
+    H, bins = np.histogram(speed, bins=N_bins)
+    H_ebb, bins1 = np.histogram(speed[isEbb], bins=bins)
+    H_flood, bins2 = np.histogram(speed[~isEbb], bins=bins)
+
+    p_ebb = H_ebb/H
+    p_flood = H_flood/H
+
+    center = (bins[:-1] + bins[1:]) / 2
+    width = 0.9 * (bins[1] - bins[0])
+    plt.bar(center, height=p_ebb, edgecolor='black', width=width, label='ebb')
+    plt.bar(center, height=p_flood, edgecolor='black', width=width, alpha=0.8, label='flood')
+    plt.xlabel('velocity [m/s]')
+    plt.ylabel('Probability')
+    plt.ylim(0,1.0)
+    plt.legend()
+
+
+def exceedance_ebb_flood(s, d, flood, ebb):
+    '''
+
+    XXX
+
+    Parameters
+    ----------
+    direction: array-like
+        Time-series of directions [degrees]
+    speed: array-like
+        Time-series of speeds [m/s]
+    flood: float or int
+        Principal component of flow in the flood direction in degrees
+    ebb: float or int
+        Principal component of flow in the ebb direction in degrees        
+        
+    Returns
+    -------
+    ax: figure    
+    '''
+    
+
+    isEbb = _flood_or_ebb(d, flood, ebb)
+    
+    s_ebb = s[isEbb]
+    s_flood = s[~isEbb]
+
+
+    F = exceedance_probability(s)
+    F_ebb = exceedance_probability(s_ebb)
+    F_flood = exceedance_probability(s_flood)
+
+    F = F.F
+    F_ebb=F_ebb.F
+    F_flood = F_flood.F
+
+    bin_size=0.1
+    decimals = round(bin_size/0.1)
+    s_new = np.arange(np.around(s.min(),decimals), 
+                      np.around(s.max(),decimals)+bin_size, bin_size)
+
+    f_total = interp1d(s, F, bounds_error=False)
+    f_ebb = interp1d(s_ebb, F_ebb,  bounds_error=False)
+    f_flood = interp1d(s_flood, F_flood,  bounds_error=False)
+
+    F_total = f_total(s_new)
+    F_ebb = f_ebb(s_new)
+    F_flood = f_flood(s_new)
+
+    F_max_total = np.nanmax(F_ebb) + np.nanmax(F_flood)
+
+    plt.stackplot(s_new, F_ebb/F_max_total*100, 
+                  F_flood/F_max_total*100, labels=['Ebb','Flood'])
+
+    plt.xlabel('velocity [m/s]')
+    plt.ylabel('Probability of Exceedance')
+    plt.legend()    
