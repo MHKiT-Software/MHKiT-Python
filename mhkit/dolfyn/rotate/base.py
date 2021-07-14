@@ -3,23 +3,12 @@ from numpy.linalg import det, inv
 from scipy.spatial.transform import Rotation as R
 
 
-class BadDeterminantWarning(UserWarning):
-    """A warning for the determinant is not equal to 1.
+def _make_model(ds):
+    """The make and model of the instrument that collected the data
+    in this data object.
     """
-    pass
-
-
-# def rotate_tensor(tensor, rmat):
-#     return np.einsum('ij...,jlm...,nl...->inm...', rmat, tensor, rmat)
-
-
-# def is_positive_definite(tensor):
-#     t = np.moveaxis(tensor, [0, 1], [-2, -1])
-#     val = t[..., 0, 0] > 0
-#     for idx in [2, 3]:
-#         val &= det(t[..., :idx, :idx]) > 0
-#     return val
-
+    return '{} {}'.format(ds.inst_make,
+                          ds.inst_model).lower()
 
 def _check_rotmat_det(rotmat, thresh=1e-3):
     """Check that the absolute error of the determinant is small.
@@ -34,13 +23,13 @@ def _check_rotmat_det(rotmat, thresh=1e-3):
 
 
 def _set_coords(ds, ref_frame, forced=False):
-    '''
+    """
     Checks the current reference frame and adjusts xarray coords/dims 
     as necessary.
     Makes sure assigned dataarray coordinates match what DOLfYN is reading in.
     
-    '''
-    make = ds.Veldata._make_model
+    """
+    make = _make_model(ds)
     
     XYZ = ['X','Y','Z']
     ENU = ['E','N','U']
@@ -91,16 +80,16 @@ def _set_coords(ds, ref_frame, forced=False):
     return ds
 
 
-def beam2inst(dat, reverse=False, force=False):
-    """Rotate velocities from beam to instrument coordinates.
+def _beam2inst(dat, reverse=False, force=False):
+    """
+    Rotate velocities from beam to instrument coordinates.
 
     Parameters
     ----------
-    dat : The ADP object containing the data.
-
+    dat : xarray.Dataset
+        The ADCP dataset
     reverse : bool (default: False)
-           If True, this function performs the inverse rotation
-           (inst->beam).
+        If True, this function performs the inverse rotation (inst->beam).
     force : bool (default: False), or list
         When true do not check which coordinate system the data is in
         prior to performing this rotation. When forced-rotations are
@@ -139,10 +128,8 @@ def beam2inst(dat, reverse=False, force=False):
         
     if force:
         dat = dat._set_coords(dat, cs, forced=True)
-        #dat.props._set('coord_sys', dat.props['coord_sys'] + '-forced')
     else:
         dat = _set_coords(dat, cs)
-        #dat.props._set('coord_sys', cs)
     
     return dat
     
@@ -162,17 +149,17 @@ def euler2orient(heading, pitch, roll, units='degrees'):
 
     Parameters
     ----------
-    heading : np.ndarray (Nt)
+    heading : |np.ndarray| (Nt)
       The heading angle.
-    pitch : np.ndarray (Nt)
+    pitch : |np.ndarray| (Nt)
       The pitch angle.
-    roll : np.ndarray (Nt)
+    roll : |np.ndarray| (Nt)
       The roll angle.
-    units : string {'degrees' (default), 'radians'}
+    units : str {'degrees' (default), 'radians'}
 
     Returns
     =======
-    omat : np.ndarray (3x3xNt)
+    omat : |np.ndarray| (3x3xNt)
       The orientation matrix of the data. The returned orientation
       matrix obeys the following conventions:
 
@@ -231,10 +218,6 @@ def euler2orient(heading, pitch, roll, units='degrees'):
          [zero, cr, sr],
          [zero, -sr, cr], ])
 
-    # As mentioned in the docs, the matrix-multiplication order is "reversed" (i.e., ZYX
-    # order of rotations happens by multiplying R*P*H).
-    # It helps to think of this as left-multiplying omat onto a vector. In which case,
-    # H gets multiplied first, then P, then R (i.e., the ZYX rotation order).
     return np.einsum('ij...,jk...,kl...->il...', R, P, H)
 
 
@@ -244,12 +227,12 @@ def orient2euler(omat):
 
     Parameters
     ----------
-    omat : np.ndarray (or :class:`<~dolfyn.data.velocity.Velocity>`)
-      The orientation matrix (or a data object containing one).
+    omat : |np.ndarray|
+      The orientation matrix
 
     Returns
     -------
-    heading : np.ndarray
+    heading : |np.ndarray|
       The heading angle. Heading is defined as the direction the x-axis points,
       positive clockwise from North (this is *opposite* the right-hand-rule
       around the Z-axis), range 0-360 degrees.
@@ -267,14 +250,8 @@ def orient2euler(omat):
         pass
     elif hasattr(omat, 'orientmat'):
         omat = omat['orientmat'].values
-    # #####
-    # Heading is direction of +x axis clockwise from north.
-    # So, for arctan (opposite/adjacent) we want arctan(east/north)
-    # omat columns have been reorganized in io.nortek.NortekReader.sci_microstrain to ENU
-    # (not the original NED from the Microstrain)
-
-    # Some conventions use rotation matrices as inst->earth, but this omat is 
-    # earth->inst, so the order of indices may be reversed from some conventions.
+        
+    # Note: orientation matrix is earth->inst unless supplied by an external IMU
     hh = np.rad2deg(np.arctan2(omat[0, 0], omat[0, 1]))
     hh %= 360
     return (
@@ -288,9 +265,9 @@ def orient2euler(omat):
 
 
 def q2orient(quaternions):
-    '''
+    """
     Calculate orientation from Nortek AHRS quaternions, where q = [W, X, Y, Z] 
-    instead of the standard q = [X, Y, Z, W]
+    instead of the standard q = [X, Y, Z, W] = [q1, q2, q3, q4]
     
     Parameters
     ----------
@@ -304,9 +281,9 @@ def q2orient(quaternions):
         
     See Also
     --------
-    `scipy.spatial.transform.Rotation`
+    scipy.spatial.transform.Rotation
     
-    '''
+    """
     omat = type(quaternions)(np.empty((3, 3, quaternions.time.size)))
     omat = omat.rename({'dim_0':'inst', 'dim_1':'earth', 'dim_2':'time'})
     

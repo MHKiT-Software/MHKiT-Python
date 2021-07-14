@@ -1,37 +1,32 @@
-"""This is the top-level module for reading Nortek Signature (.ad2cp)
-files. It relies heavily on the `nortek2_defs` and `nortek2lib` modules.
-"""
 import numpy as np
 import xarray as xr
-from struct import unpack
+from struct import unpack, calcsize
 import warnings
 from . import nortek2_defs as defs
-from . import nortek2lib as lib
-from .base import WrongFileType, read_userdata, create_dataset, handle_nan
+from . import nortek2_lib as lib
+from .base import _find_userdata, _create_dataset
 from ..rotate.vector import _euler2orient
 from ..rotate.base import _set_coords
 from ..rotate.api import set_declination
 
 
 def read_signature(filename, userdata=True, nens=None):
-    """Read a Nortek Signature (.ad2cp) file.
+    """Read a Nortek Signature (.ad2cp) datafile
 
     Parameters
-    ==========
+    ----------
     filename : string
         The filename of the file to load.
-
     userdata : bool
         To search for and use a .userdata.json or not
-
     nens : int, or tuple of 2 ints
         The number of ensembles to read, if int (starting at the
         beginning); or the range of ensembles to read, if tuple.
 
     Returns
-    =======
-    dat : :class:`dolfyn.ADPdata` object
-        An ADCP data object containing the loaded data.
+    -------
+    ds : xarray.Dataset
+        An xarray dataset from the binary instrument data
     """
     if nens is None:
         nens = [0, None]
@@ -45,13 +40,13 @@ def read_signature(filename, userdata=True, nens=None):
             if n != 2:
                 raise TypeError('nens must be: None (), int, or len 2')
 
-    userdata = read_userdata(filename, userdata)
+    userdata = _find_userdata(filename, userdata)
 
-    rdr = Ad2cpReader(filename)
+    rdr = _Ad2cpReader(filename)
     d = rdr.readfile(nens[0], nens[1])
     rdr.sci_data(d)
-    out = reorg(d)
-    reduce(out)
+    out = _reorg(d)
+    _reduce(out)
     
     declin = None
     for nm in userdata:
@@ -61,84 +56,37 @@ def read_signature(filename, userdata=True, nens=None):
             out['attrs'][nm] = userdata[nm]
     
     # Create xarray dataset from upper level dictionary
-    ds = create_dataset(out)
+    ds = _create_dataset(out)
     ds = _set_coords(ds, ref_frame=ds.coord_sys)
 
     if 'orientmat' not in ds:
         omat = _euler2orient(ds['heading'], ds['pitch'], ds['roll'])
         ds['orientmat'] = xr.DataArray(omat,
-                                       coords={'inst': ['X','Y','Z'],
-                                               'earth': ['E','N','U'], 
+                                       coords={'earth': ['E','N','U'], 
+                                               'inst': ['X','Y','Z'],
                                                'time': ds['time']},
-                                       dims=['inst','earth','time'])
+                                       dims=['earth','inst','time'])
     if declin is not None:
         ds = set_declination(ds, declin)
 
     return ds
 
 
-class Ad2cpReader(object):
-    """This is the reader-object for reading AD2CP files.
-
-    This should only be used explicitly for debugging
-    purposes. Instead, a user should generally rely on the
-    `read_signature` function.
-    """
-    debug = False
-
+class _Ad2cpReader():
     def __init__(self, fname, endian=None, bufsize=None, rebuild_index=False):
-
         self.fname = fname
         self._check_nortek(endian)
-        self._index = lib.get_index(fname,
+        self._index = lib._get_index(fname,
                                     reload=rebuild_index)
-        self.reopen(bufsize)
-        self.filehead_config = self.read_filehead_config_string()
-        self._ens_pos = lib.index2ens_pos(self._index)
-        self._config = lib.calc_config(self._index)
+        self._reopen(bufsize)
+        self.filehead_config = self._read_filehead_config_string()
+        self._ens_pos = lib._index2ens_pos(self._index)
+        self._config = lib._calc_config(self._index)
         self._init_burst_readers()
         self.unknown_ID_count = {}
-
-    def _init_burst_readers(self, ):
-        self._burst_readers = {}
-        for rdr_id, cfg in self._config.items():
-            if rdr_id == 28:
-                self._burst_readers[rdr_id] = defs.calc_echo_struct(
-                    cfg['_config'], cfg['ncells'])  # noqa
-            elif rdr_id == 23:
-                self._burst_readers[rdr_id] = defs.calc_bt_struct(
-                    cfg['_config'], cfg['nbeams'])  # noqa
-            else:
-                self._burst_readers[rdr_id] = defs.calc_burst_struct(
-                    cfg['_config'], cfg['nbeams'], cfg['ncells'])
-
-    def init_data(self, ens_start, ens_stop):
-        outdat = {}
-        nens = int(ens_stop - ens_start)
-        n26 = ((self._index['ID'] == 26) &
-               (self._index['ens'] >= ens_start) &
-               (self._index['ens'] < ens_stop)).sum()
-        for ky in self._burst_readers:
-            if ky == 26:
-                n = n26
-                ens = np.zeros(n, dtype='uint32')
-            else:
-                ens = np.arange(ens_start,
-                                ens_stop).astype('uint32')
-                n = nens
-            outdat[ky] = self._burst_readers[ky].init_data(n)
-            outdat[ky]['ensemble'] = ens
-            outdat[ky]['units'] = self._burst_readers[ky].data_units()
-        return outdat
-
-    def read_hdr(self, do_cs=False):
-        res = defs.header.read2dict(self.f, cs=do_cs)
-        if res['sync'] != 165:
-            raise Exception("Out of sync!")
-        return res
-
+    
     def _check_nortek(self, endian):
-        self.reopen(10)
+        self._reopen(10)
         byts = self.f.read(2)
         if endian is None:
             if unpack('<' + 'BB', byts) == (165, 10):
@@ -146,13 +94,13 @@ class Ad2cpReader(object):
             elif unpack('>' + 'BB', byts) == (165, 10):
                 endian = '>'
             else:
-                raise WrongFileType(
+                raise Exception(
                     "I/O error: could not determine the 'endianness' "
                     "of the file.  Are you sure this is a Nortek "
                     "AD2CP file?")
         self.endian = endian
 
-    def reopen(self, bufsize=None):
+    def _reopen(self, bufsize=None):
         if bufsize is None:
             bufsize = 1000000
         try:
@@ -161,11 +109,10 @@ class Ad2cpReader(object):
             pass
         self.f = open(self.fname, 'rb', bufsize)
 
-    def read_filehead_config_string(self, ):
-        hdr = self.read_hdr()
-        # This is the instrument config string.
+    def _read_filehead_config_string(self, ):
+        hdr = self._read_hdr()
         out = {}
-        s_id, string = self.read_string(hdr['sz'])
+        s_id, string = self._read_str(hdr['sz'])
         string = string.decode('utf-8')
         for ln in string.splitlines():
             ky, val = ln.split(',', 1)
@@ -197,6 +144,56 @@ class Ad2cpReader(object):
                 out2[ky] = out[ky]
         return out2
 
+    def _init_burst_readers(self, ):
+        self._burst_readers = {}
+        for rdr_id, cfg in self._config.items():
+            if rdr_id == 28:
+                self._burst_readers[rdr_id] = defs._calc_echo_struct(
+                    cfg['_config'], cfg['n_cells'])
+            elif rdr_id == 23:
+                self._burst_readers[rdr_id] = defs._calc_bt_struct(
+                    cfg['_config'], cfg['n_beams'])
+            else:
+                self._burst_readers[rdr_id] = defs._calc_burst_struct(
+                    cfg['_config'], cfg['n_beams'], cfg['n_cells'])
+                
+    def init_data(self, ens_start, ens_stop):
+        outdat = {}
+        nens = int(ens_stop - ens_start)
+        n26 = ((self._index['ID'] == 26) &
+               (self._index['ens'] >= ens_start) &
+               (self._index['ens'] < ens_stop)).sum()
+        for ky in self._burst_readers:
+            if ky == 26:
+                n = n26
+                ens = np.zeros(n, dtype='uint32')
+            else:
+                ens = np.arange(ens_start,
+                                ens_stop).astype('uint32')
+                n = nens
+            outdat[ky] = self._burst_readers[ky].init_data(n)
+            outdat[ky]['ensemble'] = ens
+            outdat[ky]['units'] = self._burst_readers[ky].data_units()
+        return outdat
+
+    def _read_hdr(self, do_cs=False):
+        res = defs.header.read2dict(self.f, cs=do_cs)
+        if res['sync'] != 165:
+            raise Exception("Out of sync!")
+        return res
+    
+    def _read_str(self, size):
+        string = self.f.read(size)
+        id = string[0]
+        #end = string[-1]
+        string = string[1:-1]
+        return id, string
+    
+    def _read_burst(self, id, dat, c, echo=False):
+        rdr = self._burst_readers[id]
+        rdr.read_into(self.f, dat, c)
+
+
     def readfile(self, ens_start=0, ens_stop=None):
         nens_total = len(self._ens_pos)
         if ens_stop is None or ens_stop > nens_total:
@@ -213,25 +210,18 @@ class Ad2cpReader(object):
         self.f.seek(self._ens_pos[ens_start], 0)
         while not retval:
             try:
-                hdr = self.read_hdr()
+                hdr = self._read_hdr()
             except IOError:
                 return outdat
             id = hdr['id']
             if id in [21, 23, 24, 28]: # vel, bt, vel_b5, echo
-                self.read_burst(id, outdat[id], c)
+                self._read_burst(id, outdat[id], c)
             elif id in [26]:  # alt_raw (altimeter burst)
-                # warnings.warn(
-                #     "Unhandled ID: 0x1A (26)\n"
-                #     "    There still seems to be a discrepancy between\n"
-                #     "    the '0x1A' data format, and the specification\n"
-                #     "    in the System Integrator Manual.")
-                # Question posted at:
-                # http://www.nortek-as.com/en/knowledge-center/forum/system-integration-and-telemetry/538802891
                 rdr = self._burst_readers[26]
                 if not hasattr(rdr, '_nsamp_index'):
                     first_pass = True
                     tmp_idx = rdr._nsamp_index = rdr._names.index('altraw_nsamp')  # noqa
-                    shift = rdr._nsamp_shift = defs.calcsize(
+                    shift = rdr._nsamp_shift = calcsize(
                         defs._format(rdr._format[:tmp_idx],
                                      rdr._N[:tmp_idx]))
                 else:
@@ -248,10 +238,10 @@ class Ad2cpReader(object):
                     rdr._shape[tmp_idx].append(sz)
                     rdr._N[tmp_idx] = sz
                     rdr._struct = defs.Struct('<' + rdr.format)
-                    rdr.nbyte = defs.calcsize(rdr.format)
+                    rdr.nbyte = calcsize(rdr.format)
                     rdr._cs_struct = defs.Struct('<' + '{}H'.format(int(rdr.nbyte // 2)))
                     # Initialize the array
-                    outdat[26]['altraw_samp'] = defs.nans(
+                    outdat[26]['altraw_samp'] = defs._nans(
                         [rdr._N[tmp_idx],
                          len(outdat[26]['altraw_samp'])],
                         dtype=np.uint16)
@@ -260,7 +250,7 @@ class Ad2cpReader(object):
                         raise Exception(
                             "The number of samples in this 'Altimeter Raw' "
                             "burst is different from prior bursts.")
-                self.read_burst(id, outdat[id], c26)
+                self._read_burst(id, outdat[id], c26)
                 outdat[id]['ensemble'][c26] = c
                 c26 += 1
 
@@ -268,17 +258,13 @@ class Ad2cpReader(object):
             # DVL, alt record, avg alt_raw record, raw echo, raw echo transmit
                 warnings.warn(
                     "Unhandled ID: 0x{:02X} ({:02d})\n"
-                    "    This ID is not yet handled by DOLfYN.\n"
-                    "    If possible, please file an issue and share a\n"
-                    "    portion of your data file:\n"
-                    "      http://github.com/lkilcher/dolfyn/issues/"
-                    .format(id, id))
+                    "    This ID is not yet handled by DOLfYN.\n".format(id, id))
                 self.f.seek(hdr['sz'], 1)
             elif id == 160:
                 # 0xa0 (i.e., 160) is a 'string data record'
                 if id not in outdat:
                     outdat[id] = dict()
-                s_id, s = self.read_string(hdr['sz'], )
+                s_id, s = self._read_str(hdr['sz'], )
                 outdat[id][(c, s_id)] = s
             else:
                 if id not in self.unknown_ID_count:
@@ -287,9 +273,7 @@ class Ad2cpReader(object):
                 else:
                     self.unknown_ID_count[id] += 1
                 self.f.seek(hdr['sz'], 1)
-            # It's unfortunate that all of this count checking is so
-            # complex, but this is the best I could come up with right
-            # now.
+            # Count checking
             if c + ens_start + 1 >= nens_total:
                 # Make sure we're not at the end of the count list.
                 continue
@@ -300,17 +284,6 @@ class Ad2cpReader(object):
                     break
             if c >= nens:
                 return outdat
-
-    def read_burst(self, id, dat, c, echo=False):
-        rdr = self._burst_readers[id]
-        rdr.read_into(self.f, dat, c)
-
-    def read_string(self, size):
-        string = self.f.read(size)
-        id = string[0]
-        #end = string[-1]
-        string = string[1:-1]
-        return id, string
 
     def sci_data(self, dat):
         for id in dat:
@@ -330,14 +303,14 @@ class Ad2cpReader(object):
         return self
 
 
-def reorg(dat):
+def _reorg(dat):
     """This function grabs the data from the dictionary of data types
     (organized by ID), and combines them into the
     :class:`dolfyn.ADPdata` object.
     """
     outdat = {'data_vars':{},'coords':{},'attrs':{},
-              'units':{},'sys':{},'altraw':{}} #apb.ADPdata()
-    cfg = outdat['attrs'] #db.config(_type='Nortek AD2CP')
+              'units':{},'sys':{},'altraw':{}}
+    cfg = outdat['attrs']
     cfh = cfg['filehead_config'] = dat['filehead_config']
     cfg['inst_model'] = (cfh['ID'].split(',')[0][5:-1])
     cfg['inst_make'] = 'Nortek'
@@ -353,10 +326,10 @@ def reorg(dat):
             continue
         dnow = dat[id]
         outdat['units'].update(dnow['units'])
-        cfg['burst_config' + tag] = lib.headconfig_int2dict(
-            lib.collapse(dnow['config'], exclude=collapse_exclude,
-                         name='config'))
-        outdat['coords']['time' + tag] = lib.calc_time(
+        cfg['burst_config' + tag] = lib._headconfig_int2dict(
+            lib._collapse(dnow['config'], exclude=collapse_exclude,
+                          name='config'))
+        outdat['coords']['time' + tag] = lib._calc_time(
             dnow['year'] + 1900,
             dnow['month'],
             dnow['day'],
@@ -364,12 +337,12 @@ def reorg(dat):
             dnow['minute'],
             dnow['second'],
             dnow['usec100'].astype('uint32') * 100)
-        tmp = lib.beams_cy_int2dict(
-            lib.collapse(dnow['beam_config'], exclude=collapse_exclude,
-                         name='beam_config'), 21)
-        cfg['ncells' + tag] = tmp['ncells']
+        tmp = lib._beams_cy_int2dict(
+            lib._collapse(dnow['beam_config'], exclude=collapse_exclude,
+                          name='beam_config'), 21)
+        cfg['n_cells' + tag] = tmp['n_cells']
         cfg['coord_sys_axes' + tag] = tmp['cy']
-        cfg['nbeams' + tag] = tmp['nbeams']
+        cfg['n_beams' + tag] = tmp['n_beams']
         cfg['xmit_energy' + tag] = np.median(dnow['xmit_energy'])
         cfg['ambig_vel' + tag] = np.median(dnow['ambig_vel'])
         
@@ -377,15 +350,15 @@ def reorg(dat):
             # These ones should 'collapse'
             # (i.e., all values should be the same)
             # So we only need that one value.
-            cfg[ky + tag] = lib.collapse(dnow[ky], 
-                                         exclude=collapse_exclude,
-                                         name=ky)
+            cfg[ky + tag] = lib._collapse(dnow[ky], 
+                                          exclude=collapse_exclude,
+                                          name=ky)
         for ky in ['nom_corr', 'data_desc',
                    'vel_scale', 'power_level']:
             # These ones should 'collapse'
             # (i.e., all values should be the same)
             # So we only need that one value.
-            cfg['burst_config' + tag][ky + tag] = lib.collapse(dnow[ky], 
+            cfg['burst_config' + tag][ky + tag] = lib._collapse(dnow[ky], 
                                          exclude=collapse_exclude,
                                          name=ky)
             
@@ -397,8 +370,8 @@ def reorg(dat):
             outdat['data_vars'][ky + tag] = dnow[ky]
             
         for ky in ['batt_V', 'temp_mag', 'temp_clock',
-                   'error', 'status', #'xmit_energy',
-                   '_ensemble', 'ensemble', #'ambig_vel',
+                   'error', 'status',
+                   '_ensemble', 'ensemble',
                    ]:
             outdat['sys'][ky + tag] = dnow[ky]
             
@@ -424,20 +397,6 @@ def reorg(dat):
             if ky in dnow:
                 outdat['sys'][ky + tag] = dnow[ky]  
 
-        # for grp, keys in defs._burst_group_org.items():
-        #     if grp not in outdat and \
-        #         len(set(defs._burst_group_org[grp])
-        #             .intersection(outdat.keys())):
-        #             outdat[grp] = {} #db.TimeData()
-        #     for ky in keys:
-        #         if ky == grp and ky in outdat:
-        #             tmp = outdat.pop(grp)
-        #             outdat[grp] = {} #db.TimeData()
-        #             outdat[grp][ky] = tmp
-        #             #print(ky, tmp)
-        #         if ky + tag in outdat:
-        #             outdat[grp][ky + tag] = outdat.pop(ky + tag)
-
     # Move 'altimeter raw' data to it's own down-sampled structure
     if 26 in dat:
         ard = outdat['altraw']
@@ -456,16 +415,15 @@ def reorg(dat):
         N = ard['_map_N'] = len(outdat['coords']['time'])
         parent_map = np.arange(N)
         ard['_map'] = parent_map[np.in1d(outdat['sys']['ensemble'], ard['ensemble'])]
-        #outdat['config']['altraw'] = db.config(_type='ALTRAW', **ard.pop('config'))
     
     outdat['attrs']['coord_sys'] = {'XYZ': 'inst',
                                     'ENU': 'earth',
                                     'beam': 'beam'}[cfg['coord_sys_axes']]
-    tmp = lib.status2data(outdat['sys']['status'])  # returns a dict
+    tmp = lib._status2data(outdat['sys']['status'])  # returns a dict
     
     # Instrument direction
     # 0: XUP, 1: XDOWN, 2: YUP, 3: YDOWN, 4: ZUP, 5: ZDOWN, 
-    # 7: AHRS, handle as ZUP?
+    # 7: AHRS, handle as ZUP
     nortek_orient = {0:'horizontal', 1:'horizontal', 2:'horizontal',
                      3:'horizontal', 4:'up', 5:'down', 7:'AHRS'}
     outdat['attrs']['orientation'] = nortek_orient[tmp['orient_up'][0]]
@@ -475,7 +433,6 @@ def reorg(dat):
     for ky in ['accel', 'angrt', 'mag']:
         for dky in outdat['data_vars'].keys():
             if dky == ky or dky.startswith(ky + '_'):
-                # outdat.props['rotate_vars'].update({'orient.' + dky})
                 outdat['attrs']['rotate_vars'].append(dky)
     if 'vel_bt' in outdat['data_vars']:
         outdat['attrs']['rotate_vars'].append('vel_bt')
@@ -483,26 +440,26 @@ def reorg(dat):
     return outdat
 
 
-def reduce(data):
-    """This function takes the :class:``dolfyn.ADPdata`` object output
-    from `reorg`, and further simplifies the data. Mostly this is
-    combining system, environmental, and orientation data --- from
-    different data structures within the same ensemble --- by
-    averaging.  """
+def _reduce(data):
+    """This function takes the output from `reorg`, and further simplifies the 
+    data. Mostly this is combining system, environmental, and orientation data 
+    --- from different data structures within the same ensemble --- by
+    averaging.  
+    """
     # Average these fields
     for ky in ['c_sound', 'temp', 'pressure',
                'temp_press', 'temp_clock', 'temp_mag',
                'batt_V']:
-        grp = defs.get_group(ky)
+        grp = defs._get_group(ky)
         if grp is None:
             dnow = data
         else:
             dnow = data[grp]
-        lib.reduce_by_average(dnow, ky, ky + '_b5')
+        lib._reduce_by_average(dnow, ky, ky + '_b5')
 
     # Angle-averaging is treated separately
     for ky in ['heading', 'pitch', 'roll']:
-        lib.reduce_by_average_angle(data['data_vars'], ky, ky + '_b5')
+        lib._reduce_by_average_angle(data['data_vars'], ky, ky + '_b5')
 
     dv = data['data_vars']
     da = data['attrs']
@@ -530,9 +487,3 @@ def reduce(data):
         for icol in range(tmat['COLS']):
             tm[irow, icol] = tmat['M' + str(irow + 1) + str(icol + 1)]
     dv['beam2inst_orientmat'] = tm
-
-
-if __name__ == '__main__':
-
-    rdr = Ad2cpReader('../../example_data/BenchFile01.ad2cp')
-    rdr.readfile()
