@@ -229,7 +229,7 @@ class BitIndexer(object):
         if not self._data_is_array:
             return None
         if mask < 2:
-            return np.bool
+            return bool
         if mask < 2 ** 8:
             return np.uint8
         elif mask < 2 ** 16:

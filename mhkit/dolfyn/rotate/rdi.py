@@ -44,13 +44,18 @@ def inst2earth(adcpo, reverse=False,
     if not force and csin not in cs_allowed:
         raise ValueError("Invalid rotation for data in {}-frame "
                          "coordinate system.".format(csin))
+        
+    if 'orientmat' in adcpo:
+        rmat = adcpo['orientmat'].values
+    else:
+        rmat = calc_orientmat(adcpo)
 
     # rollaxis gives transpose of orientation matrix.
     # The 'rotation matrix' is the transpose of the 'orientation matrix'
     # NOTE the double 'rollaxis' within this function, and here, has
     # minimal computational impact because np.rollaxis returns a
     # view (not a new array)
-    rotmat = np.rollaxis(adcpo['orientmat'].values, 1)
+    rotmat = np.rollaxis(rmat, 1)
     if reverse:
         cs_new = 'inst'
         sumstr = 'jik,j...k->i...k'

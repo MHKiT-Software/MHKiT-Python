@@ -853,10 +853,10 @@ class NortekReader(object):
                     600: 0.0797,
                     400: 0.1195}
         h_ang = 25 * (np.pi / 180)  # The head angle is 25 degrees for all awacs.
-        # cs = np.float(self.config.user.BinLength) / 256. * \
+        # cs = float(self.config.user.BinLength) / 256. * \
         #     cs_coefs[self.config.head.freq] * np.cos(h_ang)
         # bd = self.config.user.Transmit['blank_distance'] * \
-        cs = round(np.float(self.config['BinLength']) / 256. * \
+        cs = round(float(self.config['BinLength']) / 256. * \
                    cs_coefs[self.config['freq']] * np.cos(h_ang), ndigits=1)
         bd = round(self.config['Transmit']['blank_distance'] * \
                    0.0229 * np.cos(h_ang) - cs, ndigits=1)

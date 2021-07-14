@@ -79,15 +79,15 @@ class VarAtts(object):
             #    return self.dims
 
     def _empty_array(self, **kwargs):
-        out = np.empty(self.shape(**kwargs), dtype=self.dtype)
-        #try:
-        out[:] = np.NaN
-        # except:
-        #     pass
+        out = np.zeros(self.shape(**kwargs), dtype=self.dtype)
+        try:
+            out[:] = np.NaN
+        except:
+            pass
         if self.view_type is not None:
             out = out.view(self.view_type)
-        if self.default_val is not None:
-            out[:] = self.default_val
+        # if self.default_val is not None:
+        #     out[:] = self.default_val
         return out
 
     def sci_func(self, data):

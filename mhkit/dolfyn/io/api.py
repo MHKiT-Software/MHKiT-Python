@@ -103,7 +103,7 @@ def save(dataset, filename):
 
 def load(filename):
     """
-    Load xarray dataset from netCDF ('.nc')
+    Load xarray dataset from netCDF (.nc)
     
     Parameters
     ----------
@@ -134,10 +134,19 @@ def save_mat(dataset, filename):
     
     Parameters
     ----------
-    dataset : xr.Dataset
+    dataset : xarray.Dataset
+        Data to save
     
     filename : str
         Filename and/or path with the '.mat' extension
+        
+    Notes
+    -----
+    The xarray data format is saved as a MATLAB structure with the fields 'vars, coords, config, units'
+    
+    See Also
+    --------
+    ~scipy.io.savemat
     
     """
     if filename[-4:] != '.mat':
@@ -157,7 +166,7 @@ def save_mat(dataset, filename):
     
 def load_mat(filename):
     """
-    Load xarray dataset from MATLAB (.mat) file
+    Load xarray dataset from MATLAB (.mat) file (complimentary to `save_mat()`)
     
     .mat file must contain the fields: {vars, coords, config, units},
     where 'coords' contain the dimensions of all variables in 'vars'.
@@ -166,6 +175,10 @@ def load_mat(filename):
     ----------
     filename : str
         Filename and/or path with the '.mat' extension
+        
+    See Also
+    --------
+    ~scipy.io.loadmat
     
     """
     if filename[-4:] != '.mat':

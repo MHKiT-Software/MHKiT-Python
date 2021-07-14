@@ -90,7 +90,7 @@ class bin_reader(object):
     _frmt = {np.uint8: 'B', np.int8: 'b',
              np.uint16: 'H', np.int16: 'h',
              np.uint32: 'L', np.int32: 'l',
-             np.float: 'f', np.float32: 'f',
+             float: 'f', np.float32: 'f',
              np.double: 'd', np.float64: 'd',
              }
 
