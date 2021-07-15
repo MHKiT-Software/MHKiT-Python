@@ -2,13 +2,11 @@ from os.path import abspath, dirname, join, isfile, normpath, relpath
 import scipy.interpolate as interp
 import matplotlib.pyplot as plt
 import numpy as np
-import netCDF4
 import pandas as pd
+import netCDF4
 
 
-
-
-def _get_layer_data(data, variable, layer = -1 , time_step=-1):
+def get_layer_data(data, variable, layer = -1 , time_step=-1):
     '''
     Get variable data from netcdf4 object at specified layer and timestep. 
 
@@ -36,15 +34,13 @@ def _get_layer_data(data, variable, layer = -1 , time_step=-1):
     itime= time_step
     x=np.ma.getdata(data.variables[coords[0]][:], False) 
     y=np.ma.getdata(data.variables[coords[1]][:], False)
-    if layer > max_layer:
-        v=[0]*len(x)
-    else:
-        v= np.ma.getdata(var[itime,:,layer], False)
+    assert layer <= max_layer, 'layer must be less than or equal to max layer'
+    assert layer >= 0, 'layer must be greater than or equal to 0'
+    v= np.ma.getdata(var[itime,:,layer], False)
     return x,y,v
 
 
-
-def create_points( x, y, z):
+def create_points(x, y, z):
 
     '''
     Turns x, y, and z into a DataFrame of points to interpolate over,
@@ -66,22 +62,23 @@ def create_points( x, y, z):
         DataFrame of x, y and z points 
 
     '''
-    # assert (instance( x,(int, float, array),' x must be a int, float or array'))
-    # assert (instance( y,(int, float, array),' x must be a int, float or array'))
-    # assert (instance( z,(int, float, array),' x must be a int, float or array'))
+    #assert isinstance(x, (int, float, np.array)), 'x must be a int, float or array'
+    #assert isinstance(y, (int, float, np.array)), 'y must be a int, float or array'
+    #assert isinstance(z, (int, float, np.array)), 'z must be a int, float or array'
     
-    directions = {0: {'name' : 'x',
+    directions = {0:{'name':  'x',
                      'values': x},
-                 1:{'name' : 'y',
-                    'values' : y},
-                 2:{'name' : 'z',
-                    'values' : z}}
+                  1:{'name':  'y',
+                     'values': y},
+                  2:{'name':  'z',
+                     'values': z}}
 
     for i in directions:
         try:
             len(directions[i]['values'])
         except:
             directions[i]['values'] = np.array([directions[i]['values']])  
+            
         N= len(directions[i]['values'])
         if N== 1 :
             directions[i]['type']= 'point'
@@ -90,8 +87,8 @@ def create_points( x, y, z):
         else:
             raise Exception(f'length of direction {directions[i]["name"]} was neagative or zero')
     
+    # Check how many times point is in "types" 
     types= [directions[i]['type'] for i in directions]
-    #check how many times point is in "types" 
     N_points = types.count('point')
     if N_points >= 2: 
         #  treat_as centerline 
@@ -99,8 +96,7 @@ def create_points( x, y, z):
         max_len_idx = lens.argmax()
         not_max_idxs= [i for i in directions.keys()]
         del not_max_idxs[max_len_idx]
-                
-                    
+
         for not_max in not_max_idxs:     
             N= len(directions[max_len_idx]['values'])
             vals =np.ones(N)*directions[not_max]['values']
@@ -112,14 +108,13 @@ def create_points( x, y, z):
             
         request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x_new, y_new, z_new)]) 
         points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
-    elif N_points ==1: 
+    elif N_points == 1: 
         # treat as plane
-        #find inded of point 
+        #find index of point 
         idx_point = types.index('point')
         max_idxs= [i for i in directions.keys()]
         del max_idxs[idx_point]
         #find vectors 
-        # 
         XX, YY = np.meshgrid(directions[max_idxs[0]]['values'], directions[max_idxs[1]]['values'] )
         N_X=np.shape(XX)[1]#or take len of original vectors 
         N_Y=np.shape(YY)[0]
@@ -133,11 +128,8 @@ def create_points( x, y, z):
         points= pd.DataFrame(request, columns=columns)
     else: 
         raise Exception('Can provide at most two vectors')
-    
 
-
-    return points
- 
+    return points 
 
 
 def get_all_data_points(data, variable, time_step):  
@@ -156,7 +148,7 @@ def get_all_data_points(data, variable, time_step):
     Returns
     -------
     all_data: DataFrame 
-        Data frame of x , y, z, and variable 
+        Data frame of x, y, z, and variable 
 
     '''  
 #    assert instance (variable, ['turbkin1', 'ucx', 'ucy', 'ucz','s1',
@@ -176,8 +168,22 @@ def get_all_data_points(data, variable, time_step):
         Layer_percentages= np.ma.getdata(cord_sys, False) 
         
         
-    bottom_depth=np.ma.getdata(data.variables['waterdepth'][time_step, :], False)# add Time_step
-    
+    bottom_depth=np.ma.getdata(data.variables['waterdepth'][time_step, :], False)
+    if layer_dim == 'wdim': 
+        #interpolate 
+        coords = str(data.variables['waterdepth'].coordinates).split()
+        x_laydim=np.ma.getdata(data.variables[coords[0]][:], False) 
+        y_laydim=np.ma.getdata(data.variables[coords[1]][:], False)
+        points_laydim = np.array([ [x, y] for x, y in zip(x_laydim, y_laydim)])
+        
+        coords_request = str(data.variables[variable].coordinates).split()
+        x_wdim=np.ma.getdata(data.variables[coords_request[0]][:], False) 
+        y_wdim=np.ma.getdata(data.variables[coords_request[1]][:], False)
+        points_wdim=np.array([ [x, y] for x, y in zip(x_wdim, y_wdim)])
+        
+        bottom_depth_wdim = interp.griddata( points_laydim, bottom_depth, points_wdim, method= 'nearest')
+        
+        
     x_all=[]
     y_all=[]
     z_all=[]
@@ -185,8 +191,11 @@ def get_all_data_points(data, variable, time_step):
     
     N_layers = range(len(Layer_percentages))
     for layer in N_layers:
-        x,y,v= _get_layer_data(data, variable, layer, time_step)
-        z = [bottom_depth*Layer_percentages[layer]]
+        x,y,v= get_layer_data(data, variable, layer, time_step)
+        if layer_dim == 'wdim': 
+            z = [bottom_depth_wdim*Layer_percentages[layer]]
+        else: 
+            z = [bottom_depth*Layer_percentages[layer]]
         x_all=np.append(x_all, x)
         y_all=np.append(y_all, y)
         z_all=np.append(z_all, z)
@@ -198,10 +207,12 @@ def get_all_data_points(data, variable, time_step):
     
     return all_data
 
-def interpolate_data(data_points, values , request_points):
-   
+
+def interpolate_data(data_points, values , request_points):   
     '''
-    interpolate for "requested_points" vales over the known "data_points" wiuth corresponding "values" 
+    Interpolate for "requested_points" vales over the known "data_points" 
+    with corresponding "values" 
+    
     Parameters
     ----------
     data : netcdf4 object 
@@ -215,11 +226,11 @@ def interpolate_data(data_points, values , request_points):
     -------
     v_new: array 
         interpolated values for locations in request_points 
-
     '''
     v_new = interp.griddata(data_points, values, request_points)
 
     return v_new
+
 
 def unorm(x, y ,z):
     '''
@@ -227,20 +238,19 @@ def unorm(x, y ,z):
 
     Parameters
     ----------
-    x : Array 
-       one input for the root mean squared calculation.(eq. x velocity) 
-    y : Array
+    x: array 
+        one input for the root mean squared calculation.(eq. x velocity) 
+    y: array
         one input for the root mean squared calculation.(eq. y velocity) 
-    z : Array
+    z: array
         one input for the root mean squared calculation.(eq. z velocity) 
 
     Returns
     -------
     unorm : array 
         root mean squared output 
-
     '''
-    assert(isinstance(x,np.array),'x input not reconized')
+    assert isinstance(x,np.array), 'x input not reconized'
     if len(x) == len(y) & len (y) ==len (z) :
         unorm=np.sqrt(x**2 + y**2 + z**2)
     else:
@@ -269,9 +279,6 @@ def turbulent_intensity(data, points='cells'):
         turbulent kinetic energy devided by the root mean squared velocity
 
     '''
-
-
-    
     TI_vars= ['turkin1', 'ucx', 'ucy', 'ucz']
     TI_data_raw = {}
     for var in TI_vars:
@@ -296,41 +303,3 @@ def turbulent_intensity(data, points='cells'):
     turbulent_intensity= np.sqrt(2/3*TI_data['turkin1'])/u_mag
                                  
     return turbulent_intensity
-    
-exdir= dirname(abspath(__file__))
-datadir = normpath(join(exdir,relpath('data/river/d3d')))
-filename= 'turbineTest_map.nc'
-data = netCDF4.Dataset(join(datadir,filename))
-
-
-x =  np.linspace (0.1, 17.9, num=1000)
-y = np.linspace (1.1, 4.9, num=1000)
-z=  1#np.linspace (0.2, 1.8, num=100) 
-    
-#request= np.array([ [x, y, z] for x, y, z in zip(x_new, y_new, z_new)]) 
-#request_points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
-#points=request_points
-   
-variables= ['ucx'] # , 'turkin1', 'ucx', 'ucy', 'ucz'] 
-
-#check that variable is in data set 
-
-var_data_df=get_all_data_points(data, variables[0],time_step=-1)
-
-var_data_df['TI' ] = turbulent_intensity(data,points='cells')
-points = create_points(var_data_df.x, var_data_df.y, z)
-points[variables[0]]=interpolate_data(var_data_df[['x','y','z']], var_data_df[variables[0]],
-            points[['x','y','z']])   
-
-# Plots 
-var_data_df.dropna(inplace=True)
-
-contour_plot= plt.tricontourf(var_data_df.x,var_data_df.y,var_data_df.ucx) 
-units= data.variables['unorm'].units
-cname='Turbulent Intesity'
-cbar= plt.colorbar(contour_plot)
-cbar.set_label(f'{cname} [{units}]')
-plt.xlabel('x (m)')# user input 
-plt.ylabel('y (m)')
-plt.title('Cells')
-#         plt.show()
