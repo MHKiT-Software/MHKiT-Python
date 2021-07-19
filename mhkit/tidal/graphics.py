@@ -315,7 +315,7 @@ def plot_current_timeseries(directions, velocities, principal_direction,
                   xlabel='Time', ylabel='Velocity [$m/s$]', ax=ax)
     return ax
 
-def tidal_phase_probaility(directions, velocities, flood, ebb, 
+def tidal_phase_probability(directions, velocities, flood, ebb, 
     bin_size=0.1, ax=None):
     '''
     Discretizes the tidal series speed by bin size and returns a plot
