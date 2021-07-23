@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import netCDF4
-import d3d
+from mhkit.river.io import d3d 
 
 # File location and load data
 exdir= dirname(abspath(__file__))
@@ -53,7 +53,7 @@ contour_variable = d3d.interpolate_data(var_data_df[['x','y','z']],
                      var_data_df[variables[0]],
                      contour_points[['x','y','z']])
 contour_points['contour_variable']= contour_variable
-#contour_points.dropna(inplace=True)   
+
 
 # plot layered data 
 layer=2
@@ -74,7 +74,7 @@ plt.savefig('cline.png')
 #Plot contour
 Type= 'Contour'
 plt.figure()
-contour_plot = plt.tricontourf(contour_points.x,contour_points.y,contour_points.contour_variable)#,vmin=0,vmax=0.08,levels=np.linspace(0,0.08,256))
+contour_plot = plt.tricontourf(contour_points.x,contour_points.y,contour_points.contour_variable,vmin=0,vmax=0.08,levels=np.linspace(0,0.08,10))
 plt.xlabel('x (m)')
 plt.ylabel('y(m)')
 plt.title(f'{Type} {data.variables[variables[0]].long_name}')
@@ -88,7 +88,7 @@ plt.savefig('contour.png')
 #Plot Layer 
 Type= 'Contour'
 plt.figure()
-contour_plot = plt.tricontourf(x_layer,y_layer,value_layer)#vmin=0,vmax=0.08,levels=np.linspace(0,0.08,256))
+contour_plot = plt.tricontourf(x_layer,y_layer,value_layer, vmin=0,vmax=0.08,levels=np.linspace(0,0.08,10))
 plt.xlabel('x (m)')
 plt.ylabel('y(m)')
 plt.title(f'{Type} Layer: {layer} {data.variables[variables[0]].long_name}')
@@ -99,7 +99,7 @@ plt.savefig(f'contour{layer}.png')
  
 Type= 'Contour'
 plt.figure()
-contour_plot = plt.tricontourf(x_layer2,y_layer2,value_layer2)#vmin=0,vmax=0.08,levels=np.linspace(0,0.08,256))
+contour_plot = plt.tricontourf(x_layer2,y_layer2,value_layer2,vmin=0,vmax=0.08,levels=np.linspace(0,0.08,10))
 plt.xlabel('x (m)')
 plt.ylabel('y(m)')
 plt.title(f'{Type} Layer: {layer2} {data.variables[variables[0]].long_name}')
