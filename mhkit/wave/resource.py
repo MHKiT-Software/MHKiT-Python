@@ -63,7 +63,7 @@ def elevation_spectrum(eta, sample_rate, nnft, window='hann', detrend=True, nove
     return S
 
 
-def pierson_moskowitz_spectrum(f, Tp):
+def pierson_moskowitz_spectrum(f, Tp, Hs):
     """
     Calculates Pierson-Moskowitz Spectrum from Tucker and Pitt (2001) 
     
@@ -73,6 +73,8 @@ def pierson_moskowitz_spectrum(f, Tp):
         Frequency [Hz]
     Tp: float/int
         Peak period [s]  
+    Hs: float/int
+        Significant wave height [m]         
     
     Returns
     ---------
@@ -86,12 +88,13 @@ def pierson_moskowitz_spectrum(f, Tp):
         pass
     assert isinstance(f, np.ndarray), 'f must be of type np.ndarray'
     assert isinstance(Tp, (int,float)), 'Tp must be of type int or float'
+    assert isinstance(Hs, (int,float)), 'Hs must be of type int or float'
     
     f.sort()
     g = 9.81   
-    B_PM = (5/4)*(1/Tp)**(4)
+    B_PM = (5/4)*(1/Tp)**4
     #A_PM = 0.0081*g**2*(2*np.pi)**(-4)
-    A_PM = B_PM*(Hs/2)^2;
+    A_PM = B_PM*(Hs/2)**2
     Sf  = A_PM*f**(-5)*np.exp(-B_PM*f**(-4)) 
      
     col_name = 'Pierson-Moskowitz ('+str(Tp)+'s)'
@@ -165,21 +168,21 @@ def jonswap_spectrum(f, Tp, Hs, gamma=None):
     assert isinstance(f, np.ndarray), 'f must be of type np.ndarray'
     assert isinstance(Tp, (int,float)), 'Tp must be of type int or float'
     assert isinstance(Hs, (int,float)), 'Hs must be of type int or float'
-    assert isinstance(gamma, (int,float)), 'gamma must be of type int or float'
+    assert isinstance(gamma, (int,float, type(None))), \
+        'gamma must be of type int or float'
 
     f.sort()    
     g = 9.81 
     
     if not gamma:
-        TpsqrtHs = Tp/sqrt(Hs);
-        if TpsqrtHs <= 3.6
+        TpsqrtHs = Tp/np.sqrt(Hs);
+        if TpsqrtHs <= 3.6:
             gamma = 5;
-        elif TpsqrtHs > 5
+        elif TpsqrtHs > 5:
             gamma = 1;
-        else
+        else:
             gamma = exp(5.75 - 1.15*TpsqrtHs);
         
-    
     # Cutoff frequencies for gamma function
     siga = 0.07 
     sigb = 0.09 

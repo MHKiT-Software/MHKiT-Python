@@ -41,7 +41,7 @@ class TestResourceSpectrum(unittest.TestCase):
         pass
     
     def test_pierson_moskowitz_spectrum(self):
-        S = wave.resource.pierson_moskowitz_spectrum(self.f,self.Tp)
+        S = wave.resource.pierson_moskowitz_spectrum(self.f,self.Tp,self.Hs)
         Tp0 = wave.resource.peak_period(S).iloc[0,0]
         
         error = np.abs(self.Tp - Tp0)/self.Tp
@@ -161,7 +161,7 @@ class TestResourceSpectrum(unittest.TestCase):
         if isfile(filename):
             os.remove(filename)
         
-        S = wave.resource.pierson_moskowitz_spectrum(self.f,self.Tp)
+        S = wave.resource.pierson_moskowitz_spectrum(self.f,self.Tp,self.Hs)
         
         plt.figure()
         wave.graphics.plot_spectrum(S)
