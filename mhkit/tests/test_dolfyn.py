@@ -17,8 +17,7 @@ import unittest
 from datetime import datetime
 import numpy as np
 import numpy.testing as npt
-from xarray.testing import assert_equal, assert_identical, assert_allclose
-warnings.simplefilter('ignore', UserWarning)
+from xarray.testing import assert_identical, assert_allclose
 atexit.register(pkg_resources.cleanup_resources)
 
 # Base definitions
@@ -80,6 +79,7 @@ class io_testcase(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         sys.stdout = open(os.devnull, 'w') # block printing output
+        warnings.simplefilter('ignore', UserWarning)
         #pass
 
     @classmethod
@@ -95,7 +95,7 @@ class io_testcase(unittest.TestCase):
         assert os.path.exists(rfnm('test_save.mat'))
     
     
-    def test_read(self):
+    def test_io_adv(self):
         td = read('vector_data01.VEC', nens=100)
         tdm = read('vector_data_imu01.VEC',
                    userdata=False,
@@ -113,11 +113,11 @@ class io_testcase(unittest.TestCase):
         tdm = set_inst2head_rotmat(tdm, np.eye(3))
         tdm.attrs['inst2head_vec'] = np.array([-1.0, 0.5, 0.2])
         
-        assert_equal(td, dat)
-        assert_equal(tdm, dat_imu)
-        assert_equal(tdb, dat_burst)
-        assert_equal(tdm2, dat_imu_json)
-        assert_equal(td_debug, tdm2)
+        assert_allclose(td, dat, atol=1e-6)
+        assert_allclose(tdm, dat_imu, atol=1e-6)
+        assert_allclose(tdb, dat_burst, atol=1e-6)
+        assert_allclose(tdm2, dat_imu_json, atol=1e-6)
+        assert_allclose(td_debug, tdm2, atol=1e-6)
         
     
     def test_io_rdi(self):
@@ -129,12 +129,12 @@ class io_testcase(unittest.TestCase):
         td_debug = drop_config(wh.read_rdi(exdt('RDI_withBT.000'), debug=11,
                                            nens=500))
                                               
-        assert_equal(td_rdi, dat_rdi)
-        assert_equal(td_rdi_bt, dat_rdi_bt)
-        assert_equal(td_vm, dat_rdi_vm)
-        assert_equal(td_wr1, dat_wr1)
-        assert_equal(td_wr2, dat_wr2)
-        assert_equal(td_debug, td_rdi_bt)
+        assert_allclose(td_rdi, dat_rdi, atol=1e-6)
+        assert_allclose(td_rdi_bt, dat_rdi_bt, atol=1e-6)
+        assert_allclose(td_vm, dat_rdi_vm, atol=1e-6)
+        assert_allclose(td_wr1, dat_wr1, atol=1e-6)
+        assert_allclose(td_wr2, dat_wr2, atol=1e-6)
+        assert_allclose(td_debug, td_rdi_bt, atol=1e-6)
     
     
     def test_io_nortek(self):
@@ -144,10 +144,10 @@ class io_testcase(unittest.TestCase):
         td_debug = drop_config(awac.read_nortek(exdt('AWAC_test01.wpr'), 
                                debug=True, do_checksum=True, nens=500))
                                   
-        assert_equal(td_awac, dat_awac)
-        assert_equal(td_awac_ud, dat_awac_ud)
-        assert_equal(td_hwac, dat_hwac)
-        assert_equal(td_awac_ud, td_debug)
+        assert_allclose(td_awac, dat_awac, atol=1e-6)
+        assert_allclose(td_awac_ud, dat_awac_ud, atol=1e-6)
+        assert_allclose(td_hwac, dat_hwac, atol=1e-6)
+        assert_allclose(td_awac_ud, td_debug, atol=1e-6)
         
     
     def test_io_nortek2(self):
@@ -162,11 +162,11 @@ class io_testcase(unittest.TestCase):
         os.remove(exdt('VelEchoBT01.ad2cp.index'))
         os.remove(exdt('Sig500_Echo.ad2cp.index'))
     
-        assert_equal(td_sig, dat_sig)
-        assert_equal(td_sig_i, dat_sig_i)
-        assert_equal(td_sig_i_ud, dat_sig_i_ud)
-        assert_equal(td_sig_ieb, dat_sig_ieb)
-        assert_equal(td_sig_ie, dat_sig_ie)
+        assert_allclose(td_sig, dat_sig, atol=1e-6)
+        assert_allclose(td_sig_i, dat_sig_i, atol=1e-6)
+        assert_allclose(td_sig_i_ud, dat_sig_i_ud, atol=1e-6)
+        assert_allclose(td_sig_ieb, dat_sig_ieb, atol=1e-6)
+        assert_allclose(td_sig_ie, dat_sig_ie, atol=1e-6)
         
     
     def test_badtime(self):
@@ -213,7 +213,7 @@ class rotate_testcase(unittest.TestCase):
         td['heading'].values = head
     
         cd = load('vector_data_imu01_head_pitch_roll.nc')
-        assert_equal(td, cd)
+        assert_allclose(td, cd, atol=1e-7)
         
     
     def test_inst2head_rotmat(self):
@@ -229,19 +229,20 @@ class rotate_testcase(unittest.TestCase):
         #         (td.Veldata.w == -tr.dat.Veldata.w).all()
         #         ), "head->inst rotations give unexpeced results."
         #Coords don't get altered here
-        npt.assert_allclose(td.Veldata.u.values, dat.Veldata.v.values)
-        npt.assert_allclose(td.Veldata.v.values, dat.Veldata.u.values)
-        npt.assert_allclose(td.Veldata.w.values, -dat.Veldata.w.values)
+        npt.assert_allclose(td.Veldata.u.values, dat.Veldata.v.values, atol=1e-6)
+        npt.assert_allclose(td.Veldata.v.values, dat.Veldata.u.values, atol=1e-6)
+        npt.assert_allclose(td.Veldata.w.values, -dat.Veldata.w.values, atol=1e-6)
     
         # Validation for non-symmetric rotations
         td = dat.copy(deep=True)
         R = euler2orient(20, 30, 60, units='degrees') # arbitrary angles
         td = set_inst2head_rotmat(td, R)
+        
         vel1 = td.vel
         # validate that a head->inst rotation occurs (transpose of inst2head_rotmat)
         vel2 = np.dot(R, dat.vel)
         #assert (vel1 == vel2).all(), "head->inst rotations give unexpeced results."
-        npt.assert_allclose(vel1.values, vel2)
+        npt.assert_allclose(vel1.values, vel2, atol=1e-6)
         
     
     def test_rotate_inst2earth_adv(self):
@@ -255,9 +256,9 @@ class rotate_testcase(unittest.TestCase):
         cd = load('vector_data01_rotate_inst2earth.nc')
         cdm = load('vector_data_imu01_rotate_inst2earth.nc')
     
-        assert_equal(td, cd)
-        assert_equal(tdm, cdm)
-        assert_equal(td, cd)
+        assert_allclose(td, cd, atol=1e-6)
+        assert_allclose(tdm, cdm, atol=1e-6)
+        assert_allclose(td, cd, atol=1e-6)
     
     
     def test_rotate_earth2inst_adv(self):
