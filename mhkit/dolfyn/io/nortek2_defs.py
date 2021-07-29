@@ -186,7 +186,7 @@ _burst_hdr = [
     ('batt_V', 'H', [], LinFunc(0.1, dtype=dt16)),  # Volts
     ('mag', 'h', [3], LinFunc(0.1, dtype=dt32), 'uT'),
     ('accel', 'h', [3], LinFunc(1. / 16384 * grav, dtype=dt32), 'm/s^2'),
-    ('ambig_vel', 'h', [], LinFunc(0.001, dtype=dt16), 'm/s'),
+    ('ambig_vel', 'h', [], LinFunc(0.001, dtype=dt32), 'm/s'),
     ('data_desc', 'H', [], None),
     ('xmit_energy', 'H', [], None, 'dB'),
     ('vel_scale', 'b', [], None),
@@ -225,7 +225,7 @@ _bt_hdr = [
     ('batt_V', 'H', [], LinFunc(0.1, dtype=dt16)),  # Volts
     ('mag', 'h', [3], None, 'gauss'),
     ('accel', 'h', [3], LinFunc(1. / 16384 * grav, dtype=dt32), 'm/s^2'),
-    ('ambig_vel', 'I', [], LinFunc(0.001, dtype=dt16), 'm/s'),
+    ('ambig_vel', 'I', [], LinFunc(0.001, dtype=dt32), 'm/s'),
     ('data_desc', 'H', [], None),
     ('xmit_energy', 'H', [], None, 'dB'),
     ('vel_scale', 'b', [], None),
@@ -293,7 +293,7 @@ def calc_echo_struct(config, nc):
                                  'alt_raw', 'p_gd', 'std']]):
         raise Exception("Echosounder ping contains invalid data?")
     if flags['echo']:
-        dd += [('echo', 'H', [nc], LinFunc(0.01, dtype=dt16), 'dB')]
+        dd += [('echo', 'H', [nc], LinFunc(0.01, dtype=dt32), 'dB')]
     if flags['ahrs']:
         dd += _ahrs_def
     return DataDef(dd)
@@ -308,18 +308,18 @@ def calc_burst_struct(config, nb, nc):
         dd.append(('vel', 'h', [nb, nc], None, 'm/s'))
     if flags['amp']:
         dd.append(('amp', 'B', [nb, nc],
-                   LinFunc(0.5, dtype=dt16), 'dB'))
+                   LinFunc(0.5, dtype=dt32), 'dB'))
     if flags['corr']:
         dd.append(('corr', 'B', [nb, nc], None, '%'))
     if flags['alt']:
         # There may be a problem here with reading 32bit floats if
         # nb and nc are odd?
-        dd += [('alt_dist', 'f', [], LinFunc(dtype=dt16), 'm'),
+        dd += [('alt_dist', 'f', [], LinFunc(dtype=dt32), 'm'),
                ('alt_quality', 'H', [], LinFunc(0.01,dtype=dt32), 'dB'),
                ('alt_status', 'H', [], None)]
     if flags['ast']:
         dd += [
-            ('ast_dist', 'f', [], LinFunc(dtype=dt16), 'm'),
+            ('ast_dist', 'f', [], LinFunc(dtype=dt32), 'm'),
             ('ast_quality', 'H', [], LinFunc(0.01,dtype=dt32), 'dB'),
             ('ast_offset_time', 'h', [], LinFunc(0.0001, dtype=dt32), 's'),
             ('ast_pressure', 'f', [], None, 'dbar'),

@@ -1,3 +1,4 @@
+import numpy as np
 import scipy.io as sio
 import xarray as xr
 import pkg_resources
@@ -95,10 +96,21 @@ def save(dataset, filename):
         if 'config' in key:
             dataset.attrs.pop(key)
     
+    # handling complex values
+    dataset.attrs['complex_vars'] = []
+    for var in dataset.data_vars:
+        if np.iscomplexobj(dataset[var]):
+            dataset[var+'_real'] = dataset[var].real
+            dataset[var+'_imag'] = dataset[var].imag
+            
+            dataset = dataset.drop(var)
+            dataset.attrs['complex_vars'].append(var)
+        
     dataset.to_netcdf(filename, 
                       format='NETCDF4', 
-                      engine='h5netcdf', 
-                      invalid_netcdf=True)
+                      engine='netcdf4', #'h5netcdf', 
+                      #invalid_netcdf=True,
+                      )
     
 
 def load(filename):
@@ -115,15 +127,23 @@ def load(filename):
         filename += '.nc'
         
     # this engine reorders attributes into alphabetical order
-    ds = xr.load_dataset(filename, engine='h5netcdf')
-    
+    ds = xr.load_dataset(filename, 
+                         engine='netcdf4', #'h5netcdf',
+                         )
+
     # xarray converts single list items to ints or strings
-    if hasattr(ds, 'rotate_vars') and len(ds.rotate_vars)==1:
-        ds.attrs['rotate_vars'] = list(ds.rotate_vars)
+    if hasattr(ds, 'rotate_vars') and len(ds.rotate_vars[0])==1:
+        ds.attrs['rotate_vars'] = [ds.rotate_vars]
         
-    # reloads lists as numpy arrays???
+    # reloads lists as numpy arrays??? oi vey netcdf
     if hasattr(ds, 'rotate_vars') and type(ds.rotate_vars) is not list:
         ds.attrs['rotate_vars'] = list(ds.rotate_vars)
+        
+    if hasattr(ds, 'complex_vars'):
+        for var in ds.complex_vars:
+            ds[var] = ds[var+'_real'] + ds[var+'_imag'] * 1j
+            ds = ds.drop_vars([var+'_real', var+'_imag'])
+        ds.attrs.pop('complex_vars')
     
     return ds
 
