@@ -378,10 +378,16 @@ def tidal_phase_probability(directions, velocities, flood, ebb,
 
     center = (bins[:-1] + bins[1:]) / 2
     width = 0.9 * (bins[1] - bins[0])
-    ax.bar(center, height=p_ebb, edgecolor='black', width=width, 
-            label='Ebb')
+
+    mask1 = np.ma.where(p_ebb>=p_flood)
+    mask2 = np.ma.where(p_flood>=p_ebb)
+
+    ax.bar(center[mask1], height=p_ebb[mask1], edgecolor='black', width=width, 
+            label='Ebb',color='blue')
     ax.bar(center, height=p_flood, edgecolor='black', width=width, 
-            alpha=0.8, label='Flood')
+            alpha=1, label='Flood',color='orange')
+    ax.bar(center[mask2],height=p_ebb[mask2], alpha=1, edgecolor='black',
+            width=width,color='blue')
 
     plt.xlabel('Velocity [m/s]')
     plt.ylabel('Probability')
