@@ -28,14 +28,22 @@ def get_layer_data(data, variable, layer = -1 , time_step=-1):
         "x" and "y" location on specified layer with the variables values "v"
 
     '''
+    assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
+    assert variable in data.variables.keys(), 'varaiable not reconized'
     coords = str(data.variables[variable].coordinates).split()
     var=data.variables[variable][:]
-    max_layer= len(var[0][0])
+    max_time_step= len(var)
+    assert time_step <= max_time_step, 'time_step must be less than or equal to max layer'
+    assert time_step >= -1, 'time_step must be greater than or equal to -1'
     itime= time_step
+    
+    max_layer= len(var[0][0])
+    assert layer <= max_layer, 'layer must be less than or equal to max layer'
+    assert layer >= -1, 'layer must be greater than or equal to -1'
+    
     x=np.ma.getdata(data.variables[coords[0]][:], False) 
     y=np.ma.getdata(data.variables[coords[1]][:], False)
-    assert layer <= max_layer, 'layer must be less than or equal to max layer'
-    assert layer >= 0, 'layer must be greater than or equal to 0'
+
     v= np.ma.getdata(var[itime,:,layer], False)
     return x,y,v
 
@@ -62,9 +70,9 @@ def create_points(x, y, z):
         DataFrame of x, y and z points 
 
     '''
-    #assert isinstance(x, (int, float, np.array)), 'x must be a int, float or array'
-    #assert isinstance(y, (int, float, np.array)), 'y must be a int, float or array'
-    #assert isinstance(z, (int, float, np.array)), 'z must be a int, float or array'
+    assert isinstance(x, (int, float, np.ndarray)), 'x must be a int, float or array'
+    assert isinstance(y, (int, float, np.ndarray)), 'y must be a int, float or array'
+    assert isinstance(z, (int, float, np.ndarray)), 'z must be a int, float or array'
     
     directions = {0:{'name':  'x',
                      'values': x},
@@ -151,10 +159,13 @@ def get_all_data_points(data, variable, time_step):
         Data frame of x, y, z, and variable 
 
     '''  
-#    assert instance (variable, ['turbkin1', 'ucx', 'ucy', 'ucz','s1',
-#    's0', 'waterdepth', 'numlimdt', 'taus', 'unorm', 'u0', 'q1', 'viu', 'diu',
-#    'ucxa', 'ucya', 'rho', 'turkin1', 'vicwwu', 'tureps1', 'czs'], 'variable not reconized')
-    
+    assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
+    assert variable in data.variables.keys(), 'varaiable not reconized'
+
+    max_time_step= len(data.variables[variable][:])
+    assert time_step <= max_time_step, 'time_step must be less than or equal to max layer'
+    assert time_step >= -1, 'time_step must be greater than or equal to -1'
+
     cords_to_layers= {'laydim': data.variables['LayCoord_cc'][:],
                        'wdim': data.variables['LayCoord_w'][:]}
     lay_element= 2 
@@ -263,7 +274,10 @@ def unorm(x, y ,z):
     unorm : array 
         root mean squared output 
     '''
-    assert isinstance(x,np.array), 'x input not reconized'
+    assert isinstance(x,np.array), 'x must be an array'
+    assert isinstance(y,np.array), 'y must be an array'
+    assert isinstance(z,np.array), 'z must be an array'
+    
     if len(x) == len(y) & len (y) ==len (z) :
         unorm=np.sqrt(x**2 + y**2 + z**2)
     else:
@@ -292,6 +306,9 @@ def turbulent_intensity(data, points='cells'):
         turbulent kinetic energy devided by the root mean squared velocity
 
     '''
+    assert points == 'cells' or points=='faces', 'points must be cells or faces'
+    assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
+    
     TI_vars= ['turkin1', 'ucx', 'ucy', 'ucz']
     TI_data_raw = {}
     for var in TI_vars:
