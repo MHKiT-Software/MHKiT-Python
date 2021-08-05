@@ -248,7 +248,7 @@ class TestIO(unittest.TestCase):
         
     def test_load_usgs_data_daily(self):
         file_name = join(datadir, 'USGS_08313000_Jan2019_daily.json')
-        data = river.io.read_usgs_file(file_name)
+        data = river.io.usgs.read_usgs_file(file_name)
 
         expected_index = pd.date_range('2019-01-01', '2019-01-31', freq='D')
         self.assertEqual(data.columns, ['Discharge, cubic feet per second'])
@@ -267,7 +267,7 @@ class TestIO(unittest.TestCase):
     
    
     def test_request_usgs_data_instant(self):
-        data=river.io.request_usgs_data(station="15515500",
+        data=river.io.usgs.request_usgs_data(station="15515500",
                             parameter='00060',
                             start_date='2009-08-01',
                             end_date='2009-08-10',

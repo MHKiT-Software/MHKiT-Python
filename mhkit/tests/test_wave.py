@@ -1,5 +1,6 @@
 from os.path import abspath, dirname, join, isfile, normpath, relpath
 from pandas.testing import assert_frame_equal
+import xarray.testing as xrt
 from numpy.testing import assert_allclose
 from scipy.interpolate import interp1d
 import matplotlib.pylab as plt
@@ -10,6 +11,7 @@ import pandas as pd
 import numpy as np
 import contextlib
 import unittest
+import netCDF4
 import inspect
 import pickle
 import json
@@ -209,12 +211,16 @@ class TestResourceSpectrum(unittest.TestCase):
         plt.savefig(filename)
         
         self.assertTrue(isfile(filename))
-        
 
 class TestResourceMetrics(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
+        omega = np.arange(0.1,3.5,0.01)
+        self.f = omega/(2*np.pi)
+        self.Hs = 2.5
+        self.Tp = 8
+    
         file_name = join(datadir, 'ValData1.json')
         with open(file_name, "r") as read_file:
             self.valdata1 = pd.DataFrame(json.load(read_file))
@@ -258,7 +264,7 @@ class TestResourceMetrics(unittest.TestCase):
             temp.index = temp.index.astype(float)
             self.valdata2['CDiP'][i]['S'] = temp
 
-            
+                    
     @classmethod
     def tearDownClass(self):
         pass
@@ -270,11 +276,95 @@ class TestResourceMetrics(unittest.TestCase):
             rho = self.valdata1[i]['rho']
             
             expected = self.valdata1[i]['k']
-            calculated = wave.resource.wave_number(f, h, rho).loc[:,'k'].values
+            k = wave.resource.wave_number(f, h, rho)
+            calculated = k.loc[:,'k'].values
             error = ((expected-calculated)**2).sum() # SSE
             
             self.assertLess(error, 1e-6)
+
+    def test_kfromw_one_freq(self):
+        g = 9.81
+        f = 0.1
+        h = 1e9
+        w = np.pi*2*f # deep water dispersion
+        expected = w**2 / g
+        calculated = wave.resource.wave_number(f=f, h=h, g=g).values[0][0]
+        error = np.abs(expected-calculated)
+        self.assertLess(error, 1e-6)
     
+    def test_wave_length(self):
+        k_list=[1,2,10,3]
+        l_expected = (2.*np.pi/np.array(k_list)).tolist()
+        
+        k_df = pd.DataFrame(k_list,index = [1,2,3,4])
+        k_series= k_df[0]
+        k_array=np.array(k_list)
+        
+        for l in [k_list, k_df, k_series, k_array]:
+            l_calculated = wave.resource.wave_length(l)            
+            self.assertListEqual(l_expected,l_calculated.tolist())
+        
+        idx=0
+        k_int = k_list[idx]
+        l_calculated = wave.resource.wave_length(k_int)
+        self.assertEqual(l_expected[idx],l_calculated)
+
+    def test_depth_regime(self):
+        expected = [True,True,False,True]
+        l_list=[1,2,10,3]
+        l_df = pd.DataFrame(l_list,index = [1,2,3,4])
+        l_series= l_df[0]
+        l_array=np.array(l_list)
+        h = 10
+        for l in [l_list, l_df, l_series, l_array]:
+            calculated = wave.resource.depth_regime(l,h)            
+            self.assertListEqual(expected,calculated.tolist())
+        
+        idx=0
+        l_int = l_list[idx]
+        calculated = wave.resource.depth_regime(l_int,h)
+        self.assertEqual(expected[idx],calculated)
+        
+
+    def test_wave_celerity(self):
+        # Depth regime ratio
+        dr_ratio=2
+
+        # small change in f will give similar value cg
+        f=np.linspace(20.0001,20.0005,5)
+        
+        # Choose index to spike at. cg spike is inversly proportional to k
+        k_idx=2
+        k_tmp=[1, 1, 0.5, 1, 1]
+        k = pd.DataFrame(k_tmp, index=f)
+        
+        # all shallow
+        cg_shallow1 = wave.resource.wave_celerity(k, h=0.0001,depth_check=True)
+        cg_shallow2 = wave.resource.wave_celerity(k, h=0.0001,depth_check=False)
+        self.assertTrue(all(cg_shallow1.squeeze().values == 
+                            cg_shallow2.squeeze().values))
+        
+        
+        # all deep 
+        cg = wave.resource.wave_celerity(k, h=1000,depth_check=True)
+        self.assertTrue(all(np.pi*f/k.squeeze().values == cg.squeeze().values))
+        
+    def test_energy_flux_deep(self):
+        # Dependent on mhkit.resource.BS spectrum
+        S = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
+        Te = wave.resource.energy_period(S)
+        Hm0 = wave.resource.significant_wave_height(S)
+        rho=1025
+        g=9.80665
+        coeff = rho*(g**2)/(64*np.pi)
+        J = coeff*(Hm0.squeeze()**2)*Te.squeeze()
+        
+        h=-1 # not used when deep=True
+        J_calc = wave.resource.energy_flux(S, h, deep=True)
+        
+        self.assertTrue(J_calc.squeeze() == J)
+
+
     def test_moments(self):
         for file_i in self.valdata2.keys(): # for each file MC, AH, CDiP
             datasets = self.valdata2[file_i]
@@ -366,6 +456,15 @@ class TestResourceMetrics(unittest.TestCase):
                 #print('e', expected, calculated, error)
                 self.assertLess(error, 0.001) 
 
+                # J
+                if file_i != 'CDiP': 
+                    for i,j in zip(data['h'],data['J']):
+                        expected = data['J'][j]
+                        calculated = wave.resource.energy_flux(S,i)
+                        error = np.abs(expected-calculated.values)/expected
+                        self.assertLess(error, 0.1)
+                 
+
                 # v
                 if file_i == 'CDiP': 
                     # this should be updated to run on other datasets
@@ -375,7 +474,9 @@ class TestResourceMetrics(unittest.TestCase):
                     error = np.abs(expected-calculated)/expected
 
                        
-                    self.assertLess(error, 0.01) 
+                    self.assertLess(error, 0.01)
+
+                    
 
                 if file_i == 'MC':
                     expected = data['metrics']['v']
@@ -404,7 +505,6 @@ class TestResourceMetrics(unittest.TestCase):
         plt.close()
         
         self.assertTrue(isfile(filename))
-
 
 class TestResourceContours(unittest.TestCase):
 
@@ -516,8 +616,7 @@ class TestResourceContours(unittest.TestCase):
         plt.close()
         
         self.assertTrue(isfile(filename))        
-        
-        
+
 class TestPerformance(unittest.TestCase):
 
     @classmethod
@@ -527,10 +626,14 @@ class TestPerformance(unittest.TestCase):
         Te = np.random.normal(4.5, .8, 100000)
         P = np.random.normal(200, 40, 100000)
         J = np.random.normal(300, 10, 100000)
+        ndbc_data_file = join(datadir,'data.txt')
+        [raw_ndbc_data, meta] = wave.io.ndbc.read_file(ndbc_data_file)
+        self.S = raw_ndbc_data.T
         
         self.data = pd.DataFrame({'Hm0': Hm0, 'Te': Te, 'P': P,'J': J})
         self.Hm0_bins = np.arange(0,19,0.5)
         self.Te_bins = np.arange(0,9,1)
+        self.expected_stats = ["mean","std","median","count","sum","min","max","freq"]
 
     @classmethod
     def tearDownClass(self):
@@ -589,6 +692,28 @@ class TestPerformance(unittest.TestCase):
         plt.close()
         
         self.assertTrue(isfile(filename))
+
+    def test_powerperformance_workflow(self):
+        filename = abspath(join(testdir, 'Capture Length Matrix mean.png'))
+        if isfile(filename):
+            os.remove(filename)
+        P = pd.Series(np.random.normal(200, 40, 743),index = self.S.columns)
+        statistic = ['mean']
+        savepath = testdir
+        show_values = True
+        h = 60
+        expected = 401239.4822345051
+        x = self.S.T
+        CM,MAEP = wave.performance.power_performance_workflow(self.S, h, 
+                        P, statistic, savepath=savepath, show_values=show_values)
+
+        self.assertTrue(isfile(filename))
+        self.assertEqual(list(CM.data_vars),self.expected_stats)
+
+        error = (expected-MAEP)/expected # SSE
+            
+        self.assertLess(error, 1e-6)
+
     
 class TestIOndbc(unittest.TestCase):
 
@@ -641,10 +766,9 @@ class TestIOndbc(unittest.TestCase):
         data, units = wave.io.ndbc.read_file(join(datadir, 'data.txt'))
         self.assertEqual(data.shape, (743, 47))
         self.assertEqual(units, None)
-		
+
     def test_ndbc_available_data(self):
-        data=wave.io.ndbc.available_data('swden', buoy_number='46029')
-                
+        data=wave.io.ndbc.available_data('swden', buoy_number='46029')      
         cols = data.columns.tolist()
         exp_cols = ['id', 'year', 'filename']
         self.assertEqual(cols, exp_cols)                
@@ -809,6 +933,17 @@ class TestWPTOhindcast(unittest.TestCase):
         names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
         ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
         ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
+
+        my_dir = pd.read_csv(join(datadir,'hindcast/multi_year_dir.csv'),header = 0,
+        dtype={'87':'float32','58':'float32'})
+        my_dir['time_index'] = pd.to_datetime(my_dir['time_index'])
+        my_dir = my_dir.set_index(['time_index','frequency','direction'])
+        self.my_dir = my_dir.to_xarray()
+
+        self.my_dir_meta = pd.read_csv(join(datadir,'hindcast/multi_year_dir_meta.csv'),
+        names = ['water_depth','latitude','longitude','distance_to_shore','timezone'
+        ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
+        ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
             
     @classmethod
     def tearDownClass(self):
@@ -818,8 +953,7 @@ class TestWPTOhindcast(unittest.TestCase):
     # only run test for one version of python per to not spam the server
     # yet keep coverage high on each test
     if float(sys.version[0:3]) == 3.7:
-        def test_multi_year_sig_wave_height(self):
-        
+        def test_multi_year(self):
             data_type = '3-hour'
             years = [1990,1992]
             lat_lon = (44.624076,-124.280097) 
@@ -830,7 +964,7 @@ class TestWPTOhindcast(unittest.TestCase):
 
     elif float(sys.version[0:3]) == 3.8:
         # wait five minute to ensure python 3.7 call is complete
-        time.sleep(300)
+        #time.sleep(300)
         def test_multi_loc(self):            
             data_type = '3-hour'
             years = [1995]
@@ -838,12 +972,19 @@ class TestWPTOhindcast(unittest.TestCase):
             parameters = 'mean_absolute_period'
             wave_multiloc, meta= wave.io.hindcast.request_wpto_point_data(data_type,
             parameters,lat_lon,years)
+            dir_multiyear, meta_dir = wave.io.hindcast.request_wpto_directional_spectrum(lat_lon,year='1995')
+            dir_multiyear = dir_multiyear.sel(time_index=slice(dir_multiyear.time_index[0],dir_multiyear.time_index[99]))
+            dir_multiyear = dir_multiyear.rename_vars({87:'87',58:'58'})
+
             assert_frame_equal(self.ml,wave_multiloc)
             assert_frame_equal(self.ml_meta,meta)
+            xrt.assert_allclose(self.my_dir,dir_multiyear)
+            assert_frame_equal(self.my_dir_meta,meta_dir)
 
     elif float(sys.version[0:3]) == 3.9:
         # wait ten minutes to ensure python 3.7 and 3.8 call is complete
         time.sleep(500)
+
         def test_multi_parm(self):
             data_type = '1-hour'
             years = [1996]
@@ -907,6 +1048,205 @@ class TestSWAN(unittest.TestCase):
         self.assertTrue(all(dff.x.unique() == np.unique(x)))
         for key in keys:
             self.assertTrue(key in dff.keys())
+            
+class TestIOcdip(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(self):
+        b067_1996='http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/' + \
+                   'archive/067p1/067p1_d04.nc'
+        self.test_nc = netCDF4.Dataset(b067_1996)
+       
+        self.vars2D = [ 'waveEnergyDensity', 'waveMeanDirection', 
+                        'waveA1Value', 'waveB1Value', 'waveA2Value', 
+                        'waveB2Value', 'waveCheckFactor', 'waveSpread', 
+                        'waveM2Value', 'waveN2Value'] 
+        
+    @classmethod
+    def tearDownClass(self):
+        pass
+           
+    def test_validate_date(self):
+        date='2013-11-12'
+        start_date = wave.io.cdip._validate_date(date)
+        assert isinstance(start_date, datetime)        
+        
+        date='11-12-2012'
+        self.assertRaises(ValueError, wave.io.cdip._validate_date, date)
+        
+    def test_request_netCDF_historic(self):
+        station_number='067'
+        nc = wave.io.cdip.request_netCDF(station_number, 'historic')
+        isinstance(nc, netCDF4.Dataset)
+
+    def test_request_netCDF_realtime(self):
+        station_number='067'
+        nc = wave.io.cdip.request_netCDF(station_number, 'realtime')
+        isinstance(nc, netCDF4.Dataset)        
+
+        
+    def test_start_and_end_of_year(self):   
+        year = 2020
+        start_day, end_day = wave.io.cdip._start_and_end_of_year(year)
+        
+        assert isinstance(start_day, datetime)  
+        assert isinstance(end_day, datetime)  
+        
+        expected_start = datetime(year,1,1)        
+        expected_end = datetime(year,12,31)
+        
+        self.assertEqual(start_day, expected_start)
+        self.assertEqual(end_day, expected_end)
+        
+    def test_dates_to_timestamp(self):   
+    
+        start_date='1996-10-02'
+        end_date='1996-10-20'
+    
+        start_stamp, end_stamp = wave.io.cdip._dates_to_timestamp(self.test_nc, 
+            start_date=start_date, end_date=end_date)
+        
+        start_dt =  datetime.utcfromtimestamp(start_stamp)
+        end_dt =  datetime.utcfromtimestamp(end_stamp)
+        
+        self.assertTrue(start_dt.strftime('%Y-%m-%d') == start_date)
+        self.assertTrue(end_dt.strftime('%Y-%m-%d') == end_date)
+        
+    def test_get_netcdf_variables_all2Dvars(self):
+        data = wave.io.cdip.get_netcdf_variables(self.test_nc, 
+            all_2D_variables=True)
+        returned_keys = [key for key in data['data']['wave2D'].keys()]
+        self.assertTrue( returned_keys == self.vars2D)
+        
+    def test_get_netcdf_variables_params(self):
+        parameters =['waveHs', 'waveTp','notParam', 'waveMeanDirection']
+        data = wave.io.cdip.get_netcdf_variables(self.test_nc, 
+            parameters=parameters)        
+        
+        returned_keys_1D = [key for key in data['data']['wave'].keys()]
+        returned_keys_2D = [key for key in data['data']['wave2D'].keys()]
+        returned_keys_metadata = [key for key in data['metadata']['wave']]        
+
+        self.assertTrue( returned_keys_1D == ['waveHs', 'waveTp'])
+        self.assertTrue( returned_keys_2D == ['waveMeanDirection'])
+        self.assertTrue( returned_keys_metadata == ['waveFrequency'])
+        
+        
+    def test_get_netcdf_variables_time_slice(self):
+        start_date='1996-10-01'
+        end_date='1996-10-31'
+                
+        data = wave.io.cdip.get_netcdf_variables(self.test_nc,
+                start_date=start_date, end_date=end_date,
+                parameters='waveHs')        
+        
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+        
+        self.assertTrue(data['data']['wave'].index[-1] < end_dt)
+        self.assertTrue(data['data']['wave'].index[0] > start_dt)
+        
+        
+    def test_request_parse_workflow_multiyear(self):
+        station_number = '067'
+        year1=2011
+        year2=2013
+        years = [year1, year2]
+        parameters =['waveHs', 'waveMeanDirection', 'waveA1Value']
+        data = wave.io.cdip.request_parse_workflow(station_number=station_number,
+            years=years, parameters =parameters )
+        
+        expected_index0 = datetime(year1,1,1)   
+        expected_index_final = datetime(year2,12,30) # last data on 30th
+        
+        wave1D = data['data']['wave']
+        self.assertEqual(wave1D.index[0].floor('d').to_pydatetime(), expected_index0)
+
+        self.assertEqual(wave1D.index[-1].floor('d').to_pydatetime(), expected_index_final) 
+        
+        for key,wave2D  in data['data']['wave2D'].items():
+            self.assertEqual(wave2D.index[0].floor('d').to_pydatetime(), expected_index0)
+            self.assertEqual(wave2D.index[-1].floor('d').to_pydatetime(), expected_index_final) 
+
+
+    def test_plot_boxplot(self):            
+        filename = abspath(join(testdir, 'wave_plot_boxplot.png'))
+        if isfile(filename):
+            os.remove(filename)
+            
+        station_number = '067'
+        year = 2011
+        data = wave.io.cdip.request_parse_workflow(station_number=station_number,years=year,
+                       parameters =['waveHs'],
+                       all_2D_variables=False)
+                                 
+        plt.figure()
+        wave.graphics.plot_boxplot(data['data']['wave']['waveHs'])
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))            
+        
+        
+    def test_plot_compendium(self):            
+        filename = abspath(join(testdir, 'wave_plot_boxplot.png'))
+        if isfile(filename):
+            os.remove(filename)
+            
+        station_number = '067'
+        year = 2011
+        data = wave.io.cdip.request_parse_workflow(station_number=station_number,years=year,
+                       parameters =['waveHs', 'waveTp', 'waveDp'],
+                       all_2D_variables=False)
+                                 
+        plt.figure()
+        wave.graphics.plot_compendium(data['data']['wave']['waveHs'], 
+            data['data']['wave']['waveTp'], data['data']['wave']['waveDp'] )
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))  
+
+class TestPlotResouceCharacterizations(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(self):
+        f_name= 'Hm0_Te_46022.json'
+        self.Hm0Te = pd.read_json(join(datadir,f_name)) 
+    @classmethod
+    def tearDownClass(self):
+        pass
+    def test_plot_avg_annual_energy_matrix(self):
+    
+        filename = abspath(join(testdir, 'avg_annual_scatter_table.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        Hm0Te = self.Hm0Te
+        Hm0Te.drop(Hm0Te[Hm0Te.Hm0 > 20].index, inplace=True)
+        J = np.random.random(len(Hm0Te))*100 
+        
+        plt.figure()
+        fig = wave.graphics.plot_avg_annual_energy_matrix(Hm0Te.Hm0, 
+            Hm0Te.Te, J, Hm0_bin_size=0.5, Te_bin_size=1)
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))  
+        
+    def test_plot_monthly_cumulative_distribution(self):
+    
+        filename = abspath(join(testdir, 'monthly_cumulative_distribution.png'))
+        if isfile(filename):
+            os.remove(filename)
+            
+        a = pd.date_range(start='1/1/2010',  periods=10000, freq='h')
+        S = pd.Series(np.random.random(len(a)) , index=a)
+        ax=wave.graphics.monthly_cumulative_distribution(S)
+        plt.savefig(filename, format='png')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))        
 
 if __name__ == '__main__':
     unittest.main() 

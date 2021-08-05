@@ -1,9 +1,10 @@
 pandas>=1.0.0
-numpy>=1.16.5
+numpy<1.21.0
 scipy
 matplotlib
 requests
 pecos>=0.1.9
 fatpack
-NREL-rex>=0.2.35
+NREL-rex>=0.2.63
 six>=1.13.0
+xarray

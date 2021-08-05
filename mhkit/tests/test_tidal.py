@@ -22,12 +22,12 @@ class TestIO(unittest.TestCase):
     
     def test_load_noaa_data(self):
         file_name = join(datadir, 's08010.json')
-        data, metadata = tidal.io.read_noaa_json(file_name)
+        data, metadata = tidal.io.noaa.read_noaa_json(file_name)
         self.assertTrue(np.all(data.columns == ['s','d','b']) )
         self.assertEqual(data.shape, (18890, 3))
 
     def test_request_noaa_data(self):
-        data, metadata = tidal.io.request_noaa_data(station='s08010', parameter='currents',
+        data, metadata = tidal.io.noaa.request_noaa_data(station='s08010', parameter='currents',
                                        start_date='20180101', end_date='20180102',
                                        proxy=None, write_json=None)
         self.assertTrue(np.all(data.columns == ['s','d','b']) )
@@ -39,7 +39,7 @@ class TestResource(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         file_name = join(datadir, 's08010.json')
-        self.data, self.metadata = tidal.io.read_noaa_json(file_name)
+        self.data, self.metadata = tidal.io.noaa.read_noaa_json(file_name)
         self.data.s = self.data.s / 100. # convert to m/s
 
 
