@@ -1,7 +1,7 @@
 ![](figures/logo.png) MHKiT-Python
 =====================================
 
-[![Build Status](https://travis-ci.org/MHKiT-Software/MHKiT-Python.svg?branch=master)](https://travis-ci.org/MHKiT-Software/MHKiT-Python)
+[![Py 3.8,3.9 | Windows Mac Linux](https://github.com/MHKiT-Software/MHKiT-Python/actions/workflows/main.yml/badge.svg)](https://github.com/MHKiT-Software/MHKiT-Python/actions/workflows/main.yml)
 [![Coverage Status](https://coveralls.io/repos/github/MHKiT-Software/MHKiT-Python/badge.svg?branch=master)](https://coveralls.io/github/MHKiT-Software/MHKiT-Python?branch=master)
 [![Downloads](https://pepy.tech/badge/mhkit)](https://pepy.tech/project/mhkit)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3924683.svg)](https://doi.org/10.5281/zenodo.3924683)
@@ -24,7 +24,7 @@ See the [MHKiT documentation](https://mhkit-software.github.io/MHKiT) for more i
 
 Installation
 ------------------------
-MHKiT-Python requires Python (3.6 or 3.7) along with several Python 
+MHKiT-Python requires Python (3.7, 3.8, or 3.9) along with several Python 
 package dependencies.  MHKiT-Python can be installed from PyPI using the command ``pip install mhkit``.
 See [installation instructions](https://mhkit-software.github.io/MHKiT/installation.html) for more information.
 

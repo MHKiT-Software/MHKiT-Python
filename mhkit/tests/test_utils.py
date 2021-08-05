@@ -89,7 +89,64 @@ class TestGenUtils(unittest.TestCase):
         answer2 = answer.round('s') # round to nearest second for comparison
         
         # check if answer is correct
-        self.assertTrue(answer2 == time)     
+        self.assertTrue(answer2 == time)   
+
+    def test_magnitude_phase_2D(self):
+        # float
+        magnitude=9
+        x=y = np.sqrt(1/2*magnitude**2)
+        phase = np.arctan2(y, x)
+        mag, theta = utils.magnitude_phase(x,y)
+        
+        self.assertAlmostEqual(magnitude, mag)
+        self.assertAlmostEqual(phase, theta)
+        
+        #list
+        xx = [x,x]
+        yy = [y,y]
+        mag, theta = utils.magnitude_phase(xx,yy)
+        self.assertTrue(all(mag==magnitude))
+        self.assertTrue(all(theta==phase))
+        
+        #series
+        xs = pd.Series(xx,index=range(len(xx)))
+        ys = pd.Series(yy,index=range(len(yy)))
+        
+        mag, theta = utils.magnitude_phase(xs,ys)
+        self.assertTrue(all(mag==magnitude))
+        self.assertTrue(all(theta==phase))
+        
+    def test_magnitude_phase_3D(self):
+        # float
+        magnitude=9
+        x=y=z = np.sqrt(1/3*magnitude**2)
+        phase1 = np.arctan2(y, x)
+        phase2 = np.arctan2(np.sqrt(x**2+y**2),z)
+        mag, theta, phi = utils.magnitude_phase(x,y,z)
+        
+        self.assertAlmostEqual(magnitude, mag)
+        self.assertAlmostEqual(phase1, theta)
+        self.assertAlmostEqual(phase2, phi)
+        
+        #list
+        xx = [x,x]
+        yy = [y,y]
+        zz = [z,z]
+        mag, theta, phi = utils.magnitude_phase(xx,yy,zz)
+        self.assertTrue(all(mag==magnitude))
+        self.assertTrue(all(theta==phase1))
+        self.assertTrue(all(phi==phase2))
+        
+        #series
+        xs = pd.Series(xx,index=range(len(xx)))
+        ys = pd.Series(yy,index=range(len(yy)))
+        zs = pd.Series(zz,index=range(len(zz)))
+        
+        mag, theta, phi = utils.magnitude_phase(xs,ys,zs)
+        self.assertTrue(all(mag==magnitude))
+        self.assertTrue(all(theta==phase1))
+        self.assertTrue(all(phi==phase2))
+    
 
 if __name__ == '__main__':
     unittest.main()

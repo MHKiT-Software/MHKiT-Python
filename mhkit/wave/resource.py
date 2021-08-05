@@ -306,9 +306,7 @@ def frequency_moment(S, N, frequency_bins=None):
     m: pandas DataFrame 
         Nth Frequency Moment indexed by S.columns
     """
-    if isinstance(S, pd.DataFrame):
-        S = S.squeeze()
-    assert isinstance(S, pd.Series), 'S must be of type pd.DataFrame or pd.Series'
+    assert isinstance(S, (pd.Series,pd.DataFrame)), 'S must be of type pd.DataFrame or pd.Series'
     assert isinstance(N, int), 'N must be of type int'
     
     # Eq 8 in IEC 62600-101 
@@ -329,8 +327,10 @@ def frequency_moment(S, N, frequency_bins=None):
  
     m = spec.multiply(fn,axis=0).multiply(delta_f,axis=0)
     m = m.sum(axis=0)
-
-    m = pd.DataFrame(m, index=[0], columns = ['m'+str(N)])
+    if isinstance(S,pd.Series):
+        m = pd.DataFrame(m, index=[0], columns = ['m'+str(N)])
+    else:
+        m = pd.DataFrame(m, index=S.columns, columns = ['m'+str(N)])
 
     return m
 
@@ -351,9 +351,7 @@ def significant_wave_height(S, frequency_bins=None):
     Hm0: pandas DataFrame 
         Significant wave height [m] index by S.columns
     """
-    if isinstance(S, pd.DataFrame):
-        S = S.squeeze()
-    assert isinstance(S, pd.Series), 'S must be of type pd.DataFrame'
+    assert isinstance(S, (pd.Series,pd.DataFrame)), 'S must be of type pd.DataFrame or pd.Series'
     
     # Eq 12 in IEC 62600-101
     
@@ -386,7 +384,7 @@ def average_zero_crossing_period(S,frequency_bins=None):
     m2 = frequency_moment(S,2,frequency_bins=frequency_bins).squeeze()
     
     Tz = np.sqrt(m0/m2)
-    Tz = pd.DataFrame(Tz, index=[0], columns = ['Tz'])
+    Tz = pd.DataFrame(Tz, index=S.columns, columns = ['Tz'])
     
     return Tz
 
@@ -487,16 +485,19 @@ def energy_period(S,frequency_bins=None):
     Te: pandas DataFrame
         Wave energy period [s] indexed by S.columns
     """
-    if isinstance(S, pd.DataFrame):
-        S = S.squeeze()
-    assert isinstance(S, pd.Series), 'S must be of type pd.DataFrame'
+
+    assert isinstance(S, (pd.Series,pd.DataFrame)), 'S must be of type pd.DataFrame or pd.Series'
     
     mn1 = frequency_moment(S,-1,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
     m0  = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze()
     
     # Eq 13 in IEC 62600-101 
     Te = mn1/m0
-    Te = pd.DataFrame(Te, index=[0], columns=['Te'])
+    if isinstance(S,pd.Series):
+            Te = pd.DataFrame(Te, index=[0], columns=['Te'])
+    else:
+            Te = pd.DataFrame(Te, S.columns, columns=['Te'])
+    
     
     return Te
 
@@ -586,9 +587,7 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2):
     J: pandas DataFrame
         Omni-directional wave energy flux [W/m] indexed by S.columns
     """
-    if isinstance(S, pd.DataFrame):
-        S = S.squeeze()
-    assert isinstance(S, pd.Series), 'S must be of type pd.Series'
+    assert isinstance(S, (pd.Series,pd.DataFrame)), 'S must be of type pd.DataFrame or pd.Series'
     assert isinstance(h, (int,float)), 'h must be of type int or float'
     assert isinstance(deep, bool), 'deep must be of type bool'
     assert isinstance(rho, (int,float)), 'rho must be of type int or float'
@@ -603,7 +602,11 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2):
         coeff = rho*(g**2)/(64*np.pi)
 
         J = coeff*(Hm0.squeeze()**2)*Te.squeeze()
-        J = pd.DataFrame(J, index=[0], columns=["J"])
+        if isinstance(S,pd.Series):
+            J = pd.DataFrame(J, index=[0], columns=["J"])
+        else:
+            J = pd.DataFrame(J, S.columns, columns=["J"])
+        
         
     else:
         # deep water flag is false
@@ -623,7 +626,10 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2):
 
         J = rho * g * CgSdelF.sum(axis=0)
 
-        J = pd.DataFrame(J, index=[0], columns=["J"])
+        if isinstance(S,pd.Series):
+            J = pd.DataFrame(J, index=[0], columns=["J"])
+        else:
+            J = pd.DataFrame(J, S.columns, columns=["J"])
 
     return J
 
@@ -744,7 +750,7 @@ def wave_number(f, h, rho=1025, g=9.80665):
         Wave number [1/m] indexed by frequency [Hz]
     """
     try:
-        f = np.array(f)
+        f = np.atleast_1d(np.array(f))
     except:
         pass
     assert isinstance(f, np.ndarray), 'f must be of type np.ndarray'
@@ -884,8 +890,11 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
         'sigma_param'   : fit to _sig_fits 
 
     '''
-
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
+    try: x1 = np.array(x1); 
+    except: pass
+    try: x2 = np.array(x2); 
+    except: pass
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
     assert isinstance(dt, (int,float)), 'dt must be of type int or float'
     assert isinstance(period, (int,float,np.ndarray)), ('period must be'
@@ -905,7 +914,8 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
     if PCA == None:
         PCA = _principal_component_analysis(x1, x2, bin_size=bin_size)
 	
-    exceedance_probability = 1 / (365 * 24 * 3600/ dt * period)
+    dt_yrs = dt / ( 3600 * 24 * 365 )
+    exceedance_probability = 1 / ( period / dt_yrs)
     iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
                                              loc=0, scale=1)  
     discretized_radians = np.linspace(0, 2 * np.pi, nb_steps)
@@ -937,7 +947,7 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
     component_2 = stats.norm.ppf(y_quantile,
                                  loc  =component_2_mu, 
                                  scale=component_2_sigma)
-                             
+                           
     # Convert contours back to the original reference frame
     principal_axes = PCA['principal_axes']
     shift = PCA['shift']
@@ -951,7 +961,7 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
     
     # Assign 0 value to any negative x1 contour values
     x1_contour = np.maximum(0, x1_contour)  
-    
+ 
     if return_PCA:
         return np.transpose(x1_contour), np.transpose(x2_contour), PCA
     return np.transpose(x1_contour), np.transpose(x2_contour)
@@ -1010,7 +1020,7 @@ def _principal_component_analysis(x1, x2, bin_size=250):
     pca = skPCA(n_components=2)                                               
     pca.fit(n_samples_by_n_features)
     principal_axes = pca.components_
-
+    
     # STEP 1: Transform data into new reference frame
     # Apply correct/expected sign convention    
     principal_axes = abs(principal_axes)  
@@ -1025,7 +1035,7 @@ def _principal_component_analysis(x1, x2, bin_size=250):
     # Apply shift to Component 2 to make all values positive
     shift = abs(min(x2_components)) + 0.1
     x2_components = x2_components + shift 
-
+    
     # STEP 2: Fit Component 1 data using a Gaussian Distribution
     x1_sorted_index = x1_components.argsort()
     x1_sorted = x1_components[x1_sorted_index]
@@ -1035,7 +1045,7 @@ def _principal_component_analysis(x1, x2, bin_size=250):
     x1_fit = { 'mu'    : x1_fit_results[0],
                'loc'   : x1_fit_results[1],
                'scale' : x1_fit_results[2]}
-
+    
     # Step 3: Bin Data & find order 1 linear relation between x1 & x2 means
     N = len(x1)  
     minimum_4_bins = np.floor(N*0.25)
@@ -1090,7 +1100,7 @@ def _principal_component_analysis(x1, x2, bin_size=250):
     sigma_fit = optim.minimize(_objective_function, x0=sig_0, 
                                args=(x1_means, x2_sigmas),
                                method='SLSQP',constraints=constraints)     
-
+    
     PCA = {'principal_axes': principal_axes, 
            'shift'         : shift, 
            'x1_fit'        : x1_fit, 
