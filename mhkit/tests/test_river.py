@@ -241,7 +241,7 @@ class TestIO(unittest.TestCase):
     
     def test_load_usgs_data_instantaneous(self):
         file_name = join(datadir, 'USGS_08313000_Jan2019_instantaneous.json')
-        data = river.io.read_usgs_file(file_name)
+        data = river.io.usgs.read_usgs_file(file_name)
         
         self.assertEqual(data.columns, ['Discharge, cubic feet per second'])
         self.assertEqual(data.shape, (2972, 1)) # 4 data points are missing
@@ -257,7 +257,7 @@ class TestIO(unittest.TestCase):
 
 
     def test_request_usgs_data_daily(self):
-        data=river.io.request_usgs_data(station="15515500",
+        data=river.io.usgs.request_usgs_data(station="15515500",
                             parameter='00060',
                             start_date='2009-08-01',
                             end_date='2009-08-10',
@@ -275,6 +275,20 @@ class TestIO(unittest.TestCase):
         self.assertEqual(data.columns, ['Discharge, cubic feet per second'])
         # Every 15 minutes or 4 times per hour
         self.assertEqual(data.shape, (10*24*4, 1))
+
+
+
+#new
+
+    def test_request_usgs_data_instant(self):
+        data_points= [] 
+        values= 
+        request points= 
+        v_new= interpolate_data(data_points, values , request_points)
+        self.assertEqual(v_new, v_expected)
+       
+
+
 
 
 if __name__ == '__main__':
