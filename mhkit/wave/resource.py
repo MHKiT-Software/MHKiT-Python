@@ -823,6 +823,28 @@ def depth_regime(l, h, ratio=2):
     return  depth_reg
 
 
+def iso_prob_and_quantile(dt, period, nb_steps):
+    dt_yrs = dt / ( 3600 * 24 * 365 )
+    exceedance_probability = 1 / ( period / dt_yrs)
+    iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
+                                             loc=0, scale=1)  
+    discretized_radians = np.linspace(0, 2 * np.pi, nb_steps)
+    
+    x_component_iso_prob = iso_probability_radius * \
+                            np.cos(discretized_radians)
+    y_component_iso_prob = iso_probability_radius * \
+                            np.sin(discretized_radians)
+    
+    x_quantile = stats.norm.cdf(x_component_iso_prob, loc=0, scale=1)
+    y_quantile = stats.norm.cdf(y_component_iso_prob, loc=0, scale=1)
+    
+    results = { 'x_component_iso_prob': x_component_iso_prob,
+                'y_component_iso_prob': y_component_iso_prob,
+                'x_quantile': x_quantile,
+                'y_quantile': y_quantile}
+    return results
+
+
 def environmental_contour(x1, x2, dt, period, **kwargs):
     '''
     Calculates environmental contours of extreme sea
@@ -914,19 +936,11 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
     if PCA == None:
         PCA = _principal_component_analysis(x1, x2, bin_size=bin_size)
 	
-    dt_yrs = dt / ( 3600 * 24 * 365 )
-    exceedance_probability = 1 / ( period / dt_yrs)
-    iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
-                                             loc=0, scale=1)  
-    discretized_radians = np.linspace(0, 2 * np.pi, nb_steps)
-    
-    x_component_iso_prob = iso_probability_radius * \
-                            np.cos(discretized_radians)
-    y_component_iso_prob = iso_probability_radius * \
-                            np.sin(discretized_radians)
-    
-    x_quantile = stats.norm.cdf(x_component_iso_prob, loc=0, scale=1)
-    y_quantile = stats.norm.cdf(y_component_iso_prob, loc=0, scale=1)
+    results = iso_prob_and_quantile(dt, period, nb_steps)
+    x_component_iso_prob = results['x_component_iso_prob'] 
+    y_component_iso_prob = results['y_component_iso_prob'] 
+    x_quantile = results['x_quantile'] 
+    y_quantile =results['y_quantile'] 
     
     # Use the inverse of cdf to calculate component 1 values           
     component_1 = stats.invgauss.ppf(x_quantile, 
@@ -1305,19 +1319,11 @@ def GaussianCopula(x1, x2, dt, period, **kwargs):
     std_cond = np.linalg.lstsq(phi_std, para_dist_cond[:,1])[0]
 
 
-    dt_yrs = dt / ( 3600 * 24 * 365 )
-    exceedance_probability = 1 / ( period / dt_yrs)
-    iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
-                                                 loc=0, scale=1) 
-    discretized_radians = np.linspace(0, 2 * np.pi, nb_steps)
-
-    x_component_iso_prob = iso_probability_radius * \
-                            np.cos(discretized_radians)
-    y_component_iso_prob = iso_probability_radius * \
-                            np.sin(discretized_radians)
-
-    x_quantile = stats.norm.cdf(x_component_iso_prob, loc=0, scale=1)
-    y_quantile = stats.norm.cdf(y_component_iso_prob, loc=0, scale=1)
+    results = iso_prob_and_quantile(dt, period, nb_steps)
+    x_component_iso_prob = results['x_component_iso_prob'] 
+    y_component_iso_prob = results['y_component_iso_prob'] 
+    x_quantile = results['x_quantile'] 
+    y_quantile =results['y_quantile'] 
 
     a=para_dist_1[0]
     c=para_dist_1[1]
