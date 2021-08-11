@@ -1,2 +1,2 @@
-from .vector import inst2earth, earth2principal
-from .base import beam2inst
+from .vector import _inst2earth, _earth2principal
+from .base import _beam2inst

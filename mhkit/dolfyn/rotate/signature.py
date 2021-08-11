@@ -1,12 +1,12 @@
-from .vector import earth2principal, _euler2orient as euler2orient
-from .base import beam2inst
+from .vector import _earth2principal, _euler2orient as euler2orient
+from .base import _beam2inst
 from . import base as rotb
 import numpy as np
 import warnings
 from numpy.linalg import inv
 
 
-def inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
+def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
     """
     Rotate data in an ADCP object to the earth from the instrument
     frame (or vice-versa).
@@ -84,15 +84,13 @@ def inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
                       " (determinant != 1) at"
                       " indices: {}."
                       .format(np.nonzero(~_dcheck)[0]),
-                      rotb.BadDeterminantWarning)
+                      UserWarning)
 
     # The dictionary of rotation matrices for different sized arrays.
     rmd = {3: rmat, }
 
     # The 4-row rotation matrix assume that rows 0,1 are u,v,
     # and 2,3 are independent estimates of w.
-    # Confirmed this rotation matrix with Nortek:
-    # https://nortek.zendesk.com/attachments/token/g3Xal028bJkYclRph8hRdlIR2/?name=signatureAD2CP_beam2xyz_enu.m
     tmp = rmd[4] = np.zeros((4, 4, rmat.shape[-1]), dtype=np.float64)
     tmp[:3, :3] = rmat
     # Copy row 2 to 3
@@ -102,22 +100,6 @@ def inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
     tmp[0, 2:] = rmat[0, 2] / 2
     tmp[1, 2:] = rmat[1, 2] / 2
 
-    # # This gets into tricky territory, because Nortek handles the
-    # # 5th beam separately. Leave it out for now?
-    # # The 5-row rotation matrix assume that rows 0,1 are u,v,
-    # # and 2,3,4 are independent estimates of w.
-    # tmp = rmd[5] = np.zeros((5, 5, rmat.shape[-1]), dtype=np.float64)
-    # tmp[:3, :3] = rmat
-    # # Copy row 2 to 3
-    # tmp[3, :2] = rmat[2, :2]
-    # tmp[3, 3] = rmat[2, 2]
-    # # Copy row 2 to 4
-    # tmp[4, :2] = rmat[2, :2]
-    # tmp[4, 4] = rmat[2, 2]
-    # # Extend rows 0,1
-    # tmp[0, 2:] = rmat[0, 2] / 3
-    # tmp[1, 2:] = rmat[1, 2] / 3
-
     if reverse:
         # 3-element inverse handled by sumstr definition (transpose)
         rmd[4] = np.moveaxis(inv(np.moveaxis(rmd[4], -1, 0)), 0, -1)
@@ -125,7 +107,7 @@ def inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
     for nm in rotate_vars:
         dat = adcpo[nm].values
         n = dat.shape[0]
-        # Nortek documents sign change for upside-down instruments (above link)
+        # Nortek documents sign change for upside-down instruments
         if down:
             sign = np.array([1,-1,-1,-1], ndmin=dat.ndim).T
             signIMU = np.array([1,-1,-1], ndmin=dat.ndim).T    
@@ -148,7 +130,6 @@ def inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
                                     "be rotated.".format(nm))
                 
         else: # 'up' and AHRS
-            #sign = np.array([1, 1, 1, 1], ndmin=dat.ndim)
             if n == 3:
                 dat = np.einsum(sumstr, rmd[3], dat)
             elif n == 4:

@@ -1,15 +1,10 @@
-# Branch read_signature-cython has the attempt to do this in Cython.
-
-from __future__ import print_function
 import struct
 import os.path as path
 import numpy as np
-#import warnings
-#from ..data import time
 from datetime import datetime
 
 
-def reduce_by_average(data, ky0, ky1):
+def _reduce_by_average(data, ky0, ky1):
     # Average two arrays together, if they both exist.
     if ky1 in data:
         tmp = data.pop(ky1)
@@ -20,7 +15,7 @@ def reduce_by_average(data, ky0, ky1):
             data[ky0] = tmp
 
 
-def reduce_by_average_angle(data, ky0, ky1, degrees=True):
+def _reduce_by_average_angle(data, ky0, ky1, degrees=True):
     # Average two arrays of angles together, if they both exist.
     if degrees:
         rad_fact = np.pi / 180
@@ -37,7 +32,9 @@ def reduce_by_average_angle(data, ky0, ky1, degrees=True):
 
 # This is the data-type of the index file.
 # This must match what is written-out by the create_index function.
-index_dtype = {
+_index_version = 1
+_hdr = struct.Struct('<BBBBhhh')
+_index_dtype = {
     None:
     np.dtype([('ens', np.uint64),
               ('pos', np.uint64),
@@ -71,12 +68,9 @@ index_dtype = {
               ('d_ver', np.uint8),
     ])
 }
-index_version = 1
-
-hdr = struct.Struct('<BBBBhhh')
 
 
-def calc_time(year, month, day, hour, minute, second, usec, zero_is_bad=True):
+def _calc_time(year, month, day, hour, minute, second, usec, zero_is_bad=True):
     dt = np.empty(year.shape, dtype='float')
     for idx, (y, mo, d, h, mi, s, u) in enumerate(
             zip(year, month, day,
@@ -93,14 +87,14 @@ def calc_time(year, month, day, hour, minute, second, usec, zero_is_bad=True):
             # This probably indicates a corrupted byte, so we just insert None.
             dt[idx] = None
     # None -> NaN in this step
-    return dt#time.time_array(time.date2num(dt))
+    return dt
 
 
-def create_index_slow(infile, outfile, N_ens):
+def _create_index_slow(infile, outfile, N_ens):
     fin = open(infile, 'rb')
     fout = open(outfile, 'wb')
     fout.write(b'Index Ver:')
-    fout.write(struct.pack('<H', index_version))
+    fout.write(struct.pack('<H', _index_version))
     ens = 0
     N = 0
     config = 0
@@ -110,7 +104,7 @@ def create_index_slow(infile, outfile, N_ens):
     while N < N_ens:
         pos = fin.tell()
         try:
-            dat = hdr.unpack(fin.read(hdr.size))
+            dat = _hdr.unpack(fin.read(_hdr.size))
         except:
             break
         if dat[2] in [21, 23, 24, 26, 28]:
@@ -122,7 +116,7 @@ def create_index_slow(infile, outfile, N_ens):
             fin.seek(seek_2ens[dat[2]], 1)
             ens = struct.unpack('<I', fin.read(4))[0]
             if dat[2] in [23, 28]:
-                # ensemble counter is garbage(=1 ?!) for these ids
+                # ids are saved differently that others in datafile
                 ens = last_ens
             if last_ens > 0 and last_ens != ens:
                 N += 1
@@ -133,24 +127,16 @@ def create_index_slow(infile, outfile, N_ens):
             last_ens = ens
         else:
             fin.seek(dat[4], 1)
-        # if N < 5:
-        #     print('%10d: %02X, %d, %02X, %d, %d, %d, %d\n' %
-        #           (pos, dat[0], dat[1], dat[2], dat[4],
-        #            N, ens, last_ens))
-        # else:
-        #     break
     fin.close()
     fout.close()
 
 
-def get_index(infile, reload=False):
+def _get_index(infile, reload=False):
     index_file = infile + '.index'
     if not path.isfile(index_file) or reload:
         print("Indexing...", end='')
-        create_index_slow(infile, index_file, 2 ** 32)
+        _create_index_slow(infile, index_file, 2 ** 32)
         print(" Done.")
-    # else:
-    #     print("Using saved index file.")
     f = open(index_file, 'rb')
     file_head = f.read(12)
     if file_head[:10] == b'Index Ver:':
@@ -159,20 +145,17 @@ def get_index(infile, reload=False):
         # This is pre-versioning the index files
         index_ver = None
         f.seek(0, 0)
-    out = np.fromfile(f, dtype=index_dtype[index_ver])
+    out = np.fromfile(f, dtype=_index_dtype[index_ver])
     f.close()
     return out
 
 
-def index2ens_pos(index):
+def _index2ens_pos(index):
     """Condense the index to only be the first occurence of each
     ensemble. Returns only the position (the ens number is the array
     index).
     """
     if (index['ens'] == 0).all() and (index['hw_ens'] == 1).all():
-        #!!!TODO
-        # This is for when the system runs in 'raw/continuous mode' or something?
-        # Is there a better way to detect this mode?
         n_IDs = {id:(index['ID'] == id).sum() for id in np.unique(index['ID'])}
         assert all(np.abs(np.diff(list(n_IDs.values())))) <= 1, "Unable to read this file"
         return index['pos'][index['ID']==index['ID'][0]]
@@ -182,47 +165,17 @@ def index2ens_pos(index):
         return index['pos'][dens]
 
 
-def getbit(val, n):
+def _getbit(val, n):
     return bool((val >> n) & 1)
 
 
-# def crop_ensembles(infile, outfile, range):
-#     """This function is for cropping certain pings out of an AD2CP
-#     file to create a new AD2CP file. It properly grabs the header from
-#     infile.
-
-#     The range is the `ensemble/ping` counter as defined in the first column
-#     of the INDEX.
-
-#     """
-#     idx = get_index(infile)
-#     with open(infile, 'rb') as fin:
-#         with open(outfile, 'wb') as fout:
-#             fout.write(fin.read(idx['pos'][0]))
-#             i0 = np.nonzero(idx['ens'] == range[0])[0][0]
-#             ie = np.nonzero(idx['ens'] == range[1])[0][0]
-#             pos = idx['pos'][i0]
-#             nbyte = idx['pos'][ie] - pos
-#             fin.seek(pos, 0)
-#             fout.write(fin.read(nbyte))
-
-
-class BitIndexer(object):
-
+class _BitIndexer():
     def __init__(self, data):
         self.data = data
 
     @property
     def _data_is_array(self, ):
         return isinstance(self.data, np.ndarray)
-
-    # @property
-    # def nbits(self, ):
-    #     if self._data_is_array:
-    #         return self.data.dtype.itemsize * 8
-    #     else:
-    #         raise ValueError("You must specify the end-range "
-    #                          "for non-ndarray input data.")
 
     def _get_out_type(self, mask):
         # The mask indicates how big this item is.
@@ -243,14 +196,10 @@ class BitIndexer(object):
         if isinstance(slc, int):
             slc = slice(slc, slc + 1)
         if slc.step not in [1, None]:
-            raise ValueError("Slice syntax for `getbits` does "
+            raise ValueError("Slice syntax for `_getbits` does "
                              "not support steps")
         start = slc.start
         stop = slc.stop
-        # if start is None:
-        #     start = 0
-        # if stop is None:
-        #     stop = self.nbits
         mask = 2 ** (stop - start) - 1
         out = (self.data >> start) & mask
         ot = self._get_out_type(mask)
@@ -259,7 +208,7 @@ class BitIndexer(object):
         return out
 
 
-def headconfig_int2dict(val, mode='burst'):
+def _headconfig_int2dict(val, mode='burst'):
     """Convert the burst Configuration bit-mask to a dict of bools.
 
     mode: {'burst', 'bt'}
@@ -267,42 +216,42 @@ def headconfig_int2dict(val, mode='burst'):
     """
     if mode == 'burst':
         return dict(
-            press_valid=getbit(val, 0),
-            temp_valid=getbit(val, 1),
-            compass_valid=getbit(val, 2),
-            tilt_valid=getbit(val, 3),
+            press_valid=_getbit(val, 0),
+            temp_valid=_getbit(val, 1),
+            compass_valid=_getbit(val, 2),
+            tilt_valid=_getbit(val, 3),
             # bit 4 is unused
-            vel=getbit(val, 5),
-            amp=getbit(val, 6),
-            corr=getbit(val, 7),
-            alt=getbit(val, 8),
-            alt_raw=getbit(val, 9),
-            ast=getbit(val, 10),
-            echo=getbit(val, 11),
-            ahrs=getbit(val, 12),
-            p_gd=getbit(val, 13),
-            std=getbit(val, 14),
+            vel=_getbit(val, 5),
+            amp=_getbit(val, 6),
+            corr=_getbit(val, 7),
+            alt=_getbit(val, 8),
+            alt_raw=_getbit(val, 9),
+            ast=_getbit(val, 10),
+            echo=_getbit(val, 11),
+            ahrs=_getbit(val, 12),
+            p_gd=_getbit(val, 13),
+            std=_getbit(val, 14),
             # bit 15 is unused
         )
     elif mode == 'bt':
         return dict(
-            press_valid=getbit(val, 0),
-            temp_valid=getbit(val, 1),
-            compass_valid=getbit(val, 2),
-            tilt_valid=getbit(val, 3),
+            press_valid=_getbit(val, 0),
+            temp_valid=_getbit(val, 1),
+            compass_valid=_getbit(val, 2),
+            tilt_valid=_getbit(val, 3),
             # bit 4 is unused
-            vel=getbit(val, 5),
+            vel=_getbit(val, 5),
             # bits 6-7 unused
-            dist=getbit(val, 8),
-            fom=getbit(val, 9),
-            ahrs=getbit(val, 10),
+            dist=_getbit(val, 8),
+            fom=_getbit(val, 9),
+            ahrs=_getbit(val, 10),
             # bits 10-15 unused
         )
 
-def status2data(val):
+def _status2data(val):
     # This is detailed in the 6.1.2 of the Nortek Signature
     # Integrators Guide (2017)
-    bi = BitIndexer(val)
+    bi = _BitIndexer(val)
     out = {}
     out['wakeup state'] = bi[28:32]
     out['orient_up'] = bi[25:28]
@@ -320,7 +269,7 @@ def status2data(val):
     return out
 
 
-def beams_cy_int2dict(val, id):
+def _beams_cy_int2dict(val, id):
     """Convert the beams/coordinate-system bytes to a dict of values.
     """
     if id == 28:  # 0x1C (echosounder)
@@ -332,29 +281,26 @@ def beams_cy_int2dict(val, id):
         nbeams=val >> 12)
 
 
-def isuniform(vec, exclude=[]):
+def _isuniform(vec, exclude=[]):
     if len(exclude):
         return len(set(np.unique(vec)) - set(exclude)) <= 1
     return np.all(vec == vec[0])
 
 
-def collapse(vec, name=None, exclude=[]):
+def _collapse(vec, name=None, exclude=[]):
     """Check that the input vector is uniform, then collapse it to a
     single value, otherwise raise a warning.
     """
-    # if name is None:
-    #     name = '**unkown**'
-    if isuniform(vec):
+    if _isuniform(vec):
         return vec[0]
-    elif isuniform(vec, exclude=exclude):
+    elif _isuniform(vec, exclude=exclude):
         return list(set(np.unique(vec)) - set(exclude))[0]
     else:
-        # warnings.warn("The variable {} is expected to be uniform,"
-        #               " but it is not.".format(name))
+        #warnings.warn(f"The variable {name} is expected to be uniform, but it is not.")
         return vec[0]
 
 
-def calc_config(index):
+def _calc_config(index):
     """Calculate the configuration information (e.g., number of pings,
     number of beams, struct types, etc.) from the index data.
 
@@ -376,15 +322,15 @@ def calc_config(index):
         _config = index['config'][inds]
         _beams_cy = index['beams_cy'][inds]
         # Check that these variables are consistent
-        if not isuniform(_config):
+        if not _isuniform(_config):
             raise Exception("config are not identical for id: 0x{:X}."
                             .format(id))
-        if not isuniform(_beams_cy):
+        if not _isuniform(_beams_cy):
             raise Exception("beams_cy are not identical for id: 0x{:X}."
                             .format(id))
         # Now that we've confirmed they are the same:
-        config[id] = headconfig_int2dict(_config[0], mode=type)
-        config[id].update(beams_cy_int2dict(_beams_cy[0], id))
+        config[id] = _headconfig_int2dict(_config[0], mode=type)
+        config[id].update(_beams_cy_int2dict(_beams_cy[0], id))
         config[id]['_config'] = _config[0]
         config[id]['_beams_cy'] = _beams_cy[0]
         config[id]['type'] = type

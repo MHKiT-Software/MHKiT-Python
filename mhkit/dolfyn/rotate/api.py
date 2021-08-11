@@ -17,29 +17,26 @@ rot_module_dict = {
     'signature': r_sig,
     'ad2cp': r_sig,
 
-    # RDI instruments
+    # TRDI instruments
     'rdi': r_rdi}
 
 
 def rotate2(ds, out_frame='earth', inplace=False):
-    """
-    Rotate a dataset to a new coordinate system.
+    """Rotate a dataset to a new coordinate system.
 
     Parameters
     ----------
     ds : xr.Dataset
       The dolfyn dataset (ADV or ADCP) to rotate.
-
     out_frame : string {'beam', 'inst', 'earth', 'principal'}
       The coordinate system to rotate the data into.
-
     inplace : bool
       Operate on the input data dataset (True), or return a copy that
       has been rotated (False, default).
 
     Returns
     -------
-    ds_out : |xr.Dataset|
+    ds : xarray.Dataset
       The rotated dataset
       
     Notes
@@ -52,7 +49,6 @@ def rotate2(ds, out_frame='earth', inplace=False):
         csin = 'inst'
 
     # Returns True/False if head2inst_rotmat has been set/not-set.
-    # Bad configs raises errors (this is to check for those)
     r_vec._check_inst2head_rotmat(ds)
 
     if out_frame == 'principal' and csin != 'earth':
@@ -88,7 +84,6 @@ def rotate2(ds, out_frame='earth', inplace=False):
                         "'earth', 'principal'.")
 
     if iframe_out == iframe_in:
-        # Should this generate an error?
         print("Data is already in the {} coordinate system".format(out_frame))
         return ds
 
@@ -103,23 +98,21 @@ def rotate2(ds, out_frame='earth', inplace=False):
             csin = 'inst'
         inow = rc.index(csin)
         if reverse:
-            func = getattr(rmod, rc[inow - 1] + '2' + rc[inow])
+            func = getattr(rmod, '_' + rc[inow - 1] + '2' + rc[inow])
         else:
-            func = getattr(rmod, rc[inow] + '2' + rc[inow + 1])
+            func = getattr(rmod, '_' + rc[inow] + '2' + rc[inow + 1])
         ds = func(ds, reverse=reverse)
 
     return ds
 
 
 def calc_principal_heading(vel, tidal_mode=True):
-    """
-    Compute the principal angle of the horizontal velocity.
+    """Compute the principal angle of the horizontal velocity.
 
     Parameters
     ----------
     vel : np.ndarray (2,...,Nt), or (3,...,Nt)
       The 2D or 3D Veldata array (3rd-dim is ignored in this calculation)
-
     tidal_mode : bool (default: True)
 
     Returns
@@ -129,9 +122,8 @@ def calc_principal_heading(vel, tidal_mode=True):
 
     Notes
     -----
-
     The tidal mode follows these steps:
-      1. rotates vectors with negative v by 180 degrees
+      1. rotates vectors with negative velocity by 180 degrees
       2. then doubles those angles to make a complete circle again
       3. computes a mean direction from this, and halves that angle again.
       4. The returned angle is forced to be between 0 and 180. So, you
@@ -161,8 +153,7 @@ def calc_principal_heading(vel, tidal_mode=True):
 
 
 def set_declination(ds, declin):
-    """
-    Set the magnetic declination
+    """Set the magnetic declination
 
     Parameters
     ----------
@@ -209,13 +200,11 @@ def set_declination(ds, declin):
     cd = np.cos(-np.deg2rad(angle))
     sd = np.sin(-np.deg2rad(angle))
 
-    #The ordering is funny here because orientmat is the
-    #transpose of the inst->earth rotation matrix:
+    # The ordering is funny here because orientmat is the
+    # transpose of the inst->earth rotation matrix:
     Rdec = np.array([[cd, -sd, 0],
                      [sd, cd, 0],
                      [0, 0, 1]])
-
-    #odata = self['orient']
 
     if ds.coord_sys == 'earth':
         rotate2earth = True
@@ -255,19 +244,14 @@ def set_inst2head_rotmat(ds, rotmat):
         Dataset with rotation matrix applied
         
     """
-    # if not ds.inst_model.lower()=='vector':
-    #     raise Exception("Setting 'inst2head_rotmat' is only supported "
-    #                     "for Nortek Vector ADVs.")
+    if not ds.inst_model.lower()=='vector':
+        raise Exception("Setting 'inst2head_rotmat' is only supported "
+                        "for Nortek Vector ADVs.")
     if ds.get('inst2head_rotmat', None) is not None:
-        # Technically we could support changing this (unrotate with the
-        # original, then rotate with the new one), but WHY?!
-        # If you REALLY need to change this, simply rotate to
-        # beam-coords, change this by
-        # `obj.props['inst2head_rotmat'] = rotmat`, then rotate
-        # to the coords of your choice.
         raise Exception(
             "You are setting 'inst2head_rotmat' after it has already "
             "been set. You can only set it once.")
+        
     csin = ds.coord_sys
     if csin not in ['inst', 'beam']:
         ds = rotate2(ds, 'inst', inplace=True)
@@ -278,9 +262,7 @@ def set_inst2head_rotmat(ds, rotmat):
     ds.attrs['inst2head_rotmat_was_set'] = 1 # logical
     # Note that there is no validation that the user doesn't
     # change `ds.attrs['inst2head_rotmat']` after calling this
-    # function. I suppose I could do:
-    #     ds.attrs['inst2head_rotmat_was_set'] = hash(rotmat)
-    # But then I'd also have to check for that!? Is it worth it?
+    # function.
 
     if not csin == 'beam': # csin not 'beam', then we're in inst
         ds = r_vec._rotate_head2inst(ds)

@@ -2,27 +2,17 @@ import numpy as np
 import xarray as xr
 import six
 import json
-import io
 import os
 import warnings
 
-try:
-    file_types = (file, io.IOBase)
-except NameError:
-    file_types = io.IOBase
-    
-    
-class WrongFileType(Exception):
-    pass
 
-
-def read_userdata(filename, userdata=True):
+def _find_userdata(filename, userdata=True):
     """
     Reads a userdata.json file and returns the data it contains as a
     dictionary.
     """
     # This function finds the file to read
-    if userdata is True:
+    if userdata:
         for basefile in [filename.rsplit('.', 1)[0],
                          filename]:
             jsonfile = basefile + '.userdata.json'
@@ -36,17 +26,14 @@ def read_userdata(filename, userdata=True):
 
 def _read_userdata(fname):
     # This one actually does the read
-    if isinstance(fname, file_types):
-        data = json.load(fname)
-    else:
-        with open(fname) as data_file:
-            data = json.load(data_file)
+    with open(fname) as data_file:
+        data = json.load(data_file)
     for nm in ['body2head_rotmat', 'body2head_vec']:
         if nm in data:
             new_name = 'inst' + nm[4:]
             warnings.warn(
-                '{} has been deprecated, please change this to {} in {}.'
-                .format(nm, new_name, fname))
+                f'{nm} has been deprecated, please change this to {new_name} \
+                    in {fname}.')
             data[new_name] = data.pop(nm)
     if 'inst2head_rotmat' in data and \
        data['inst2head_rotmat'] in ['identity', 'eye', 1, 1.]:
@@ -62,12 +49,12 @@ def _read_userdata(fname):
     return data
 
 
-def handle_nan(data):
-    '''
+def _handle_nan(data):
+    """
     Finds nan's that cause issues in running the rotation algorithms
     and deletes them. 
     
-    '''
+    """
     nan = np.zeros(data['coords']['time'].shape, dtype=bool)
     l = data['coords']['time'].size
     
@@ -91,18 +78,19 @@ def handle_nan(data):
         for key in data['data_vars']:
             if data['data_vars'][key].shape[-1]==l:
                 data['data_vars'][key] = data['data_vars'][key][...,~nan]
+    return data
 
 
-def create_dataset(data):
-    '''
+def _create_dataset(data):
+    """
     Creates an xarray dataset from dictionary created from binary
     readers
     
-    '''
+    """
     ds = xr.Dataset()
     beam = list(range(1,data['data_vars']['vel'].shape[0]+1))
     tag = ['_b5', '_echo', '_bt', '_gps']
-    # dir coordinates get reset in _set_coords()
+    # 'dir' coordinates get reset in _set_coords()
     for key in data['data_vars']:
         # orientation matrices
         if 'mat' in key:
@@ -133,7 +121,6 @@ def create_dataset(data):
                                    coords={'q':['w','x','y','z'],
                                            'time'+tg:data['coords']['time'+tg]},
                                    dims=['q','time'+tg])
-        # the rest of the madness
         else:
             ds[key] = xr.DataArray(data['data_vars'][key])
             try: # not all variables have units
@@ -225,8 +212,8 @@ def create_dataset(data):
     
     t_list = [t for t in ds.coords if 'time' in t]
     for ky in t_list:
-        ds[ky].attrs['description'] = 'seconds since 1/1/1970'
+        ds[ky].attrs['description'] = 'seconds since 1970-01-01T00:00:00'
         
     ds.attrs = data['attrs']
-    
+
     return ds

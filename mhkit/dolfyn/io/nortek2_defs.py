@@ -1,7 +1,7 @@
 import numpy as np
 from copy import copy
-from struct import calcsize, Struct
-from . import nortek2lib as lib
+from struct import Struct
+from . import nortek2_lib as lib
 
 dt16 = 'float16'
 dt32 = 'float32'
@@ -12,18 +12,13 @@ grav = 9.81
 cs0 = int('0xb58c', 0)
 
 
-def nans(*args, **kwargs):
+def _nans(*args, **kwargs):
     out = np.empty(*args, **kwargs)
     if out.dtype.kind == 'f':
         out[:] = np.NaN
     else:
         out[:] = 0
     return out
-
-
-class BadCheckSum(Exception):
-    pass
-
 
 def _format(form, N):
     out = ''
@@ -34,7 +29,7 @@ def _format(form, N):
     return out
 
 
-class DataDef(object):
+class _DataDef():
     def __init__(self, list_of_defs):
         self._names = []
         self._format = []
@@ -57,7 +52,6 @@ class DataDef(object):
                 self._N.append(int(np.prod(itm[2])))
         self._struct = Struct('<' + self.format)
         self.nbyte = self._struct.size
-        #self.nbyte = calcsize(self.format)
         self._cs_struct = Struct('<' + '{}H'.format(int(self.nbyte // 2)))
 
     def init_data(self, npings):
@@ -65,7 +59,7 @@ class DataDef(object):
         for nm, fmt, shp in zip(self._names, self._format, self._shape):
             # fmt[0] uses only the first format specifier
             # (ie, skip '15x' in 'B15x')
-            out[nm] = nans(shp + [npings], dtype=np.dtype(fmt[0]))
+            out[nm] = _nans(shp + [npings], dtype=np.dtype(fmt[0]))
         return out
 
     def read_into(self, fobj, data, ens, cs=None):
@@ -96,7 +90,7 @@ class DataDef(object):
                 off = cs0
             cs_res = sum(self._cs_struct.unpack(bytes)) + off
             if csval is not False and (cs_res % 65536) != csval:
-                raise BadCheckSum('Checksum failed!')
+                raise Exception('Checksum failed!')
         out = []
         c = 0
         for idx, n in enumerate(self._N):
@@ -125,11 +119,11 @@ class DataDef(object):
         return units
 
 
-class LinFunc(object):
+class _LinFunc():
     """A simple linear offset and scaling object.
 
     Usage:
-       scale_func = LinFunc(scale=3, offset=5)
+       scale_func = _LinFunc(scale=3, offset=5)
 
        new_data = scale_func(old_data)
 
@@ -150,7 +144,7 @@ class LinFunc(object):
         return array
 
 
-header = DataDef([
+header = _DataDef([
     ('sync', 'B', [], None),
     ('hsz', 'B', [], None),
     ('id', 'B', [], None),
@@ -172,27 +166,27 @@ _burst_hdr = [
     ('minute', 'B', [], None),
     ('second', 'B', [], None),
     ('usec100', 'H', [], None),
-    ('c_sound', 'H', [], LinFunc(0.1, dtype=dt32), 'm/s'),  # m/s
-    ('temp', 'H', [], LinFunc(0.01, dtype=dt32), 'deg C'),  # Celsius
-    ('pressure', 'I', [], LinFunc(0.001, dtype=dt32), 'dbar'),  # dbar
-    ('heading', 'H', [], LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
-    ('pitch', 'h', [], LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
-    ('roll', 'h', [], LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
+    ('c_sound', 'H', [], _LinFunc(0.1, dtype=dt32), 'm/s'),  # m/s
+    ('temp', 'H', [], _LinFunc(0.01, dtype=dt32), 'deg C'),  # Celsius
+    ('pressure', 'I', [], _LinFunc(0.001, dtype=dt32), 'dbar'),  # dbar
+    ('heading', 'H', [], _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
+    ('pitch', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
+    ('roll', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
     ('beam_config', 'H', [], None),
-    ('cell_size', 'H', [], LinFunc(0.001)),  # m
-    ('blank_dist', 'H', [], LinFunc(0.01)),  # m
+    ('cell_size', 'H', [], _LinFunc(0.001)),  # m
+    ('blank_dist', 'H', [], _LinFunc(0.01)),  # m
     ('nom_corr', 'B', [], None),  # percent
-    ('temp_press', 'B', [], LinFunc(0.2, -20, dtype=dt16)),  # Celsius
-    ('batt_V', 'H', [], LinFunc(0.1, dtype=dt16)),  # Volts
-    ('mag', 'h', [3], LinFunc(0.1, dtype=dt32), 'uT'),
-    ('accel', 'h', [3], LinFunc(1. / 16384 * grav, dtype=dt32), 'm/s^2'),
-    ('ambig_vel', 'h', [], LinFunc(0.001, dtype=dt32), 'm/s'),
+    ('temp_press', 'B', [], _LinFunc(0.2, -20, dtype=dt16)),  # Celsius
+    ('batt_V', 'H', [], _LinFunc(0.1, dtype=dt16)),  # Volts
+    ('mag', 'h', [3], _LinFunc(0.1, dtype=dt32), 'uT'),
+    ('accel', 'h', [3], _LinFunc(1. / 16384 * grav, dtype=dt32), 'm/s^2'),
+    ('ambig_vel', 'h', [], _LinFunc(0.001, dtype=dt32), 'm/s'),
     ('data_desc', 'H', [], None),
     ('xmit_energy', 'H', [], None, 'dB'),
     ('vel_scale', 'b', [], None),
     ('power_level', 'b', [], None),
     ('temp_mag', 'h', [], None),
-    ('temp_clock', 'h', [], LinFunc(0.01, dtype=dt16)),
+    ('temp_clock', 'h', [], _LinFunc(0.01, dtype=dt16)),
     ('error', 'H', [], None),
     ('status0', 'H', [], None),
     ('status', 'I', [], None),
@@ -211,27 +205,27 @@ _bt_hdr = [
     ('minute', 'B', [], None),
     ('second', 'B', [], None),
     ('usec100', 'H', [], None),
-    ('c_sound', 'H', [], LinFunc(0.1, dtype=dt32), 'm/s'),  # m/s
-    ('temp', 'H', [], LinFunc(0.01, dtype=dt32), 'deg C'),  # Celsius
-    ('pressure', 'I', [], LinFunc(0.001, dtype=dt32), 'dbar'),  # dbar
-    ('heading', 'H', [], LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
-    ('pitch', 'h', [], LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
-    ('roll', 'h', [], LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
+    ('c_sound', 'H', [], _LinFunc(0.1, dtype=dt32), 'm/s'),  # m/s
+    ('temp', 'H', [], _LinFunc(0.01, dtype=dt32), 'deg C'),  # Celsius
+    ('pressure', 'I', [], _LinFunc(0.001, dtype=dt32), 'dbar'),  # dbar
+    ('heading', 'H', [], _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
+    ('pitch', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
+    ('roll', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
     ('beam_config', 'H', [], None),
-    ('cell_size', 'H', [], LinFunc(0.001)),  # m
-    ('blank_dist', 'H', [], LinFunc(0.01)),  # m
+    ('cell_size', 'H', [], _LinFunc(0.001)),  # m
+    ('blank_dist', 'H', [], _LinFunc(0.01)),  # m
     ('nom_corr', 'B', [], None),  # percent
     ('unused', 'B', [], None),  # Celsius
-    ('batt_V', 'H', [], LinFunc(0.1, dtype=dt16)),  # Volts
+    ('batt_V', 'H', [], _LinFunc(0.1, dtype=dt16)),  # Volts
     ('mag', 'h', [3], None, 'gauss'),
-    ('accel', 'h', [3], LinFunc(1. / 16384 * grav, dtype=dt32), 'm/s^2'),
-    ('ambig_vel', 'I', [], LinFunc(0.001, dtype=dt32), 'm/s'),
+    ('accel', 'h', [3], _LinFunc(1. / 16384 * grav, dtype=dt32), 'm/s^2'),
+    ('ambig_vel', 'I', [], _LinFunc(0.001, dtype=dt32), 'm/s'),
     ('data_desc', 'H', [], None),
     ('xmit_energy', 'H', [], None, 'dB'),
     ('vel_scale', 'b', [], None),
     ('power_level', 'b', [], None),
     ('temp_mag', 'h', [], None),
-    ('temp_clock', 'h', [], LinFunc(0.01, dtype=dt16)),
+    ('temp_clock', 'h', [], _LinFunc(0.01, dtype=dt16)),
     ('error', 'I', [], None),
     ('status', 'I', [], None),
     ('_ensemble', 'I', [], None)
@@ -240,7 +234,7 @@ _bt_hdr = [
 _ahrs_def = [
     ('orientmat', 'f', [3, 3], None),
     ('quaternion', 'f', [4], None),
-    ('angrt', 'f', [3], LinFunc(np.pi / 180, dtype=dt32), 'rad/s'),  # rad/sec
+    ('angrt', 'f', [3], _LinFunc(np.pi / 180, dtype=dt32), 'rad/s'),  # rad/sec
 ]
 
 _burst_group_org = {
@@ -264,43 +258,43 @@ _burst_group_org = {
 }
 
 
-def get_group(ky, ):
+def _get_group(ky, ):
     for grp in _burst_group_org:
         if ky in _burst_group_org[grp]:
             return grp
     return None
 
 
-def calc_bt_struct(config, nb):
-    flags = lib.headconfig_int2dict(config, mode='bt')
+def _calc_bt_struct(config, nb):
+    flags = lib._headconfig_int2dict(config, mode='bt')
     dd = copy(_bt_hdr)
     if flags['vel']:
         dd.append(('vel', 'i', [nb], None, 'm/s'))  # units handled in Ad2cpReader.sci_data
     if flags['dist']:
-        dd.append(('dist', 'i', [nb], LinFunc(0.001, dtype=dt32),'m'))
+        dd.append(('dist', 'i', [nb], _LinFunc(0.001, dtype=dt32),'m'))
     if flags['fom']:
         dd.append(('fom', 'H', [nb], None))
     if flags['ahrs']:
         dd += _ahrs_def
-    return DataDef(dd)
+    return _DataDef(dd)
 
 
-def calc_echo_struct(config, nc):
-    flags = lib.headconfig_int2dict(config)
+def _calc_echo_struct(config, nc):
+    flags = lib._headconfig_int2dict(config)
     dd = copy(_burst_hdr)
-    dd[19] = ('blank_dist', 'H', [], LinFunc(0.001))  # m
+    dd[19] = ('blank_dist', 'H', [], _LinFunc(0.001))  # m
     if any([flags[nm] for nm in ['vel', 'amp', 'corr', 'alt', 'ast',
                                  'alt_raw', 'p_gd', 'std']]):
         raise Exception("Echosounder ping contains invalid data?")
     if flags['echo']:
-        dd += [('echo', 'H', [nc], LinFunc(0.01, dtype=dt32), 'dB')]
+        dd += [('echo', 'H', [nc], _LinFunc(0.01, dtype=dt32), 'dB')]
     if flags['ahrs']:
         dd += _ahrs_def
-    return DataDef(dd)
+    return _DataDef(dd)
 
 
-def calc_burst_struct(config, nb, nc):
-    flags = lib.headconfig_int2dict(config)
+def _calc_burst_struct(config, nb, nc):
+    flags = lib._headconfig_int2dict(config)
     dd = copy(_burst_hdr)
     if flags['echo']:
         raise Exception("Echosounder data found in velocity ping?")
@@ -308,28 +302,25 @@ def calc_burst_struct(config, nb, nc):
         dd.append(('vel', 'h', [nb, nc], None, 'm/s'))
     if flags['amp']:
         dd.append(('amp', 'B', [nb, nc],
-                   LinFunc(0.5, dtype=dt32), 'dB'))
+                   _LinFunc(0.5, dtype=dt32), 'dB'))
     if flags['corr']:
         dd.append(('corr', 'B', [nb, nc], None, '%'))
     if flags['alt']:
-        # There may be a problem here with reading 32bit floats if
-        # nb and nc are odd?
-        dd += [('alt_dist', 'f', [], LinFunc(dtype=dt32), 'm'),
-               ('alt_quality', 'H', [], LinFunc(0.01,dtype=dt32), 'dB'),
+        dd += [('alt_dist', 'f', [], _LinFunc(dtype=dt32), 'm'),
+               ('alt_quality', 'H', [], _LinFunc(0.01,dtype=dt32), 'dB'),
                ('alt_status', 'H', [], None)]
     if flags['ast']:
         dd += [
-            ('ast_dist', 'f', [], LinFunc(dtype=dt32), 'm'),
-            ('ast_quality', 'H', [], LinFunc(0.01,dtype=dt32), 'dB'),
-            ('ast_offset_time', 'h', [], LinFunc(0.0001, dtype=dt32), 's'),
+            ('ast_dist', 'f', [], _LinFunc(dtype=dt32), 'm'),
+            ('ast_quality', 'H', [], _LinFunc(0.01,dtype=dt32), 'dB'),
+            ('ast_offset_time', 'h', [], _LinFunc(0.0001, dtype=dt32), 's'),
             ('ast_pressure', 'f', [], None, 'dbar'),
-            # This use of 'x' here is a hack
             ('ast_spare', 'B7x', [], None),
         ]
     if flags['alt_raw']:
         dd += [
             ('altraw_nsamp', 'I', [], None),
-            ('altraw_dsamp', 'H', [], LinFunc(0.0001, dtype=dt32), 'm'),
+            ('altraw_dsamp', 'H', [], _LinFunc(0.0001, dtype=dt32), 'm'),
             ('altraw_samp', 'h', [], None),
         ]
     if flags['ahrs']:
@@ -338,23 +329,12 @@ def calc_burst_struct(config, nb, nc):
         dd += [('percent_good', 'B', [nc], None, '%')]  # percent
     if flags['std']:
         dd += [('std_pitch', 'h', [],
-                LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
+                _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
                ('std_roll', 'h', [],
-                LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
+                _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
                ('std_heading', 'h', [],
-                LinFunc(0.01, dtype=dt32),'deg'),  # degrees
+                _LinFunc(0.01, dtype=dt32),'deg'),  # degrees
                ('std_press', 'h', [],
-                LinFunc(0.1, dtype=dt32), 'dbar'),  # dbar
-               # This use of 'x' here is a hack
+                _LinFunc(0.1, dtype=dt32), 'dbar'),  # dbar
                ('std_spare', 'H22x', [], None)]
-    return DataDef(dd)
-
-
-"""
-Note on "This use of 'x' is a hack": I'm afraid that using a larger
-int size will give syncing problems (e.g. unpack('HB')
-vs. unpack('BH')), and I need to read SOMETHING otherwise, the
-unpack order will get messed up. In the future, it'd be good to read
-the size of the format, and hold that differently than self._N
-(e.g. self._N2?)
-"""
+    return _DataDef(dd)

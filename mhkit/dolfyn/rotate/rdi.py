@@ -1,9 +1,9 @@
 import numpy as np
-from .vector import earth2principal, inst2earth as nortek_inst2earth
-from .base import beam2inst, _set_coords
+from .vector import _earth2principal
+from .base import _beam2inst, _set_coords
 
 
-def inst2earth(adcpo, reverse=False,
+def _inst2earth(adcpo, reverse=False,
                fixed_orientation=False, force=False):
     """
     Rotate velocities from the instrument to earth coordinates.
@@ -33,10 +33,6 @@ def inst2earth(adcpo, reverse=False,
     Transformation manual January 2008
     
     """
-    if adcpo.inst_make.lower() == 'nortek':
-        # Handle nortek rotations with the nortek (adv) rotate fn.
-        return nortek_inst2earth(adcpo, reverse=reverse, force=force)
-
     csin = adcpo.coord_sys.lower()
     cs_allowed = ['inst', 'ship']
     if reverse:
@@ -48,11 +44,11 @@ def inst2earth(adcpo, reverse=False,
     if 'orientmat' in adcpo:
         rmat = adcpo['orientmat'].values
     else:
-        rmat = calc_orientmat(adcpo)
+        rmat = _calc_orientmat(adcpo)
 
     # rollaxis gives transpose of orientation matrix.
     # The 'rotation matrix' is the transpose of the 'orientation matrix'
-    # NOTE the double 'rollaxis' within this function, and here, has
+    # NOTE: the double 'rollaxis' within this function, and here, has
     # minimal computational impact because np.rollaxis returns a
     # view (not a new array)
     rotmat = np.rollaxis(rmat, 1)
@@ -74,7 +70,7 @@ def inst2earth(adcpo, reverse=False,
     return adcpo
 
 
-def calc_beam_orientmat(theta=20, convex=True, degrees=True):
+def _calc_beam_orientmat(theta=20, convex=True, degrees=True):
     """Calculate the rotation matrix from beam coordinates to
     instrument head coordinates for an RDI ADCP.
 
@@ -102,7 +98,7 @@ def calc_beam_orientmat(theta=20, convex=True, degrees=True):
                      [d, d, -d, -d]])
 
 
-def calc_orientmat(adcpo):
+def _calc_orientmat(adcpo):
     """
     Calculate the orientation matrix using the raw 
     heading, pitch, roll values from the RDI binary file.

@@ -17,7 +17,7 @@ import unittest
 from datetime import datetime
 import numpy as np
 import numpy.testing as npt
-from xarray.testing import assert_identical, assert_allclose
+from xarray.testing import assert_allclose
 atexit.register(pkg_resources.cleanup_resources)
 
 # Base definitions
@@ -37,8 +37,8 @@ class ResourceFilename():
     def __call__(self, name):
         return pkg_resources.resource_filename(self.pkg, self.prefix + name)
 
-rfnm = ResourceFilename('dolfyn.test', prefix='data/') #!!! github link
-exdt = ResourceFilename('dolfyn', prefix='example_data/') #!!! github link
+rfnm = ResourceFilename('dolfyn.test', prefix='data/')
+exdt = ResourceFilename('dolfyn', prefix='example_data/')
 
 def load(name, *args, **kwargs):
     return io.load(rfnm(name), *args, **kwargs)
@@ -97,19 +97,15 @@ class io_testcase(unittest.TestCase):
     
     def test_io_adv(self):
         td = read('vector_data01.VEC', nens=100)
-        tdm = read('vector_data_imu01.VEC',
-                   userdata=False,
+        tdm = read('vector_data_imu01.VEC', userdata=False,
                    nens=100)
-        tdb = read('burst_mode01.VEC',
-                   nens=100)
+        tdb = read('burst_mode01.VEC', nens=100)
         tdm2 = read('vector_data_imu01.VEC',
                     userdata=exdt('vector_data_imu01.userdata.json'),
                     nens=100)
         td_debug = drop_config(vector.read_nortek(exdt('vector_data_imu01.VEC'), 
                                debug=True, do_checksum=True, nens=100))
         
-        # These values are not correct for this data but I'm adding them for
-        # test purposes only.
         tdm = set_inst2head_rotmat(tdm, np.eye(3))
         tdm.attrs['inst2head_vec'] = np.array([-1.0, 0.5, 0.2])
         
@@ -121,13 +117,15 @@ class io_testcase(unittest.TestCase):
         
     
     def test_io_rdi(self):
+        warnings.simplefilter('ignore', UserWarning)
+        nens = 500
         td_rdi = drop_config(read('RDI_test01.000'))
-        td_rdi_bt = drop_config(read('RDI_withBT.000', nens=500))
-        td_vm = drop_config(read('vmdas01.ENX', nens=500))
+        td_rdi_bt = drop_config(read('RDI_withBT.000', nens=nens))
+        td_vm = drop_config(read('vmdas01.ENX', nens=nens))
         td_wr1 = drop_config(read('winriver01.PD0'))
         td_wr2 = drop_config(read('winriver02.PD0'))
         td_debug = drop_config(wh.read_rdi(exdt('RDI_withBT.000'), debug=11,
-                                           nens=500))
+                                              nens=nens))
                                               
         assert_allclose(td_rdi, dat_rdi, atol=1e-6)
         assert_allclose(td_rdi_bt, dat_rdi_bt, atol=1e-6)
@@ -138,11 +136,13 @@ class io_testcase(unittest.TestCase):
     
     
     def test_io_nortek(self):
-        td_awac = drop_config(read('AWAC_test01.wpr', userdata=False, nens=500))
-        td_awac_ud = drop_config(read('AWAC_test01.wpr', nens=500))
+        nens = 500
+        td_awac = drop_config(read('AWAC_test01.wpr', userdata=False, 
+                              nens=nens))
+        td_awac_ud = drop_config(read('AWAC_test01.wpr', nens=nens))
         td_hwac = drop_config(read('H-AWAC_test01.wpr'))
         td_debug = drop_config(awac.read_nortek(exdt('AWAC_test01.wpr'), 
-                               debug=True, do_checksum=True, nens=500))
+                               debug=True, do_checksum=True, nens=nens))
                                   
         assert_allclose(td_awac, dat_awac, atol=1e-6)
         assert_allclose(td_awac_ud, dat_awac_ud, atol=1e-6)
@@ -151,11 +151,13 @@ class io_testcase(unittest.TestCase):
         
     
     def test_io_nortek2(self):
-        td_sig = drop_config(read('BenchFile01.ad2cp', nens=500))
-        td_sig_i = drop_config(read('Sig1000_IMU.ad2cp', userdata=False, nens=500))
-        td_sig_i_ud = drop_config(read('Sig1000_IMU.ad2cp', nens=500))
-        td_sig_ieb = drop_config(read('VelEchoBT01.ad2cp', nens=500))
-        td_sig_ie = drop_config(read('Sig500_Echo.ad2cp', nens=500))
+        nens = 500
+        td_sig = drop_config(read('BenchFile01.ad2cp', nens=nens))
+        td_sig_i = drop_config(read('Sig1000_IMU.ad2cp', userdata=False, 
+                               nens=nens))
+        td_sig_i_ud = drop_config(read('Sig1000_IMU.ad2cp', nens=nens))
+        td_sig_ieb = drop_config(read('VelEchoBT01.ad2cp', nens=nens))
+        td_sig_ie = drop_config(read('Sig500_Echo.ad2cp', nens=nens))
         
         os.remove(exdt('BenchFile01.ad2cp.index'))
         os.remove(exdt('Sig1000_IMU.ad2cp.index'))
@@ -178,11 +180,11 @@ class io_testcase(unittest.TestCase):
         
         
     def test_matlab_io(self):
-        mat_rdi_bt = load_matlab('dat_rdi_bt')
-        mat_sig_ieb = load_matlab('dat_sig_ieb')
+        mat_rdi_bt = load_matlab('dat_rdi_bt.mat')
+        mat_sig_ieb = load_matlab('dat_sig_ieb.mat')
             
-        assert_identical(mat_rdi_bt, dat_rdi_bt)
-        assert_identical(mat_sig_ieb, dat_sig_ieb)
+        assert_allclose(mat_rdi_bt, dat_rdi_bt, atol=1e-6)
+        assert_allclose(mat_sig_ieb, dat_sig_ieb, atol=1e-6)
     
     
     def test_read_warnings(self):
@@ -224,11 +226,6 @@ class rotate_testcase(unittest.TestCase):
                                        [1, 0, 0],
                                        [0, 0,-1]])
     
-        # assert ((td.Veldata.u == tr.dat.Veldata.v).all() and
-        #         (td.Veldata.v == tr.dat.Veldata.u).all() and
-        #         (td.Veldata.w == -tr.dat.Veldata.w).all()
-        #         ), "head->inst rotations give unexpeced results."
-        #Coords don't get altered here
         npt.assert_allclose(td.Veldata.u.values, dat.Veldata.v.values, atol=1e-6)
         npt.assert_allclose(td.Veldata.v.values, dat.Veldata.u.values, atol=1e-6)
         npt.assert_allclose(td.Veldata.w.values, -dat.Veldata.w.values, atol=1e-6)
@@ -239,9 +236,7 @@ class rotate_testcase(unittest.TestCase):
         td = set_inst2head_rotmat(td, R)
         
         vel1 = td.vel
-        # validate that a head->inst rotation occurs (transpose of inst2head_rotmat)
         vel2 = np.dot(R, dat.vel)
-        #assert (vel1 == vel2).all(), "head->inst rotations give unexpeced results."
         npt.assert_allclose(vel1.values, vel2, atol=1e-6)
         
     
@@ -343,6 +338,8 @@ class rotate_testcase(unittest.TestCase):
         warn2.attrs['coord_sys'] = 'flow'
         warn3 = dat.copy(deep=True)
         warn3.attrs['inst_model'] = 'ADV'
+        warn4 = dat.copy(deep=True)
+        warn4.attrs['inst_model'] = 'adv'
         
         with self.assertRaises(Exception):
             rotate2(warn1, 'ship')
@@ -351,6 +348,8 @@ class rotate_testcase(unittest.TestCase):
         with self.assertRaises(Exception):
             set_inst2head_rotmat(warn3, np.eye(3))
             set_inst2head_rotmat(warn3, np.eye(3))
+        with self.assertRaises(Exception):
+            set_inst2head_rotmat(warn4, np.eye(3))
     
     
     def test_rotate_beam2inst_adp(self):
@@ -388,8 +387,8 @@ class rotate_testcase(unittest.TestCase):
         cd_sig_i = dat_sig_i.copy(deep=True)
         cd_sig_ie = load('Sig500_Echo_inst2beam.nc')
     
-        # # The reverse RDI rotation doesn't work b/c of NaN's in one beam
-        # # that propagate to others, so we impose that here.
+        # The reverse RDI rotation doesn't work b/c of NaN's in one beam
+        # that propagate to others, so we impose that here.
         cd_td['vel'].values[:, np.isnan(cd_td['vel'].values).any(0)] = np.NaN
         
         assert_allclose(td, cd_td, atol=1e-5)
@@ -454,8 +453,6 @@ class rotate_testcase(unittest.TestCase):
         assert_allclose(tdwr2, dat_wr2, atol=1e-5)
         assert_allclose(td_awac, cd_awac, atol=1e-5)
         assert_allclose(td_sig, cd_sig, atol=1e-5)
-        #known rounding error due to AHRS orientmat, see test_vs_nortek
-        #assert_allclose(td_sig_i, cd_sig_i, atol=1e-3)
         npt.assert_allclose(td_sig_i.accel.values, cd_sig_i.accel.values, atol=1e-3)
     
     
@@ -495,14 +492,12 @@ class time_testcase(unittest.TestCase):
         
         dt = time.epoch2date(td.time)
         dt1 = time.epoch2date(td.time[0])
-        dt_utc = time.epoch2date(td.time, utc=True)
-        dt_pdt = time.epoch2date(td.time, utc=True, offset_hr=-7)
+        dt_off = time.epoch2date(td.time, offset_hr=-7)
         t_str = time.epoch2date(td.time, to_str=True)
         
         npt.assert_equal(dt[0], datetime(2012, 6, 12, 12, 0, 2, 687283))
         npt.assert_equal(dt1, [datetime(2012, 6, 12, 12, 0, 2, 687283)])
-        npt.assert_equal(dt_utc[0], datetime(2012, 6, 12, 19, 0, 2, 687283))
-        npt.assert_equal(dt_pdt[0], datetime(2012, 6, 12, 12, 0, 2, 687283))
+        npt.assert_equal(dt_off[0], datetime(2012, 6, 12, 5, 0, 2, 687283))
         npt.assert_equal(t_str[0], '2012-06-12 12:00:02.687283')
         
     

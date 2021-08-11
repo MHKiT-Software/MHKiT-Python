@@ -4,23 +4,23 @@ import warnings
 from . import base as rotb
 
 
-def beam2inst(dat, reverse=False, force=False):
-    # Remember: order of rotations matters!
+def _beam2inst(dat, reverse=False, force=False):
+    # Order of rotations matters
     if not reverse: # beam->inst
-        dat = rotb.beam2inst(dat, reverse=reverse, force=force)
+        dat = rotb._beam2inst(dat, reverse=reverse, force=force)
         dat = _rotate_head2inst(dat)
     else: # inst->beam
         # First rotate velocities back to head frame
         dat = _rotate_head2inst(dat, reverse)
         # Now rotate to beam
-        dat = rotb.beam2inst(dat, reverse=reverse, force=force)
+        dat = rotb._beam2inst(dat, reverse=reverse, force=force)
 
     # Set the docstring to match the default rotation func
-    beam2inst.__doc_ = rotb.beam2inst.__doc__
+    _beam2inst.__doc_ = rotb._beam2inst.__doc__
     
     return dat
 
-def inst2earth(advo, reverse=False, rotate_vars=None, force=False):
+def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
     """
     Rotate data in an ADV object to the earth from the instrument
     frame (or vice-versa).
@@ -75,8 +75,8 @@ def inst2earth(advo, reverse=False, rotate_vars=None, force=False):
             orientation_down = advo['orientation_down']
         else:
             orientation_down = None
-        omat = calc_omat(advo['heading'].values, advo['pitch'].values,
-                         advo['roll'].values, orientation_down)
+        omat = _calc_omat(advo['heading'].values, advo['pitch'].values,
+                          advo['roll'].values, orientation_down)
 
     # Take the transpose of the orientation to get the inst->earth rotation
     # matrix.
@@ -84,11 +84,8 @@ def inst2earth(advo, reverse=False, rotate_vars=None, force=False):
 
     _dcheck = rotb._check_rotmat_det(rmat)
     if not _dcheck.all():
-        warnings.warn("Invalid orientation matrix"
-                      " (determinant != 1) at"
-                      " indices: {}."
-                      .format(np.nonzero(~_dcheck)[0]),
-                      rotb.BadDeterminantWarning)
+        warnings.warn("Invalid orientation matrix (determinant != 1) at indices: {}." \
+                      .format(np.nonzero(~_dcheck)[0]), UserWarning)
 
     for nm in rotate_vars:
         n = advo[nm].shape[0]
@@ -102,7 +99,7 @@ def inst2earth(advo, reverse=False, rotate_vars=None, force=False):
     return advo
       
 
-def calc_omat(hh, pp, rr, orientation_down=None):
+def _calc_omat(hh, pp, rr, orientation_down=None):
     rr = rr.copy()
     pp = pp.copy()
     hh = hh.copy()
@@ -113,15 +110,11 @@ def calc_omat(hh, pp, rr, orientation_down=None):
         pp[lastgd:] = pp[lastgd]
         hh[lastgd:] = hh[lastgd]
     if orientation_down is not None:
-        # NOTE: For Nortek Vector ADVs: 'down' configuration means the
-        #       head was pointing UP!  Check the Nortek coordinate
-        #       transform matlab script for more info.  The 'up'
-        #       orientation corresponds to the communication cable
-        #       being up.  This is ridiculous, but apparently a
-        #       reality.
-        #       In DOLfYN 'orientation_down' = True indicates the ADV probe head
-        #       is pointing UP.
-        rr[orientation_down] += 180
+        # For Nortek Vector ADVs: 'down' configuration means the head was 
+        # pointing 'up', where the 'up' orientation corresponds to the 
+        # communication cable being up.  Check the Nortek coordinate
+        # transform matlab script for more info.  
+        rr[orientation_down.astype(bool)] += 180
 
     # Take the transpose of the orientation to get the inst->earth rotation
     # matrix.
@@ -129,7 +122,7 @@ def calc_omat(hh, pp, rr, orientation_down=None):
 
 
 def _rotate_head2inst(advo, reverse=False):
-    if not _check_inst2head_rotmat(advo): # RAISE on bad values.
+    if not _check_inst2head_rotmat(advo):
         # This object doesn't have a head2inst_rotmat, so we do nothing.
         return advo
     if reverse: 
@@ -142,27 +135,18 @@ def _rotate_head2inst(advo, reverse=False):
     return advo
 
 def _check_inst2head_rotmat(advo):
-    # if advo.get('body2head_rotmat', None) is not None:
-    #     warnings.warn(
-    #         "body2head_rotmat will be deprecated in future versions of DOLfYN."
-    #         "Use the `set_inst2head_rotmat` method instead.",
-    #         DeprecationWarning)
-    #     # head2inst is transpose of body2head
-    #     advo.set_inst2head_rotmat(advo.drop('body2head_rotmat'))
     if advo.get('inst2head_rotmat', None) is None:
         # This is the default value, and we do nothing.
         return False
     if not advo.inst2head_rotmat_was_set:
-        raise Exception(
-            "The inst2head rotation matrix exists in props, "
-            "but it was not set using `set_inst2head_rotmat.")
+        raise Exception("The inst2head rotation matrix exists in props, "
+                        "but it was not set using `set_inst2head_rotmat.")
     if not rotb._check_rotmat_det(advo.inst2head_rotmat.values):
-        raise ValueError("Invalid inst2head_rotmat"
-                         " (determinant != 1).")
+        raise ValueError("Invalid inst2head_rotmat (determinant != 1).")
     return True
 
 
-def earth2principal(advo, reverse=False):
+def _earth2principal(advo, reverse=False):
     """
     Rotate data in an ADV dataset to/from principal axes. Principal
     heading must be within the dataset.
@@ -181,23 +165,10 @@ def earth2principal(advo, reverse=False):
            (principal->earth).
 
     """
-    #if 'principal_heading' not in advo.attrs:
-    #    advo.attrs['principal_heading'] = calc_principal_heading(advo.vel)
-    
-    #try:
-    # this is in degrees CW from North
+    # This is in degrees CW from North
     ang = np.deg2rad(90 - advo.principal_heading)
     # convert this to radians CCW from east (which is expected by
     # the rest of the function)
-    # except KeyError:
-    #     if 'principal_angle' in advo.attrs:
-    #         warnings.warn(
-    #             "'principal_angle' will be deprecated in a future release of "
-    #             "DOLfYN. Please update your file to use ``principal_heading = "
-    #             "(90 - np.rad2deg(principal_angle))``."
-    #         )
-    #         # This is in radians CCW from east
-    #         ang = advo.principal_angle
 
     if reverse:
         cs_now = 'principal'
@@ -235,7 +206,7 @@ def earth2principal(advo, reverse=False):
 
 
 def _euler2orient(heading, pitch, roll, units='degrees'):
-    # THIS IS FOR NORTEK data ONLY!
+    # For Nortek data only.
     # The heading, pitch, roll used here are from the Nortek binary files.
 
     # Heading input is clockwise from North
@@ -246,9 +217,10 @@ def _euler2orient(heading, pitch, roll, units='degrees'):
         pitch = np.deg2rad(pitch)
         roll = np.deg2rad(roll)
         heading = np.deg2rad(heading)
-    # I've fixed the definition of heading below to be consistent with the
-    # right-hand-rule; heading is the angle positive counterclockwise from North
-    # of the y-axis.
+        
+    # The definition of heading below is consistent with the right-hand-rule; 
+    # heading is the angle positive counterclockwise from North of the y-axis.
+    
     # This also involved swapping the sign on sh in the def of omat
     # below from the values provided in the Nortek Matlab script.
     heading = (np.pi / 2 - heading)
@@ -261,8 +233,7 @@ def _euler2orient(heading, pitch, roll, units='degrees'):
     sr = np.sin(roll)
 
     # Note that I've transposed these values (from what is defined in
-    # Nortek matlab script), so that this is earth->inst (as
-    # orientation matrices are typically defined)
+    # Nortek matlab script), so that the omat is earth->inst
     omat = np.empty((3, 3, len(sh)), dtype=np.float32)
     omat[0, 0, :] = ch * cp
     omat[1, 0, :] = -ch * sp * sr - sh * cr
