@@ -327,31 +327,35 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     Returns
     -------
     ax : matplotlib pyplot axes
-    '''
-    
+    '''      
     assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(x1_contour, np.ndarray), ('x1_contour must be of '
+    assert isinstance(x1_contour, (np.ndarray,list)), ('x1_contour must be of '
                                                 'type np.ndarray')
-    assert isinstance(x2_contour, np.ndarray), ('x2_contour must be of '
+    assert isinstance(x2_contour, (np.ndarray,list)), ('x2_contour must be of '
                                                'type np.ndarray')
     x_label = kwargs.get("x_label", None)
     y_label = kwargs.get("y_label", None)
     data_label=kwargs.get("data_label", None)
     contour_label=kwargs.get("contour_label", None)
     ax=kwargs.get("ax", None)
-    assert isinstance(data_label, str), 'data_label must be of type str'
-    assert isinstance(contour_label, (str,list)), ('contour_label be of '
+    assert isinstance(data_label, (str,type(None))), 'data_label must be of type str'
+    assert isinstance(contour_label, (str,list, type(None))), ('contour_label be of '
                                                   'type str')
+    if isinstance(x1_contour, list):
+        x1_contour = np.array(x1_contour).T
+    if isinstance(x2_contour, list):
+        x2_contour = np.array(x2_contour).T    
     assert x2_contour.ndim == x1_contour.ndim,  ('contour must be of' 
             f'equal dimesion got {x2_contour.ndim} and {x1_contour.ndim}')                                                  
+   
+    N_contours = x2_contour.ndim
     
-        
-    if x2_contour.ndim == 1:
-        x2_contour  = x2_contour.reshape(-1,1) 
-        x1_contour = x1_contour.reshape(-1,1) 
+    if N_contours == 1:
+        x2_contour  = np.array([x2_contour]).T
+        x1_contour = np.array([x1_contour]).T
     
-    N_contours = x2_contour.shape[1]
+    
     
     if contour_label != None:
         if isinstance(contour_label, str):
@@ -363,12 +367,14 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     else:
         contour_label = [None] * N_contours
     
-    for i in range(N_contours):       
+    plt.plot(x1, x2, 'bo', alpha=0.1, 
+                  label=data_label) 
+    
+    for i in range(N_contours):
         ax = _xy_plot(x1_contour[:,i], x2_contour[:,i],'-', 
                       label=contour_label[i], ax=ax)
             
-    ax = plt.plot(x1, x2, 'bo', alpha=0.1, 
-                  label=data_label) 
+
     plt.legend(loc='lower right')
     plt.xlabel(x_label)
     plt.ylabel(y_label)
