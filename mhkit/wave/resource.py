@@ -1530,4 +1530,56 @@ def ClaytonCopula(x1, x2, dt, period, **kwargs):
  
     return component_1, comp_2_Clayton
 
+  
+def RosenblattCopula(x1, x2, dt, period, **kwargs):
+    '''
+    XXX
+    
+    '''
+    
+    try: x1 = np.array(x1); 
+    except: pass
+    try: x2 = np.array(x2); 
+    except: pass
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(dt, (int,float)), 'dt must be of type int or float'
+    assert isinstance(period, (int,float,np.ndarray)), ('period must be'
+                                          'of type int, float, or array')
+    
+    bin_val_size = kwargs.get("bin_val_size", 0.25)
+    nb_steps = kwargs.get("nb_steps", 1000)
+    initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
+    min_bin_count=kwargs.get("min_bin_count",40)
+    
+    assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    assert isinstance(min_bin_count, int), 'min_bin_count must be of type int'
+    assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
+    
+    para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
+
+
+    results = iso_prob_and_quantile(dt, period, nb_steps)
+    x_component_iso_prob = results['x_component_iso_prob'] 
+    y_component_iso_prob = results['y_component_iso_prob'] 
+    x_quantile = results['x_quantile'] 
+    y_quantile =results['y_quantile'] 
+
+    a=para_dist_1[0]
+    c=para_dist_1[1]
+    loc=para_dist_1[2]
+    scale=para_dist_1[3]
+
+    component_1 = stats.exponweib.ppf(x_quantile, a, c, loc=loc, scale=scale)
+
+    # mean of Ln(T) as a function of Hs
+    lamda_cond=mean_cond[0]+mean_cond[1]*component_1+mean_cond[2]*component_1**2+mean_cond[3]*component_1**3
+    # Standard deviation of Ln(T) as a function of Hs
+    sigma_cond=std_cond[0]+std_cond[1]*component_1+std_cond[2]*component_1**2                                
+    # lognormal inverse
+    comp_2_Rosenblatt = stats.lognorm.ppf(y_quantile,s=sigma_cond,loc=0,scale=np.exp(lamda_cond))
+ 
+    return component_1, comp_2_Rosenblatt  
+    
     
