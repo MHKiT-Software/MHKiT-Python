@@ -823,26 +823,7 @@ def depth_regime(l, h, ratio=2):
     return  depth_reg
 
 
-def iso_prob_and_quantile(dt, period, nb_steps):
-    dt_yrs = dt / ( 3600 * 24 * 365 )
-    exceedance_probability = 1 / ( period / dt_yrs)
-    iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
-                                             loc=0, scale=1)  
-    discretized_radians = np.linspace(0, 2 * np.pi, nb_steps)
-    
-    x_component_iso_prob = iso_probability_radius * \
-                            np.cos(discretized_radians)
-    y_component_iso_prob = iso_probability_radius * \
-                            np.sin(discretized_radians)
-    
-    x_quantile = stats.norm.cdf(x_component_iso_prob, loc=0, scale=1)
-    y_quantile = stats.norm.cdf(y_component_iso_prob, loc=0, scale=1)
-    
-    results = { 'x_component_iso_prob': x_component_iso_prob,
-                'y_component_iso_prob': y_component_iso_prob,
-                'x_quantile': x_quantile,
-                'y_quantile': y_quantile}
-    return results
+
 
 
 def environmental_contour(x1, x2, dt, period, **kwargs):
@@ -1124,6 +1105,126 @@ def _principal_component_analysis(x1, x2, bin_size=250):
     return PCA
 
 
+def iso_prob_and_quantile(dt, period, nb_steps):
+    dt_yrs = dt / ( 3600 * 24 * 365 )
+    exceedance_probability = 1 / ( period / dt_yrs)
+    iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
+                                             loc=0, scale=1)  
+    discretized_radians = np.linspace(0, 2 * np.pi, nb_steps)
+    
+    x_component_iso_prob = iso_probability_radius * \
+                            np.cos(discretized_radians)
+    y_component_iso_prob = iso_probability_radius * \
+                            np.sin(discretized_radians)
+    
+    x_quantile = stats.norm.cdf(x_component_iso_prob, loc=0, scale=1)
+    y_quantile = stats.norm.cdf(y_component_iso_prob, loc=0, scale=1)
+    
+    results = { 'x_component_iso_prob': x_component_iso_prob,
+                'y_component_iso_prob': y_component_iso_prob,
+                'x_quantile': x_quantile,
+                'y_quantile': y_quantile}
+    return results
+
+
+def copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size):
+    '''
+    XXX
+    
+    '''
+    # Binning
+    x1_sorted_index = x1.argsort()
+    x1_sorted = x1[x1_sorted_index]
+    x2_sorted = x2[x1_sorted_index]
+
+    
+    # Because x1 is sorted we can find the max indicie using the following logic
+    ind = np.array([])
+    N_vals_lt_limit = sum(x1_sorted <= initial_bin_max_val)
+    ind = np.append(ind, N_vals_lt_limit)
+
+    # Make sure first bin isn't empty or too small to avoid errors        
+    while ind == 0 or ind < min_bin_count:         
+        ind = np.array([])    
+        initial_bin_max_val += bin_val_size
+        N_vals_lt_limit = sum(x1_sorted <= initial_bin_max_val)
+        ind = np.append(ind, N_vals_lt_limit) 
+
+    # Add bins until the total number of vals in between bins is less than the minimum bin size
+    i=0
+    bin_size_i=np.inf
+    while bin_size_i >= min_bin_count:
+        i+=1
+        bin_i_max_val = initial_bin_max_val + bin_val_size*(i)
+        N_vals_lt_limit = sum(x1_sorted <= bin_i_max_val)
+        ind = np.append(ind, N_vals_lt_limit)
+        bin_size_i = ind[i]-ind[i-1]
+        
+    # Estimate parameters for Weibull distribution for component 1 (Hs) using MLE
+    # Estimate parameters for Lognormal distribution for component 2 (T) using MLE
+    para_dist_1=stats.exponweib.fit(x1_sorted,floc=0,fa=1)
+    para_dist_2=stats.norm.fit(np.log(x2_sorted))
+        
+    # Parameters for conditional distribution of T|Hs for each bin
+    num=len(ind) # num+1: number of bins
+    para_dist_cond = []
+    hss = []
+
+    # Bin zero special case (lognormal dist over only 1 bin)
+    # parameters for zero bin
+    ind0 = range(0, int(ind[0]))
+    x2_log0 = np.log(x2_sorted[ind0])
+    x2_lognormal_dist0 = stats.norm.fit(x2_log0)
+    para_dist_cond.append(x2_lognormal_dist0)  
+    # mean of x1 (component 1 for zero bin)
+    x1_bin0 = x1_sorted[range(0, int(ind[0])-1)]
+    hss.append(np.mean(x1_bin0)) 
+
+    # Intialize special case 2-bin lognormal Dist 
+    bin_range = 2
+    # parameters for 1 bin
+    ind1 = range(0, int(ind[1]))
+    x2_log1 = np.log(x2_sorted[ind1])
+    x2_lognormal_dist1 = stats.norm.fit(x2_log1)
+    para_dist_cond.append(x2_lognormal_dist1) 
+
+    # mean of Hs (component 1 for bin 1)
+    hss.append(np.mean(x1_sorted[range(0,int(ind[1])-1)])) 
+
+    # lognormal Dist (lognormal dist over only 2 bins)
+    for i in range(2,num):
+        ind_i = range(int(ind[i-2]), int(ind[i]))
+        x2_log_i = np.log(x2_sorted[ind_i])
+        x2_lognormal_dist_i = stats.norm.fit(x2_log_i)
+        para_dist_cond.append(x2_lognormal_dist_i);
+        
+        hss.append(np.mean(x1_sorted[ind_i]))
+
+    # Estimate coefficient using least square solution (mean: third order, sigma: 2nd order)
+    ind_f = range(int(ind[num-2]),int(len(x1)))
+    x2_log_f = np.log(x2_sorted[ind_f])
+    x2_lognormal_dist_f = stats.norm.fit(x2_log_f)
+    para_dist_cond.append(x2_lognormal_dist_f)  # parameters for last bin
+
+    # mean of Hs (component 1 for last bin)
+    hss.append(np.mean(x1_sorted[ind_f])) 
+
+    para_dist_cond = np.array(para_dist_cond)
+    hss = np.array(hss)
+
+    # cubic in Hs: a + bx + cx**2 + dx**3
+    phi_mean = np.column_stack((np.ones(num+1), hss, hss**2, hss**3))
+    # quadratic in Hs  a + bx + cx**2
+    phi_std = np.column_stack((np.ones(num+1), hss, hss**2))
+
+    # Estimate coefficients of mean of Ln(T|Hs)(vector 4x1) (cubic in Hs)
+    mean_cond = np.linalg.lstsq(phi_mean, para_dist_cond[:,0])[0]
+    # Estimate coefficients of standard deviation of Ln(T|Hs) (vector 3x1) (quadratic in Hs)
+    std_cond = np.linalg.lstsq(phi_std, para_dist_cond[:,1])[0]
+    
+    return para_dist_1, para_dist_2, mean_cond, std_cond
+
+
 def GaussianCopula(x1, x2, dt, period, **kwargs):
     '''
         WDRT Extreme Sea State Gaussian Copula Contour function.
@@ -1228,95 +1329,7 @@ def GaussianCopula(x1, x2, dt, period, **kwargs):
     assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
     
 
-    # Binning
-    x1_sorted_index = x1.argsort()
-    x1_sorted = x1[x1_sorted_index]
-    x2_sorted = x2[x1_sorted_index]
-
-    
-    # Because x1 is sorted we can find the max indicie using the following logic
-    ind = np.array([])
-    N_vals_lt_limit = sum(x1_sorted <= initial_bin_max_val)
-    ind = np.append(ind, N_vals_lt_limit)
-
-    # Make sure first bin isn't empty or too small to avoid errors        
-    while ind == 0 or ind < min_bin_count:         
-        ind = np.array([])    
-        initial_bin_max_val += bin_val_size
-        N_vals_lt_limit = sum(x1_sorted <= initial_bin_max_val)
-        ind = np.append(ind, N_vals_lt_limit) 
-
-    # Add bins until the total number of vals in between bins is less than the minimum bin size
-    i=0
-    bin_size_i=np.inf
-    while bin_size_i >= min_bin_count:
-        i+=1
-        bin_i_max_val = initial_bin_max_val + bin_val_size*(i)
-        N_vals_lt_limit = sum(x1_sorted <= bin_i_max_val)
-        ind = np.append(ind, N_vals_lt_limit)
-        bin_size_i = ind[i]-ind[i-1]
-        
-    # Estimate parameters for Weibull distribution for component 1 (Hs) using MLE
-    # Estimate parameters for Lognormal distribution for component 2 (T) using MLE
-    para_dist_1=stats.exponweib.fit(x1_sorted,floc=0,fa=1)
-    para_dist_2=stats.norm.fit(np.log(x2_sorted))
-        
-    # Parameters for conditional distribution of T|Hs for each bin
-    num=len(ind) # num+1: number of bins
-    para_dist_cond = []
-    hss = []
-
-    # Bin zero special case (lognormal dist over only 1 bin)
-    # parameters for zero bin
-    ind0 = range(0, int(ind[0]))
-    x2_log0 = np.log(x2_sorted[ind0])
-    x2_lognormal_dist0 = stats.norm.fit(x2_log0)
-    para_dist_cond.append(x2_lognormal_dist0)  
-    # mean of x1 (component 1 for zero bin)
-    x1_bin0 = x1_sorted[range(0, int(ind[0])-1)]
-    hss.append(np.mean(x1_bin0)) 
-
-    # Intialize special case 2-bin lognormal Dist 
-    bin_range = 2
-    # parameters for 1 bin
-    ind1 = range(0, int(ind[1]))
-    x2_log1 = np.log(x2_sorted[ind1])
-    x2_lognormal_dist1 = stats.norm.fit(x2_log1)
-    para_dist_cond.append(x2_lognormal_dist1) 
-
-    # mean of Hs (component 1 for bin 1)
-    hss.append(np.mean(x1_sorted[range(0,int(ind[1])-1)])) 
-
-    # lognormal Dist (lognormal dist over only 2 bins)
-    for i in range(2,num):
-        ind_i = range(int(ind[i-2]), int(ind[i]))
-        x2_log_i = np.log(x2_sorted[ind_i])
-        x2_lognormal_dist_i = stats.norm.fit(x2_log_i)
-        para_dist_cond.append(x2_lognormal_dist_i);
-        
-        hss.append(np.mean(x1_sorted[ind_i]))
-
-    # Estimate coefficient using least square solution (mean: third order, sigma: 2nd order)
-    ind_f = range(int(ind[num-2]),int(len(x1)))
-    x2_log_f = np.log(x2_sorted[ind_f])
-    x2_lognormal_dist_f = stats.norm.fit(x2_log_f)
-    para_dist_cond.append(x2_lognormal_dist_f)  # parameters for last bin
-
-    # mean of Hs (component 1 for last bin)
-    hss.append(np.mean(x1_sorted[ind_f])) 
-
-    para_dist_cond = np.array(para_dist_cond)
-    hss = np.array(hss)
-
-    # cubic in Hs: a + bx + cx**2 + dx**3
-    phi_mean = np.column_stack((np.ones(num+1), hss, hss**2, hss**3))
-    # quadratic in Hs  a + bx + cx**2
-    phi_std = np.column_stack((np.ones(num+1), hss, hss**2))
-
-    # Estimate coefficients of mean of Ln(T|Hs)(vector 4x1) (cubic in Hs)
-    mean_cond = np.linalg.lstsq(phi_mean, para_dist_cond[:,0])[0]
-    # Estimate coefficients of standard deviation of Ln(T|Hs) (vector 3x1) (quadratic in Hs)
-    std_cond = np.linalg.lstsq(phi_std, para_dist_cond[:,1])[0]
+    para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
 
 
     results = iso_prob_and_quantile(dt, period, nb_steps)
@@ -1348,3 +1361,118 @@ def GaussianCopula(x1, x2, dt, period, **kwargs):
     x1_gauss = component_1
     x2_gauss = comp_2_Gaussian
     return x1_gauss, x2_gauss
+    
+
+def _gumbelCopula(u, alpha):
+    ''' 
+    Calculates the Gumbel copula density
+    
+    Parameters
+    ----------
+    u: np.array
+        Vector of equally spaced points between 0 and twice the
+            maximum value of T.
+    alpha: float
+        Copula parameter. Must be greater than or equal to 1.
+    
+    Returns
+    -------
+    y: np.array
+        Copula density function.
+    '''
+    
+    #Ignore divide by 0 warnings and resulting NaN warnings
+    #np.seterr(all='ignore')        
+    v = -np.log(u)
+    v = np.sort(v, axis=0)
+    vmin = v[0, :]
+    vmax = v[1, :]
+    nlogC = vmax * (1 + (vmin / vmax) ** alpha) ** (1 / alpha)
+    y = (alpha - 1 +nlogC)*np.exp(-nlogC+np.sum((alpha-1)*np.log(v)+v, axis =0) +(1-2*alpha)*np.log(nlogC))
+    #np.seterr(all='warn')
+
+    return(y) 
+
+def GumbelCopula(x1, x2, dt, period, **kwargs):
+    '''
+    XXX
+    
+    '''
+    
+    try: x1 = np.array(x1); 
+    except: pass
+    try: x2 = np.array(x2); 
+    except: pass
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(dt, (int,float)), 'dt must be of type int or float'
+    assert isinstance(period, (int,float,np.ndarray)), ('period must be'
+                                          'of type int, float, or array')
+    
+    bin_val_size = kwargs.get("bin_val_size", 0.25)
+    nb_steps = kwargs.get("nb_steps", 1000)
+    initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
+    min_bin_count=kwargs.get("min_bin_count",40)
+    
+    assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    assert isinstance(min_bin_count, int), 'min_bin_count must be of type int'
+    assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
+    
+    para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
+
+
+    results = iso_prob_and_quantile(dt, period, nb_steps)
+    x_component_iso_prob = results['x_component_iso_prob'] 
+    y_component_iso_prob = results['y_component_iso_prob'] 
+    x_quantile = results['x_quantile'] 
+    y_quantile =results['y_quantile'] 
+
+    a=para_dist_1[0]
+    c=para_dist_1[1]
+    loc=para_dist_1[2]
+    scale=para_dist_1[3]
+
+    component_1 = stats.exponweib.ppf(x_quantile, a, c, loc=loc, scale=scale)
+
+    # Calculate Kendall's tau
+    tau=stats.kendalltau(x2,x1)[0] 
+    
+    theta_gum = 1./(1.-tau)
+    
+    #======================================
+    fi_u1=x_quantile
+    fi_u2=y_quantile
+    
+    min_limit_2=0
+    max_limit_2= np.ceil(np.amax(x2)*2)
+    Ndata=1000
+    
+    x = np.linspace(min_limit_2, max_limit_2, Ndata)
+    s=para_dist_2[1]
+    scale=np.exp(para_dist_2[0])   
+    z2 = stats.lognorm.cdf(x,s=s,loc=0,scale=scale)
+
+    comp_2_Gumb = np.zeros(nb_steps)
+    for k in range(nb_steps):
+        z1 = np.linspace(fi_u1[k], fi_u1[k], Ndata)
+        Z = np.array((z1,z2))
+        Y = _gumbelCopula(u, alpha)(Z, theta_gum) # Copula density function
+        Y =np.nan_to_num(Y)
+        p_x_x1 = Y*(stats.lognorm.pdf(x, s=s, loc=0, scale=scale)) # pdf 2|1, f(comp_2|comp_1)=c(z1,z2)*f(comp_2)
+        dum = np.cumsum(p_x_x1)
+        cdf = dum/(dum[Ndata-1]) # Estimate CDF from PDF
+        # Result of conditional CDF derived based on Gumbel copula
+        table = np.array((x, cdf)) 
+        table = table.T
+        for j in range(Ndata):
+            if fi_u2[k] <= table[0,1]:
+                comp_2_Gumb[k] = min(table[:,0])
+                break
+            elif fi_u2[k] <= table[j,1]:
+                comp_2_Gumb[k] = (table[j,0]+table[j-1,0])/2
+                break
+            else:
+                comp_2_Gumb[k] = table[:,0].max()
+                
+    return component_1, comp_2_Gumb

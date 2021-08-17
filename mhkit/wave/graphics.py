@@ -349,13 +349,15 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     assert x2_contour.ndim == x1_contour.ndim,  ('contour must be of' 
             f'equal dimesion got {x2_contour.ndim} and {x1_contour.ndim}')                                                  
    
-    N_contours = x2_contour.ndim
     
-    if N_contours == 1:
+    
+    if x2_contour.ndim==1:
+    
+        N_contours = 1
         x2_contour  = np.array([x2_contour]).T
         x1_contour = np.array([x1_contour]).T
-    
-    
+    else:
+        N_contours = x2_contour.shape[1]
     
     if contour_label != None:
         if isinstance(contour_label, str):
@@ -367,19 +369,18 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     else:
         contour_label = [None] * N_contours
     
-    plt.plot(x1, x2, 'bo', alpha=0.1, 
-                  label=data_label) 
+    plt.plot(x1, x2, 'bo', alpha=0.1, label=data_label) 
     
     for i in range(N_contours):
         ax = _xy_plot(x1_contour[:,i], x2_contour[:,i],'-', 
                       label=contour_label[i], ax=ax)
             
-
     plt.legend(loc='lower right')
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     plt.tight_layout()
     return ax
+    
     
 def plot_avg_annual_energy_matrix(Hm0, Te, J, time_index=None, 
     Hm0_bin_size=None, Te_bin_size=None, Hm0_edges=None, Te_edges=None):
