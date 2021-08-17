@@ -1441,8 +1441,6 @@ def GumbelCopula(x1, x2, dt, period, **kwargs):
     theta_gum = 1./(1.-tau)
     
     #======================================
-    fi_u1=x_quantile
-    fi_u2=y_quantile
     
     min_limit_2=0
     max_limit_2= np.ceil(np.amax(x2)*2)
@@ -1455,7 +1453,7 @@ def GumbelCopula(x1, x2, dt, period, **kwargs):
 
     comp_2_Gumb = np.zeros(nb_steps)
     for k in range(nb_steps):
-        z1 = np.linspace(fi_u1[k], fi_u1[k], Ndata)
+        z1 = np.linspace(x_quantile[k], x_quantile[k], Ndata)
         Z = np.array((z1,z2))
         Y = _gumbelCopula(u, alpha)(Z, theta_gum) # Copula density function
         Y =np.nan_to_num(Y)
@@ -1466,13 +1464,70 @@ def GumbelCopula(x1, x2, dt, period, **kwargs):
         table = np.array((x, cdf)) 
         table = table.T
         for j in range(Ndata):
-            if fi_u2[k] <= table[0,1]:
+            if y_quantile[k] <= table[0,1]:
                 comp_2_Gumb[k] = min(table[:,0])
                 break
-            elif fi_u2[k] <= table[j,1]:
+            elif y_quantile[k] <= table[j,1]:
                 comp_2_Gumb[k] = (table[j,0]+table[j-1,0])/2
                 break
             else:
                 comp_2_Gumb[k] = table[:,0].max()
                 
     return component_1, comp_2_Gumb
+    
+ 
+def ClaytonCopula(x1, x2, dt, period, **kwargs):
+    '''
+    XXX
+    
+    '''
+    
+    try: x1 = np.array(x1); 
+    except: pass
+    try: x2 = np.array(x2); 
+    except: pass
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(dt, (int,float)), 'dt must be of type int or float'
+    assert isinstance(period, (int,float,np.ndarray)), ('period must be'
+                                          'of type int, float, or array')
+    
+    bin_val_size = kwargs.get("bin_val_size", 0.25)
+    nb_steps = kwargs.get("nb_steps", 1000)
+    initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
+    min_bin_count=kwargs.get("min_bin_count",40)
+    
+    assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    assert isinstance(min_bin_count, int), 'min_bin_count must be of type int'
+    assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
+    
+    para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
+
+
+    results = iso_prob_and_quantile(dt, period, nb_steps)
+    x_component_iso_prob = results['x_component_iso_prob'] 
+    y_component_iso_prob = results['y_component_iso_prob'] 
+    x_quantile = results['x_quantile'] 
+    y_quantile =results['y_quantile'] 
+
+    a=para_dist_1[0]
+    c=para_dist_1[1]
+    loc=para_dist_1[2]
+    scale=para_dist_1[3]
+
+    component_1 = stats.exponweib.ppf(x_quantile, a, c, loc=loc, scale=scale)
+
+    # Calculate Kendall's tau
+    tau=stats.kendalltau(x2,x1)[0] 
+    
+    theta_clay = (2.*tau)/(1.-tau)
+
+    s=para_dist_2[1]
+    scale=np.exp(para_dist_2[0])
+    z2_Clay=((1.-x_quantile**(-theta_clay)+x_quantile**(-theta_clay)/y_quantile)**(theta_clay/(1.+theta_clay)))**(-1./theta_clay)
+    comp_2_Clayton = stats.lognorm.ppf(z2_Clay,s=s,loc=0,scale=scale) #lognormalinverse
+ 
+    return component_1, comp_2_Clayton
+
+    
