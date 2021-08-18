@@ -1225,7 +1225,7 @@ def copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size):
     return para_dist_1, para_dist_2, mean_cond, std_cond
 
 
-def GaussianCopula(x1, x2, dt, period, **kwargs):
+def GaussianCopula(x1, x2, results, **kwargs):
     '''
         WDRT Extreme Sea State Gaussian Copula Contour function.
         This function calculates environmental contours of extreme sea states using
@@ -1308,42 +1308,47 @@ def GaussianCopula(x1, x2, dt, period, **kwargs):
     -------    
             
     '''
-    try: x1 = np.array(x1); 
-    except: pass
-    try: x2 = np.array(x2); 
-    except: pass
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(dt, (int,float)), 'dt must be of type int or float'
-    assert isinstance(period, (int,float,np.ndarray)), ('period must be'
-                                          'of type int, float, or array')
+    # try: x1 = np.array(x1); 
+    # except: pass
+    # try: x2 = np.array(x2); 
+    # except: pass
+    # assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    # assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    # assert isinstance(dt, (int,float)), 'dt must be of type int or float'
+    # assert isinstance(period, (int,float,np.ndarray)), ('period must be'
+                                          # 'of type int, float, or array')
     
-    bin_val_size = kwargs.get("bin_val_size", 0.25)
-    nb_steps = kwargs.get("nb_steps", 1000)
-    initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
-    min_bin_count=kwargs.get("min_bin_count",40)
+    # bin_val_size = kwargs.get("bin_val_size", 0.25)
+    # nb_steps = kwargs.get("nb_steps", 1000)
+    # initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
+    # min_bin_count=kwargs.get("min_bin_count",40)
     
-    assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
-    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
-    assert isinstance(min_bin_count, int), 'min_bin_count must be of type int'
-    assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
+    # assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
+    # assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    # assert isinstance(min_bin_count, int), 'min_bin_count must be of type int'
+    # assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
     
 
-    para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
+    # para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
 
 
-    results = iso_prob_and_quantile(dt, period, nb_steps)
+    
     x_component_iso_prob = results['x_component_iso_prob'] 
     y_component_iso_prob = results['y_component_iso_prob'] 
     x_quantile = results['x_quantile'] 
     y_quantile =results['y_quantile'] 
+    
+    para_dist_1 = results['para_dist_1'] 
+    para_dist_2 = results['para_dist_2'] 
+    mean_cond = results['mean_cond'] 
+    std_cond = results['std_cond'] 
 
-    a=para_dist_1[0]
-    c=para_dist_1[1]
-    loc=para_dist_1[2]
-    scale=para_dist_1[3]
+    # a=para_dist_1[0]
+    # c=para_dist_1[1]
+    # loc=para_dist_1[2]
+    # scale=para_dist_1[3]
 
-    component_1 = stats.exponweib.ppf(x_quantile, a, c, loc=loc, scale=scale)
+    # component_1 = stats.exponweib.ppf(x_quantile, a, c, loc=loc, scale=scale)
 
     # Calculate Kendall's tau
     tau=stats.kendalltau(x2,x1)[0] 
@@ -1357,10 +1362,8 @@ def GaussianCopula(x1, x2, dt, period, **kwargs):
 
     #lognormalinverse
     comp_2_Gaussian = stats.lognorm.ppf(z2_Gauss, s=s, loc=loc, scale=scale) 
-
-    x1_gauss = component_1
-    x2_gauss = comp_2_Gaussian
-    return x1_gauss, x2_gauss
+        
+    return comp_2_Gaussian
     
 
 def _gumbelCopula(u, alpha):
@@ -1393,47 +1396,59 @@ def _gumbelCopula(u, alpha):
 
     return(y) 
 
-def GumbelCopula(x1, x2, dt, period, **kwargs):
+def GumbelCopula(x1, x2, results, **kwargs):
     '''
     XXX
     
     '''
     
-    try: x1 = np.array(x1); 
-    except: pass
-    try: x2 = np.array(x2); 
-    except: pass
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(dt, (int,float)), 'dt must be of type int or float'
-    assert isinstance(period, (int,float,np.ndarray)), ('period must be'
-                                          'of type int, float, or array')
+    # try: x1 = np.array(x1); 
+    # except: pass
+    # try: x2 = np.array(x2); 
+    # except: pass
+    # assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    # assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    # assert isinstance(dt, (int,float)), 'dt must be of type int or float'
+    # assert isinstance(period, (int,float,np.ndarray)), ('period must be'
+                                          # 'of type int, float, or array')
     
-    bin_val_size = kwargs.get("bin_val_size", 0.25)
-    nb_steps = kwargs.get("nb_steps", 1000)
-    initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
-    min_bin_count=kwargs.get("min_bin_count",40)
+    # bin_val_size = kwargs.get("bin_val_size", 0.25)
+    nb_steps = kwargs.get("nb_steps")
+    # initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
+    # min_bin_count=kwargs.get("min_bin_count",40)
     
-    assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
-    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
-    assert isinstance(min_bin_count, int), 'min_bin_count must be of type int'
-    assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
+    # assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
+    # assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    # assert isinstance(min_bin_count, int), 'min_bin_count must be of type int'
+    # assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
     
-    para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
+    # para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
 
 
-    results = iso_prob_and_quantile(dt, period, nb_steps)
+    # results = iso_prob_and_quantile(dt, period, nb_steps)
+    # x_component_iso_prob = results['x_component_iso_prob'] 
+    # y_component_iso_prob = results['y_component_iso_prob'] 
+    # x_quantile = results['x_quantile'] 
+    # y_quantile =results['y_quantile'] 
+
+    # a=para_dist_1[0]
+    # c=para_dist_1[1]
+    # loc=para_dist_1[2]
+    # scale=para_dist_1[3]
+
+    # component_1 = stats.exponweib.ppf(x_quantile, a, c, loc=loc, scale=scale)
+
+
     x_component_iso_prob = results['x_component_iso_prob'] 
     y_component_iso_prob = results['y_component_iso_prob'] 
     x_quantile = results['x_quantile'] 
     y_quantile =results['y_quantile'] 
+    
+    para_dist_1 = results['para_dist_1'] 
+    para_dist_2 = results['para_dist_2'] 
+    mean_cond = results['mean_cond'] 
+    std_cond = results['std_cond'] 
 
-    a=para_dist_1[0]
-    c=para_dist_1[1]
-    loc=para_dist_1[2]
-    scale=para_dist_1[3]
-
-    component_1 = stats.exponweib.ppf(x_quantile, a, c, loc=loc, scale=scale)
 
     # Calculate Kendall's tau
     tau=stats.kendalltau(x2,x1)[0] 
@@ -1451,11 +1466,11 @@ def GumbelCopula(x1, x2, dt, period, **kwargs):
     scale=np.exp(para_dist_2[0])   
     z2 = stats.lognorm.cdf(x,s=s,loc=0,scale=scale)
 
-    comp_2_Gumb = np.zeros(nb_steps)
+    comp2_Gumb = np.zeros(nb_steps)
     for k in range(nb_steps):
         z1 = np.linspace(x_quantile[k], x_quantile[k], Ndata)
         Z = np.array((z1,z2))
-        Y = _gumbelCopula(u, alpha)(Z, theta_gum) # Copula density function
+        Y = _gumbelCopula(Z, theta_gum) # Copula density function
         Y =np.nan_to_num(Y)
         p_x_x1 = Y*(stats.lognorm.pdf(x, s=s, loc=0, scale=scale)) # pdf 2|1, f(comp_2|comp_1)=c(z1,z2)*f(comp_2)
         dum = np.cumsum(p_x_x1)
@@ -1465,15 +1480,15 @@ def GumbelCopula(x1, x2, dt, period, **kwargs):
         table = table.T
         for j in range(Ndata):
             if y_quantile[k] <= table[0,1]:
-                comp_2_Gumb[k] = min(table[:,0])
+                comp2_Gumb[k] = min(table[:,0])
                 break
             elif y_quantile[k] <= table[j,1]:
-                comp_2_Gumb[k] = (table[j,0]+table[j-1,0])/2
+                comp2_Gumb[k] = (table[j,0]+table[j-1,0])/2
                 break
             else:
-                comp_2_Gumb[k] = table[:,0].max()
+                comp2_Gumb[k] = table[:,0].max()
                 
-    return component_1, comp_2_Gumb
+    return comp2_Gumb
     
  
 def ClaytonCopula(x1, x2, dt, period, **kwargs):
@@ -1530,7 +1545,7 @@ def ClaytonCopula(x1, x2, dt, period, **kwargs):
  
     return component_1, comp_2_Clayton
 
-  
+
 def RosenblattCopula(x1, x2, dt, period, **kwargs):
     '''
     XXX
@@ -1581,5 +1596,62 @@ def RosenblattCopula(x1, x2, dt, period, **kwargs):
     comp_2_Rosenblatt = stats.lognorm.ppf(y_quantile,s=sigma_cond,loc=0,scale=np.exp(lamda_cond))
  
     return component_1, comp_2_Rosenblatt  
+  
+def Copula(x1, x2, dt, period, method, **kwargs):
+    '''
+    XXX
+    
+    '''
+    
+    try: x1 = np.array(x1); 
+    except: pass
+    try: x2 = np.array(x2); 
+    except: pass
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(dt, (int,float)), 'dt must be of type int or float'
+    assert isinstance(period, (int,float,np.ndarray)), ('period must be'
+                                          'of type int, float, or array')
+    
+    bin_val_size = kwargs.get("bin_val_size", 0.25)
+    nb_steps = kwargs.get("nb_steps", 1000)
+    initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
+    min_bin_count=kwargs.get("min_bin_count",40)
+    
+    assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    assert isinstance(min_bin_count, int), 'min_bin_count must be of type int'
+    assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
+
+
+    results = iso_prob_and_quantile(dt, period, nb_steps)
+    
+    para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
+    results['para_dist_1'] = para_dist_1
+    results['para_dist_2'] = para_dist_2
+    results['mean_cond'] = mean_cond
+    results['std_cond'] = std_cond
+    
+    # x_component_iso_prob = results['x_component_iso_prob'] 
+    # y_component_iso_prob = results['y_component_iso_prob'] 
+    x_quantile = results['x_quantile'] 
+    # y_quantile =results['y_quantile'] 
+
+    a=para_dist_1[0]
+    c=para_dist_1[1]
+    loc=para_dist_1[2]
+    scale=para_dist_1[3]
+
+    component_1 = stats.exponweib.ppf(x_quantile, a, c, loc=loc, scale=scale)
+
+    copulas={'component_1':component_1}
+    if method=='gaussian':
+        copulas['gaussian'] = GaussianCopula(x1, x2, results)
+    if method=='gumbel':
+        copulas['gumbel'] = GumbelCopula(x1, x2, results, nb_steps=nb_steps)
+         
+
+ 
+    return copulas 
     
     
