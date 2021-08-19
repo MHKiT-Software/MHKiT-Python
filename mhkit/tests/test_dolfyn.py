@@ -37,7 +37,7 @@ class ResourceFilename():
     def __call__(self, name):
         return pkg_resources.resource_filename(self.pkg, self.prefix + name)
 
-rfnm = ResourceFilename('dolfyn.test', prefix='data/')
+rfnm = ResourceFilename('dolfyn.tests', prefix='data/')
 exdt = ResourceFilename('dolfyn', prefix='example_data/')
 
 def load(name, *args, **kwargs):
