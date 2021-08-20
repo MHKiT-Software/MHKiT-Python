@@ -29,7 +29,6 @@ def drop_config(dataset):
     return dataset
 
 class ResourceFilename():
-
     def __init__(self, package_or_requirement, prefix=''):
         self.pkg = package_or_requirement
         self.prefix = prefix
@@ -37,8 +36,8 @@ class ResourceFilename():
     def __call__(self, name):
         return pkg_resources.resource_filename(self.pkg, self.prefix + name)
 
-rfnm = ResourceFilename('dolfyn.tests', prefix='data/')
-exdt = ResourceFilename('dolfyn', prefix='example_data/')
+rfnm = ResourceFilename('mhkit', prefix='../examples/data/dolfyn/test_data/')
+exdt = ResourceFilename('mhkit', prefix='../examples/data/dolfyn/')
 
 def load(name, *args, **kwargs):
     return io.load(rfnm(name), *args, **kwargs)
@@ -80,16 +79,17 @@ class io_testcase(unittest.TestCase):
     def setUpClass(self):
         sys.stdout = open(os.devnull, 'w') # block printing output
         warnings.simplefilter('ignore', UserWarning)
-        #pass
 
     @classmethod
     def tearDownClass(self):
         sys.stdout = sys.__stdout__ # restart printing output
-        #pass
+        os.remove(rfnm('test_save.nc'))
+        os.remove(rfnm('test_save.mat'))
+
 
     def test_save(self):
-        save(dat, 'test_save')
-        save_matlab(dat, 'test_save')
+        save(dat, 'test_save.nc')
+        save_matlab(dat, 'test_save.mat')
         
         assert os.path.exists(rfnm('test_save.nc'))
         assert os.path.exists(rfnm('test_save.mat'))
@@ -158,25 +158,12 @@ class io_testcase(unittest.TestCase):
         td_sig_i_ud = drop_config(read('Sig1000_IMU.ad2cp', nens=nens))
         td_sig_ieb = drop_config(read('VelEchoBT01.ad2cp', nens=nens))
         td_sig_ie = drop_config(read('Sig500_Echo.ad2cp', nens=nens))
-        
-        os.remove(exdt('BenchFile01.ad2cp.index'))
-        os.remove(exdt('Sig1000_IMU.ad2cp.index'))
-        os.remove(exdt('VelEchoBT01.ad2cp.index'))
-        os.remove(exdt('Sig500_Echo.ad2cp.index'))
     
         assert_allclose(td_sig, dat_sig, atol=1e-6)
         assert_allclose(td_sig_i, dat_sig_i, atol=1e-6)
         assert_allclose(td_sig_i_ud, dat_sig_i_ud, atol=1e-6)
         assert_allclose(td_sig_ieb, dat_sig_ieb, atol=1e-6)
         assert_allclose(td_sig_ie, dat_sig_ie, atol=1e-6)
-        
-    
-    def test_badtime(self):
-        dat = sig.read_signature(rfnm('Sig1000_BadTime01.ad2cp'))
-        os.remove(rfnm('Sig1000_BadTime01.ad2cp.index'))
-        
-        assert dat.time[199].isnull(), \
-        "A good timestamp was found where a bad value is expected."
         
         
     def test_matlab_io(self):
