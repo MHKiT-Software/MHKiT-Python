@@ -67,7 +67,7 @@ def date2str(dt, format_str=None):
     
     See Also
     --------
-    `datetime.strftime()` documentation for formatting
+    datetime.strftime() documentation for timestamp string formatting
     
     """
     if format_str is None:
@@ -94,7 +94,7 @@ def date2epoch(dt):
         Datetime converted to epoch time (seconds since 1/1/1970)
     
     """
-    if len(dt)==1 and not isinstance(dt, list):
+    if not isinstance(dt, list):
         dt = [dt]
 
     return [t.timestamp() for t in dt]

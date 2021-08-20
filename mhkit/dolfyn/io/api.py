@@ -177,7 +177,7 @@ def save_mat(dataset, filename, datenum=True):
     
     See Also
     --------
-    ~scipy.io.savemat
+    scipy.io.savemat()
     
     """
     if '.' in filename:
@@ -210,7 +210,7 @@ def save_mat(dataset, filename, datenum=True):
 def load_mat(filename, datenum=True):
     """Load xarray dataset from MATLAB (.mat) file, complimentary to `save_mat()`
     
-    .mat file must contain the fields: {vars, coords, config, units},
+    A .mat file must contain the fields: {vars, coords, config, units},
     where 'coords' contain the dimensions of all variables in 'vars'.
     
     Parameters
@@ -218,7 +218,7 @@ def load_mat(filename, datenum=True):
     filename : str
         Filename and/or path with the '.mat' extension
     datenum : bool
-        Converts MATLAB datenum back into epoch time
+        Converts MATLAB datenum into epoch time
         
     Returns
     -------
@@ -227,7 +227,7 @@ def load_mat(filename, datenum=True):
         
     See Also
     --------
-    ~scipy.io.loadmat
+    scipy.io.loadmat()
     
     """
     if '.' in filename:

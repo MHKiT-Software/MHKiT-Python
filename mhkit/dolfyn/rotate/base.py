@@ -142,17 +142,17 @@ def euler2orient(heading, pitch, roll, units='degrees'):
 
     Parameters
     ----------
-    heading : np.ndarray (Nt)
+    heading : |np.ndarray| (Nt)
       The heading angle.
-    pitch : np.ndarray (Nt)
+    pitch : |np.ndarray| (Nt)
       The pitch angle.
-    roll : np.ndarray (Nt)
+    roll : |np.ndarray| (Nt)
       The roll angle.
-    units : string {'degrees' (default), 'radians'}
+    units : str {'degrees' (default), 'radians'}
 
     Returns
     =======
-    omat : np.ndarray (3x3xNt)
+    omat : |np.ndarray| (3x3xNt)
       The orientation matrix of the data. The returned orientation
       matrix obeys the following conventions:
 
@@ -220,12 +220,12 @@ def orient2euler(omat):
 
     Parameters
     ----------
-    omat : np.ndarray
+    omat : |np.ndarray|
       The orientation matrix
 
     Returns
     -------
-    heading : np.ndarray
+    heading : |np.ndarray|
       The heading angle. Heading is defined as the direction the x-axis points,
       positive clockwise from North (this is *opposite* the right-hand-rule
       around the Z-axis), range 0-360 degrees.
@@ -258,7 +258,7 @@ def orient2euler(omat):
 
 
 def q2orient(quaternions):
-    '''
+    """
     Calculate orientation from Nortek AHRS quaternions, where q = [W, X, Y, Z] 
     instead of the standard q = [X, Y, Z, W] = [q1, q2, q3, q4]
     
@@ -274,9 +274,9 @@ def q2orient(quaternions):
         
     See Also
     --------
-    `scipy.spatial.transform.Rotation`
+    scipy.spatial.transform.Rotation
     
-    '''
+    """
     omat = type(quaternions)(np.empty((3, 3, quaternions.time.size)))
     omat = omat.rename({'dim_0':'inst', 'dim_1':'earth', 'dim_2':'time'})
     
