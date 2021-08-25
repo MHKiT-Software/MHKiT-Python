@@ -149,13 +149,13 @@ class _Ad2cpReader():
         for rdr_id, cfg in self._config.items():
             if rdr_id == 28:
                 self._burst_readers[rdr_id] = defs._calc_echo_struct(
-                    cfg['_config'], cfg['ncells'])
+                    cfg['_config'], cfg['n_cells'])
             elif rdr_id == 23:
                 self._burst_readers[rdr_id] = defs._calc_bt_struct(
-                    cfg['_config'], cfg['nbeams'])
+                    cfg['_config'], cfg['n_beams'])
             else:
                 self._burst_readers[rdr_id] = defs._calc_burst_struct(
-                    cfg['_config'], cfg['nbeams'], cfg['ncells'])
+                    cfg['_config'], cfg['n_beams'], cfg['n_cells'])
                 
     def init_data(self, ens_start, ens_stop):
         outdat = {}
@@ -340,9 +340,9 @@ def _reorg(dat):
         tmp = lib._beams_cy_int2dict(
             lib._collapse(dnow['beam_config'], exclude=collapse_exclude,
                           name='beam_config'), 21)
-        cfg['ncells' + tag] = tmp['ncells']
+        cfg['n_cells' + tag] = tmp['n_cells']
         cfg['coord_sys_axes' + tag] = tmp['cy']
-        cfg['nbeams' + tag] = tmp['nbeams']
+        cfg['n_beams' + tag] = tmp['n_beams']
         cfg['xmit_energy' + tag] = np.median(dnow['xmit_energy'])
         cfg['ambig_vel' + tag] = np.median(dnow['ambig_vel'])
         

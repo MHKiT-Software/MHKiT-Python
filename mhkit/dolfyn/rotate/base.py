@@ -3,6 +3,13 @@ from numpy.linalg import det, inv
 from scipy.spatial.transform import Rotation as R
 
 
+def _make_model(ds):
+    """The make and model of the instrument that collected the data
+    in this data object.
+    """
+    return '{} {}'.format(ds.inst_make,
+                          ds.inst_model).lower()
+
 def _check_rotmat_det(rotmat, thresh=1e-3):
     """Check that the absolute error of the determinant is small.
 
@@ -16,13 +23,13 @@ def _check_rotmat_det(rotmat, thresh=1e-3):
 
 
 def _set_coords(ds, ref_frame, forced=False):
-    '''
+    """
     Checks the current reference frame and adjusts xarray coords/dims 
     as necessary.
     Makes sure assigned dataarray coordinates match what DOLfYN is reading in.
     
-    '''
-    make = ds.Veldata._make_model
+    """
+    make = _make_model(ds)
     
     XYZ = ['X','Y','Z']
     ENU = ['E','N','U']
@@ -74,13 +81,13 @@ def _set_coords(ds, ref_frame, forced=False):
 
 
 def _beam2inst(dat, reverse=False, force=False):
-    """Rotate velocities from beam to instrument coordinates.
+    """
+    Rotate velocities from beam to instrument coordinates.
 
     Parameters
     ----------
     dat : xarray.Dataset
         The ADCP dataset
-
     reverse : bool (default: False)
         If True, this function performs the inverse rotation (inst->beam).
     force : bool (default: False), or list

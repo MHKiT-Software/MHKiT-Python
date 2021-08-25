@@ -2,6 +2,7 @@ from . import vector as r_vec
 from . import awac as r_awac
 from . import signature as r_sig
 from . import rdi as r_rdi
+from .base import _make_model
 import numpy as np
 import xarray as xr
 import warnings
@@ -60,12 +61,12 @@ def rotate2(ds, out_frame='earth', inplace=False):
 
     rmod = None
     for ky in rot_module_dict:
-        if ky in ds.Veldata._make_model:
+        if ky in _make_model(ds):
             rmod = rot_module_dict[ky]
             break
     if rmod is None:
         raise ValueError("Rotations are not defined for "
-                         "instrument '{}'.".format(ds.Veldata._make_model))
+                         "instrument '{}'.".format(_make_model(ds)))
     if not inplace:
         ds = ds.copy(deep=True)
 

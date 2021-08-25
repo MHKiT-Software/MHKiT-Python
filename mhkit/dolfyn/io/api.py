@@ -45,7 +45,7 @@ def read_example(name, **kwargs):
 
     Parameters
     ----------
-    name : string
+    name : str
         A few available files:
 
             AWAC_test01.wpr
@@ -60,12 +60,12 @@ def read_example(name, **kwargs):
     Returns
     -------
     ds : xarray.Dataset
-        An xarray dataset from the binary instrument data.
+        An xarray dataset read from the instrument datafile
 
     """
     filename = pkg_resources.resource_filename(
-        'dolfyn',
-        'example_data/' + name)
+        'mhkit',
+        '../examples/data/dolfyn/' + name)
     return read(filename, **kwargs)
 
 

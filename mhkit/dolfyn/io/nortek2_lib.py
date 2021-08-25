@@ -273,12 +273,12 @@ def _beams_cy_int2dict(val, id):
     """Convert the beams/coordinate-system bytes to a dict of values.
     """
     if id == 28:  # 0x1C (echosounder)
-        return dict(ncells=val)
+        return dict(n_cells=val)
     
     return dict(
-        ncells=val & (2 ** 10 - 1),
+        n_cells=val & (2 ** 10 - 1),
         cy=['ENU', 'XYZ', 'beam', None][val >> 10 & 3],
-        nbeams=val >> 12)
+        n_beams=val >> 12)
 
 
 def _isuniform(vec, exclude=[]):

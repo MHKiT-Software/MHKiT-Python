@@ -187,11 +187,11 @@ class rotate_testcase(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         sys.stdout = open(os.devnull, 'w') # block printing output
-        #pass
+
     @classmethod
     def tearDownClass(self):
         sys.stdout = sys.__stdout__ # restart printing output
-        #pass
+
     
     def test_heading(self):
         td = dat_imu.copy(deep=True)
@@ -213,9 +213,9 @@ class rotate_testcase(unittest.TestCase):
                                        [1, 0, 0],
                                        [0, 0,-1]])
     
-        npt.assert_allclose(td.Veldata.u.values, dat.Veldata.v.values, atol=1e-6)
-        npt.assert_allclose(td.Veldata.v.values, dat.Veldata.u.values, atol=1e-6)
-        npt.assert_allclose(td.Veldata.w.values, -dat.Veldata.w.values, atol=1e-6)
+        npt.assert_allclose(td.vel[0].values, dat.vel[1].values, atol=1e-6)
+        npt.assert_allclose(td.vel[1].values, dat.vel[0].values, atol=1e-6)
+        npt.assert_allclose(td.vel[2].values, -dat.vel[2].values, atol=1e-6)
     
         # Validation for non-symmetric rotations
         td = dat.copy(deep=True)
