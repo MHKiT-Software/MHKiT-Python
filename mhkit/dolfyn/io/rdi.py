@@ -59,9 +59,9 @@ def read_rdi(fname, userdata=None, nens=None, debug=0):
     ds['beam2inst_orientmat'] = xr.DataArray(_calc_beam_orientmat(
                             ds.beam_angle,
                             ds.beam_pattern=='convex'),
-                                             coords={'x':[1,2,3,4],
+                                             coords={'beam':[1,2,3,4],
                                                      'x*':[1,2,3,4]},
-                                             dims=['x','x*'])
+                                             dims=['beam','x*'])
                                  
     ds['orientmat'] = xr.DataArray(_calc_orientmat(ds),
                                    coords={'inst': ['X','Y','Z'],
@@ -285,7 +285,7 @@ class _RdiReader():
     def init_data(self,):
         outd = {'data_vars':{},'coords':{},'attrs':{},'units':{},'sys':{}}
         outd['attrs']['inst_make'] = 'TRDI'
-        outd['attrs']['inst_model'] = '<WORKHORSE?>'
+        outd['attrs']['inst_model'] = 'Workhorse'
         outd['attrs']['inst_type'] = 'ADCP'
         outd['attrs']['rotate_vars'] = ['vel', ]
         # Currently RDI doesn't use IMUs
