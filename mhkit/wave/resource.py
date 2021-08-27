@@ -1,3 +1,4 @@
+from statsmodels.nonparametric.kde import KDEUnivariate 
 from sklearn.decomposition import PCA as skPCA
 from sklearn.metrics import mean_squared_error
 from scipy.optimize import fsolve as _fsolve
@@ -97,6 +98,7 @@ def pierson_moskowitz_spectrum(f, Tp):
     S = pd.DataFrame(Sf, index=f, columns=[col_name])    
 
     return S
+
 
 def bretschneider_spectrum(f, Tp, Hs):
     """
@@ -698,6 +700,7 @@ def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2):
    
     return Cg
 
+
 def wave_length(k):
     """
     Calculates wave length from wave number
@@ -725,6 +728,7 @@ def wave_length(k):
     l = 2*np.pi/k
     
     return l
+
 
 def wave_number(f, h, rho=1025, g=9.80665):
     """
@@ -781,6 +785,7 @@ def wave_number(f, h, rho=1025, g=9.80665):
     
     return k
 
+
 def depth_regime(l, h, ratio=2):
     '''
     Calculates the depth regime based on wavelength and height
@@ -821,9 +826,6 @@ def depth_regime(l, h, ratio=2):
     depth_reg = h/l > ratio
     
     return  depth_reg
-
-
-
 
 
 def environmental_contour(x1, x2, dt, period, **kwargs):
@@ -960,6 +962,7 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
     if return_PCA:
         return np.transpose(x1_contour), np.transpose(x2_contour), PCA
     return np.transpose(x1_contour), np.transpose(x2_contour)
+
 
 def _principal_component_analysis(x1, x2, bin_size=250):
     '''
@@ -1136,7 +1139,6 @@ def copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size):
     x1_sorted_index = x1.argsort()
     x1_sorted = x1[x1_sorted_index]
     x2_sorted = x2[x1_sorted_index]
-
     
     # Because x1 is sorted we can find the max indicie using the following logic
     ind = np.array([])
@@ -1225,7 +1227,91 @@ def copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size):
     return para_dist_1, para_dist_2, mean_cond, std_cond
 
 
-def GaussianCopula(x1, x2, results, **kwargs):
+def copula(x1, x2, dt, period, method, **kwargs):
+    '''
+    XXX
+    
+    '''
+    
+    try: x1 = np.array(x1); 
+    except: pass
+    try: x2 = np.array(x2); 
+    except: pass
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(dt, (int,float)), 'dt must be of type int or float'
+    assert isinstance(period, (int,float,np.ndarray)), ('period must be'
+                                          'of type int, float, or array')
+    
+    bin_val_size = kwargs.get("bin_val_size", 0.25)
+    nb_steps = kwargs.get("nb_steps", 1000)
+    initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
+    min_bin_count=kwargs.get("min_bin_count",40)
+    
+    assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    assert isinstance(min_bin_count, int), 'min_bin_count must be of type int'
+    assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
+
+    if isinstance(method, str):
+        method = [method]
+
+    #if 'nonparametric_gaussian', 'nonparametric_clayton', 'nonparametric_gumbel'] in method:
+
+    results = iso_prob_and_quantile(dt, period, nb_steps)
+    
+    para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
+    results['para_dist_1'] = para_dist_1
+    results['para_dist_2'] = para_dist_2
+    results['mean_cond'] = mean_cond
+    results['std_cond'] = std_cond
+    
+    # x_component_iso_prob = results['x_component_iso_prob'] 
+    # y_component_iso_prob = results['y_component_iso_prob'] 
+    x_quantile = results['x_quantile'] 
+    # y_quantile =results['y_quantile'] 
+
+    a=para_dist_1[0]
+    c=para_dist_1[1]
+    loc=para_dist_1[2]
+    scale=para_dist_1[3]
+
+    component_1 = stats.exponweib.ppf(x_quantile, a, c, loc=loc, scale=scale)
+    
+    
+    copula_functions={'gaussian' : 
+                         {'func':_gaussian_copula,
+                         'vals':(x1, x2, results, component_1)},
+                      'gumbel' : 
+                          {'func':_gumbel_copula,
+                           'vals':(x1, x2, results, component_1, nb_steps)},
+                      'clayton' : 
+                          {'func': _clayton_copula,
+                           'vals':(x1, x2, results, component_1)},
+                      'rosenblatt' : 
+                          {'func':_rosenblatt_copula,
+                          'vals':(x1, x2, results, component_1)},
+                      'nonparametric_gaussian' : 
+                          {'func':_nonparametric_gaussian_copula,
+                           'vals':(x1, x2, results, nb_steps)},
+                      'nonparametric_clayton' : 
+                          {'func':_nonparametric_clayton_copula,
+                           'vals':(x1, x2, results, nb_steps)},
+                      'nonparametric_gumbel' : 
+                          {'func':_nonparametric_gumbel_copula,
+                           'vals':(x1, x2, results, nb_steps)}                           
+                      }
+    copulas={}
+    for meth in method:
+        vals = copula_functions[meth]['vals']
+        component_1, component_2 = copula_functions[meth]['func'](*vals)
+        copulas[f'{meth}_x1'] = component_1
+        copulas[f'{meth}_x2'] = component_2
+    return copulas 
+    
+
+
+def _gaussian_copula(x1, x2, results, component_1, **kwargs):
     '''
         WDRT Extreme Sea State Gaussian Copula Contour function.
         This function calculates environmental contours of extreme sea states using
@@ -1363,10 +1449,10 @@ def GaussianCopula(x1, x2, results, **kwargs):
     #lognormalinverse
     comp_2_Gaussian = stats.lognorm.ppf(z2_Gauss, s=s, loc=loc, scale=scale) 
         
-    return comp_2_Gaussian
+    return component_1, comp_2_Gaussian
     
 
-def _gumbelCopula(u, alpha):
+def _gumbel_density(u, alpha):
     ''' 
     Calculates the Gumbel copula density
     
@@ -1382,8 +1468,7 @@ def _gumbelCopula(u, alpha):
     -------
     y: np.array
         Copula density function.
-    '''
-    
+    '''    
     #Ignore divide by 0 warnings and resulting NaN warnings
     #np.seterr(all='ignore')        
     v = -np.log(u)
@@ -1396,7 +1481,61 @@ def _gumbelCopula(u, alpha):
 
     return(y) 
 
-def GumbelCopula(x1, x2, results, **kwargs):
+
+def _gumbel_copula(x1, x2, results, component_1, nb_steps):
+    '''
+    XXX
+    
+    '''
+    x_component_iso_prob = results['x_component_iso_prob'] 
+    y_component_iso_prob = results['y_component_iso_prob'] 
+    x_quantile = results['x_quantile'] 
+    y_quantile =results['y_quantile'] 
+    
+    para_dist_1 = results['para_dist_1'] 
+    para_dist_2 = results['para_dist_2'] 
+    mean_cond = results['mean_cond'] 
+    std_cond = results['std_cond'] 
+
+    # Calculate Kendall's tau
+    tau=stats.kendalltau(x2,x1)[0] 
+    theta_gum = 1./(1.-tau)
+    
+    min_limit_2=0
+    max_limit_2= np.ceil(np.amax(x2)*2)
+    Ndata=1000
+    
+    x = np.linspace(min_limit_2, max_limit_2, Ndata)
+    s=para_dist_2[1]
+    scale=np.exp(para_dist_2[0])   
+    z2 = stats.lognorm.cdf(x,s=s,loc=0,scale=scale)
+
+    comp2_Gumb = np.zeros(nb_steps)
+    for k in range(nb_steps):
+        z1 = np.linspace(x_quantile[k], x_quantile[k], Ndata)
+        Z = np.array((z1,z2))
+        Y = _gumbel_density(Z, theta_gum) # Copula density function
+        Y =np.nan_to_num(Y)
+        p_x_x1 = Y*(stats.lognorm.pdf(x, s=s, loc=0, scale=scale)) # pdf 2|1, f(comp_2|comp_1)=c(z1,z2)*f(comp_2)
+        dum = np.cumsum(p_x_x1)
+        cdf = dum/(dum[Ndata-1]) # Estimate CDF from PDF
+        # Result of conditional CDF derived based on Gumbel copula
+        table = np.array((x, cdf)) 
+        table = table.T
+        for j in range(Ndata):
+            if y_quantile[k] <= table[0,1]:
+                comp2_Gumb[k] = min(table[:,0])
+                break
+            elif y_quantile[k] <= table[j,1]:
+                comp2_Gumb[k] = (table[j,0]+table[j-1,0])/2
+                break
+            else:
+                comp2_Gumb[k] = table[:,0].max()
+                
+    return component_1, comp2_Gumb
+    
+ 
+def _clayton_copula(x1, x2, results, component_1, **kwargs):
     '''
     XXX
     
@@ -1413,7 +1552,7 @@ def GumbelCopula(x1, x2, results, **kwargs):
                                           # 'of type int, float, or array')
     
     # bin_val_size = kwargs.get("bin_val_size", 0.25)
-    nb_steps = kwargs.get("nb_steps")
+    # nb_steps = kwargs.get("nb_steps", 1000)
     # initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
     # min_bin_count=kwargs.get("min_bin_count",40)
     
@@ -1449,90 +1588,6 @@ def GumbelCopula(x1, x2, results, **kwargs):
     mean_cond = results['mean_cond'] 
     std_cond = results['std_cond'] 
 
-
-    # Calculate Kendall's tau
-    tau=stats.kendalltau(x2,x1)[0] 
-    
-    theta_gum = 1./(1.-tau)
-    
-    #======================================
-    
-    min_limit_2=0
-    max_limit_2= np.ceil(np.amax(x2)*2)
-    Ndata=1000
-    
-    x = np.linspace(min_limit_2, max_limit_2, Ndata)
-    s=para_dist_2[1]
-    scale=np.exp(para_dist_2[0])   
-    z2 = stats.lognorm.cdf(x,s=s,loc=0,scale=scale)
-
-    comp2_Gumb = np.zeros(nb_steps)
-    for k in range(nb_steps):
-        z1 = np.linspace(x_quantile[k], x_quantile[k], Ndata)
-        Z = np.array((z1,z2))
-        Y = _gumbelCopula(Z, theta_gum) # Copula density function
-        Y =np.nan_to_num(Y)
-        p_x_x1 = Y*(stats.lognorm.pdf(x, s=s, loc=0, scale=scale)) # pdf 2|1, f(comp_2|comp_1)=c(z1,z2)*f(comp_2)
-        dum = np.cumsum(p_x_x1)
-        cdf = dum/(dum[Ndata-1]) # Estimate CDF from PDF
-        # Result of conditional CDF derived based on Gumbel copula
-        table = np.array((x, cdf)) 
-        table = table.T
-        for j in range(Ndata):
-            if y_quantile[k] <= table[0,1]:
-                comp2_Gumb[k] = min(table[:,0])
-                break
-            elif y_quantile[k] <= table[j,1]:
-                comp2_Gumb[k] = (table[j,0]+table[j-1,0])/2
-                break
-            else:
-                comp2_Gumb[k] = table[:,0].max()
-                
-    return comp2_Gumb
-    
- 
-def ClaytonCopula(x1, x2, dt, period, **kwargs):
-    '''
-    XXX
-    
-    '''
-    
-    try: x1 = np.array(x1); 
-    except: pass
-    try: x2 = np.array(x2); 
-    except: pass
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(dt, (int,float)), 'dt must be of type int or float'
-    assert isinstance(period, (int,float,np.ndarray)), ('period must be'
-                                          'of type int, float, or array')
-    
-    bin_val_size = kwargs.get("bin_val_size", 0.25)
-    nb_steps = kwargs.get("nb_steps", 1000)
-    initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
-    min_bin_count=kwargs.get("min_bin_count",40)
-    
-    assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
-    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
-    assert isinstance(min_bin_count, int), 'min_bin_count must be of type int'
-    assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
-    
-    para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
-
-
-    results = iso_prob_and_quantile(dt, period, nb_steps)
-    x_component_iso_prob = results['x_component_iso_prob'] 
-    y_component_iso_prob = results['y_component_iso_prob'] 
-    x_quantile = results['x_quantile'] 
-    y_quantile =results['y_quantile'] 
-
-    a=para_dist_1[0]
-    c=para_dist_1[1]
-    loc=para_dist_1[2]
-    scale=para_dist_1[3]
-
-    component_1 = stats.exponweib.ppf(x_quantile, a, c, loc=loc, scale=scale)
-
     # Calculate Kendall's tau
     tau=stats.kendalltau(x2,x1)[0] 
     
@@ -1546,47 +1601,21 @@ def ClaytonCopula(x1, x2, dt, period, **kwargs):
     return component_1, comp_2_Clayton
 
 
-def RosenblattCopula(x1, x2, dt, period, **kwargs):
+def _rosenblatt_copula(x1, x2, results, component_1, **kwargs):
     '''
     XXX
     
     '''
     
-    try: x1 = np.array(x1); 
-    except: pass
-    try: x2 = np.array(x2); 
-    except: pass
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(dt, (int,float)), 'dt must be of type int or float'
-    assert isinstance(period, (int,float,np.ndarray)), ('period must be'
-                                          'of type int, float, or array')
-    
-    bin_val_size = kwargs.get("bin_val_size", 0.25)
-    nb_steps = kwargs.get("nb_steps", 1000)
-    initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
-    min_bin_count=kwargs.get("min_bin_count",40)
-    
-    assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
-    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
-    assert isinstance(min_bin_count, int), 'min_bin_count must be of type int'
-    assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
-    
-    para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
-
-
-    results = iso_prob_and_quantile(dt, period, nb_steps)
     x_component_iso_prob = results['x_component_iso_prob'] 
     y_component_iso_prob = results['y_component_iso_prob'] 
     x_quantile = results['x_quantile'] 
     y_quantile =results['y_quantile'] 
-
-    a=para_dist_1[0]
-    c=para_dist_1[1]
-    loc=para_dist_1[2]
-    scale=para_dist_1[3]
-
-    component_1 = stats.exponweib.ppf(x_quantile, a, c, loc=loc, scale=scale)
+    
+    para_dist_1 = results['para_dist_1'] 
+    para_dist_2 = results['para_dist_2'] 
+    mean_cond = results['mean_cond'] 
+    std_cond = results['std_cond'] 
 
     # mean of Ln(T) as a function of Hs
     lamda_cond=mean_cond[0]+mean_cond[1]*component_1+mean_cond[2]*component_1**2+mean_cond[3]*component_1**3
@@ -1597,61 +1626,216 @@ def RosenblattCopula(x1, x2, dt, period, **kwargs):
  
     return component_1, comp_2_Rosenblatt  
   
-def Copula(x1, x2, dt, period, method, **kwargs):
+
+def _nonparametric_copula_parameters(x1, x2, **kwargs):
+
+    max_x1 = kwargs.get("max_x1", x1.max()*2)
+    max_x2 = kwargs.get("max_x2", x2.max()*2)
+    
+    nb_steps = kwargs.get("nb_steps", 1000)
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    
+    # Binning
+    x1_sorted_index = x1.argsort()
+    x1_sorted = x1[x1_sorted_index]
+    x2_sorted = x2[x1_sorted_index]
+    
+    # Calcualte KDE bounds (this may be added as an input later)
+    min_limit_1 = 0
+    max_limit_1 = max_x1
+    min_limit_2 = 0
+    max_limit_2 = max_x2   
+    
+    # Discretize for KDE
+    pts_x1 = np.linspace(min_limit_1, max_limit_1, nb_steps) 
+    pts_x2 = np.linspace(min_limit_2, max_limit_2, nb_steps)
+    
+    # Calculate optimal bandwidth for T and Hs
+    sig = stats.median_abs_deviation(x2_sorted)
+    num = float(len(x2_sorted))
+    bwT = sig*(4.0/(3.0*num))**(1.0/5.0)
+    
+    sig = stats.median_abs_deviation(x1_sorted)
+    num = float(len(x1_sorted))
+    bwHs = sig*(4.0/(3.0*num))**(1.0/5.0)
+    
+    # Nonparametric PDF for x2
+    temp = KDEUnivariate(x2_sorted)
+    temp.fit(bw = bwT)
+    f_x2 = temp.evaluate(pts_x2)
+    
+    # Nonparametric CDF for x1
+    temp = KDEUnivariate(x1_sorted)
+    temp.fit(bw = bwHs)
+    tempPDF = temp.evaluate(pts_x1)
+    F_x1 = tempPDF/sum(tempPDF)
+    F_x1 = np.cumsum(F_x1)
+    
+    # Nonparametric CDF for T
+    F_x2 = f_x2/sum(f_x2)
+    F_x2 = np.cumsum(F_x2)
+    
+    nonpara_dist_1 = np.transpose(np.array([pts_x1, F_x1]))
+    nonpara_dist_2 = np.transpose(np.array([pts_x2, F_x2]))
+    nonpara_pdf_2 = np.transpose(np.array([pts_x2, f_x2]))
+    
+    return nonpara_dist_1, nonpara_dist_2, nonpara_pdf_2
+
+
+def __nonparametric_component(z, nonpara_dist, nb_steps):
+    comp=np.zeros(nb_steps)
+    for k in range(0,nb_steps):
+        for j in range(0,np.size(nonpara_dist,0)):
+            if z[k] <= nonpara_dist[0,1]: 
+                comp[k] = min(nonpara_dist[:,0]) 
+                break
+            elif z[k] <= nonpara_dist[j,1]: 
+                comp[k] = (nonpara_dist[j,0] + nonpara_dist[j-1,0])/2
+                break
+            else:
+                comp[k]= max(nonpara_dist[:,0])
+    return comp
+
+
+def _nonparametric_gaussian_copula(x1, x2, results, nb_steps, **kwargs):
     '''
     XXX
     
     '''
+    x_component_iso_prob = results['x_component_iso_prob'] 
+    y_component_iso_prob = results['y_component_iso_prob'] 
     
-    try: x1 = np.array(x1); 
-    except: pass
-    try: x2 = np.array(x2); 
-    except: pass
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(dt, (int,float)), 'dt must be of type int or float'
-    assert isinstance(period, (int,float,np.ndarray)), ('period must be'
-                                          'of type int, float, or array')
+    # Copula parameters
+    nonpara_dist_1, nonpara_dist_2, nonpara_pdf_2 =_nonparametric_copula_parameters(x1, x2, nb_steps=nb_steps)
+     
+        
+    # Calculate Kendall's tau    
+    tau = stats.kendalltau(x2, x1)[0]
+    rho_gau=np.sin(tau*np.pi/2.)
     
-    bin_val_size = kwargs.get("bin_val_size", 0.25)
-    nb_steps = kwargs.get("nb_steps", 1000)
-    initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
-    min_bin_count=kwargs.get("min_bin_count",40)
+    # Component 1 (Hs)
+    z1 = stats.norm.cdf(x_component_iso_prob)
+    z2=stats.norm.cdf(y_component_iso_prob*np.sqrt(1.-rho_gau**2.)+rho_gau*x_component_iso_prob)
+
+    comps={1: {'z': z1,
+               'nonpara_dist':nonpara_dist_1
+              },
+           2: {'z': z2,
+               'nonpara_dist':nonpara_dist_2
+              }
+          }
     
-    assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
-    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
-    assert isinstance(min_bin_count, int), 'min_bin_count must be of type int'
-    assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
+    for c in comps:
+        z = comps[c]['z']
+        nonpara_dist = comps[c]['nonpara_dist']
+        
+        comps[c]['comp']=__nonparametric_component(z, nonpara_dist, nb_steps)
+
+    comp_1 = comps[1]['comp']
+    comp_2_Gau = comps[2]['comp']
+    
+    return comp_1, comp_2_Gau
 
 
-    results = iso_prob_and_quantile(dt, period, nb_steps)
+def _nonparametric_clayton_copula(x1, x2, results, nb_steps, **kwargs):
+    '''
+    XXX
     
-    para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
-    results['para_dist_1'] = para_dist_1
-    results['para_dist_2'] = para_dist_2
-    results['mean_cond'] = mean_cond
-    results['std_cond'] = std_cond
+    '''
+    x_component_iso_prob = results['x_component_iso_prob'] 
+    y_component_iso_prob = results['y_component_iso_prob'] 
     
-    # x_component_iso_prob = results['x_component_iso_prob'] 
-    # y_component_iso_prob = results['y_component_iso_prob'] 
-    x_quantile = results['x_quantile'] 
-    # y_quantile =results['y_quantile'] 
-
-    a=para_dist_1[0]
-    c=para_dist_1[1]
-    loc=para_dist_1[2]
-    scale=para_dist_1[3]
-
-    component_1 = stats.exponweib.ppf(x_quantile, a, c, loc=loc, scale=scale)
-
-    copulas={'component_1':component_1}
-    if method=='gaussian':
-        copulas['gaussian'] = GaussianCopula(x1, x2, results)
-    if method=='gumbel':
-        copulas['gumbel'] = GumbelCopula(x1, x2, results, nb_steps=nb_steps)
-         
-
- 
-    return copulas 
+    x_quantile = results['x_quantile']
+    y_quantile = results['y_quantile']
+    
+    # Copula parameters
+    nonpara_dist_1, nonpara_dist_2, nonpara_pdf_2 =_nonparametric_copula_parameters(x1, x2, nb_steps=nb_steps)
+     
+        
+    # Calculate Kendall's tau    
+    tau = stats.kendalltau(x2, x1)[0]
+    theta_clay = (2.*tau)/(1.-tau)
+   
+    
+    # Component 1 (Hs)
+    z1 = stats.norm.cdf(x_component_iso_prob)
+    z2_clay=((1-x_quantile**(-theta_clay)
+              +x_quantile**(-theta_clay)
+              /y_quantile)**(theta_clay/(1.+theta_clay)))**(-1./theta_clay)
     
     
+    comps={1: {'z': z1,
+               'nonpara_dist':nonpara_dist_1
+              },
+           2: {'z': z2_clay,
+               'nonpara_dist':nonpara_dist_2
+              }
+          }
+    
+    for c in comps:
+        z = comps[c]['z']
+        nonpara_dist = comps[c]['nonpara_dist']
+        
+        comps[c]['comp']=__nonparametric_component(z, nonpara_dist, nb_steps)
+
+    comp_1 = comps[1]['comp']
+    comp_2_clay = comps[2]['comp']
+    
+    return comp_1, comp_2_clay
+
+    
+def _nonparametric_gumbel_copula(x1, x2, results, nb_steps, **kwargs):
+    '''
+    XXX
+    
+    '''
+    Ndata=1000
+    
+    x_component_iso_prob = results['x_component_iso_prob'] 
+    y_component_iso_prob = results['y_component_iso_prob'] 
+    
+    x_quantile = results['x_quantile']
+    y_quantile = results['y_quantile']
+    
+    # Copula parameters
+    nonpara_dist_1, nonpara_dist_2, nonpara_pdf_2 =_nonparametric_copula_parameters(x1, x2, nb_steps=nb_steps)
+     
+        
+    # Calculate Kendall's tau    
+    tau = stats.kendalltau(x2, x1)[0]
+    theta_gum = 1./(1.-tau)
+   
+    
+    # Component 1 (Hs)
+    z1 = x_quantile       
+    comp_1=__nonparametric_component(z1, nonpara_dist_1, nb_steps)
+
+#===============================
+
+    pts_x2 = nonpara_pdf_2[:,0]
+    f_x2 = nonpara_pdf_2[:,1]
+    
+    comp_2_Gumb = np.zeros(nb_steps)
+    for k in range(nb_steps):
+        z1 = np.array([x_quantile[k]]*Ndata)
+        Z = np.array((z1.T, nonpara_dist_2[:,1]))
+        Y = _gumbel_density(Z, theta_gum)
+        Y = np.nan_to_num(Y) 
+    
+        p_x2_x1 = Y * f_x2
+        dum = np.cumsum(p_x2_x1)
+        cdf = dum/(dum[Ndata-1])
+        table = np.array((pts_x2, cdf))
+        table = table.T
+        for j in range(Ndata):
+            if y_quantile[k] <= table[0,1]:
+                comp_2_Gumb[k] = min(table[:,0])
+                break
+            elif y_quantile[k] <= table[j,1]:
+                comp_2_Gumb[k] = (table[j,0]+table[j-1,0])/2
+                break
+            else: 
+                comp_2_Gumb[k] = max(table[:,0])
+
+    
+    return comp_1, comp_2_Gumb  
