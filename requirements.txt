@@ -8,3 +8,4 @@ fatpack
 NREL-rex>=0.2.63
 six>=1.13.0
 xarray
+statsmodels
