@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pylab as plt
 import mhkit.river as river
+import netCDF4
 
 testdir = dirname(abspath(__file__))
 datadir = normpath(join(testdir,relpath('../../examples/data/river')))
@@ -248,7 +249,7 @@ class TestIO(unittest.TestCase):
         
     def test_load_usgs_data_daily(self):
         file_name = join(datadir, 'USGS_08313000_Jan2019_daily.json')
-        data = river.io.usgs.read_usgs_file(file_name)
+        data = river.io.read_usgs_file(file_name)
 
         expected_index = pd.date_range('2019-01-01', '2019-01-31', freq='D')
         self.assertEqual(data.columns, ['Discharge, cubic feet per second'])
@@ -267,7 +268,7 @@ class TestIO(unittest.TestCase):
     
    
     def test_request_usgs_data_instant(self):
-        data=river.io.usgs.request_usgs_data(station="15515500",
+        data=river.io.request_usgs_data(station="15515500",
                             parameter='00060',
                             start_date='2009-08-01',
                             end_date='2009-08-10',
@@ -277,20 +278,100 @@ class TestIO(unittest.TestCase):
         self.assertEqual(data.shape, (10*24*4, 1))
 
 
-
 #new
 
-    def test_request_usgs_data_instant(self):
-        data_points= [] 
-        values= 
-        request points= 
-        v_new= interpolate_data(data_points, values , request_points)
-        self.assertEqual(v_new, v_expected)
+    def test_layer_data(self): 
+        # File location and load data
+        exdir= dirname(abspath(__file__))
+        datadir = normpath(join(exdir,relpath('data')))
+        filename= 'Flume_TurbineTest_map.nc'
+        data = netCDF4.Dataset(join(datadir,filename))
+        variable= 'ucx'
+        layer=2 
+        time_step= 3
+        [x,y,z] = river.io.d3d.get_layer_data(data, variable, layer, time_step)
+        layer_compair = 2
+        time_step_compair= 4
+        [x_expected, y_expected, z_expected]= river.io.d3d.get_layer_data(data, variable, layer_compair, time_step_compair)
        
+        for i,j in zip(x,x_expected):
+            self.assertAlmostEqual(i,j,places=2)
+        for i,j in zip(y,y_expected):
+            self.assertAlmostEqual(i,j,places=2)
+        for i,j in zip(z,z_expected):
+            self.assertAlmostEqual(i,j,places=2)
 
-
-
-
+    def test_create_points(self):
+        x=np.linspace(1, 3, num= 3)
+        y=np.linspace(1, 3, num= 3)
+        z=1 
+        points= river.io.d3d.create_points(x,y,z)
+        
+        x=[1,2,3,1,2,3,1,2,3]
+        y=[1,1,1,2,2,2,3,3,3]
+        z=[1,1,1,1,1,1,1,1,1]
+        
+        points_array= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x, y, z)]) 
+        points_expected= pd.DataFrame(points_array, columns=('x','y','z'))
+        for i,j in zip(points,points_expected):
+            self.assertAlmostEqual(i,j,places=2)
+        
+        
+    def test_get_all_data_points(self): 
+        exdir= dirname(abspath(__file__))
+        datadir = normpath(join(exdir,relpath('data')))
+        filename= 'Flume_TurbineTest_map.nc'
+        data = netCDF4.Dataset(join(datadir,filename))
+        variable= 'ucx'
+        time_step= 1 
+        output = river.io.d3d.get_all_data_points(data, variable, time_step)
+        size_output = np.size(output) 
+        time_step_compair=2
+        output_expected= river.io.d3d.get_all_data_points(data, variable, time_step_compair)
+        size_output_expected= np.size(output_expected)
+        self.assertEqual(size_output, size_output_expected)
+ 
+    def test_unorm(self): 
+        x=np.linspace(1, 3, num= 3)
+        y=np.linspace(1, 3, num= 3)
+        z=np.linspace(1, 3, num= 3)
+        unorm = river.io.d3d.unorm(x,y,z)
+        unorm_expected= [np.sqrt(1**2+2**2+3**2),np.sqrt(1**2+2**2+3**2), np.sqrt(1**2+2**2+3**2)]
+        for i,j in zip(unorm,unorm_expected):
+            self.assertAlmostEqual(i,j,places=2)
+    
+    def test_turbulent_intensity(self): 
+        exdir= dirname(abspath(__file__))
+        datadir = normpath(join(exdir,relpath('data')))
+        filename= 'Flume_TurbineTest_map.nc'
+        data = netCDF4.Dataset(join(datadir,filename))
+        time_step= -1
+        x_test=np.linspace(1, 3, num= 3)
+        y_test=np.linspace(1, 3, num= 3)
+        z_test=np.linspace(1, 3, num= 3)
+       
+        test_points = np.array([ [x, y, z, v] for x, y, z, v in zip(x_test, y_test, z_test)])
+    
+        points= pd.DataFrame(test_points, columns=['x','y','z'])
+        turbulent_intensity= river.io.d3d.turbulent_intensity(data, points, time_step)
+        
+        TI_vars= ['turkin1', 'ucx', 'ucy', 'ucz']
+        TI_data_raw = {}
+        for var in TI_vars:
+            #get all data
+            var_data_df = river.io.d3d.get_all_data_points(data, var,time_step)           
+            TI_data_raw[var] = var_data_df 
+            TI_data= points.copy(deep=True)
+        
+        for var in TI_vars:    
+            TI_data[var] = np.interp.griddata(TI_data_raw[var][['x','y','z']],
+                                TI_data_raw[var][var], points[['x','y','z']])
+            u_mag=river.io.d3d.norm(TI_data['ucx'],TI_data['ucy'], TI_data['ucz'])
+            turbulent_intensity_expected= np.sqrt(2/3*TI_data['turkin1'])/u_mag
+            
+        for i,j in zip(turbulent_intensity,turbulent_intensity_expected):
+            self.assertAlmostEqual(i,j,places=2)     
+       
 if __name__ == '__main__':
     unittest.main() 
 
