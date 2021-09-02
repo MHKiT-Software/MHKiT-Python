@@ -6,7 +6,7 @@ import pandas as pd
 import netCDF4
 
 
-def get_layer_data(data, variable, layer = -1 , time_step=-1):
+def get_layer_data(data, variable, layer= -1 , time_step=-1):
     '''
     Get variable data from netcdf4 object at specified layer and timestep. 
 
@@ -139,6 +139,52 @@ def create_points(x, y, z):
 
     return points 
 
+def grid_data(data,variables, points='cells'):
+
+    '''
+    convert multiple variables to the same gid  
+
+    Parameters
+    ----------
+    data : netcdf4 object 
+        d3d netcdf4 object, assumes variable names: turkin1, ucx, ucy and ucz
+    variables: string array 
+        name of variables to interpolate 
+    points : string, DataFrame  
+        Point to interpoate data onto. 
+          'cells' : interpolates all data into velocity coordinat system (Defalt)
+          'faces': interpolates all dada into TKE coordinate system 
+          DataFrame of x, y, and z corrdinates: Interpolates data onto user povided points 
+  
+
+    Returns
+    -------
+    transformed_data : array   
+        variables on specified grid 
+
+    '''
+    assert points == 'cells' or points=='faces' or type(points) == pd.core.frame.DataFrame, 'points must be cells or faces or DataFrame'
+    assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
+
+    data_raw = {}
+    for var in variables:
+        #get all data
+        var_data_df = get_all_data_points(data, var,time_step=-1)           
+        data_raw[var] = var_data_df 
+    if type(points) == pd.DataFrame:  
+        print('points provided')
+    elif points=='faces':
+        points = data_raw['ucx'][['x','y','z']]
+    elif points=='cells':
+        points = data_raw['turkin1'][['x','y','z']]
+    
+    transformed_data= points.copy(deep=True)
+    
+    for var in variables :    
+        transformed_data[var] = interp.griddata(data_raw[var][['x','y','z']],
+                                        data_raw[var][var], points[['x','y','z']])
+    return transformed_data
+
 
 def get_all_data_points(data, variable, time_step):  
     '''
@@ -191,21 +237,14 @@ def get_all_data_points(data, variable, time_step):
         x_wdim=np.ma.getdata(data.variables[coords_request[0]][:], False) 
         y_wdim=np.ma.getdata(data.variables[coords_request[1]][:], False)
         points_wdim=np.array([ [x, y] for x, y in zip(x_wdim, y_wdim)])
-          
-        max_points_laydim_x= max(points_laydim[:,0])
-        min_points_laydim_x= min(points_laydim[:,0])
-        
-        max_points_laydim_y= max(points_laydim[:,1])
-        min_points_laydim_y= min(points_laydim[:,1])
-
-        
-        points_wdim[points_wdim > max_points_laydim_x] = max_points_laydim_x
-        points_wdim[points_wdim < min_points_laydim_x] = min_points_laydim_x
-        points_wdim[points_wdim > max_points_laydim_y] = max_points_laydim_y
-        points_wdim[points_wdim < min_points_laydim_y] = min_points_laydim_y
-        
         
         bottom_depth_wdim = interp.griddata(points_laydim, bottom_depth, points_wdim)
+        
+        idx= np.where(np.isnan(bottom_depth_wdim))
+        
+        for i in idx: 
+            bottom_depth_wdim[i]= interp.griddata(points_laydim,bottom_depth,points_wdim[i], method='nearest')
+        
         
         
     x_all=[]
@@ -232,30 +271,6 @@ def get_all_data_points(data, variable, time_step):
     return all_data
 
 
-def interpolate_data(data_points, values , request_points):   
-    '''
-    Interpolate for "requested_points" vales over the known "data_points" 
-    with corresponding "values" 
-    
-    Parameters
-    ----------
-    data : netcdf4 object 
-        d3d netcdf file 
-    points: DataFrame 
-        Data Frame of x, y, z, points 
-    request_points: DataFrame 
-        x, y and z, locations of points calculate the values 
-
-    Returns
-    -------
-    v_new: array 
-        interpolated values for locations in request_points 
-    '''
-    v_new = interp.griddata(data_points, values, request_points)
-
-    return v_new
-
-
 def unorm(x, y ,z):
     '''
     Calculates the root mean squared value given three arrays 
@@ -274,19 +289,22 @@ def unorm(x, y ,z):
     unorm : array 
         root mean squared output 
     '''
-    assert isinstance(x,np.array), 'x must be an array'
-    assert isinstance(y,np.array), 'y must be an array'
-    assert isinstance(z,np.array), 'z must be an array'
+
+    assert isinstance(x,np.ndarray), 'x must be an array'
+    assert isinstance(y,np.ndarray), 'y must be an array'
+    assert isinstance(z,np.ndarray), 'z must be an array'
     
     if len(x) == len(y) & len (y) ==len (z) :
-        unorm=np.sqrt(x**2 + y**2 + z**2)
+        xyz = np.array([x,y,z]) 
+        unorm = np.linalg.norm(xyz, axis= 1)
     else:
         raise Exception ('lengths of arrays do not mathch')
-    
     return unorm
 
 
-def turbulent_intensity(data, points='cells'):
+
+
+def turbulent_intensity(data, points='cells', time_step= -1):
 
     '''
     Calculated the turbulent intesity for a given data set for the specified points 
@@ -296,9 +314,12 @@ def turbulent_intensity(data, points='cells'):
     data : netcdf4 object 
         d3d netcdf4 object, assumes variable names: turkin1, ucx, ucy and ucz
     points : string, DataFrame  
-        'cells', 'faces', or DataFrame of x, y, and z corrdinates. 
-        Default 'Cells' uses velocity coordinate system. 'faces' will
-        use the turbulence coordinate system
+        Point to interpoate data onto. 
+          'cells' : interpolates all data into velocity coordinat system (Defalt)
+          'faces': interpolates all dada into TKE coordinate system 
+          DataFrame of x, y, and z corrdinates: Interpolates data onto user povided points 
+    time_step : float 
+        time step, last time step is defalt 
 
     Returns
     -------
@@ -306,14 +327,19 @@ def turbulent_intensity(data, points='cells'):
         turbulent kinetic energy devided by the root mean squared velocity
 
     '''
-    assert points == 'cells' or points=='faces', 'points must be cells or faces'
+    assert points == 'cells' or points=='faces' or type(points) == pd.core.frame.DataFrame, 'points must be cells or faces or DataFrame'
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
+    assert 'turkin1' in data.variables.keys(), 'Varaiable Turkine 1 not present in Data'
+    assert 'ucx' in data.variables.keys(),'Varaiable ucx 1 not present in Data'
+    assert 'ucy' in data.variables.keys(),'Varaiable ucy 1 not present in Data'
+    assert 'ucz' in data.variables.keys(),'Varaiable ucz 1 not present in Data'
+
     
     TI_vars= ['turkin1', 'ucx', 'ucy', 'ucz']
     TI_data_raw = {}
     for var in TI_vars:
         #get all data
-        var_data_df = get_all_data_points(data, var,time_step=-1)           
+        var_data_df = get_all_data_points(data, var,time_step)           
         TI_data_raw[var] = var_data_df 
     if type(points) == pd.DataFrame:  
         print('points provided')
@@ -325,7 +351,7 @@ def turbulent_intensity(data, points='cells'):
     TI_data= points.copy(deep=True)
     
     for var in TI_vars:    
-        TI_data[var] = interpolate_data(TI_data_raw[var][['x','y','z']],
+        TI_data[var] = interp.griddata(TI_data_raw[var][['x','y','z']],
                                         TI_data_raw[var][var], points[['x','y','z']])
 
     #calculate turbulent intensity 
