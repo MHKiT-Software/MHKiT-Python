@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import netCDF4
 from mhkit.river.io import d3d 
+import scipy.interpolate as interp
 
 # File location and load data
 exdir= dirname(abspath(__file__))
@@ -44,17 +45,19 @@ contour_points = d3d.create_points(x, y_contour, z)
 
 
 # Interpolate NetCDF Data onto Centerline
-cline_variable = d3d.interpolate_data(var_data_df[['x','y','z']], 
+cline_variable = interp.griddata(var_data_df[['x','y','z']], 
                      var_data_df[variables[0]],
                      cline_points[['x','y','z']])
                      
 # Interpolate NetCDF Data onto contour
-contour_variable = d3d.interpolate_data(var_data_df[['x','y','z']], 
+contour_variable = interp.griddata(var_data_df[['x','y','z']], 
                      var_data_df[variables[0]],
                      contour_points[['x','y','z']])
 contour_points['contour_variable']= contour_variable
 
 
+max_plot_v= 0.2
+min_plot_v=-0.2
 # plot layered data 
 layer=2
 [x_layer,y_layer,value_layer] = d3d.get_layer_data(data, variables[0], layer , time_step=-1)
@@ -74,11 +77,11 @@ plt.savefig('cline.png')
 #Plot contour
 Type= 'Contour'
 plt.figure()
-contour_plot = plt.tricontourf(contour_points.x,contour_points.y,contour_points.contour_variable,vmin=0,vmax=0.08,levels=np.linspace(0,0.08,10))
+contour_plot = plt.tricontourf(contour_points.x,contour_points.y,contour_points.contour_variable,vmin=min_plot_v,vmax=max_plot_v,levels=np.linspace(min_plot_v,max_plot_v,10))
 plt.xlabel('x (m)')
 plt.ylabel('y(m)')
 plt.title(f'{Type} {data.variables[variables[0]].long_name}')
-cbar= plt.colorbar(contour_plot,boundaries=np.linspace(0,0.08,5))
+cbar= plt.colorbar(contour_plot,boundaries=np.linspace(min_plot_v,max_plot_v,5))
 cbar.set_label(f'{data.variables[variables[0]].long_name} [{data.variables[variables[0]].units}]')
 #plt.clim(0,0.08)
 plt.savefig('contour.png')
@@ -88,22 +91,22 @@ plt.savefig('contour.png')
 #Plot Layer 
 Type= 'Contour'
 plt.figure()
-contour_plot = plt.tricontourf(x_layer,y_layer,value_layer, vmin=0,vmax=0.08,levels=np.linspace(0,0.08,10))
+contour_plot = plt.tricontourf(x_layer,y_layer,value_layer, vmin=min_plot_v,vmax=max_plot_v,levels=np.linspace(min_plot_v,max_plot_v,10))
 plt.xlabel('x (m)')
 plt.ylabel('y(m)')
 plt.title(f'{Type} Layer: {layer} {data.variables[variables[0]].long_name}')
-cbar= plt.colorbar(contour_plot,boundaries=np.linspace(0,0.08,5))
+cbar= plt.colorbar(contour_plot,boundaries=np.linspace(min_plot_v,max_plot_v,5))
 cbar.set_label(f'{data.variables[variables[0]].long_name} [{data.variables[variables[0]].units}]')
 #plt.clim(0,0.08)
 plt.savefig(f'contour{layer}.png')
  
 Type= 'Contour'
 plt.figure()
-contour_plot = plt.tricontourf(x_layer2,y_layer2,value_layer2,vmin=0,vmax=0.08,levels=np.linspace(0,0.08,10))
+contour_plot = plt.tricontourf(x_layer2,y_layer2,value_layer2,vmin=min_plot_v,vmax=max_plot_v,levels=np.linspace(min_plot_v,max_plot_v,10))
 plt.xlabel('x (m)')
 plt.ylabel('y(m)')
 plt.title(f'{Type} Layer: {layer2} {data.variables[variables[0]].long_name}')
-cbar= plt.colorbar(contour_plot,boundaries=np.linspace(0,0.08,5))
+cbar= plt.colorbar(contour_plot,boundaries=np.linspace(min_plot_v,max_plot_v,5))
 cbar.set_label(f'{data.variables[variables[0]].long_name} [{data.variables[variables[0]].units}]')
 #plt.clim(0,0.08)
 plt.savefig(f'contour{layer}.png')
