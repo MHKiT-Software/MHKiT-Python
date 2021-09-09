@@ -55,6 +55,9 @@ contour_variable = interp.griddata(var_data_df[['x','y','z']],
                      contour_points[['x','y','z']])
 contour_points['contour_variable']= contour_variable
 
+ 
+time_step= -1
+TI= d3d.turbulent_intensity(data, contour_points,  time_step)
 
 max_plot_v= 0.2
 min_plot_v=-0.2
@@ -72,12 +75,10 @@ plt.ylabel(f'{data.variables[variables[0]].long_name} [{data.variables[variables
 plt.title(f'{Type} {data.variables[variables[0]].long_name}')
 plt.savefig('cline.png')
 
-
-
-#Plot contour
+#plot Contour TI 
 Type= 'Contour'
 plt.figure()
-contour_plot = plt.tricontourf(contour_points.x,contour_points.y,contour_points.contour_variable,vmin=min_plot_v,vmax=max_plot_v,levels=np.linspace(min_plot_v,max_plot_v,10))
+contour_plot = plt.tricontourf(contour_points.x,contour_points.y,TI ,vmin=min_plot_v,vmax=max_plot_v,levels=np.linspace(min_plot_v,max_plot_v,10))
 plt.xlabel('x (m)')
 plt.ylabel('y(m)')
 plt.title(f'{Type} {data.variables[variables[0]].long_name}')
@@ -86,29 +87,41 @@ cbar.set_label(f'{data.variables[variables[0]].long_name} [{data.variables[varia
 #plt.clim(0,0.08)
 plt.savefig('contour.png')
 
+# #Plot contour
+# Type= 'Contour'
+# plt.figure()
+# contour_plot = plt.tricontourf(contour_points.x,contour_points.y,contour_points.contour_variable,vmin=min_plot_v,vmax=max_plot_v,levels=np.linspace(min_plot_v,max_plot_v,10))
+# plt.xlabel('x (m)')
+# plt.ylabel('y(m)')
+# plt.title(f'{Type} {data.variables[variables[0]].long_name}')
+# cbar= plt.colorbar(contour_plot,boundaries=np.linspace(min_plot_v,max_plot_v,5))
+# cbar.set_label(f'{data.variables[variables[0]].long_name} [{data.variables[variables[0]].units}]')
+# #plt.clim(0,0.08)
+# plt.savefig('contour.png')
 
 
-#Plot Layer 
-Type= 'Contour'
-plt.figure()
-contour_plot = plt.tricontourf(x_layer,y_layer,value_layer, vmin=min_plot_v,vmax=max_plot_v,levels=np.linspace(min_plot_v,max_plot_v,10))
-plt.xlabel('x (m)')
-plt.ylabel('y(m)')
-plt.title(f'{Type} Layer: {layer} {data.variables[variables[0]].long_name}')
-cbar= plt.colorbar(contour_plot,boundaries=np.linspace(min_plot_v,max_plot_v,5))
-cbar.set_label(f'{data.variables[variables[0]].long_name} [{data.variables[variables[0]].units}]')
-#plt.clim(0,0.08)
-plt.savefig(f'contour{layer}.png')
+
+# #Plot Layer 
+# Type= 'Contour'
+# plt.figure()
+# contour_plot = plt.tricontourf(x_layer,y_layer,value_layer, vmin=min_plot_v,vmax=max_plot_v,levels=np.linspace(min_plot_v,max_plot_v,10))
+# plt.xlabel('x (m)')
+# plt.ylabel('y(m)')
+# plt.title(f'{Type} Layer: {layer} {data.variables[variables[0]].long_name}')
+# cbar= plt.colorbar(contour_plot,boundaries=np.linspace(min_plot_v,max_plot_v,5))
+# cbar.set_label(f'{data.variables[variables[0]].long_name} [{data.variables[variables[0]].units}]')
+# #plt.clim(0,0.08)
+# plt.savefig(f'contour{layer}.png')
  
-Type= 'Contour'
-plt.figure()
-contour_plot = plt.tricontourf(x_layer2,y_layer2,value_layer2,vmin=min_plot_v,vmax=max_plot_v,levels=np.linspace(min_plot_v,max_plot_v,10))
-plt.xlabel('x (m)')
-plt.ylabel('y(m)')
-plt.title(f'{Type} Layer: {layer2} {data.variables[variables[0]].long_name}')
-cbar= plt.colorbar(contour_plot,boundaries=np.linspace(min_plot_v,max_plot_v,5))
-cbar.set_label(f'{data.variables[variables[0]].long_name} [{data.variables[variables[0]].units}]')
-#plt.clim(0,0.08)
-plt.savefig(f'contour{layer}.png')
+# Type= 'Contour'
+# plt.figure()
+# contour_plot = plt.tricontourf(x_layer2,y_layer2,value_layer2,vmin=min_plot_v,vmax=max_plot_v,levels=np.linspace(min_plot_v,max_plot_v,10))
+# plt.xlabel('x (m)')
+# plt.ylabel('y(m)')
+# plt.title(f'{Type} Layer: {layer2} {data.variables[variables[0]].long_name}')
+# cbar= plt.colorbar(contour_plot,boundaries=np.linspace(min_plot_v,max_plot_v,5))
+# cbar.set_label(f'{data.variables[variables[0]].long_name} [{data.variables[variables[0]].units}]')
+# #plt.clim(0,0.08)
+# plt.savefig(f'contour{layer}.png')
  
 plt.show()

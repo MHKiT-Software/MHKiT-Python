@@ -243,7 +243,8 @@ def get_all_data_points(data, variable, time_step):
         idx= np.where(np.isnan(bottom_depth_wdim))
         
         for i in idx: 
-            bottom_depth_wdim[i]= interp.griddata(points_laydim,bottom_depth,points_wdim[i], method='nearest')
+            bottom_depth_wdim[i]= interp.griddata(points_laydim, bottom_depth,
+                                                  points_wdim[i], method='nearest')
         
         
         
@@ -290,13 +291,13 @@ def unorm(x, y ,z):
         root mean squared output 
     '''
 
-    assert isinstance(x,np.ndarray), 'x must be an array'
-    assert isinstance(y,np.ndarray), 'y must be an array'
-    assert isinstance(z,np.ndarray), 'z must be an array'
+    assert isinstance(x,(np.ndarray, np.float64, pd.Series)), 'x must be an array'
+    assert isinstance(y,(np.ndarray, np.float64, pd.Series)), 'y must be an array'
+    assert isinstance(z,(np.ndarray, np.float64, pd.Series)), 'z must be an array'
     
     if len(x) == len(y) & len (y) ==len (z) :
         xyz = np.array([x,y,z]) 
-        unorm = np.linalg.norm(xyz, axis= 1)
+        unorm = np.linalg.norm(xyz, axis= 0)
     else:
         raise Exception ('lengths of arrays do not mathch')
     return unorm
@@ -327,7 +328,8 @@ def turbulent_intensity(data, points='cells', time_step= -1):
         turbulent kinetic energy devided by the root mean squared velocity
 
     '''
-    assert points == 'cells' or points=='faces' or type(points) == pd.core.frame.DataFrame, 'points must be cells or faces or DataFrame'
+    #assert points == 'cells' or points=='faces' or type(points) == pd.core.frame.DataFrame,
+                                                # 'points must be cells or faces or DataFrame'
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
     assert 'turkin1' in data.variables.keys(), 'Varaiable Turkine 1 not present in Data'
     assert 'ucx' in data.variables.keys(),'Varaiable ucx 1 not present in Data'
@@ -348,14 +350,21 @@ def turbulent_intensity(data, points='cells', time_step= -1):
     elif points=='cells':
         points = TI_data_raw['turkin1'][['x','y','z']]
     
-    TI_data= points.copy(deep=True)
-    
+    TI_data = points.copy(deep=True)
+
     for var in TI_vars:    
         TI_data[var] = interp.griddata(TI_data_raw[var][['x','y','z']],
                                         TI_data_raw[var][var], points[['x','y','z']])
-
+        idx= np.where(np.isnan(TI_data[var]))
+        
+        if len(idx[0]):
+            for i in idx[0]: 
+                TI_data[var][i]= interp.griddata(TI_data_raw[var][['x','y','z']], 
+                                             TI_data_raw[var][var], [points['x'][i],points['y'][i],points['z'][i]], method='nearest')
+            
+    
     #calculate turbulent intensity 
-    u_mag=unorm(TI_data['ucx'],TI_data['ucy'], TI_data['ucz'])
+    u_mag=unorm(np.array(TI_data['ucx']),np.array(TI_data['ucy']), np.array(TI_data['ucz']))
     turbulent_intensity= np.sqrt(2/3*TI_data['turkin1'])/u_mag
                                  
     return turbulent_intensity
