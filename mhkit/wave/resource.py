@@ -4,6 +4,7 @@ from sklearn.metrics import mean_squared_error
 from scipy.optimize import fsolve as _fsolve
 from itertools import product as _product
 from scipy import signal as _signal
+import matplotlib.pyplot as plt
 import scipy.optimize as optim
 import scipy.stats as stats
 import pandas as pd
@@ -1123,7 +1124,8 @@ def iso_prob_and_quantile(dt, period, nb_steps):
     x_quantile = stats.norm.cdf(x_component_iso_prob, loc=0, scale=1)
     y_quantile = stats.norm.cdf(y_component_iso_prob, loc=0, scale=1)
     
-    results = { 'x_component_iso_prob': x_component_iso_prob,
+    results = { 'exceedance_probability' : exceedance_probability,
+                'x_component_iso_prob': x_component_iso_prob,
                 'y_component_iso_prob': y_component_iso_prob,
                 'x_quantile': x_quantile,
                 'y_quantile': y_quantile}
@@ -1247,11 +1249,15 @@ def copula(x1, x2, dt, period, method, **kwargs):
     nb_steps = kwargs.get("nb_steps", 1000)
     initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
     min_bin_count=kwargs.get("min_bin_count",40)
+    bandwidth=kwargs.get("bandwidth", None)
+    Ndata_bivariate_KDE = kwargs.get("Ndata_bivariate_KDE", 100) 
     
     assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
     assert isinstance(nb_steps, int), 'nb_steps must be of type int'
     assert isinstance(min_bin_count, int), 'min_bin_count must be of type int'
     assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
+    if bandwidth == None:
+        assert(not 'bivariate_KDE' in method), 'Must specify keyword bandwidth with bivariate KDE method'
 
     if isinstance(method, str):
         method = [method]
@@ -1299,7 +1305,16 @@ def copula(x1, x2, dt, period, method, **kwargs):
                            'vals':(x1, x2, results, nb_steps)},
                       'nonparametric_gumbel' : 
                           {'func':_nonparametric_gumbel_copula,
-                           'vals':(x1, x2, results, nb_steps)}                           
+                           'vals':(x1, x2, results, nb_steps)},
+                      'bivariate_KDE': 
+                          {'func' :_bivariate_KDE,
+                           'vals' : (x1, x2, bandwidth, results, nb_steps,
+                                     Ndata_bivariate_KDE)},
+                      'bivariate_KDE_log': 
+                          {'func' :_bivariate_KDE,
+                           'vals' : (x1, x2, bandwidth, results, nb_steps,
+                                     Ndata_bivariate_KDE, {'log_transform':False})},                                     
+                      
                       }
     copulas={}
     for meth in method:
@@ -1512,13 +1527,15 @@ def _gumbel_copula(x1, x2, results, component_1, nb_steps):
 
     comp2_Gumb = np.zeros(nb_steps)
     for k in range(nb_steps):
-        z1 = np.linspace(x_quantile[k], x_quantile[k], Ndata)
+        z1 = np.array([x_quantile[k]]*Ndata)
         Z = np.array((z1,z2))
-        Y = _gumbel_density(Z, theta_gum) # Copula density function
+        Y = _gumbel_density(Z, theta_gum) 
         Y =np.nan_to_num(Y)
-        p_x_x1 = Y*(stats.lognorm.pdf(x, s=s, loc=0, scale=scale)) # pdf 2|1, f(comp_2|comp_1)=c(z1,z2)*f(comp_2)
+        # pdf 2|1, f(comp_2|comp_1)=c(z1,z2)*f(comp_2)
+        p_x_x1 = Y*(stats.lognorm.pdf(x, s=s, loc=0, scale=scale)) 
+        # Estimate CDF from PDF
         dum = np.cumsum(p_x_x1)
-        cdf = dum/(dum[Ndata-1]) # Estimate CDF from PDF
+        cdf = dum/(dum[Ndata-1]) 
         # Result of conditional CDF derived based on Gumbel copula
         table = np.array((x, cdf)) 
         table = table.T
@@ -1640,7 +1657,7 @@ def _nonparametric_copula_parameters(x1, x2, **kwargs):
     x1_sorted = x1[x1_sorted_index]
     x2_sorted = x2[x1_sorted_index]
     
-    # Calcualte KDE bounds (this may be added as an input later)
+    # Calcualte KDE bounds (potential input)
     min_limit_1 = 0
     max_limit_1 = max_x1
     min_limit_2 = 0
@@ -1810,19 +1827,19 @@ def _nonparametric_gumbel_copula(x1, x2, results, nb_steps, **kwargs):
     z1 = x_quantile       
     comp_1=__nonparametric_component(z1, nonpara_dist_1, nb_steps)
 
-#===============================
-
     pts_x2 = nonpara_pdf_2[:,0]
     f_x2 = nonpara_pdf_2[:,1]
+    F_x2 = nonpara_dist_2[:,1]
     
     comp_2_Gumb = np.zeros(nb_steps)
     for k in range(nb_steps):
         z1 = np.array([x_quantile[k]]*Ndata)
-        Z = np.array((z1.T, nonpara_dist_2[:,1]))
+        Z = np.array((z1.T, F_x2))
         Y = _gumbel_density(Z, theta_gum)
         Y = np.nan_to_num(Y) 
-    
-        p_x2_x1 = Y * f_x2
+        # pdf 2|1
+        p_x2_x1 = Y*f_x2
+        # Estimate CDF from PDF
         dum = np.cumsum(p_x2_x1)
         cdf = dum/(dum[Ndata-1])
         table = np.array((pts_x2, cdf))
@@ -1839,3 +1856,116 @@ def _nonparametric_gumbel_copula(x1, x2, results, nb_steps, **kwargs):
 
     
     return comp_1, comp_2_Gumb  
+    
+    
+def _bivariate_KDE(x1, x2, bw, results, nb_steps, Ndata_bivariate_KDE,
+                   log_transform=False,**kwargs):
+    '''
+    XXX
+    bw: np.array
+        Array containing KDE bandwidth for Hs and T
+    '''
+    max_x1 = kwargs.get("max_x1", None)
+    max_x2 = kwargs.get("max_x2", None)
+    
+    
+    x_component_iso_prob = results['x_component_iso_prob'] 
+    y_component_iso_prob = results['y_component_iso_prob'] 
+    
+    x_quantile = results['x_quantile']
+    y_quantile = results['y_quantile']
+    
+    # Copula parameters
+    nonpara_dist_1, nonpara_dist_2, nonpara_pdf_2 =_nonparametric_copula_parameters(x1, x2, nb_steps=nb_steps)
+     
+        
+    # Calculate Kendall's tau    
+    tau = stats.kendalltau(x2, x1)[0]
+    theta_gum = 1./(1.-tau)
+   
+    
+    # Component 1 (Hs)
+    z1 = x_quantile       
+    comp_1=__nonparametric_component(z1, nonpara_dist_1, nb_steps)
+
+
+#===========================================================
+
+    # Create grid of points
+    if max_x2 == None:
+        max_x2 = max(x2)*2.
+    if max_x1 == None:
+        max_x1 = max(x1)*2.
+
+
+    
+    min_limit_1 = 0.01
+    max_limit_1 = max_x2
+    min_limit_2 = 0.01
+    max_limit_2 = max_x1
+    pts_x2 = np.linspace(min_limit_1, max_limit_1, Ndata_bivariate_KDE) 
+    pts_x1 = np.linspace(min_limit_2, max_limit_2, Ndata_bivariate_KDE)
+    pt1,pt2 = np.meshgrid(pts_x2, pts_x1)
+    pts_tp = pt1.flatten()
+    pts_hs = pt2.flatten()
+
+    # Transform gridded points using log
+    ty = [x2, x1]
+    xi = [pts_tp, pts_hs]    
+    txi=xi
+    if log_transform:            
+        # Take log of both variables
+        log_x2 = np.log(x2)
+        log_x1 = np.log(x1)
+        ty = [log_x1, log_x1]          
+        
+        txi = [np.log(pts_tp), np.log(pts_hs)]
+
+    m = len(txi[0])
+    n = len(ty[0])
+    d = 2
+
+    # Create contour
+    f = np.zeros((1,m))
+    weight = np.ones((1,n))
+    for i in range(0,m):
+        ftemp = np.ones((n,1))
+        for j in range(0,d):
+            z = (txi[j][i] - ty[j])/bw[j]
+            fk = stats.norm.pdf(z)
+            if log_transform:     
+                fnew = fk*(1/np.transpose(xi[j][i]))
+            else: 
+                fnew = fk
+            fnew = np.reshape(fnew, (n,1))
+            ftemp = np.multiply(ftemp,fnew)
+        f[:,i] = np.dot(weight,ftemp)
+
+    
+    p_f = results['exceedance_probability']
+    #import ipdb; ipdb.set_trace()
+    fhat = f.reshape(100,100)
+    vals = plt.contour(pt1,pt2,fhat, levels = [p_f])
+    plt.clf()
+    x1_ReturnContours = []
+    x2_ReturnContours = []
+    for i,seg in enumerate(vals.allsegs[0]):
+        x1_ReturnContours.append(seg[:,1])
+        x2_ReturnContours.append(seg[:,0])
+       
+    x1_ReturnContours = np.transpose(np.asarray(x1_ReturnContours)[0])
+    x2_ReturnContours = np.transpose(np.asarray(x2_ReturnContours)[0])
+
+    
+    return x1_ReturnContours, x2_ReturnContours    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

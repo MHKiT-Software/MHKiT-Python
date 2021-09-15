@@ -12,7 +12,6 @@ from matplotlib import pylab
 import datetime
 
 
-
 def plot_spectrum(S, ax=None):
     """
     Plots wave amplitude spectrum versus omega
@@ -296,6 +295,7 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
 
     plt.tight_layout()
 
+
 def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     '''
     Plots an overlay of the x1 and x2 variables to the calculate
@@ -306,9 +306,9 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
         x-axis data
     x2: numpy array 
         x-axis data
-    x1_contour: numpy array 
+    x1_contour: numpy array or list
         Calculated x1 contour values
-    x2_contour: numpy array 
+    x2_contour: numpy array or list
         Calculated x2 contour values 
     **kwargs : optional         
         x_label: string (optional)
@@ -331,9 +331,9 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
     assert isinstance(x1_contour, (np.ndarray,list)), ('x1_contour must be of '
-                                                'type np.ndarray')
+                                                'type np.ndarray or list')
     assert isinstance(x2_contour, (np.ndarray,list)), ('x2_contour must be of '
-                                               'type np.ndarray')
+                                               'type np.ndarray or list')
     x_label = kwargs.get("x_label", None)
     y_label = kwargs.get("y_label", None)
     data_label=kwargs.get("data_label", None)
@@ -342,23 +342,15 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     assert isinstance(data_label, (str,type(None))), 'data_label must be of type str'
     assert isinstance(contour_label, (str,list, type(None))), ('contour_label be of '
                                                   'type str')
-    if isinstance(x1_contour, list):
-        x1_contour = np.array(x1_contour).T
-    if isinstance(x2_contour, list):
-        x2_contour = np.array(x2_contour).T    
-    assert x2_contour.ndim == x1_contour.ndim,  ('contour must be of' 
-            f'equal dimesion got {x2_contour.ndim} and {x1_contour.ndim}')                                                  
-   
-    
-    
-    if x2_contour.ndim==1:
-    
-        N_contours = 1
-        x2_contour  = np.array([x2_contour]).T
-        x1_contour = np.array([x1_contour]).T
-    else:
-        N_contours = x2_contour.shape[1]
-    
+    assert len(x2_contour) == len(x1_contour),  ('contour must be of' 
+            f'equal dimesion got {len(x2_contour)} and {len(x1_contour)}')                                                      
+    if isinstance(x1_contour, np.ndarray):   
+        N_contours=1
+        x2_contour  = [x2_contour]
+        x1_contour = [x1_contour]
+    elif isinstance(x1_contour, list):   
+        N_contours=len(x1_contour) 
+
     if contour_label != None:
         if isinstance(contour_label, str):
             contour_label = [contour_label] 
@@ -369,12 +361,14 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     else:
         contour_label = [None] * N_contours
     
+    for i in range(N_contours):
+        contour1 = np.array(x1_contour[i]).T
+        contour2 = np.array(x2_contour[i]).T
+        ax = _xy_plot(contour1, contour2,'-', 
+                      label=contour_label[i], ax=ax)
+                      
     plt.plot(x1, x2, 'bo', alpha=0.1, label=data_label) 
     
-    for i in range(N_contours):
-        ax = _xy_plot(x1_contour[:,i], x2_contour[:,i],'-', 
-                      label=contour_label[i], ax=ax)
-            
     plt.legend(loc='lower right')
     plt.xlabel(x_label)
     plt.ylabel(y_label)
@@ -525,6 +519,7 @@ def monthly_cumulative_distribution(J):
     plt.ylabel('Cumulative Distribution')
     plt.legend()
     return ax
+
 
 def plot_compendium(Hs, Tp, Dp, buoy_title=None, ax=None):
     """
