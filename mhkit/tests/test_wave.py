@@ -42,14 +42,17 @@ class TestResourceSpectrum(unittest.TestCase):
     
     def test_pierson_moskowitz_spectrum(self):
         S = wave.resource.pierson_moskowitz_spectrum(self.f,self.Tp,self.Hs)
+        Hm0 = wave.resource.significant_wave_height(S).iloc[0,0]
         Tp0 = wave.resource.peak_period(S).iloc[0,0]
         
-        error = np.abs(self.Tp - Tp0)/self.Tp
+        errorHm0 = np.abs(self.Tp - Tp0)/self.Tp
+        errorTp0 = np.abs(self.Hs - Hm0)/self.Hs
         
-        self.assertLess(error, 0.01)
-        
-    def test_bretschneider_spectrum(self):
-        S = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
+        self.assertLess(errorHm0, 0.01)
+        self.assertLess(errorTp0, 0.01)
+
+    def test_jonswap_spectrum(self):
+        S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
         Hm0 = wave.resource.significant_wave_height(S).iloc[0,0]
         Tp0 = wave.resource.peak_period(S).iloc[0,0]
         
@@ -144,17 +147,6 @@ class TestResourceSpectrum(unittest.TestCase):
         rmse_sum = (np.sum(rmse)/len(rmse))**0.5
 
         self.assertLess(rmse_sum, 0.02)
-    
-    def test_jonswap_spectrum(self):
-        S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
-        Hm0 = wave.resource.significant_wave_height(S).iloc[0,0]
-        Tp0 = wave.resource.peak_period(S).iloc[0,0]
-        
-        errorHm0 = np.abs(self.Tp - Tp0)/self.Tp
-        errorTp0 = np.abs(self.Hs - Hm0)/self.Hs
-        
-        self.assertLess(errorHm0, 0.01)
-        self.assertLess(errorTp0, 0.01)
     
     def test_plot_spectrum(self):            
         filename = abspath(join(testdir, 'wave_plot_spectrum.png'))
