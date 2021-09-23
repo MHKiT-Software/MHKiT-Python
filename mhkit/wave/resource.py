@@ -1917,7 +1917,7 @@ def _bivariate_KDE(x1, x2, bw, results, nb_steps, Ndata_bivariate_KDE,
         # Take log of both variables
         log_x2 = np.log(x2)
         log_x1 = np.log(x1)
-        ty = [log_x1, log_x1]          
+        ty = [log_x2, log_x1]          
         
         txi = [np.log(pts_tp), np.log(pts_hs)]
 
