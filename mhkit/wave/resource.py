@@ -1110,6 +1110,36 @@ def _principal_component_analysis(x1, x2, bin_size=250):
 
 
 def iso_prob_and_quantile(dt, period, nb_steps):
+    '''
+    Calculates the iso-probability and the x, y quantiles along
+    the iso probability radius
+    
+    Parameters
+    ----------
+    dt : int or float
+        `x1` and `x2` sample rate (seconds)
+    period: int, float
+        Return period of interest in years
+    nb_steps : int
+        Discretization of the circle in the normal space. 
+        Default nb_steps=1000.
+    
+    Returns
+    -------
+    results: Dictionay
+        Dictionary of the iso-probability results
+        Keys:
+        'exceedance_probability' - probaility of exceedance
+        'x_component_iso_prob' - x-component of iso probability circle
+        'y_component_iso_prob' - y-component of iso probability circle
+        'x_quantile' - CDF of x-component
+        'y_quantile' - CDF of y-component
+    '''
+    assert isinstance(dt, (int,float)), 'dt must be of type int or float'
+    assert isinstance(period, (int,float)), ('period must be'
+                                           'of type int or float')
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    
     dt_yrs = dt / ( 3600 * 24 * 365 )
     exceedance_probability = 1 / ( period / dt_yrs)
     iso_probability_radius = stats.norm.ppf((1 - exceedance_probability), 
@@ -1134,15 +1164,49 @@ def iso_prob_and_quantile(dt, period, nb_steps):
 
 def copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size):
     '''
-    XXX
+    Returns an estimate of the Weibull and Lognormal distribution for
+    x1 and x2 respectively. Additioanlly returns the estimates of the
+    coeffcients from the mean and standard deviation of the Log of x2 
+    given x1.
     
-    '''
+    Parameters
+    ----------
+    x1: array 
+        Component 1 data
+    x2: array 
+        Component 2 data 
+    min_bin_count: int
+        Sets the minimum number of bins allowed
+    initial_bin_max_val: int, float
+        Sets the max value of the first bin    
+    bin_val_size: int, float
+        The size of each bin after the initial bin
+    
+    Returns
+    -------
+    para_dist_1: array
+        Weibull distribution parameters for  for component 1 
+    para_dist_2: array
+        Lognormal distribution parameters for component 2
+    mean_cond: array
+        Estimate coefficients of mean of Ln(x2|x1)
+    std_cond: array
+        Estimate coefficients of standard deviation of Ln(x2|x1)
+    '''  
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(min_bin_count, int), 
+    'min_bin_count must be of type int'
+    assert isinstance(bin_val_size, (int, float)), 
+    'bin_val_size must be of type int or float'
+    assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'    
+    
     # Binning
     x1_sorted_index = x1.argsort()
     x1_sorted = x1[x1_sorted_index]
     x2_sorted = x2[x1_sorted_index]
     
-    # Because x1 is sorted we can find the max indicie using the following logic
+    # Because x1 is sorted we can find the max index using the following logic
     ind = np.array([])
     N_vals_lt_limit = sum(x1_sorted <= initial_bin_max_val)
     ind = np.append(ind, N_vals_lt_limit)
@@ -1164,9 +1228,9 @@ def copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size):
         ind = np.append(ind, N_vals_lt_limit)
         bin_size_i = ind[i]-ind[i-1]
         
-    # Estimate parameters for Weibull distribution for component 1 (Hs) using MLE
-    # Estimate parameters for Lognormal distribution for component 2 (T) using MLE
+    # Weibull distribution parameters for  for component 1 using MLE    
     para_dist_1=stats.exponweib.fit(x1_sorted,floc=0,fa=1)
+    # Lognormal distribution parameters for component 2 using MLE
     para_dist_2=stats.norm.fit(np.log(x2_sorted))
         
     # Parameters for conditional distribution of T|Hs for each bin
@@ -1231,8 +1295,49 @@ def copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size):
 
 def copula(x1, x2, dt, period, method, **kwargs):
     '''
-    XXX
+    Returns a Dictionary of x1 and x2 copula components for each copula
+    method passed. Methods include: 
+    gaussian, gumbel, clayton, rosenblatt, nonparametric gaussian,
+    nonparametric clayton, nonparametric gumbel, bivariate KDE,
+    log bivariate KDE 
     
+    Parameters
+    ----------
+    x1: array 
+        Component 1 data
+    x2: array 
+        Component 2 data 
+    dt : int or float
+        `x1` and `x2` sample rate (seconds)
+    period: int, float
+        Return period of interest in years
+    method: string or list
+        Copula method to apply. Options include ['gaussian', 'gumbel', 
+         'clayton', 'rosenblatt', 'nonparametric_gaussian',
+         'nonparametric_clayton', 'nonparametric_gumbel', 'bivariate_KDE'
+         'bivariate_KDE_log']
+
+    **kwargs
+        min_bin_count: int
+            Passed to copula_parameters to sets the minimum number of bins allowed. Deault = 40.
+        initial_bin_max_val: int, float
+            Passed to copula_parameters to set the max value of the first
+            bin. Default = 1.
+        bin_val_size: int, float
+            Passed to copula_parameters to set the size of each bin after the initial bin.  Default 0.25.            
+        nb_steps: int
+            Discretization of the circle in the normal space used for
+            copula component calculation. Default nb_steps=1000.
+        bandwidth:
+            Must specify bandwidth for bivariate KDE method. Default = None.
+        Ndata_bivariate_KDE: int
+            Must specify bivariate KDE method. Defines the contour space
+            from which samples are taken. Default = 100.
+    
+    Returns
+    -------
+    copulas: Dictionary
+        Dictionary of x1 and x2 copula components for each copula method
     '''
     
     try: x1 = np.array(x1); 
@@ -1262,8 +1367,6 @@ def copula(x1, x2, dt, period, method, **kwargs):
     if isinstance(method, str):
         method = [method]
 
-    #if 'nonparametric_gaussian', 'nonparametric_clayton', 'nonparametric_gumbel'] in method:
-
     results = iso_prob_and_quantile(dt, period, nb_steps)
     
     para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
@@ -1272,18 +1375,13 @@ def copula(x1, x2, dt, period, method, **kwargs):
     results['mean_cond'] = mean_cond
     results['std_cond'] = std_cond
     
-    # x_component_iso_prob = results['x_component_iso_prob'] 
-    # y_component_iso_prob = results['y_component_iso_prob'] 
     x_quantile = results['x_quantile'] 
-    # y_quantile =results['y_quantile'] 
-
     a=para_dist_1[0]
     c=para_dist_1[1]
     loc=para_dist_1[2]
     scale=para_dist_1[3]
 
     component_1 = stats.exponweib.ppf(x_quantile, a, c, loc=loc, scale=scale)
-    
     
     copula_functions={'gaussian' : 
                          {'func':_gaussian_copula,
@@ -1325,57 +1423,10 @@ def copula(x1, x2, dt, period, method, **kwargs):
     return copulas 
     
 
-
-def _gaussian_copula(x1, x2, results, component_1, **kwargs):
+def _gaussian_copula(x1, x2, results, component_1):
     '''
-        WDRT Extreme Sea State Gaussian Copula Contour function.
-        This function calculates environmental contours of extreme sea states using
-        a Gaussian copula and the inverse first-order reliability
-        method.
-
-        Parameters
-        ___________
-        time_ss : float
-            Sea state duration (hours) of measurements in input.
-        time_r : np.array
-            Desired return period (years) for calculation of environmental
-            contour, can be a scalar or a vector.
-        nb_steps : float
-            Discretization of the circle in the normal space used for
-            inverse FORM calculation.
-
-        Returns
-        -------
-        Hs_Return : np.array
-            Calculated Hs values along the contour boundary following
-            return to original input orientation.
-        T_Return : np.array
-           Calculated T values along the contour boundary following
-           return to original input orientation.
-        nb_steps : float
-            Discretization of the circle in the normal space
-
-        Example
-        -------
-        To obtain the contours for a NDBC buoy::
-            
-            import WDRT.ESSC as ESSC
-            
-            # Pull spectral data from NDBC website
-            buoy46022 = ESSC.Buoy('46022','NDBC')
-            buoy46022.fetchFromWeb()
-            
-            # Create Environtmal Analysis object using above parameters
-            Gauss46022 = ESSC.GaussianCopula(buoy46022)
-            
-            # Declare required parameters
-            Time_SS = 1.  # Sea state duration (hrs)
-            Time_r = 100  # Return periods (yrs) of interest
-            nb_steps = 1000  # Enter discretization of the circle in the normal space (optional)
-            
-            # Gaussian copula contour generation example
-            Hs_Return, T_Return = Gauss46022.getContours(Time_SS, Time_r,nb_steps)
-
+    Extreme Sea State Gaussian Copula Contour function.
+    This function calculates environmental contours of extreme sea states using a Gaussian copula and the inverse first-order reliability method.
 
     Parameters
     ----------
@@ -1383,88 +1434,52 @@ def _gaussian_copula(x1, x2, results, component_1, **kwargs):
         Component 1 data
     x2: numpy array 
         Component 2 data        	
-    dt : int or float
-        `x1` and `x2` sample rate (seconds)
-    period : int, float, or numpy array 
-        Desired return period (years) for calculation of environmental
-        contour, can be a scalar or a vector.
-    **kwargs : optional        
-        PCA: dict
-            If provided, the principal component analysis (PCA) on x1, x2 
-            is skipped. The PCA will be the same for a given x1, x2 
-            therefore this step may be skipped if multiple calls to 
-            environmental contours are made for the same x1, x2 pair. 
-            The PCA dict may be obtained by setting return_PCA=True.
-        bin_size : int
-            Data points in each bin for the PCA. Default bin_size=250.		
-        nb_steps : int
-            Discretization of the circle in the normal space used for
-            I-FORM calculation. Default nb_steps=1000.
-        return_PCA: boolean
-            Default False, if True will retun the PCA dictionary             
-            
-            
-
+    results: Dictionay
+        Dictionary of the iso-probability results
+    component_1: array
+        Calculated x1 values along the contour boundary following
+        return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
+        create a consistient output from all copula methods.
+          
     Returns
     -------    
-            
+    component_1: array
+        Calculated x1 values along the contour boundary following
+        return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
+        create a consistient output from all copula methods.
+    component_2_Gaussian      
+        Calculated x2 values along the contour boundary following
+        return to original input orientation. 
     '''
-    # try: x1 = np.array(x1); 
-    # except: pass
-    # try: x2 = np.array(x2); 
-    # except: pass
-    # assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
-    # assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    # assert isinstance(dt, (int,float)), 'dt must be of type int or float'
-    # assert isinstance(period, (int,float,np.ndarray)), ('period must be'
-                                          # 'of type int, float, or array')
-    
-    # bin_val_size = kwargs.get("bin_val_size", 0.25)
-    # nb_steps = kwargs.get("nb_steps", 1000)
-    # initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
-    # min_bin_count=kwargs.get("min_bin_count",40)
-    
-    # assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
-    # assert isinstance(nb_steps, int), 'nb_steps must be of type int'
-    # assert isinstance(min_bin_count, int), 'min_bin_count must be of type int'
-    # assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
-    
-
-    # para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
-
-
-    
+    try: x1 = np.array(x1); 
+    except: pass
+    try: x2 = np.array(x2); 
+    except: pass
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    # assert results is dict with key  'x_component_iso_prob'
+    #'y_component_iso_prob','para_dist_2'
+    assert isinstance(component_1, np.ndarray), 'x2 must be of type np.ndarray'
+   
     x_component_iso_prob = results['x_component_iso_prob'] 
     y_component_iso_prob = results['y_component_iso_prob'] 
-    x_quantile = results['x_quantile'] 
-    y_quantile =results['y_quantile'] 
     
-    para_dist_1 = results['para_dist_1'] 
-    para_dist_2 = results['para_dist_2'] 
-    mean_cond = results['mean_cond'] 
-    std_cond = results['std_cond'] 
-
-    # a=para_dist_1[0]
-    # c=para_dist_1[1]
-    # loc=para_dist_1[2]
-    # scale=para_dist_1[3]
-
-    # component_1 = stats.exponweib.ppf(x_quantile, a, c, loc=loc, scale=scale)
-
     # Calculate Kendall's tau
     tau=stats.kendalltau(x2,x1)[0] 
     rho_gau=np.sin(tau*np.pi/2.)
 
     z2_Gauss=stats.norm.cdf(y_component_iso_prob*np.sqrt(1.-rho_gau**2.)+rho_gau*x_component_iso_prob);
 
+    para_dist_2 = results['para_dist_2'] 
     s=para_dist_2[1]
     loc=0
     scale=np.exp(para_dist_2[0])
 
-    #lognormalinverse
-    comp_2_Gaussian = stats.lognorm.ppf(z2_Gauss, s=s, loc=loc, scale=scale) 
+    # lognormal inverse
+    component_2_Gaussian = stats.lognorm.ppf(z2_Gauss, s=s, loc=loc, 
+                                             scale=scale) 
         
-    return component_1, comp_2_Gaussian
+    return component_1, component_2_Gaussian
     
 
 def _gumbel_density(u, alpha):
@@ -1499,18 +1514,49 @@ def _gumbel_density(u, alpha):
 
 def _gumbel_copula(x1, x2, results, component_1, nb_steps):
     '''
-    XXX
+    This function calculates environmental contours of extreme sea 
+    states using a Gumbel copula and the inverse first-order reliability
+    method.
     
+    Parameters
+    ----------
+    x1: numpy array 
+        Component 1 data
+    x2: numpy array 
+        Component 2 data        	
+    results: Dictionay
+        Dictionary of the iso-probability results
+    component_1: array
+        Calculated x1 values along the contour boundary following
+        return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
+        create a consistient output from all copula methods.
+    nb_steps: int
+        Discretization of the circle in the normal space used for
+        copula component calculation.
+          
+    Returns
+    -------    
+    component_1: array
+        Calculated x1 values along the contour boundary following
+        return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
+        create a consistient output from all copula methods.
+    component_2_Gumbel: array   
+        Calculated x2 values along the contour boundary following
+        return to original input orientation. 
     '''
-    x_component_iso_prob = results['x_component_iso_prob'] 
-    y_component_iso_prob = results['y_component_iso_prob'] 
+    try: x1 = np.array(x1); 
+    except: pass
+    try: x2 = np.array(x2); 
+    except: pass
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    # assert results is dict with key  'x_component_iso_prob'
+    #'y_component_iso_prob','para_dist_2'
+    assert isinstance(component_1, np.ndarray), 'x2 must be of type np.ndarray'
+    
     x_quantile = results['x_quantile'] 
     y_quantile =results['y_quantile'] 
-    
-    para_dist_1 = results['para_dist_1'] 
     para_dist_2 = results['para_dist_2'] 
-    mean_cond = results['mean_cond'] 
-    std_cond = results['std_cond'] 
 
     # Calculate Kendall's tau
     tau=stats.kendalltau(x2,x1)[0] 
@@ -1521,11 +1567,12 @@ def _gumbel_copula(x1, x2, results, component_1, nb_steps):
     Ndata=1000
     
     x = np.linspace(min_limit_2, max_limit_2, Ndata)
+    
     s=para_dist_2[1]
     scale=np.exp(para_dist_2[0])   
     z2 = stats.lognorm.cdf(x,s=s,loc=0,scale=scale)
 
-    comp2_Gumb = np.zeros(nb_steps)
+    component_2_Gumbel = np.zeros(nb_steps)
     for k in range(nb_steps):
         z1 = np.array([x_quantile[k]]*Ndata)
         Z = np.array((z1,z2))
@@ -1541,69 +1588,58 @@ def _gumbel_copula(x1, x2, results, component_1, nb_steps):
         table = table.T
         for j in range(Ndata):
             if y_quantile[k] <= table[0,1]:
-                comp2_Gumb[k] = min(table[:,0])
+                component_2_Gumbel[k] = min(table[:,0])
                 break
             elif y_quantile[k] <= table[j,1]:
-                comp2_Gumb[k] = (table[j,0]+table[j-1,0])/2
+                component_2_Gumbel[k] = (table[j,0]+table[j-1,0])/2
                 break
             else:
-                comp2_Gumb[k] = table[:,0].max()
+                component_2_Gumbel[k] = table[:,0].max()
                 
-    return component_1, comp2_Gumb
+    return component_1, component_2_Gumbel
     
  
-def _clayton_copula(x1, x2, results, component_1, **kwargs):
+def _clayton_copula(x1, x2, results, component_1):
     '''
-    XXX
+    This function calculates environmental contours of extreme sea 
+    states using a Clayton copula and the inverse first-order reliability
+    method.
     
+    Parameters
+    ----------
+    x1: numpy array 
+        Component 1 data
+    x2: numpy array 
+        Component 2 data        	
+    results: Dictionay
+        Dictionary of the iso-probability results
+    component_1: array
+        Calculated x1 values along the contour boundary following
+        return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
+        create a consistient output from all copula methods.
+    nb_steps: int
+        Discretization of the circle in the normal space used for
+        copula component calculation.
+          
+    Returns
+    -------    
+    component_1: array
+        Calculated x1 values along the contour boundary following
+        return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
+        create a consistient output from all copula methods.
+    component_2_Clayton: array   
+        Calculated x2 values along the contour boundary following
+        return to original input orientation.     
     '''
-    
-    # try: x1 = np.array(x1); 
-    # except: pass
-    # try: x2 = np.array(x2); 
-    # except: pass
-    # assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
-    # assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    # assert isinstance(dt, (int,float)), 'dt must be of type int or float'
-    # assert isinstance(period, (int,float,np.ndarray)), ('period must be'
-                                          # 'of type int, float, or array')
-    
-    # bin_val_size = kwargs.get("bin_val_size", 0.25)
-    # nb_steps = kwargs.get("nb_steps", 1000)
-    # initial_bin_max_val=kwargs.get("initial_bin_max_val",1.)
-    # min_bin_count=kwargs.get("min_bin_count",40)
-    
-    # assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
-    # assert isinstance(nb_steps, int), 'nb_steps must be of type int'
-    # assert isinstance(min_bin_count, int), 'min_bin_count must be of type int'
-    # assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'
-    
-    # para_dist_1, para_dist_2, mean_cond, std_cond = copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size)
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    # assert results is dict with key  'x_component_iso_prob'
+    #'y_component_iso_prob','para_dist_2'
+    assert isinstance(component_1, np.ndarray), 'x2 must be of type np.ndarray'
 
-
-    # results = iso_prob_and_quantile(dt, period, nb_steps)
-    # x_component_iso_prob = results['x_component_iso_prob'] 
-    # y_component_iso_prob = results['y_component_iso_prob'] 
-    # x_quantile = results['x_quantile'] 
-    # y_quantile =results['y_quantile'] 
-
-    # a=para_dist_1[0]
-    # c=para_dist_1[1]
-    # loc=para_dist_1[2]
-    # scale=para_dist_1[3]
-
-    # component_1 = stats.exponweib.ppf(x_quantile, a, c, loc=loc, scale=scale)
-
-
-    x_component_iso_prob = results['x_component_iso_prob'] 
-    y_component_iso_prob = results['y_component_iso_prob'] 
     x_quantile = results['x_quantile'] 
-    y_quantile =results['y_quantile'] 
-    
-    para_dist_1 = results['para_dist_1'] 
+    y_quantile =results['y_quantile']     
     para_dist_2 = results['para_dist_2'] 
-    mean_cond = results['mean_cond'] 
-    std_cond = results['std_cond'] 
 
     # Calculate Kendall's tau
     tau=stats.kendalltau(x2,x1)[0] 
@@ -1613,30 +1649,61 @@ def _clayton_copula(x1, x2, results, component_1, **kwargs):
     s=para_dist_2[1]
     scale=np.exp(para_dist_2[0])
     z2_Clay=((1.-x_quantile**(-theta_clay)+x_quantile**(-theta_clay)/y_quantile)**(theta_clay/(1.+theta_clay)))**(-1./theta_clay)
-    comp_2_Clayton = stats.lognorm.ppf(z2_Clay,s=s,loc=0,scale=scale) #lognormalinverse
+    # lognormal inverse
+    component_2_Clayton = stats.lognorm.ppf(z2_Clay,s=s,loc=0,scale=scale) 
  
-    return component_1, comp_2_Clayton
+    return component_1, component_2_Clayton
 
 
-def _rosenblatt_copula(x1, x2, results, component_1, **kwargs):
+def _rosenblatt_copula(x1, x2, results, component_1):
     '''
-    XXX
+    This function calculates environmental contours of extreme sea 
+    states using a Rosenblatt transformation and the inverse first-order
+    reliability method.
     
+    Parameters
+    ----------
+    x1: numpy array 
+        Component 1 data
+    x2: numpy array 
+        Component 2 data        	
+    results: Dictionay
+        Dictionary of the iso-probability results
+    component_1: array
+        Calculated x1 values along the contour boundary following
+        return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
+        create a consistient output from all copula methods.
+    nb_steps: int
+        Discretization of the circle in the normal space used for
+        copula component calculation.
+          
+    Returns
+    -------    
+    component_1: array
+        Calculated x1 values along the contour boundary following
+        return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
+        create a consistient output from all copula methods.
+    comp_2_Rosenblatt: array   
+        Calculated x2 values along the contour boundary following
+        return to original input orientation.  
     '''
+    try: x1 = np.array(x1); 
+    except: pass
+    try: x2 = np.array(x2); 
+    except: pass
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    # assert results is dict with key  'x_component_iso_prob'
+    #'y_component_iso_prob','para_dist_2'
+    assert isinstance(component_1, np.ndarray), 'x2 must be of type np.ndarray'
     
-    x_component_iso_prob = results['x_component_iso_prob'] 
-    y_component_iso_prob = results['y_component_iso_prob'] 
-    x_quantile = results['x_quantile'] 
     y_quantile =results['y_quantile'] 
-    
-    para_dist_1 = results['para_dist_1'] 
-    para_dist_2 = results['para_dist_2'] 
     mean_cond = results['mean_cond'] 
     std_cond = results['std_cond'] 
 
-    # mean of Ln(T) as a function of Hs
+    # mean of Ln(T) as a function of x1
     lamda_cond=mean_cond[0]+mean_cond[1]*component_1+mean_cond[2]*component_1**2+mean_cond[3]*component_1**3
-    # Standard deviation of Ln(T) as a function of Hs
+    # Standard deviation of Ln(x2) as a function of x1
     sigma_cond=std_cond[0]+std_cond[1]*component_1+std_cond[2]*component_1**2                                
     # lognormal inverse
     comp_2_Rosenblatt = stats.lognorm.ppf(y_quantile,s=sigma_cond,loc=0,scale=np.exp(lamda_cond))
@@ -1644,12 +1711,29 @@ def _rosenblatt_copula(x1, x2, results, component_1, **kwargs):
     return component_1, comp_2_Rosenblatt  
   
 
-def _nonparametric_copula_parameters(x1, x2, **kwargs):
-
-    max_x1 = kwargs.get("max_x1", x1.max()*2)
-    max_x2 = kwargs.get("max_x2", x2.max()*2)
+def _nonparametric_copula_parameters(x1, x2, max_x1=None, max_x2=None,
+    nb_steps=1000):
+    '''
+    Calculate nonparametric copula parameters
     
-    nb_steps = kwargs.get("nb_steps", 1000)
+    Parameters
+    ----------
+    x1: array 
+        Component 1 data
+    x2: array 
+        Component 2 data 
+    Returns
+    -------
+    
+    '''
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    if not max_x1:
+        max_x1 = x1.max()*2
+    if not max_x2:
+        max_x2 = x2.max()*2
+    assert isinstance(max_x1, float), 'max_x1 must be of type float'
+    assert isinstance(max_x2, float), 'max_x2 must be of type float'
     assert isinstance(nb_steps, int), 'nb_steps must be of type int'
     
     # Binning
@@ -1659,13 +1743,11 @@ def _nonparametric_copula_parameters(x1, x2, **kwargs):
     
     # Calcualte KDE bounds (potential input)
     min_limit_1 = 0
-    max_limit_1 = max_x1
     min_limit_2 = 0
-    max_limit_2 = max_x2   
     
     # Discretize for KDE
-    pts_x1 = np.linspace(min_limit_1, max_limit_1, nb_steps) 
-    pts_x2 = np.linspace(min_limit_2, max_limit_2, nb_steps)
+    pts_x1 = np.linspace(min_limit_1, max_x1, nb_steps) 
+    pts_x2 = np.linspace(min_limit_2, max_x2, nb_steps)
     
     # Calculate optimal bandwidth for T and Hs
     sig = stats.median_abs_deviation(x2_sorted)
@@ -1700,38 +1782,72 @@ def _nonparametric_copula_parameters(x1, x2, **kwargs):
 
 
 def __nonparametric_component(z, nonpara_dist, nb_steps):
-    comp=np.zeros(nb_steps)
+    '''
+    Generalized method for calculating copula 
+    
+    Parameters
+    ----------
+    z:
+    
+    nonpara_dist:
+    
+    nb_steps:
+
+    Returns
+    -------
+    component: array
+        nonparametic component values   
+    '''
+    
+    component=np.zeros(nb_steps)
     for k in range(0,nb_steps):
         for j in range(0,np.size(nonpara_dist,0)):
             if z[k] <= nonpara_dist[0,1]: 
-                comp[k] = min(nonpara_dist[:,0]) 
+                component[k] = min(nonpara_dist[:,0]) 
                 break
             elif z[k] <= nonpara_dist[j,1]: 
-                comp[k] = (nonpara_dist[j,0] + nonpara_dist[j-1,0])/2
+                component[k] = (nonpara_dist[j,0] + nonpara_dist[j-1,0])/2
                 break
             else:
-                comp[k]= max(nonpara_dist[:,0])
-    return comp
+                component[k]= max(nonpara_dist[:,0])
+    return component
 
 
 def _nonparametric_gaussian_copula(x1, x2, results, nb_steps, **kwargs):
     '''
-    XXX
     
+    This function calculates environmental contours of extreme sea 
+    states using a Gaussian copula with non-parametric marginal
+    distribution fits.
+
+    Parameters
+    ----------
+    x1: array 
+        Component 1 data
+    x2: array 
+        Component 2 data    
+    results: Dictionay
+        Dictionary of the iso-probability results
+    nb_steps: int
+        Discretization of the circle in the normal space used for
+        copula component calculation.        
+        
+    Returns
+    -------
+        
     '''
     x_component_iso_prob = results['x_component_iso_prob'] 
     y_component_iso_prob = results['y_component_iso_prob'] 
     
     # Copula parameters
     nonpara_dist_1, nonpara_dist_2, nonpara_pdf_2 =_nonparametric_copula_parameters(x1, x2, nb_steps=nb_steps)
-     
-        
+
     # Calculate Kendall's tau    
     tau = stats.kendalltau(x2, x1)[0]
     rho_gau=np.sin(tau*np.pi/2.)
-    
-    # Component 1 (Hs)
-    z1 = stats.norm.cdf(x_component_iso_prob)
+
+    # Component 1
+    z1=stats.norm.cdf(x_component_iso_prob)
     z2=stats.norm.cdf(y_component_iso_prob*np.sqrt(1.-rho_gau**2.)+rho_gau*x_component_iso_prob)
 
     comps={1: {'z': z1,
@@ -1748,10 +1864,10 @@ def _nonparametric_gaussian_copula(x1, x2, results, nb_steps, **kwargs):
         
         comps[c]['comp']=__nonparametric_component(z, nonpara_dist, nb_steps)
 
-    comp_1 = comps[1]['comp']
-    comp_2_Gau = comps[2]['comp']
+    component_1_np_gaussian = comps[1]['comp']
+    component_2_np_gaussian = comps[2]['comp']
     
-    return comp_1, comp_2_Gau
+    return component_1_np_gaussian, component_2_np_gaussian
 
 
 def _nonparametric_clayton_copula(x1, x2, results, nb_steps, **kwargs):
@@ -1861,7 +1977,9 @@ def _nonparametric_gumbel_copula(x1, x2, results, nb_steps, **kwargs):
 def _bivariate_KDE(x1, x2, bw, results, nb_steps, Ndata_bivariate_KDE,
                    log_transform=False,**kwargs):
     '''
-    XXX
+    Contours generated under this class will use a non-parametric KDE to
+    fit the joint distribution.
+    
     bw: np.array
         Array containing KDE bandwidth for Hs and T
     '''
@@ -1898,7 +2016,6 @@ def _bivariate_KDE(x1, x2, bw, results, nb_steps, Ndata_bivariate_KDE,
         max_x1 = max(x1)*2.
 
 
-    
     min_limit_1 = 0.01
     max_limit_1 = max_x2
     min_limit_2 = 0.01
@@ -1943,7 +2060,7 @@ def _bivariate_KDE(x1, x2, bw, results, nb_steps, Ndata_bivariate_KDE,
 
     
     p_f = results['exceedance_probability']
-    #import ipdb; ipdb.set_trace()
+
     fhat = f.reshape(100,100)
     vals = plt.contour(pt1,pt2,fhat, levels = [p_f])
     plt.clf()
