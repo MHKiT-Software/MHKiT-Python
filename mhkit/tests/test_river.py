@@ -12,7 +12,7 @@ import scipy.interpolate as interp
 
 
 testdir = dirname(abspath(__file__))
-datadir = normpath(join(testdir,relpath('../../examples/data/river')))
+datadir = normpath(join(testdir,'..','..','examples','data','river'))
 
 
 class TestPerformance(unittest.TestCase):
