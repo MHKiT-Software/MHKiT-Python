@@ -1339,7 +1339,6 @@ def copula(x1, x2, dt, period, method, **kwargs):
     copulas: Dictionary
         Dictionary of x1 and x2 copula components for each copula method
     '''
-    
     try: x1 = np.array(x1); 
     except: pass
     try: x2 = np.array(x2); 
@@ -1411,7 +1410,8 @@ def copula(x1, x2, dt, period, method, **kwargs):
                       'bivariate_KDE_log': 
                           {'func' :_bivariate_KDE,
                            'vals' : (x1, x2, bandwidth, results, nb_steps,
-                                     Ndata_bivariate_KDE, {'log_transform':False})},                                     
+                                     Ndata_bivariate_KDE, 
+                                     log_transform=True)},                                     
                       
                       }
     copulas={}
@@ -1500,14 +1500,14 @@ def _gumbel_density(u, alpha):
         Copula density function.
     '''    
     #Ignore divide by 0 warnings and resulting NaN warnings
-    #np.seterr(all='ignore')        
+    np.seterr(all='ignore')        
     v = -np.log(u)
     v = np.sort(v, axis=0)
     vmin = v[0, :]
     vmax = v[1, :]
     nlogC = vmax * (1 + (vmin / vmax) ** alpha) ** (1 / alpha)
     y = (alpha - 1 +nlogC)*np.exp(-nlogC+np.sum((alpha-1)*np.log(v)+v, axis =0) +(1-2*alpha)*np.log(nlogC))
-    #np.seterr(all='warn')
+    np.seterr(all='warn')
 
     return(y) 
 
@@ -1714,7 +1714,7 @@ def _rosenblatt_copula(x1, x2, results, component_1):
 def _nonparametric_copula_parameters(x1, x2, max_x1=None, max_x2=None,
     nb_steps=1000):
     '''
-    Calculate nonparametric copula parameters
+    Calculates nonparametric copula parameters
     
     Parameters
     ----------
@@ -1722,9 +1722,21 @@ def _nonparametric_copula_parameters(x1, x2, max_x1=None, max_x2=None,
         Component 1 data
     x2: array 
         Component 2 data 
+    max_x1: float
+        Defines the max value of x1 to discretize the KDE space
+    max_x2:float
+        Defines the max value of x2 to discretize the KDE space
+    nb_steps: int
+        number of points used to discritize KDE space
+    
     Returns
     -------
-    
+    nonpara_dist_1:
+        x1 points in KDE space and Nonparametric CDF for x1
+    nonpara_dist_2:
+        x2 points in KDE space and Nonparametric CDF for x2
+    nonpara_pdf_2:
+        x2 points in KDE space and Nonparametric PDF for x2
     '''
     assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
@@ -1770,7 +1782,7 @@ def _nonparametric_copula_parameters(x1, x2, max_x1=None, max_x2=None,
     F_x1 = tempPDF/sum(tempPDF)
     F_x1 = np.cumsum(F_x1)
     
-    # Nonparametric CDF for T
+    # Nonparametric CDF for x2
     F_x2 = f_x2/sum(f_x2)
     F_x2 = np.cumsum(F_x2)
     
@@ -1783,21 +1795,22 @@ def _nonparametric_copula_parameters(x1, x2, max_x1=None, max_x2=None,
 
 def __nonparametric_component(z, nonpara_dist, nb_steps):
     '''
-    Generalized method for calculating copula 
+    Generalized method for calculating copula components
     
     Parameters
     ----------
-    z:
-    
-    nonpara_dist:
-    
-    nb_steps:
+    z: array
+        CDF of isoprobability
+    nonpara_dist: array
+        x1 or x2 points in KDE space and Nonparametric CDF for x1 or x2
+    nb_steps: int
 
     Returns
     -------
     component: array
         nonparametic component values   
     '''
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
     
     component=np.zeros(nb_steps)
     for k in range(0,nb_steps):
@@ -1813,12 +1826,11 @@ def __nonparametric_component(z, nonpara_dist, nb_steps):
     return component
 
 
-def _nonparametric_gaussian_copula(x1, x2, results, nb_steps, **kwargs):
+def _nonparametric_gaussian_copula(x1, x2, results, nb_steps):
     '''
-    
     This function calculates environmental contours of extreme sea 
     states using a Gaussian copula with non-parametric marginal
-    distribution fits.
+    distribution fits and the inverse first-order reliability method.
 
     Parameters
     ----------
@@ -1834,8 +1846,15 @@ def _nonparametric_gaussian_copula(x1, x2, results, nb_steps, **kwargs):
         
     Returns
     -------
-        
+    component_1_np: array
+        Component 1 nonparametric copula 
+    component_2_np_gaussian: array
+        Component 2 nonparametric Gaussian copula 
     '''
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    
     x_component_iso_prob = results['x_component_iso_prob'] 
     y_component_iso_prob = results['y_component_iso_prob'] 
     
@@ -1864,39 +1883,59 @@ def _nonparametric_gaussian_copula(x1, x2, results, nb_steps, **kwargs):
         
         comps[c]['comp']=__nonparametric_component(z, nonpara_dist, nb_steps)
 
-    component_1_np_gaussian = comps[1]['comp']
+    component_1_np = comps[1]['comp']
     component_2_np_gaussian = comps[2]['comp']
     
-    return component_1_np_gaussian, component_2_np_gaussian
+    return component_1_np, component_2_np_gaussian
 
 
-def _nonparametric_clayton_copula(x1, x2, results, nb_steps, **kwargs):
+def _nonparametric_clayton_copula(x1, x2, results, nb_steps):
     '''
-    XXX
+    This function calculates environmental contours of extreme sea 
+    states using a Clayton copula with non-parametric marginal
+    distribution fits and the inverse first-order reliability method.
+
+    Parameters
+    ----------
+    x1: array 
+        Component 1 data
+    x2: array 
+        Component 2 data    
+    results: Dictionay
+        Dictionary of the iso-probability results
+    nb_steps: int
+        Discretization of the circle in the normal space used for
+        copula component calculation.        
+        
+    Returns
+    -------
+    component_1_np: array
+        Component 1 nonparametric copula 
+    component_2_np_gaussian: array
+        Component 2 nonparametric Clayton copula   
+    '''
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
     
-    '''
     x_component_iso_prob = results['x_component_iso_prob'] 
-    y_component_iso_prob = results['y_component_iso_prob'] 
     
     x_quantile = results['x_quantile']
     y_quantile = results['y_quantile']
     
     # Copula parameters
     nonpara_dist_1, nonpara_dist_2, nonpara_pdf_2 =_nonparametric_copula_parameters(x1, x2, nb_steps=nb_steps)
-     
         
     # Calculate Kendall's tau    
     tau = stats.kendalltau(x2, x1)[0]
     theta_clay = (2.*tau)/(1.-tau)
-   
     
     # Component 1 (Hs)
     z1 = stats.norm.cdf(x_component_iso_prob)
     z2_clay=((1-x_quantile**(-theta_clay)
               +x_quantile**(-theta_clay)
               /y_quantile)**(theta_clay/(1.+theta_clay)))**(-1./theta_clay)
-    
-    
+        
     comps={1: {'z': z1,
                'nonpara_dist':nonpara_dist_1
               },
@@ -1908,46 +1947,64 @@ def _nonparametric_clayton_copula(x1, x2, results, nb_steps, **kwargs):
     for c in comps:
         z = comps[c]['z']
         nonpara_dist = comps[c]['nonpara_dist']
-        
         comps[c]['comp']=__nonparametric_component(z, nonpara_dist, nb_steps)
 
-    comp_1 = comps[1]['comp']
-    comp_2_clay = comps[2]['comp']
+    component_1_np = comps[1]['comp']
+    component_2_np_clayton = comps[2]['comp']
     
-    return comp_1, comp_2_clay
+    return component_1_np, component_2_np_clayton
 
     
-def _nonparametric_gumbel_copula(x1, x2, results, nb_steps, **kwargs):
+def _nonparametric_gumbel_copula(x1, x2, results, nb_steps):
     '''
-    XXX
+    This function calculates environmental contours of extreme sea 
+    states using a Gumbel copula with non-parametric marginal
+    distribution fits and the inverse first-order reliability method.
+
+    Parameters
+    ----------
+    x1: array 
+        Component 1 data
+    x2: array 
+        Component 2 data    
+    results: Dictionay
+        Dictionary of the iso-probability results
+    nb_steps: int
+        Discretization of the circle in the normal space used for
+        copula component calculation.        
+        
+    Returns
+    -------
+    component_1_np: array
+        Component 1 nonparametric copula 
+    component_2_np_gumbel: array
+        Component 2 nonparametric Gumbel copula  
+    '''
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
     
-    '''
     Ndata=1000
-    
-    x_component_iso_prob = results['x_component_iso_prob'] 
-    y_component_iso_prob = results['y_component_iso_prob'] 
-    
+   
     x_quantile = results['x_quantile']
     y_quantile = results['y_quantile']
     
     # Copula parameters
-    nonpara_dist_1, nonpara_dist_2, nonpara_pdf_2 =_nonparametric_copula_parameters(x1, x2, nb_steps=nb_steps)
-     
+    nonpara_dist_1, nonpara_dist_2, nonpara_pdf_2 =_nonparametric_copula_parameters(x1, x2, nb_steps=nb_steps)     
         
     # Calculate Kendall's tau    
     tau = stats.kendalltau(x2, x1)[0]
-    theta_gum = 1./(1.-tau)
-   
+    theta_gum = 1./(1.-tau)   
     
     # Component 1 (Hs)
     z1 = x_quantile       
-    comp_1=__nonparametric_component(z1, nonpara_dist_1, nb_steps)
+    component_1_np=__nonparametric_component(z1, nonpara_dist_1, nb_steps)
 
     pts_x2 = nonpara_pdf_2[:,0]
     f_x2 = nonpara_pdf_2[:,1]
     F_x2 = nonpara_dist_2[:,1]
     
-    comp_2_Gumb = np.zeros(nb_steps)
+    component_2_np_gumbel = np.zeros(nb_steps)
     for k in range(nb_steps):
         z1 = np.array([x_quantile[k]]*Ndata)
         Z = np.array((z1.T, F_x2))
@@ -1962,66 +2019,68 @@ def _nonparametric_gumbel_copula(x1, x2, results, nb_steps, **kwargs):
         table = table.T
         for j in range(Ndata):
             if y_quantile[k] <= table[0,1]:
-                comp_2_Gumb[k] = min(table[:,0])
+                component_2_np_gumbel[k] = min(table[:,0])
                 break
             elif y_quantile[k] <= table[j,1]:
-                comp_2_Gumb[k] = (table[j,0]+table[j-1,0])/2
+                component_2_np_gumbel[k] = (table[j,0]+table[j-1,0])/2
                 break
             else: 
-                comp_2_Gumb[k] = max(table[:,0])
-
+                component_2_np_gumbel[k] = max(table[:,0])
     
-    return comp_1, comp_2_Gumb  
+    return component_1_np, component_2_np_gumbel
     
     
 def _bivariate_KDE(x1, x2, bw, results, nb_steps, Ndata_bivariate_KDE,
                    log_transform=False,**kwargs):
     '''
     Contours generated under this class will use a non-parametric KDE to
-    fit the joint distribution.
+    fit the joint distribution. This function calculates environmental
+    contours of extreme sea states using a bivariate KDE to estimate 
+    the joint distribution. The contour is then calculcated directly 
+    from the joint distribution.
     
+    Parameters
+    ----------
+    x1: array 
+        Component 1 data
+    x2: array 
+        Component 2 data 
     bw: np.array
-        Array containing KDE bandwidth for Hs and T
+        Array containing KDE bandwidth for x1 and x2        
+    results: Dictionay
+        Dictionary of the iso-probability results   
+    nb_steps: int
+        number of points used to discritize KDE space          
+    max_x1: float
+        Defines the max value of x1 to discretize the KDE space
+    max_x2: float
+        Defines the max value of x2 to discretize the KDE space
+
+    Returns
+    -------
+    x1_bivariate_KDE: array
+        Calculated x1 values along the contour boundary following
+        return to original input orientation.
+    x2_bivariate_KDE: array
+        Calculated x2 values along the contour boundary following
+        return to original input orientation.
     '''
-    max_x1 = kwargs.get("max_x1", None)
-    max_x2 = kwargs.get("max_x2", None)
-    
-    
-    x_component_iso_prob = results['x_component_iso_prob'] 
-    y_component_iso_prob = results['y_component_iso_prob'] 
-    
-    x_quantile = results['x_quantile']
-    y_quantile = results['y_quantile']
-    
-    # Copula parameters
-    nonpara_dist_1, nonpara_dist_2, nonpara_pdf_2 =_nonparametric_copula_parameters(x1, x2, nb_steps=nb_steps)
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    if not max_x1:
+        max_x1 = x1.max()*2
+    if not max_x2:
+        max_x2 = x2.max()*2
+    assert isinstance(max_x1, float), 'max_x1 must be of type float'
+    assert isinstance(max_x2, float), 'max_x2 must be of type float'
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int'    
      
-        
-    # Calculate Kendall's tau    
-    tau = stats.kendalltau(x2, x1)[0]
-    theta_gum = 1./(1.-tau)
-   
-    
-    # Component 1 (Hs)
-    z1 = x_quantile       
-    comp_1=__nonparametric_component(z1, nonpara_dist_1, nb_steps)
-
-
-#===========================================================
-
-    # Create grid of points
-    if max_x2 == None:
-        max_x2 = max(x2)*2.
-    if max_x1 == None:
-        max_x1 = max(x1)*2.
-
+    p_f = results['exceedance_probability']    
 
     min_limit_1 = 0.01
-    max_limit_1 = max_x2
     min_limit_2 = 0.01
-    max_limit_2 = max_x1
-    pts_x2 = np.linspace(min_limit_1, max_limit_1, Ndata_bivariate_KDE) 
-    pts_x1 = np.linspace(min_limit_2, max_limit_2, Ndata_bivariate_KDE)
+    pts_x2 = np.linspace(min_limit_1, max_x1, Ndata_bivariate_KDE) 
+    pts_x1 = np.linspace(min_limit_2, max_x2, Ndata_bivariate_KDE)
     pt1,pt2 = np.meshgrid(pts_x2, pts_x1)
     pts_tp = pt1.flatten()
     pts_hs = pt2.flatten()
@@ -2058,31 +2117,17 @@ def _bivariate_KDE(x1, x2, bw, results, nb_steps, Ndata_bivariate_KDE,
             ftemp = np.multiply(ftemp,fnew)
         f[:,i] = np.dot(weight,ftemp)
 
-    
-    p_f = results['exceedance_probability']
-
     fhat = f.reshape(100,100)
     vals = plt.contour(pt1,pt2,fhat, levels = [p_f])
     plt.clf()
-    x1_ReturnContours = []
-    x2_ReturnContours = []
+    x1_bivariate_KDE = []
+    x2_bivariate_KDE = []
     for i,seg in enumerate(vals.allsegs[0]):
-        x1_ReturnContours.append(seg[:,1])
-        x2_ReturnContours.append(seg[:,0])
+        x1_bivariate_KDE.append(seg[:,1])
+        x2_bivariate_KDE.append(seg[:,0])
        
-    x1_ReturnContours = np.transpose(np.asarray(x1_ReturnContours)[0])
-    x2_ReturnContours = np.transpose(np.asarray(x2_ReturnContours)[0])
+    x1_bivariate_KDE = np.transpose(np.asarray(x1_bivariate_KDE)[0])
+    x2_bivariate_KDE = np.transpose(np.asarray(x2_bivariate_KDE)[0])
 
-    
-    return x1_ReturnContours, x2_ReturnContours    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    return x1_bivariate_KDE, x2_bivariate_KDE
     
