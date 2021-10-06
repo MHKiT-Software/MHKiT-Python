@@ -324,6 +324,8 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
         ax : matplotlib axes object (optional)
             Axes for plotting.  If None, then a new figure is created.
             Default None.
+        markers: string
+            string or list of strings to use as marker types
     Returns
     -------
     ax : matplotlib pyplot axes
@@ -339,11 +341,23 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     data_label=kwargs.get("data_label", None)
     contour_label=kwargs.get("contour_label", None)
     ax=kwargs.get("ax", None)
+    markers=kwargs.get("markers", '-')
     assert isinstance(data_label, (str,type(None))), 'data_label must be of type str'
     assert isinstance(contour_label, (str,list, type(None))), ('contour_label be of '
-                                                  'type str')
+                                                  'type str')    
+    
+    if isinstance(markers, list):
+        assert all( [isinstance(marker, (str)) for marker in markers] )
+    elif isinstance(markers, str):
+        markers=[markers]
+        assert all( [isinstance(marker, (str)) for marker in markers] )
+    else:
+        assert isinstance(markers, (str,list)), ('markers must be of type str or list of strings')
+        
     assert len(x2_contour) == len(x1_contour),  ('contour must be of' 
-            f'equal dimesion got {len(x2_contour)} and {len(x1_contour)}')                                                      
+            f'equal dimesion got {len(x2_contour)} and {len(x1_contour)}')
+    
+    
     if isinstance(x1_contour, np.ndarray):   
         N_contours=1
         x2_contour  = [x2_contour]
@@ -360,11 +374,16 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
             f'number of contour years. Got {N_c_labels} and {N_contours}')   
     else:
         contour_label = [None] * N_contours
+        
+    if len(markers)==1:
+        markers=markers*N_contours   
+    assert len(markers) == N_contours,  ('Markers must be same length'               
+            f'as N contours specified. Got: {len(markers)} and {len(x1_contour)}')        
     
     for i in range(N_contours):
         contour1 = np.array(x1_contour[i]).T
         contour2 = np.array(x2_contour[i]).T
-        ax = _xy_plot(contour1, contour2,'-', 
+        ax = _xy_plot(contour1, contour2, markers[i], 
                       label=contour_label[i], ax=ax)
                       
     plt.plot(x1, x2, 'bo', alpha=0.1, label=data_label) 
