@@ -904,7 +904,7 @@ def environmental_contour(x1, x2, dt, period, **kwargs):
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
     assert isinstance(dt, (int,float)), 'dt must be of type int or float'
     assert isinstance(period, (int,float,np.ndarray)), ('period must be'
-                                          'of type int, float, or array')    
+                                          ' of type int, float, or array')    
     PCA = kwargs.get("PCA", None)
     bin_size = kwargs.get("bin_size", 250)
     nb_steps = kwargs.get("nb_steps", 1000)
@@ -1195,10 +1195,8 @@ def copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size):
     '''  
     assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(min_bin_count, int), 
-    'min_bin_count must be of type int'
-    assert isinstance(bin_val_size, (int, float)), 
-    'bin_val_size must be of type int or float'
+    assert isinstance(min_bin_count, int),'min_bin_count must be of type int'
+    assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
     assert isinstance(initial_bin_max_val, (int, float)), 'initial_bin_max_val must be of type int or float'    
     
     # Binning
@@ -1333,6 +1331,10 @@ def copula(x1, x2, dt, period, method, **kwargs):
         Ndata_bivariate_KDE: int
             Must specify bivariate KDE method. Defines the contour space
             from which samples are taken. Default = 100.
+        max_x1: float
+            Defines the max value of x1 to discretize the KDE space
+        max_x2: float
+            Defines the max value of x2 to discretize the KDE space
     
     Returns
     -------
@@ -1355,6 +1357,8 @@ def copula(x1, x2, dt, period, method, **kwargs):
     min_bin_count=kwargs.get("min_bin_count",40)
     bandwidth=kwargs.get("bandwidth", None)
     Ndata_bivariate_KDE = kwargs.get("Ndata_bivariate_KDE", 100) 
+    max_x1 = kwargs.get("max_x1", None)
+    max_x2 = kwargs.get("max_x2", None)
     
     assert isinstance(bin_val_size, (int, float)), 'bin_val_size must be of type int or float'
     assert isinstance(nb_steps, int), 'nb_steps must be of type int'
@@ -1406,12 +1410,13 @@ def copula(x1, x2, dt, period, method, **kwargs):
                       'bivariate_KDE': 
                           {'func' :_bivariate_KDE,
                            'vals' : (x1, x2, bandwidth, results, nb_steps,
-                                     Ndata_bivariate_KDE)},
+                                     Ndata_bivariate_KDE, max_x1, 
+                                     max_x2 )},
                       'bivariate_KDE_log': 
                           {'func' :_bivariate_KDE,
                            'vals' : (x1, x2, bandwidth, results, nb_steps,
-                                     Ndata_bivariate_KDE, 
-                                     log_transform=True)},                                     
+                                     Ndata_bivariate_KDE,max_x1, max_x2,
+                                     {'log_transform':True})},                                     
                       
                       }
     copulas={}
@@ -1683,7 +1688,7 @@ def _rosenblatt_copula(x1, x2, results, component_1):
         Calculated x1 values along the contour boundary following
         return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
         create a consistient output from all copula methods.
-    comp_2_Rosenblatt: array   
+    component_2_Rosenblatt: array   
         Calculated x2 values along the contour boundary following
         return to original input orientation.  
     '''
@@ -1706,9 +1711,9 @@ def _rosenblatt_copula(x1, x2, results, component_1):
     # Standard deviation of Ln(x2) as a function of x1
     sigma_cond=std_cond[0]+std_cond[1]*component_1+std_cond[2]*component_1**2                                
     # lognormal inverse
-    comp_2_Rosenblatt = stats.lognorm.ppf(y_quantile,s=sigma_cond,loc=0,scale=np.exp(lamda_cond))
+    component_2_Rosenblatt = stats.lognorm.ppf(y_quantile,s=sigma_cond,loc=0,scale=np.exp(lamda_cond))
  
-    return component_1, comp_2_Rosenblatt  
+    return component_1, component_2_Rosenblatt  
   
 
 def _nonparametric_copula_parameters(x1, x2, max_x1=None, max_x2=None,
@@ -2031,7 +2036,7 @@ def _nonparametric_gumbel_copula(x1, x2, results, nb_steps):
     
     
 def _bivariate_KDE(x1, x2, bw, results, nb_steps, Ndata_bivariate_KDE,
-                   log_transform=False,**kwargs):
+                   max_x1=None, max_x2=None, log_transform=False):
     '''
     Contours generated under this class will use a non-parametric KDE to
     fit the joint distribution. This function calculates environmental
@@ -2067,40 +2072,38 @@ def _bivariate_KDE(x1, x2, bw, results, nb_steps, Ndata_bivariate_KDE,
     '''
     assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'    
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    if not max_x1:
+    if isinstance(max_x1, type(None)):
         max_x1 = x1.max()*2
-    if not max_x2:
+    if isinstance(max_x2, type(None)):
         max_x2 = x2.max()*2
+
+    assert isinstance(nb_steps, int), 'nb_steps must be of type int' 
     assert isinstance(max_x1, float), 'max_x1 must be of type float'
     assert isinstance(max_x2, float), 'max_x2 must be of type float'
-    assert isinstance(nb_steps, int), 'nb_steps must be of type int'    
+       
      
     p_f = results['exceedance_probability']    
 
     min_limit_1 = 0.01
     min_limit_2 = 0.01
-    pts_x2 = np.linspace(min_limit_1, max_x1, Ndata_bivariate_KDE) 
-    pts_x1 = np.linspace(min_limit_2, max_x2, Ndata_bivariate_KDE)
+    pts_x2 = np.linspace(min_limit_2, max_x2, Ndata_bivariate_KDE) 
+    pts_x1 = np.linspace(min_limit_1, max_x1, Ndata_bivariate_KDE)
     pt1,pt2 = np.meshgrid(pts_x2, pts_x1)
-    pts_tp = pt1.flatten()
-    pts_hs = pt2.flatten()
+    mesh_pts_x2 = pt1.flatten()
+    mesh_pts_x1 = pt2.flatten()
 
     # Transform gridded points using log
     ty = [x2, x1]
-    xi = [pts_tp, pts_hs]    
+    xi = [mesh_pts_x2, mesh_pts_x1]    
     txi=xi
     if log_transform:            
-        # Take log of both variables
-        log_x2 = np.log(x2)
-        log_x1 = np.log(x1)
-        ty = [log_x2, log_x1]          
-        
-        txi = [np.log(pts_tp), np.log(pts_hs)]
+        ty = [np.log(x2), np.log(x1)]                  
+        txi = [np.log(mesh_pts_x2), np.log(mesh_pts_x1)]
 
     m = len(txi[0])
     n = len(ty[0])
     d = 2
-
+    
     # Create contour
     f = np.zeros((1,m))
     weight = np.ones((1,n))
@@ -2122,6 +2125,7 @@ def _bivariate_KDE(x1, x2, bw, results, nb_steps, Ndata_bivariate_KDE,
     plt.clf()
     x1_bivariate_KDE = []
     x2_bivariate_KDE = []
+    
     for i,seg in enumerate(vals.allsegs[0]):
         x1_bivariate_KDE.append(seg[:,1])
         x2_bivariate_KDE.append(seg[:,0])
