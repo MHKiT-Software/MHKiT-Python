@@ -6,21 +6,20 @@ import pandas as pd
 import netCDF4
 
 
-def get_layer_data(data, variable, layer= -1 , time_step=-1):
+def get_layer_data(data, variable, layer_index= -1 , time_step=-1):
     '''
     Get variable data from netcdf4 object at specified layer and timestep. 
 
     Parameters
     ----------
     data : netcdf4 object 
-        d3d netcdf file 
+       After running a Delft3D model the output netcdf file can be read into this code.  
     variable : string
-        variable to call.
-    Layer: float
-        Delft3D layer. layer must be a positve interger 
-    TS: float 
-        time step. Defalt is late tiem step -1  
-
+        Delft3d outputs many vairables that can be called. The full list can be found using "data.variables.keys()" in the consol. 
+    layer_index: float
+         A positve interger to pull out a layer from the dataset. 0 being closest to the surface. Defalt is the bottom layer "-1."
+    time_step: float 
+        A positive interger to pull the time step from the dataset. 0 being closest to time 0. Defalt is last time step -1.  
 
     Returns
     -------
@@ -28,28 +27,26 @@ def get_layer_data(data, variable, layer= -1 , time_step=-1):
         "x" and "y" location on specified layer with the variables values "v"
 
     '''
-    assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
-    assert variable in data.variables.keys(), 'varaiable not reconized'
+    assert type(data)== netCDF4._netCDF4.Dataset, 'data must be netCDF4 object'
+    assert variable in data.variables.keys(), 'variable not recognized'
     coords = str(data.variables[variable].coordinates).split()
     var=data.variables[variable][:]
     max_time_step= len(var)
-    assert time_step <= max_time_step, 'time_step must be less than or equal to max layer'
+    assert time_step <= max_time_step, f'time_step must be less than the max time step {max_time_step}'
     assert time_step >= -1, 'time_step must be greater than or equal to -1'
-    itime= time_step
     
     max_layer= len(var[0][0])
-    assert layer <= max_layer, 'layer must be less than or equal to max layer'
-    assert layer >= -1, 'layer must be greater than or equal to -1'
+    assert layer_index <= max_layer, f'layer must be less than the max layer {max_layer}'
+    assert layer_index >= -1, 'layer must be greater than or equal to -1'
     
     x=np.ma.getdata(data.variables[coords[0]][:], False) 
     y=np.ma.getdata(data.variables[coords[1]][:], False)
 
-    v= np.ma.getdata(var[itime,:,layer], False)
+    v= np.ma.getdata(var[time_step,:,layer_index], False)
     return x,y,v
 
 
 def create_points(x, y, z):
-
     '''
     Turns x, y, and z into a DataFrame of points to interpolate over,
     Must be provided at least two points and at most one array 
@@ -58,11 +55,11 @@ def create_points(x, y, z):
     ----------
    
     x: float, array or int 
-        x values to create points
+        x values to create points.
     y: float, array or int
-        y values to create points
+        y values to create points.
     z: float, array or int
-        z values to create points
+        z values to create points.
 
     Returns
     -------
@@ -139,28 +136,27 @@ def create_points(x, y, z):
 
     return points 
 
-def grid_data(data,variables, points='cells'):
 
+def grid_data(data,variables, points='cells'):
     '''
-    convert multiple variables to the same gid  
+    Convert multiple variables from the Delft3d onto the same points. 
 
     Parameters
     ----------
     data : netcdf4 object 
-        d3d netcdf4 object, assumes variable names: turkin1, ucx, ucy and ucz
+        After running a Delft3D model the output netcdf file can be read into this code.
     variables: string array 
-        name of variables to interpolate 
+        Name of variables to interpolate, e.g. turkin1, ucx, ucy and ucz. The full list can be found using "data.variables.keys()" in the console.
     points : string, DataFrame  
         Point to interpoate data onto. 
           'cells' : interpolates all data into velocity coordinat system (Defalt)
           'faces': interpolates all dada into TKE coordinate system 
-          DataFrame of x, y, and z corrdinates: Interpolates data onto user povided points 
+          DataFrame of x, y, and z coordinates: Interpolates data onto user povided points 
   
-
     Returns
     -------
     transformed_data : array   
-        variables on specified grid 
+        Variables on specified grid points.
 
     '''
     assert points == 'cells' or points=='faces' or type(points) == pd.core.frame.DataFrame, 'points must be cells or faces or DataFrame'
@@ -186,19 +182,19 @@ def grid_data(data,variables, points='cells'):
     return transformed_data
 
 
-def get_all_data_points(data, variable, time_step):  
+def get_all_data_points(data, variable, time_step= -1):  
     '''
-    Get data points from all layers in netcdf file generated from Delft3D  
+    Get data points from all layers in netcdf file generated from Delft3D using get_layer_data function. 
 
     Parameters
     ----------
     data : netcdf object 
-        d3d netcdf object 
+        After running a Delft3D model the output netcdf file can be read into this code.   
     variable : string
-        string to call variable 
+        Delft3d outputs many vairables that can be called. The full list can be found using "data.variables.keys()" in the consol. 
     time_step : float 
-        time step
-
+        A positive interger to pull the time step from the dataset. Defalt is late time step -1.  
+        
     Returns
     -------
     all_data: DataFrame 
@@ -274,16 +270,16 @@ def get_all_data_points(data, variable, time_step):
 
 def unorm(x, y ,z):
     '''
-    Calculates the root mean squared value given three arrays 
+    Calculates the root mean squared value given three arrays. 
 
     Parameters
     ----------
     x: array 
-        one input for the root mean squared calculation.(eq. x velocity) 
+        One input for the root mean squared calculation.(eq. x velocity) 
     y: array
-        one input for the root mean squared calculation.(eq. y velocity) 
+        One input for the root mean squared calculation.(eq. y velocity) 
     z: array
-        one input for the root mean squared calculation.(eq. z velocity) 
+        One input for the root mean squared calculation.(eq. z velocity) 
 
     Returns
     -------
@@ -308,20 +304,21 @@ def unorm(x, y ,z):
 def turbulent_intensity(data, points='cells', time_step= -1):
 
     '''
-    Calculated the turbulent intesity for a given data set for the specified points 
+    Calculated the turbulent intesity for a given data set for the specified points.  
+    Assumes variable names: turkin1, ucx, ucy and ucz.
 
     Parameters
     ----------
     data : netcdf4 object 
-        d3d netcdf4 object, assumes variable names: turkin1, ucx, ucy and ucz
+        After running a Delft3D model the output netcdf file can be read into this code. 
     points : string, DataFrame  
         Point to interpoate data onto. 
           'cells' : interpolates all data into velocity coordinat system (Defalt)
           'faces': interpolates all dada into TKE coordinate system 
           DataFrame of x, y, and z corrdinates: Interpolates data onto user povided points 
     time_step : float 
-        time step, last time step is defalt 
-
+        A positive interger to pull the time step from the dataset. Defalt is late time step -1.  
+        
     Returns
     -------
     turbulent_intensity : array   
