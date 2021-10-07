@@ -41,15 +41,18 @@ class TestResourceSpectrum(unittest.TestCase):
         pass
     
     def test_pierson_moskowitz_spectrum(self):
-        S = wave.resource.pierson_moskowitz_spectrum(self.f,self.Tp)
+        S = wave.resource.pierson_moskowitz_spectrum(self.f,self.Tp,self.Hs)
+        Hm0 = wave.resource.significant_wave_height(S).iloc[0,0]
         Tp0 = wave.resource.peak_period(S).iloc[0,0]
         
-        error = np.abs(self.Tp - Tp0)/self.Tp
+        errorHm0 = np.abs(self.Tp - Tp0)/self.Tp
+        errorTp0 = np.abs(self.Hs - Hm0)/self.Hs
         
-        self.assertLess(error, 0.01)
-        
-    def test_bretschneider_spectrum(self):
-        S = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
+        self.assertLess(errorHm0, 0.01)
+        self.assertLess(errorTp0, 0.01)
+
+    def test_jonswap_spectrum(self):
+        S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
         Hm0 = wave.resource.significant_wave_height(S).iloc[0,0]
         Tp0 = wave.resource.peak_period(S).iloc[0,0]
         
@@ -60,7 +63,7 @@ class TestResourceSpectrum(unittest.TestCase):
         self.assertLess(errorTp0, 0.01)
 
     def test_surface_elevation_seed(self):
-        S = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
+        S = wave.resource.jonswap_spectrum(self.f,self.Tp,self.Hs)
 
         sig = inspect.signature(wave.resource.surface_elevation)
         seednum = sig.parameters['seed'].default
@@ -71,7 +74,7 @@ class TestResourceSpectrum(unittest.TestCase):
         assert_frame_equal(eta0, eta1)        
 
     def test_surface_elevation_phasing(self):
-        S = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
+        S = wave.resource.jonswap_spectrum(self.f,self.Tp,self.Hs)
         eta0 = wave.resource.surface_elevation(S, self.t)        
         sig = inspect.signature(wave.resource.surface_elevation)
         seednum = sig.parameters['seed'].default
@@ -83,8 +86,8 @@ class TestResourceSpectrum(unittest.TestCase):
 
 
     def test_surface_elevation_phases_np_and_pd(self):
-        S0 = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
-        S1 = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs*1.1)
+        S0 = wave.resource.jonswap_spectrum(self.f,self.Tp,self.Hs)
+        S1 = wave.resource.jonswap_spectrum(self.f,self.Tp,self.Hs*1.1)
         S = pd.concat([S0, S1], axis=1)
 
         phases_np = np.random.rand(S.shape[0], S.shape[1]) * 2 * np.pi
@@ -96,8 +99,8 @@ class TestResourceSpectrum(unittest.TestCase):
         assert_frame_equal(eta_np, eta_pd)
 
     def test_surface_elevation_frequency_bins_np_and_pd(self):
-        S0 = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
-        S1 = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs*1.1)
+        S0 = wave.resource.jonswap_spectrum(self.f,self.Tp,self.Hs)
+        S1 = wave.resource.jonswap_spectrum(self.f,self.Tp,self.Hs*1.1)
         S = pd.concat([S0, S1], axis=1)
 
         eta0 = wave.resource.surface_elevation(S, self.t)
@@ -145,23 +148,12 @@ class TestResourceSpectrum(unittest.TestCase):
 
         self.assertLess(rmse_sum, 0.02)
     
-    def test_jonswap_spectrum(self):
-        S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
-        Hm0 = wave.resource.significant_wave_height(S).iloc[0,0]
-        Tp0 = wave.resource.peak_period(S).iloc[0,0]
-        
-        errorHm0 = np.abs(self.Tp - Tp0)/self.Tp
-        errorTp0 = np.abs(self.Hs - Hm0)/self.Hs
-        
-        self.assertLess(errorHm0, 0.01)
-        self.assertLess(errorTp0, 0.01)
-    
     def test_plot_spectrum(self):            
         filename = abspath(join(testdir, 'wave_plot_spectrum.png'))
         if isfile(filename):
             os.remove(filename)
         
-        S = wave.resource.pierson_moskowitz_spectrum(self.f,self.Tp)
+        S = wave.resource.pierson_moskowitz_spectrum(self.f,self.Tp,self.Hs)
         
         plt.figure()
         wave.graphics.plot_spectrum(S)
@@ -351,7 +343,7 @@ class TestResourceMetrics(unittest.TestCase):
         
     def test_energy_flux_deep(self):
         # Dependent on mhkit.resource.BS spectrum
-        S = wave.resource.bretschneider_spectrum(self.f,self.Tp,self.Hs)
+        S = wave.resource.jonswap_spectrum(self.f,self.Tp,self.Hs)
         Te = wave.resource.energy_period(S)
         Hm0 = wave.resource.significant_wave_height(S)
         rho=1025

@@ -142,4 +142,38 @@ def principal_flow_directions(directions, width_dir):
     return PrincipalDirection1, PrincipalDirection2 
     
 
+def _flood_or_ebb(d, flood, ebb):
+    '''
+    Returns a mask which is True for directions on the ebb side of the 
+    midpoints between the flood and ebb directions on the unit circle 
+    and False for directions on the Flood side.
+    
+    Parameters
+    ----------
+    d: array-like
+        Directions to considered of length N
+    flood: float or int
+        Principal component of flow in the flood direction in degrees
+    ebb: float or int
+        Principal component of flow in the ebb direction in degrees
+        
+    Returns
+    -------
+    is_ebb: boolean array
+        array of length N which is True for directions on the ebb side 
+        of the midpoints between flood and ebb on the unit circle and
+        false otherwise.
+    '''
+    max_angle = max(ebb, flood)
+    min_angle = min(ebb, flood)
+    
+    lower_split = (min_angle + (360 - max_angle + min_angle)/2 ) % 360
+    upper_split = lower_split + 180
+    
+    if lower_split <= ebb < upper_split:
+        is_ebb = ((d < upper_split) & (d >= lower_split)).values
+    else:
+        is_ebb = ~((d < upper_split) & (d >= lower_split)).values
+        
+    return is_ebb
 

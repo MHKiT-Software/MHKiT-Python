@@ -65,9 +65,9 @@ def elevation_spectrum(eta, sample_rate, nnft, window='hann', detrend=True, nove
     return S
 
 
-def pierson_moskowitz_spectrum(f, Tp):
+def pierson_moskowitz_spectrum(f, Tp, Hs):
     """
-    Calculates Pierson-Moskowitz Spectrum from Tucker and Pitt (2001) 
+    Calculates Pierson-Moskowitz Spectrum from IEC TS 62600-2 ED2 Annex C.2 (2019)
     
     Parameters
     ------------
@@ -75,6 +75,8 @@ def pierson_moskowitz_spectrum(f, Tp):
         Frequency [Hz]
     Tp: float/int
         Peak period [s]  
+    Hs: float/int
+        Significant wave height [m]         
     
     Returns
     ---------
@@ -88,11 +90,11 @@ def pierson_moskowitz_spectrum(f, Tp):
         pass
     assert isinstance(f, np.ndarray), 'f must be of type np.ndarray'
     assert isinstance(Tp, (int,float)), 'Tp must be of type int or float'
+    assert isinstance(Hs, (int,float)), 'Hs must be of type int or float'
     
     f.sort()
-    g = 9.81   
-    B_PM = (5/4)*(1/Tp)**(4)
-    A_PM = 0.0081*g**2*(2*np.pi)**(-4)
+    B_PM = (5/4)*(1/Tp)**4
+    A_PM = B_PM*(Hs/2)**2
     Sf  = A_PM*f**(-5)*np.exp(-B_PM*f**(-4)) 
      
     col_name = 'Pierson-Moskowitz ('+str(Tp)+'s)'
@@ -101,47 +103,9 @@ def pierson_moskowitz_spectrum(f, Tp):
     return S
 
 
-def bretschneider_spectrum(f, Tp, Hs):
+def jonswap_spectrum(f, Tp, Hs, gamma=None):
     """
-    Calculates Bretschneider Sprectrum from Tucker and Pitt (2001)
-    
-    Parameters
-    ------------
-    f: numpy array
-        Frequency [Hz]
-    Tp: float/int
-        Peak period [s]
-    Hs: float/int
-        Significant wave height [m]        
-    
-    Returns
-    ---------    
-    S: pandas DataFrame
-        Spectral density [m^2/Hz] indexed by frequency [Hz]
-
-    """
-    try:
-        f = np.array(f)
-    except:
-        pass
-    assert isinstance(f, np.ndarray), 'f must be of type np.ndarray'
-    assert isinstance(Tp, (int,float)), 'Tp must be of type int or float'
-    assert isinstance(Hs, (int,float)), 'Hs must be of type int or float'
-
-    f.sort()
-    B_BS = (1.057/Tp)**4
-    A_BS = B_BS*(Hs/2)**2
-    Sf = A_BS*f**(-5)*np.exp(-B_BS*f**(-4))        
-
-    col_name = 'Bretschneider ('+str(Hs)+'m,'+str(Tp)+'s)'
-    S = pd.DataFrame(Sf, index=f, columns=[col_name])    
-    
-    return S
-
-
-def jonswap_spectrum(f, Tp, Hs, gamma=3.3):
-    """
-    Calculates JONSWAP spectrum from Hasselmann et al (1973)
+    Calculates JONSWAP Spectrum from IEC TS 62600-2 ED2 Annex C.2 (2019)
     
     Parameters
     ------------
@@ -167,11 +131,23 @@ def jonswap_spectrum(f, Tp, Hs, gamma=3.3):
     assert isinstance(f, np.ndarray), 'f must be of type np.ndarray'
     assert isinstance(Tp, (int,float)), 'Tp must be of type int or float'
     assert isinstance(Hs, (int,float)), 'Hs must be of type int or float'
-    assert isinstance(gamma, (int,float)), 'gamma must be of type int or float'
+    assert isinstance(gamma, (int,float, type(None))), \
+        'gamma must be of type int or float'
 
     f.sort()    
-    g = 9.81 
+    B_PM = (5/4)*(1/Tp)**4
+    A_PM = B_PM*(Hs/2)**2
+    S_f  = A_PM*f**(-5)*np.exp(-B_PM*f**(-4)) 
     
+    if not gamma:
+        TpsqrtHs = Tp/np.sqrt(Hs);
+        if TpsqrtHs <= 3.6:
+            gamma = 5;
+        elif TpsqrtHs > 5:
+            gamma = 1;
+        else:
+            gamma = np.exp(5.75 - 1.15*TpsqrtHs);
+        
     # Cutoff frequencies for gamma function
     siga = 0.07 
     sigb = 0.09 
@@ -182,9 +158,8 @@ def jonswap_spectrum(f, Tp, Hs, gamma=3.3):
     Gf = np.zeros(f.shape)
     Gf[lind] = gamma**np.exp(-(f[lind]-fp)**2/(2*siga**2*fp**2))
     Gf[hind] = gamma**np.exp(-(f[hind]-fp)**2/(2*sigb**2*fp**2))
-    S_temp = g**2*(2*np.pi)**(-4)*f**(-5)*np.exp(-(5/4)*(f/fp)**(-4))
-    alpha_JS = Hs**(2)/16/np.trapz(S_temp*Gf,f)
-    Sf = alpha_JS*S_temp*Gf # Wave Spectrum [m^2-s] 
+    C = 1- 0.287*np.log(gamma)
+    Sf = C*S_f*Gf
     
     col_name = 'JONSWAP ('+str(Hs)+'m,'+str(Tp)+'s)'
     S = pd.DataFrame(Sf, index=f, columns=[col_name])  
