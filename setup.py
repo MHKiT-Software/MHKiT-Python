@@ -29,7 +29,8 @@ DEPENDENCIES = ['pandas>=1.0.0',
 		        'NREL-rex>=0.2.63',
                 'six>=1.13.0',
                 'netCDF4', 
-                'xarray']
+                'xarray',
+	       'statsmodels']
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))
