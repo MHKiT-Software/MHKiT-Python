@@ -41,6 +41,8 @@ class TestResource(unittest.TestCase):
         file_name = join(datadir, 's08010.json')
         self.data, self.metadata = tidal.io.noaa.read_noaa_json(file_name)
         self.data.s = self.data.s / 100. # convert to m/s
+        self.flood = 171.5
+        self.ebb = 354.5
 
 
     @classmethod
@@ -95,6 +97,32 @@ class TestResource(unittest.TestCase):
         plt.close()
         
         self.assertTrue(isfile(filename))
+
+    def test_tidal_phase_probability(self):
+        filename = abspath(join(testdir, 'tidal_plot_tidal_phase_probability.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        plt.figure()
+        tidal.graphics.tidal_phase_probability(self.data.d, self.data.s, 
+            self.flood, self.ebb)
+        plt.savefig(f'{filename}')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))
+        
+    def test_tidal_phase_exceedance(self):
+        filename = abspath(join(testdir, 'tidal_plot_tidal_phase_exceedance.png'))
+        if isfile(filename):
+            os.remove(filename)
+        
+        plt.figure()
+        tidal.graphics.tidal_phase_exceedance(self.data.d, self.data.s, 
+            self.flood, self.ebb)
+        plt.savefig(f'{filename}')
+        plt.close()
+        
+        self.assertTrue(isfile(filename))        
 
 
 if __name__ == '__main__':
