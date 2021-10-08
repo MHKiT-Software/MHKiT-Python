@@ -11,7 +11,7 @@ from pandas.testing import assert_frame_equal
 import scipy.interpolate as interp
 
 
-testdir = dirname(abspath(__file__))
+testdir = dirname(abspath(''))
 datadir = normpath(join(testdir,'..','..','examples','data','river'))
 
 
