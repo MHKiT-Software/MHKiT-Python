@@ -1095,7 +1095,7 @@ def iso_prob_and_quantile(dt, period, nb_steps):
         `x1` and `x2` sample rate (seconds)
     period: int, float
         Return period of interest in years
-    nb_steps : int
+    nb_steps: int
         Discretization of the circle in the normal space. 
         Default nb_steps=1000.
     
@@ -1140,8 +1140,8 @@ def iso_prob_and_quantile(dt, period, nb_steps):
 def copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size):
     '''
     Returns an estimate of the Weibull and Lognormal distribution for
-    x1 and x2 respectively. Additioanlly returns the estimates of the
-    coeffcients from the mean and standard deviation of the Log of x2 
+    x1 and x2 respectively. Additionally returns the estimates of the
+    coefficients from the mean and standard deviation of the Log of x2 
     given x1.
     
     Parameters
@@ -1166,7 +1166,7 @@ def copula_parameters(x1, x2, min_bin_count, initial_bin_max_val, bin_val_size):
     mean_cond: array
         Estimate coefficients of mean of Ln(x2|x1)
     std_cond: array
-        Estimate coefficients of standard deviation of Ln(x2|x1)
+        Estimate coefficients of the standard deviation of Ln(x2|x1)
     '''  
     assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
@@ -1292,19 +1292,19 @@ def copula(x1, x2, dt, period, method, **kwargs):
 
     **kwargs
         min_bin_count: int
-            Passed to copula_parameters to sets the minimum number of bins allowed. Deault = 40.
+            Passed to copula_parameters to sets the minimum number of bins allowed. Default = 40.
         initial_bin_max_val: int, float
             Passed to copula_parameters to set the max value of the first
             bin. Default = 1.
         bin_val_size: int, float
             Passed to copula_parameters to set the size of each bin after the initial bin.  Default 0.25.            
         nb_steps: int
-            Discretization of the circle in the normal space used for
+            Discretization of the circle in the normal space is used for
             copula component calculation. Default nb_steps=1000.
         bandwidth:
             Must specify bandwidth for bivariate KDE method. Default = None.
         Ndata_bivariate_KDE: int
-            Must specify bivariate KDE method. Defines the contour space
+            Must specify bivariate KDE method. Defines the contoured space
             from which samples are taken. Default = 100.
         max_x1: float
             Defines the max value of x1 to discretize the KDE space
@@ -1419,14 +1419,14 @@ def _gaussian_copula(x1, x2, results, component_1):
     component_1: array
         Calculated x1 values along the contour boundary following
         return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
-        create a consistient output from all copula methods.
+        create a consistent output from all copula methods.
           
     Returns
     -------    
     component_1: array
         Calculated x1 values along the contour boundary following
         return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
-        create a consistient output from all copula methods.
+        create a consistent output from all copula methods.
     component_2_Gaussian      
         Calculated x2 values along the contour boundary following
         return to original input orientation. 
@@ -1519,7 +1519,7 @@ def _gumbel_copula(x1, x2, results, component_1, nb_steps):
     component_1: array
         Calculated x1 values along the contour boundary following
         return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
-        create a consistient output from all copula methods.
+        create a consistent output from all copula methods.
     component_2_Gumbel: array   
         Calculated x2 values along the contour boundary following
         return to original input orientation. 
@@ -1596,7 +1596,7 @@ def _clayton_copula(x1, x2, results, component_1):
     component_1: array
         Calculated x1 values along the contour boundary following
         return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
-        create a consistient output from all copula methods.
+        create a consistent output from all copula methods.
     nb_steps: int
         Discretization of the circle in the normal space used for
         copula component calculation.
@@ -1606,7 +1606,7 @@ def _clayton_copula(x1, x2, results, component_1):
     component_1: array
         Calculated x1 values along the contour boundary following
         return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
-        create a consistient output from all copula methods.
+        create a consistent output from all copula methods.
     component_2_Clayton: array   
         Calculated x2 values along the contour boundary following
         return to original input orientation.     
@@ -1652,7 +1652,7 @@ def _rosenblatt_copula(x1, x2, results, component_1):
     component_1: array
         Calculated x1 values along the contour boundary following
         return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
-        create a consistient output from all copula methods.
+        create a consistent output from all copula methods.
     nb_steps: int
         Discretization of the circle in the normal space used for
         copula component calculation.
@@ -1662,7 +1662,7 @@ def _rosenblatt_copula(x1, x2, results, component_1):
     component_1: array
         Calculated x1 values along the contour boundary following
         return to original input orientation. component_1 is not specifically used in this calculation but is passed through to
-        create a consistient output from all copula methods.
+        create a consistent output from all copula methods.
     component_2_Rosenblatt: array   
         Calculated x2 values along the contour boundary following
         return to original input orientation.  
@@ -1707,7 +1707,7 @@ def _nonparametric_copula_parameters(x1, x2, max_x1=None, max_x2=None,
     max_x2:float
         Defines the max value of x2 to discretize the KDE space
     nb_steps: int
-        number of points used to discritize KDE space
+        number of points used to discretize KDE space
     
     Returns
     -------
@@ -1775,7 +1775,7 @@ def _nonparametric_copula_parameters(x1, x2, max_x1=None, max_x2=None,
 
 def __nonparametric_component(z, nonpara_dist, nb_steps):
     '''
-    Generalized method for calculating copula components
+    A generalized method for calculating copula components
     
     Parameters
     ----------
@@ -2016,7 +2016,7 @@ def _bivariate_KDE(x1, x2, bw, results, nb_steps, Ndata_bivariate_KDE,
     Contours generated under this class will use a non-parametric KDE to
     fit the joint distribution. This function calculates environmental
     contours of extreme sea states using a bivariate KDE to estimate 
-    the joint distribution. The contour is then calculcated directly 
+    the joint distribution. The contour is then calculated directly 
     from the joint distribution.
     
     Parameters
