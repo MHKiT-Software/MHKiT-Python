@@ -6,7 +6,7 @@ import pandas as pd
 import netCDF4
 
 
-def get_layer_data(data, variable, layer_index= -1 , time_step=-1):
+def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
     '''
     Get variable data from netcdf4 object at specified layer and timestep. 
 
@@ -18,7 +18,7 @@ def get_layer_data(data, variable, layer_index= -1 , time_step=-1):
         Delft3d outputs many vairables that can be called. The full list can be found using "data.variables.keys()" in the consol. 
     layer_index: float
          A positve interger to pull out a layer from the dataset. 0 being closest to the surface. Defalt is the bottom layer "-1."
-    time_step: float 
+    time_index: float 
         A positive interger to pull the time step from the dataset. 0 being closest to time 0. Defalt is last time step -1.  
 
     Returns
@@ -31,9 +31,9 @@ def get_layer_data(data, variable, layer_index= -1 , time_step=-1):
     assert variable in data.variables.keys(), 'variable not recognized'
     coords = str(data.variables[variable].coordinates).split()
     var=data.variables[variable][:]
-    max_time_step= len(var)
-    assert time_step <= max_time_step, f'time_step must be less than the max time step {max_time_step}'
-    assert time_step >= -1, 'time_step must be greater than or equal to -1'
+    max_time_index= len(var)
+    assert time_index <= max_time_index, f'time_index must be less than the max time index {max_time_index}'
+    assert time_index >= -1, 'time_index must be greater than or equal to -1'
     
     max_layer= len(var[0][0])
     assert layer_index <= max_layer, f'layer must be less than the max layer {max_layer}'
@@ -42,7 +42,7 @@ def get_layer_data(data, variable, layer_index= -1 , time_step=-1):
     x=np.ma.getdata(data.variables[coords[0]][:], False) 
     y=np.ma.getdata(data.variables[coords[1]][:], False)
 
-    v= np.ma.getdata(var[time_step,:,layer_index], False)
+    v= np.ma.getdata(var[time_index,:,layer_index], False)
     return x,y,v
 
 
@@ -182,7 +182,7 @@ def grid_data(data,variables, points='cells'):
     return transformed_data
 
 
-def get_all_data_points(data, variable, time_step= -1):  
+def get_all_data_points(data, variable, time_index= -1):  
     '''
     Get data points from all layers in netcdf file generated from Delft3D using get_layer_data function. 
 
@@ -192,21 +192,21 @@ def get_all_data_points(data, variable, time_step= -1):
         After running a Delft3D model the output netcdf file can be read into this code.   
     variable : string
         Delft3d outputs many vairables that can be called. The full list can be found using "data.variables.keys()" in the consol. 
-    time_step : float 
+    time_index : float 
         A positive interger to pull the time step from the dataset. Defalt is late time step -1.  
         
     Returns
     -------
     all_data: DataFrame 
-        Data frame of x, y, z, and variable 
+        Data frame of x, y, z, and variable. 
 
     '''  
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
     assert variable in data.variables.keys(), 'varaiable not reconized'
 
-    max_time_step= len(data.variables[variable][:])
-    assert time_step <= max_time_step, 'time_step must be less than or equal to max layer'
-    assert time_step >= -1, 'time_step must be greater than or equal to -1'
+    max_time_index = len(data.variables[variable][:])
+    assert time_index <= max_time_index, f'time_index must be less than the max time index {max_time_index}'
+    assert time_index >= -1, 'time_index must be greater than or equal to -1'
 
     cords_to_layers= {'laydim': data.variables['LayCoord_cc'][:],
                        'wdim': data.variables['LayCoord_w'][:]}
@@ -221,7 +221,7 @@ def get_all_data_points(data, variable, time_step= -1):
         Layer_percentages= np.ma.getdata(cord_sys, False) 
         
         
-    bottom_depth=np.ma.getdata(data.variables['waterdepth'][time_step, :], False)
+    bottom_depth=np.ma.getdata(data.variables['waterdepth'][time_index, :], False)
     if layer_dim == 'wdim': 
         #interpolate 
         coords = str(data.variables['waterdepth'].coordinates).split()
@@ -251,7 +251,7 @@ def get_all_data_points(data, variable, time_step= -1):
     
     N_layers = range(len(Layer_percentages))
     for layer in N_layers:
-        x,y,v= get_layer_data(data, variable, layer, time_step)
+        x,y,v= get_layer_data(data, variable, layer, time_index)
         if layer_dim == 'wdim': 
             z = [bottom_depth_wdim*Layer_percentages[layer]]
         else: 
@@ -301,7 +301,7 @@ def unorm(x, y ,z):
 
 
 
-def turbulent_intensity(data, points='cells', time_step= -1):
+def turbulent_intensity(data, points='cells', time_index= -1):
 
     '''
     Calculated the turbulent intesity for a given data set for the specified points.  
@@ -338,7 +338,7 @@ def turbulent_intensity(data, points='cells', time_step= -1):
     TI_data_raw = {}
     for var in TI_vars:
         #get all data
-        var_data_df = get_all_data_points(data, var,time_step)           
+        var_data_df = get_all_data_points(data, var,time_index)           
         TI_data_raw[var] = var_data_df 
     if type(points) == pd.DataFrame:  
         print('points provided')
