@@ -165,7 +165,7 @@ def grid_data(data,variables, points='cells'):
     data_raw = {}
     for var in variables:
         #get all data
-        var_data_df = get_all_data_points(data, var,time_step=-1)           
+        var_data_df = get_all_data_points(data, var,time_index=-1)           
         data_raw[var] = var_data_df 
     if type(points) == pd.DataFrame:  
         print('points provided')
