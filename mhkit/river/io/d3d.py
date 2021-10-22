@@ -23,8 +23,8 @@ def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
 
     Returns
     -------
-    x,y,v: float
-        "x" and "y" location on specified layer with the variables values "v"
+    layer_data:DataFrame
+        DataFrame of "x" and "y" location on specified layer with the variables values "v"
 
     '''
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be netCDF4 object'
@@ -43,7 +43,11 @@ def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
     y=np.ma.getdata(data.variables[coords[1]][:], False)
 
     v= np.ma.getdata(var[time_index,:,layer_index], False)
-    return x,y,v
+    
+    layer= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x, y, v)]) 
+    layer_data = pd.DataFrame(layer, columns=[ 'x', 'y', 'v'])
+    
+    return layer_data
 
 
 def create_points(x, y, z):
@@ -155,8 +159,9 @@ def grid_data(data,variables, points='cells'):
   
     Returns
     -------
-    transformed_data : array   
-        Variables on specified grid points.
+    transformed_data : DataFrame  
+        Variables on specified grid points saved under the input varable names and the 
+        x,y and z cordinates of those points 
 
     '''
     assert points == 'cells' or points=='faces' or type(points) == pd.core.frame.DataFrame, 'points must be cells or faces or DataFrame'
@@ -179,6 +184,7 @@ def grid_data(data,variables, points='cells'):
     for var in variables :    
         transformed_data[var] = interp.griddata(data_raw[var][['x','y','z']],
                                         data_raw[var][var], points[['x','y','z']])
+
     return transformed_data
 
 
@@ -198,7 +204,7 @@ def get_all_data_points(data, variable, time_index= -1):
     Returns
     -------
     all_data: DataFrame 
-        Data frame of x, y, z, and variable. 
+        Dataframe of x, y, z, and variable. 
 
     '''  
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
@@ -251,15 +257,15 @@ def get_all_data_points(data, variable, time_index= -1):
     
     N_layers = range(len(Layer_percentages))
     for layer in N_layers:
-        x,y,v= get_layer_data(data, variable, layer, time_index)
+        layer_data= get_layer_data(data, variable, layer, time_index)
         if layer_dim == 'wdim': 
             z = [bottom_depth_wdim*Layer_percentages[layer]]
         else: 
             z = [bottom_depth*Layer_percentages[layer]]
-        x_all=np.append(x_all, x)
-        y_all=np.append(y_all, y)
+        x_all=np.append(x_all, layer_data.x)
+        y_all=np.append(y_all, layer_data.y)
         z_all=np.append(z_all, z)
-        v_all=np.append(v_all, v)
+        v_all=np.append(v_all, layer_data.v)
     
     known_points = np.array([ [x, y, z, v] for x, y, z, v in zip(x_all, y_all, z_all, v_all)])
     
@@ -321,8 +327,15 @@ def turbulent_intensity(data, points='cells', time_index= -1):
         
     Returns
     -------
-    turbulent_intensity : array   
-        turbulent kinetic energy devided by the root mean squared velocity
+    TI_data : Dataframe
+        turbulen_intesity: turbulent kinetic energy divided by the root mean squared velocity
+        turkin1: turbulent kinetic energy 
+        ucx: velocity in the x direction 
+        ucy: velocity in the y direction 
+        ucx: velocity in the z direction 
+        x: position in the x direstion 
+        y: position in the y direction 
+        z: position in the z direction 
 
     '''
     #assert points == 'cells' or points=='faces' or type(points) == pd.core.frame.DataFrame,
@@ -338,7 +351,7 @@ def turbulent_intensity(data, points='cells', time_index= -1):
     TI_data_raw = {}
     for var in TI_vars:
         #get all data
-        var_data_df = get_all_data_points(data, var,time_index)           
+        var_data_df = get_all_data_points(data, var ,time_index)           
         TI_data_raw[var] = var_data_df 
     if type(points) == pd.DataFrame:  
         print('points provided')
@@ -362,6 +375,7 @@ def turbulent_intensity(data, points='cells', time_index= -1):
     
     #calculate turbulent intensity 
     u_mag=unorm(np.array(TI_data['ucx']),np.array(TI_data['ucy']), np.array(TI_data['ucz']))
-    turbulent_intensity= np.sqrt(2/3*TI_data['turkin1'])/u_mag
-                                 
-    return turbulent_intensity
+    TI_data['turbulent_intensity']= np.sqrt(2/3*TI_data['turkin1'])/u_mag
+
+
+    return TI_data
