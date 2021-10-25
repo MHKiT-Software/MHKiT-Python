@@ -292,16 +292,16 @@ class TestIO(unittest.TestCase):
         variable= 'ucx'
         layer=2 
         time_step= 3
-        [x,y,z] = river.io.d3d.get_layer_data(data, variable, layer, time_step)
+        layer_data= river.io.d3d.get_layer_data(data, variable, layer, time_step)
         layer_compair = 2
         time_step_compair= 4
-        [x_expected, y_expected, z_expected]= river.io.d3d.get_layer_data(data,
+        layer_data_expected= river.io.d3d.get_layer_data(data,
                                                         variable, layer_compair,
                                                         time_step_compair)
        
-        assert_array_almost_equal(x,x_expected, decimal = 2)
-        assert_array_almost_equal(y,y_expected, decimal = 2)
-        assert_array_almost_equal(z,z_expected, decimal= 2)
+        assert_array_almost_equal(layer_data.x,layer_data_expected.x, decimal = 2)
+        assert_array_almost_equal(layer_data.y,layer_data_expected.y, decimal = 2)
+        assert_array_almost_equal(layer_data.v,layer_data_expected.v, decimal= 2)
         
         
     def test_create_points(self):
@@ -349,7 +349,7 @@ class TestIO(unittest.TestCase):
         test_points = np.array([ [x, y, z] for x, y, z in zip(x_test, y_test, z_test)])
         points= pd.DataFrame(test_points, columns=['x','y','z'])
         
-        turbulent_intensity= river.io.d3d.turbulent_intensity(data, points, time_step)
+        TI= river.io.d3d.turbulent_intensity(data, points, time_step)
 
         TI_vars= ['turkin1', 'ucx', 'ucy', 'ucz']
         TI_data_raw = {}
@@ -367,7 +367,7 @@ class TestIO(unittest.TestCase):
         turbulent_intensity_expected= np.sqrt(2/3*TI_data['turkin1'])/u_mag
        
         
-        assert_array_almost_equal(turbulent_intensity, turbulent_intensity_expected, decimal = 2)     
+        assert_array_almost_equal(TI.turbulent_intensity, turbulent_intensity_expected, decimal = 2)     
        
 if __name__ == '__main__':
     unittest.main() 
