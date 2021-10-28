@@ -345,8 +345,7 @@ def turbulent_intensity(data, points='cells', time_index= -1, intermediate_value
             z: position in the z direction 
 
     '''
-    assert points == 'cells' or points=='faces' or type(points) == pd.core.frame.DataFrame,
-                                                 'points must be cells or faces or DataFrame'
+    assert points == 'cells' or points=='faces', 'points must be cells or faces or DataFrame'
     assert isinstance(time_index, int), 'time_index  must be a int'
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
     assert 'turkin1' in data.variables.keys(), 'Varaiable Turkine 1 not present in Data'
