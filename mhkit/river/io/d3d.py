@@ -16,17 +16,19 @@ def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
        After running a Delft3D model the output netcdf file can be read into this code.  
     variable : string
         Delft3d outputs many vairables that can be called. The full list can be found using "data.variables.keys()" in the consol. 
-    layer_index: float
+    layer_index: int
          A positve interger to pull out a layer from the dataset. 0 being closest to the surface. Defalt is the bottom layer "-1."
-    time_index: float 
+    time_index: int 
         A positive interger to pull the time step from the dataset. 0 being closest to time 0. Defalt is last time step -1.  
 
     Returns
     -------
     layer_data:DataFrame
-        DataFrame of "x" and "y" location on specified layer with the variables values "v"
+        DataFrame of "x" and "y" location on specified layer with the variable values "v"
 
     '''
+    assert isinstance(time_index, int), 'time_index  must be a int'
+    assert isinstance(layer_index, int), 'layer_index  must be a int'
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be netCDF4 object'
     assert variable in data.variables.keys(), 'variable not recognized'
     coords = str(data.variables[variable].coordinates).split()
@@ -34,14 +36,13 @@ def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
     max_time_index= len(var)
     assert time_index <= max_time_index, f'time_index must be less than the max time index {max_time_index}'
     assert time_index >= -1, 'time_index must be greater than or equal to -1'
-    
     max_layer= len(var[0][0])
     assert layer_index <= max_layer, f'layer must be less than the max layer {max_layer}'
     assert layer_index >= -1, 'layer must be greater than or equal to -1'
     
     x=np.ma.getdata(data.variables[coords[0]][:], False) 
     y=np.ma.getdata(data.variables[coords[1]][:], False)
-
+ 
     v= np.ma.getdata(var[time_index,:,layer_index], False)
     
     layer= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x, y, v)]) 
@@ -153,7 +154,7 @@ def grid_data(data,variables, points='cells'):
         Name of variables to interpolate, e.g. turkin1, ucx, ucy and ucz. The full list can be found using "data.variables.keys()" in the console.
     points : string, DataFrame  
         Point to interpoate data onto. 
-          'cells' : interpolates all data into velocity coordinat system (Defalt)
+          'cells' : interpolates all data into velocity coordinat system (Default)
           'faces': interpolates all dada into TKE coordinate system 
           DataFrame of x, y, and z coordinates: Interpolates data onto user povided points 
   
@@ -194,11 +195,11 @@ def get_all_data_points(data, variable, time_index= -1):
 
     Parameters
     ----------
-    data : netcdf object 
+    data : netcdf4 object 
         After running a Delft3D model the output netcdf file can be read into this code.   
     variable : string
         Delft3d outputs many vairables that can be called. The full list can be found using "data.variables.keys()" in the consol. 
-    time_index : float 
+    time_index : int
         A positive interger to pull the time step from the dataset. Defalt is late time step -1.  
         
     Returns
@@ -207,6 +208,7 @@ def get_all_data_points(data, variable, time_index= -1):
         Dataframe of x, y, z, and variable. 
 
     '''  
+    assert isinstance(time_index, int), 'time_index  must be a int'
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
     assert variable in data.variables.keys(), 'varaiable not reconized'
 
@@ -307,7 +309,7 @@ def unorm(x, y ,z):
 
 
 
-def turbulent_intensity(data, points='cells', time_index= -1):
+def turbulent_intensity(data, points='cells', time_index= -1, intermediate_values = bool(False) ):
 
     '''
     Calculated the turbulent intesity for a given data set for the specified points.  
@@ -319,27 +321,33 @@ def turbulent_intensity(data, points='cells', time_index= -1):
         After running a Delft3D model the output netcdf file can be read into this code. 
     points : string, DataFrame  
         Point to interpoate data onto. 
-          'cells' : interpolates all data into velocity coordinat system (Defalt)
+          'cells' : interpolates all data into velocity coordinat system (Default)
           'faces': interpolates all dada into TKE coordinate system 
           DataFrame of x, y, and z corrdinates: Interpolates data onto user povided points 
     time_step : float 
         A positive interger to pull the time step from the dataset. Defalt is late time step -1.  
+    intermediate_values: boolean
+        A true or fase boolean that if true will return ucx, uxy, uxz,and turkine1 vaues in Dataframe 
+        if fause will only return x,y,z, and turbulent intesity values. Faules is the default value      
         
     Returns
     -------
     TI_data : Dataframe
-        turbulen_intesity: turbulent kinetic energy divided by the root mean squared velocity
-        turkin1: turbulent kinetic energy 
-        ucx: velocity in the x direction 
-        ucy: velocity in the y direction 
-        ucx: velocity in the z direction 
-        x: position in the x direstion 
-        y: position in the y direction 
-        z: position in the z direction 
+        If intermediate_values is true all values are output 
+        if intermediate_values is equal to fale only turbulent _intesity and x, y, and z varibles are output 
+            turbulen_intesity: turbulent kinetic energy divided by the root mean squared velocity
+            turkin1: turbulent kinetic energy 
+            ucx: velocity in the x direction 
+            ucy: velocity in the y direction 
+            ucx: velocity in the z direction 
+            x: position in the x direstion 
+            y: position in the y direction 
+            z: position in the z direction 
 
     '''
-    #assert points == 'cells' or points=='faces' or type(points) == pd.core.frame.DataFrame,
-                                                # 'points must be cells or faces or DataFrame'
+    assert points == 'cells' or points=='faces' or type(points) == pd.core.frame.DataFrame,
+                                                 'points must be cells or faces or DataFrame'
+    assert isinstance(time_index, int), 'time_index  must be a int'
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
     assert 'turkin1' in data.variables.keys(), 'Varaiable Turkine 1 not present in Data'
     assert 'ucx' in data.variables.keys(),'Varaiable ucx 1 not present in Data'
@@ -372,10 +380,11 @@ def turbulent_intensity(data, points='cells', time_index= -1):
                 TI_data[var][i]= interp.griddata(TI_data_raw[var][['x','y','z']], 
                                              TI_data_raw[var][var], [points['x'][i],points['y'][i],points['z'][i]], method='nearest')
             
-    
-    #calculate turbulent intensity 
+
     u_mag=unorm(np.array(TI_data['ucx']),np.array(TI_data['ucy']), np.array(TI_data['ucz']))
     TI_data['turbulent_intensity']= np.sqrt(2/3*TI_data['turkin1'])/u_mag
-
+    
+    if intermediate_values == bool(False)
+        TI_data= Te_data.drop[TI_vars]
 
     return TI_data
