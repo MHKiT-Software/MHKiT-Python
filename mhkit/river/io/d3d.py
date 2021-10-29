@@ -388,6 +388,7 @@ def turbulent_intensity(data, points='cells', time_index= -1, intermediate_value
             
 
     u_mag=unorm(np.array(TI_data['ucx']),np.array(TI_data['ucy']), np.array(TI_data['ucz']))
+    TI_data['turkin1'][TI_data['turkin1']<0]= float('nan') 
     TI_data['turbulent_intensity']= np.sqrt(2/3*TI_data['turkin1'])/u_mag
     
     if intermediate_values == False:
