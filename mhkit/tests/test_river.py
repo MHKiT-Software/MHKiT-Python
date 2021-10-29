@@ -291,13 +291,13 @@ class TestIO(unittest.TestCase):
         data=self.d3d_flume_data
         variable= 'ucx'
         layer=2 
-        time_step= 3
-        layer_data= river.io.d3d.get_layer_data(data, variable, layer, time_step)
-        layer_compair = 2
-        time_step_compair= 4
+        time_index= 3
+        layer_data= river.io.d3d.get_layer_data(data, variable, layer, time_index)
+        layer_compare = 2
+        time_index_compare= 4
         layer_data_expected= river.io.d3d.get_layer_data(data,
-                                                        variable, layer_compair,
-                                                        time_step_compair)
+                                                        variable, layer_compare,
+                                                        time_index_compare)
        
         assert_array_almost_equal(layer_data.x,layer_data_expected.x, decimal = 2)
         assert_array_almost_equal(layer_data.y,layer_data_expected.y, decimal = 2)
