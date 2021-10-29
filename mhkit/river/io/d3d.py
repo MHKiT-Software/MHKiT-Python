@@ -364,10 +364,10 @@ def turbulent_intensity(data, points='cells', time_index= -1, intermediate_value
     if type(points) == pd.DataFrame:  
         print('points provided')
     elif points=='faces':
-        points = TI_data_raw['ucx'][['x','y','z']]
+        points = TI_data_raw['turkin1'].drop(['turkin1'],axis=1)
     elif points=='cells':
-        points = TI_data_raw['turkin1'][['x','y','z']]
-    
+        points = TI_data_raw['ucx'].drop(['ucx'],axis=1)
+       
     TI_data = points.copy(deep=True)
 
     for var in TI_vars:    
@@ -386,5 +386,5 @@ def turbulent_intensity(data, points='cells', time_index= -1, intermediate_value
     
     if intermediate_values == False:
         TI_data= TI_data.drop(TI_vars, axis = 1)
-
+        
     return TI_data
