@@ -165,7 +165,7 @@ def grid_data(data,variables, points='cells'):
         x,y and z cordinates of those points 
 
     '''
-    assert points == 'cells' or points=='faces' or type(points) == pd.core.frame.DataFrame, 'points must be cells or faces or DataFrame'
+    #assert points == 'cells' or points=='faces' or type(points) == pd.core.frame.DataFrame, 'points must be cells or faces or DataFrame'
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
 
     data_raw = {}
@@ -309,7 +309,7 @@ def unorm(x, y ,z):
 
 
 
-def turbulent_intensity(data, points='cells', time_index= -1, intermediate_values = bool(False) ):
+def turbulent_intensity(data, points='cells', time_index= -1, intermediate_values = False ):
 
     '''
     Calculated the turbulent intesity for a given data set for the specified points.  
@@ -345,7 +345,8 @@ def turbulent_intensity(data, points='cells', time_index= -1, intermediate_value
             z: position in the z direction 
 
     '''
-    assert points == 'cells' or points=='faces', 'points must be cells or faces or DataFrame'
+    # assert isinstance(points, (str, pd.core.frame.DataFrame)),  'points must be cells or faces or DataFrame'
+    # assert points == 'cells' or points=='faces' or type(points) == pd.core.frame.DataFrame, 'points must be cells or faces or DataFrame'
     assert isinstance(time_index, int), 'time_index  must be a int'
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
     assert 'turkin1' in data.variables.keys(), 'Varaiable Turkine 1 not present in Data'
@@ -383,7 +384,7 @@ def turbulent_intensity(data, points='cells', time_index= -1, intermediate_value
     u_mag=unorm(np.array(TI_data['ucx']),np.array(TI_data['ucy']), np.array(TI_data['ucz']))
     TI_data['turbulent_intensity']= np.sqrt(2/3*TI_data['turkin1'])/u_mag
     
-    if intermediate_values == bool(False)
-        TI_data= Te_data.drop[TI_vars]
+    if intermediate_values == False:
+        TI_data= TI_data.drop(TI_vars, inplace = True, axis = 1)
 
     return TI_data
