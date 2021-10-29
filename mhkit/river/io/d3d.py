@@ -185,7 +185,13 @@ def grid_data(data,variables, points='cells'):
     for var in variables :    
         transformed_data[var] = interp.griddata(data_raw[var][['x','y','z']],
                                         data_raw[var][var], points[['x','y','z']])
-
+        idx= np.where(np.isnan(transformed_data[var]))
+        
+        if len(idx[0]):
+            for i in idx[0]: 
+                transformed_data[var][i]= interp.griddata(data_raw[var][['x','y','z']], 
+                                             data_raw[var][var], [points['x'][i],points['y'][i],points['z'][i]], method='nearest')
+            
     return transformed_data
 
 
