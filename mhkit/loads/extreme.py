@@ -4,6 +4,25 @@ from scipy import optimize
 
 
 def global_peaks(t, data):
+    """ Find the global peaks of a zero-centered response time-series.
+
+    The global peaks are the maxima between consecutive zero
+    up-crossings.
+
+    Parameters
+    ----------
+        t : np.array
+            Time array.
+        data : np.array
+            Response time-series.
+
+    Returns
+    -------
+        t_peaks : np.array
+            Time array for peaks
+        peaks : np.array
+            Peak values of the response time-series
+    """
     # eliminate zeros
     zeroMask = (data == 0)
     data[zeroMask] = 0.5 * np.min(np.abs(data))
@@ -26,11 +45,42 @@ def global_peaks(t, data):
 
 
 def npeaks_st(n, t, t_st):
-    # Number of peaks in short-term period
+    """ Estimate the number of peaks in a specified period.
+
+    Parameters
+    ----------
+        n : int
+            Number of peaks in analyzed timeseries.
+        t : float
+            Length of time of analyzed timeseries.
+        t_st: float
+            Short-term period for which to estimate the number of peaks.
+
+    Returns
+    -------
+        n_st : float
+            Number of peaks in short term period.
+    """
     return n * t_st / t
 
 
 def peaks_distribution_Weibull(x):
+    """ Estimate the peaks distribution by fitting a Weibull
+    distribution to the peaks of the response.
+
+    The fitted parameters can be accessed through the `params` field of
+    the returned distribution.
+
+    Parameters
+    ----------
+        x : np.array
+            Global peaks.
+
+    Returns
+    -------
+        peaks: scipy.stats rv_frozen
+            Probability distribution of the peaks.
+    """
     # peaks distribution
     peaks_params = stats.exponweib.fit(x, f0=1, floc=0)
     param_names = ['a', 'c', 'loc', 'scale']
@@ -42,6 +92,22 @@ def peaks_distribution_Weibull(x):
 
 
 def peaks_distribution_WeibullTailFit(x):
+    """ Estimate the peaks distribution using the Weibull tail fit
+    method.
+
+    The fitted parameters can be accessed through the `params` field of
+    the returned distribution.
+
+    Parameters
+    ----------
+        x : np.array
+            Global peaks.
+
+    Returns
+    -------
+        peaks: scipy.stats rv_frozen
+            Probability distribution of the peaks.
+    """
     # Initial guess for Weibull parameters
     p0 = stats.exponweib.fit(x, f0=1, floc=0)
     p0 = np.array([p0[1], p0[3]])
@@ -76,6 +142,29 @@ def peaks_distribution_WeibullTailFit(x):
 
 
 def peaks_distribution_peaksOverThreshold(x, threshold):
+    """ Estimate the peaks distribution using the peaks over threshold
+    method.
+
+    This fits a generalized Pareto distribution to all the peaks above
+    the specified threshold.
+    The distribution is only defined for values above the threshold
+    and therefore cannot be used to obtain integral metrics such as the
+    expected value.
+    A typical choice of threshold is 1.4 standard deviations above the
+    mean.
+    The peaks over threshold distribution can be accessed through the
+    `pot` field of the returned peaks distribution.
+
+    Parameters
+    ----------
+        x : np.array
+            Global peaks.
+
+    Returns
+    -------
+        peaks: scipy.stats rv_frozen
+            Probability distribution of the peaks.
+    """
     # peaks over threshold
     x = np.sort(x)
     pot = x[(x > threshold)] - threshold
@@ -114,7 +203,21 @@ def peaks_distribution_peaksOverThreshold(x, threshold):
 
 
 def peaks_to_ste(peaks_distribution, npeaks):
+    """ Estimate the short-term extreme distribution from the peaks
+    distribution.
 
+    Parameters
+    ----------
+        peaks_distribution: scipy.stats rv_frozen
+                Probability distribution of the peaks.
+        npeaks : float
+            Number of peaks in short term period.
+
+    Returns
+    -------
+        ste: scipy.stats rv_frozen
+                Short-term extreme distribution.
+    """
     class _ShortTermExtreme(stats.rv_continuous):
 
         def __init__(self, *args, **kwargs):
@@ -136,6 +239,25 @@ def peaks_to_ste(peaks_distribution, npeaks):
 
 
 def blockMaxima(t, x, t_st):
+    '''Find the block maxima of a time-series.
+
+    The timeseries (t,x) is divided into blocks of length t_st, and the
+    maxima of each bloock is returned.
+
+    Parameters
+    ----------
+        t : np.array
+            Time array.
+        x : np.array
+            global peaks timeseries.
+        t_st : float
+            Short-term period.
+
+    Returns
+    -------
+        block_maxima: np.array
+            Block maxima (i.e. largest peak in each block).
+    '''
     nblock = int(t[-1] / t_st)
     block_maxima = np.zeros(int(nblock))
     for iblock in range(nblock):
@@ -145,6 +267,19 @@ def blockMaxima(t, x, t_st):
 
 
 def ste_block_maxima_GEV(block_maxima):
+    """ Approximate the short-term extreme distribution using the block
+    maxima method and the Generalized Extreme Value distribution.
+
+    Parameters
+    ----------
+        block_maxima: np.array
+            Block maxima (i.e. largest peak in each block).
+
+    Returns
+    -------
+        ste: scipy.stats rv_frozen
+                Short-term extreme distribution.
+    """
     ste_params = stats.genextreme.fit(block_maxima)
     param_names = ['c', 'loc', 'scale']
     ste_params = {k: v for k, v in zip(param_names, ste_params)}
@@ -154,6 +289,19 @@ def ste_block_maxima_GEV(block_maxima):
 
 
 def ste_block_maxima_Gumbel(block_maxima):
+    """ Approximate the short-term extreme distribution using the block
+    maxima method and the Gumbel (right) distribution.
+
+    Parameters
+    ----------
+        block_maxima: np.array
+            Block maxima (i.e. largest peak in each block).
+
+    Returns
+    -------
+        ste: scipy.stats rv_frozen
+                Short-term extreme distribution.
+    """
     ste_params = stats.gumbel_r.fit(block_maxima)
     param_names = ['loc', 'scale']
     ste_params = {k: v for k, v in zip(param_names, ste_params)}
@@ -163,6 +311,32 @@ def ste_block_maxima_Gumbel(block_maxima):
 
 
 def short_term_extreme(t, data, t_st, method):
+    """ Approximate the short-term  extreme distribution from a
+    timeseries of the response using chosen method.
+
+    The availabe methods are: 'peaksWeibull', 'peaksWeibullTailFit',
+    'peaksOverThreshold', 'blockMaximaGEV', and 'blockMaximaGumbel'.
+    For the block maxima methods the timeseries needs to be many times
+    longer than the short-term period.
+    For the peak-fitting methods the timeseries can be of arbitrary
+    length.
+
+    Parameters
+    ----------
+        t : np.array
+            Time array.
+        x : np.array
+            Response timeseries.
+        t_st : float
+            Short-term period.
+        method : string
+            Method for estimating the short-term extreme distribution.
+
+    Returns
+    -------
+        ste: scipy.stats rv_frozen
+                Short-term extreme distribution.
+    """
     peaks_methods = {
         'peaksWeibull': peaks_distribution_Weibull,
         'peaksWeibullTailFit': peaks_distribution_WeibullTailFit,
