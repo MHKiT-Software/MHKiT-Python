@@ -1,7 +1,6 @@
 from sklearn.decomposition import PCA as skPCA
 from sklearn.metrics import mean_squared_error
 from scipy.optimize import fsolve as _fsolve
-from itertools import product as _product
 from scipy import signal as _signal
 import scipy.optimize as optim
 import scipy.stats as stats
@@ -252,13 +251,11 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None,phases=None)
     eta = pd.DataFrame(columns=S.columns, index=time_index)
     for mcol in eta.columns:
         # Product of omega and time
-        B = np.array([x*y for x,y in _product(time_index, omega)])
+        B = np.outer(time_index, omega)
         B = B.reshape((len(time_index),len(omega)))
         B = pd.DataFrame(B, index=time_index, columns=omega.index)
-
-        C = np.real(np.exp(1j*(B+phase[mcol])))
+        C = np.cos(B+phase[eta.columns[0]])
         C = pd.DataFrame(C, index=time_index, columns=omega.index)
-
         eta[mcol] = (C*A[mcol]).sum(axis=1)
 
     return eta
