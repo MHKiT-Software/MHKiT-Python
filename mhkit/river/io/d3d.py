@@ -1,4 +1,5 @@
 from os.path import abspath, dirname, join, isfile, normpath, relpath
+from math import isclose
 import scipy.interpolate as interp
 import matplotlib.pyplot as plt
 import numpy as np
@@ -167,7 +168,7 @@ def variable_interpolation(data,variables, points='cells'):
     '''
     assert isinstance(points, (str, pd.DataFrame)),'points must a string or DataFrame'
     if isinstance ( points, str):
-       assert any(points == 'cells', points=='faces' ), 'points must be cells or faces'
+       assert any([points == 'cells', points=='faces']), 'points must be cells or faces'
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
 
     data_raw = {}
@@ -355,7 +356,7 @@ def turbulent_intensity(data, points='cells', time_index= -1, intermediate_value
     '''
     assert isinstance(points, (str, pd.DataFrame)),'points must a string or DataFrame'
     if isinstance ( points, str):
-       assert any(points == 'cells', points=='faces' ), 'points must be cells or faces'
+       assert any([points == 'cells', points=='faces']), 'points must be cells or faces'
     assert isinstance(time_index, int), 'time_index  must be a int'
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
     assert 'turkin1' in data.variables.keys(), 'Varaiable Turkine 1 not present in Data'
@@ -391,7 +392,15 @@ def turbulent_intensity(data, points='cells', time_index= -1, intermediate_value
             
 
     u_mag=unorm(np.array(TI_data['ucx']),np.array(TI_data['ucy']), np.array(TI_data['ucz']))
-    TI_data['turkin1'][TI_data['turkin1']<0]= float('nan') 
+    
+    index =np.where(TI_data['turkin1'][TI_data['turkin1']<0.5])
+    for i in index[0]:
+        if isclose(TI_data['turkin1'][i], 0, rel_tol=1e-9,abs_tol=0.0):
+            TI_data['turkin1'][i]= float(0)
+        elif TI_data['turkin1'][i]<0:
+            TI_data['turkin1'][i]= float('nan')
+
+        
     TI_data['turbulent_intensity']= np.sqrt(2/3*TI_data['turkin1'])/u_mag
     
     if intermediate_values == False:
