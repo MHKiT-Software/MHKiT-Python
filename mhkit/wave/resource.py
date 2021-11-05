@@ -254,7 +254,7 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None,phases=None)
         B = np.outer(time_index, omega)
         B = B.reshape((len(time_index),len(omega)))
         B = pd.DataFrame(B, index=time_index, columns=omega.index)
-        C = np.cos(B+phase[eta.columns[0]])
+        C = np.cos(B+phase[mcol])
         C = pd.DataFrame(C, index=time_index, columns=omega.index)
         eta[mcol] = (C*A[mcol]).sum(axis=1)
 
