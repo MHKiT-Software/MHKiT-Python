@@ -164,7 +164,7 @@ def jonswap_spectrum(f, Tp, Hs, gamma=None):
     return S
 
 ### Metrics
-def surface_elevation(S, time_index, seed=None, frequency_bins=None,phases=None):
+def surface_elevation(S, time_index, seed=None, phases=None):
     """
     Calculates wave elevation time-series from spectrum
 
@@ -177,8 +177,6 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None,phases=None)
         for example, time = np.arange(0,100,0.01)
     seed: int (optional)
         Random seed
-    frequency_bins: numpy array or pandas Series (optional)
-        Bin widths for frequency of S. Required for unevenly sized bins
     phases: numpy array or pandas DataFrame (optional)
         Explicit phases for frequency components (overrides seed)
         for example, phases = np.random.rand(len(S)) * 2 * np.pi
@@ -189,42 +187,24 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None,phases=None)
         Wave surface elevation [m] indexed by time [s]
 
     """
-    try:
-        time_index = np.array(time_index)
-    except:
-        pass
+    time_index = np.array(time_index)
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     assert isinstance(time_index, np.ndarray), ('time_index must be of type'
             'np.ndarray')
     assert isinstance(seed, (type(None),int)), 'seed must be of type int'
-    assert isinstance(frequency_bins, (type(None), np.ndarray, pd.DataFrame)),(
-            "frequency_bins must be of type None, np.ndarray, or pd,DataFrame")
     assert isinstance(phases, (type(None), np.ndarray, pd.DataFrame)), (
             'phases must be of type None, np.ndarray, or pd,DataFrame')
-
-    if frequency_bins is not None:
-        assert frequency_bins.squeeze().shape == frequency_bins.squeeze().shape,(
-            'shape of frequency_bins must match shape of S')
     if phases is not None:
         assert phases.squeeze().shape == S.squeeze().shape,(
             'shape of phases must match shape of S')
 
-    start_time = time_index[0]
-    end_time = time_index[-1]
-
     f = pd.Series(S.index)
     f.index = f
+    delta_f = f.diff()
 
-    if frequency_bins is None:
-        delta_f = f.diff()
-        #delta_f[0] = f[1]-f[0]
-
-    elif isinstance(frequency_bins, np.ndarray):
-        delta_f = pd.Series(frequency_bins, index=S.index)
-    elif isinstance(frequency_bins, pd.DataFrame):
-        assert len(frequency_bins.columns) == 1, ('frequency_bins must only'
-                'contain 1 column')
-        delta_f = frequency_bins.squeeze()
+    omega = pd.Series(2*np.pi*f)
+    omega.index = f
+    omega = omega
 
     if phases is None:
         np.random.seed(seed)
@@ -235,29 +215,21 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None,phases=None)
     elif isinstance(phases, pd.DataFrame):
         phase = phases
 
-    phase = phase[start_time:end_time] # Should phase, omega, and A*delta_f be
-                                        #   truncated before computation?
-
-    omega = pd.Series(2*np.pi*f)
-    omega.index = f
-    omega = omega[start_time:end_time]
-
-    # Wave amplitude times delta f, truncated
+    # Wave amplitude times delta f
     A = 2*S
     A = A.multiply(delta_f, axis=0)
     A = np.sqrt(A)
-    A = A.loc[start_time:end_time,:]
 
+    # Product of omega and time
+    B = np.outer(time_index, omega)
+    B = B.reshape((len(time_index),len(omega)))
+    B = pd.DataFrame(B, index=time_index, columns=omega.index)
+    # time domain elevation
     eta = pd.DataFrame(columns=S.columns, index=time_index)
     for mcol in eta.columns:
-        # Product of omega and time
-        B = np.outer(time_index, omega)
-        B = B.reshape((len(time_index),len(omega)))
-        B = pd.DataFrame(B, index=time_index, columns=omega.index)
         C = np.cos(B+phase[mcol])
         C = pd.DataFrame(C, index=time_index, columns=omega.index)
         eta[mcol] = (C*A[mcol]).sum(axis=1)
-
     return eta
 
 
