@@ -159,6 +159,8 @@ def peaks_distribution_peaksOverThreshold(x, threshold):
     ----------
         x : np.array
             Global peaks.
+        threshold : float
+            Threshold value. Only peaks above this value will be used.
 
     Returns
     -------
@@ -202,7 +204,7 @@ def peaks_distribution_peaksOverThreshold(x, threshold):
     return peaks
 
 
-def peaks_to_ste(peaks_distribution, npeaks):
+def ste_peaks(peaks_distribution, npeaks):
     """ Estimate the short-term extreme distribution from the peaks
     distribution.
 
@@ -353,7 +355,7 @@ def short_term_extreme(t, data, t_st, method):
         time = t[-1]-t[0]
         nst = npeaks_st(npeaks, time, t_st)
         peaks_dist = fit_peaks(peaks)
-        ste = peaks_to_ste(peaks_dist, nst)
+        ste = ste_peaks(peaks_dist, nst)
     elif method in blockmaxima_methods.keys():
         fit_maxima = blockmaxima_methods[method]
         maxima = blockMaxima(t, data, t_st)
