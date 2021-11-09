@@ -393,13 +393,12 @@ def turbulent_intensity(data, points='cells', time_index= -1, intermediate_value
 
     u_mag=unorm(np.array(TI_data['ucx']),np.array(TI_data['ucy']), np.array(TI_data['ucz']))
     
-    index =np.where(TI_data['turkin1'][TI_data['turkin1']<0.5])
-    for i in index[0]:
-        if isclose(TI_data['turkin1'][i], 0, rel_tol=1e-9,abs_tol=0.0):
-            TI_data['turkin1'][i]= float(0)
-        elif TI_data['turkin1'][i]<0:
-            TI_data['turkin1'][i]= float('nan')
-
+    neg_index=np.where( TI_data['turkin1']<0)
+    zero_bool= np.isclose( TI_data['turkin1'][ TI_data['turkin1']<0].array, np.zeros(len( TI_data['turkin1'][ TI_data['turkin1']<0].array)),atol=1.0e-4)
+    zero_ind= neg_index[0][zero_bool]
+    non_zero_ind= neg_index[0][~zero_bool]
+    TI_data.loc[zero_ind,'turkin1']=np.zeros(len(zero_ind))
+    TI_data.loc[non_zero_ind,'turkin1']=[np.nan]*len(non_zero_ind)
         
     TI_data['turbulent_intensity']= np.sqrt(2/3*TI_data['turkin1'])/u_mag
     
