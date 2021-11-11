@@ -240,14 +240,12 @@ class TestIO(unittest.TestCase):
     def setUpClass(self):
         d3ddatadir = normpath(join(datadir,'d3d'))
         
-        filename= 'Flume_TurbineTest_map.nc'
+        filename= 'turbineTest_map.nc'
         self.d3d_flume_data = netCDF4.Dataset(join(d3ddatadir,filename))
         
     @classmethod
     def tearDownClass(self):
         pass
-    
-    
     
     def test_load_usgs_data_instantaneous(self):
         file_name = join(datadir, 'USGS_08313000_Jan2019_instantaneous.json')
@@ -322,10 +320,10 @@ class TestIO(unittest.TestCase):
     def test_get_all_data_points(self): 
         data=self.d3d_flume_data
         variable= 'ucx'
-        time_step= 1 
+        time_step= 3
         output = river.io.d3d.get_all_data_points(data, variable, time_step)
         size_output = np.size(output) 
-        time_step_compair=2
+        time_step_compair=4
         output_expected= river.io.d3d.get_all_data_points(data, variable, time_step_compair)
         size_output_expected= np.size(output_expected)
         self.assertEqual(size_output, size_output_expected)
