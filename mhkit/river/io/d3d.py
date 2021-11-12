@@ -327,7 +327,6 @@ def unorm(x, y ,z):
 
 
 def turbulent_intensity(data, points='cells', time_index= -1, intermediate_values = False ):
-
     '''
     Calculated the turbulent intesity for a given data set for the specified points.  
     Assumes variable names: turkin1, ucx, ucy and ucz.
