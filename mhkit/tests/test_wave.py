@@ -93,8 +93,8 @@ class TestResourceSpectrum(unittest.TestCase):
         phases_np = np.random.rand(S.shape[0], S.shape[1]) * 2 * np.pi
         phases_pd = pd.DataFrame(phases_np, index=S.index, columns=S.columns)
 
-        eta_np = wave.resource.surface_elevation(S, self.t, phases=phases_np)
-        eta_pd = wave.resource.surface_elevation(S, self.t, phases=phases_pd)
+        eta_np = wave.resource.surface_elevation(S, self.t, phases=phases_np, seed=1)
+        eta_pd = wave.resource.surface_elevation(S, self.t, phases=phases_pd, seed=1)
 
         assert_frame_equal(eta_np, eta_pd)
 
@@ -103,20 +103,20 @@ class TestResourceSpectrum(unittest.TestCase):
         S1 = wave.resource.jonswap_spectrum(self.f,self.Tp,self.Hs*1.1)
         S = pd.concat([S0, S1], axis=1)
 
-        eta0 = wave.resource.surface_elevation(S, self.t)
+        eta0 = wave.resource.surface_elevation(S, self.t, seed=1)
 
         f_bins_np = np.array([np.diff(S.index)[0]]*len(S))
         f_bins_pd = pd.DataFrame(f_bins_np, index=S.index, columns=['df'])
 
-        eta_np = wave.resource.surface_elevation(S, self.t, frequency_bins=f_bins_np)
-        eta_pd = wave.resource.surface_elevation(S, self.t, frequency_bins=f_bins_pd)
+        eta_np = wave.resource.surface_elevation(S, self.t, frequency_bins=f_bins_np, seed=1)
+        eta_pd = wave.resource.surface_elevation(S, self.t, frequency_bins=f_bins_pd, seed=1)
 
         assert_frame_equal(eta0, eta_np)
         assert_frame_equal(eta_np, eta_pd)
 
     def test_surface_elevation_moments(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
-        eta = wave.resource.surface_elevation(S, self.t)
+        eta = wave.resource.surface_elevation(S, self.t, seed=1)
         dt = self.t[1] - self.t[0]
         Sn = wave.resource.elevation_spectrum(eta, 1/dt, len(eta.values),
                                               detrend=False, window='boxcar',
@@ -136,7 +136,7 @@ class TestResourceSpectrum(unittest.TestCase):
 
     def test_surface_elevation_rmse(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
-        eta = wave.resource.surface_elevation(S, self.t)
+        eta = wave.resource.surface_elevation(S, self.t, seed=1)
         dt = self.t[1] - self.t[0]
         Sn = wave.resource.elevation_spectrum(eta, 1/dt, len(eta),
                                               detrend=False, window='boxcar',
