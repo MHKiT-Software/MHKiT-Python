@@ -164,7 +164,7 @@ def jonswap_spectrum(f, Tp, Hs, gamma=None):
     return S
 
 ### Metrics
-def surface_elevation(S, time_index, seed=None, frequency_bins=None,phases=None):
+def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None):
     """
     Calculates wave elevation time-series from spectrum
 
@@ -203,7 +203,7 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None,phases=None)
             'phases must be of type None, np.ndarray, or pd,DataFrame')
 
     if frequency_bins is not None:
-        assert frequency_bins.squeeze().shape == S.squeeze().shape,(
+        assert frequency_bins.squeeze().shape == (S.squeeze().shape[0],),(
             'shape of frequency_bins must match shape of S')
     if phases is not None:
         assert phases.squeeze().shape == S.squeeze().shape,(
