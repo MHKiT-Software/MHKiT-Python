@@ -3,13 +3,15 @@ import pandas as pd
 import math
 import bisect
 from scipy.interpolate import interpn as _interpn
+from scipy.interpolate import  interp1d
 import matplotlib.pyplot as plt 
-from mhkit.tidal.resource import _histogram
+from  mhkit.river.resource import exceedance_probability
+from mhkit.tidal.resource import _histogram, _flood_or_ebb
 from mhkit.river.graphics import plot_velocity_duration_curve, _xy_plot
 
 
-def _initialize_polar(ax = None, metadata=None, flood=None, ebb=None):
-    '''
+def _initialize_polar(ax=None, metadata=None, flood=None, ebb=None):
+    """
     Initializes a polar plots with cardinal directions and ebb/flow
     
     Parameters
@@ -20,8 +22,19 @@ def _initialize_polar(ax = None, metadata=None, flood=None, ebb=None):
     Returns
     -------
     ax: axes
-    '''
-    if ax ==None:
+    """
+    assert isinstance(flood, (int, float, type(None))), \
+        'flood must be of type int or float'
+    assert isinstance(ebb, (int, float, type(None))), \
+        'ebb must be of type int or float' 
+    if flood: 
+        assert flood >=0 and flood <=360,\
+            'flood must be between 0 and 360 degrees'
+    if ebb:
+        assert ebb >=0 and ebb <=360,\
+            'ebb must be between 0 and 360 degrees'      
+    
+    if ax==None:
         # Initialize polar plot
         fig = plt.figure(figsize=(12, 8))
         ax = plt.axes(polar=True)
@@ -98,6 +111,35 @@ def plot_rose(directions, velocities, width_dir, width_vel, metadata=None,
     ax: figure
         Water current rose plot
     """
+    assert isinstance(velocities,(np.ndarray, pd.Series)), \
+        'velocities  must be of type np.ndarry or pd.Series'    
+    assert isinstance(directions,(np.ndarray, pd.Series)), \
+        'directions  must be of type np.ndarry or pd.Series'
+    assert len(velocities) == len(directions),  \
+        'velocities and directions  must have the same length'
+    assert all(velocities.values >= 0),\
+        'All velocities must be positive'
+    assert all(directions.values >= 0) and all(directions.values <= 360),\
+        'directions must be between 0 and 360 degrees'
+    assert isinstance(flood, (int, float, type(None))), \
+        'flood must be of type int or float'
+    assert isinstance(ebb, (int, float, type(None))), \
+        'ebb must be of type int or float' 
+    if flood: 
+        assert flood >=0 and flood <=360,\
+            'flood must be between 0 and 360 degrees'
+    if ebb:
+        assert ebb >=0 and ebb <=360,\
+            'ebb must be between 0 and 360 degrees'   
+    assert isinstance(width_dir, (int, float)), \
+        'width_dir must be of type int or float' 
+    assert isinstance(width_vel, (int, float)), \
+        'width_vel must be of type int or float'     
+    assert width_dir >=0 ,\
+        'width_dir must be greater than 0' 
+    assert width_vel >=0 ,\
+        'width_vel must be greater than 0'    
+    
     # Calculate the 2D histogram
     H, dir_edges, vel_edges = _histogram(directions, velocities, width_dir, width_vel)
     # Determine number of bins
@@ -160,6 +202,35 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
     ax: figure
        Joint probability distribution  
     """
+    assert isinstance(velocities,(np.ndarray, pd.Series)), \
+        'velocities  must be of type np.ndarry or pd.Series'    
+    assert isinstance(directions,(np.ndarray, pd.Series)), \
+        'directions  must be of type np.ndarry or pd.Series'
+    assert len(velocities) == len(directions),  \
+        'velocities and directions  must have the same length'
+    assert all(velocities.values >= 0),\
+        'All velocities must be positive'
+    assert all(directions.values >= 0) and all(directions.values <= 360),\
+        'directions must be between 0 and 360 degrees'
+    assert isinstance(flood, (int, float, type(None))), \
+        'flood must be of type int or float'
+    assert isinstance(ebb, (int, float, type(None))), \
+        'ebb must be of type int or float' 
+    if flood: 
+        assert flood >=0 and flood <=360,\
+            'flood must be between 0 and 360 degrees'
+    if ebb:
+        assert ebb >=0 and ebb <=360,\
+            'ebb must be between 0 and 360 degrees'   
+    assert isinstance(width_dir, (int, float)), \
+        'width_dir must be of type int or float' 
+    assert isinstance(width_vel, (int, float)), \
+        'width_vel must be of type int or float'     
+    assert width_dir >=0 ,\
+        'width_dir must be greater than 0' 
+    assert width_vel >=0 ,\
+        'width_vel must be greater than 0'   
+    
     # Calculate the 2D histogram
     H, dir_edges, vel_edges = _histogram(directions, velocities, width_dir, width_vel)
     # Initialize the polar polt
@@ -195,7 +266,7 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
     return ax
 
 
-def plot_current_timeseries(directions, speeds, principal_direction,
+def plot_current_timeseries(directions, velocities, principal_direction,
                             label=None, ax=None):
     '''
     Returns a plot of velocity from an array of direction and speed
@@ -203,9 +274,9 @@ def plot_current_timeseries(directions, speeds, principal_direction,
 
     Parameters
     ----------
-    direction: array-like
+    directions: array-like
         Time-series of directions [degrees]
-    speed: array-like
+    velocities: array-like
         Time-series of speeds [m/s]
     principal_direction: float
         Direction to compute the velocity in [degrees]
@@ -220,11 +291,194 @@ def plot_current_timeseries(directions, speeds, principal_direction,
     ax: figure
         Time-series plot of current-speed velocity
     '''
+    assert isinstance(velocities,(np.ndarray, pd.Series)), \
+        'velocities  must be of type np.ndarry or pd.Series'    
+    assert isinstance(directions,(np.ndarray, pd.Series)), \
+        'directions  must be of type np.ndarry or pd.Series'
+    assert len(velocities) == len(directions),  \
+        'velocities and directions  must have the same length'
+    assert all(velocities.values >= 0),\
+        'All velocities must be positive'
+    assert all(directions.values >= 0) and all(directions.values <= 360),\
+        'directions must be between 0 and 360 degrees'
+    assert isinstance(principal_direction, (int, float)), \
+        'principal_direction must be of type int or float' 
+    assert principal_direction >=0 and principal_direction <=360,\
+        'principal_direction must be between 0 and 360 degrees'
+        
     # Rotate coordinate system by supplied principal_direction
     principal_directions = directions - principal_direction
     # Calculate the velocity
-    velocities = speeds * np.cos(np.pi/180*principal_directions)
+    velocity = velocities * np.cos(np.pi/180*principal_directions)
     # Call on standard xy plotting
-    ax = _xy_plot(velocities.index, velocities, fmt='-', label=label, xlabel='Time',
-                     ylabel='Velocity [$m/s$]', ax=ax)
+    ax = _xy_plot(velocities.index, velocity, fmt='-', label=label, 
+                  xlabel='Time', ylabel='Velocity [$m/s$]', ax=ax)
     return ax
+
+def tidal_phase_probability(directions, velocities, flood, ebb, 
+    bin_size=0.1, ax=None):
+    '''
+    Discretizes the tidal series speed by bin size and returns a plot
+    of the probability for each bin in the flood or ebb tidal phase.
+
+    Parameters
+    ----------
+    directions: array-like
+        Time-series of directions [degrees]
+    speed: array-like
+        Time-series of speeds [m/s]
+    flood: float or int
+        Principal component of flow in the flood direction [degrees]
+    ebb: float or int
+        Principal component of flow in the ebb direction [degrees]
+    bin_size: float
+        Speed bin size. Optional. Deaful = 0.1 m/s
+        
+    Returns
+    -------
+    ax: figure  
+    '''
+    assert isinstance(velocities,(np.ndarray, pd.Series)), \
+        'velocities  must be of type np.ndarry or pd.Series'    
+    assert isinstance(directions,(np.ndarray, pd.Series)), \
+        'directions  must be of type np.ndarry or pd.Series'
+    assert len(velocities) == len(directions),  \
+        'velocities and directions  must have the same length'
+    assert all(velocities.values >= 0),\
+        'All velocities must be positive'
+    assert all(directions.values >= 0) and all(directions.values <= 360),\
+        'directions must be between 0 and 360 degrees'
+    assert isinstance(flood, (int, float)), \
+        'flood must be of type int or float'
+    assert isinstance(ebb, (int, float)), \
+        'ebb must be of type int or float'        
+    assert isinstance(bin_size, (int, float)), \
+        'bin_size must be of type int or float' 
+    assert flood >=0 and flood <=360,\
+        'flood must be between 0 and 360 degrees'
+    assert ebb >=0 and ebb <=360,\
+        'ebb must be between 0 and 360 degrees'   
+    assert bin_size >=0 ,\
+        'bin_size must be greater than 0'           
+        
+    if ax==None:
+        fig, ax = plt.subplots(figsize=(12, 8))
+        
+    isEbb = _flood_or_ebb(directions, flood, ebb)
+
+    decimals = round(bin_size/0.1)
+    N_bins = int(round(velocities.max(),decimals)/bin_size)
+
+    H, bins = np.histogram(velocities, bins=N_bins)
+    H_ebb, bins1 = np.histogram(velocities[isEbb], bins=bins)
+    H_flood, bins2 = np.histogram(velocities[~isEbb], bins=bins)
+
+    p_ebb = H_ebb/H
+    p_flood = H_flood/H
+
+    center = (bins[:-1] + bins[1:]) / 2
+    width = 0.9 * (bins[1] - bins[0])
+
+    mask1 = np.ma.where(p_ebb>=p_flood)
+    mask2 = np.ma.where(p_flood>=p_ebb)
+
+    ax.bar(center[mask1], height=p_ebb[mask1], edgecolor='black', width=width, 
+            label='Ebb',color='blue')
+    ax.bar(center, height=p_flood, edgecolor='black', width=width, 
+            alpha=1, label='Flood',color='orange')
+    ax.bar(center[mask2],height=p_ebb[mask2], alpha=1, edgecolor='black',
+            width=width,color='blue')
+
+    plt.xlabel('Velocity [m/s]')
+    plt.ylabel('Probability')
+    plt.ylim(0,1.0)
+    plt.legend()
+    plt.grid(linestyle=':')
+    
+    return ax
+    
+
+
+def tidal_phase_exceedance(directions, velocities, flood, ebb, 
+    bin_size=0.1, ax=None):
+    '''
+    Returns a stacked area plot of the exceedance probability for the 
+    flood and ebb tidal phases.
+
+    Parameters
+    ----------
+    directions: array-like
+        Time-series of directions [degrees]
+    velocities: array-like
+        Time-series of speeds [m/s]
+    flood: float or int
+        Principal component of flow in the flood direction [degrees]
+    ebb: float or int
+        Principal component of flow in the ebb direction [degrees] 
+    bin_size: float
+        Speed bin size. Optional. Deaful = 0.1 m/s        
+        
+    Returns
+    -------
+    ax: figure    
+    '''    
+    assert isinstance(velocities,(np.ndarray, pd.Series)), \
+        'velocities  must be of type np.ndarry or pd.Series'    
+    assert isinstance(directions,(np.ndarray, pd.Series)), \
+        'directions  must be of type np.ndarry or pd.Series'
+    assert len(velocities) == len(directions),  \
+        'velocities and directions  must have the same length'
+    assert all(velocities.values >= 0),\
+        'All velocities must be positive'
+    assert all(directions.values >= 0) and all(directions.values <= 360),\
+        'directions must be between 0 and 360 degrees'
+    assert isinstance(flood, (int, float)), \
+        'flood must be of type int or float'
+    assert isinstance(ebb, (int, float)), \
+        'ebb must be of type int or float'        
+    assert isinstance(bin_size, (int, float)), \
+        'bin_size must be of type int or float' 
+    assert flood >=0 and flood <=360,\
+        'flood must be between 0 and 360 degrees'
+    assert ebb >=0 and ebb <=360,\
+        'ebb must be between 0 and 360 degrees' 
+    assert bin_size >=0 ,\
+        'bin_size must be greater than 0'         
+        
+    if ax==None:
+        fig, ax = plt.subplots(figsize=(12, 8))
+
+    isEbb = _flood_or_ebb(directions, flood, ebb)
+    
+    s_ebb = velocities[isEbb]
+    s_flood = velocities[~isEbb]
+
+    F = exceedance_probability(velocities)['F']
+    F_ebb = exceedance_probability(s_ebb)['F']
+    F_flood = exceedance_probability(s_flood)['F']
+
+
+    decimals = round(bin_size/0.1)
+    s_new = np.arange(np.around(velocities.min(),decimals), 
+                      np.around(velocities.max(),decimals)+bin_size, bin_size)
+
+    f_total = interp1d(velocities, F, bounds_error=False)
+    f_ebb = interp1d(s_ebb, F_ebb,  bounds_error=False)
+    f_flood = interp1d(s_flood, F_flood,  bounds_error=False)
+
+    F_total = f_total(s_new)
+    F_ebb = f_ebb(s_new)
+    F_flood = f_flood(s_new)
+
+    F_max_total = np.nanmax(F_ebb) + np.nanmax(F_flood)
+
+    ax.stackplot(s_new, F_ebb/F_max_total*100, 
+                  F_flood/F_max_total*100, labels=['Ebb','Flood'])
+
+    plt.xlabel('velocity [m/s]')
+    plt.ylabel('Probability of Exceedance')
+    plt.legend()  
+    plt.grid(linestyle=':', linewidth=1)
+
+    return ax
+    
