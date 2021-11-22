@@ -4,7 +4,7 @@ from .base import _beam2inst, _set_coords
 
 
 def _inst2earth(adcpo, reverse=False,
-               fixed_orientation=False, force=False):
+                fixed_orientation=False, force=False):
     """
     Rotate velocities from the instrument to earth coordinates.
 
@@ -31,7 +31,7 @@ def _inst2earth(adcpo, reverse=False,
     -----
     The rotation matrix is taken from the Teledyne RDI ADCP Coordinate
     Transformation manual January 2008
-    
+
     """
     csin = adcpo.coord_sys.lower()
     cs_allowed = ['inst', 'ship']
@@ -40,7 +40,7 @@ def _inst2earth(adcpo, reverse=False,
     if not force and csin not in cs_allowed:
         raise ValueError("Invalid rotation for data in {}-frame "
                          "coordinate system.".format(csin))
-        
+
     if 'orientmat' in adcpo:
         rmat = adcpo['orientmat'].values
     else:
@@ -64,9 +64,9 @@ def _inst2earth(adcpo, reverse=False,
         dat = adcpo[nm].values
         dat[:3] = np.einsum(sumstr, rotmat, dat[:3])
         adcpo[nm].values = dat.copy()
-   
+
     adcpo = _set_coords(adcpo, cs_new)
-    
+
     return adcpo
 
 
@@ -106,7 +106,7 @@ def _calc_orientmat(adcpo):
     Parameters
     ----------
     adcpo : The ADP object containing the data.
-    
+
     ## RDI-ADCP-MANUAL (Jan 08, section 5.6 page 18)
     The internal tilt sensors do not measure exactly the same
     pitch as a set of gimbals would (the roll is the same). Only in
@@ -123,7 +123,7 @@ def _calc_orientmat(adcpo):
     r = np.deg2rad(adcpo['roll'].values)
     p = np.arctan(np.tan(np.deg2rad(adcpo['pitch'].values)) * np.cos(r))
     h = np.deg2rad(adcpo['heading'].values)
-    
+
     if 'rdi' in adcpo.inst_make.lower():
         if adcpo.orientation == 'up':
             """
@@ -139,7 +139,7 @@ def _calc_orientmat(adcpo):
         if (adcpo.coord_sys == 'ship' and adcpo.use_pitchroll == 'yes'):
             r[:] = 0
             p[:] = 0
-            
+
     ch = np.cos(h)
     sh = np.sin(h)
     cr = np.cos(r)
@@ -158,6 +158,6 @@ def _calc_orientmat(adcpo):
     rotmat[2, 2, :] = cp * cr
 
     # The 'orientation matrix' is the transpose of the 'rotation matrix'.
-    omat = np.rollaxis(rotmat, 1) 
+    omat = np.rollaxis(rotmat, 1)
 
     return omat

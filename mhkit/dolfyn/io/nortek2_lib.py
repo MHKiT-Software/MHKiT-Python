@@ -1,6 +1,7 @@
 import struct
 import os.path as path
 import numpy as np
+import warnings
 from datetime import datetime
 
 
@@ -49,7 +50,7 @@ _index_dtype = {
               ('minute', np.uint8),
               ('second', np.uint8),
               ('usec100', np.uint16),
-    ]),
+              ]),
     1:
     np.dtype([('ens', np.uint64),
               ('hw_ens', np.uint32),
@@ -66,7 +67,7 @@ _index_dtype = {
               ('second', np.uint8),
               ('usec100', np.uint16),
               ('d_ver', np.uint8),
-    ])
+              ])
 }
 
 
@@ -91,6 +92,7 @@ def _calc_time(year, month, day, hour, minute, second, usec, zero_is_bad=True):
 
 
 def _create_index_slow(infile, outfile, N_ens):
+    print("Indexing {}...".format(infile), end='')
     fin = open(infile, 'rb')
     fout = open(outfile, 'wb')
     fout.write(b'Index Ver:')
@@ -122,21 +124,21 @@ def _create_index_slow(infile, outfile, N_ens):
                 N += 1
             fout.write(struct.pack('<QIQ4H6BHB', N, ens, pos, dat[2],
                                    config, beams_cy, 0,
-                                   yr, mo, dy, h, m, s, u, d_ver))
+                                   yr, mo + 1, dy, h, m, s, u, d_ver))
             fin.seek(dat[4] - (36 + seek_2ens[dat[2]]), 1)
             last_ens = ens
         else:
             fin.seek(dat[4], 1)
+
     fin.close()
     fout.close()
+    print(" Done.")
 
 
 def _get_index(infile, reload=False):
     index_file = infile + '.index'
     if not path.isfile(index_file) or reload:
-        print("Indexing...", end='')
         _create_index_slow(infile, index_file, 2 ** 32)
-        print(" Done.")
     f = open(index_file, 'rb')
     file_head = f.read(12)
     if file_head[:10] == b'Index Ver:':
@@ -150,23 +152,52 @@ def _get_index(infile, reload=False):
     return out
 
 
-def _index2ens_pos(index):
-    """Condense the index to only be the first occurence of each
-    ensemble. Returns only the position (the ens number is the array
-    index).
+def _boolarray_firstensemble_ping(index):
+    """Return a boolean of the index that indicates only the first ping in each ensemble.
     """
     if (index['ens'] == 0).all() and (index['hw_ens'] == 1).all():
-        n_IDs = {id:(index['ID'] == id).sum() for id in np.unique(index['ID'])}
-        assert all(np.abs(np.diff(list(n_IDs.values())))) <= 1, "Unable to read this file"
-        return index['pos'][index['ID']==index['ID'][0]]
+        n_IDs = {id: (index['ID'] == id).sum()
+                 for id in np.unique(index['ID'])}
+        assert all(np.abs(np.diff(list(n_IDs.values())))
+                   ) <= 1, "Unable to read this file"
+        return index['ID'] == index['ID'][0]
     else:
         dens = np.ones(index['ens'].shape, dtype='bool')
         dens[1:] = np.diff(index['ens']) != 0
-        return index['pos'][dens]
+        return dens
 
 
 def _getbit(val, n):
-    return bool((val >> n) & 1)
+    try:
+        return bool((val >> n) & 1)
+    except ValueError:  # An array
+        return ((val >> n) & 1).astype('bool')
+
+
+def crop_ensembles(infile, outfile, range):
+    """This function is for cropping certain pings out of an AD2CP
+    file to create a new AD2CP file. It properly grabs the header from
+    infile.
+
+    The range is the `ensemble/ping` counter as defined in the first column
+    of the INDEX.
+
+    """
+    idx = _get_index(infile)
+    # If running in raw/continuous mode
+    if not sum(idx['ens']):
+        n_ID = len(np.unique(idx['ID']))
+        idx_act = np.arange(0, len(idx)//n_ID, 1)
+        idx['ens'] = np.sort(np.tile(idx_act, n_ID))
+    with open(infile, 'rb') as fin:
+        with open(outfile, 'wb') as fout:
+            fout.write(fin.read(idx['pos'][0]))
+            i0 = np.nonzero(idx['ens'] == range[0])[0][0]
+            ie = np.nonzero(idx['ens'] == range[1])[0][0]
+            pos = idx['pos'][i0]
+            nbyte = idx['pos'][ie] - pos
+            fin.seek(pos, 0)
+            fout.write(fin.read(nbyte))
 
 
 class _BitIndexer():
@@ -248,6 +279,7 @@ def _headconfig_int2dict(val, mode='burst'):
             # bits 10-15 unused
         )
 
+
 def _status2data(val):
     # This is detailed in the 6.1.2 of the Nortek Signature
     # Integrators Guide (2017)
@@ -274,7 +306,7 @@ def _beams_cy_int2dict(val, id):
     """
     if id == 28:  # 0x1C (echosounder)
         return dict(n_cells=val)
-    
+
     return dict(
         n_cells=val & (2 ** 10 - 1),
         cy=['ENU', 'XYZ', 'beam', None][val >> 10 & 3],
@@ -296,7 +328,7 @@ def _collapse(vec, name=None, exclude=[]):
     elif _isuniform(vec, exclude=exclude):
         return list(set(np.unique(vec)) - set(exclude))[0]
     else:
-        #warnings.warn(f"The variable {name} is expected to be uniform, but it is not.")
+        warnings.warn(f"The variable {name} is expected to be uniform, but it is not.")
         return vec[0]
 
 

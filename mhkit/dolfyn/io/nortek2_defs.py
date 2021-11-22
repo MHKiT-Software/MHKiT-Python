@@ -3,7 +3,6 @@ from copy import copy
 from struct import Struct
 from . import nortek2_lib as lib
 
-dt16 = 'float16'
 dt32 = 'float32'
 dt64 = 'float64'
 
@@ -19,6 +18,7 @@ def _nans(*args, **kwargs):
     else:
         out[:] = 0
     return out
+
 
 def _format(form, N):
     out = ''
@@ -42,7 +42,7 @@ class _DataDef():
             self._format.append(itm[1])
             self._shape.append(itm[2])
             self._sci_func.append(itm[3])
-            if len(itm)==5:
+            if len(itm) == 5:
                 self._units.append(itm[4])
             else:
                 self._units.append('')
@@ -111,7 +111,7 @@ class _DataDef():
             if func is None:
                 continue
             data[ky] = func(data[ky])
-            
+
     def data_units(self):
         units = {}
         for ky, unit in zip(self._names, self._units):
@@ -166,18 +166,18 @@ _burst_hdr = [
     ('minute', 'B', [], None),
     ('second', 'B', [], None),
     ('usec100', 'H', [], None),
-    ('c_sound', 'H', [], _LinFunc(0.1, dtype=dt32), 'm/s'),  # m/s
-    ('temp', 'H', [], _LinFunc(0.01, dtype=dt32), 'deg C'),  # Celsius
-    ('pressure', 'I', [], _LinFunc(0.001, dtype=dt32), 'dbar'),  # dbar
-    ('heading', 'H', [], _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
-    ('pitch', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
-    ('roll', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
+    ('c_sound', 'H', [], _LinFunc(0.1, dtype=dt32), 'm/s'),
+    ('temp', 'H', [], _LinFunc(0.01, dtype=dt32), 'deg C'),
+    ('pressure', 'I', [], _LinFunc(0.001, dtype=dt32), 'dbar'),
+    ('heading', 'H', [], _LinFunc(0.01, dtype=dt32), 'deg'),
+    ('pitch', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg'),
+    ('roll', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg'),
     ('beam_config', 'H', [], None),
-    ('cell_size', 'H', [], _LinFunc(0.001)),  # m
-    ('blank_dist', 'H', [], _LinFunc(0.01)),  # m
-    ('nom_corr', 'B', [], None),  # percent
-    ('temp_press', 'B', [], _LinFunc(0.2, -20, dtype=dt16)),  # Celsius
-    ('batt_V', 'H', [], _LinFunc(0.1, dtype=dt16)),  # Volts
+    ('cell_size', 'H', [], _LinFunc(0.001), 'm'),
+    ('blank_dist', 'H', [], _LinFunc(0.01), 'm'),
+    ('nom_corr', 'B', [], None, '%'),
+    ('temp_press', 'B', [], _LinFunc(0.2, -20, dtype=dt32), 'deg C'),
+    ('batt', 'H', [], _LinFunc(0.1, dtype=dt32), 'V'),
     ('mag', 'h', [3], _LinFunc(0.1, dtype=dt32), 'uT'),
     ('accel', 'h', [3], _LinFunc(1. / 16384 * grav, dtype=dt32), 'm/s^2'),
     ('ambig_vel', 'h', [], _LinFunc(0.001, dtype=dt32), 'm/s'),
@@ -185,12 +185,12 @@ _burst_hdr = [
     ('xmit_energy', 'H', [], None, 'dB'),
     ('vel_scale', 'b', [], None),
     ('power_level', 'b', [], None),
-    ('temp_mag', 'h', [], None),
-    ('temp_clock', 'h', [], _LinFunc(0.01, dtype=dt16)),
+    ('temp_mag', 'h', [], None, 'deg C'),
+    ('temp_clock', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg C'),
     ('error', 'H', [], None),
-    ('status0', 'H', [], None),
-    ('status', 'I', [], None),
-    ('_ensemble', 'I', [], None)
+    ('status0', 'H', [], None, 'binary'),
+    ('status', 'I', [], None, 'binary'),
+    ('_ensemble', 'I', [], None),
 ]
 
 _bt_hdr = [
@@ -205,18 +205,18 @@ _bt_hdr = [
     ('minute', 'B', [], None),
     ('second', 'B', [], None),
     ('usec100', 'H', [], None),
-    ('c_sound', 'H', [], _LinFunc(0.1, dtype=dt32), 'm/s'),  # m/s
-    ('temp', 'H', [], _LinFunc(0.01, dtype=dt32), 'deg C'),  # Celsius
-    ('pressure', 'I', [], _LinFunc(0.001, dtype=dt32), 'dbar'),  # dbar
-    ('heading', 'H', [], _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
-    ('pitch', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
-    ('roll', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
+    ('c_sound', 'H', [], _LinFunc(0.1, dtype=dt32), 'm/s'),
+    ('temp', 'H', [], _LinFunc(0.01, dtype=dt32), 'deg C'),
+    ('pressure', 'I', [], _LinFunc(0.001, dtype=dt32), 'dbar'),
+    ('heading', 'H', [], _LinFunc(0.01, dtype=dt32), 'deg'),
+    ('pitch', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg'),
+    ('roll', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg'),
     ('beam_config', 'H', [], None),
-    ('cell_size', 'H', [], _LinFunc(0.001)),  # m
-    ('blank_dist', 'H', [], _LinFunc(0.01)),  # m
-    ('nom_corr', 'B', [], None),  # percent
-    ('unused', 'B', [], None),  # Celsius
-    ('batt_V', 'H', [], _LinFunc(0.1, dtype=dt16)),  # Volts
+    ('cell_size', 'H', [], _LinFunc(0.001), 'm'),
+    ('blank_dist', 'H', [], _LinFunc(0.01), 'm'),
+    ('nom_corr', 'B', [], None, '%'),
+    ('unused', 'B', [], None),
+    ('batt', 'H', [], _LinFunc(0.1, dtype=dt32), 'V'),
     ('mag', 'h', [3], None, 'gauss'),
     ('accel', 'h', [3], _LinFunc(1. / 16384 * grav, dtype=dt32), 'm/s^2'),
     ('ambig_vel', 'I', [], _LinFunc(0.001, dtype=dt32), 'm/s'),
@@ -224,54 +224,28 @@ _bt_hdr = [
     ('xmit_energy', 'H', [], None, 'dB'),
     ('vel_scale', 'b', [], None),
     ('power_level', 'b', [], None),
-    ('temp_mag', 'h', [], None),
-    ('temp_clock', 'h', [], _LinFunc(0.01, dtype=dt16)),
+    ('temp_mag', 'h', [], None, 'deg C'),
+    ('temp_clock', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg C'),
     ('error', 'I', [], None),
-    ('status', 'I', [], None),
-    ('_ensemble', 'I', [], None)
+    ('status', 'I', [], None, 'binary'),
+    ('_ensemble', 'I', [], None),
 ]
 
 _ahrs_def = [
     ('orientmat', 'f', [3, 3], None),
     ('quaternion', 'f', [4], None),
-    ('angrt', 'f', [3], _LinFunc(np.pi / 180, dtype=dt32), 'rad/s'),  # rad/sec
+    ('angrt', 'f', [3], _LinFunc(np.pi / 180, dtype=dt32), 'rad/s'),
 ]
-
-_burst_group_org = {
-    # Anything not specified here will be in the root group
-    'data_vars': ['vel','amp', 'corr','c_sound', 'temp', 
-                  'pressure','orientmat',
-                  'heading', 'pitch', 'roll',
-                  'angrt', 'mag', 'accel', 'quaternion',
-                  ],
-    'alt': ['alt_dist', 'alt_quality', 'alt_status',
-            'ast_dist', 'ast_quality',
-            'ast_offset_time', 'ast_pressure',
-            'altraw_nsamp', 'altraw_dist', 'altraw_samp'],
-    
-    'sys': ['temp_press', 'temp_mag', 'temp_clock',
-            'batt_V', 'error', 'status0', 'status',
-            # 'ensemble' is added in Ad2cpReader.init_data
-            '_ensemble', 'ensemble', 'std_press',
-            'std_pitch', 'std_roll', 'std_heading',
-            'ambig_vel', 'xmit_energy',],
-}
-
-
-def _get_group(ky, ):
-    for grp in _burst_group_org:
-        if ky in _burst_group_org[grp]:
-            return grp
-    return None
 
 
 def _calc_bt_struct(config, nb):
     flags = lib._headconfig_int2dict(config, mode='bt')
     dd = copy(_bt_hdr)
     if flags['vel']:
-        dd.append(('vel', 'i', [nb], None, 'm/s'))  # units handled in Ad2cpReader.sci_data
+        # units handled in Ad2cpReader.sci_data
+        dd.append(('vel', 'i', [nb], None, 'm/s'))
     if flags['dist']:
-        dd.append(('dist', 'i', [nb], _LinFunc(0.001, dtype=dt32),'m'))
+        dd.append(('dist', 'i', [nb], _LinFunc(0.001, dtype=dt32), 'm'))
     if flags['fom']:
         dd.append(('fom', 'H', [nb], None))
     if flags['ahrs']:
@@ -307,12 +281,12 @@ def _calc_burst_struct(config, nb, nc):
         dd.append(('corr', 'B', [nb, nc], None, '%'))
     if flags['alt']:
         dd += [('alt_dist', 'f', [], _LinFunc(dtype=dt32), 'm'),
-               ('alt_quality', 'H', [], _LinFunc(0.01,dtype=dt32), 'dB'),
+               ('alt_quality', 'H', [], _LinFunc(0.01, dtype=dt32), 'dB'),
                ('alt_status', 'H', [], None)]
     if flags['ast']:
         dd += [
             ('ast_dist', 'f', [], _LinFunc(dtype=dt32), 'm'),
-            ('ast_quality', 'H', [], _LinFunc(0.01,dtype=dt32), 'dB'),
+            ('ast_quality', 'H', [], _LinFunc(0.01, dtype=dt32), 'dB'),
             ('ast_offset_time', 'h', [], _LinFunc(0.0001, dtype=dt32), 's'),
             ('ast_pressure', 'f', [], None, 'dbar'),
             ('ast_spare', 'B7x', [], None),
@@ -326,15 +300,16 @@ def _calc_burst_struct(config, nb, nc):
     if flags['ahrs']:
         dd += _ahrs_def
     if flags['p_gd']:
-        dd += [('percent_good', 'B', [nc], None, '%')]  # percent
+        dd += [('percent_good', 'B', [nc], None, '%')]
     if flags['std']:
-        dd += [('std_pitch', 'h', [],
-                _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
-               ('std_roll', 'h', [],
-                _LinFunc(0.01, dtype=dt32), 'deg'),  # degrees
-               ('std_heading', 'h', [],
-                _LinFunc(0.01, dtype=dt32),'deg'),  # degrees
-               ('std_press', 'h', [],
-                _LinFunc(0.1, dtype=dt32), 'dbar'),  # dbar
+        dd += [('pitch_std', 'h', [],
+                _LinFunc(0.01, dtype=dt32), 'deg'),
+               ('roll_std', 'h', [],
+                _LinFunc(0.01, dtype=dt32), 'deg'),
+               ('heading_std', 'h', [],
+                _LinFunc(0.01, dtype=dt32), 'deg'),
+               ('press_std', 'h', [],
+                _LinFunc(0.1, dtype=dt32), 'dbar'),
+               # This use of 'x' here is a hack
                ('std_spare', 'H22x', [], None)]
     return _DataDef(dd)
