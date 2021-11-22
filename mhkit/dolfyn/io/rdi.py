@@ -28,6 +28,8 @@ def read_rdi(fname, userdata=None, nens=None, debug=0):
         An xarray dataset from the binary instrument data
 
     """
+    # Reads into a dictionary of dictionaries using netcdf naming conventions
+    # Should be easier to debug
     with _RdiReader(fname, debug_level=debug) as ldr:
         dat = ldr.load_data(nens=nens)
         
@@ -103,21 +105,21 @@ def _set_rdi_declination(dat, fname='????'):
 
 
 century = 2000
-data_defs = {'number': ([], 'sys', 'uint32', ''),
+data_defs = {'number': ([], 'data_vars', 'uint32', ''),
              'rtc': ([7], 'sys', 'uint16', ''),
-             'bit': ([], 'sys', 'bool', ''),
-             'ssp': ([], 'sys', 'uint16', ''),
+             'builtin_test_fail': ([], 'data_vars', 'bool', ''),
+             'c_sound': ([], 'data_vars', 'float32', 'm/s'),
              'depth': ([], 'data_vars', 'float32', 'm'),
              'pitch': ([], 'data_vars', 'float32', 'deg'),
              'roll': ([], 'data_vars', 'float32', 'deg'),
              'heading': ([], 'data_vars', 'float32', 'deg'),
              'temp': ([], 'data_vars', 'float32', 'C'),
              'salinity': ([], 'data_vars', 'float32', 'psu'),
-             'mpt_sec': ([], 'sys', 'float32', 's'),
-             'heading_std': ([], 'sys', 'float32', 'deg'),
-             'pitch_std': ([], 'sys', 'float32', 'deg'),
-             'roll_std': ([], 'sys', 'float32', 'deg'),
-             'adc': ([8], 'sys', 'uint16', ''),
+             'min_preping_wait': ([], 'data_vars', 'float32', 's'),
+             'heading_std': ([], 'data_vars', 'float32', 'deg'),
+             'pitch_std': ([], 'data_vars', 'float32', 'deg'),
+             'roll_std': ([], 'data_vars', 'float32', 'deg'),
+             'adc': ([8], 'sys', 'uint8', ''),
              'error_status_wd': ([], 'attrs', 'float32', ''),
              'pressure': ([], 'data_vars', 'float32', 'dbar'),
              'pressure_std': ([], 'data_vars', 'float32', 'dbar'),
@@ -230,7 +232,7 @@ class _RdiReader():
     _fixoffset = 0
     _nbyte = 0
     _winrivprob = False
-    _search_num = 30000
+    _search_num = 30000  # Maximum distance? to search
     _debug7f79 = None
     extrabytes = 0
 
@@ -425,6 +427,7 @@ class _RdiReader():
             print("  ###In checkheader.")
         fd = self.f
         valid = 0
+        #print(self.f.pos)
         numbytes = fd.read_i16(1)
         if numbytes > 0:
             fd.seek(numbytes - 2, 1)
@@ -436,7 +439,12 @@ class _RdiReader():
                         self._debug7f79 = True
                         warnings.warn(
                             "This ADCP file has an undocumented "
-                            "sync-code.")
+                            "sync-code.  If possible, please notify the "
+                            "DOLfYN developers that you are recieving "
+                            "this warning by posting the hardware and "
+                            "software details on how you acquired this file "
+                            "to "
+                            "http://github.com/lkilcher/dolfyn/issues/7")
                     valid = 1
         else:
             fd.seek(-2, 1)
@@ -486,7 +494,8 @@ class _RdiReader():
                           .format(offset, readbytes, self.hdr['nbyte']))
                     print("""
                     NOTE - If this appears at the beginning of the file, it may be
-                           a dolfyn problem.
+                           a dolfyn problem. Please report this message, with details here:
+                           https://github.com/lkilcher/dolfyn/issues/8
 
                          - If this appears at the end of the file it means
                            The file is corrupted and only a partial record
@@ -610,15 +619,15 @@ class _RdiReader():
         self.vars_read += ['number',
                            'rtc',
                            'number',
-                           'bit',
-                           'ssp',
+                           'builtin_test_fail',
+                           'c_sound',
                            'depth',
                            'heading',
                            'pitch',
                            'roll',
                            'salinity',
                            'temp',
-                           'mpt_sec',
+                           'min_preping_wait',
                            'heading_std',
                            'pitch_std',
                            'roll_std',
@@ -626,19 +635,19 @@ class _RdiReader():
         ens.number[k] = fd.read_ui16(1)
         ens.rtc[:, k] = fd.read_ui8(7)
         ens.number[k] += 65535 * fd.read_ui8(1)
-        ens.bit[k] = fd.read_ui16(1)
-        ens.ssp[k] = fd.read_ui16(1)
+        ens.builtin_test_fail[k] = fd.read_ui16(1)
+        ens.c_sound[k] = fd.read_ui16(1)
         ens.depth[k] = fd.read_ui16(1) * 0.1
         ens.heading[k] = fd.read_ui16(1) * 0.01
         ens.pitch[k] = fd.read_i16(1) * 0.01
         ens.roll[k] = fd.read_i16(1) * 0.01
         ens.salinity[k] = fd.read_i16(1)
         ens.temp[k] = fd.read_i16(1) * 0.01
-        ens.mpt_sec[k] = (fd.read_ui8(3) * np.array([60, 1, .01])).sum()
+        ens.min_preping_wait[k] = (fd.read_ui8(3) * np.array([60, 1, .01])).sum()
         ens.heading_std[k] = fd.read_ui8(1)
-        ens.pitch_std[k] = fd.read_i8(1) * 0.1
-        ens.roll_std[k] = fd.read_i8(1) * 0.1
-        ens.adc[:, k] = fd.read_ui8(8)
+        ens.pitch_std[k] = fd.read_ui8(1) * 0.1
+        ens.roll_std[k] = fd.read_ui8(1) * 0.1
+        ens.adc[:, k] = fd.read_i8(8)
         self._nbyte = 2 + 40
 
     def read_vel(self,):
@@ -688,8 +697,14 @@ class _RdiReader():
         k = ens.k
         cfg = self.cfg
         if self._source == 2:
-            # Assumption: never running bottom-tracking without WinRiver or VMDAS
             warnings.warn('lat/lon bottom reading passed')
+            # self.vars_read += ['latitude_gps', 'longitude_gps']
+            # fd.seek(2, 1)
+            # long1 = fd.read_ui16(1)
+            # fd.seek(6, 1)
+            # ens.latitude_gps[k] = fd.read_i32(1) * self._cfac
+            # if ens.latitude_gps[k] == 0:
+            #     ens.latitude_gps[k] = np.NaN
         else:
             fd.seek(14, 1)
         ens.dist_bt[:, k] = fd.read_ui16(4) * 0.01
@@ -699,6 +714,22 @@ class _RdiReader():
         ens.prcnt_gd_bt[:, k] = fd.read_ui8(4)
         if self._source == 2:
             warnings.warn('lat/lon bottom reading passed')
+            # fd.seek(2, 1)
+            # ens.longitude_gps[k] = (long1 + 65536 * fd.read_ui16(1)) * self._cfac
+            # if ens.longitude_gps[k] > 180:
+            #     ens.longitude_gps[k] = ens.longitude_gps[k] - 360
+            # if ens.longitude_gps[k] == 0:
+            #     ens.longitude_gps[k] = np.NaN
+            # fd.seek(16, 1)
+            # qual = fd.read_ui8(1)
+            # if qual == 0:
+            #     print('  qual==%d,%f %f' % (qual,
+            #                                 ens.latitude_gps[k],
+            #                                 ens.longitude_gps[k]))
+            #     ens.latitude_gps[k] = np.NaN
+            #     ens.longitude_gps[k] = np.NaN
+            # fd.seek(71 - 45 - 16 - 17, 1)
+            # self._nbyte = 2 + 68
         else:
             fd.seek(71 - 45, 1)
             self._nbyte = 2 + 68
@@ -706,6 +737,14 @@ class _RdiReader():
             fd.seek(78 - 71, 1)
             ens.dist_bt[:, k] = ens.dist_bt[:, k] + fd.read_ui8(4) * 655.36
             self._nbyte += 11
+            #!!! Assumption: never running bottom-tracking without WinRiver or VMDAS
+            # if cfg['name'] == 'wh-adcp':
+            #     if cfg['prog_ver'] >= 16.20:
+            #         # RDI documentation claims these extra bytes were added in
+            #         # v8.17, but they don't appear in my 8.33 data -
+            #         # conversation with Egil suggests they were added in 16.20
+            #         fd.seek(4, 1)
+            #         self._nbyte += 4
 
     def read_vmdas(self,):
         """ Read something from VMDAS """
@@ -730,7 +769,7 @@ class _RdiReader():
         date = datetime.datetime(utim[2] + utim[3] * 256, utim[1], utim[0])
         # This byte is in hundredths of seconds (10s of milliseconds):
         time = datetime.timedelta(milliseconds=(int(fd.read_ui32(1) / 10)))
-        fd.seek(4, 1)  # "PC clock offset from UTC" - clock drift in ms
+        fd.seek(4, 1)  # "PC clock offset from UTC" - clock drift in ms?
         ens.time_gps[k] = (date + time).timestamp()
         ens.latitude_gps[k] = fd.read_i32(1) * self._cfac
         ens.longitude_gps[k] = fd.read_i32(1) * self._cfac
@@ -814,7 +853,7 @@ class _RdiReader():
                 return 'FAIL'
             gage = self.f.read_float(1)
             gstation_id = self.f.read_ui16(1)
-            # 4 unknown bytes
+            # 4 unknown bytes (2 reserved+2 checksum?)
             # 78 bytes for GPGGA string (including \r\n)
             # 2 reserved + 2 checksum
             self.vars_read += ['longitude_gps', 'latitude_gps', 'time_gps']
@@ -845,6 +884,21 @@ class _RdiReader():
         self._nbyte = self._nbyte = 2 + n_skip
         
     def read_nocode(self, id):
+        # Skipping bytes from codes 0340-30FC, commented if needed
+        # hxid = hex(id)
+        # if hxid[2:4] == '30':
+        #     raise Exception("")
+        #     # I want to count the number of 1s in the middle 4 bits
+        #     # of the 2nd two bytes.
+        #     # 60 is a 0b00111100 mask
+        #     nflds = (bin(int(hxid[3]) & 60).count('1') +
+        #              bin(int(hxid[4]) & 60).count('1'))
+        #     # I want to count the number of 1s in the highest
+        #     # 2 bits of byte 3
+        #     # 3 is a 0b00000011 mask:
+        #     dfac = bin(int(hxid[3], 0) & 3).count('1')
+        #     self.skip_Nbyte(12 * nflds * dfac)
+        # else:
         print('  Unrecognized ID code: %0.4X\n' % id)
 
    

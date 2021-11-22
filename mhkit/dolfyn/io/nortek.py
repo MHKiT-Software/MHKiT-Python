@@ -65,10 +65,10 @@ def read_nortek(filename, userdata=True, debug=False, do_checksum=False,
                           ds['roll'].values,
                           ds.get('orientation_down', None))
         ds['orientmat'] = xr.DataArray(omat,
-                                        coords={'earth': ['E','N','U'],
-                                                'inst': ['X','Y','Z'],
-                                                'time': ds['time']},
-                                        dims=['earth','inst','time'])
+                                       coords={'earth': ['E','N','U'],
+                                               'inst': ['X','Y','Z'],
+                                               'time': ds['time']},
+                                       dims=['earth','inst','time'])
     if rotmat is not None:
         ds = rot.set_inst2head_rotmat(ds, rotmat)
     if declin is not None:
@@ -540,34 +540,6 @@ class _NortekReader():
                         _bcd2char(hour), 
                         _bcd2char(min), 
                         _bcd2char(sec)).timestamp()
-        
-
-    def read_vec_hdr(self,):
-        # ID: '0x12 = 18
-        if self.debug:
-            print('Reading vector header data (0x12) ping #{} @ {}...'
-                  .format(self.c, self.pos))
-        byts = self.read(38)
-        # The first two are size, the next 6 are time.
-        tmp = unpack(self.endian + '8xH7B21x', byts)
-        hdrnow = {}
-        hdrnow['time'] = self.rd_time(byts[2:8])
-        hdrnow['NRecords'] = tmp[0]
-        hdrnow['Noise1'] = tmp[1]
-        hdrnow['Noise2'] = tmp[2]
-        hdrnow['Noise3'] = tmp[3]
-        hdrnow['Spare0'] = byts[13:14].decode('utf-8')
-        hdrnow['Corr1'] = tmp[5]
-        hdrnow['Corr2'] = tmp[6]
-        hdrnow['Corr3'] = tmp[7]
-        hdrnow['Spare1'] = byts[17:].decode('utf-8')
-        self.checksum(byts)
-        if 'data_header' not in self.config:
-            self.config['data_header'] = hdrnow
-        else:
-            if not isinstance(self.config['data_header'], list):
-                self.config['data_header'] = [self.config['data_header']]
-            self.config['data_header'] += [hdrnow]
 
 
     def _init_data(self, vardict):
@@ -694,7 +666,35 @@ class _NortekReader():
 
         # Apply velocity scaling (1 or 0.1)
         dat['data_vars']['vel'] *= self.config['mode']['vel_scale']
-        
+
+
+    def read_vec_hdr(self,):
+        # ID: '0x12 = 18
+        if self.debug:
+            print('Reading vector header data (0x12) ping #{} @ {}...'
+                  .format(self.c, self.pos))
+        byts = self.read(38)
+        # The first two are size, the next 6 are time.
+        tmp = unpack(self.endian + '8xH7B21x', byts)
+        hdrnow = {}
+        hdrnow['time'] = self.rd_time(byts[2:8])
+        hdrnow['NRecords'] = tmp[0]
+        hdrnow['Noise1'] = tmp[1]
+        hdrnow['Noise2'] = tmp[2]
+        hdrnow['Noise3'] = tmp[3]
+        hdrnow['Spare0'] = byts[13:14].decode('utf-8')
+        hdrnow['Corr1'] = tmp[5]
+        hdrnow['Corr2'] = tmp[6]
+        hdrnow['Corr3'] = tmp[7]
+        hdrnow['Spare1'] = byts[17:].decode('utf-8')
+        self.checksum(byts)
+        if 'data_header' not in self.config:
+            self.config['data_header'] = hdrnow
+        else:
+            if not isinstance(self.config['data_header'], list):
+                self.config['data_header'] = [self.config['data_header']]
+            self.config['data_header'] += [hdrnow]
+            
         
     def read_vec_sysdata(self,):
         # ID: 0x11 = 17
@@ -713,14 +713,14 @@ class _NortekReader():
         dat['coords']['time'][c] = self.rd_time(byts[2:8])
         ds = dat['sys']
         dv = dat['data_vars']
-        (ds['batt'][c],
+        (dv['batt'][c],
          dv['c_sound'][c],
          dv['heading'][c],
          dv['pitch'][c],
          dv['roll'][c],
          dv['temp'][c],
-         ds['error'][c],
-         ds['status'][c],
+         dv['error'][c],
+         dv['status'][c],
          ds['AnaIn'][c]) = unpack(self.endian + '2H3hH2BH', byts[8:])
         self.checksum(byts)
         
@@ -761,21 +761,21 @@ class _NortekReader():
             else:
                 t[iburst] = (t[iburst][0] + arng / (fs * 24 * 3600))
 
-            tmpd = tbx._nans_like(dat['data_vars']['heading'][iburst])
+            tmpd = tbx._nans_like(dv['heading'][iburst])
             # The first status bit should be the orientation.
-            tmpd[sysi] = dat['sys']['status'][iburst][sysi] & 1
-            tbx._fillgaps(tmpd, extrapFlg=True)
+            tmpd[sysi] = dv['status'][iburst][sysi] & 1
+            tbx.fillgaps(tmpd, extrapFlg=True)
             tmpd = np.nan_to_num(tmpd, nan=0) # nans in pitch roll heading
             slope = np.diff(tmpd)
             tmpd[1:][slope < 0] = 1
             tmpd[:-1][slope > 0] = 0
             dv['orientation_down'][iburst] = tmpd.astype('bool')
-        tbx._interpgaps(dat['sys']['batt'], t)
-        tbx._interpgaps(dv['c_sound'], t)
-        tbx._interpgaps(dv['heading'], t)
-        tbx._interpgaps(dv['pitch'], t)
-        tbx._interpgaps(dv['roll'], t)
-        tbx._interpgaps(dv['temp'], t)
+        tbx.interpgaps(dv['batt'], t)
+        tbx.interpgaps(dv['c_sound'], t)
+        tbx.interpgaps(dv['heading'], t)
+        tbx.interpgaps(dv['pitch'], t)
+        tbx.interpgaps(dv['roll'], t)
+        tbx.interpgaps(dv['temp'], t)
         
             
     def read_microstrain(self,):
@@ -929,15 +929,15 @@ class _NortekReader():
         dat['coords']['time'][c] = self.rd_time(byts[2:8])
         ds = dat['sys']
         dv = dat['data_vars']
-        (ds['Error'][c],
+        (dv['error'][c],
          ds['AnaIn1'][c],
-         ds['batt'][c],
+         dv['batt'][c],
          dv['c_sound'][c],
          dv['heading'][c],
          dv['pitch'][c],
          dv['roll'][c],
          p_msb,
-         ds['status'][c],
+         dv['status'][c],
          p_lsw,
          dv['temp'][c],) = unpack(self.endian + '7HBB2H', byts[8:28])
         dv['pressure'][c] = (65536 * p_msb + p_lsw)

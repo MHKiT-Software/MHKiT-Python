@@ -156,7 +156,7 @@ class io_testcase(unittest.TestCase):
         td_sig_i = drop_config(read('Sig1000_IMU.ad2cp', userdata=False, 
                                nens=nens))
         td_sig_i_ud = drop_config(read('Sig1000_IMU.ad2cp', nens=nens))
-        td_sig_ieb = drop_config(read('VelEchoBT01.ad2cp', nens=nens))
+        td_sig_ieb = drop_config(read('VelEchoBT01.ad2cp', nens=100))
         td_sig_ie = drop_config(read('Sig500_Echo.ad2cp', nens=nens))
     
         assert_allclose(td_sig, dat_sig, atol=1e-6)
@@ -168,13 +168,9 @@ class io_testcase(unittest.TestCase):
         
     def test_matlab_io(self):
         td_rdi_bt = drop_config(read('RDI_withBT.000', nens=100))
-        td_sig_ieb = drop_config(read('VelEchoBT01.ad2cp', nens=100))
-        
         mat_rdi_bt = load_matlab('dat_rdi_bt.mat')
-        mat_sig_ieb = load_matlab('dat_sig_ieb.mat')
             
         assert_allclose(td_rdi_bt, mat_rdi_bt, atol=1e-6)
-        assert_allclose(td_sig_ieb, mat_sig_ieb, atol=1e-6)
     
     
     def test_read_warnings(self):

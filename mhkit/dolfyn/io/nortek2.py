@@ -62,7 +62,7 @@ def read_signature(filename, userdata=True, nens=None):
     if 'orientmat' not in ds:
         omat = _euler2orient(ds['heading'], ds['pitch'], ds['roll'])
         ds['orientmat'] = xr.DataArray(omat,
-                                       coords={'earth': ['E','N','U'], 
+                                       coords={'earth': ['E','N','U'],
                                                'inst': ['X','Y','Z'],
                                                'time': ds['time']},
                                        dims=['earth','inst','time'])
@@ -76,15 +76,24 @@ class _Ad2cpReader():
     def __init__(self, fname, endian=None, bufsize=None, rebuild_index=False):
         self.fname = fname
         self._check_nortek(endian)
+        self.f.seek(0, 2) # Seek to end
+        self._eof = self.f.tell()
         self._index = lib._get_index(fname,
                                     reload=rebuild_index)
         self._reopen(bufsize)
         self.filehead_config = self._read_filehead_config_string()
-        self._ens_pos = lib._index2ens_pos(self._index)
+        self._ens_pos = self._index['pos'][lib._boolarray_firstensemble_ping(self._index)]
+        self._lastblock_iswhole = self._calc_lastblock_iswhole()
         self._config = lib._calc_config(self._index)
         self._init_burst_readers()
         self.unknown_ID_count = {}
     
+    def _calc_lastblock_iswhole(self, ):
+        blocksize, blocksize_count = np.unique(np.diff(self._ens_pos),
+                                               return_counts=True)
+        standard_blocksize = blocksize[blocksize_count.argmax()]
+        return (self._eof - self._ens_pos[-1]) == standard_blocksize
+
     def _check_nortek(self, endian):
         self._reopen(10)
         byts = self.f.read(2)
@@ -195,9 +204,11 @@ class _Ad2cpReader():
 
 
     def readfile(self, ens_start=0, ens_stop=None):
-        nens_total = len(self._ens_pos)
+        # If the lastblock is not whole, we don't read it.
+        # If it is, we do (don't subtract 1)
+        nens_total = len(self._ens_pos) - int(not self._lastblock_iswhole)
         if ens_stop is None or ens_stop > nens_total:
-            ens_stop = nens_total - 1
+            ens_stop = nens_total
         ens_start = int(ens_start)
         ens_stop = int(ens_stop)
         nens = ens_stop - ens_start
@@ -317,7 +328,7 @@ def _reorg(dat):
     cfg['inst_type'] = 'ADCP'
     cfg['rotate_vars'] = ['vel',]
 
-    for id, tag in [(21, ''), (23, '_bt'), (24, '_b5'), (26, '_ar'), (28, '_echo')]:
+    for id, tag in [(21, ''), (23, '_bt'), (24, '_b5'), (26, '_ast'), (28, '_echo')]:
         if id in [24, 26]:
             collapse_exclude = [0]
         else:
@@ -346,80 +357,47 @@ def _reorg(dat):
         cfg['xmit_energy' + tag] = np.median(dnow['xmit_energy'])
         cfg['ambig_vel' + tag] = np.median(dnow['ambig_vel'])
         
-        for ky in ['SerialNum', 'cell_size', 'blank_dist']:
+        for ky in ['SerialNum', 'cell_size', 'blank_dist', 'nom_corr', 
+                   'data_desc','vel_scale', 'power_level']:
             # These ones should 'collapse'
             # (i.e., all values should be the same)
             # So we only need that one value.
             cfg[ky + tag] = lib._collapse(dnow[ky], 
                                           exclude=collapse_exclude,
                                           name=ky)
-        for ky in ['nom_corr', 'data_desc',
-                   'vel_scale', 'power_level']:
-            # These ones should 'collapse'
-            # (i.e., all values should be the same)
-            # So we only need that one value.
-            cfg['burst_config' + tag][ky + tag] = lib._collapse(dnow[ky], 
-                                         exclude=collapse_exclude,
-                                         name=ky)
             
-        for ky in ['c_sound', 'temp', 'pressure',
-                   'heading', 'pitch', 'roll',
-                   'mag', 'accel',
+        for ky in ['c_sound', 'temp', 'pressure', 'heading', 'pitch', 'roll',
+                   'mag', 'accel', 'batt', 'temp_mag', 'temp_clock', 'error',
+                   'status', 'ensemble_count',
                    ]:
             # No if statement here
             outdat['data_vars'][ky + tag] = dnow[ky]
             
-        for ky in ['batt_V', 'temp_mag', 'temp_clock',
-                   'error', 'status',
-                   '_ensemble', 'ensemble',
-                   ]:
-            outdat['sys'][ky + tag] = dnow[ky]
-            
-        for ky in ['vel', 'amp', 'corr', 'prcnt_gd',
-                   'echo', 'dist', 
-                   'orientmat', 'angrt', 'quaternion',
-                   ]:
-            if ky in dnow:
-                outdat['data_vars'][ky + tag] = dnow[ky]
-        
-        for ky in ['alt_dist', 'alt_quality', 'alt_status',
+        for ky in ['vel', 'amp', 'corr', 'prcnt_gd', 'echo', 'dist', 
+                   'orientmat', 'angrt', 'quaternion', 'ast_pressure',
+                   'alt_dist', 'alt_quality', 'alt_status',
                    'ast_dist', 'ast_quality', 'ast_offset_time',
-                   'ast_pressure', 
                    'altraw_nsamp', 'altraw_dsamp', 'altraw_samp',
+                   'status0', 'fom', 'temp_press', 'press_std',
+                   'pitch_std', 'roll_std', 'heading_std',
                    ]:
             if ky in dnow:
                 outdat['data_vars'][ky + tag] = dnow[ky]
-                
-        for ky in ['status0', 'fom',
-                   'temp_press', 'std_press'
-                   'std_pitch', 'std_roll', 'std_heading',
-                   ]:
-            if ky in dnow:
-                outdat['sys'][ky + tag] = dnow[ky]  
 
     # Move 'altimeter raw' data to it's own down-sampled structure
     if 26 in dat:
         ard = outdat['altraw']
         for ky in list(outdat['data_vars']):
-            if ky.endswith('_ar'):
+            if ky.endswith('_ast'):
                 grp = ky.split('.')[0]
                 if '.' in ky and grp not in ard:
                     ard[grp] = {}
-                ard[ky.rstrip('_ar')] = outdat['data_vars'].pop(ky)
-        for ky in list(outdat['sys']):
-            if ky.endswith('_ar'):
-                grp = ky.split('.')[0]
-                if '.' in ky and grp not in ard:
-                    ard[grp] = {}            
-                ard[ky.rstrip('_ar')] = outdat['sys'].pop(ky)
-        N = ard['_map_N'] = len(outdat['coords']['time'])
-        parent_map = np.arange(N)
-        ard['_map'] = parent_map[np.in1d(outdat['sys']['ensemble'], ard['ensemble'])]
+                ard[ky.rstrip('_ast')] = outdat['data_vars'].pop(ky)
     
     outdat['attrs']['coord_sys'] = {'XYZ': 'inst',
                                     'ENU': 'earth',
                                     'beam': 'beam'}[cfg['coord_sys_axes']]
-    tmp = lib._status2data(outdat['sys']['status'])  # returns a dict
+    tmp = lib._status2data(outdat['data_vars']['status'])  # returns a dict
     
     # Instrument direction
     # 0: XUP, 1: XDOWN, 2: YUP, 3: YDOWN, 4: ZUP, 5: ZDOWN, 
@@ -446,35 +424,32 @@ def _reduce(data):
     --- from different data structures within the same ensemble --- by
     averaging.  
     """
+    dv = data['data_vars']
+    dc = data['coords']
+    da = data['attrs']
+    
     # Average these fields
     for ky in ['c_sound', 'temp', 'pressure',
                'temp_press', 'temp_clock', 'temp_mag',
-               'batt_V']:
-        grp = defs._get_group(ky)
-        if grp is None:
-            dnow = data
-        else:
-            dnow = data[grp]
-        lib._reduce_by_average(dnow, ky, ky + '_b5')
+               'batt']:
+        lib._reduce_by_average(dv, ky, ky + '_b5')
 
     # Angle-averaging is treated separately
     for ky in ['heading', 'pitch', 'roll']:
-        lib._reduce_by_average_angle(data['data_vars'], ky, ky + '_b5')
+        lib._reduce_by_average_angle(dv, ky, ky + '_b5')
 
-    dv = data['data_vars']
-    da = data['attrs']
-    data['coords']['range'] = ((np.arange(dv['vel'].shape[1])+1) *
-                               da['cell_size'] +
-                               da['blank_dist'])
+    dc['range'] = ((np.arange(dv['vel'].shape[1])+1) *
+                   da['cell_size'] +
+                   da['blank_dist'])
     if 'vel_b5' in dv:
-        data['coords']['range_b5'] = ((np.arange(dv['vel_b5'].shape[1])+1) *
-                                      da['cell_size_b5'] +
-                                      da['blank_dist_b5'])
+        dc['range_b5'] = ((np.arange(dv['vel_b5'].shape[1])+1) *
+                          da['cell_size_b5'] +
+                          da['blank_dist_b5'])
     if 'echo_echo' in dv:
         dv['echo'] = dv.pop('echo_echo')
-        data['coords']['range_echo'] = ((np.arange(dv['echo'].shape[0])+1) *
-                                        da['cell_size_echo'] +
-                                        da['blank_dist_echo'])
+        dc['range_echo'] = ((np.arange(dv['echo'].shape[0])+1) *
+                            da['cell_size_echo'] +
+                            da['blank_dist_echo'])
 
     if 'orientmat' in data['data_vars']:
         da['has_imu'] = 1 # logical

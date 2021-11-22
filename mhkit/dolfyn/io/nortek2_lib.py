@@ -122,7 +122,7 @@ def _create_index_slow(infile, outfile, N_ens):
                 N += 1
             fout.write(struct.pack('<QIQ4H6BHB', N, ens, pos, dat[2],
                                    config, beams_cy, 0,
-                                   yr, mo, dy, h, m, s, u, d_ver))
+                                   yr, mo + 1, dy, h, m, s, u, d_ver))
             fin.seek(dat[4] - (36 + seek_2ens[dat[2]]), 1)
             last_ens = ens
         else:
@@ -134,9 +134,7 @@ def _create_index_slow(infile, outfile, N_ens):
 def _get_index(infile, reload=False):
     index_file = infile + '.index'
     if not path.isfile(index_file) or reload:
-        print("Indexing...", end='')
         _create_index_slow(infile, index_file, 2 ** 32)
-        print(" Done.")
     f = open(index_file, 'rb')
     file_head = f.read(12)
     if file_head[:10] == b'Index Ver:':
@@ -150,23 +148,21 @@ def _get_index(infile, reload=False):
     return out
 
 
-def _index2ens_pos(index):
-    """Condense the index to only be the first occurence of each
-    ensemble. Returns only the position (the ens number is the array
-    index).
+def _boolarray_firstensemble_ping(index):
+    """Return a boolean of the index that indicates only the first ping in each ensemble.
     """
     if (index['ens'] == 0).all() and (index['hw_ens'] == 1).all():
         n_IDs = {id:(index['ID'] == id).sum() for id in np.unique(index['ID'])}
         assert all(np.abs(np.diff(list(n_IDs.values())))) <= 1, "Unable to read this file"
-        return index['pos'][index['ID']==index['ID'][0]]
+        return index['ID']==index['ID'][0]
     else:
         dens = np.ones(index['ens'].shape, dtype='bool')
         dens[1:] = np.diff(index['ens']) != 0
-        return index['pos'][dens]
+        return dens
 
 
 def _getbit(val, n):
-    return bool((val >> n) & 1)
+        return bool((val >> n) & 1)
 
 
 class _BitIndexer():

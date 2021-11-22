@@ -79,14 +79,15 @@ def _handle_nan(data):
 
 def _create_dataset(data):
     """Creates an xarray dataset from dictionary created from binary
-    readers
+    readers.
+    Direction 'dir' coordinates get reset in `set_coords`
     """
     ds = xr.Dataset()
     inst = ['X','Y','Z']
     earth = ['E','N','U']
     beam = list(range(1,data['data_vars']['vel'].shape[0]+1))
-    tag = ['_b5', '_echo', '_bt', '_gps']
-    # 'dir' coordinates get reset in _set_coords()
+    tag = ['_b5', '_echo', '_bt', '_gps', '_ast']
+    
     for key in data['data_vars']:
         # orientation matrices
         if 'mat' in key:

@@ -26,7 +26,7 @@ def read(fname, userdata=True, nens=None):
     Returns
     -------
     ds : xarray.Dataset
-        An xarray dataset from the binary instrument data.
+        An xarray dataset from instrument datafile.
 
     """
     # Loop over binary readers until we find one that works.
@@ -60,7 +60,7 @@ def read_example(name, **kwargs):
     Returns
     -------
     ds : xarray.Dataset
-        An xarray dataset read from the instrument datafile
+        An xarray dataset from the binary instrument data.
 
     """
     filename = pkg_resources.resource_filename(
@@ -143,6 +143,8 @@ def load(filename):
     
     # Rejoin complex numbers
     if hasattr(ds, 'complex_vars') and len(ds.complex_vars):
+        if len(ds.complex_vars[0])==1:
+            ds.attrs['complex_vars'] = [ds.complex_vars]
         for var in ds.complex_vars:
             ds[var] = ds[var+'_real'] + ds[var+'_imag'] * 1j
             ds = ds.drop_vars([var+'_real', var+'_imag'])

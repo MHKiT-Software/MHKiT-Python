@@ -1,4 +1,3 @@
-from __future__ import division
 import numpy as np
 import warnings
 from . import base as rotb
@@ -6,14 +5,19 @@ from . import base as rotb
 
 def _beam2inst(dat, reverse=False, force=False):
     # Order of rotations matters
-    if not reverse: # beam->inst
+    # beam->head(ADV instrument head)->inst(ADV battery case|imu)
+    if reverse:
+        # First rotate velocities from ADV inst frame back to head frame
+        dat = _rotate_inst2head(dat, reverse=reverse)
+        # Now rotate from the head frame to the beam frame
         dat = rotb._beam2inst(dat, reverse=reverse, force=force)
-        dat = _rotate_head2inst(dat)
-    else: # inst->beam
-        # First rotate velocities back to head frame
-        dat = _rotate_head2inst(dat, reverse)
-        # Now rotate to beam
-        dat = rotb._beam2inst(dat, reverse=reverse, force=force)
+    
+    # inst(ADV battery case|imu)->head(ADV instrument head)->beam
+    else:
+        # First rotate velocities from beam to ADV head frame
+        dat = rotb._beam2inst(dat, force=force)
+        # Then rotate from ADV head frame to ADV inst frame
+        dat = _rotate_inst2head(dat)
 
     # Set the docstring to match the default rotation func
     _beam2inst.__doc_ = rotb._beam2inst.__doc__
@@ -31,7 +35,7 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
 
     reverse : bool (default: False)
            If True, this function performs the inverse rotation
-           (principal->earth).
+           (earth->inst).
 
     rotate_vars : iterable
       The list of variables to rotate. By default this is taken from
@@ -116,20 +120,16 @@ def _calc_omat(hh, pp, rr, orientation_down=None):
         # transform matlab script for more info.  
         rr[orientation_down.astype(bool)] += 180
 
-    # Take the transpose of the orientation to get the inst->earth rotation
-    # matrix.
     return _euler2orient(hh, pp, rr)
 
 
-def _rotate_head2inst(advo, reverse=False):
+def _rotate_inst2head(advo, reverse=False):
     if not _check_inst2head_rotmat(advo):
         # This object doesn't have a head2inst_rotmat, so we do nothing.
         return advo
-    if reverse: 
-        # transpose of inst2head gives head->inst
+    if reverse: # head->inst
         advo['vel'].values = np.dot(advo['inst2head_rotmat'].T, advo['vel'])
-    else: # head->inst
-        # velocity is recorded by Nortek in inst coordinates
+    else: # inst->head
         advo['vel'].values = np.dot(advo['inst2head_rotmat'], advo['vel'])
 
     return advo

@@ -266,7 +266,7 @@ def set_inst2head_rotmat(ds, rotmat):
     # function.
 
     if not csin == 'beam': # csin not 'beam', then we're in inst
-        ds = r_vec._rotate_head2inst(ds)
+        ds = r_vec._rotate_inst2head(ds)
     if csin not in ['inst', 'beam']:
         ds = rotate2(ds, csin, inplace=True)
         

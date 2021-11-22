@@ -22,7 +22,7 @@ def _find(arr):
     return np.nonzero(np.ravel(arr))[0]
 
 
-def _fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
+def fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
     """
     Linearly fill NaN value in an array.
 
@@ -88,7 +88,7 @@ def _fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
                       (ii.__len__() + 1) + a[gd[inds[i2]]]).astype(a.dtype)
 
 
-def _interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
+def interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
     """
     Fill gaps (NaN values) in ``a`` by linear interpolation along
     dimension DIM with the point spacing specified in ``t``.
@@ -128,3 +128,34 @@ def _interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
                                                         gd[inds[i2] + 1]]])
             a[ii] = (np.diff(a[gd[[inds[i2], inds[i2] + 1]]]) * ti +
                      a[gd[inds[i2]]]).astype(a.dtype)
+
+    
+def convert_degrees(deg, tidal_mode=True):
+    """
+    Converts between the 'cartesian angle' (counter-clockwise from East) and
+    the 'polar angle' in (degrees clockwise from North)
+    
+    Parameters
+    ----------
+    deg: float or array-like
+      Number or array in 'degrees CCW from East' or 'degrees CW from North'
+    tidal_mode : bool
+      If true, range is set from 0 to +/-180 degrees. If false, range is 0 to 
+      360 degrees
+      
+    Returns
+    -------
+    out : float or array-like
+      Input data transformed to 'degrees CW from North' or 
+      'degrees CCW from East', respectively (based on `deg`)
+      
+    Notes
+    -----
+    The same algorithm is used to convert back and forth between 'CCW from E' 
+    and 'CW from N'
+    
+    """
+    out = -(deg - 90) % 360
+    if tidal_mode:
+        out[out > 180] -= 360
+    return out
