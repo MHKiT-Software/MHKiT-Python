@@ -62,29 +62,6 @@ class TestResourceSpectrum(unittest.TestCase):
         self.assertLess(errorHm0, 0.01)
         self.assertLess(errorTp0, 0.01)
 
-    # def test_surface_elevation_seed(self):
-    #     S = wave.resource.jonswap_spectrum(self.f,self.Tp,self.Hs)
-
-    #     sig = inspect.signature(wave.resource.surface_elevation)
-    #     seednum = sig.parameters['seed'].default
-
-    #     eta0 = wave.resource.surface_elevation(S, self.t)
-    #     eta1 = wave.resource.surface_elevation(S, self.t, seed=seednum)
-
-    #     assert_frame_equal(eta0, eta1)
-
-    # def test_surface_elevation_phasing(self):
-    #     S = wave.resource.jonswap_spectrum(self.f,self.Tp,self.Hs)
-    #     eta0 = wave.resource.surface_elevation(S, self.t)
-    #     sig = inspect.signature(wave.resource.surface_elevation)
-    #     seednum = sig.parameters['seed'].default
-    #     np.random.seed(seednum)
-    #     phases = np.random.rand(len(S)) * 2 * np.pi
-    #     eta1 = wave.resource.surface_elevation(S, self.t, phases=phases)
-
-    #     assert_frame_equal(eta0, eta1)
-
-
     def test_surface_elevation_phases_np_and_pd(self):
         S0 = wave.resource.jonswap_spectrum(self.f,self.Tp,self.Hs)
         S1 = wave.resource.jonswap_spectrum(self.f,self.Tp,self.Hs*1.1)
