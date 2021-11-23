@@ -31,8 +31,8 @@ def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
     layer_data: DataFrame
         DataFrame with columns of "x" and "y" location on specified layer and 
         the variable values "v".
-
     '''
+    
     assert isinstance(time_index, int), 'time_index  must be a int'
     assert isinstance(layer_index, int), 'layer_index  must be a int'
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be netCDF4 object'
@@ -77,8 +77,8 @@ def create_points(x, y, z):
     -------
     points: DateFrame 
         DataFrame with columns x, y and z points. 
-        
     '''
+    
     assert isinstance(x, (int, float, np.ndarray)), ('x must be a int, float'
                                                      +' or array')
     assert isinstance(y, (int, float, np.ndarray)), ('y must be a int, float'
@@ -180,8 +180,8 @@ def variable_interpolation(data, variables, points='cells'):
     transformed_data: DataFrame  
         Variables on specified grid points saved under the input varable names 
         and the x, y, and z cordinates of those points. 
-    
     '''
+    
     assert isinstance(points, (str, pd.DataFrame)),('points must be a string ' 
                     +'or DataFrame')
     if isinstance ( points, str):
@@ -240,8 +240,8 @@ def get_all_data_points(data, variable, time_index= -1):
     -------
     all_data: DataFrame 
         Dataframe with columns x, y, z, and variable. 
-        
     '''  
+    
     assert isinstance(time_index, int), 'time_index  must be a int'
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
     assert variable in data.variables.keys(), 'varaiable not reconized'
@@ -327,8 +327,8 @@ def unorm(x, y ,z):
     -------
     unorm : array 
        The root mean squared of x, y, and z. 
-        
     '''
+    
     assert isinstance(x,(np.ndarray, np.float64, pd.Series)), 'x must be an array'
     assert isinstance(y,(np.ndarray, np.float64, pd.Series)), 'y must be an array'
     assert isinstance(z,(np.ndarray, np.float64, pd.Series)), 'z must be an array'
@@ -382,8 +382,8 @@ def turbulent_intensity(data, points='cells', time_index= -1,
             x- position in the x direstion 
             y- position in the y direction 
             z- position in the z direction 
-
     '''
+    
     assert isinstance(points, (str, pd.DataFrame)),('points must a string or'
                                                     +' DataFrame')
     if isinstance ( points, str):
