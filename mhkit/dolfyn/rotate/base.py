@@ -68,21 +68,17 @@ def _set_coords(ds, ref_frame, forced=False):
     ds['dir'].attrs['ref_frame'] = ref_frame
     ds.attrs['coord_sys'] = ref_frame
     
-    # This is essentially one extra line to scroll through
-    # Going to drop at some point
-    if hasattr(ds, 'coord_sys_axes'):
-        ds.attrs.pop('coord_sys_axes')
-    if hasattr(ds, 'coord_sys_axes_echo'):
-        ds.attrs.pop('coord_sys_axes_echo')
-    if hasattr(ds, 'coord_sys_axes_bt'):
-        ds.attrs.pop('coord_sys_axes_bt')
+    # These are essentially one extra line to scroll through
+    tag = ['','_echo','_bt']
+    for tg in tag:
+        if hasattr(ds, 'coord_sys_axes'+tg):
+            ds.attrs.pop('coord_sys_axes'+tg)
     
     return ds
 
 
 def _beam2inst(dat, reverse=False, force=False):
-    """
-    Rotate velocities from beam to instrument coordinates.
+    """Rotate velocities from beam to instrument coordinates.
 
     Parameters
     ----------
@@ -264,7 +260,7 @@ def orient2euler(omat):
     )
 
 
-def q2orient(quaternions):
+def quaternion2orient(quaternions):
     """
     Calculate orientation from Nortek AHRS quaternions, where q = [W, X, Y, Z] 
     instead of the standard q = [X, Y, Z, W] = [q1, q2, q3, q4]

@@ -45,7 +45,7 @@ def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
     else: # orientation = 'up' or 'AHRS'
         down = False
     
-    # An AHRS changes things
+    # The AHRS orientmat is in inst2earth
     if adcpo.orientation=='AHRS':
         ahrs = True
     else:
