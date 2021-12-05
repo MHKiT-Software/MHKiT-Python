@@ -542,7 +542,7 @@ class TestResourceContours(unittest.TestCase):
         assert_allclose(expected_contours.Hm0_contour.values, 
             Hm0_contour, rtol=1e-3)
         
-    def test__principal_component_analysis(self):
+    def test_principal_component_analysis(self):
         Hm0Te = self.Hm0Te
         df = Hm0Te[Hm0Te['Hm0'] < 20]
         
