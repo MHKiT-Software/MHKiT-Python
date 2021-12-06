@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 
 
-def copula(x1, x2, sea_state_duration, return_period, method, **kwargs):
+def environmental_contours(x1, x2, sea_state_duration, return_period, method, **kwargs):
     '''
     Returns a Dictionary of x1 and x2 copula components for each copula
     method passed. A method  may be one of the following: 
@@ -926,8 +926,9 @@ def _clayton_copula(x1, x2, fit, component_1, kwargs):
     nb_steps: int
         Discretization of the circle in the normal space used for
         copula component calculation.
-    return_fit: boolean
-          Will return fitting parameters used. Default False.        
+    kwargs : optional     
+        return_fit: boolean
+              Will return fitting parameters used. Default False.        
           
     Returns
     -------    
@@ -993,8 +994,9 @@ def _rosenblatt_copula(x1, x2, fit, component_1, kwargs):
     nb_steps: int
         Discretization of the circle in the normal space used for
         copula component calculation.
-    return_fit: boolean
-          Will return fitting parameters used. Default False.         
+    kwargs : optional     
+        return_fit: boolean
+              Will return fitting parameters used. Default False.                 
           
     Returns
     -------    
@@ -1133,6 +1135,7 @@ def _nonparametric_component(z, nonpara_dist, nb_steps):
     nb_steps: int
         Discretization of the circle in the normal space used for
         copula component calculation. 
+        
     Returns
     -------
     component: array
@@ -1171,8 +1174,9 @@ def _nonparametric_gaussian_copula(x1, x2, fit, nb_steps, kwargs):
     nb_steps: int
         Discretization of the circle in the normal space used for
         copula component calculation.
-    return_fit: boolean
-          Will return fitting parameters used. Default False.         
+    kwargs : optional     
+        return_fit: boolean
+              Will return fitting parameters used. Default False.         
         
     Returns
     -------
@@ -1247,8 +1251,9 @@ def _nonparametric_clayton_copula(x1, x2, fit, nb_steps, kwargs):
     nb_steps: int
         Discretization of the circle in the normal space used for
         copula component calculation.  
-    return_fit: boolean
-        Will return fitting parameters used. Default False.  
+    kwargs : optional     
+        return_fit: boolean
+              Will return fitting parameters used. Default False. 
         
     Returns
     -------
@@ -1328,8 +1333,9 @@ def _nonparametric_gumbel_copula(x1, x2, fit, nb_steps, kwargs):
     nb_steps: int
         Discretization of the circle in the normal space used for
         copula component calculation. 
-    return_fit: boolean
-          Will return fitting parameters used. Default False. 
+    kwargs : optional     
+        return_fit: boolean
+              Will return fitting parameters used. Default False.. 
         
     Returns
     -------
@@ -1428,8 +1434,9 @@ def _bivariate_KDE(x1, x2, bw, fit, nb_steps, Ndata_bivariate_KDE, kwargs):
         Defines the max value of x1 to discretize the KDE space
     max_x2: float
         Defines the max value of x2 to discretize the KDE space
-    return_fit: boolean
-          Will return fitting parameters used. Default False.         
+    kwargs : optional     
+        return_fit: boolean
+              Will return fitting parameters used. Default False.         
 
     Returns
     -------

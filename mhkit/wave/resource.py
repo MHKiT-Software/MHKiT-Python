@@ -1,3 +1,4 @@
+from mhkit.wave.environmental_contours import environmental_contours
 from statsmodels.nonparametric.kde import KDEUnivariate 
 from sklearn.decomposition import PCA as skPCA
 from sklearn.metrics import mean_squared_error
@@ -10,7 +11,8 @@ import pandas as pd
 import numpy as np
 
 ### Spectrum
-def elevation_spectrum(eta, sample_rate, nnft, window='hann', detrend=True, noverlap=None):
+def elevation_spectrum(eta, sample_rate, nnft, window='hann', 
+    detrend=True, noverlap=None):
     """
     Calculates the wave energy spectrum from wave elevation time-series
 
@@ -26,8 +28,8 @@ def elevation_spectrum(eta, sample_rate, nnft, window='hann', detrend=True, nove
         Signal window type. 'hann' is used by default given the broadband
         nature of waves. See scipy.signal.get_window for more options.
     detrend: bool (optional)
-        Specifies if a linear trend is removed from the data before calculating
-        the wave energy spectrum.  Data is detrended by default.
+        Specifies if a linear trend is removed from the data before 
+        calculating the wave energy spectrum.  Data is detrended by default.
     noverlap: int, optional
         Number of points to overlap between segments. If None,
         ``noverlap = nperseg / 2``.  Defaults to None.
