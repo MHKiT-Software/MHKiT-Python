@@ -1,3 +1,4 @@
+
 from os.path import abspath, dirname, join, isfile, normpath, relpath
 from pandas.testing import assert_frame_equal
 import xarray.testing as xrt
@@ -516,24 +517,6 @@ class TestResourceContours(unittest.TestCase):
         assert_allclose(expected_contours.Hm0_contour.values, 
             Hm0_contour, rtol=1e-3)
         
-    def test_principal_component_analysis(self):
-        Hm0Te = self.Hm0Te
-        df = Hm0Te[Hm0Te['Hm0'] < 20]
-        
-        Hm0 = df.Hm0.values  
-        Te = df.Te.values 
-        PCA = (wave.environmental_contours
-               ._principal_component_analysis(Hm0,Te, bin_size=250))
-        
-
-        dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds
-        time_R = 100
-
-        Hm0_contour, Te_contour = wave.resource.environmental_contour(Hm0, Te,
-                                                    dt_ss, time_R)
-
-        expected_contours = pd.read_csv(join(datadir,'Hm0_Te_contours_46022.csv'))
-        assert_allclose(expected_contours.Hm0_contour.values, Hm0_contour, rtol=1e-3)
 
     def test__principal_component_analysis(self):
         Hm0Te = self.Hm0Te
@@ -541,7 +524,8 @@ class TestResourceContours(unittest.TestCase):
 
         Hm0 = df.Hm0.values
         Te = df.Te.values
-        PCA = wave.resource._principal_component_analysis(Hm0,Te, bin_size=250)
+        PCA = (wave.environmental_contours
+            ._principal_component_analysis(Hm0,Te, bin_size=250))
 
         assert_allclose(PCA['principal_axes'], 
                         self.pca['principal_axes'])
@@ -554,6 +538,7 @@ class TestResourceContours(unittest.TestCase):
                                self.pca['mu_fit'].intercept)
         assert_allclose(PCA['sigma_fit']['x'], 
                              self.pca['sigma_fit']['x'])
+
 
     def test_plot_environmental_contour(self):
         filename = abspath(join(testdir, 'wave_plot_environmental_contour.png'))
@@ -577,9 +562,6 @@ class TestResourceContours(unittest.TestCase):
         
         dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds
         time_R = 100
-
-        Hm0_contour, Te_contour = (wave.resource
-                         .environmental_contour(Hm0, Te, dt_ss, time_R))
 
         plt.figure()
         wave.graphics.plot_environmental_contour(Te, Hm0,
@@ -617,11 +599,6 @@ class TestResourceContours(unittest.TestCase):
                         
             Hm0s.append(copulas['PCA_x1'])
             Tes.append(copulas['PCA_x2'])
-        
-        time_R = np.array(time_R)
-
-        Hm0_contour, Te_contour = wave.resource.environmental_contour(Hm0, Te,
-                                                    dt_ss, time_R)
 
         contour_label = [f'{year}-year Contour' for year in time_R]
         plt.figure()
@@ -635,6 +612,7 @@ class TestResourceContours(unittest.TestCase):
         plt.close()
 
         self.assertTrue(isfile(filename))
+
 
     def test_standard_copulas(self):
         copulas = (wave
@@ -1326,6 +1304,5 @@ class TestPlotResouceCharacterizations(unittest.TestCase):
         plt.close()
 
         self.assertTrue(isfile(filename))
-
 if __name__ == '__main__':
     unittest.main()
