@@ -164,7 +164,7 @@ def jonswap_spectrum(f, Tp, Hs, gamma=None):
     return S
 
 ### Metrics
-def surface_elevation(S, time_index, seed=None, phases=None):
+def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None):
     """
     Calculates wave elevation time-series from spectrum
 
@@ -192,19 +192,29 @@ def surface_elevation(S, time_index, seed=None, phases=None):
     assert isinstance(time_index, np.ndarray), ('time_index must be of type'
             'np.ndarray')
     assert isinstance(seed, (type(None),int)), 'seed must be of type int'
+    assert isinstance(frequency_bins, (type(None), np.ndarray, pd.DataFrame)),(
+            "frequency_bins must be of type None, np.ndarray, or pd,DataFrame")
     assert isinstance(phases, (type(None), np.ndarray, pd.DataFrame)), (
             'phases must be of type None, np.ndarray, or pd,DataFrame')
+
+    if frequency_bins is not None:
+        assert frequency_bins.squeeze().shape == (S.squeeze().shape[0],),(
+            'shape of frequency_bins must match shape of S')
     if phases is not None:
         assert phases.squeeze().shape == S.squeeze().shape,(
             'shape of phases must match shape of S')
 
     f = pd.Series(S.index)
     f.index = f
-    delta_f = f.diff()
-
-    omega = pd.Series(2*np.pi*f)
-    omega.index = f
-    omega = omega
+    if frequency_bins is None:
+        delta_f = f.values[1]-f.values[0]
+        assert np.allclose(f.diff()[1:], delta_f)
+    elif isinstance(frequency_bins, np.ndarray):
+        delta_f = pd.Series(frequency_bins, index=S.index)
+    elif isinstance(frequency_bins, pd.DataFrame):
+        assert len(frequency_bins.columns) == 1, ('frequency_bins must only'
+                'contain 1 column')
+        delta_f = frequency_bins.squeeze()
 
     if phases is None:
         np.random.seed(seed)
@@ -215,6 +225,9 @@ def surface_elevation(S, time_index, seed=None, phases=None):
     elif isinstance(phases, pd.DataFrame):
         phase = phases
 
+    omega = pd.Series(2*np.pi*f)
+    omega.index = f
+
     # Wave amplitude times delta f
     A = 2*S
     A = A.multiply(delta_f, axis=0)
@@ -222,9 +235,10 @@ def surface_elevation(S, time_index, seed=None, phases=None):
 
     # Product of omega and time
     B = np.outer(time_index, omega)
-    B = B.reshape((len(time_index),len(omega)))
+    B = B.reshape((len(time_index), len(omega)))
     B = pd.DataFrame(B, index=time_index, columns=omega.index)
-    # time domain elevation
+
+    # wave elevation
     eta = pd.DataFrame(columns=S.columns, index=time_index)
     for mcol in eta.columns:
         C = np.cos(B+phase[mcol])
