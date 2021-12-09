@@ -1,12 +1,7 @@
-from mhkit.wave.environmental_contours import environmental_contours
-from statsmodels.nonparametric.kde import KDEUnivariate 
-from sklearn.decomposition import PCA as skPCA
-from sklearn.metrics import mean_squared_error
+from mhkit.wave._environmental_contours import (environmental_contours, 
+                                               PCA_contour)
 from scipy.optimize import fsolve as _fsolve
 from scipy import signal as _signal
-import matplotlib.pyplot as plt
-import scipy.optimize as optim
-import scipy.stats as stats
 import pandas as pd
 import numpy as np
 

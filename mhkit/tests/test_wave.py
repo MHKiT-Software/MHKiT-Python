@@ -527,7 +527,7 @@ class TestResourceContours(unittest.TestCase):
 
         Hm0 = df.Hm0.values
         Te = df.Te.values
-        PCA = (wave.environmental_contours
+        PCA = (wave._environmental_contours
             ._principal_component_analysis(Hm0,Te, bin_size=250))
 
         assert_allclose(PCA['principal_axes'], 

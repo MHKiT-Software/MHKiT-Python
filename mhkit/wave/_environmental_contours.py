@@ -13,7 +13,7 @@ import numpy as np
 
 def environmental_contours(x1, x2, sea_state_duration, return_period, method, **kwargs):
     '''
-    Returns a Dictionary of x1 and x2 copula components for each copula
+    Returns a Dictionary of x1 and x2 components for each contour
     method passed. A method  may be one of the following: 
     Principal Component Analysis, Gaussian, Gumbel, Clayton, Rosenblatt, 
     nonparametric Gaussian, nonparametric Clayton, 
