@@ -1,13 +1,9 @@
 from statsmodels.nonparametric.kde import KDEUnivariate 
 from sklearn.decomposition import PCA as skPCA
 from sklearn.metrics import mean_squared_error
-from scipy.optimize import fsolve as _fsolve
-from itertools import product as _product
-from scipy import signal as _signal
 import matplotlib.pyplot as plt
 import scipy.optimize as optim
 import scipy.stats as stats
-import pandas as pd
 import numpy as np
 
 
@@ -37,13 +33,13 @@ def environmental_contours(x1, x2, sea_state_duration, return_period, method, **
 
     **kwargs
         min_bin_count: int
-            Passed to copula_parameters to sets the minimum number of 
+            Passed to _copula_parameters to sets the minimum number of 
             bins allowed. Default = 40.
         initial_bin_max_val: int, float
-            Passed to copula_parameters to set the max value of the first
+            Passed to _copula_parameters to set the max value of the first
             bin. Default = 1.
         bin_val_size: int, float
-            Passed to copula_parameters to set the size of each bin 
+            Passed to _copula_parameters to set the size of each bin 
             after the initial bin.  Default 0.25.            
         nb_steps: int
             Discretization of the circle in the normal space is used for
@@ -169,11 +165,9 @@ def environmental_contours(x1, x2, sea_state_duration, return_period, method, **
     
     copula_functions={'PCA' : 
                          {'func':PCA_contour,
-                         'vals':(x1, x2,  sea_state_duration, 
-                              return_period, PCA, 
-                              {'nb_steps':nb_steps, 
-                                'return_fit':return_fit, 
-                                'bin_size':PCA_bin_size})},
+                         'vals':(x1, x2, PCA, {'nb_steps':nb_steps, 
+                                  'return_fit':return_fit, 
+                                  'bin_size':PCA_bin_size})},
                       'gaussian' : 
                          {'func':_gaussian_copula,
                          'vals':(x1, x2, fit_parametric, component_1, 
@@ -231,7 +225,7 @@ def environmental_contours(x1, x2, sea_state_duration, return_period, method, **
     return copulas 
     
 
-def PCA_contour(x1, x2, sea_state_duration, return_period, fit, kwargs):
+def PCA_contour(x1, x2, fit, kwargs):
     '''
     Calculates environmental contours of extreme sea
     states using the improved joint probability distributions
@@ -259,9 +253,6 @@ def PCA_contour(x1, x2, sea_state_duration, return_period, fit, kwargs):
         Component 1 data
     x2: numpy array 
         Component 2 data        	
-    return_period : int, float, or numpy array 
-        Desired return period (years) for calculation of environmental
-        contour, can be a scalar or a vector.
     fit: dict
         Dictionary of the iso-probability results. May additionally
         contain the principal component analysis (PCA) on x1, x2 
