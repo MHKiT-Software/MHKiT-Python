@@ -1,6 +1,9 @@
 from os.path import abspath, dirname, join, isfile, normpath, relpath
+from numpy.testing import assert_array_almost_equal
+from pandas._testing.asserters import assert_series_equal
 from pandas.testing import assert_frame_equal
 from mhkit import utils
+from mhkit.wave import resource
 import mhkit.loads as loads
 import pandas as pd 
 import numpy as np
@@ -115,6 +118,34 @@ class TestLoads(unittest.TestCase):
 
         self.assertTrue(isfile(savepath))
 
+class TestWDRT(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(self):
+        mler_file = join(datadir, "mler.csv")
+        mler_data = pd.read_csv(mler_file,index_col=None)
+        self.wave_freq = np.linspace( 0.,1,500)
+        self.mler = mler_data
+
+    def test_readRAO(self):
+        RAO_File_Name = join(datadir,"RAO_heave_RM3float.dat")
+        DOFread = 3
+        RAO = loads.mler.readRAO(DOFread,RAO_File_Name, self.wave_freq)
+        real_RAO = RAO.abs().reset_index(drop=True).squeeze()
+        given_RAO = self.mler['RAO'].astype(complex).abs()
+
+        assert_series_equal(given_RAO,real_RAO)
+
+    def test_MLERcoeffsGen(self):
+        Hs = 9.0 # significant wave height
+        Tp = 15.1 # time period of waves
+        pm = resource.pierson_moskowitz_spectrum(self.wave_freq,Tp,Hs)
+        mler_data = loads.mler.MLERcoeffsGen(self.mler['RAO'].astype(complex),pm,1)
+        mler_data.reset_index(drop=True,inplace=True)
+
+        assert_series_equal(mler_data['MLERcoeff'],self.mler['Coeff'],check_exact=False,check_less_precise=True,check_names=False)
+        assert_series_equal(mler_data['ResponseSpec'],self.mler['Res_Spec'],check_exact=False,check_less_precise=True,check_names=False)
+        assert_series_equal(mler_data['Phase'],self.mler['phase'],check_exact=False,check_less_precise=True,check_names=False)
 
 if __name__ == '__main__':
     unittest.main()
