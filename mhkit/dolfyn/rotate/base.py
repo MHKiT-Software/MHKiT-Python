@@ -10,6 +10,7 @@ def _make_model(ds):
     return '{} {}'.format(ds.inst_make,
                           ds.inst_model).lower()
 
+
 def _check_rotmat_det(rotmat, thresh=1e-3):
     """Check that the absolute error of the determinant is small.
 
@@ -27,53 +28,53 @@ def _set_coords(ds, ref_frame, forced=False):
     Checks the current reference frame and adjusts xarray coords/dims 
     as necessary.
     Makes sure assigned dataarray coordinates match what DOLfYN is reading in.
-    
+
     """
     make = _make_model(ds)
-    
-    XYZ = ['X','Y','Z']
-    ENU = ['E','N','U']
-    beam = list(range(1,ds.vel.shape[0]+1))
-    principal = ['streamwise','x-stream','vert']
-    
+
+    XYZ = ['X', 'Y', 'Z']
+    ENU = ['E', 'N', 'U']
+    beam = list(range(1, ds.vel.shape[0]+1))
+    principal = ['streamwise', 'x-stream', 'vert']
+
     # check make/model
     if 'rdi' in make:
-        inst = ['X','Y','Z','err']
-        earth = ['E','N','U','err']
-        princ = ['streamwise','x-stream','vert','err']
-        
+        inst = ['X', 'Y', 'Z', 'err']
+        earth = ['E', 'N', 'U', 'err']
+        princ = ['streamwise', 'x-stream', 'vert', 'err']
+
     elif 'nortek' in make:
         if 'signature' in make or 'ad2cp' in make:
-            inst = ['X','Y','Z1','Z2']
-            earth = ['E','N','U1','U2']
-            princ = ['streamwise','x-stream','vert1','vert2']
+            inst = ['X', 'Y', 'Z1', 'Z2']
+            earth = ['E', 'N', 'U1', 'U2']
+            princ = ['streamwise', 'x-stream', 'vert1', 'vert2']
 
-        else: # AWAC or Vector
+        else:  # AWAC or Vector
             inst = XYZ
             earth = ENU
             princ = principal
-    
-    orient = {'beam':beam, 'inst':inst, 'ship':inst, 'earth':earth,
-              'principal':princ}
-    orientIMU = {'beam':XYZ, 'inst':XYZ, 'ship':XYZ, 'earth':ENU,
-                 'principal':principal}
-    
+
+    orient = {'beam': beam, 'inst': inst, 'ship': inst, 'earth': earth,
+              'principal': princ}
+    orientIMU = {'beam': XYZ, 'inst': XYZ, 'ship': XYZ, 'earth': ENU,
+                 'principal': principal}
+
     if forced:
         ref_frame += '-forced'
-    
+
     # update 'orient' and 'orientIMU' dimensions
     ds = ds.assign_coords({'dir': orient[ref_frame]})
     if hasattr(ds, 'accel'):
         ds = ds.assign_coords({'dirIMU': orientIMU[ref_frame]})
     ds['dir'].attrs['ref_frame'] = ref_frame
     ds.attrs['coord_sys'] = ref_frame
-    
+
     # These are essentially one extra line to scroll through
-    tag = ['','_echo','_bt']
+    tag = ['', '_echo', '_bt']
     for tg in tag:
         if hasattr(ds, 'coord_sys_axes'+tg):
             ds.attrs.pop('coord_sys_axes'+tg)
-    
+
     return ds
 
 
@@ -102,7 +103,7 @@ def _beam2inst(dat, reverse=False, force=False):
             raise ValueError('The input must be in inst coordinates.')
 
     try:
-         rotmat = dat['beam2inst_orientmat']
+        rotmat = dat['beam2inst_orientmat']
     except:
         raise Exception("Unrecognized device type.")
 
@@ -121,14 +122,14 @@ def _beam2inst(dat, reverse=False, force=False):
         cs = 'beam'
     for ky in rotate_vars:
         dat[ky].values = np.einsum('ij,j...->i...', rotmat, dat[ky].values)
-        
+
     if force:
         dat = dat._set_coords(dat, cs, forced=True)
     else:
         dat = _set_coords(dat, cs)
-    
+
     return dat
-    
+
 
 def euler2orient(heading, pitch, roll, units='degrees'):
     """
@@ -184,11 +185,11 @@ def euler2orient(heading, pitch, roll, units='degrees'):
         pass
     else:
         raise Exception("Invalid units")
-        
+
     # Converts the DOLfYN-defined heading to one that follows the right-hand-rule
     # reports heading as rotation of the y-axis positive counterclockwise from North
-    heading = np.pi / 2 - heading 
-                                  
+    heading = np.pi / 2 - heading
+
     # Converts the DOLfYN-defined pitch to one that follows the right-hand-rule.
     pitch = -pitch
 
@@ -246,14 +247,14 @@ def orient2euler(omat):
         pass
     elif hasattr(omat, 'orientmat'):
         omat = omat['orientmat'].values
-        
+
     # Note: orientation matrix is earth->inst unless supplied by an external IMU
     hh = np.rad2deg(np.arctan2(omat[0, 0], omat[0, 1]))
     hh %= 360
     return (
-        # heading 
+        # heading
         hh,
-        # pitch 
+        # pitch
         np.rad2deg(np.arcsin(omat[0, 2])),
         # roll
         np.rad2deg(np.arctan2(omat[1, 2], omat[2, 2])),
@@ -264,32 +265,35 @@ def quaternion2orient(quaternions):
     """
     Calculate orientation from Nortek AHRS quaternions, where q = [W, X, Y, Z] 
     instead of the standard q = [X, Y, Z, W] = [q1, q2, q3, q4]
-    
+
     Parameters
     ----------
     quaternions : xarray.DataArray
         Quaternion dataArray from the raw dataset
-        
+
     Returns
     -------
     orientmat : |np.ndarray|
         The inst2earth rotation maxtrix as calculated from the quaternions
-        
+
     See Also
     --------
     scipy.spatial.transform.Rotation
-    
+
     """
     omat = type(quaternions)(np.empty((3, 3, quaternions.time.size)))
-    omat = omat.rename({'dim_0':'inst', 'dim_1':'earth', 'dim_2':'time'})
-    
+    omat = omat.rename({'dim_0': 'earth', 'dim_1': 'inst', 'dim_2': 'time'})
+
     for i in range(quaternions.time.size):
-        r = R.from_quat([quaternions.isel(q=1, time=i), 
-                          quaternions.isel(q=2, time=i), 
-                          quaternions.isel(q=3, time=i), 
-                          quaternions.isel(q=0, time=i)])
-        omat[...,i] = r.as_matrix()
-        
-    xyz = ['X','Y','Z']
-    enu = ['E','N','U']
-    return omat.assign_coords({'inst':xyz, 'earth':enu, 'time':quaternions.time})
+        r = R.from_quat([quaternions.isel(q=1, time=i),
+                         quaternions.isel(q=2, time=i),
+                         quaternions.isel(q=3, time=i),
+                         quaternions.isel(q=0, time=i)])
+        omat[..., i] = r.as_matrix()
+
+    # quaternions in inst2earth reference frame, need to rotate to earth2inst
+    omat.values = np.rollaxis(omat.values, 1)
+
+    xyz = ['X', 'Y', 'Z']
+    enu = ['E', 'N', 'U']
+    return omat.assign_coords({'inst': xyz, 'earth': enu, 'time': quaternions.time})

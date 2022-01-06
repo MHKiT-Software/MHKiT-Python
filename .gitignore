@@ -27,6 +27,7 @@ $ cat .gitignore
 .DS_Store
 .DS_Store?
 .gitignore
+.vscode
 
 # Exemptions
 !**/examples/data/wave/*.mat

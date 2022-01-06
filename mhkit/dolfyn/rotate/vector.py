@@ -11,7 +11,7 @@ def _beam2inst(dat, reverse=False, force=False):
         dat = _rotate_inst2head(dat, reverse=reverse)
         # Now rotate from the head frame to the beam frame
         dat = rotb._beam2inst(dat, reverse=reverse, force=force)
-    
+
     # inst(ADV battery case|imu)->head(ADV instrument head)->beam
     else:
         # First rotate velocities from beam to ADV head frame
@@ -21,8 +21,9 @@ def _beam2inst(dat, reverse=False, force=False):
 
     # Set the docstring to match the default rotation func
     _beam2inst.__doc_ = rotb._beam2inst.__doc__
-    
+
     return dat
+
 
 def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
     """
@@ -45,13 +46,13 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
       performing this rotation.
 
     """
-    if reverse: # earth->inst
+    if reverse:  # earth->inst
         # The transpose of the rotation matrix gives the inverse
         # rotation, so we simply reverse the order of the einsum:
         sumstr = 'jik,j...k->i...k'
         cs_now = 'earth'
         cs_new = 'inst'
-    else: # inst->earth
+    else:  # inst->earth
         sumstr = 'ijk,j...k->i...k'
         cs_now = 'inst'
         cs_new = 'earth'
@@ -88,7 +89,7 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
 
     _dcheck = rotb._check_rotmat_det(rmat)
     if not _dcheck.all():
-        warnings.warn("Invalid orientation matrix (determinant != 1) at indices: {}." \
+        warnings.warn("Invalid orientation matrix (determinant != 1) at indices: {}."
                       .format(np.nonzero(~_dcheck)[0]), UserWarning)
 
     for nm in rotate_vars:
@@ -97,11 +98,11 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
             raise Exception("The entry {} is not a vector, it cannot "
                             "be rotated.".format(nm))
         advo[nm].values = np.einsum(sumstr, rmat, advo[nm])
-    
+
     advo = rotb._set_coords(advo, cs_new)
 
     return advo
-      
+
 
 def _calc_omat(hh, pp, rr, orientation_down=None):
     rr = rr.copy()
@@ -114,10 +115,10 @@ def _calc_omat(hh, pp, rr, orientation_down=None):
         pp[lastgd:] = pp[lastgd]
         hh[lastgd:] = hh[lastgd]
     if orientation_down is not None:
-        # For Nortek Vector ADVs: 'down' configuration means the head was 
-        # pointing 'up', where the 'up' orientation corresponds to the 
+        # For Nortek Vector ADVs: 'down' configuration means the head was
+        # pointing 'up', where the 'up' orientation corresponds to the
         # communication cable being up.  Check the Nortek coordinate
-        # transform matlab script for more info.  
+        # transform matlab script for more info.
         rr[orientation_down.astype(bool)] += 180
 
     return _euler2orient(hh, pp, rr)
@@ -127,12 +128,13 @@ def _rotate_inst2head(advo, reverse=False):
     if not _check_inst2head_rotmat(advo):
         # This object doesn't have a head2inst_rotmat, so we do nothing.
         return advo
-    if reverse: # head->inst
+    if reverse:  # head->inst
         advo['vel'].values = np.dot(advo['inst2head_rotmat'].T, advo['vel'])
-    else: # inst->head
+    else:  # inst->head
         advo['vel'].values = np.dot(advo['inst2head_rotmat'], advo['vel'])
 
     return advo
+
 
 def _check_inst2head_rotmat(advo):
     if advo.get('inst2head_rotmat', None) is None:
@@ -198,10 +200,10 @@ def _earth2principal(advo, reverse=False):
         dat = advo[nm].values
         dat[:2] = np.einsum('ij,j...->i...', rotmat[:2, :2], dat[:2])
         advo[nm].values = dat.copy()
-    
+
     # Finalize the output.
     advo = rotb._set_coords(advo, cs_new)
-    
+
     return advo
 
 
@@ -217,10 +219,10 @@ def _euler2orient(heading, pitch, roll, units='degrees'):
         pitch = np.deg2rad(pitch)
         roll = np.deg2rad(roll)
         heading = np.deg2rad(heading)
-        
-    # The definition of heading below is consistent with the right-hand-rule; 
+
+    # The definition of heading below is consistent with the right-hand-rule;
     # heading is the angle positive counterclockwise from North of the y-axis.
-    
+
     # This also involved swapping the sign on sh in the def of omat
     # below from the values provided in the Nortek Matlab script.
     heading = (np.pi / 2 - heading)

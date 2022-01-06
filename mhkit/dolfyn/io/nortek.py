@@ -35,13 +35,13 @@ def read_nortek(filename, userdata=True, debug=False, do_checksum=False,
 
     """
     userdata = _find_userdata(filename, userdata)
-    
-    with _NortekReader(filename, debug=debug, do_checksum=do_checksum,  
-                      nens=nens) as rdr:
+
+    with _NortekReader(filename, debug=debug, do_checksum=do_checksum,
+                       nens=nens) as rdr:
         rdr.readfile()
     rdr.dat2sci()
     dat = rdr.data
-    
+
     rotmat = None
     declin = None
     for nm in userdata:
@@ -51,29 +51,29 @@ def read_nortek(filename, userdata=True, debug=False, do_checksum=False,
             declin = userdata[nm]
         else:
             dat['attrs'][nm] = userdata[nm]
-    
+
     # NaN in time and orientation data
     dat = _handle_nan(dat)
 
     # Create xarray dataset from upper level dictionary
     ds = _create_dataset(dat)
     ds = _set_coords(ds, ref_frame=ds.coord_sys)
-    
+
     if 'orientmat' not in ds:
         omat = _calc_omat(ds['heading'].values,
-                          ds['pitch'].values, 
+                          ds['pitch'].values,
                           ds['roll'].values,
                           ds.get('orientation_down', None))
         ds['orientmat'] = xr.DataArray(omat,
-                                       coords={'earth': ['E','N','U'],
-                                               'inst': ['X','Y','Z'],
+                                       coords={'earth': ['E', 'N', 'U'],
+                                               'inst': ['X', 'Y', 'Z'],
                                                'time': ds['time']},
-                                       dims=['earth','inst','time'])
+                                       dims=['earth', 'inst', 'time'])
     if rotmat is not None:
         ds = rot.set_inst2head_rotmat(ds, rotmat)
     if declin is not None:
         ds = rot.set_declination(ds, declin)
-    
+
     return ds
 
 
@@ -87,8 +87,10 @@ def _bcd2char(cBCD):
     c += 10 * (cBCD >> 4)
     return c
 
+
 def _bitshift8(val):
     return val >> 8
+
 
 def _int2binarray(val, n):
     out = np.zeros(n, dtype='bool')
@@ -163,8 +165,8 @@ class _NortekReader():
                 endian = '>'
             else:
                 raise Exception("I/O error: could not determine the "
-                "'endianness' of the file.  Are you sure this is a Nortek "
-                "file?")
+                                "'endianness' of the file.  Are you sure this is a Nortek "
+                                "file?")
         self.endian = endian
         self.f.seek(0, 0)
 
@@ -203,7 +205,7 @@ class _NortekReader():
         if self._npings is not None:
             self.n_samp_guess = self._npings + 1
         self.f.seek(pnow, 0)  # Seek to the previous position.
-        
+
         props = self.data['attrs']
         if self.config['NBurst'] > 0:
             props['DutyCycle_NBurst'] = self.config['NBurst']
@@ -218,7 +220,7 @@ class _NortekReader():
         props['has_imu'] = 0
         if self.debug:
             print('Init completed')
-            
+
     @property
     def filesize(self,):
         if not hasattr(self, '_filesz'):
@@ -234,8 +236,8 @@ class _NortekReader():
         return self.f.tell()
 
     def init_ADV(self,):
-        dat = self.data = {'data_vars':{},'coords':{},'attrs':{},
-                           'units':{},'sys':{}}
+        dat = self.data = {'data_vars': {}, 'coords': {}, 'attrs': {},
+                           'units': {}, 'sys': {}}
         da = dat['attrs']
         dv = dat['data_vars']
         da['config'] = self.config
@@ -253,10 +255,9 @@ class _NortekReader():
         self.n_samp_guess = int(self.filesize / dlta + 1)
         self.n_samp_guess *= int(self.config['fs'])
 
-
     def init_AWAC(self,):
-        dat = self.data = {'data_vars':{},'coords':{},'attrs':{},
-                           'units':{},'sys':{}}
+        dat = self.data = {'data_vars': {}, 'coords': {}, 'attrs': {},
+                           'units': {}, 'sys': {}}
         da = dat['attrs']
         dv = dat['data_vars']
         da['config'] = self.config
@@ -271,20 +272,18 @@ class _NortekReader():
         da['avg_interval'] = self.config['AvgInterval']
         da['rotate_vars'] = ['vel']
         space = self.code_spacing('0x20')
-        if space==0:
+        if space == 0:
             # code spacing is zero if there's only 1 profile
             self.n_samp_guess = 1
-        else: 
-            self.n_samp_guess = int(self.filesize / space + 1)          
+        else:
+            self.n_samp_guess = int(self.filesize / space + 1)
         self.config['fs'] = 1. / self.config['AvgInterval']
-
 
     def read(self, nbyte):
         byts = self.f.read(nbyte)
         if not (len(byts) == nbyte):
             raise EOFError('Reached the end of the file')
         return byts
-
 
     def findnext(self, do_cs=True):
         """Find the next data block by checking the checksum and the 
@@ -305,7 +304,6 @@ class _NortekReader():
             sum += cs
             cs = val
 
-
     def read_id(self,):
         """Read the next 'ID' from the file.
         """
@@ -325,20 +323,18 @@ class _NortekReader():
             return val
         return tmp[1]
 
-    
     def readnext(self,):
         id = '0x%02x' % self.read_id()
         if id in self.fun_map:
             func_name = self.fun_map[id]
-            out = getattr(self, func_name)() # Should return None
+            out = getattr(self, func_name)()  # Should return None
             self._lastread = [func_name[5:]] + self._lastread[:-1]
             return out
         else:
             print('Unrecognized identifier: ' + id)
             self.f.seek(-2, 1)
             return 10
-        
-        
+
     def readfile(self, nlines=None):
         print('Reading file %s ...' % self.fname)
         retval = None
@@ -363,8 +359,7 @@ class _NortekReader():
             print(' stopped at {} bytes.'.format(self.pos))
         self.c -= 1
         _crop_data(self.data, slice(0, self.c), self.n_samp_guess)
-        
-        
+
     def findnextid(self, id):
         if id.__class__ is str:
             id = int(id, 0)
@@ -378,8 +373,7 @@ class _NortekReader():
                 shift = sz - 4
             self.f.seek(shift, 1)
         return self.pos
-        
-        
+
     def code_spacing(self, searchcode, iternum=50):
         """
         Find the spacing, in bytes, between a specific hardware code.
@@ -396,7 +390,6 @@ class _NortekReader():
             print('p0={}, pos={}, i={}'.format(p0, self.pos, i))
         # Compute the average of the data size:
         return (self.pos - p0) / (i + 1)
-    
 
     def checksum(self, byts):
         """Perform a checksum on `byts` and read the checksum value.
@@ -409,8 +402,7 @@ class _NortekReader():
                 raise Exception("CheckSum Failed at {}".format(self.pos))
         else:
             self.f.seek(2, 1)
-  
-    
+
     def read_user_cfg(self,):
         # ID: '0x00 = 00
         if self.debug:
@@ -438,7 +430,7 @@ class _NortekReader():
         treg = cfg_u['TimCtrlReg'].astype(int)
         cfg_u['Profile_Timing'] = ['single', 'continuous'][treg[1]]
         cfg_u['Burst_Mode'] = bool(~treg[2])
-        cfg_u['Power Level']= treg[5] + 2 * treg[6] + 1
+        cfg_u['Power Level'] = treg[5] + 2 * treg[6] + 1
         cfg_u['sync-out'] = ['middle', 'end', ][treg[7]]
         cfg_u['Sample_on_Sync'] = bool(treg[8])
         cfg_u['Start_on_Sync'] = bool(treg[9])
@@ -492,8 +484,7 @@ class _NortekReader():
         cfg_u['mode']['rate'] = ['1hz', '2hz'][int(cfg_u['Mode1'][0])]
         cfg_u['mode']['cell_position'] = ['fixed', 'dynamic'][int(cfg_u['Mode1'][1])]  # noqa
         cfg_u['mode']['dynamic_pos_type'] = ['pct of mean press', 'pct of min re'][int(cfg_u['Mode1'][2])]  # noqa
-   
-    
+
     def read_head_cfg(self,):
         # ID: '0x04 = 04
         cfg = self.config
@@ -506,8 +497,7 @@ class _NortekReader():
         cfg['beam2inst_orientmat'] = np.array(
             unpack(self.endian + '9h', tmp[4][8:26])).reshape(3, 3) / 4096.
         self.checksum(byts)
-        
-        
+
     def read_hw_cfg(self,):
         # ID 0x05 = 05
         cfg = self.config
@@ -528,19 +518,17 @@ class _NortekReader():
         cfg_hw['status'] = tmp[6]
         cfg_hw['FWversion'] = tmp[7]
         self.checksum(byts)
-        
-        
+
     def rd_time(self, strng):
         """Read the time from the first 6bytes of the input string.
         """
         min, sec, day, hour, year, month = unpack('BBBBBB', strng[:6])
-        return datetime(time._fullyear(_bcd2char(year)), 
-                        _bcd2char(month), 
-                        _bcd2char(day), 
-                        _bcd2char(hour), 
-                        _bcd2char(min), 
+        return datetime(time._fullyear(_bcd2char(year)),
+                        _bcd2char(month),
+                        _bcd2char(day),
+                        _bcd2char(hour),
+                        _bcd2char(min),
                         _bcd2char(sec)).timestamp()
-
 
     def _init_data(self, vardict):
         """Initialize the data object according to vardict.
@@ -566,7 +554,6 @@ class _NortekReader():
                 if nm not in self.data[va.group]:
                     self.data[va.group][nm] = va._empty_array(**shape_args)
                     self.data['units'][nm] = va.units
-
 
     def read_vec_data(self,):
         # ID: 0x10 = 16
@@ -601,8 +588,7 @@ class _NortekReader():
 
         self.checksum(byts)
         self.c += 1
-        
-        
+
     def read_vec_checkdata(self,):
         # ID: 0x07 = 07
         if self.debug:
@@ -614,9 +600,9 @@ class _NortekReader():
         checknow['Samples'] = tmp[0]
         n = checknow['Samples']
         checknow['First_samp'] = tmp[1]
-        checknow['Amp1']= tbx._nans(n, dtype=np.uint8) + 8
-        checknow['Amp2']= tbx._nans(n, dtype=np.uint8) + 8
-        checknow['Amp3']= tbx._nans(n, dtype=np.uint8) + 8
+        checknow['Amp1'] = tbx._nans(n, dtype=np.uint8) + 8
+        checknow['Amp2'] = tbx._nans(n, dtype=np.uint8) + 8
+        checknow['Amp3'] = tbx._nans(n, dtype=np.uint8) + 8
         byts1 = self.read(3 * n)
         tmp = unpack(self.endian + (3 * n * 'B'), byts1)
         for idx, nm in enumerate(['Amp1', 'Amp2', 'Amp3']):
@@ -628,7 +614,6 @@ class _NortekReader():
             if not isinstance(self.config['checkdata'], list):
                 self.config['checkdata'] = [self.config['checkdata']]
             self.config['checkdata'] += [checknow]
-
 
     def _sci_data(self, vardict):
         """Convert the data to scientific units accordint to vardict.
@@ -651,11 +636,10 @@ class _NortekReader():
             if retval is not None:
                 dat[nm] = retval
 
-
     def sci_vec_data(self,):
         self._sci_data(nortek_defs.vec_data)
         dat = self.data
-        
+
         dat['data_vars']['pressure'] = (
             dat['data_vars']['PressureMSB'].astype('float32') * 65536 +
             dat['data_vars']['PressureLSW'].astype('float32')) / 1000.
@@ -666,7 +650,6 @@ class _NortekReader():
 
         # Apply velocity scaling (1 or 0.1)
         dat['data_vars']['vel'] *= self.config['mode']['vel_scale']
-
 
     def read_vec_hdr(self,):
         # ID: '0x12 = 18
@@ -694,8 +677,7 @@ class _NortekReader():
             if not isinstance(self.config['data_header'], list):
                 self.config['data_header'] = [self.config['data_header']]
             self.config['data_header'] += [hdrnow]
-            
-        
+
     def read_vec_sysdata(self,):
         # ID: 0x11 = 17
         c = self.c
@@ -723,8 +705,7 @@ class _NortekReader():
          dv['status'][c],
          ds['AnaIn'][c]) = unpack(self.endian + '2H3hH2BH', byts[8:])
         self.checksum(byts)
-        
-        
+
     def sci_vec_sysdata(self,):
         """Translate the data in the vec_sysdata structure into 
         scientific units.
@@ -757,7 +738,7 @@ class _NortekReader():
                 t[iburst] = p(arng)
             elif len(inds) == 1:
                 t[iburst] = ((arng - inds[0]) / (fs * 3600 * 24) +
-                                                    t[iburst][inds[0]])
+                             t[iburst][inds[0]])
             else:
                 t[iburst] = (t[iburst][0] + arng / (fs * 24 * 3600))
 
@@ -765,7 +746,7 @@ class _NortekReader():
             # The first status bit should be the orientation.
             tmpd[sysi] = dv['status'][iburst][sysi] & 1
             tbx.fillgaps(tmpd, extrapFlg=True)
-            tmpd = np.nan_to_num(tmpd, nan=0) # nans in pitch roll heading
+            tmpd = np.nan_to_num(tmpd, nan=0)  # nans in pitch roll heading
             slope = np.diff(tmpd)
             tmpd[1:][slope < 0] = 1
             tmpd[:-1][slope > 0] = 0
@@ -776,8 +757,7 @@ class _NortekReader():
         tbx.interpgaps(dv['pitch'], t)
         tbx.interpgaps(dv['roll'], t)
         tbx.interpgaps(dv['temp'], t)
-        
-            
+
     def read_microstrain(self,):
         """Read ADV microstrain sensor (IMU) data
         """
@@ -795,7 +775,7 @@ class _NortekReader():
         ahrsid = unpack(self.endian + '3xB', byts0)[0]
         if hasattr(self, '_ahrsid') and self._ahrsid != ahrsid:
             warnings.warn('AHRS_ID changes mid-file!')
-            
+
         if ahrsid in [195, 204, 210, 211]:
             self._ahrsid = ahrsid
 
@@ -803,55 +783,55 @@ class _NortekReader():
         dat = self.data
         dv = dat['data_vars']
         da = dat['attrs']
-        da['has_imu'] = 1 # logical
+        da['has_imu'] = 1  # logical
         if 'accel' not in dv:
             self._dtypes += ['microstrain']
             if ahrsid == 195:
                 self._orient_dnames = ['accel', 'angrt', 'orientmat']
                 dv['accel'] = tbx._nans((3, self.n_samp_guess),
-                                          dtype=np.float32)
+                                        dtype=np.float32)
                 dv['angrt'] = tbx._nans((3, self.n_samp_guess),
-                                          dtype=np.float32)
+                                        dtype=np.float32)
                 dv['orientmat'] = tbx._nans((3, 3, self.n_samp_guess),
-                                              dtype=np.float32)
-                rv = ['accel','angrt']
+                                            dtype=np.float32)
+                rv = ['accel', 'angrt']
                 if not all(x in da['rotate_vars'] for x in rv):
                     da['rotate_vars'].extend(rv)
-                dat['units'].update({'accel':'m/s^2',
-                                     'angrt':'rad/s'})
+                dat['units'].update({'accel': 'm/s^2',
+                                     'angrt': 'rad/s'})
 
             if ahrsid in [204, 210]:
                 self._orient_dnames = ['accel', 'angrt', 'mag', 'orientmat']
                 dv['accel'] = tbx._nans((3, self.n_samp_guess),
-                                          dtype=np.float32)
-                dv['angrt'] = tbx._nans((3, self.n_samp_guess),
-                                          dtype=np.float32)
-                dv['mag'] = tbx._nans((3, self.n_samp_guess),
                                         dtype=np.float32)
+                dv['angrt'] = tbx._nans((3, self.n_samp_guess),
+                                        dtype=np.float32)
+                dv['mag'] = tbx._nans((3, self.n_samp_guess),
+                                      dtype=np.float32)
                 rv = ['accel', 'angrt', 'mag']
                 if not all(x in da['rotate_vars'] for x in rv):
                     da['rotate_vars'].extend(rv)
                 if ahrsid == 204:
                     dv['orientmat'] = tbx._nans((3, 3, self.n_samp_guess),
-                                                  dtype=np.float32)
-                dat['units'].update({'accel':'m/s^2',
-                                     'angrt':'rad/s',
-                                     'mag':'gauss'})
-                
+                                                dtype=np.float32)
+                dat['units'].update({'accel': 'm/s^2',
+                                     'angrt': 'rad/s',
+                                     'mag': 'gauss'})
+
             elif ahrsid == 211:
                 self._orient_dnames = ['angrt', 'accel', 'mag']
                 dv['angrt'] = tbx._nans((3, self.n_samp_guess),
-                                          dtype=np.float32)
-                dv['accel'] = tbx._nans((3, self.n_samp_guess),
-                                          dtype=np.float32)
-                dv['mag'] = tbx._nans((3, self.n_samp_guess),
                                         dtype=np.float32)
+                dv['accel'] = tbx._nans((3, self.n_samp_guess),
+                                        dtype=np.float32)
+                dv['mag'] = tbx._nans((3, self.n_samp_guess),
+                                      dtype=np.float32)
                 rv = ['angrt', 'accel', 'mag']
                 if not all(x in da['rotate_vars'] for x in rv):
                     da['rotate_vars'].extend(rv)
-                dat['units'].update({'accel':'m/s^2',
-                                     'angrt':'rad/s',
-                                     'mag':'gauss'})
+                dat['units'].update({'accel': 'm/s^2',
+                                     'angrt': 'rad/s',
+                                     'mag': 'gauss'})
         byts = ''
         if ahrsid == 195:  # 0xc3
             byts = self.read(64)
@@ -880,8 +860,7 @@ class _NortekReader():
             return 10
         self.checksum(byts0 + byts)
         self.c += 1  # reset the increment
-        
-        
+
     def sci_microstrain(self,):
         """Rotate orientation data into ADV coordinate system.
         """
@@ -892,7 +871,7 @@ class _NortekReader():
             # to be consistent with the ADV coordinate system.
             # (x,y,-z)_ms = (z,y,x)_adv
             (dv[nm][2],
-             dv[nm][0]) = (dv[nm][0], 
+             dv[nm][0]) = (dv[nm][0],
                            -dv[nm][2].copy())
         if 'orientmat' in self._orient_dnames:
             # MS coordinate system is in North-East-Down (NED),
@@ -908,8 +887,7 @@ class _NortekReader():
             # These are DAng and DVel, so we convert them to angrt, accel here
             dv['angrt'] *= self.config['fs']
             dv['accel'] *= self.config['fs']
-            
-        
+
     def read_awac_profile(self,):
         # ID: '0x20' = 32
         dat = self.data
@@ -950,8 +928,7 @@ class _NortekReader():
             dv['amp'][idx, :, c] = tmp[(idx + n) * nbins: (idx + n+1) * nbins]
         self.checksum(byts)
         self.c += 1
-        
-        
+
     def sci_awac_profile(self,):
         self._sci_data(nortek_defs.awac_profile)
         # Calculate the ranges.
@@ -961,25 +938,24 @@ class _NortekReader():
                     400: 0.1195}
         h_ang = 25 * (np.pi / 180)  # Head angle is 25 degrees for all awacs.
         # Cell size
-        cs = round(float(self.config['BinLength']) / 256. * \
+        cs = round(float(self.config['BinLength']) / 256. *
                    cs_coefs[self.config['freq']] * np.cos(h_ang), ndigits=2)
         # Blanking distance
-        bd = round(self.config['Transmit']['blank_distance'] * \
+        bd = round(self.config['Transmit']['blank_distance'] *
                    0.0229 * np.cos(h_ang) - cs, ndigits=2)
-        
+
         r = (np.float32(np.arange(self.config['NBins']))+1)*cs + bd
         self.data['coords']['range'] = r
         self.data['attrs']['cell_size'] = cs
         self.data['attrs']['blank_dist'] = bd
-        
-        
+
     def dat2sci(self,):
         for nm in self._dtypes:
             getattr(self, 'sci_' + nm)()
         for nm in ['data_header', 'checkdata']:
             if nm in self.config and isinstance(self.config[nm], list):
                 self.config[nm] = _recatenate(self.config[nm])
-                
+
     def __exit__(self, type, value, trace):
         self.close()
 
@@ -989,10 +965,10 @@ class _NortekReader():
 
 def _crop_data(obj, range, n_lastdim):
     for nm, dat in obj.items():
-        if isinstance(dat, np.ndarray) and (dat.shape[-1]==n_lastdim):
+        if isinstance(dat, np.ndarray) and (dat.shape[-1] == n_lastdim):
             obj[nm] = dat[..., range]
-            
-            
+
+
 def _recatenate(obj):
     out = type(obj[0])()
     for ky in list(obj[0].keys()):
@@ -1001,7 +977,7 @@ def _recatenate(obj):
         val0 = obj[0][ky]
         if isinstance(val0, np.ndarray) and val0.size > 1:
             out[ky] = np.concatenate([val[ky][..., None] for val in obj],
-                                      axis=-1)
+                                     axis=-1)
         else:
             out[ky] = np.array([val[ky] for val in obj])
     return out

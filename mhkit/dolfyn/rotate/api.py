@@ -39,7 +39,7 @@ def rotate2(ds, out_frame='earth', inplace=False):
     -------
     ds : xarray.Dataset
       The rotated dataset
-      
+
     Notes
     -----
     This function rotates all variables in ``ds.attrs['rotate_vars']``.
@@ -134,7 +134,7 @@ def calc_principal_heading(vel, tidal_mode=True):
     Otherwise, this function simply computes the average direction
     using a vector method.
 
-    """    
+    """
     dt = vel[0] + vel[1] * 1j
     if tidal_mode:
         # Flip all vectors that are below the x-axis
@@ -149,7 +149,7 @@ def calc_principal_heading(vel, tidal_mode=True):
             np.nanmean(dt, -1, dtype=np.complex128)) / 2
     else:
         pang = np.angle(np.nanmean(dt, -1))
-        
+
     return np.round((90 - np.rad2deg(pang)), decimals=4)
 
 
@@ -166,7 +166,7 @@ def set_declination(ds, declin):
     ----------
     ds : xarray.Dataset
         Dataset adjusted for the magnetic declination
-        
+
     Notes
     -----
     This method modifies the data object in the following ways:
@@ -214,8 +214,8 @@ def set_declination(ds, declin):
         rotate2earth = False
 
     ds['orientmat'].values = np.einsum('kj...,ij->ki...',
-                                            ds['orientmat'].values,
-                                            Rdec, )
+                                       ds['orientmat'].values,
+                                       Rdec, )
     if 'heading' in ds:
         ds['heading'] += angle
     if rotate2earth:
@@ -224,50 +224,49 @@ def set_declination(ds, declin):
         ds.attrs['principal_heading'] += angle
 
     ds.attrs['declination'] = declin
-    ds.attrs['declination_in_orientmat'] = 1 # logical
-    
+    ds.attrs['declination_in_orientmat'] = 1  # logical
+
     return ds
 
 
 def set_inst2head_rotmat(ds, rotmat):
     """
-    Set the instrument to head rotation matrix for the Nortek ADV if it
-    hasn't already been set through a '.userdata.json' file.
-    
+    Set the instrument to head rotation matrix for cable head Nortek ADVs.
+
     Parameters
     ----------
     rotmat : float
         3x3 rotation matrix
-    
+
     Returns
     ----------
     ds : xarray.Dataset
         Dataset with rotation matrix applied
-        
+
     """
-    if not ds.inst_model.lower()=='vector':
+    if not ds.inst_model.lower() == 'vector':
         raise Exception("Setting 'inst2head_rotmat' is only supported "
                         "for Nortek Vector ADVs.")
     if ds.get('inst2head_rotmat', None) is not None:
         raise Exception(
             "You are setting 'inst2head_rotmat' after it has already "
             "been set. You can only set it once.")
-        
+
     csin = ds.coord_sys
     if csin not in ['inst', 'beam']:
         ds = rotate2(ds, 'inst', inplace=True)
 
     ds['inst2head_rotmat'] = xr.DataArray(np.array(rotmat),
-                                               dims=['x','x*'])
-    
-    ds.attrs['inst2head_rotmat_was_set'] = 1 # logical
+                                          dims=['x', 'x*'])
+
+    ds.attrs['inst2head_rotmat_was_set'] = 1  # logical
     # Note that there is no validation that the user doesn't
     # change `ds.attrs['inst2head_rotmat']` after calling this
     # function.
 
-    if not csin == 'beam': # csin not 'beam', then we're in inst
+    if not csin == 'beam':  # csin not 'beam', then we're in inst
         ds = r_vec._rotate_inst2head(ds)
     if csin not in ['inst', 'beam']:
         ds = rotate2(ds, csin, inplace=True)
-        
+
     return ds

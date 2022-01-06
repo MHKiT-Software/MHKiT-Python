@@ -19,6 +19,7 @@ def _nans(*args, **kwargs):
         out[:] = 0
     return out
 
+
 def _format(form, N):
     out = ''
     for f, n in zip(form, N):
@@ -41,7 +42,7 @@ class _DataDef():
             self._format.append(itm[1])
             self._shape.append(itm[2])
             self._sci_func.append(itm[3])
-            if len(itm)==5:
+            if len(itm) == 5:
                 self._units.append(itm[4])
             else:
                 self._units.append('')
@@ -110,7 +111,7 @@ class _DataDef():
             if func is None:
                 continue
             data[ky] = func(data[ky])
-            
+
     def data_units(self):
         units = {}
         for ky, unit in zip(self._names, self._units):
@@ -189,7 +190,7 @@ _burst_hdr = [
     ('error', 'H', [], None),
     ('status0', 'H', [], None, 'binary'),
     ('status', 'I', [], None, 'binary'),
-    ('ensemble_count', 'I', [], None)
+    ('_ensemble', 'I', [], None),
 ]
 
 _bt_hdr = [
@@ -214,7 +215,7 @@ _bt_hdr = [
     ('cell_size', 'H', [], _LinFunc(0.001), 'm'),
     ('blank_dist', 'H', [], _LinFunc(0.01), 'm'),
     ('nom_corr', 'B', [], None, '%'),
-    ('unused', 'B', [], None), 
+    ('unused', 'B', [], None),
     ('batt', 'H', [], _LinFunc(0.1, dtype=dt32), 'V'),
     ('mag', 'h', [3], None, 'gauss'),
     ('accel', 'h', [3], _LinFunc(1. / 16384 * grav, dtype=dt32), 'm/s^2'),
@@ -227,7 +228,7 @@ _bt_hdr = [
     ('temp_clock', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg C'),
     ('error', 'I', [], None),
     ('status', 'I', [], None, 'binary'),
-    ('ensemble_count', 'I', [], None)
+    ('_ensemble', 'I', [], None),
 ]
 
 _ahrs_def = [
@@ -241,9 +242,10 @@ def _calc_bt_struct(config, nb):
     flags = lib._headconfig_int2dict(config, mode='bt')
     dd = copy(_bt_hdr)
     if flags['vel']:
-        dd.append(('vel', 'i', [nb], None, 'm/s'))  # units handled in Ad2cpReader.sci_data
+        # units handled in Ad2cpReader.sci_data
+        dd.append(('vel', 'i', [nb], None, 'm/s'))
     if flags['dist']:
-        dd.append(('dist', 'i', [nb], _LinFunc(0.001, dtype=dt32),'m'))
+        dd.append(('dist', 'i', [nb], _LinFunc(0.001, dtype=dt32), 'm'))
     if flags['fom']:
         dd.append(('fom', 'H', [nb], None))
     if flags['ahrs']:
@@ -279,12 +281,12 @@ def _calc_burst_struct(config, nb, nc):
         dd.append(('corr', 'B', [nb, nc], None, '%'))
     if flags['alt']:
         dd += [('alt_dist', 'f', [], _LinFunc(dtype=dt32), 'm'),
-               ('alt_quality', 'H', [], _LinFunc(0.01,dtype=dt32), 'dB'),
+               ('alt_quality', 'H', [], _LinFunc(0.01, dtype=dt32), 'dB'),
                ('alt_status', 'H', [], None)]
     if flags['ast']:
         dd += [
             ('ast_dist', 'f', [], _LinFunc(dtype=dt32), 'm'),
-            ('ast_quality', 'H', [], _LinFunc(0.01,dtype=dt32), 'dB'),
+            ('ast_quality', 'H', [], _LinFunc(0.01, dtype=dt32), 'dB'),
             ('ast_offset_time', 'h', [], _LinFunc(0.0001, dtype=dt32), 's'),
             ('ast_pressure', 'f', [], None, 'dbar'),
             ('ast_spare', 'B7x', [], None),
@@ -305,7 +307,7 @@ def _calc_burst_struct(config, nb, nc):
                ('roll_std', 'h', [],
                 _LinFunc(0.01, dtype=dt32), 'deg'),
                ('heading_std', 'h', [],
-                _LinFunc(0.01, dtype=dt32),'deg'),
+                _LinFunc(0.01, dtype=dt32), 'deg'),
                ('press_std', 'h', [],
                 _LinFunc(0.1, dtype=dt32), 'dbar'),
                # This use of 'x' here is a hack
