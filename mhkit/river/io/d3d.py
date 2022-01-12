@@ -62,8 +62,9 @@ def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
 def create_points(x, y, z):
     '''
     Turns inputs of x, y, and z cordinates into a DataFrame of points to
-    interpolate over. X, Y, and Z must be provided a combination of float, int 
-    or arrays of at least two points (float or ints) and at most one array. 
+    over. X, Y, and Z must be provided a combination of float, int 
+    or arrays of at least one points (float or int) and at most two array. 
+    add example 
     
     Parameters
     ----------
@@ -101,10 +102,12 @@ def create_points(x, y, z):
             directions[i]['values'] = np.array([directions[i]['values']])  
             
         N= len(directions[i]['values'])
-        if N== 1 :
+        if N == 1 :
             directions[i]['type']= 'point'
+            
         elif N > 1 :
-            directions[i]['type']= 'vector'
+            directions[i]['type']= 'array'
+            
         else:
             raise Exception(f'length of direction {directions[i]["name"]} was'
                             +'neagative or zero')
@@ -112,13 +115,14 @@ def create_points(x, y, z):
     # Check how many times point is in "types" 
     types= [directions[i]['type'] for i in directions]
     N_points = types.count('point')
-    if N_points >= 2: 
-        #  treat_as centerline 
-        lens = np.array([np.size(d)  for d in directions])
+
+    if N_points >= 2:
+        lens = np.array([len(directions[d]['values'])  for d in directions])
         max_len_idx = lens.argmax()
         not_max_idxs= [i for i in directions.keys()]
+        
         del not_max_idxs[max_len_idx]
-
+        print(max_len_idx)
         for not_max in not_max_idxs:     
             N= len(directions[max_len_idx]['values'])
             vals =np.ones(N)*directions[not_max]['values']
@@ -137,6 +141,7 @@ def create_points(x, y, z):
         #find index of point 
         idx_point = types.index('point')
         max_idxs= [i for i in directions.keys()]
+        print(max_idxs)
         del max_idxs[idx_point]
         #find vectors 
         XX, YY = np.meshgrid(directions[max_idxs[0]]['values'],
