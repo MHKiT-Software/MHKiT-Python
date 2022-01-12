@@ -61,10 +61,19 @@ def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
 
 def create_points(x, y, z):
     '''
-    Turns inputs of x, y, and z cordinates into a DataFrame of points to
-    over. X, Y, and Z must be provided a combination of float, int 
-    or arrays of at least one points (float or int) and at most two array. 
-    add example 
+    Turns three coordinate inputs into a single output DataFrame of points. 
+    The 3 inputs can consist of 3 points, 2 points and 1 array, or 1 point 
+    and 2 arrays. The final output DataFrame will consist of a DataFrame with
+    every combination of the 3 inputs. For example, if the inputs are an 
+    2 arrays: [1,2] and [3,4,5] and 1 point [6], the output will be containing 
+    6 combination of the 3 inputs as shown.
+        x   y    z
+   0  [1.0  3.0  6.0]
+   1  [2.0  3.0  6.0]
+   2  [1.0  4.0  6.0]
+   3  [2.0  4.0  6.0]
+   4  [1.0  5.0  6.0]
+   5  [2.0  5.0  6.0]
     
     Parameters
     ----------
@@ -157,7 +166,7 @@ def create_points(x, y, z):
         
         points= pd.DataFrame(request, columns=columns)
     else: 
-        raise Exception('Can provide at most two vectors')
+        raise Exception('Can provide at most two arrays')
 
     return points 
 
