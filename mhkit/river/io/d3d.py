@@ -64,16 +64,7 @@ def create_points(x, y, z):
     Turns three coordinate inputs into a single output DataFrame of points. 
     The 3 inputs can consist of 3 points, 2 points and 1 array, or 1 point 
     and 2 arrays. The final output DataFrame will consist of a DataFrame with
-    every combination of the 3 inputs. For example, if the inputs are an 
-    2 arrays: [1,2] and [3,4,5] and 1 point [6], the output will be containing 
-    6 combination of the 3 inputs as shown.
-        x   y    z
-   0  [1.0  3.0  6.0]
-   1  [2.0  3.0  6.0]
-   2  [1.0  4.0  6.0]
-   3  [2.0  4.0  6.0]
-   4  [1.0  5.0  6.0]
-   5  [2.0  5.0  6.0]
+    every combination of the 3 inputs. 
     
     Parameters
     ----------
@@ -88,6 +79,19 @@ def create_points(x, y, z):
     -------
     points: DateFrame 
         DataFrame with columns x, y and z points. 
+        
+    Example 
+    -------
+    If the inputs are 2 arrays: [1,2] and [3,4,5] and 1 point [6], the output 
+    will contain 6 array combinations of the 3 inputs as shown.
+        x   y    z
+   0  [1.0  3.0  6.0]
+   1  [2.0  3.0  6.0]
+   2  [1.0  4.0  6.0]
+   3  [2.0  4.0  6.0]
+   4  [1.0  5.0  6.0]
+   5  [2.0  5.0  6.0]
+        
     '''
     
     assert isinstance(x, (int, float, np.ndarray)), ('x must be a int, float'
@@ -341,7 +345,13 @@ def unorm(x, y ,z):
     Returns
     -------
     unorm : array 
-       The root mean squared of x, y, and z. 
+       The root mean squared of x, y, and z.
+       
+    Example 
+    -------
+    If the inputs are [1,2,3], [4,5,6], and [7,8,9] the code take the 
+    cordinationg value from each array and calculates the root mean squared. 
+    The resulting output is [ 8.1240384 ,  9.64365076, 11.22497216].
     '''
     
     assert isinstance(x,(np.ndarray, np.float64, pd.Series)), 'x must be an array'
