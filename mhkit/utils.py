@@ -260,5 +260,40 @@ def magnitude_phase(x,y,z=None):
         mag = np.sqrt(x**2 + y**2)
         theta = np.arctan2(y, x)
         return mag, theta
-        
+
+def unorm(x, y ,z):
+    '''
+    Calculates the root mean squared value given three arrays. 
+
+    Parameters
+    ----------
+    x: array 
+        One input for the root mean squared calculation.(eq. x velocity) 
+    y: array
+        One input for the root mean squared calculation.(eq. y velocity) 
+    z: array
+        One input for the root mean squared calculation.(eq. z velocity) 
+
+    Returns
+    -------
+    unorm : array 
+       The root mean squared of x, y, and z.
+       
+    Example 
+    -------
+    If the inputs are [1,2,3], [4,5,6], and [7,8,9] the code take the 
+    cordinationg value from each array and calculates the root mean squared. 
+    The resulting output is [ 8.1240384 ,  9.64365076, 11.22497216].
+    '''
+    
+    assert isinstance(x,(np.ndarray, np.float64, pd.Series)), 'x must be an array'
+    assert isinstance(y,(np.ndarray, np.float64, pd.Series)), 'y must be an array'
+    assert isinstance(z,(np.ndarray, np.float64, pd.Series)), 'z must be an array'
+    assert all([len(x) == len(y), len (y) ==len (z)]), ('lengths of arrays must'
+                                                        +' match')
+
+    xyz = np.array([x,y,z]) 
+    unorm = np.linalg.norm(xyz, axis= 0)
+
+    return unorm
     
