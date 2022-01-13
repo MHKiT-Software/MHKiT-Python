@@ -283,7 +283,7 @@ def unorm(x, y ,z):
     -------
     If the inputs are [1,2,3], [4,5,6], and [7,8,9] the code take the 
     cordinationg value from each array and calculates the root mean squared. 
-    The resulting output is [ 8.1240384 ,  9.64365076, 11.22497216].
+    The resulting output is [ 8.1240384,  9.64365076, 11.22497216].
     '''
     
     assert isinstance(x,(np.ndarray, np.float64, pd.Series)), 'x must be an array'
