@@ -1,0 +1,23 @@
+<ADCP data object>:  Nortek Signature500
+  . 4.16 minutes (started: Feb 24, 2017 10:01)
+  . beam-frame
+  . (500 pings @ 2Hz)
+  Variables:
+  - time ('time',)
+  - time_b5 ('time_b5',)
+  - vel ('dir', 'range', 'time')
+  - vel_b5 ('range_b5', 'time_b5')
+  - range ('range',)
+  - orientmat ('earth', 'inst', 'time')
+  - heading ('time',)
+  - pitch ('time',)
+  - roll ('time',)
+  - temp ('time',)
+  - pressure ('time',)
+  - amp ('beam', 'range', 'time')
+  - amp_b5 ('range_b5', 'time_b5')
+  - corr ('beam', 'range', 'time')
+  - corr_b5 ('range_b5', 'time_b5')
+  - accel ('dirIMU', 'time')
+  - mag ('dirIMU', 'time')
+  ... and others (see `<obj>.variables`)

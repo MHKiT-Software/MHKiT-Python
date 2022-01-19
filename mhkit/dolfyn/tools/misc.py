@@ -22,6 +22,86 @@ def _find(arr):
     return np.nonzero(np.ravel(arr))[0]
 
 
+def detrend(arr, axis=-1, in_place=False):
+    """Remove a linear trend from arr.
+
+    Parameters
+    ----------
+    arr : array_like
+       The array from which to remove a linear trend.
+    axis : int
+       The axis along which to operate.
+
+    Notes
+    -----
+    This method is copied from the matplotlib.mlab library, but
+    implements the covariance calcs explicitly for added speed.
+
+    This works much faster than mpl.mlab.detrend for multi-dimensional
+    arrays, and is also faster than linalg.lstsq methods.
+    """
+    arr = np.asarray(arr)
+    if not in_place:
+        arr = arr.copy()
+    sz = np.ones(arr.ndim, dtype=int)
+    sz[axis] = arr.shape[axis]
+    x = np.arange(sz[axis], dtype=np.float_).reshape(sz)
+    x -= np.nanmean(x, axis=axis, keepdims=True)
+    arr -= np.nanmean(arr, axis=axis, keepdims=True)
+    b = np.nanmean((x * arr), axis=axis, keepdims=True) / \
+        np.nanmean((x ** 2), axis=axis, keepdims=True)
+    arr -= b * x
+    return arr
+
+
+def group(bl, min_length=0):
+    """Find continuous segments in a boolean array.
+
+    Parameters
+    ----------
+    bl : |np.ndarray| (dtype='bool')
+      The input boolean array.
+    min_length : int (optional)
+      Specifies the minimum number of continuos points to consider a
+      `group` (i.e. that will be returned).
+
+    Returns
+    -------
+    out : np.ndarray(slices,)
+      a vector of slice objects, which indicate the continuous
+      sections where `bl` is True.
+
+    Notes
+    -----
+    This function has funny behavior for single points.  It will
+    return the same two indices for the beginning and end.
+
+    """
+    if not any(bl):
+        return np.empty(0)
+    vl = np.diff(bl.astype('int'))
+    ups = np.nonzero(vl == 1)[0] + 1
+    dns = np.nonzero(vl == -1)[0] + 1
+    if bl[0]:
+        if len(ups) == 0:
+            ups = np.array([0])
+        else:
+            ups = np.concatenate((np.arange([0]), [len(ups)]))
+    if bl[-1]:
+        if len(dns) == 0:
+            dns = np.array([len(bl)])
+        else:
+            dns = np.concatenate((dns, [len(bl)]))
+    out = np.empty(len(dns), dtype='O')
+    idx = 0
+    for u, d in zip(ups, dns):
+        if d - u < min_length:
+            continue
+        out[idx] = slice(u, d)
+        idx += 1
+    return out[:idx]
+
+
 def slice1d_along_axis(arr_shape, axis=0):
     """
     Return an iterator object for looping over 1-D slices, along ``axis``, of
@@ -192,6 +272,51 @@ def interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
                      a[gd[inds[i2]]]).astype(a.dtype)
 
     return a
+
+
+def medfiltnan(a, kernel, thresh=0):
+    """
+    Do a running median filter of the data. Regions where more than 
+    ``thresh`` fraction of the points are NaN are set to NaN.
+
+    Parameters
+    ----------
+    a : |np.ndarray|
+      2D array containing data to be filtered.
+    kernel_size : |np.ndarray| or list, optional
+      A scalar or a list of length 2, giving the size of the median 
+      filter window in each dimension. Elements of kernel_size should 
+      be odd. If kernel_size is a scalar, then this scalar is used as 
+      the size in each dimension.
+    thresh : int
+      Maximum gap in *a* to filter over
+
+    Returns
+    -------
+    out : |np.ndarray|
+      2D array of same size containing filtered data
+
+    See Also
+    --------
+    scipy.signal.medfilt2d
+
+    """
+    flag_1D = False
+    if a.ndim == 1:
+        a = a[None, :]
+        flag_1D = True
+    try:
+        len(kernel)
+    except:
+        kernel = [1, kernel]
+    out = medfilt2d(a, kernel)
+    if thresh > 0:
+        out[convolve2d(np.isnan(a),
+                       np.ones(kernel) / np.prod(kernel),
+                       'same') > thresh] = np.NaN
+    if flag_1D:
+        return out[0]
+    return out
 
 
 def convert_degrees(deg, tidal_mode=True):
