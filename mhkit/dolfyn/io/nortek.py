@@ -74,6 +74,8 @@ def read_nortek(filename, userdata=True, debug=False, do_checksum=False,
     if declin is not None:
         ds = rot.set_declination(ds, declin)
 
+    ds['time'] = time.epoch2dt64(ds['time']).astype('datetime64[us]')
+
     return ds
 
 
@@ -523,12 +525,12 @@ class _NortekReader():
         """Read the time from the first 6bytes of the input string.
         """
         min, sec, day, hour, year, month = unpack('BBBBBB', strng[:6])
-        return datetime(time._fullyear(_bcd2char(year)),
-                        _bcd2char(month),
-                        _bcd2char(day),
-                        _bcd2char(hour),
-                        _bcd2char(min),
-                        _bcd2char(sec)).timestamp()
+        return time.date2epoch(datetime(time._fullyear(_bcd2char(year)),
+                                        _bcd2char(month),
+                                        _bcd2char(day),
+                                        _bcd2char(hour),
+                                        _bcd2char(min),
+                                        _bcd2char(sec)))[0]
 
     def _init_data(self, vardict):
         """Initialize the data object according to vardict.

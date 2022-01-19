@@ -7,7 +7,7 @@ from .nortek2 import read_signature
 from .rdi import read_rdi
 from .base import _create_dataset
 from ..rotate.base import _set_coords
-from ..time import epoch2date, date2epoch, date2matlab, matlab2date
+from ..time import date2matlab, matlab2date, date2dt64, dt642date
 
 
 # time variables stored as data variables (as opposed to coordinates)
@@ -74,7 +74,9 @@ def read_example(name, **kwargs):
     return read(filename, **kwargs)
 
 
-def save(dataset, filename):
+def save(dataset, filename,
+         format='NETCDF4', engine='netcdf4',
+         **kwargs):
     """Save xarray dataset as netCDF (.nc).
 
     Parameters
@@ -108,19 +110,7 @@ def save(dataset, filename):
             dataset = dataset.drop(var)
             dataset.attrs['complex_vars'].append(var)
 
-    # Keeping time in raw file's time instance, unaware of timezone
-    t_list = [t for t in dataset.coords if 'time' in t]
-    for ky in t_list:
-        dt = epoch2date(dataset[ky])
-        dataset = dataset.assign_coords({ky: dt})
-
-    t_data = [t for t in dataset.data_vars if t in t_additional]
-    for ky in t_data:
-        dt = epoch2date(dataset[ky])
-        dataset = dataset.drop_vars(ky)  # must do b/c of netcdf encoding error
-        dataset[ky] = xr.DataArray(dt, coords={'time_gps': dataset.time_gps})
-
-    dataset.to_netcdf(filename, format='NETCDF4', engine='netcdf4')
+    dataset.to_netcdf(filename, format=format, engine=engine, **kwargs)
 
 
 def load(filename):
@@ -161,20 +151,6 @@ def load(filename):
             ds = ds.drop_vars([var+'_real', var+'_imag'])
     ds.attrs.pop('complex_vars')
 
-    # Reload raw file's time instance since the timezone is unknown
-    t_list = [t for t in ds.coords if 'time' in t]
-    for ky in t_list:
-        dt = ds[ky].values.astype('datetime64[us]').tolist()
-        ds = ds.assign_coords({ky: date2epoch(dt)})
-        ds[ky].attrs['description'] = 'seconds since 1970-01-01 00:00:00'
-
-    # Time data variables
-    t_data = [t for t in ds.data_vars if t in t_additional]
-    for ky in t_data:
-        dt = ds[ky].values.astype('datetime64[us]').tolist()
-        ds[ky].data = date2epoch(dt)
-        ds[ky].attrs['description'] = 'seconds since 1970-01-01 00:00:00'
-
     return ds
 
 
@@ -210,12 +186,12 @@ def save_mat(dataset, filename, datenum=True):
     if datenum:
         t_list = [t for t in dataset.coords if 'time' in t]
         for ky in t_list:
-            dt = date2matlab(epoch2date(dataset[ky]))
+            dt = date2matlab(dt642date(dataset[ky]))
             dataset = dataset.assign_coords({ky: dt})
 
         t_data = [t for t in dataset.data_vars if t in t_additional]
         for ky in t_data:
-            dt = date2matlab(epoch2date(dataset[ky]))
+            dt = date2matlab(dt642date(dataset[ky]))
             dataset[ky].data = dt
 
     # Save xarray structure with more descriptive structure names
@@ -281,13 +257,13 @@ def load_mat(filename, datenum=True):
     if datenum:
         t_list = [t for t in ds.coords if 'time' in t]
         for ky in t_list:
-            dt = date2epoch(matlab2date(ds[ky].values))
+            dt = date2dt64(matlab2date(ds[ky].values))
             ds = ds.assign_coords({ky: dt})
             ds[ky].attrs['description'] = 'seconds since 1970-01-01 00:00:00'
 
         t_data = [t for t in ds.data_vars if t in t_additional]
         for ky in t_data:
-            dt = date2epoch(matlab2date(ds[ky].values))
+            dt = date2dt64(matlab2date(ds[ky].values))
             ds[ky].data = dt
             ds[ky].attrs['description'] = 'seconds since 1970-01-01 00:00:00'
 

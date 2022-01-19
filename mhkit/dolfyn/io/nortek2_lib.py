@@ -1,8 +1,8 @@
 import struct
 import os.path as path
 import numpy as np
-import warnings
-from datetime import datetime
+#import warnings
+from .. import time
 
 
 def _reduce_by_average(data, ky0, ky1):
@@ -82,7 +82,8 @@ def _calc_time(year, month, day, hour, minute, second, usec, zero_is_bad=True):
             continue
         try:
             # Note that month is zero-based, seconds since Jan 1 1970
-            dt[idx] = datetime(y, mo + 1, d, h, mi, s, u).timestamp()
+            dt[idx] = time.date2epoch(
+                time.datetime(y, mo + 1, d, h, mi, s, u))[0]
         except ValueError:
             # One of the time values is out-of-range (e.g., mi > 60)
             # This probably indicates a corrupted byte, so we just insert None.
@@ -129,7 +130,6 @@ def _create_index_slow(infile, outfile, N_ens):
             last_ens = ens
         else:
             fin.seek(dat[4], 1)
-
     fin.close()
     fout.close()
     print(" Done.")
@@ -328,7 +328,7 @@ def _collapse(vec, name=None, exclude=[]):
     elif _isuniform(vec, exclude=exclude):
         return list(set(np.unique(vec)) - set(exclude))[0]
     else:
-        warnings.warn(f"The variable {name} is expected to be uniform, but it is not.")
+        #warnings.warn(f"The variable {name} is expected to be uniform, but it is not.")
         return vec[0]
 
 

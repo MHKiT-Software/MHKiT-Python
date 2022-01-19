@@ -1,6 +1,6 @@
 import numpy as np
 import xarray as xr
-import datetime
+from .. import time as tmlib
 import warnings
 from os.path import getsize
 from ._read_bin import bin_reader
@@ -8,6 +8,10 @@ from .base import _find_userdata, _create_dataset
 from ..rotate.rdi import _calc_beam_orientmat, _calc_orientmat
 from ..rotate.base import _set_coords
 from ..rotate.api import set_declination
+
+
+# time variables stored as data variables (as opposed to coordinates)
+t_additional = ['hdwtime_gps', ]
 
 
 def read_rdi(fname, userdata=None, nens=None, debug=0):
@@ -71,13 +75,25 @@ def read_rdi(fname, userdata=None, nens=None, debug=0):
     else:  # (not ENR or ENS) or WinRiver files
         ds.attrs['vel_gps_corrected'] = 0
 
+    # Convert time to dt64
+    t_list = [t for t in ds.coords if 'time' in t]
+    for ky in t_list:
+        dt = tmlib.epoch2dt64(ds[ky])
+        ds = ds.assign_coords({ky: dt})
+
+    t_data = [t for t in ds.data_vars if t in t_additional]
+    for ky in t_data:
+        dt = tmlib.epoch2dt64(ds[ky])
+        ds = ds.drop_vars(ky)  # must do b/c of netcdf encoding error
+        ds[ky] = xr.DataArray(dt, coords={'time_gps': ds.time_gps})
+
     return ds
 
 
 def _remove_gps_duplicates(dat):
     """
     Removes duplicate and nan timestamp values in 'time_gps' coordinate, and    
-    adds hardware (ADCP DAQ) timestamp corresponding to GPS acquisition
+    ads hardware (ADCP DAQ) timestamp corresponding to GPS acquisition
     (in addition to the GPS unit's timestamp).
     """
 
@@ -375,8 +391,9 @@ class _RdiReader():
             for nm in self.vars_read:
                 _get(dat, nm)[..., iens] = self.mean(self.ensemble[nm])
             try:
-                dats = datetime.datetime(*clock[:6, 0],
-                                         microsecond=clock[6, 0] * 10000).timestamp()
+                dats = tmlib.date2epoch(
+                    tmlib.datetime(*clock[:6, 0],
+                                   microsecond=clock[6, 0] * 10000))[0]
             except ValueError:
                 warnings.warn("Invalid time stamp in ping {}.".format(
                     int(self.ensemble.number[0])))
@@ -469,14 +486,6 @@ class _RdiReader():
                 if cfgid[0] == 127 and cfgid[1] in [127, 121]:
                     if cfgid[1] == 121 and self._debug7f79 is None:
                         self._debug7f79 = True
-                        warnings.warn(
-                            "This ADCP file has an undocumented "
-                            "sync-code.  If possible, please notify the "
-                            "DOLfYN developers that you are recieving "
-                            "this warning by posting the hardware and "
-                            "software details on how you acquired this file "
-                            "to "
-                            "http://github.com/lkilcher/dolfyn/issues/7")
                     valid = 1
         else:
             fd.seek(-2, 1)
@@ -767,24 +776,24 @@ class _RdiReader():
                            'flags',
                            'ntime', ]
         utim = fd.read_ui8(4)
-        date = datetime.datetime(utim[2] + utim[3] * 256, utim[1], utim[0])
+        date = tmlib.datetime(utim[2] + utim[3] * 256, utim[1], utim[0])
         # This byte is in hundredths of seconds (10s of milliseconds):
-        time = datetime.timedelta(milliseconds=(int(fd.read_ui32(1) / 10)))
+        time = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) / 10)))
         fd.seek(4, 1)  # "PC clock offset from UTC" - clock drift in ms?
-        ens.time_gps[k] = (date + time).timestamp()
+        ens.time_gps[k] = tmlib.date2epoch(date + time)[0]
         ens.latitude_gps[k] = fd.read_i32(1) * self._cfac
         ens.longitude_gps[k] = fd.read_i32(1) * self._cfac
-        ens.etime_gps[k] = (date + datetime.timedelta(
-            milliseconds=int(fd.read_ui32(1) * 10))).timestamp()
+        ens.etime_gps[k] = tmlib.date2epoch(date + tmlib.timedelta(
+            milliseconds=int(fd.read_ui32(1) * 10)))[0]
         ens.elatitude_gps[k] = fd.read_i32(1) * self._cfac
         ens.elongitude_gps[k] = fd.read_i32(1) * self._cfac
         fd.seek(12, 1)
         ens.flags[k] = fd.read_ui16(1)
         fd.seek(6, 1)
         utim = fd.read_ui8(4)
-        date = datetime.datetime(utim[0] + utim[1] * 256, utim[3], utim[2])
-        ens.ntime[k] = (date + datetime.timedelta(
-            milliseconds=int(fd.read_ui32(1) / 10))).timestamp()
+        date = tmlib.datetime(utim[0] + utim[1] * 256, utim[3], utim[2])
+        ens.ntime[k] = tmlib.date2epoch(date + tmlib.timedelta(
+            milliseconds=int(fd.read_ui32(1) / 10)))[0]
         fd.seek(16, 1)
         self._nbyte = 2 + 76
 
@@ -811,15 +820,15 @@ class _RdiReader():
                                   ' skipping...')
                 return 'FAIL'
             gga_time = str(self.f.reads(9))
-            time = datetime.timedelta(hours=int(gga_time[0:2]),
-                                      minutes=int(gga_time[2:4]),
-                                      seconds=int(gga_time[4:6]),
-                                      milliseconds=int(gga_time[7:])*100)
+            time = tmlib.timedelta(hours=int(gga_time[0:2]),
+                                   minutes=int(gga_time[2:4]),
+                                   seconds=int(gga_time[4:6]),
+                                   milliseconds=int(gga_time[7:])*100)
             clock = self.ensemble.rtc[:, :]
             if clock[0, 0] < 100:
                 clock[0, :] += century
-            ens.time_gps[k] = (datetime.datetime(
-                *clock[:3, 0]) + time).timestamp()
+            ens.time_gps[k] = tmlib.date2epoch(tmlib.datetime(
+                *clock[:3, 0]) + time)[0]
             self.f.seek(1, 1)
             ens.latitude_gps[k] = self.f.read_f64(1)
             tcNS = self.f.reads(1)

@@ -22,7 +22,7 @@ rot_module_dict = {
     'rdi': r_rdi}
 
 
-def rotate2(ds, out_frame='earth', inplace=False):
+def rotate2(ds, out_frame='earth'):
     """Rotate a dataset to a new coordinate system.
 
     Parameters
@@ -31,9 +31,6 @@ def rotate2(ds, out_frame='earth', inplace=False):
       The dolfyn dataset (ADV or ADCP) to rotate.
     out_frame : string {'beam', 'inst', 'earth', 'principal'}
       The coordinate system to rotate the data into.
-    inplace : bool
-      Operate on the input data dataset (True), or return a copy that
-      has been rotated (False, default).
 
     Returns
     -------
@@ -67,8 +64,8 @@ def rotate2(ds, out_frame='earth', inplace=False):
     if rmod is None:
         raise ValueError("Rotations are not defined for "
                          "instrument '{}'.".format(_make_model(ds)))
-    if not inplace:
-        ds = ds.copy(deep=True)
+    # Ensure new data is rotated
+    ds = ds.copy(deep=True)
 
     # Get the 'indices' of the rotation chain
     try:
@@ -113,7 +110,7 @@ def calc_principal_heading(vel, tidal_mode=True):
     Parameters
     ----------
     vel : np.ndarray (2,...,Nt), or (3,...,Nt)
-      The 2D or 3D Veldata array (3rd-dim is ignored in this calculation)
+      The 2D or 3D velocity array (3rd-dim is ignored in this calculation)
     tidal_mode : bool (default: True)
 
     Returns
@@ -209,7 +206,7 @@ def set_declination(ds, declin):
 
     if ds.coord_sys == 'earth':
         rotate2earth = True
-        ds = rotate2(ds, 'inst', inplace=True)
+        ds = rotate2(ds, 'inst')
     else:
         rotate2earth = False
 
@@ -219,7 +216,7 @@ def set_declination(ds, declin):
     if 'heading' in ds:
         ds['heading'] += angle
     if rotate2earth:
-        ds = rotate2(ds, 'earth', inplace=True)
+        ds = rotate2(ds, 'earth')
     if 'principal_heading' in ds.attrs:
         ds.attrs['principal_heading'] += angle
 
@@ -231,7 +228,8 @@ def set_declination(ds, declin):
 
 def set_inst2head_rotmat(ds, rotmat):
     """
-    Set the instrument to head rotation matrix for cable head Nortek ADVs.
+    Set the instrument to head rotation matrix for the Nortek ADV if it
+    hasn't already been set through a '.userdata.json' file.
 
     Parameters
     ----------
@@ -254,7 +252,7 @@ def set_inst2head_rotmat(ds, rotmat):
 
     csin = ds.coord_sys
     if csin not in ['inst', 'beam']:
-        ds = rotate2(ds, 'inst', inplace=True)
+        ds = rotate2(ds, 'inst')
 
     ds['inst2head_rotmat'] = xr.DataArray(np.array(rotmat),
                                           dims=['x', 'x*'])
@@ -267,6 +265,6 @@ def set_inst2head_rotmat(ds, rotmat):
     if not csin == 'beam':  # csin not 'beam', then we're in inst
         ds = r_vec._rotate_inst2head(ds)
     if csin not in ['inst', 'beam']:
-        ds = rotate2(ds, csin, inplace=True)
+        ds = rotate2(ds, csin)
 
     return ds

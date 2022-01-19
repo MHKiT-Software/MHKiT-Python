@@ -193,12 +193,12 @@ def interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
 
     return a
 
-    
+
 def convert_degrees(deg, tidal_mode=True):
     """
     Converts between the 'cartesian angle' (counter-clockwise from East) and
     the 'polar angle' in (degrees clockwise from North)
-    
+
     Parameters
     ----------
     deg: float or array-like
@@ -206,18 +206,18 @@ def convert_degrees(deg, tidal_mode=True):
     tidal_mode : bool
       If true, range is set from 0 to +/-180 degrees. If false, range is 0 to 
       360 degrees
-      
+
     Returns
     -------
     out : float or array-like
       Input data transformed to 'degrees CW from North' or 
       'degrees CCW from East', respectively (based on `deg`)
-      
+
     Notes
     -----
     The same algorithm is used to convert back and forth between 'CCW from E' 
     and 'CW from N'
-    
+
     """
     out = -(deg - 90) % 360
     if tidal_mode:
