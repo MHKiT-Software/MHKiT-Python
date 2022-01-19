@@ -22,7 +22,7 @@ def environmental_contours(x1, x2, sea_state_duration, return_period, method, **
     x2: array 
         Component 2 data 
     sea_state_duration : int or float
-        `x1` and `x2` sample rate (seconds)
+        `x1` and `x2` averaging period in seconds
     return_period: int, float
         Return period of interest in years
     method: string or list
