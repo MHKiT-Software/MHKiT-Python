@@ -1,6 +1,6 @@
 from . import test_read_adv as trv
 from . import test_read_adp as trp
-import dolfyn.time as time
+import mhkit.dolfyn.time as time
 from datetime import datetime
 from numpy.testing import assert_equal, assert_allclose
 import numpy as np

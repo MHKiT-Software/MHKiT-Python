@@ -169,7 +169,7 @@ def fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
 
     See Also
     --------
-    dolfyn.tools.misc.interpgaps : Linearly interpolates in time.
+    mhkit.dolfyn.tools.misc.interpgaps : Linearly interpolates in time.
 
     Notes
     -----
@@ -241,7 +241,7 @@ def interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
 
     See Also
     --------
-    dolfyn.tools.misc.fillgaps : Linearly interpolates in array-index space.
+    mhkit.dolfyn.tools.misc.fillgaps : Linearly interpolates in array-index space.
 
     """
 
