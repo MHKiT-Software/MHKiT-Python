@@ -1,4 +1,5 @@
 from os.path import abspath, dirname, join, isfile, normpath, relpath
+from mhkit.utils import unorm
 from math import isclose
 import scipy.interpolate as interp
 import matplotlib.pyplot as plt
@@ -85,12 +86,12 @@ def create_points(x, y, z):
     If the inputs are 2 arrays: [1,2] and [3,4,5] and 1 point [6], the output 
     will contain 6 array combinations of the 3 inputs as shown.
         x   y    z
-   0  [1.0  3.0  6.0]
-   1  [2.0  3.0  6.0]
-   2  [1.0  4.0  6.0]
-   3  [2.0  4.0  6.0]
-   4  [1.0  5.0  6.0]
-   5  [2.0  5.0  6.0]
+   0  1.0  3.0  6.0
+   1  2.0  3.0  6.0
+   2  1.0  4.0  6.0
+   3  2.0  4.0  6.0
+   4  1.0  5.0  6.0
+   5  2.0  5.0  6.0
         
     '''
     
