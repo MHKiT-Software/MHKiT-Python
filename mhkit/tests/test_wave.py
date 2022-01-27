@@ -937,7 +937,7 @@ class TestWPTOhindcast(unittest.TestCase):
         def test_multi_loc(self):
             data_type = '3-hour'
             years = [1995]
-            lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137))
+            lat_lon = ((44.624076,-124.280097  ),(43.489171,-125.152137))
             parameters = 'mean_absolute_period'
             wave_multiloc, meta= wave.io.hindcast.request_wpto_point_data(data_type,
             parameters,lat_lon,years)
