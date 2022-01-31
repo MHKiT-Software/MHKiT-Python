@@ -17,7 +17,7 @@ CLASSIFIERS=['Development Status :: 3 - Alpha',
              'Intended Audience :: Science/Research',
              'Operating System :: OS Independent',
             ]
-DEPENDENCIES = ['pandas>=1.0.0', 
+DEPENDENCIES = ['pandas<=1.3.5', 
                 'numpy<1.21.0', 
                 'scipy',
                 'matplotlib', 
@@ -29,7 +29,8 @@ DEPENDENCIES = ['pandas>=1.0.0',
 		        'NREL-rex>=0.2.63',
                 'six>=1.13.0',
                 'netCDF4', 
-                'xarray']
+                'xarray',
+	       'statsmodels']
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))
