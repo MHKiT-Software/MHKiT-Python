@@ -124,8 +124,9 @@ def available_data(parameter,
     Parameters
     ----------
     parameter: string
-        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        'swden'	:   'Raw Spectral Wave Current Year Historical Data'
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+        'cwind' :   'Continuous Winds Current Year Historical Data'
         
     buoy_number: string (optional)
         Buoy Number.  5-character alpha-numeric station identifier   
@@ -190,9 +191,11 @@ def _parse_filenames(parameter, filenames):
     Parameters
     ----------
     parameter: string
-        'swden'	:    'Raw Spectral Wave Current Year Historical Data'
+        'swden'	:   'Raw Spectral Wave Current Year Historical Data'
         
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+        
+        'cwind' :   'Continuous Winds Current Year Historical Data'
         
     filenames: Series
         List of compressed file names from NDBC
@@ -208,9 +211,10 @@ def _parse_filenames(parameter, filenames):
     
     file_seps = {
                 'swden' : 'w',
-                'stdmet' : 'h'
+                'stdmet' : 'h',
+                'cwind' : 'c'
                 }
-    file_sep= file_seps[parameter]
+    file_sep = file_seps[parameter]
     
     filenames = filenames[filenames.str.contains('.txt.gz')]
     buoy_id_year_str = filenames.str.split('.', expand=True)[0]
@@ -225,7 +229,7 @@ def _parse_filenames(parameter, filenames):
 def request_data(parameter, filenames, proxy=None):
     '''
     Requests data by filenames and returns a dictionary of DataFrames 
-    for each filename passed. If filenames for a sigle buoy are passed 
+    for each filename passed. If filenames for a single buoy are passed 
     then the yearly DataFrames in the returned dictionary (ndbc_data) are 
     indexed by year (e.g. ndbc_data['2014']). If multiple buoy ids are 
     passed then the returned dictionary is indexed by buoy id and year 
@@ -236,6 +240,7 @@ def request_data(parameter, filenames, proxy=None):
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'       
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+        'cwind' :   'Continuous Winds Current Year Historical Data'
         
     filenames: pandas Series or DataFrame
 	    Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
@@ -277,7 +282,11 @@ def request_data(parameter, filenames, proxy=None):
                 response = requests.get(file_url, proxies=proxy)
             try: 
                 data = zlib.decompress(response.content, 16+zlib.MAX_WBITS)
-                df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)                
+                df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)
+                # catch when units are included below the header
+                firstYear = df['#YY'][0]
+                if isinstance(firstYear,str) and firstYear == '#yr':
+                    df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False, skiprows=[1])
             except zlib.error: 
                 msg = (f'Issue decompressing the NDBC file {filename}'  
                        f'(id: {buoy_id}, year: {year}). Please request ' 
@@ -308,6 +317,7 @@ def to_datetime_index(parameter, ndbc_data):
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+        'cwind' :   'Continuous Winds Current Year Historical Data'
     
     ndbc_data: DataFrame
         NDBC data in dataframe with date and time columns to be converted
@@ -345,6 +355,7 @@ def dates_to_datetime(parameter, data,
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+        'cwind' :   'Continuous Winds Current Year Historical Data'
         
     data: DataFrame
         Dataframe with headers (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
@@ -674,13 +685,14 @@ def _supported_params(parameter):
     supported=True
     supported_params = [
                        'swden',
-                       'stdmet'
+                       'stdmet',
+                       'cwind'
                       ]
     param = [param for param in supported_params if param == parameter]
 
     if not param:      
         supported=False
-        msg = ["Currently parameters 'swden' and 'stdmet'  are supported. \n"+
+        msg = ["Currently parameters 'swden', 'stdmet' and 'cwind' are supported. \n"+
                "If you would like to see more data types please \n"+
                " open an issue or submit a Pull Request on GitHub"]
         raise Exception(msg[0])
