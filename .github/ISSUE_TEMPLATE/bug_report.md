@@ -23,7 +23,7 @@ If applicable, add screenshots to help explain your problem.
 
 ### Desktop (please complete the following information):
  - OS: [e.g. iOS]
- - MhKiT Version: [e.g. 22]
+ - MHKiT Version: [e.g. 0.4.0]
 
 ### Additional context:
 Add any other context about the problem here.
