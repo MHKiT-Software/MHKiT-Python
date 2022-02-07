@@ -1,12 +1,11 @@
 from mhkit.wave._environmental_contours import (environmental_contours,
-                                                PCA_contour)
+                                                PCA_contour,
+                                                samples_full_seastate)
 from scipy.optimize import fsolve as _fsolve
 from scipy import signal as _signal
 import pandas as pd
 import numpy as np
 from scipy import stats
-
-import _environmental_contours as ec
 
 ### Spectrum
 def elevation_spectrum(eta, sample_rate, nnft, window='hann',
@@ -785,112 +784,3 @@ def depth_regime(l, h, ratio=2):
     depth_reg = h/l > ratio
 
     return  depth_reg
-
-
-### Contours
-# Imported from _environmental_contours.py
-
-### Sampling
-def samples_full_seastate(x1, x2, bin_size=250, points_per_interval=10,
-                          return_periods=, ):
-    """ Sample a sea-sate between contours of specified return periods.
-
-    This function is used for the full seastate approach for the
-    extreme load. See Coe et al. 2018 for more details. It was
-    originally part of WDRT.
-
-    Coe, R. G., Michelen, C., Eckert-Gallup, A., &
-    Sallaberry, C. (2018). Full long-term design response analysis of a
-    wave energy converter. Renewable Energy, 116, 356-366.
-
-    Parameters
-    ----------
-    points_per_interval : int
-        Number of sample points to be calculated per contour interval.
-    return_levels: np.array
-        Vector of return periods that define the contour intervals in
-        which samples will be taken. Values must be greater than zero and
-        must be in increasing order.
-
-    Returns
-    -------
-    Hs_Samples: np.array
-        Vector of Hs values for each sample point.
-    Te_Samples: np.array
-        Vector of Te values for each sample point.
-    Weight_points: np.array
-        Vector of probabilistic weights for each sampling point
-        to be used in risk calculations.
-    """
-
-    pca_fit = ec._principal_component_analysis(x1, x2, bin_size)
-
-
-
-    # Calculate line where Hs = 0 to avoid sampling Hs in negative space
-    t_zeroline = np.linspace(2.5, 30, 1000)
-    t_zeroline = np.transpose(t_zeroline)
-    h_zeroline = np.zeros(len(t_zeroline))
-
-    # Transform zero line into principal component space
-    coeff = pca_fit['principal_axes']
-    shift = pca_fit['shift']
-    comp_zeroline = np.dot(np.transpose(np.vstack([h_zeroline, t_zeroline])),
-                           coeff)
-    comp_zeroline[:, 1] = comp_zeroline[:, 1] + shift
-
-    # Find quantiles along zero line
-    # comp1_params =
-    # mu_param =
-    # sigma_param =
-    # time_ss =
-    # __mu_fcn()
-    # __sigma_fcn()
-
-    c1_zeroline_prob = stats.invgauss.cdf(comp_zeroline[:, 0],
-                                          mu=comp1_params[0], loc=0,
-                                          scale=comp1_params[2])
-    mu_zeroline = __mu_fcn(comp_zeroline[:, 0], mu_param[0], mu_param[1])
-    sigma_zeroline = __sigma_fcn(sigma_param, comp_zeroline[:, 0])
-    c2_zeroline_prob = stats.norm.cdf(comp_zeroline[:, 1],
-                                      loc=mu_zeroline, scale=sigma_zeroline)
-    c1_normzeroline = stats.norm.ppf(c1_zeroline_prob, 0, 1)
-    c2_normzeroline = stats.norm.ppf(c2_zeroline_prob, 0, 1)
-
-    contour_probs = 1 / (365 * (24 / time_ss) * return_periods)
-
-    # Reliability contour generation
-    # Calculate reliability
-    beta_lines = stats.norm.ppf((1 - contour_probs), 0, 1)
-    # Add zero as lower bound to first contour
-    beta_lines = np.hstack((0, beta_lines))
-    # Discretize the circle
-    theta_lines = np.linspace(0, 2 * np.pi, 1000)
-    # Add probablity of 1 to the reliability set, corresponding to
-    # probability of the center point of the normal space
-    contour_probs = np.hstack((1, contour_probs))
-
-    # Vary U1,U2 along circle sqrt(U1^2+U2^2) = beta
-    u1_lines = np.dot(np.cos(theta_lines[:, None]), beta_lines[None, :])
-
-    # Removing values on the H_s = 0 line that are far from the circles in the
-    # normal space that will be evaluated to speed up calculations
-    minval = np.amin(u1_lines) - 0.5
-    mask = c1_normzeroline > minval
-    c1_normzeroline = c1_normzeroline[mask]
-    c2_normzeroline = c2_normzeroline[mask]
-
-    # Transform to polar coordinates
-    Theta_zeroline = np.arctan2(c2_normzeroline, c1_normzeroline)
-    Rho_zeroline = np.sqrt(c1_normzeroline**2 + c2_normzeroline**2)
-    Theta_zeroline[Theta_zeroline < 0] = Theta_zeroline[
-        Theta_zeroline < 0] + 2 * np.pi
-
-    # __transformSamples()
-    # __generateData()
-    sample_alpha, sample_beta, weight_points = __generateData(beta_lines,
-        rho_zeroline, theta_zeroline, num_contour_points,contour_probs,random_seed)
-
-    hs_Sample, t_sample = __transformSamples(sample_alpha, sample_beta)
-
-    return Hs_Sample, T_Sample, Weight_points
