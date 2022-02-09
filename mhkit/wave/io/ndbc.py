@@ -283,9 +283,10 @@ def request_data(parameter, filenames, proxy=None):
             try: 
                 data = zlib.decompress(response.content, 16+zlib.MAX_WBITS)
                 df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)
+                
                 # catch when units are included below the header
-                firstYear = df['#YY'][0]
-                if isinstance(firstYear,str) and firstYear == '#yr':
+                firstYear = df['MM'][0]
+                if isinstance(firstYear,str) and firstYear == 'mo':
                     df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False, skiprows=[1])
             except zlib.error: 
                 msg = (f'Issue decompressing the NDBC file {filename}'  
@@ -722,4 +723,4 @@ def _supported_params(parameter):
     }
 
     return supported	
-    
+
