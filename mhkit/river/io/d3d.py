@@ -32,6 +32,8 @@ def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
     layer_data: DataFrame
         DataFrame with columns of "x" and "y" location on specified layer and 
         the variable values "v".
+    time: array
+        A float with the amoutn of seconds that the simulation has run.
     '''
     
     assert isinstance(time_index, int), 'time_index  must be a int'
@@ -44,19 +46,87 @@ def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
     assert time_index <= max_time_index, (f'time_index must be less than the max'
                                          +'time index {max_time_index}')
     assert time_index >= -1, 'time_index must be greater than or equal to -1'
-    max_layer= len(var[0][0])
-    assert layer_index <= max_layer,( f'layer_index must be less than the max'
-                                     + 'layer {max_layer}')
-    assert layer_index >= -1, 'layer_index must be greater than or equal to -1'
     
     x=np.ma.getdata(data.variables[coords[0]][:], False) 
     y=np.ma.getdata(data.variables[coords[1]][:], False)
+    
+    if type(var[0][0])== np.ma.core.MaskedArray: 
+        max_layer= len(var[0][0])
+        
+        assert layer_index <= max_layer,( f'layer_index must be less than the max'
+                                     + 'layer {max_layer}')
+        assert layer_index >= -1, 'layer_index must be greater than or equal to -1'
+        v= np.ma.getdata(var[time_index,:,layer_index], False)
+        dimensions= 3
+    
+    else: 
+        var[0][0]
+        assert type(var[0][0])== np.float64, 'data not reconized'
+        dimensions= 2
+        v= np.ma.getdata(var[time_index,:], False)
+        
+    #depth 
+    cords_to_layers= {'FlowElem_xcc FlowElem_ycc':{'name':'laydim', 
+                                    'coords':data.variables['LayCoord_cc'][:]},
+                       'FlowLink_xu FlowLink_yu': {'name':'wdim', 
+                                'coords':data.variables['LayCoord_w'][:]}}
+    layer_dim =  str(data.variables['waterdepth'].coordinates)
+    
+    try:    
+        cord_sys= cords_to_layers[layer_dim]['coords']
+    except: 
+        raise Exception('coordinates not recognized')
+    else: 
+        Layer_percentages= np.ma.getdata(cord_sys, False) 
+        
+    bottom_depth=np.ma.getdata(data.variables['waterdepth'][time_index, :], False)
+    water_level= np.ma.getdata(data.variables['s1'][time_index, :], False)
+    if layer_dim == 'FlowLink_xu FlowLink_yu': 
+        #interpolate 
+        coords = str(data.variables['waterdepth'].coordinates).split()
+        x_laydim=np.ma.getdata(data.variables[coords[0]][:], False) 
+        y_laydim=np.ma.getdata(data.variables[coords[1]][:], False)
+        points_laydim = np.array([ [x, y] for x, y in zip(x_laydim, y_laydim)])
+        
+        coords_request = str(data.variables[variable].coordinates).split()
+        x_wdim=np.ma.getdata(data.variables[coords_request[0]][:], False) 
+        y_wdim=np.ma.getdata(data.variables[coords_request[1]][:], False)
+        points_wdim=np.array([ [x, y] for x, y in zip(x_wdim, y_wdim)])
+        
+        bottom_depth_wdim = interp.griddata(points_laydim, bottom_depth,
+                                            points_wdim)
+        water_level_wdim = interp.griddata(points_laydim, water_level,
+                                            points_wdim)
+        
+        idx_bd= np.where(np.isnan(bottom_depth_wdim))
+        
+        for i in idx_bd: 
+            bottom_depth_wdim[i]= interp.griddata(points_laydim, bottom_depth,
+                                              points_wdim[i], method='nearest')
+            water_level_wdim[i]= interp.griddata(points_laydim, water_level,
+                                              points_wdim[i], method='nearest')
  
-    v= np.ma.getdata(var[time_index,:,layer_index], False)
+    depth=[]
     
-    layer= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x, y, v)]) 
-    layer_data = pd.DataFrame(layer, columns=[ 'x', 'y', 'v'])
+    if dimensions== 2:
+        if layer_dim == 'FlowLink_xu FlowLink_yu': 
+            z = [bottom_depth_wdim]-water_level_wdim
+        else:
+            z = [bottom_depth]-water_level
+    else:
+        if layer_dim == 'FlowLink_xu FlowLink_yu': 
+            z = [bottom_depth_wdim*Layer_percentages[layer_index]]-water_level_wdim
+        else:
+            z = [bottom_depth*Layer_percentages[layer_index]]-water_level
+    depth=np.append(depth, z)
     
+    #time
+    time= np.ma.getdata(data.variables['time'][time_index], False)*np.ones(len(x))
+
+    layer= np.array([ [x_i, y_i, z_i , v_i, t_i] for x_i, y_i, z_i, v_i, t_i in
+                     zip(x, y, depth, v, time)]) 
+    layer_data = pd.DataFrame(layer, columns=['x', 'y', 'z','v', 'time'])
+
     return layer_data
 
 
@@ -271,20 +341,22 @@ def get_all_data_points(data, variable, time_index= -1):
                                           +'max time index {max_time_index}')
     assert time_index >= -1, 'time_index must be greater than or equal to -1'
 
-    cords_to_layers= {'laydim': data.variables['LayCoord_cc'][:],
-                       'wdim': data.variables['LayCoord_w'][:]}
-    lay_element= 2 
-    layer_dim =  [v.name for v in data[variable].get_dims()][lay_element]
+    cords_to_layers= {'FlowElem_xcc FlowElem_ycc':{'name':'laydim', 
+                                    'coords':data.variables['LayCoord_cc'][:]},
+                       'FlowLink_xu FlowLink_yu': {'name':'wdim', 
+                                'coords':data.variables['LayCoord_w'][:]}}
+
+    layer_dim =  str(data.variables['waterdepth'].coordinates)
     
     try:    
-        cord_sys= cords_to_layers[layer_dim]
+        cord_sys= cords_to_layers[layer_dim]['coords']
     except: 
         raise Exception('coordinates not recognized')
     else: 
         Layer_percentages= np.ma.getdata(cord_sys, False) 
         
     bottom_depth=np.ma.getdata(data.variables['waterdepth'][time_index, :], False)
-    if layer_dim == 'wdim': 
+    if layer_dim == 'FlowLink_xu FlowLink_yu': 
         #interpolate 
         coords = str(data.variables['waterdepth'].coordinates).split()
         x_laydim=np.ma.getdata(data.variables[coords[0]][:], False) 
@@ -309,11 +381,12 @@ def get_all_data_points(data, variable, time_index= -1):
     y_all=[]
     z_all=[]
     v_all=[]
+    time_all=[]
     
     N_layers = range(len(Layer_percentages))
     for layer in N_layers:
         layer_data= get_layer_data(data, variable, layer, time_index)
-        if layer_dim == 'wdim': 
+        if layer_dim == 'FlowLink_xu FlowLink_yu': 
             z = [bottom_depth_wdim*Layer_percentages[layer]]
         else: 
             z = [bottom_depth*Layer_percentages[layer]]
@@ -321,50 +394,14 @@ def get_all_data_points(data, variable, time_index= -1):
         y_all=np.append(y_all, layer_data.y)
         z_all=np.append(z_all, z)
         v_all=np.append(v_all, layer_data.v)
+        time_all= np.append(time_all, layer_data.time)
     
-    known_points = np.array([ [x, y, z, v] for x, y, z, v in zip(x_all, y_all, 
-                                                                z_all, v_all)])
+    known_points = np.array([ [x, y, z, v, time] for x, y, z, v, time in zip(x_all, y_all, 
+                                                                z_all, v_all, time_all)])
     
-    all_data= pd.DataFrame(known_points, columns=['x','y','z',f'{variable}'])
+    all_data= pd.DataFrame(known_points, columns=['x','y','z',f'{variable}', 'time'])
     
     return all_data
-
-
-def unorm(x, y ,z):
-    '''
-    Calculates the root mean squared value given three arrays. 
-
-    Parameters
-    ----------
-    x: array 
-        One input for the root mean squared calculation.(eq. x velocity) 
-    y: array
-        One input for the root mean squared calculation.(eq. y velocity) 
-    z: array
-        One input for the root mean squared calculation.(eq. z velocity) 
-
-    Returns
-    -------
-    unorm : array 
-       The root mean squared of x, y, and z.
-       
-    Example 
-    -------
-    If the inputs are [1,2,3], [4,5,6], and [7,8,9] the code take the 
-    cordinationg value from each array and calculates the root mean squared. 
-    The resulting output is [ 8.1240384 ,  9.64365076, 11.22497216].
-    '''
-    
-    assert isinstance(x,(np.ndarray, np.float64, pd.Series)), 'x must be an array'
-    assert isinstance(y,(np.ndarray, np.float64, pd.Series)), 'y must be an array'
-    assert isinstance(z,(np.ndarray, np.float64, pd.Series)), 'z must be an array'
-    assert all([len(x) == len(y), len (y) ==len (z)]), ('lengths of arrays must'
-                                                        +' match')
-
-    xyz = np.array([x,y,z]) 
-    unorm = np.linalg.norm(xyz, axis= 0)
-
-    return unorm
 
 
 def turbulent_intensity(data, points='cells', time_index= -1,
