@@ -4,6 +4,7 @@ from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 import scipy.optimize as optim
 import scipy.stats as stats
+import scipy.interpolate as interp
 import numpy as np
 
 ### Contours
@@ -1523,6 +1524,39 @@ def _bivariate_KDE(x1, x2, bw, fit, nb_steps, Ndata_bivariate_KDE, kwargs):
     return x1_bivariate_KDE, x2_bivariate_KDE
 
 
+### Contour tools
+# TODO: Migrate from WDRT and use in environmental contour example
+def steepness():
+    """Calculate the breaking wave steepness curve to be plotted in a
+    Hs-Tp plot.
+
+    Can be used to modify calculated contours by setting the contour
+    Hs values to the breaking value if the contour Hs is larger than
+    the breaking Hs for any given period.
+    """
+    raise NotImplementedError()
+
+
+def outside_points():
+    """Return the (buoy) points outside a specific contour. """
+    raise NotImplementedError()
+
+
+def contour_integrator():
+    """Calculate the area enclosed by a contour. """
+    raise NotImplementedError()
+
+
+def bootstrap():
+    """Add confidence intervals (e.g. 95%) to calculated contours. """
+    raise NotImplementedError()
+
+
+def data_contour():
+    """Create a contour around the data. """
+    raise NotImplementedError()
+
+
 ### Sampling
 def samples_full_seastate(x1, x2, points_per_interval, return_periods,
                           sea_state_duration, method="PCA", bin_size=250):
@@ -1544,10 +1578,10 @@ def samples_full_seastate(x1, x2, points_per_interval, return_periods,
         Component 2 data
     points_per_interval : int
         Number of sample points to be calculated per contour interval.
-    return_levels: np.array
+    return_periods: np.array
         Vector of return periods that define the contour intervals in
-        which samples will be taken. Values must be greater than zero and
-        must be in increasing order.
+        which samples will be taken. Values must be greater than zero
+        and must be in increasing order.
     sea_state_duration : int or float
         `x1` and `x2` sample rate (seconds)
     method: string or list
@@ -1565,6 +1599,10 @@ def samples_full_seastate(x1, x2, points_per_interval, return_periods,
         Vector of probabilistic weights for each sampling point
         to be used in risk calculations.
     """
+    if method != 'PCA':
+        raise NotImplementedError(
+            "Full seastate sampling is currently only implemented using the " +
+            "'PCA' method.")
 
     pca_fit = _principal_component_analysis(x1, x2, bin_size)
 
@@ -1630,7 +1668,6 @@ def samples_full_seastate(x1, x2, points_per_interval, return_periods,
         beta_lines, rho_zeroline, theta_zeroline, points_per_interval,
         contour_probs)
 
-    # TODO
     # Sample transformation to principal component space
     sample_u1 = sample_beta * np.cos(sample_alpha)
     sample_u2 = sample_beta * np.sin(sample_alpha)
@@ -1655,6 +1692,48 @@ def samples_full_seastate(x1, x2, points_per_interval, return_periods,
     return h_sample, t_sample, weight_points
 
 
+def samples_contour(t_samples, t_contour, hs_contour):
+    """Get Hs points along a specified environmental contour using
+    user-defined T values.
+
+    Parameters
+    ----------
+    t_samples : nparray
+        Points for sampling along return contour
+    t_contour : np.array
+        T values along contour
+    hs_contour : np.array
+        Hs values along contour
+
+    Returns
+    -------
+    hs_samples : nparray
+        points sampled along return contour
+    """
+    #finds minimum and maximum energy period values
+    amin = np.argmin(t_contour)
+    amax = np.argmax(t_contour)
+    #finds points along the contour
+    w1 = hs_contour[amin:amax]
+    w2 = np.concatenate((hs_contour[amax:], hs_contour[:amin]))
+    if (np.max(w1) > np.max(w2)):
+        x1 = t_contour[amin:amax]
+        y = hs_contour[amin:amax]
+    else:
+        x1 = np.concatenate((t_contour[amax:], t_contour[:amin]))
+        y1 = np.concatenate((hs_contour[amax:], hs_contour[:amin]))
+    #sorts data based on the max and min energy period values
+    ms = np.argsort(x1)
+    x = x1[ms]
+    y = y1[ms]
+    #interpolates the sorted data
+    si = interp.interp1d(x, y)
+    #finds the wave height based on the user specified energy period values
+    hs_samples = si(t_samples)
+
+    return hs_samples
+
+
 def _generate_sample_data(beta_lines, rho_zeroline, theta_zeroline,
                           points_per_interval, contour_probs):
     """ Calculate radius, angle, and weight for each sample point
@@ -1662,9 +1741,9 @@ def _generate_sample_data(beta_lines, rho_zeroline, theta_zeroline,
     Parameters
     ----------
     beta_lines: np.array
-            Array of mu fitting function parameters.
+        Array of mu fitting function parameters.
     rho_zeroline: np.array
-            Array of radii
+        Array of radii
     theta_zeroline: np.array
     points_per_interval: np.array
     contour_probs: np.array
@@ -1672,11 +1751,11 @@ def _generate_sample_data(beta_lines, rho_zeroline, theta_zeroline,
     Returns
     -------
     sample_alpha: np.array
-            Array of fitted sample angle values.
+        Array of fitted sample angle values.
     sample_beta: np.array
-            Array of fitted sample radius values.
+        Array of fitted sample radius values.
     weight_points: np.array
-            Array of weights for each point.
+        Array of weights for each point.
     """
     num_samples = (len(beta_lines) - 1) * points_per_interval
     alpha_bounds = np.zeros((len(beta_lines) - 1, 2))
@@ -1696,31 +1775,36 @@ def _generate_sample_data(beta_lines, rho_zeroline, theta_zeroline,
         if any(r < 0):
             left = np.amin(np.where(r < -0.01))
             right = np.amax(np.where(r < -0.01))
+            # Save sampling bounds
             alpha_bounds[i, :] = (theta_zeroline[left], theta_zeroline[right] -
-                                  2 * np.pi)  # Save sampling bounds
+                                  2 * np.pi)
         else:
             alpha_bounds[i, :] = np.array((0, 2 * np.pi))
-            # Find the angular distance that will be covered by sampling the disc
+        # Find the angular distance that will be covered by sampling the disc
         angular_dist[i] = sum(abs(alpha_bounds[i]))
         # Calculate ratio of area covered for each contour
         angular_ratio[i] = angular_dist[i] / (2 * np.pi)
         # Discretize the remaining portion of the disc into 10 equally spaced
         # areas to be sampled
-        alpha[i, :] = np.arange(min(alpha_bounds[i]),
-                                max(alpha_bounds[i]) + 0.1, angular_dist[i] / points_per_interval)
+        alpha[i, :] = np.arange(
+            min(alpha_bounds[i]),
+            max(alpha_bounds[i]) + 0.1, angular_dist[i] / points_per_interval)
         # Calculate the weight of each point sampled per contour
         weight[i] = ((contour_probs[i] - contour_probs[i + 1]) *
                      angular_ratio[i] / points_per_interval)
         for j in range(points_per_interval):
             # Generate sample radius by adding a randomly sampled distance to
             # the 'disc' lower bound
-            sample_beta[(i) * points_per_interval + j] = (beta_lines[i] +
-                                                          np.random.random_sample() * (beta_lines[i + 1] - beta_lines[i]))
+            sample_beta[(i) * points_per_interval + j] = (
+                beta_lines[i] +
+                np.random.random_sample() * (beta_lines[i + 1] - beta_lines[i])
+                )
             # Generate sample angle by adding a randomly sampled distance to
             # the lower bound of the angle defining a discrete portion of the
             # 'disc'
-            sample_alpha[(i) * points_per_interval + j] = (alpha[i, j] +
-                                                           np.random.random_sample() * (alpha[i, j + 1] - alpha[i, j]))
+            sample_alpha[(i) * points_per_interval + j] = (
+                alpha[i, j] +
+                np.random.random_sample() * (alpha[i, j + 1] - alpha[i, j]))
             # Save the weight for each sample point
             weight_points[(i) * points_per_interval + j] = weight[i]
 
@@ -1728,7 +1812,7 @@ def _generate_sample_data(beta_lines, rho_zeroline, theta_zeroline,
 
 
 def _princomp_inv(princip_data1, princip_data2, coeff, shift):
-    '''Take the inverse of the principal component rotation given data,
+    """Take the inverse of the principal component rotation given data,
     coefficients, and shift.
 
     Parameters
@@ -1748,14 +1832,14 @@ def _princomp_inv(princip_data1, princip_data2, coeff, shift):
         Hs values following rotation from principal component space.
     original2: np.array
         T values following rotation from principal component space.
-    '''
+    """
     original1 = np.zeros(len(princip_data1))
     original2 = np.zeros(len(princip_data1))
     for i in range(len(princip_data2)):
         original1[i] = (((coeff[0, 1] * (princip_data2[i] - shift)) +
-                            (coeff[0, 0] * princip_data1[i])) / (coeff[0, 1]**2 +
-                                                                coeff[0, 0]**2))
+                        (coeff[0, 0] * princip_data1[i])) / (coeff[0, 1]**2 +
+                                                             coeff[0, 0]**2))
         original2[i] = (((coeff[0, 1] * princip_data1[i]) -
-                            (coeff[0, 0] * (princip_data2[i] -
-                                            shift))) / (coeff[0, 1]**2 + coeff[0, 0]**2))
+                        (coeff[0, 0] * (princip_data2[i] - shift))) /
+                        (coeff[0, 1]**2 + coeff[0, 0]**2))
     return original1, original2
