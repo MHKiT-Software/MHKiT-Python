@@ -30,8 +30,8 @@ def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
     Returns
     -------
     layer_data: DataFrame
-        DataFrame with columns of "x" and "y" location on specified layer, 
-        the variable values "v" and the "time" the simulation has run. 
+        DataFrame with columns of "x", "y", and "z" location on specified layer, 
+        the variable values "v", the "time" the simulation has run.
     '''
     
     assert isinstance(time_index, int), 'time_index  must be a int'
@@ -121,7 +121,7 @@ def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
     #time
     time= np.ma.getdata(data.variables['time'][time_index], False)*np.ones(len(x))
 
-    layer= np.array([ [x_i, y_i, z_i , v_i, t_i] for x_i, y_i, z_i, v_i, t_i in
+    layer= np.array([ [x_i, y_i, z_i, v_i, t_i] for x_i, y_i, z_i, v_i, t_i in
                      zip(x, y, depth, v, time)]) 
     layer_data = pd.DataFrame(layer, columns=['x', 'y', 'z','v', 'time'])
 
@@ -391,14 +391,9 @@ def get_all_data_points(data, variable, time_index= -1):
     for layer in N_layers:
         layer_data= get_layer_data(data, variable, layer, time_index)
 
-        if layer_dim == 'FlowLink_xu FlowLink_yu': 
-
-            z = [bottom_depth_wdim*Layer_percentages[layer]]
-        else: 
-            z = [bottom_depth*Layer_percentages[layer]]
         x_all=np.append(x_all, layer_data.x)
         y_all=np.append(y_all, layer_data.y)
-        z_all=np.append(z_all, z)
+        z_all=np.append(z_all, layer_data.z)
         v_all=np.append(v_all, layer_data.v)
 
         time_all= np.append(time_all, layer_data.time)
