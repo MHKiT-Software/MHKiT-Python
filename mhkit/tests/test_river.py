@@ -360,6 +360,14 @@ class TestIO(unittest.TestCase):
         for var in TI_vars:    
             TI_data[var] = interp.griddata(TI_data_raw[var][['x','y','z']],
                                 TI_data_raw[var][var], points[['x','y','z']])
+            idx= np.where(np.isnan(TI_data[var]))
+        
+            if len(idx[0]):
+                for i in idx[0]: 
+                    TI_data[var][i]= interp.griddata(TI_data_raw[var][['x','y','z']], 
+                                TI_data_raw[var][var],
+                                [points['x'][i],points['y'][i], points['z'][i]],
+                                method='nearest')
         
         u_mag=river.io.d3d.unorm(TI_data['ucx'],TI_data['ucy'], TI_data['ucz'])
         turbulent_intensity_expected= np.sqrt(2/3*TI_data['turkin1'])/u_mag
