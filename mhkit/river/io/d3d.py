@@ -30,12 +30,8 @@ def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
     Returns
     -------
     layer_data: DataFrame
-        DataFrame with columns of "x" and "y" location on specified layer and 
-        the variable values "v".
-
-    time: array
-        A float with the amoutn of seconds that the simulation has run.
-
+        DataFrame with columns of "x" and "y" location on specified layer, 
+        the variable values "v" and the "time" the simulation has run. 
     '''
     
     assert isinstance(time_index, int), 'time_index  must be a int'
@@ -332,7 +328,7 @@ def get_all_data_points(data, variable, time_index= -1):
     Returns
     -------
     all_data: DataFrame 
-        Dataframe with columns x, y, z, and variable. 
+        Dataframe with columns x, y, z, variable, and time. 
     '''  
     
     assert isinstance(time_index, int), 'time_index  must be a int'
