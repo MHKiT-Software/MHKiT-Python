@@ -32,8 +32,10 @@ def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
     layer_data: DataFrame
         DataFrame with columns of "x" and "y" location on specified layer and 
         the variable values "v".
+
     time: array
         A float with the amoutn of seconds that the simulation has run.
+
     '''
     
     assert isinstance(time_index, int), 'time_index  must be a int'
@@ -126,6 +128,7 @@ def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
     layer= np.array([ [x_i, y_i, z_i , v_i, t_i] for x_i, y_i, z_i, v_i, t_i in
                      zip(x, y, depth, v, time)]) 
     layer_data = pd.DataFrame(layer, columns=['x', 'y', 'z','v', 'time'])
+
 
     return layer_data
 
@@ -341,6 +344,7 @@ def get_all_data_points(data, variable, time_index= -1):
                                           +'max time index {max_time_index}')
     assert time_index >= -1, 'time_index must be greater than or equal to -1'
 
+
     cords_to_layers= {'FlowElem_xcc FlowElem_ycc':{'name':'laydim', 
                                     'coords':data.variables['LayCoord_cc'][:]},
                        'FlowLink_xu FlowLink_yu': {'name':'wdim', 
@@ -350,13 +354,16 @@ def get_all_data_points(data, variable, time_index= -1):
     
     try:    
         cord_sys= cords_to_layers[layer_dim]['coords']
+
     except: 
         raise Exception('coordinates not recognized')
     else: 
         Layer_percentages= np.ma.getdata(cord_sys, False) 
         
     bottom_depth=np.ma.getdata(data.variables['waterdepth'][time_index, :], False)
+
     if layer_dim == 'FlowLink_xu FlowLink_yu': 
+
         #interpolate 
         coords = str(data.variables['waterdepth'].coordinates).split()
         x_laydim=np.ma.getdata(data.variables[coords[0]][:], False) 
@@ -382,11 +389,14 @@ def get_all_data_points(data, variable, time_index= -1):
     z_all=[]
     v_all=[]
     time_all=[]
+
     
     N_layers = range(len(Layer_percentages))
     for layer in N_layers:
         layer_data= get_layer_data(data, variable, layer, time_index)
+
         if layer_dim == 'FlowLink_xu FlowLink_yu': 
+
             z = [bottom_depth_wdim*Layer_percentages[layer]]
         else: 
             z = [bottom_depth*Layer_percentages[layer]]
@@ -394,14 +404,17 @@ def get_all_data_points(data, variable, time_index= -1):
         y_all=np.append(y_all, layer_data.y)
         z_all=np.append(z_all, z)
         v_all=np.append(v_all, layer_data.v)
+
         time_all= np.append(time_all, layer_data.time)
     
     known_points = np.array([ [x, y, z, v, time] for x, y, z, v, time in zip(x_all, y_all, 
                                                                 z_all, v_all, time_all)])
     
     all_data= pd.DataFrame(known_points, columns=['x','y','z',f'{variable}', 'time'])
+
     
     return all_data
+
 
 
 def turbulent_intensity(data, points='cells', time_index= -1,
