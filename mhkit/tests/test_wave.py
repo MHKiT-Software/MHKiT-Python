@@ -432,7 +432,7 @@ class TestResourceMetrics(unittest.TestCase):
                         expected = data['J'][j]
                         calculated = wave.resource.energy_flux(S,i)
                         error = np.abs(expected-calculated.values)/expected
-                        self.assertLess(error, 0.1)                
+                        self.assertLess(error, 0.1)
 
                 # v
                 if file_i == 'CDiP':
@@ -440,7 +440,7 @@ class TestResourceMetrics(unittest.TestCase):
                     expected = data['metrics']['v']
                     calculated = wave.resource.spectral_width(S,
                                         frequency_bins=f_bins).iloc[0,0]
-                    error = np.abs(expected-calculated)/expected  
+                    error = np.abs(expected-calculated)/expected
                     self.assertLess(error, 0.01)
 
                 if file_i == 'MC':
@@ -476,21 +476,21 @@ class TestResourceContours(unittest.TestCase):
 
         f_name= 'Hm0_Te_46022.json'
         self.Hm0Te = pd.read_json(join(datadir,f_name))
-        
+
         file_loc=join(datadir, 'principal_component_analysis.pkl')
         with open(file_loc, 'rb') as f:
-            self.pca = pickle.load(f)                       
+            self.pca = pickle.load(f)
         f.close()
-        
+
         file_loc=join(datadir,'WDRT_caluculated_countours.json')
         with open(file_loc) as f:
             self.wdrt_copulas = json.load(f)
         f.close()
 
-        ndbc_46050=pd.read_csv(join(datadir,'NDBC46050.csv'))       
+        ndbc_46050=pd.read_csv(join(datadir,'NDBC46050.csv'))
         self.wdrt_Hm0 = ndbc_46050['Hm0']
         self.wdrt_Te = ndbc_46050['Te']
-        
+
         self.wdrt_dt=3600
         self.wdrt_period= 50
 
@@ -502,24 +502,24 @@ class TestResourceContours(unittest.TestCase):
 
         Hm0Te = self.Hm0Te
         df = Hm0Te[Hm0Te['Hm0'] < 20]
-        
-        Hm0 = df.Hm0.values  
-        Te = df.Te.values 
-        
-        dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds  
-        period = 100  
-        
-        copula = wave.resource.environmental_contours(Hm0, 
+
+        Hm0 = df.Hm0.values
+        Te = df.Te.values
+
+        dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds
+        period = 100
+
+        copula = wave.contours.environmental_contours(Hm0,
             Te, dt_ss, period, 'PCA')
-        
+
         Hm0_contour=copula['PCA_x1']
-        Te_contour=copula['PCA_x2'] 
-        
+        Te_contour=copula['PCA_x2']
+
         file_loc=join(datadir,'Hm0_Te_contours_46022.csv')
         expected_contours = pd.read_csv(file_loc)
-        assert_allclose(expected_contours.Hm0_contour.values, 
+        assert_allclose(expected_contours.Hm0_contour.values,
             Hm0_contour, rtol=1e-3)
-        
+
 
     def test__principal_component_analysis(self):
         Hm0Te = self.Hm0Te
@@ -527,19 +527,19 @@ class TestResourceContours(unittest.TestCase):
 
         Hm0 = df.Hm0.values
         Te = df.Te.values
-        PCA = (wave._environmental_contours
+        PCA = (wave.contours._environmental_contours
             ._principal_component_analysis(Hm0,Te, bin_size=250))
 
-        assert_allclose(PCA['principal_axes'], 
+        assert_allclose(PCA['principal_axes'],
                         self.pca['principal_axes'])
         self.assertAlmostEqual(PCA['shift'], self.pca['shift'])
-        self.assertAlmostEqual(PCA['x1_fit']['mu'], 
+        self.assertAlmostEqual(PCA['x1_fit']['mu'],
                                self.pca['x1_fit']['mu'])
-        self.assertAlmostEqual(PCA['mu_fit'].slope, 
+        self.assertAlmostEqual(PCA['mu_fit'].slope,
                                self.pca['mu_fit'].slope)
-        self.assertAlmostEqual(PCA['mu_fit'].intercept, 
+        self.assertAlmostEqual(PCA['mu_fit'].intercept,
                                self.pca['mu_fit'].intercept)
-        assert_allclose(PCA['sigma_fit']['x'], 
+        assert_allclose(PCA['sigma_fit']['x'],
                              self.pca['sigma_fit']['x'])
 
 
@@ -551,19 +551,19 @@ class TestResourceContours(unittest.TestCase):
 
         Hm0Te = self.Hm0Te
         df = Hm0Te[Hm0Te['Hm0'] < 20]
-        
-        Hm0 = df.Hm0.values  
-        Te = df.Te.values 
-        
-        dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds  
-        time_R = 100  
-        
-        copulas = wave.resource.environmental_contours(Hm0, Te, dt_ss, 
+
+        Hm0 = df.Hm0.values
+        Te = df.Te.values
+
+        dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds
+        time_R = 100
+
+        copulas = wave.contours.environmental_contours(Hm0, Te, dt_ss,
             time_R, 'PCA')
-        
+
         Hm0_contour=copulas['PCA_x1']
-        Te_contour=copulas['PCA_x2']        
-        
+        Te_contour=copulas['PCA_x2']
+
         dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds
         time_R = 100
 
@@ -596,13 +596,13 @@ class TestResourceContours(unittest.TestCase):
         dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds
 
         time_R = [100, 105, 110, 120, 150]
-        
+
         Hm0s=[]
         Tes=[]
         for period in time_R:
-            copulas = (wave.resource
+            copulas = (wave.contours
                        .environmental_contours(Hm0,Te,dt_ss,period,'PCA'))
-                        
+
             Hm0s.append(copulas['PCA_x1'])
             Tes.append(copulas['PCA_x2'])
 
@@ -623,64 +623,64 @@ class TestResourceContours(unittest.TestCase):
 
 
     def test_standard_copulas(self):
-        copulas = (wave.resource
-                   .environmental_contours(self.wdrt_Hm0, self.wdrt_Te, 
-                           self.wdrt_dt, self.wdrt_period, 
+        copulas = (wave.contours
+                   .environmental_contours(self.wdrt_Hm0, self.wdrt_Te,
+                           self.wdrt_dt, self.wdrt_period,
                            method=['gaussian', 'gumbel', 'clayton'])
                    )
 
-        # WDRT slightly vaires Rosenblatt copula parameters from 
+        # WDRT slightly vaires Rosenblatt copula parameters from
         #    the other copula default  parameters
-        rosen =(wave.resource
-                .environmental_contours(self.wdrt_Hm0, self.wdrt_Te, 
-                self.wdrt_dt, self.wdrt_period, method=['rosenblatt'], 
-                min_bin_count=50, initial_bin_max_val=0.5, 
+        rosen = (wave.contours
+                .environmental_contours(self.wdrt_Hm0, self.wdrt_Te,
+                self.wdrt_dt, self.wdrt_period, method=['rosenblatt'],
+                min_bin_count=50, initial_bin_max_val=0.5,
                 bin_val_size=0.25))
-        copulas['rosenblatt_x1'] = rosen['rosenblatt_x1'] 
-        copulas['rosenblatt_x2'] = rosen['rosenblatt_x2'] 
-        
+        copulas['rosenblatt_x1'] = rosen['rosenblatt_x1']
+        copulas['rosenblatt_x2'] = rosen['rosenblatt_x2']
+
         methods=['gaussian', 'gumbel', 'clayton', 'rosenblatt']
         close=[]
         for method in methods:
-            close.append(np.allclose(copulas[f'{method}_x1'], 
+            close.append(np.allclose(copulas[f'{method}_x1'],
                 self.wdrt_copulas[f'{method}_x1']))
-            close.append(np.allclose(copulas[f'{method}_x2'], 
+            close.append(np.allclose(copulas[f'{method}_x2'],
                 self.wdrt_copulas[f'{method}_x2']))
         self.assertTrue(all(close))
-        
+
     def test_nonparametric_copulas(self):
-        methods=['nonparametric_gaussian','nonparametric_clayton', 
+        methods=['nonparametric_gaussian','nonparametric_clayton',
             'nonparametric_gumbel']
-            
-        np_copulas=wave.resource.environmental_contours(self.wdrt_Hm0, 
+
+        np_copulas = wave.contours.environmental_contours(self.wdrt_Hm0,
             self.wdrt_Te, self.wdrt_dt, self.wdrt_period, method=methods)
-        
+
         close=[]
         for method in methods:
-            close.append(np.allclose(np_copulas[f'{method}_x1'], 
+            close.append(np.allclose(np_copulas[f'{method}_x1'],
                 self.wdrt_copulas[f'{method}_x1'], atol=0.13))
-            close.append(np.allclose(np_copulas[f'{method}_x2'], 
+            close.append(np.allclose(np_copulas[f'{method}_x2'],
                 self.wdrt_copulas[f'{method}_x2'], atol=0.13))
         self.assertTrue(all(close))
 
     def test_kde_copulas(self):
-        kde_copula = wave.resource.environmental_contours(self.wdrt_Hm0, 
-            self.wdrt_Te, self.wdrt_dt, self.wdrt_period, 
+        kde_copula = wave.contours.environmental_contours(self.wdrt_Hm0,
+            self.wdrt_Te, self.wdrt_dt, self.wdrt_period,
             method=['bivariate_KDE'], bandwidth=[0.23, 0.23])
-        log_kde_copula = (wave.resource
-            .environmental_contours(self.wdrt_Hm0, self.wdrt_Te, 
+        log_kde_copula = (wave.contours
+            .environmental_contours(self.wdrt_Hm0, self.wdrt_Te,
             self.wdrt_dt, self.wdrt_period, method=['bivariate_KDE_log'], bandwidth=[0.02, 0.11])
-            )            
-        
-        close= [ np.allclose(kde_copula['bivariate_KDE_x1'], 
+            )
+
+        close= [ np.allclose(kde_copula['bivariate_KDE_x1'],
                      self.wdrt_copulas['bivariate_KDE_x1']),
-                 np.allclose(kde_copula['bivariate_KDE_x2'], 
+                 np.allclose(kde_copula['bivariate_KDE_x2'],
                      self.wdrt_copulas['bivariate_KDE_x2']),
-                 np.allclose(log_kde_copula['bivariate_KDE_log_x1'], 
+                 np.allclose(log_kde_copula['bivariate_KDE_log_x1'],
                      self.wdrt_copulas['bivariate_KDE_log_x1']),
-                 np.allclose(log_kde_copula['bivariate_KDE_log_x2'], 
+                 np.allclose(log_kde_copula['bivariate_KDE_log_x2'],
                      self.wdrt_copulas['bivariate_KDE_log_x2'])]
-        self.assertTrue(all(close))                         
+        self.assertTrue(all(close))
 
 class TestPerformance(unittest.TestCase):
 
@@ -1023,7 +1023,7 @@ class TestWPTOhindcast(unittest.TestCase):
             years = [1990,1992]
             lat_lon = (44.624076,-124.280097)
             parameters = 'significant_wave_height'
-            (wave_multiyear, 
+            (wave_multiyear,
             meta) = (wave.io.hindcast
                     .request_wpto_point_data(data_type,parameters,
                                             lat_lon,years))
@@ -1041,7 +1041,7 @@ class TestWPTOhindcast(unittest.TestCase):
             wave_multiloc, meta=(wave.io.hindcast
                                 .request_wpto_point_data(data_type,
                                               parameters,lat_lon,years))
-            (dir_multiyear, 
+            (dir_multiyear,
             meta_dir)=(wave.io.hindcast
                        .request_wpto_directional_spectrum(lat_lon,year='1995'))
             dir_multiyear = dir_multiyear.sel(time_index=slice(dir_multiyear.time_index[0],dir_multiyear.time_index[99]))
@@ -1318,7 +1318,7 @@ class TestPlotResouceCharacterizations(unittest.TestCase):
         plt.close()
 
         self.assertTrue(isfile(filename))
-        
-        
+
+
 if __name__ == '__main__':
     unittest.main()
