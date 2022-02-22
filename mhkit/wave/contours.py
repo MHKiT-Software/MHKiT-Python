@@ -1767,14 +1767,18 @@ def _generate_sample_data(beta_lines, rho_zeroline, theta_zeroline,
     sample_alpha = np.zeros(num_samples)
     weight_points = np.zeros(num_samples)
 
-    for i in range(len(beta_lines) - 1):  # Loop over contour intervals
-        # Check if any of the radii for the
-        r = rho_zeroline - beta_lines[i + 1]
-        # Hs=0, line are smaller than the radii of the contour, meaning
-        # that these lines intersect
+    # Loop over contour intervals
+    for i in range(len(beta_lines) - 1):
+        # Check if any of the radii for the Hs=0, line are smaller than
+        # the radii of the contour, meaning that these lines intersect
+        # r = rho_zeroline - beta_lines[i + 1]  # TODO
+        r = rho_zeroline - beta_lines[i + 1] + 0.01
         if any(r < 0):
-            left = np.amin(np.where(r < -0.01))
-            right = np.amax(np.where(r < -0.01))
+            # left = np.amin(np.where(r < -0.01))  # TODO
+            # right = np.amax(np.where(r < -0.01)) # TODO
+            # TODO
+            left = np.amin(np.where(r < 0))
+            right = np.amax(np.where(r < 0))
             # Save sampling bounds
             alpha_bounds[i, :] = (theta_zeroline[left], theta_zeroline[right] -
                                   2 * np.pi)
