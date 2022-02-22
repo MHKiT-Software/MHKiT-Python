@@ -127,20 +127,11 @@ class TestWDRT(unittest.TestCase):
         self.wave_freq = np.linspace( 0.,1,500)
         self.mler = mler_data
 
-    def test_readRAO(self):
-        RAO_File_Name = join(datadir,"RAO_heave_RM3float.dat")
-        DOFread = 3
-        RAO = loads.mler.readRAO(DOFread,RAO_File_Name, self.wave_freq)
-        real_RAO = RAO.abs().reset_index(drop=True).squeeze()
-        given_RAO = self.mler['RAO'].astype(complex).abs()
-
-        assert_series_equal(given_RAO,real_RAO)
-
     def test_MLERcoeffsGen(self):
         Hs = 9.0 # significant wave height
         Tp = 15.1 # time period of waves
         pm = resource.pierson_moskowitz_spectrum(self.wave_freq,Tp,Hs)
-        mler_data = loads.mler.MLERcoeffsGen(self.mler['RAO'].astype(complex),pm,1)
+        mler_data = loads.extreme.MLERcoeffsGen(self.mler['RAO'].astype(complex),pm,1)
         mler_data.reset_index(drop=True,inplace=True)
 
         assert_series_equal(mler_data['MLERcoeff'],self.mler['Coeff'],check_exact=False,check_less_precise=True,check_names=False)

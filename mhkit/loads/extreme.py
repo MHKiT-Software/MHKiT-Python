@@ -1,6 +1,8 @@
 import numpy as np
+import pandas as pd
 from scipy import stats
 from scipy import optimize
+import mhkit.wave.resource as wave
 
 
 def global_peaks(t, data):
@@ -398,3 +400,89 @@ def full_seastate_long_term_extreme(ste, weights):
             return f
 
     return _LongTermExtreme(name="long_term_extreme", weights=weights, ste=ste)
+
+def MLERcoeffsGen(RAO, wave_spectrum, response_desired):
+    """
+    This function calculates MLER (most likely extreme response)
+    coefficients given a spectrum and RAO.
+
+    Parameters
+    ----------
+    RAO : numpy array
+        Response amplitude operator
+    wave_spectrum : pd.DataFrame
+        Wave spectral density [m^2/Hz] indexed by frequency [Hz]
+    response_desired : int or float
+        Desired response, units should correspond to a
+        motion RAO or units of force for a force RAO
+
+    Returns
+    -------
+    mler : pd.DataFrame
+        DataFrame containing MLERcoeff [-], Conditioned wave spectrum [m^2-s], and Phase [rad]
+        indexed by freq [Hz]
+    """
+
+    try:
+        RAO = np.array(RAO)
+    except:
+        pass
+
+    assert isinstance(RAO, np.ndarray), 'RAO must be of type np.ndarray'
+    assert isinstance(
+        wave_spectrum, pd.DataFrame), 'wave_spectrum must be of type pd.DataFrame'
+    assert isinstance(response_desired, (int, float)
+                      ), 'response_desired must be of type int or float'
+
+    freq = wave_spectrum.index.values * (2*np.pi)  # convert from Hz to rad/s
+    # change from Hz to rad/s
+    wave_spectrum = wave_spectrum.iloc[:, 0].values / (2*np.pi)
+    dw = (2*np.pi - 0.) / (len(freq)-1)  # get delta
+
+    S_R = np.zeros(len(freq))  # [(response units)^2-s/rad]
+    _S = np.zeros(len(freq))  # [m^2-s/rad]
+    _A = np.zeros(len(freq))  # [m^2-s/rad]
+    _CoeffA_Rn = np.zeros(len(freq))  # [1/(response units)]
+    _phase = np.zeros(len(freq))
+
+    # Note: waves.A is "S" in Quon2016; 'waves' naming convention matches WEC-Sim conventions (EWQ)
+    # Response spectrum [(response units)^2-s/rad] -- Quon2016 Eqn. 3
+    S_R[:] = np.abs(RAO)**2 * (2*wave_spectrum)
+
+    # calculate spectral moments and other important spectral values.
+    m0 = (wave.frequency_moment(pd.Series(S_R, index=freq), 0)).iloc[0, 0]
+    m1 = (wave.frequency_moment(pd.Series(S_R, index=freq), 1)).iloc[0, 0]
+    m2 = (wave.frequency_moment(pd.Series(S_R, index=freq), 2)).iloc[0, 0]
+    wBar = m1 / m0
+
+    # calculate coefficient A_{R,n} [(response units)^-1] -- Quon2016 Eqn. 8
+    _CoeffA_Rn[:] = np.abs(RAO) * np.sqrt(2*wave_spectrum*dw) * ((m2 - freq*m1) + wBar*(freq*m0 - m1)) \
+        / (m0*m2 - m1**2)  # Drummen version.  Dietz has negative of this.
+
+    # save the new spectral info to pass out
+    # Phase delay should be a positive number in this convention (AP)
+    _phase[:] = -np.unwrap(np.angle(RAO))
+
+    # for negative values of Amp, shift phase by pi and flip sign
+    # for negative amplitudes, add a pi phase shift
+    _phase[_CoeffA_Rn < 0] -= np.pi
+    _CoeffA_Rn[_CoeffA_Rn < 0] *= -1    # then flip sign on negative Amplitudes
+
+    # calculate the conditioned spectrum [m^2-s/rad]
+    _S[:] = wave_spectrum * _CoeffA_Rn[:]**2 * response_desired**2
+    _A[:] = 2*wave_spectrum * _CoeffA_Rn[:]**2 * \
+        response_desired**2  # self.A == 2*self.S
+
+    # if the response amplitude we ask for is negative, we will add
+    # a pi phase shift to the phase information.  This is because
+    # the sign of self.desiredRespAmp is lost in the squaring above.
+    # Ordinarily this would be put into the final equation, but we
+    # are shaping the wave information so that it is buried in the
+    # new spectral information, S. (AP)
+    if response_desired < 0:
+        _phase += np.pi
+
+    mler = pd.DataFrame(data={'MLERcoeff': _CoeffA_Rn,
+                        'ResponseSpec': _S, 'Phase': _phase}, index=freq)
+    mler = mler.fillna(0)
+    return mler
