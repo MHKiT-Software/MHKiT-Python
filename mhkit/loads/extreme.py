@@ -401,6 +401,7 @@ def full_seastate_long_term_extreme(ste, weights):
 
     return _LongTermExtreme(name="long_term_extreme", weights=weights, ste=ste)
 
+
 def MLERcoeffsGen(RAO, wave_spectrum, response_desired):
     """
     This function calculates MLER (most likely extreme response)

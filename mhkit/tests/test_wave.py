@@ -469,7 +469,7 @@ class TestResourceMetrics(unittest.TestCase):
 
         self.assertTrue(isfile(filename))
 
-class TestResourceContours(unittest.TestCase):
+class TestContours(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
@@ -681,6 +681,15 @@ class TestResourceContours(unittest.TestCase):
                  np.allclose(log_kde_copula['bivariate_KDE_log_x2'],
                      self.wdrt_copulas['bivariate_KDE_log_x2'])]
         self.assertTrue(all(close))
+
+    def test_samples_contours(self):
+        te_samples = [10, 15, 20]
+        hs_samples_0 = np.array([8.56637939, 9.27612515, 8.70427774])
+        hs_contour = self.wdrt_copulas["gaussian_x1"]
+        te_contour = self.wdrt_copulas["gaussian_x2"]
+        hs_samples = wave.contours.samples_contour(
+            te_samples, te_contour, hs_contour)
+        assert_allclose(hs_samples, hs_samples_0)
 
 class TestPerformance(unittest.TestCase):
 

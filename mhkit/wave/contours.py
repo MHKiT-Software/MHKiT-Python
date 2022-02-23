@@ -1713,15 +1713,17 @@ def samples_contour(t_samples, t_contour, hs_contour):
     #finds minimum and maximum energy period values
     amin = np.argmin(t_contour)
     amax = np.argmax(t_contour)
+    aamin = np.min([amin, amax])
+    aamax = np.max([amin, amax])
     #finds points along the contour
-    w1 = hs_contour[amin:amax]
-    w2 = np.concatenate((hs_contour[amax:], hs_contour[:amin]))
+    w1 = hs_contour[aamin:aamax]
+    w2 = np.concatenate((hs_contour[aamax:], hs_contour[:aamin]))
     if (np.max(w1) > np.max(w2)):
-        x1 = t_contour[amin:amax]
-        y = hs_contour[amin:amax]
+        x1 = t_contour[aamin:aamax]
+        y = hs_contour[aamin:aamax]
     else:
-        x1 = np.concatenate((t_contour[amax:], t_contour[:amin]))
-        y1 = np.concatenate((hs_contour[amax:], hs_contour[:amin]))
+        x1 = np.concatenate((t_contour[aamax:], t_contour[:aamin]))
+        y1 = np.concatenate((hs_contour[aamax:], hs_contour[:aamin]))
     #sorts data based on the max and min energy period values
     ms = np.argsort(x1)
     x = x1[ms]
