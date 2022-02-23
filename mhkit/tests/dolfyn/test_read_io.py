@@ -13,7 +13,7 @@ import io
 
 
 def test_save():
-    save_netcdf(tv.dat, 'test_save')
+    save_netcdf(tv.dat, 'test_save', compression=True)
     save_matlab(tv.dat, 'test_save')
 
     assert os.path.exists(rfnm('test_save.nc'))
