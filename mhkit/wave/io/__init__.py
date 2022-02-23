@@ -5,7 +5,7 @@ from mhkit.wave.io import swan
 try:
     from mhkit.wave.io import hindcast
 except ImportError:
-    print("WARNING: Wave WPTO hindcast functions not imported from MHKiT-Python. If you are using Windows and calling from MHKiT-MATLAB this is expected.")
+    print("WARNING: Wave WPTO hindcast functions not imported from"
+          "MHKiT-Python. If you are using Windows and calling from"
+          "MHKiT-MATLAB this is expected.")
     pass
-
-
