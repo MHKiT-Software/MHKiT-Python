@@ -1,4 +1,4 @@
-from .base import load_ncdata as load, rfnm
+from .base import load_netcdf as load, rfnm
 
 
 vec = load('vector_data01.nc')

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import numpy as np
+from .tools.misc import fillgaps
 
 
 def _fullyear(year):
@@ -236,4 +237,30 @@ def matlab2date(matlab_dn):
         dayfrac = timedelta(days=matlab_dn[i] % 1) - timedelta(days=366)
         time.append(day + dayfrac)
 
+        # Datenum is precise down to 100 microseconds - add difference to round
+        us = int(round(time[i].microsecond/100, 0))*100
+        time[i] = time[i].replace(microsecond=time[i].microsecond) + \
+            timedelta(microseconds=us-time[i].microsecond)
+
     return time
+
+
+def _fill_time_gaps(epoch, sample_rate_hz):
+    """Fill gaps (NaN values) in the timeseries by simple linear
+    interpolation.  The ends are extrapolated by stepping
+    forward/backward by 1/sample_rate_hz.
+    """
+    # epoch is seconds since 1970
+    dt = 1. / sample_rate_hz
+    epoch = fillgaps(epoch)
+    if np.isnan(epoch[0]):
+        i0 = np.nonzero(~np.isnan(epoch))[0][0]
+        delta = np.arange(-i0, 0, 1) * dt
+        epoch[:i0] = epoch[i0] + delta
+    if np.isnan(epoch[-1]):
+        # Search backward through the array to get the 'negative index'
+        ie = -np.nonzero(~np.isnan(epoch[::-1]))[0][0] - 1
+        delta = np.arange(1, -ie, 1) * dt
+        epoch[(ie + 1):] = epoch[ie] + delta
+
+    return epoch

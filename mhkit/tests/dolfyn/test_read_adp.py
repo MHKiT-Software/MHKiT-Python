@@ -1,17 +1,15 @@
-from . import base as tb
-from mhkit.dolfyn.io.api import read_example as read
-import mhkit.dolfyn.io.rdi as wh
-import mhkit.dolfyn.io.nortek as awac
 import mhkit.dolfyn.io.nortek2 as sig
+from mhkit.dolfyn.io.nortek2_lib import crop_ensembles
+from mhkit.dolfyn.io.api import read_example as read
 from .base import assert_allclose
+from . import base as tb
 import warnings
-import os
-import sys
-import unittest
 import pytest
+import os
 
-load = tb.load_ncdata
-save = tb.save_ncdata
+
+load = tb.load_netcdf
+save = tb.save_netcdf
 
 dat_rdi = load('RDI_test01.nc')
 dat_rdi_7f79 = load('RDI_7f79.nc')
@@ -29,28 +27,20 @@ dat_sig_i_ud = load('Sig1000_IMU_ud.nc')
 dat_sig_ieb = load('VelEchoBT01.nc')
 dat_sig_ie = load('Sig500_Echo.nc')
 dat_sig_tide = load('Sig1000_tidal.nc')
+dat_sig_skip = load('Sig_SkippedPings01.nc')
+dat_sig_badt = load('Sig1000_BadTime01.nc')
 dat_sig5_leiw = load('Sig500_last_ensemble_is_whole.nc')
-
-
-def test_badtime():
-    dat = sig.read_signature(tb.rfnm('Sig1000_BadTime01.ad2cp'))
-    os.remove(tb.rfnm('Sig1000_BadTime01.ad2cp.index'))
-
-    assert dat.time[199].isnull(), \
-        "A good timestamp was found where a bad value is expected."
 
 
 def test_io_rdi(make_data=False):
     warnings.simplefilter('ignore', UserWarning)
-    nens = 500
+    nens = 100
     td_rdi = tb.drop_config(read('RDI_test01.000'))
     td_7f79 = tb.drop_config(read('RDI_7f79.000'))
     td_rdi_bt = tb.drop_config(read('RDI_withBT.000', nens=nens))
     td_vm = tb.drop_config(read('vmdas01.ENX', nens=nens))
     td_wr1 = tb.drop_config(read('winriver01.PD0'))
     td_wr2 = tb.drop_config(read('winriver02.PD0'))
-    td_debug = tb.drop_config(wh.read_rdi(tb.exdt('RDI_withBT.000'), debug=11,
-                                          nens=nens))
 
     if make_data:
         save(td_rdi, 'RDI_test01.nc')
@@ -67,17 +57,15 @@ def test_io_rdi(make_data=False):
     assert_allclose(td_vm, dat_rdi_vm, atol=1e-6)
     assert_allclose(td_wr1, dat_wr1, atol=1e-6)
     assert_allclose(td_wr2, dat_wr2, atol=1e-6)
-    assert_allclose(td_debug, td_rdi_bt, atol=1e-6)
 
 
 def test_io_nortek(make_data=False):
-    nens = 500
-    td_awac = tb.drop_config(read('AWAC_test01.wpr', userdata=False,
-                                  nens=nens))
+    nens = 100
+    with pytest.warns(UserWarning):
+        td_awac = tb.drop_config(
+            read('AWAC_test01.wpr', userdata=False, nens=[0, nens]))
     td_awac_ud = tb.drop_config(read('AWAC_test01.wpr', nens=nens))
     td_hwac = tb.drop_config(read('H-AWAC_test01.wpr'))
-    td_debug = tb.drop_config(awac.read_nortek(tb.exdt('AWAC_test01.wpr'),
-                              debug=True, do_checksum=True, nens=nens))
 
     if make_data:
         save(td_awac, 'AWAC_test01.nc')
@@ -88,37 +76,49 @@ def test_io_nortek(make_data=False):
     assert_allclose(td_awac, dat_awac, atol=1e-6)
     assert_allclose(td_awac_ud, dat_awac_ud, atol=1e-6)
     assert_allclose(td_hwac, dat_hwac, atol=1e-6)
-    assert_allclose(td_awac_ud, td_debug, atol=1e-6)
 
 
 def test_io_nortek2(make_data=False):
-    nens = 500
+    nens = 100
     td_sig = tb.drop_config(read('BenchFile01.ad2cp', nens=nens))
     td_sig_i = tb.drop_config(read('Sig1000_IMU.ad2cp', userdata=False,
                                    nens=nens))
     td_sig_i_ud = tb.drop_config(read('Sig1000_IMU.ad2cp', nens=nens))
-    td_sig_ieb = tb.drop_config(read('VelEchoBT01.ad2cp', nens=100))
+    td_sig_ieb = tb.drop_config(read('VelEchoBT01.ad2cp', nens=nens))
     td_sig_ie = tb.drop_config(read('Sig500_Echo.ad2cp', nens=nens))
     td_sig_tide = tb.drop_config(read('Sig1000_tidal.ad2cp', nens=nens))
 
+    with pytest.warns(UserWarning):
+        # This issues a warning...
+        td_sig_skip = tb.drop_config(read('Sig_SkippedPings01.ad2cp'))
+
+    with pytest.warns(UserWarning):
+        td_sig_badt = tb.drop_config(sig.read_signature(
+            tb.rfnm('Sig1000_BadTime01.ad2cp')))
+
     # Make sure we read all the way to the end of the file.
     # This file ends exactly at the end of an ensemble.
-    td_sig5_leiw = read('Sig500_last_ensemble_is_whole.ad2cp')
+    td_sig5_leiw = tb.drop_config(read('Sig500_last_ensemble_is_whole.ad2cp'))
 
     os.remove(tb.exdt('BenchFile01.ad2cp.index'))
     os.remove(tb.exdt('Sig1000_IMU.ad2cp.index'))
     os.remove(tb.exdt('VelEchoBT01.ad2cp.index'))
     os.remove(tb.exdt('Sig500_Echo.ad2cp.index'))
     os.remove(tb.exdt('Sig1000_tidal.ad2cp.index'))
+    os.remove(tb.exdt('Sig_SkippedPings01.ad2cp.index'))
+    os.remove(tb.exdt('Sig500_last_ensemble_is_whole.ad2cp.index'))
+    os.remove(tb.rfnm('Sig1000_BadTime01.ad2cp.index'))
 
     if make_data:
         save(td_sig, 'BenchFile01.nc')
         save(td_sig_i, 'Sig1000_IMU.nc')
         save(td_sig_i_ud, 'Sig1000_IMU_ud.nc')
         save(td_sig_ieb, 'VelEchoBT01.nc')
-        save(td_sig5_leiw, 'Sig500_last_ensemble_is_whole.nc')
         save(td_sig_ie, 'Sig500_Echo.nc')
         save(td_sig_tide, 'Sig1000_tidal.nc')
+        save(td_sig_skip, 'Sig_SkippedPings01.nc')
+        save(td_sig_badt, 'Sig1000_BadTime01.nc')
+        save(td_sig5_leiw, 'Sig500_last_ensemble_is_whole.nc')
         return
 
     assert_allclose(td_sig, dat_sig, atol=1e-6)
@@ -128,46 +128,24 @@ def test_io_nortek2(make_data=False):
     assert_allclose(td_sig_ie, dat_sig_ie, atol=1e-6)
     assert_allclose(td_sig_tide, dat_sig_tide, atol=1e-6)
     assert_allclose(td_sig5_leiw, dat_sig5_leiw, atol=1e-6)
+    assert_allclose(td_sig_skip, dat_sig_skip, atol=1e-6)
+    assert_allclose(td_sig_badt, dat_sig_badt, atol=1e-6)
 
 
-def test_matlab_io(make_data=False):
-    td_rdi_bt = tb.drop_config(read('RDI_withBT.000', nens=100))
-
-    # This read should trigger a warning about the declination being
-    # defined in two places (in the binary .ENX files), and in the
-    # .userdata.json file. NOTE: DOLfYN defaults to using what is in
-    # the .userdata.json file.
-    with pytest.warns(UserWarning, match='magnetic_var_deg'):
-        td_vm = tb.drop_config(read('vmdas01.ENX', nens=100))
+def test_nortek2_crop(make_data=False):
+    # Test file cropping function
+    crop_ensembles(infile=tb.exdt('Sig500_Echo.ad2cp'),
+                   outfile=tb.exdt('Sig500_Echo_crop.ad2cp'),
+                   range=[50, 100])
+    td_sig_ie_crop = tb.drop_config(read('Sig500_Echo_crop.ad2cp'))
 
     if make_data:
-        tb.save_matlab(td_rdi_bt, 'dat_rdi_bt')
-        tb.save_matlab(td_vm, 'dat_vm')
+        save(td_sig_ie_crop, 'Sig500_Echo_crop.nc')
         return
 
-    mat_rdi_bt = tb.load_matlab('dat_rdi_bt.mat')
-    mat_vm = tb.load_matlab('dat_vm.mat')
+    os.remove(tb.exdt('Sig500_Echo.ad2cp.index'))
+    os.remove(tb.exdt('Sig500_Echo_crop.ad2cp'))
+    os.remove(tb.exdt('Sig500_Echo_crop.ad2cp.index'))
 
-    assert_allclose(td_rdi_bt, mat_rdi_bt,  atol=1e-6)
-    assert_allclose(td_vm, mat_vm,  atol=1e-6)
-
-
-class warnings_testcase(unittest.TestCase):
-    def test_read_warnings(self):
-        with self.assertRaises(Exception):
-            wh.read_rdi(tb.exdt('H-AWAC_test01.wpr'))
-        with self.assertRaises(Exception):
-            awac.read_nortek(tb.exdt('BenchFile01.ad2cp'))
-        with self.assertRaises(Exception):
-            sig.read_signature(tb.exdt('AWAC_test01.wpr'))
-
-
-if __name__ == '__main__':
-    warnings.simplefilter('ignore', UserWarning)
-    sys.stdout = open(os.devnull, 'w')  # block printing output
-    test_io_rdi()
-    test_io_nortek()
-    test_io_nortek2()
-    test_matlab_io()
-    unittest.main()
-    sys.stdout = sys.__stdout__  # restart printing output
+    cd_sig_ie_crop = load('Sig500_Echo_crop.nc')
+    assert_allclose(td_sig_ie_crop, cd_sig_ie_crop, atol=1e-6)

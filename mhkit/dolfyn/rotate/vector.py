@@ -78,8 +78,7 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
     else:
         if 'vector' in advo.inst_model.lower():
             orientation_down = advo['orientation_down']
-        else:
-            orientation_down = None
+            
         omat = _calc_omat(advo['heading'].values, advo['pitch'].values,
                           advo['roll'].values, orientation_down)
 

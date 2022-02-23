@@ -95,7 +95,3 @@ class tools_testcase(unittest.TestCase):
         out = np.array([90., 89., 88., 87., 86., 85., 84., 83., 82., 81.])
 
         assert_allclose(d, out, atol=1e-10)
-
-
-if __name__ == '__main__':
-    unittest.main()

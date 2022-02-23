@@ -8,8 +8,9 @@ print(__doc__)
 #!!! Have to run twice in a row to reset the rotate test files
 
 # import test_read_adv as advr
-# import test_rotate_adv as advro
 # import test_read_adp as adpr
+# import test_read_io as io
+# import test_rotate_adv as advro
 # import test_rotate_adp as adpro
 # import test_motion as tm
 # import test_clean as cl
@@ -17,16 +18,20 @@ print(__doc__)
 # import test_shortcuts as ts
 # import test_api
 
-# advr.test_read(make_data=True)
+# advr.test_io_adv(make_data=True)
+# adpr.test_io_rdi(make_data=True)
+# adpr.test_io_nortek(make_data=True)
+# adpr.test_io_nortek2(make_data=True)
+# adpr.test_nortek2_crop(make_data=True)
+# io.test_save(make_data=True)
+# io.test_matlab_io(make_data=True)
+# io.test_debugging(make_data=True)
+
 # advro.test_heading(make_data=True)
 # advro.test_rotate_inst2beam(make_data=True)
 # advro.test_rotate_inst2earth(make_data=True)
 # advro.test_rotate_earth2principal(make_data=True)
 
-# adpr.test_io_rdi(make_data=True)
-# adpr.test_io_nortek(make_data=True)
-# adpr.test_io_nortek2(make_data=True)
-# adpr.test_matlab_io(make_data=True)
 # adpro.test_rotate_beam2inst(make_data=True)
 # adpro.test_rotate_inst2beam(make_data=True)
 # adpro.test_rotate_inst2earth(make_data=True)

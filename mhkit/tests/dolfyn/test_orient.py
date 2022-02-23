@@ -1,8 +1,8 @@
-from .base import load_ncdata as load
-from mhkit.dolfyn.rotate.base import euler2orient, orient2euler, quaternion2orient
-from mhkit.dolfyn.rotate.api import set_declination
-from numpy.testing import assert_allclose
 import numpy as np
+from numpy.testing import assert_allclose
+from dolfyn.rotate.base import euler2orient, orient2euler, quaternion2orient
+from dolfyn.rotate.api import set_declination
+from .base import load_netcdf as load
 
 
 def check_hpr(h, p, r, omatin):
@@ -84,7 +84,7 @@ def test_pr_declination():
     dat = load('vector_data_imu01.nc')
     h0, p0, r0 = orient2euler(dat['orientmat'].values)
 
-    dat = set_declination(dat, declin)
+    set_declination(dat, declin, inplace=True)
     h1, p1, r1 = orient2euler(dat['orientmat'].values)
 
     assert_allclose(p0, p1, atol=1e-5,
@@ -102,9 +102,3 @@ def test_q_hpr():
 
     assert_allclose(dat.orientmat, dcm, atol=5e-4,
                     err_msg="Disagreement b/t quaternion-calc'd & HPR-calc'd orientmat")
-
-
-if __name__ == '__main__':
-    test_hpr_defs()
-    test_pr_declination()
-    test_q_hpr()

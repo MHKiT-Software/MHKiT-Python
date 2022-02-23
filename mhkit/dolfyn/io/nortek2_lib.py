@@ -1,8 +1,9 @@
 import struct
 import os.path as path
 import numpy as np
-#import warnings
+import warnings
 from .. import time
+from .base import _abspath
 
 
 def _reduce_by_average(data, ky0, ky1):
@@ -72,7 +73,7 @@ _index_dtype = {
 
 
 def _calc_time(year, month, day, hour, minute, second, usec, zero_is_bad=True):
-    dt = np.empty(year.shape, dtype='float')
+    dt = np.zeros(year.shape, dtype='float')
     for idx, (y, mo, d, h, mi, s, u) in enumerate(
             zip(year, month, day,
                 hour, minute, second, usec)):
@@ -92,42 +93,52 @@ def _calc_time(year, month, day, hour, minute, second, usec, zero_is_bad=True):
     return dt
 
 
-def _create_index_slow(infile, outfile, N_ens):
+def _create_index(infile, outfile, N_ens, debug):
     print("Indexing {}...".format(infile), end='')
-    fin = open(infile, 'rb')
-    fout = open(outfile, 'wb')
+    fin = open(_abspath(infile), 'rb')
+    fout = open(_abspath(outfile), 'wb')
     fout.write(b'Index Ver:')
     fout.write(struct.pack('<H', _index_version))
-    ens = 0
-    N = 0
+    ens = dict.fromkeys([21, 23, 24, 26, 28], 0)
+    N = dict.fromkeys([21, 23, 24, 26, 28], 0)
     config = 0
-    last_ens = -1
+    last_ens = dict.fromkeys([21, 23, 24, 26, 28], -1)
     seek_2ens = {21: 40, 24: 40, 26: 40,
-                 23: 42, 28: 40}
-    while N < N_ens:
+                 23: 42, 28: 40}  # 23 starts from "42"
+    while N[21] < N_ens:  # Will fail if velocity ping isn't saved first
         pos = fin.tell()
         try:
             dat = _hdr.unpack(fin.read(_hdr.size))
         except:
             break
-        if dat[2] in [21, 23, 24, 26, 28]:
+        if dat[2] in [21, 23, 24, 26, 28]:  # vel, bt, vel_b5, alt_raw, echo
+            idk = dat[2]
             d_ver, d_off, config = struct.unpack('<BBH', fin.read(4))
             fin.seek(4, 1)
             yr, mo, dy, h, m, s, u = struct.unpack('6BH', fin.read(8))
             fin.seek(14, 1)
             beams_cy = struct.unpack('<H', fin.read(2))[0]
             fin.seek(seek_2ens[dat[2]], 1)
-            ens = struct.unpack('<I', fin.read(4))[0]
-            if dat[2] in [23, 28]:
-                # ids are saved differently that others in datafile
-                ens = last_ens
-            if last_ens > 0 and last_ens != ens:
-                N += 1
-            fout.write(struct.pack('<QIQ4H6BHB', N, ens, pos, dat[2],
+            ens[idk] = struct.unpack('<I', fin.read(4))[0]
+
+            if ens[idk] == 1 and last_ens[idk] > 0:
+                # Covers all id keys saved in "burst mode"
+                ens[idk] = last_ens[idk]+1
+
+            if last_ens[idk] > 0 and last_ens[idk] != ens[idk]:
+                N[idk] += 1
+
+            fout.write(struct.pack('<QIQ4H6BHB', N[idk], ens[idk], pos, idk,
                                    config, beams_cy, 0,
                                    yr, mo + 1, dy, h, m, s, u, d_ver))
-            fin.seek(dat[4] - (36 + seek_2ens[dat[2]]), 1)
-            last_ens = ens
+            fin.seek(dat[4] - (36 + seek_2ens[idk]), 1)
+            last_ens[idk] = ens[idk]
+
+            if debug and N[idk] < 5:
+                # hex: [18, 15, 1C, 17] = [vel_b5, vel, echo, bt]
+                print('%10d: %02X, %d, %02X, %d, %d, %d, %d\n' %
+                      (pos, dat[0], dat[1], dat[2], dat[4],
+                       N[idk], ens[idk], last_ens[idk]))
         else:
             fin.seek(dat[4], 1)
     fin.close()
@@ -135,11 +146,75 @@ def _create_index_slow(infile, outfile, N_ens):
     print(" Done.")
 
 
-def _get_index(infile, reload=False):
+def _check_index(idx, infile, fix_hw_ens=False):
+    uid = np.unique(idx['ID'])
+    if fix_hw_ens:
+        hwe = idx['hw_ens']
+    else:
+        hwe = idx['hw_ens'].copy()
+    period = hwe.max()
+    ens = idx['ens']
+    N_id = len(uid)
+    FLAG = False
+    # This loop fixes 'skips' inside the file
+    for id in uid:
+        # These are the indices for this ID
+        inds = np.nonzero(idx['ID'] == id)[0]
+
+        # These are bad steps in the indices for this ID
+        ibad = np.nonzero(np.diff(inds) > N_id)[0]
+        for ib in ibad:
+            FLAG = True
+            # The ping number reported here may not be quite right if
+            # the ensemble count is wrong.
+            warnings.warn("Skipped ping (ID: {}) in file {} at ensemble {}."
+                          .format(id, infile, idx['ens'][inds[ib + 1] - 1]))
+            hwe[inds[(ib + 1):]] += 1
+            ens[inds[(ib + 1):]] += 1
+
+    # This block fixes skips that originate from before this file.
+    delta = max(hwe[:N_id]) - hwe[:N_id]
+    for d, id in zip(delta, idx['ID'][:N_id]):
+        if d != 0:
+            FLAG = True
+            hwe[id == idx['ID']] += d
+            ens[id == idx['ID']] += d
+
+    if np.any(np.diff(ens) > 1) and FLAG:
+        idx['ens'] = np.unwrap(hwe.astype(np.int64), period=period) - hwe[0]
+
+
+def _boolarray_firstensemble_ping(index):
+    """Return a boolean of the index that indicates only the first ping in 
+    each ensemble.
+    """
+    dens = np.ones(index['ens'].shape, dtype='bool')
+    dens[1:] = np.diff(index['ens']) != 0
+    return dens
+
+
+def get_index(infile, reload=False, debug=False):
+    """This function reads ad2cp.index files
+
+    Parameters
+    ----------
+    infile: str
+      Path and filename of ad2cp datafile, not including ".index"
+    reload: bool
+      If true, ignore existing .index file and create a new one
+    debug: bool
+      If true, run code in debug mode
+
+    Returns
+    -------
+    out: tuple
+      Tuple containing info held within index file
+
+    """
     index_file = infile + '.index'
     if not path.isfile(index_file) or reload:
-        _create_index_slow(infile, index_file, 2 ** 32)
-    f = open(index_file, 'rb')
+        _create_index(infile, index_file, 2 ** 32, debug)
+    f = open(_abspath(index_file), 'rb')
     file_head = f.read(12)
     if file_head[:10] == b'Index Ver:':
         index_ver = struct.unpack('<H', file_head[10:])[0]
@@ -149,29 +224,8 @@ def _get_index(infile, reload=False):
         f.seek(0, 0)
     out = np.fromfile(f, dtype=_index_dtype[index_ver])
     f.close()
+    _check_index(out, infile)
     return out
-
-
-def _boolarray_firstensemble_ping(index):
-    """Return a boolean of the index that indicates only the first ping in each ensemble.
-    """
-    if (index['ens'] == 0).all() and (index['hw_ens'] == 1).all():
-        n_IDs = {id: (index['ID'] == id).sum()
-                 for id in np.unique(index['ID'])}
-        assert all(np.abs(np.diff(list(n_IDs.values())))
-                   ) <= 1, "Unable to read this file"
-        return index['ID'] == index['ID'][0]
-    else:
-        dens = np.ones(index['ens'].shape, dtype='bool')
-        dens[1:] = np.diff(index['ens']) != 0
-        return dens
-
-
-def _getbit(val, n):
-    try:
-        return bool((val >> n) & 1)
-    except ValueError:  # An array
-        return ((val >> n) & 1).astype('bool')
 
 
 def crop_ensembles(infile, outfile, range):
@@ -182,15 +236,19 @@ def crop_ensembles(infile, outfile, range):
     The range is the `ensemble/ping` counter as defined in the first column
     of the INDEX.
 
+    Parameters
+    ----------
+    infile: str
+      Path of ad2cp filename (with .ad2cp file extension)
+    outfile: str
+      Path for new, cropped ad2cp file (with .ad2cp file extension)
+    range: list
+      2 element list of start and end ensemble (or time index)
+
     """
-    idx = _get_index(infile)
-    # If running in raw/continuous mode
-    if not sum(idx['ens']):
-        n_ID = len(np.unique(idx['ID']))
-        idx_act = np.arange(0, len(idx)//n_ID, 1)
-        idx['ens'] = np.sort(np.tile(idx_act, n_ID))
-    with open(infile, 'rb') as fin:
-        with open(outfile, 'wb') as fout:
+    idx = get_index(infile)
+    with open(_abspath(infile), 'rb') as fin:
+        with open(_abspath(outfile), 'wb') as fout:
             fout.write(fin.read(idx['pos'][0]))
             i0 = np.nonzero(idx['ens'] == range[0])[0][0]
             ie = np.nonzero(idx['ens'] == range[1])[0][0]
@@ -207,6 +265,14 @@ class _BitIndexer():
     @property
     def _data_is_array(self, ):
         return isinstance(self.data, np.ndarray)
+
+    @property
+    def nbits(self, ):
+        if self._data_is_array:
+            return self.data.dtype.itemsize * 8
+        else:
+            raise ValueError("You must specify the end-range "
+                             "for non-ndarray input data.")
 
     def _get_out_type(self, mask):
         # The mask indicates how big this item is.
@@ -231,12 +297,20 @@ class _BitIndexer():
                              "not support steps")
         start = slc.start
         stop = slc.stop
+        if start is None:
+            start = 0
+        if stop is None:
+            stop = self.nbits
         mask = 2 ** (stop - start) - 1
         out = (self.data >> start) & mask
         ot = self._get_out_type(mask)
         if ot is not None:
             out = out.astype(ot)
         return out
+
+
+def _getbit(val, n):
+    return bool((val >> n) & 1)
 
 
 def _headconfig_int2dict(val, mode='burst'):
@@ -328,8 +402,19 @@ def _collapse(vec, name=None, exclude=[]):
     elif _isuniform(vec, exclude=exclude):
         return list(set(np.unique(vec)) - set(exclude))[0]
     else:
-        #warnings.warn(f"The variable {name} is expected to be uniform, but it is not.")
-        return vec[0]
+        uniq, idx, counts = np.unique(
+            vec, return_index=True, return_counts=True)
+
+        if all(e==counts[0] for e in counts):
+            val = max(vec) # pings saved out of order, but equal # of pings
+        else:
+            val = vec[idx[np.argmax(counts)]]
+
+        if not set(uniq) == set([0, val]) and set(counts) == set([1, np.max(counts)]):
+            # warn when the 'wrong value' is not just a single zero.
+            warnings.warn("The variable {} is expected to be uniform, but it is not.\nValues found: {} (counts: {}).\nUsing the most common value: {}".format(
+                name, list(uniq), list(counts), val))
+        return val
 
 
 def _calc_config(index):

@@ -1,9 +1,41 @@
 import numpy as np
 import xarray as xr
-import six
 import json
 import os
 import warnings
+
+
+def _abspath(fname):
+    return os.path.abspath(os.path.expanduser(fname))
+
+
+def _get_filetype(fname):
+    """Detects whether the file is a Nortek, Signature (Nortek), or RDI
+    file by reading the first few bytes of the file.
+
+    Returns
+    =======
+       None - Doesn't match any known pattern
+       'signature' - for Nortek signature files
+       'nortek' - for Nortek (Vec, AWAC) files
+       'RDI' - for RDI files
+       '<GIT-LFS pointer> - if the file looks like a GIT-LFS pointer.
+    """
+
+    with open(fname, 'rb') as rdr:
+        bytes = rdr.read(40)
+    code = bytes[:2].hex()
+    if code in ['7f79', '7f7f']:
+        return 'RDI'
+    elif code in ['a50a']:
+        return 'signature'
+    elif code in ['a505']:
+        # AWAC
+        return 'nortek'
+    elif bytes == b'version https://git-lfs.github.com/spec/':
+        return '<GIT-LFS pointer>'
+    else:
+        return None
 
 
 def _find_userdata(filename, userdata=True):
@@ -15,7 +47,7 @@ def _find_userdata(filename, userdata=True):
             if os.path.isfile(jsonfile):
                 return _read_userdata(jsonfile)
 
-    elif isinstance(userdata, (six.string_types)) or hasattr(userdata, 'read'):
+    elif isinstance(userdata, (str, )) or hasattr(userdata, 'read'):
         return _read_userdata(userdata)
     return {}
 
@@ -33,17 +65,14 @@ def _read_userdata(fname):
                 f'{nm} has been deprecated, please change this to {new_name} \
                     in {fname}.')
             data[new_name] = data.pop(nm)
-    if 'inst2head_rotmat' in data and \
-       data['inst2head_rotmat'] in ['identity', 'eye', 1, 1.]:
-        data['inst2head_rotmat'] = np.eye(3)
-    for nm in ['inst2head_rotmat', 'inst2head_vec']:
-        if nm in data:
-            data[nm] = np.array(data[nm])
-    if 'coord_sys' in data:
-        raise Exception("The instrument coordinate system "
-                        "('coord_sys') should not be specified in "
-                        "the .userdata.json file, remove this and "
-                        "read the file again.")
+    if 'inst2head_rotmat' in data:
+        if data['inst2head_rotmat'] in ['identity', 'eye', 1, 1.]:
+            data['inst2head_rotmat'] = np.eye(3)
+        else:
+            data['inst2head_rotmat'] = np.array(data['inst2head_rotmat'])
+    if 'inst2head_vec' in data and type(data['inst2head_vec']) != list:
+        data['inst2head_vec'] = list(data['inst2head_vec'])
+
     return data
 
 
@@ -93,10 +122,10 @@ def _create_dataset(data):
         if 'mat' in key:
             if 'inst' in key:  # beam2inst & inst2head orientation matrices
                 ds[key] = xr.DataArray(data['data_vars'][key],
-                                       coords={'beam': beam,
+                                       coords={'x': beam,
                                                'x*': beam},
-                                       dims=['beam', 'x*'])
-            else:  # earth2inst orientation matrx
+                                       dims=['x', 'x*'])
+            else:  # earth2inst orientation matrix
                 if any(val in key for val in tag):
                     tg = '_' + key.rsplit('_')[-1]
                 else:
@@ -118,14 +147,14 @@ def _create_dataset(data):
                                    dims=['q', 'time'+tg])
         else:
             ds[key] = xr.DataArray(data['data_vars'][key])
-            try:  # not all variables have units
+            if key in data['units']:   # not all variables have units
                 ds[key].attrs['units'] = data['units'][key]
-            except:  # make sure ones with tags get units
+            try:  # make sure ones with tags get units
                 tg = '_' + key.rsplit('_')[-1]
                 if any(val in key for val in tag):
                     ds[key].attrs['units'] = data['units'][key[:-len(tg)]]
-                else:
-                    pass
+            except:
+                pass
 
             shp = data['data_vars'][key].shape
             vshp = data['data_vars']['vel'].shape
@@ -169,18 +198,6 @@ def _create_dataset(data):
                     ds[key] = ds[key].assign_coords({'dirIMU': [1, 2, 3],
                                                      'time'+tg: data['coords']['time'+tg]})
 
-                # b5 and echo tagged variables
-                elif any(val in key for val in tag[:2]):
-                    tg = [val for val in tag if val in key]
-                    tg = tg[0]
-
-                    ds[key] = ds[key].rename({'dim_0': 'range'+tg,
-                                              'dim_1': 'time'+tg})
-                    ds[key] = ds[key].assign_coords({'range'+tg: data['coords']['range'+tg],
-                                                     'time'+tg: data['coords']['time'+tg]})
-                else:
-                    warnings.warn(f'Variable not included in dataset: {key}')
-
             elif l == 3:  # 3D variables
                 if not any(val in key for val in tag):
                     if 'vel' in key:
@@ -207,10 +224,6 @@ def _create_dataset(data):
     r_list = [r for r in ds.coords if 'range' in r]
     for ky in r_list:
         ds[ky].attrs['units'] = 'm'
-
-    t_list = [t for t in ds.coords if 'time' in t]
-    for ky in t_list:
-        ds[ky].attrs['description'] = 'seconds since 1970-01-01 00:00:00'
 
     ds.attrs = data['attrs']
 

@@ -22,7 +22,7 @@ rot_module_dict = {
     'rdi': r_rdi}
 
 
-def rotate2(ds, out_frame='earth'):
+def rotate2(ds, out_frame='earth', inplace=True):
     """Rotate a dataset to a new coordinate system.
 
     Parameters
@@ -31,17 +31,34 @@ def rotate2(ds, out_frame='earth'):
       The dolfyn dataset (ADV or ADCP) to rotate.
     out_frame : string {'beam', 'inst', 'earth', 'principal'}
       The coordinate system to rotate the data into.
+    inplace : bool (default: True)
+        When True ``ds`` is modified. When False a copy is returned.
 
     Returns
     -------
-    ds : xarray.Dataset
-      The rotated dataset
+    ds : xarray.Dataset or None
+      Returns a new rotated dataset **when ``inplace=False``**, otherwise
+      returns None.
 
     Notes
     -----
-    This function rotates all variables in ``ds.attrs['rotate_vars']``.
+    - This function rotates all variables in ``ds.attrs['rotate_vars']``.
+
+    - In order to rotate to the 'principal' frame, a value should exist for 
+      ``ds.attrs['principal_heading']``. The function 
+      :func:`calc_principal_heading <dolfyn.calc_principal_heading>`
+      is recommended for this purpose, e.g.:
+
+          ds.attrs['principal_heading'] = dolfyn.calc_principal_heading(ds['vel'].mean(range))
+
+      where here we are using the depth-averaged velocity to calculate
+      the principal direction.
 
     """
+    # Create and return deep copy if not writing "in place"
+    if not inplace:
+        ds = ds.copy(deep=True)
+
     csin = ds.coord_sys.lower()
     if csin == 'ship':
         csin = 'inst'
@@ -53,7 +70,7 @@ def rotate2(ds, out_frame='earth'):
         warnings.warn(
             "You are attempting to rotate into the 'principal' "
             "coordinate system, but the dataset is in the {} "
-            "coordinate system. Be sure that 'principal_angle' is "
+            "coordinate system. Be sure that 'principal_heading' is "
             "defined based on the earth coordinate system.".format(csin))
 
     rmod = None
@@ -64,8 +81,6 @@ def rotate2(ds, out_frame='earth'):
     if rmod is None:
         raise ValueError("Rotations are not defined for "
                          "instrument '{}'.".format(_make_model(ds)))
-    # Ensure new data is rotated
-    ds = ds.copy(deep=True)
 
     # Get the 'indices' of the rotation chain
     try:
@@ -83,7 +98,6 @@ def rotate2(ds, out_frame='earth'):
 
     if iframe_out == iframe_in:
         print("Data is already in the {} coordinate system".format(out_frame))
-        return ds
 
     if iframe_out > iframe_in:
         reverse = False
@@ -101,7 +115,8 @@ def rotate2(ds, out_frame='earth'):
             func = getattr(rmod, '_' + rc[inow] + '2' + rc[inow + 1])
         ds = func(ds, reverse=reverse)
 
-    return ds
+    if not inplace:
+        return ds
 
 
 def calc_principal_heading(vel, tidal_mode=True):
@@ -120,10 +135,13 @@ def calc_principal_heading(vel, tidal_mode=True):
 
     Notes
     -----
-    The tidal mode follows these steps:
+    When tidal_mode=True, this tool calculates the heading that is
+    aligned with the bidirectional flow. It does so following these
+    steps:
       1. rotates vectors with negative velocity by 180 degrees
       2. then doubles those angles to make a complete circle again
-      3. computes a mean direction from this, and halves that angle again.
+      3. computes a mean direction from this, and halves that angle
+         (to undo the doubled-angles in step 2)
       4. The returned angle is forced to be between 0 and 180. So, you
          may need to add 180 to this if you want your positive
          direction to be in the western-half of the plane.
@@ -150,23 +168,28 @@ def calc_principal_heading(vel, tidal_mode=True):
     return np.round((90 - np.rad2deg(pang)), decimals=4)
 
 
-def set_declination(ds, declin):
+def set_declination(ds, declin, inplace=True):
     """Set the magnetic declination
 
     Parameters
     ----------
+    ds : xarray.Dataset or :class:`dolfyn.velocity.Velocity`
     declination : float
        The value of the magnetic declination in degrees (positive
        values specify that Magnetic North is clockwise from True North)
 
+    inplace : bool (default: True)
+        When True ``ds`` is modified. When False a copy is returned.
+
     Returns
-    ----------
-    ds : xarray.Dataset
-        Dataset adjusted for the magnetic declination
+    -------
+    ds : xarray.Dataset or None
+      Returns a new dataset with declination set **when
+      ``inplace=False``**, otherwise returns None.
 
     Notes
     -----
-    This method modifies the data object in the following ways:
+    This function modifies the data object in the following ways:
 
     - If the dataset is in the *earth* reference frame at the time of
       setting declination, it will be rotated into the "*True-East*,
@@ -191,6 +214,10 @@ def set_declination(ds, declin):
       'True' earth coordinate system)
 
     """
+    # Create and return deep copy if not writing "in place"
+    if not inplace:
+        ds = ds.copy(deep=True)
+
     if 'declination' in ds.attrs:
         angle = declin - ds.attrs.pop('declination')
     else:
@@ -206,7 +233,7 @@ def set_declination(ds, declin):
 
     if ds.coord_sys == 'earth':
         rotate2earth = True
-        ds = rotate2(ds, 'inst')
+        rotate2(ds, 'inst', inplace=True)
     else:
         rotate2earth = False
 
@@ -216,32 +243,50 @@ def set_declination(ds, declin):
     if 'heading' in ds:
         ds['heading'] += angle
     if rotate2earth:
-        ds = rotate2(ds, 'earth')
+        rotate2(ds, 'earth', inplace=True)
     if 'principal_heading' in ds.attrs:
         ds.attrs['principal_heading'] += angle
 
     ds.attrs['declination'] = declin
     ds.attrs['declination_in_orientmat'] = 1  # logical
 
-    return ds
+    if not inplace:
+        return ds
 
 
-def set_inst2head_rotmat(ds, rotmat):
+def set_inst2head_rotmat(ds, rotmat, inplace=True):
     """
     Set the instrument to head rotation matrix for the Nortek ADV if it
     hasn't already been set through a '.userdata.json' file.
 
     Parameters
     ----------
+    ds : xarray.Dataset
+        The data set to assign inst2head_rotmat
     rotmat : float
         3x3 rotation matrix
+    inplace : bool (default: True)
+        When True ``ds`` is modified. When False a copy is returned.
 
     Returns
-    ----------
-    ds : xarray.Dataset
-        Dataset with rotation matrix applied
+    -------
+    ds : xarray.Dataset or None
+      Returns a new dataset with inst2head_rotmat set **when
+      ``inplace=False``**, otherwise returns None.
+
+    Notes
+    -----
+    If the data object is in earth or principal coords, it is first
+    rotated to 'inst' before assigning inst2head_rotmat, it is then
+    rotated back to the coordinate system in which it was input. This
+    way the inst2head_rotmat gets applied correctly (in inst
+    coordinate system).
 
     """
+    # Create and return deep copy if not writing "in place"
+    if not inplace:
+        ds = ds.copy(deep=True)
+
     if not ds.inst_model.lower() == 'vector':
         raise Exception("Setting 'inst2head_rotmat' is only supported "
                         "for Nortek Vector ADVs.")
@@ -252,10 +297,12 @@ def set_inst2head_rotmat(ds, rotmat):
 
     csin = ds.coord_sys
     if csin not in ['inst', 'beam']:
-        ds = rotate2(ds, 'inst')
+        rotate2(ds, 'inst', inplace=True)
 
     ds['inst2head_rotmat'] = xr.DataArray(np.array(rotmat),
-                                          dims=['x', 'x*'])
+                                          dims=['x', 'x*'],
+                                          coords={'x': [1, 2, 3],
+                                                  'x*': [1, 2, 3]})
 
     ds.attrs['inst2head_rotmat_was_set'] = 1  # logical
     # Note that there is no validation that the user doesn't
@@ -265,6 +312,7 @@ def set_inst2head_rotmat(ds, rotmat):
     if not csin == 'beam':  # csin not 'beam', then we're in inst
         ds = r_vec._rotate_inst2head(ds)
     if csin not in ['inst', 'beam']:
-        ds = rotate2(ds, csin)
+        rotate2(ds, csin, inplace=True)
 
-    return ds
+    if not inplace:
+        return ds

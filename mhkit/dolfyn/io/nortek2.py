@@ -4,14 +4,15 @@ from struct import unpack, calcsize
 import warnings
 from . import nortek2_defs as defs
 from . import nortek2_lib as lib
-from .base import _find_userdata, _create_dataset
+from .base import _find_userdata, _create_dataset, _abspath
 from ..rotate.vector import _euler2orient
 from ..rotate.base import _set_coords
 from ..rotate.api import set_declination
-from ..time import epoch2dt64
+from ..time import epoch2dt64, _fill_time_gaps
 
 
-def read_signature(filename, userdata=True, nens=None):
+def read_signature(filename, userdata=True, nens=None, rebuild_index=False,
+                   debug=False):
     """Read a Nortek Signature (.ad2cp) datafile
 
     Parameters
@@ -43,11 +44,25 @@ def read_signature(filename, userdata=True, nens=None):
 
     userdata = _find_userdata(filename, userdata)
 
-    rdr = _Ad2cpReader(filename)
+    rdr = _Ad2cpReader(filename, rebuild_index=rebuild_index, debug=debug)
     d = rdr.readfile(nens[0], nens[1])
     rdr.sci_data(d)
     out = _reorg(d)
     _reduce(out)
+
+    # Convert time to dt64 and fill gaps
+    coords = out['coords']
+    t_list = [t for t in coords if 'time' in t]
+    for ky in t_list:
+        tdat = coords[ky]
+        tdat[tdat == 0] = np.NaN
+        if np.isnan(tdat).any():
+            tag = ky.lstrip('time')
+            warnings.warn("Zero/NaN values found in '{}'. Interpolating and "
+                          "extrapolating them. To identify which values were filled later, "
+                          "look for 0 values in 'status{}' or status0{}".format(ky, tag, tag))
+            tdat = _fill_time_gaps(tdat, sample_rate_hz=out['attrs']['fs'])
+        coords[ky] = epoch2dt64(tdat).astype('datetime64[us]')
 
     declin = None
     for nm in userdata:
@@ -68,25 +83,21 @@ def read_signature(filename, userdata=True, nens=None):
                                                'time': ds['time']},
                                        dims=['earth', 'inst', 'time'])
     if declin is not None:
-        ds = set_declination(ds, declin)
-
-    # Convert time to dt64
-    t_list = [t for t in ds.coords if 'time' in t]
-    for ky in t_list:
-        dt = epoch2dt64(ds[ky]).astype('datetime64[us]')
-        ds = ds.assign_coords({ky: dt})
+        set_declination(ds, declin, inplace=True)
 
     return ds
 
 
 class _Ad2cpReader():
-    def __init__(self, fname, endian=None, bufsize=None, rebuild_index=False):
+    def __init__(self, fname, endian=None, bufsize=None, rebuild_index=False,
+                 debug=False):
         self.fname = fname
         self._check_nortek(endian)
         self.f.seek(0, 2)  # Seek to end
         self._eof = self.f.tell()
-        self._index = lib._get_index(fname,
-                                     reload=rebuild_index)
+        self._index = lib.get_index(fname,
+                                    reload=rebuild_index,
+                                    debug=debug)
         self._reopen(bufsize)
         self.filehead_config = self._read_filehead_config_string()
         self._ens_pos = self._index['pos'][lib._boolarray_firstensemble_ping(
@@ -124,7 +135,7 @@ class _Ad2cpReader():
             self.f.close()
         except AttributeError:
             pass
-        self.f = open(self.fname, 'rb', bufsize)
+        self.f = open(_abspath(self.fname), 'rb', bufsize)
 
     def _read_filehead_config_string(self, ):
         hdr = self._read_hdr()
@@ -299,9 +310,6 @@ class _Ad2cpReader():
     def _advance_ens_count(self, c, ens_start, nens_total):
         """This method advances the counter when appropriate to do so.
         """
-        # It's unfortunate that all of this count checking is so
-        # complex, but this is the best I could come up with right
-        # now.
         try:
             # Checks to makes sure we're not already at the end of the
             # self._ens_pos array

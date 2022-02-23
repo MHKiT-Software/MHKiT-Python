@@ -1,7 +1,7 @@
 <ADCP data object>:  Nortek Signature500
-  . 4.16 minutes (started: Feb 24, 2017 10:01)
+  . 49.50 seconds (started: Feb 24, 2017 10:01)
   . beam-frame
-  . (500 pings @ 2Hz)
+  . (100 pings @ 2Hz)
   Variables:
   - time ('time',)
   - time_b5 ('time_b5',)

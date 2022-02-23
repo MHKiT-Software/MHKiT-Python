@@ -281,7 +281,7 @@ def _calc_burst_struct(config, nb, nc):
         dd.append(('corr', 'B', [nb, nc], None, '%'))
     if flags['alt']:
         # There may be a problem here with reading 32bit floats if
-        # nb and nc are odd?
+        # nb and nc are odd
         dd += [('alt_dist', 'f', [], _LinFunc(dtype=dt32), 'm'),
                ('alt_quality', 'H', [], _LinFunc(0.01, dtype=dt32), 'dB'),
                ('alt_status', 'H', [], None)]

@@ -3,7 +3,7 @@ import xarray as xr
 from struct import unpack
 import warnings
 from . import nortek_defs
-from .base import _find_userdata, _create_dataset, _handle_nan
+from .base import _find_userdata, _create_dataset, _handle_nan, _abspath
 from .. import time
 from datetime import datetime
 from ..tools import misc as tbx
@@ -70,9 +70,9 @@ def read_nortek(filename, userdata=True, debug=False, do_checksum=False,
                                                'time': ds['time']},
                                        dims=['earth', 'inst', 'time'])
     if rotmat is not None:
-        ds = rot.set_inst2head_rotmat(ds, rotmat)
+        rot.set_inst2head_rotmat(ds, rotmat, inplace=True)
     if declin is not None:
-        ds = rot.set_declination(ds, declin)
+        rot.set_declination(ds, declin, inplace=True)
 
     ds['time'] = time.epoch2dt64(ds['time']).astype('datetime64[us]')
 
@@ -139,7 +139,7 @@ class _NortekReader():
                  do_checksum=True, bufsize=100000, nens=None):
         self.fname = fname
         self._bufsize = bufsize
-        self.f = open(fname, 'rb', 1000)
+        self.f = open(_abspath(fname), 'rb', 1000)
         self.do_checksum = do_checksum
         self.filesize  # initialize the filesize.
         self.debug = debug
@@ -202,7 +202,8 @@ class _NortekReader():
         # Run the appropriate initialization routine (e.g. init_ADV).
         getattr(self, 'init_' + self._inst)()
         self.f.close()  # This has a small buffer, so close it.
-        self.f = open(fname, 'rb', bufsize)  # This has a large buffer...
+        # This has a large buffer...
+        self.f = open(_abspath(fname), 'rb', bufsize)
         self.close = self.f.close
         if self._npings is not None:
             self.n_samp_guess = self._npings + 1
