@@ -1635,6 +1635,7 @@ def samples_full_seastate(x1, x2, points_per_interval, return_periods,
     c1_normzeroline = stats.norm.ppf(c1_zeroline_prob, 0, 1)
     c2_normzeroline = stats.norm.ppf(c2_zeroline_prob, 0, 1)
 
+    return_periods = np.asarray(return_periods)
     contour_probs = 1 / (365*24*60*60/sea_state_duration * return_periods)
 
     # Reliability contour generation

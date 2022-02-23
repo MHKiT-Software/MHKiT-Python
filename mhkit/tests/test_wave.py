@@ -520,7 +520,6 @@ class TestContours(unittest.TestCase):
         assert_allclose(expected_contours.Hm0_contour.values,
             Hm0_contour, rtol=1e-3)
 
-
     def test__principal_component_analysis(self):
         Hm0Te = self.Hm0Te
         df = Hm0Te[Hm0Te['Hm0'] < 20]
@@ -541,7 +540,6 @@ class TestContours(unittest.TestCase):
                                self.pca['mu_fit'].intercept)
         assert_allclose(PCA['sigma_fit']['x'],
                              self.pca['sigma_fit']['x'])
-
 
     def test_plot_environmental_contour(self):
         file_loc= join(testdir, 'wave_plot_environmental_contour.png')
@@ -621,7 +619,6 @@ class TestContours(unittest.TestCase):
 
         self.assertTrue(isfile(filename))
 
-
     def test_standard_copulas(self):
         copulas = (wave.contours
                    .environmental_contours(self.wdrt_Hm0, self.wdrt_Te,
@@ -690,6 +687,26 @@ class TestContours(unittest.TestCase):
         hs_samples = wave.contours.samples_contour(
             te_samples, te_contour, hs_contour)
         assert_allclose(hs_samples, hs_samples_0)
+
+    def test_samples_seastate(self):
+        hs_0 = np.array([3.09352639, 3.71159768, 2.18745076, 10.75409265,
+                         12.02955757, 2.25549101])
+        te_0 = np.array([11.67455694, 6.67695351, 8.73562415, 21.74388763,
+                         15.00365146, 4.11744878])
+        w_0 = np.array([2.18127398e-01, 2.18127398e-01, 2.18127398e-01,
+                        2.45437862e-07, 2.45437862e-07, 2.45437862e-07])
+
+        df = self.Hm0Te[self.Hm0Te['Hm0'] < 20]
+        dt_ss = (self.Hm0Te.index[2]-self.Hm0Te.index[1]).seconds
+        points_per_interval = 3
+        return_periods = [50, 100]
+        hs, te, w = wave.contours.samples_full_seastate(
+            df.Hm0.values, df.Te.values, points_per_interval, return_periods,
+            dt_ss)
+        assert_allclose(hs, hs_0)
+        assert_allclose(te, te_0)
+        assert_allclose(w, w_0)
+
 
 class TestPerformance(unittest.TestCase):
 
