@@ -29,9 +29,9 @@ def test_inst2head_rotmat():
     td = tr.dat.copy(deep=True)
 
     # Swap x,y, reverse z
-    td.velds.set_inst2head_rotmat([[0, 1, 0],
-                                   [1, 0, 0],
-                                   [0, 0, -1]], inplace=True)
+    set_inst2head_rotmat(td, [[0, 1, 0],
+                              [1, 0, 0],
+                              [0, 0, -1]], inplace=True)
 
     # Coords don't get altered here
     npt.assert_allclose(td.vel[0].values, tr.dat.vel[1].values, atol=1e-6)
