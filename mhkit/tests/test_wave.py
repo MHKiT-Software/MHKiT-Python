@@ -689,10 +689,10 @@ class TestContours(unittest.TestCase):
         assert_allclose(hs_samples, hs_samples_0)
 
     def test_samples_seastate(self):
-        hs_0 = np.array([3.09352639, 3.71159768, 2.18745076, 10.75409265,
-                         12.02955757, 2.25549101])
-        te_0 = np.array([11.67455694, 6.67695351, 8.73562415, 21.74388763,
-                         15.00365146, 4.11744878])
+        hs_0 = np.array([5.91760129, 4.55185088, 1.41144991, 12.64443154,
+                         7.89753791, 0.93890797])
+        te_0 = np.array([14.24199604, 8.25383556, 6.03901866, 16.9836369,
+                         9.51967777, 3.46969355])
         w_0 = np.array([2.18127398e-01, 2.18127398e-01, 2.18127398e-01,
                         2.45437862e-07, 2.45437862e-07, 2.45437862e-07])
 
@@ -700,6 +700,7 @@ class TestContours(unittest.TestCase):
         dt_ss = (self.Hm0Te.index[2]-self.Hm0Te.index[1]).seconds
         points_per_interval = 3
         return_periods = [50, 100]
+        np.random.seed(0)
         hs, te, w = wave.contours.samples_full_seastate(
             df.Hm0.values, df.Te.values, points_per_interval, return_periods,
             dt_ss)
