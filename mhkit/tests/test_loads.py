@@ -1,11 +1,12 @@
 from os.path import abspath, dirname, join, isfile, normpath, relpath
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_allclose
 from pandas._testing.asserters import assert_series_equal
 from pandas.testing import assert_frame_equal
 from mhkit import utils
 from mhkit.wave import resource
 import mhkit.loads as loads
-import pandas as pd 
+import pandas as pd
+from scipy import stats
 import numpy as np
 import unittest
 import json
@@ -23,7 +24,7 @@ class TestLoads(unittest.TestCase):
             data_dict = json.load(fp)
         # convert dictionaries into dataframes
         data = {
-                key: pd.DataFrame(data_dict[key]) 
+                key: pd.DataFrame(data_dict[key])
                 for key in data_dict
                }
         self.data = data
@@ -42,7 +43,7 @@ class TestLoads(unittest.TestCase):
     def test_bin_statistics(self):
         # create array containg wind speeds to use as bin edges
         bin_edges = np.arange(3,26,1)
-        
+
         # Apply function to calculate means
         load_means =self.data['means']
         bin_against = load_means['uWind_80m']
@@ -50,7 +51,7 @@ class TestLoads(unittest.TestCase):
 
         assert_frame_equal(self.data['bin_means'],b_means)
         assert_frame_equal(self.data['bin_means_std'],b_means_std)
-  
+
     def test_blade_moments(self):
         flap_raw = self.blade_data['flap_raw']
         flap_offset = self.flap_offset
@@ -79,7 +80,7 @@ class TestLoads(unittest.TestCase):
     def test_plot_statistics(self):
         # Define path
         savepath = abspath(join(testdir, 'test_scatplotter.png'))
-        
+
         # Generate plot
         loads.graphics.plot_statistics( self.data['means']['uWind_80m'],
                                self.data['means']['TB_ForeAft'],
@@ -89,7 +90,7 @@ class TestLoads(unittest.TestCase):
                                x_label='Wind Speed [m/s]',
                                y_label='Tower Base Mom [kNm]',
                                save_path=savepath)
-        
+
         self.assertTrue(isfile(savepath))
 
 
@@ -108,7 +109,7 @@ class TestLoads(unittest.TestCase):
         bin_min_std = self.data['bin_mins_std'][signal_name]
 
         # Generate plot
-        loads.graphics.plot_bin_statistics(bin_centers, 
+        loads.graphics.plot_bin_statistics(bin_centers,
                                   bin_mean, bin_max, bin_min,
                                   bin_mean_std, bin_max_std, bin_min_std,
                                   x_label='Wind Speed [m/s]',
@@ -172,8 +173,14 @@ class TestWDRT(unittest.TestCase):
 
         assert_frame_equal(mler_ts,self.mler_ts)
 
-
-
+    def test_longterm_extreme(self):
+        ste_1 = stats.norm
+        ste_2 = stats.norm
+        ste = [ste_1, ste_2]
+        w = [0.5, 0.5]
+        lte = loads.extreme.full_seastate_long_term_extreme(ste, w)
+        x = np.random.rand()
+        assert_allclose(lte.cdf(x), w[0]*ste[0].cdf(x) + w[1]*ste[1].cdf(x))
 
 if __name__ == '__main__':
     unittest.main()

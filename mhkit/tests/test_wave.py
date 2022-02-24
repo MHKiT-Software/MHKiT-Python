@@ -469,7 +469,7 @@ class TestResourceMetrics(unittest.TestCase):
 
         self.assertTrue(isfile(filename))
 
-class TestResourceContours(unittest.TestCase):
+class TestContours(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
@@ -520,7 +520,6 @@ class TestResourceContours(unittest.TestCase):
         assert_allclose(expected_contours.Hm0_contour.values,
             Hm0_contour, rtol=1e-3)
 
-
     def test__principal_component_analysis(self):
         Hm0Te = self.Hm0Te
         df = Hm0Te[Hm0Te['Hm0'] < 20]
@@ -541,7 +540,6 @@ class TestResourceContours(unittest.TestCase):
                                self.pca['mu_fit'].intercept)
         assert_allclose(PCA['sigma_fit']['x'],
                              self.pca['sigma_fit']['x'])
-
 
     def test_plot_environmental_contour(self):
         file_loc= join(testdir, 'wave_plot_environmental_contour.png')
@@ -621,7 +619,6 @@ class TestResourceContours(unittest.TestCase):
 
         self.assertTrue(isfile(filename))
 
-
     def test_standard_copulas(self):
         copulas = (wave.contours
                    .environmental_contours(self.wdrt_Hm0, self.wdrt_Te,
@@ -681,6 +678,36 @@ class TestResourceContours(unittest.TestCase):
                  np.allclose(log_kde_copula['bivariate_KDE_log_x2'],
                      self.wdrt_copulas['bivariate_KDE_log_x2'])]
         self.assertTrue(all(close))
+
+    def test_samples_contours(self):
+        te_samples = [10, 15, 20]
+        hs_samples_0 = np.array([8.56637939, 9.27612515, 8.70427774])
+        hs_contour = self.wdrt_copulas["gaussian_x1"]
+        te_contour = self.wdrt_copulas["gaussian_x2"]
+        hs_samples = wave.contours.samples_contour(
+            te_samples, te_contour, hs_contour)
+        assert_allclose(hs_samples, hs_samples_0)
+
+    def test_samples_seastate(self):
+        hs_0 = np.array([5.91760129, 4.55185088, 1.41144991, 12.64443154,
+                         7.89753791, 0.93890797])
+        te_0 = np.array([14.24199604, 8.25383556, 6.03901866, 16.9836369,
+                         9.51967777, 3.46969355])
+        w_0 = np.array([2.18127398e-01, 2.18127398e-01, 2.18127398e-01,
+                        2.45437862e-07, 2.45437862e-07, 2.45437862e-07])
+
+        df = self.Hm0Te[self.Hm0Te['Hm0'] < 20]
+        dt_ss = (self.Hm0Te.index[2]-self.Hm0Te.index[1]).seconds
+        points_per_interval = 3
+        return_periods = [50, 100]
+        np.random.seed(0)
+        hs, te, w = wave.contours.samples_full_seastate(
+            df.Hm0.values, df.Te.values, points_per_interval, return_periods,
+            dt_ss)
+        assert_allclose(hs, hs_0)
+        assert_allclose(te, te_0)
+        assert_allclose(w, w_0)
+
 
 class TestPerformance(unittest.TestCase):
 

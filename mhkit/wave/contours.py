@@ -1635,6 +1635,7 @@ def samples_full_seastate(x1, x2, points_per_interval, return_periods,
     c1_normzeroline = stats.norm.ppf(c1_zeroline_prob, 0, 1)
     c2_normzeroline = stats.norm.ppf(c2_zeroline_prob, 0, 1)
 
+    return_periods = np.asarray(return_periods)
     contour_probs = 1 / (365*24*60*60/sea_state_duration * return_periods)
 
     # Reliability contour generation
@@ -1713,15 +1714,17 @@ def samples_contour(t_samples, t_contour, hs_contour):
     #finds minimum and maximum energy period values
     amin = np.argmin(t_contour)
     amax = np.argmax(t_contour)
+    aamin = np.min([amin, amax])
+    aamax = np.max([amin, amax])
     #finds points along the contour
-    w1 = hs_contour[amin:amax]
-    w2 = np.concatenate((hs_contour[amax:], hs_contour[:amin]))
+    w1 = hs_contour[aamin:aamax]
+    w2 = np.concatenate((hs_contour[aamax:], hs_contour[:aamin]))
     if (np.max(w1) > np.max(w2)):
-        x1 = t_contour[amin:amax]
-        y = hs_contour[amin:amax]
+        x1 = t_contour[aamin:aamax]
+        y = hs_contour[aamin:aamax]
     else:
-        x1 = np.concatenate((t_contour[amax:], t_contour[:amin]))
-        y1 = np.concatenate((hs_contour[amax:], hs_contour[:amin]))
+        x1 = np.concatenate((t_contour[aamax:], t_contour[:aamin]))
+        y1 = np.concatenate((hs_contour[aamax:], hs_contour[:aamin]))
     #sorts data based on the max and min energy period values
     ms = np.argsort(x1)
     x = x1[ms]
