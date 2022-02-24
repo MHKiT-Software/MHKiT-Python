@@ -173,7 +173,7 @@ class TestWDRT(unittest.TestCase):
         RAO = self.mler['RAO'].astype(complex)
         mler_ts = loads.extreme.MLERexportTimeSeries(RAO.values,mler,self.sim,k.k.values)
 
-        assert_frame_equal(self.mler_ts, mler_ts,atol=0.0001)
+        assert_frame_equal(self.mler_ts, mler_ts,atol=0.0001) 
 
     def test_longterm_extreme(self):
         ste_1 = stats.norm
