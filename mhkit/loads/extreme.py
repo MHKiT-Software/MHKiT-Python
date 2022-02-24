@@ -512,7 +512,7 @@ def MLERsimulation(parameters=None):
         Dictionary of simulation parameters including
         spatial and time calculated arrays
     '''
-    assert isinstance(parameters,dict), 'parameters must be of type dict'
+    if not parameters==None: assert isinstance(parameters,dict), 'parameters must be of type dict'
     
     sim = {}
 
