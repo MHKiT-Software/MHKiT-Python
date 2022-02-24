@@ -137,7 +137,8 @@ class TestWDRT(unittest.TestCase):
         Hs = 9.0 # significant wave height
         Tp = 15.1 # time period of waves
         pm = resource.pierson_moskowitz_spectrum(self.wave_freq,Tp,Hs)
-        mler_data = loads.extreme.MLERcoeffsGen(self.mler['RAO'].astype(complex),pm,1)
+        mler_data = loads.extreme.MLERcoefficients(
+            self.mler['RAO'].astype(complex), pm, 1)
         mler_data.reset_index(drop=True,inplace=True)
 
         assert_series_equal(mler_data['WaveSpectrum'],self.mler['Res_Spec'],check_exact=False,check_less_precise=True,check_names=False)
@@ -161,7 +162,7 @@ class TestWDRT(unittest.TestCase):
         mler_norm = loads.extreme.MLERwaveAmpNormalize(4.5*1.9,mler,self.sim,k.k.values)
 
         assert_series_equal(mler_norm['WaveSpectrum'], self.mler['Norm_Spec'],check_exact=False,check_less_precise=False,check_names=False)
-        
+
     def test_MLERexportTimeSeries(self):
         wave_freq = np.linspace( 0.,1,500)
         mler = pd.DataFrame(index=wave_freq)
