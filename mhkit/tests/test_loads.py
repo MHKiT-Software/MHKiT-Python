@@ -10,6 +10,7 @@ from scipy import stats
 import numpy as np
 import unittest
 import json
+import os
 
 testdir = dirname(abspath(__file__))
 datadir = normpath(join(testdir,relpath('../../examples/data/loads')))
@@ -147,6 +148,22 @@ class TestWDRT(unittest.TestCase):
         lte = loads.extreme.full_seastate_long_term_extreme(ste, w)
         x = np.random.rand()
         assert_allclose(lte.cdf(x), w[0]*ste[0].cdf(x) + w[1]*ste[1].cdf(x))
+
+    def test_shortterm_extreme(self):
+        methods = ['peaksWeibull', 'peaksWeibullTailFit', 'peaksOverThreshold',
+                    'blockMaximaGEV', 'blockMaximaGumbel']
+        filename = "time_series_for_extremes.txt"
+        data = np.loadtxt(os.path.join(datadir, filename))
+        t = data[:, 0]
+        data = data[:, 1]
+        t_st = 1.0 * 60 * 60
+        x = 1.6
+        cdfs_1 = [0.006750456316537166, 0.5921659393757381, 0.6156789503874247,
+                  0.6075807789811315, 0.9033574618279865]
+        for method, cdf_1 in zip(methods, cdfs_1):
+            ste = loads.extreme.short_term_extreme(t, data, t_st, method)
+            assert_allclose(ste.cdf(x), cdf_1)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -143,7 +143,7 @@ def peaks_distribution_WeibullTailFit(x):
     return peaks
 
 
-def peaks_distribution_peaksOverThreshold(x, threshold):
+def peaks_distribution_peaksOverThreshold(x, threshold=None):
     """ Estimate the peaks distribution using the peaks over threshold
     method.
 
@@ -169,6 +169,8 @@ def peaks_distribution_peaksOverThreshold(x, threshold):
     peaks: scipy.stats.rv_frozen
         Probability distribution of the peaks.
     """
+    if threshold is None:
+        threshold = np.mean(x) + 1.4 * np.std(x)
     # peaks over threshold
     x = np.sort(x)
     pot = x[(x > threshold)] - threshold
