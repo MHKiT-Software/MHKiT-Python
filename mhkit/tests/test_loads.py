@@ -126,19 +126,53 @@ class TestWDRT(unittest.TestCase):
     def setUpClass(self):
         mler_file = join(datadir, "mler.csv")
         mler_data = pd.read_csv(mler_file,index_col=None)
+        mler_tsfile = join(datadir,"mler_ts.csv")
+        mler_ts = pd.read_csv(mler_tsfile,index_col=0)
+        self.mler_ts = mler_ts
         self.wave_freq = np.linspace( 0.,1,500)
         self.mler = mler_data
+        self.sim = loads.extreme.MLERsimulation()
 
-    def test_MLERcoeffsGen(self):
+    def test_MLERcoefficients(self):
         Hs = 9.0 # significant wave height
         Tp = 15.1 # time period of waves
         pm = resource.pierson_moskowitz_spectrum(self.wave_freq,Tp,Hs)
         mler_data = loads.extreme.MLERcoeffsGen(self.mler['RAO'].astype(complex),pm,1)
         mler_data.reset_index(drop=True,inplace=True)
 
-        assert_series_equal(mler_data['MLERcoeff'],self.mler['Coeff'],check_exact=False,check_less_precise=True,check_names=False)
-        assert_series_equal(mler_data['ResponseSpec'],self.mler['Res_Spec'],check_exact=False,check_less_precise=True,check_names=False)
+        assert_series_equal(mler_data['WaveSpectrum'],self.mler['Res_Spec'],check_exact=False,check_less_precise=True,check_names=False)
         assert_series_equal(mler_data['Phase'],self.mler['phase'],check_exact=False,check_less_precise=True,check_names=False)
+
+    def test_MLERsimulation(self):
+        T = np.linspace(-150, 150, 301)
+        X = np.linspace(-300,300, 601)
+        sim = loads.extreme.MLERsimulation()
+
+        assert_array_almost_equal(sim['X'],X)
+        assert_array_almost_equal(sim['T'],T)
+
+    def test_MLERwaveAmpNormalize(self):
+        wave_freq = np.linspace( 0.,1,500)
+        mler = pd.DataFrame(index=wave_freq)
+        mler['WaveSpectrum'] = self.mler['Res_Spec']
+        mler['Phase'] = self.mler['phase']
+        k = resource.wave_number(wave_freq, 70)
+        k = k.fillna(0)
+        mler_norm = loads.extreme.MLERwaveAmpNormalize(4.5*1.9,mler,self.sim,k.k.values)
+
+        assert_series_equal(mler_norm['WaveSpectrum'], self.mler['Norm_Spec'],check_exact=False,check_less_precise=False,check_names=False)
+        
+    def test_MLERexportTimeSeries(self):
+        wave_freq = np.linspace( 0.,1,500)
+        mler = pd.DataFrame(index=wave_freq)
+        mler['WaveSpectrum'] = self.mler['Res_Spec']
+        mler['Phase'] = self.mler['phase']
+        k = resource.wave_number(wave_freq, 70)
+        k = k.fillna(0)
+        RAO = self.mler['RAO'].astype(complex)
+        mler_ts = loads.extreme.MLERexportTimeSeries(RAO.values,mler,self.sim,k.k.values)
+
+        assert_frame_equal(mler_ts,self.mler_ts)
 
     def test_longterm_extreme(self):
         ste_1 = stats.norm

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from scipy import optimize
-import mhkit.wave.resource as wave
+import mhkit.wave.resource as resource
 
 
 def global_peaks(t, data):
@@ -403,15 +403,14 @@ def full_seastate_long_term_extreme(ste, weights):
 
     return _LongTermExtreme(name="long_term_extreme", weights=weights, ste=ste)
 
-
-def MLERcoeffsGen(RAO, wave_spectrum, response_desired):
+def MLERcoefficients(RAO, wave_spectrum, response_desired):
     """
     This function calculates MLER (most likely extreme response)
     coefficients given a spectrum and RAO.
 
     Parameters
     ----------
-    RAO : numpy array
+    RAO : numpy ndarray
         Response amplitude operator
     wave_spectrum : pd.DataFrame
         Wave spectral density [m^2/Hz] indexed by frequency [Hz]
@@ -422,14 +421,12 @@ def MLERcoeffsGen(RAO, wave_spectrum, response_desired):
     Returns
     -------
     mler : pd.DataFrame
-        DataFrame containing MLERcoeff [-], Conditioned wave spectrum [m^2-s], and Phase [rad]
+        DataFrame containing conditioned wave spectral amplitude coefficient [m^2-s], and Phase [rad]
         indexed by freq [Hz]
     """
 
-    try:
-        RAO = np.array(RAO)
-    except:
-        pass
+    try: RAO = np.array(RAO)
+    except: pass
 
     assert isinstance(RAO, np.ndarray), 'RAO must be of type np.ndarray'
     assert isinstance(
@@ -437,7 +434,8 @@ def MLERcoeffsGen(RAO, wave_spectrum, response_desired):
     assert isinstance(response_desired, (int, float)
                       ), 'response_desired must be of type int or float'
 
-    freq = wave_spectrum.index.values * (2*np.pi)  # convert from Hz to rad/s
+    freq_hz = wave_spectrum.index.values
+    freq = freq_hz * (2*np.pi)  # convert from Hz to rad/s
     # change from Hz to rad/s
     wave_spectrum = wave_spectrum.iloc[:, 0].values / (2*np.pi)
     dw = (2*np.pi - 0.) / (len(freq)-1)  # get delta
@@ -453,9 +451,9 @@ def MLERcoeffsGen(RAO, wave_spectrum, response_desired):
     S_R[:] = np.abs(RAO)**2 * (2*wave_spectrum)
 
     # calculate spectral moments and other important spectral values.
-    m0 = (wave.frequency_moment(pd.Series(S_R, index=freq), 0)).iloc[0, 0]
-    m1 = (wave.frequency_moment(pd.Series(S_R, index=freq), 1)).iloc[0, 0]
-    m2 = (wave.frequency_moment(pd.Series(S_R, index=freq), 2)).iloc[0, 0]
+    m0 = (resource.frequency_moment(pd.Series(S_R, index=freq), 0)).iloc[0, 0]
+    m1 = (resource.frequency_moment(pd.Series(S_R, index=freq), 1)).iloc[0, 0]
+    m2 = (resource.frequency_moment(pd.Series(S_R, index=freq), 2)).iloc[0, 0]
     wBar = m1 / m0
 
     # calculate coefficient A_{R,n} [(response units)^-1] -- Quon2016 Eqn. 8
@@ -485,7 +483,163 @@ def MLERcoeffsGen(RAO, wave_spectrum, response_desired):
     if response_desired < 0:
         _phase += np.pi
 
-    mler = pd.DataFrame(data={'MLERcoeff': _CoeffA_Rn,
-                        'ResponseSpec': _S, 'Phase': _phase}, index=freq)
+    mler = pd.DataFrame(data={'WaveSpectrum': _S, 'Phase': _phase}, index=freq_hz)
     mler = mler.fillna(0)
     return mler
+
+def MLERsimulation(parameters=None):
+    '''
+    Function to define simulation parameters that are used in various 
+    MLER functionality. See example for how this is useful. If no input is given,
+    then default values are returned.
+
+    Parameters
+    ----------
+    parameters : dict (optional)
+        Must contain the following parameters:
+            startTime [s] = starting time
+            endTime [s] = ending time
+            dT [s] = time-step size
+            T0 [s] = time of maximum event
+            startx [m] = start of simulation space
+            endX [m] = end of simulation space
+            dX [m] = horizontal spacing
+            X [m] = position of maximum event
+
+    Returns
+    -------
+    sim : dict
+        Dictionary of simulation parameters including
+        spatial and time calculated arrays
+    '''
+    assert isinstance(parameters,dict), 'parameters must be of type dict'
+    
+    sim = {}
+
+    if parameters == None:
+        sim['startTime']  = -150.0        # [s]       Starting time
+        sim['endTime']    = 150.0         # [s]       Ending time
+        sim['dT']         = 1.0           # [s]       Time-step size
+        sim['T0']         = 0.0           # [s]       Time of maximum event
+
+        sim['startX']     = -300.0        # [m]       Start of simulation space
+        sim['endX']       = 300.0         # [m]       End of simulation space
+        sim['dX']         = 1.0           # [m]       Horiontal spacing
+        sim['X0']         = 0.0           # [m]       Position of maximum event
+    else:
+        sim = parameters
+
+    sim['maxIT'] = int(np.ceil( (sim['endTime'] - sim['startTime'])/sim['dT'] + 1 )) # maximum timestep index
+    sim['T']     = np.linspace( sim['startTime'], sim['endTime'], sim['maxIT'] )
+
+    sim['maxIX'] = int(np.ceil( (sim['endX'] - sim['startX'])/sim['dX'] + 1 ))
+    sim['X']     = np.linspace( sim['startX'], sim['endX'], sim['maxIX'] )
+
+    return sim
+
+def MLERwaveAmpNormalize(wave_amp, mler, sim, k):
+    '''
+    Function that renormalizes the incoming amplitude of the MLER wave 
+    to the desired peak height (peak to MSL).
+
+    Parameters
+    ----------
+    wave_amp : float
+        Desired wave amplitude (peak to MSL)
+    mler : pd.DataFrame
+        MLER coefficients generated by 'MLERcoefficients' function
+    sim : dict
+        Simulation parameters formatted by output from 'MLERsimulation'
+    k : numpy ndarray
+        Wave number
+
+    Returns
+    -------
+    mler_norm : pd.DataFrame
+        MLER coefficients 
+    '''
+    try: k = np.array(k)
+    except: pass
+
+    assert isinstance(mler, pd.DataFrame), 'mler must be of type pd.DataFrame'
+    assert isinstance(wave_amp, (int, float)), 'wave_amp must be of type int or float'
+    assert isinstance(sim,dict), 'sim must be of type dict'
+    assert isinstance(k,np.ndarray), 'k must be of type ndarray'
+
+    freq = mler.index.values * 2*np.pi
+    dw = (max(freq) - min(freq)) / (len(freq)-1)  # get delta
+
+    waveAmpTime = np.zeros( (sim['maxIX'], sim['maxIT']) )
+    for ix,x in enumerate(sim['X']):
+        for it,t in enumerate(sim['T']):
+            # conditioned wave
+            waveAmpTime[ix,it] = np.sum(
+                    np.sqrt(2*mler['WaveSpectrum']*dw) * 
+                        np.cos( freq*(t-sim['T0']) - k*(x-sim['X0']) + mler['Phase'] ) 
+                    )
+
+    tmpMaxAmp = np.max(np.abs(waveAmpTime))
+
+    # renormalization of wave amplitudes
+    rescaleFact = np.abs(wave_amp) / np.abs(tmpMaxAmp)
+    S = mler['WaveSpectrum'] * rescaleFact**2 # rescale the wave spectral amplitude coefficients
+
+    mler_norm = pd.DataFrame(index = mler.index)
+    mler_norm['WaveSpectrum'] = S
+    mler_norm['Phase'] = mler['Phase']
+
+    return mler_norm
+
+def MLERexportTimeSeries(RAO,mler,sim,k):
+    '''
+    Generate the wave amplitude time series at X0 from the calculated MLER coefficients
+
+    Parameters
+    ----------
+    RAO : numpy ndarray
+        Response amplitude operator
+    mler : pd.DataFrame
+        MLER coefficients dataframe generated from an MLER function
+    sim : dict
+        Simulation parameters formatted by output from 'MLERsimulation'
+    k : numpy ndarray
+        Wave number
+
+    Returns
+    -------
+    mler_ts : pd.DataFrame
+        Time series of wave height [m] and linear response [*] indexed by time [s]
+
+    '''
+    try: RAO = np.array(RAO)
+    except: pass
+    try: k = np.array(k)
+    except: pass
+
+    assert isinstance(RAO,np.ndarray), 'RAO must be of type ndarray'
+    assert isinstance(mler, pd.DataFrame), 'mler must be of type pd.DataFrame'
+    assert isinstance(sim,dict), 'sim must be of type dict'
+    assert isinstance(k,np.ndarray), 'k must be of type ndarray'
+
+    freq = mler.index.values * 2*np.pi # convert Hz to rad/s
+    dw = (max(freq) - min(freq)) / (len(freq)-1)  # get delta
+
+    # calculate the series
+    waveAmpTime = np.zeros( (sim['maxIT'],2) )
+    xi = sim['X0']
+    for i,ti in enumerate(sim['T']):
+        # conditioned wave
+        waveAmpTime[i,0] = np.sum( 
+                np.sqrt(2*mler['WaveSpectrum']*dw) *
+                    np.cos( freq*(ti-sim['T0']) + mler['Phase'] - k*(xi-sim['X0']) )
+                )
+        # Response calculation
+        waveAmpTime[i,1] = np.sum( 
+                np.sqrt(2*mler['WaveSpectrum']*dw) * np.abs(RAO) *
+                    np.cos( freq*(ti-sim['T0']) - k*(xi-sim['X0']) )
+                )
+    
+    mler_ts = pd.DataFrame(waveAmpTime, index=sim['T'])
+    mler_ts = mler_ts.rename(columns={0:'WaveHeight',1:'LinearResponse'})
+
+    return mler_ts
