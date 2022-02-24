@@ -137,11 +137,11 @@ class TestWDRT(unittest.TestCase):
         Hs = 9.0 # significant wave height
         Tp = 15.1 # time period of waves
         pm = resource.pierson_moskowitz_spectrum(self.wave_freq,Tp,Hs)
-        mler_data = loads.extreme.MLERcoeffsGen(self.mler['RAO'].astype(complex),pm,1)
+        mler_data = loads.extreme.MLERcoefficients(self.mler['RAO'].astype(complex),pm,1)
         mler_data.reset_index(drop=True,inplace=True)
 
-        assert_series_equal(mler_data['WaveSpectrum'],self.mler['Res_Spec'],check_exact=False,check_less_precise=True,check_names=False)
-        assert_series_equal(mler_data['Phase'],self.mler['phase'],check_exact=False,check_less_precise=True,check_names=False)
+        assert_series_equal(mler_data['WaveSpectrum'],self.mler['Res_Spec'],check_exact=False,check_names=False,atol=0.001)
+        assert_series_equal(mler_data['Phase'],self.mler['phase'],check_exact=False,check_names=False,rtol=0.001)
 
     def test_MLERsimulation(self):
         T = np.linspace(-150, 150, 301)
@@ -154,25 +154,26 @@ class TestWDRT(unittest.TestCase):
     def test_MLERwaveAmpNormalize(self):
         wave_freq = np.linspace( 0.,1,500)
         mler = pd.DataFrame(index=wave_freq)
-        mler['WaveSpectrum'] = self.mler['Res_Spec']
-        mler['Phase'] = self.mler['phase']
+        mler['WaveSpectrum'] = self.mler['Res_Spec'].values
+        mler['Phase'] = self.mler['phase'].values
         k = resource.wave_number(wave_freq, 70)
         k = k.fillna(0)
         mler_norm = loads.extreme.MLERwaveAmpNormalize(4.5*1.9,mler,self.sim,k.k.values)
+        mler_norm.reset_index(drop=True,inplace=True)
 
-        assert_series_equal(mler_norm['WaveSpectrum'], self.mler['Norm_Spec'],check_exact=False,check_less_precise=False,check_names=False)
+        assert_series_equal(mler_norm['WaveSpectrum'], self.mler['Norm_Spec'],check_exact=False,atol=0.001,check_names=False)
         
     def test_MLERexportTimeSeries(self):
         wave_freq = np.linspace( 0.,1,500)
         mler = pd.DataFrame(index=wave_freq)
-        mler['WaveSpectrum'] = self.mler['Res_Spec']
-        mler['Phase'] = self.mler['phase']
+        mler['WaveSpectrum'] = self.mler['Norm_Spec'].values
+        mler['Phase'] = self.mler['phase'].values
         k = resource.wave_number(wave_freq, 70)
         k = k.fillna(0)
         RAO = self.mler['RAO'].astype(complex)
         mler_ts = loads.extreme.MLERexportTimeSeries(RAO.values,mler,self.sim,k.k.values)
 
-        assert_frame_equal(mler_ts,self.mler_ts)
+        assert_frame_equal(self.mler_ts, mler_ts,atol=0.0001)
 
     def test_longterm_extreme(self):
         ste_1 = stats.norm
