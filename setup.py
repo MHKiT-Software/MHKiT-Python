@@ -18,7 +18,7 @@ CLASSIFIERS=['Development Status :: 3 - Alpha',
              'Operating System :: OS Independent',
             ]
 DEPENDENCIES = ['pandas<=1.3.5', 
-                'numpy>=1.22.0', 
+                'numpy>=1.21.0', 
                 'scipy',
                 'matplotlib', 
                 'requests', 
