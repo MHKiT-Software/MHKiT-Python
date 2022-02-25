@@ -280,6 +280,8 @@ def _calc_burst_struct(config, nb, nc):
     if flags['corr']:
         dd.append(('corr', 'B', [nb, nc], None, '%'))
     if flags['alt']:
+        # There may be a problem here with reading 32bit floats if
+        # nb and nc are odd
         dd += [('alt_dist', 'f', [], _LinFunc(dtype=dt32), 'm'),
                ('alt_quality', 'H', [], _LinFunc(0.01, dtype=dt32), 'dB'),
                ('alt_status', 'H', [], None)]
@@ -310,6 +312,5 @@ def _calc_burst_struct(config, nb, nc):
                 _LinFunc(0.01, dtype=dt32), 'deg'),
                ('press_std', 'h', [],
                 _LinFunc(0.1, dtype=dt32), 'dbar'),
-               # This use of 'x' here is a hack
                ('std_spare', 'H22x', [], None)]
     return _DataDef(dd)

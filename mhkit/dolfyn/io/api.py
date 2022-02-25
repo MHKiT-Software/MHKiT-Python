@@ -1,17 +1,26 @@
 import numpy as np
 import scipy.io as sio
 import xarray as xr
-import pkg_resources
+from os.path import abspath, dirname, join, normpath, relpath
 from .nortek import read_nortek
 from .nortek2 import read_signature
 from .rdi import read_rdi
-from .base import _create_dataset
+from .base import _create_dataset, _get_filetype
 from ..rotate.base import _set_coords
-from ..time import epoch2date, date2epoch, date2matlab, matlab2date
+from ..time import date2matlab, matlab2date, date2dt64, dt642date
 
 
-# time variables stored as data variables (as opposed to coordinates)
-t_additional = ['hdwtime_gps', ]
+def _check_file_ext(path, ext):
+    filename = path.replace("\\", "/").rsplit("/")[-1]  # windows/linux
+    # for a filename like mcrl.water_velocity-1s.b1.20200813.150000.nc
+    file_ext = filename.rsplit(".")[-1]
+    if '.' in filename:
+        if file_ext != ext:
+            raise IOError("File extension must be of the type {}".format(ext))
+        if file_ext == ext:
+            return path
+
+    return path + '.' + ext
 
 
 def read(fname, userdata=True, nens=None):
@@ -22,7 +31,7 @@ def read(fname, userdata=True, nens=None):
     ----------
     filename : string
         Filename of instrument file to read.
-    userdata : True, False, or string of userdata.json filename (default ``True``) 
+    userdata : True, False, or string of userdata.json filename (default ``True``)
         Whether to read the '<base-filename>.userdata.json' file.
     nens : None (default: read entire file), int, or 2-element tuple (start, stop)
         Number of pings or ensembles to read from the file
@@ -33,16 +42,22 @@ def read(fname, userdata=True, nens=None):
         An xarray dataset from instrument datafile.
 
     """
-    # Loop over binary readers until we find one that works.
-    for func in [read_nortek, read_signature, read_rdi]:
-        try:
-            ds = func(fname, userdata=userdata, nens=nens)
-        except:
-            continue
-        else:
-            return ds
-    raise Exception(
-        "Unable to find a suitable reader for file {}.".format(fname))
+    file_type = _get_filetype(fname)
+    if file_type == '<GIT-LFS pointer>':
+        raise IOError("File '{}' looks like a git-lfs pointer. You may need to "
+                      "install and initialize git-lfs. See https://git-lfs.github.com"
+                      " for details.".format(fname))
+    elif file_type is None:
+        raise IOError("File '{}' is not recognized as a file-type that is readable by "
+                      "DOLfYN. If you think it should be readable, try using the "
+                      "appropriate read function (`read_rdi`, `read_nortek`, or "
+                      "`read_signature`) found in dolfyn.io.api.".format(fname))
+    else:
+        func_map = dict(RDI=read_rdi,
+                        nortek=read_nortek,
+                        signature=read_signature)
+        func = func_map[file_type]
+    return func(fname, userdata=userdata, nens=nens)
 
 
 def read_example(name, **kwargs):
@@ -68,59 +83,66 @@ def read_example(name, **kwargs):
         An xarray dataset from the binary instrument data.
 
     """
-    filename = pkg_resources.resource_filename(
-        'mhkit',
-        '../examples/data/dolfyn/' + name)
+    testdir = dirname(abspath(__file__))
+    exdir = normpath(join(testdir, relpath('../../../examples/data/dolfyn/')))
+    filename = exdir + '/' + name
+
     return read(filename, **kwargs)
 
 
-def save(dataset, filename):
+def save(ds, filename,
+         format='NETCDF4', engine='netcdf4',
+         compression=False,
+         **kwargs):
     """Save xarray dataset as netCDF (.nc).
 
     Parameters
     ----------
-    dataset : xarray.Dataset
+    ds : xarray.Dataset
     filename : str
         Filename and/or path with the '.nc' extension
+    compression : bool (default: False)
+        When true, compress all variables with zlib complevel=1.
+    **kwargs : these are passed directly to :func:`xarray.Dataset.to_netcdf`
 
     Notes
     -----
     Drops 'config' lines.
 
+    More detailed compression options can be specified by specifying
+    'encoding' in kwargs. The values in encoding will take precedence
+    over whatever is set according to the compression option above.
+    See the xarray.to_netcdf documentation for more details.
+
     """
-    if '.' in filename:
-        assert filename.endswith('nc'), 'File extension must be of the type nc'
-    else:
-        filename += '.nc'
+    filename = _check_file_ext(filename, 'nc')
 
     # Dropping the detailed configuration stats because netcdf can't save it
-    for key in list(dataset.attrs.keys()):
+    for key in list(ds.attrs.keys()):
         if 'config' in key:
-            dataset.attrs.pop(key)
+            ds.attrs.pop(key)
 
     # Handling complex values for netCDF4
-    dataset.attrs['complex_vars'] = []
-    for var in dataset.data_vars:
-        if np.iscomplexobj(dataset[var]):
-            dataset[var+'_real'] = dataset[var].real
-            dataset[var+'_imag'] = dataset[var].imag
+    ds.attrs['complex_vars'] = []
+    for var in ds.data_vars:
+        if np.iscomplexobj(ds[var]):
+            ds[var+'_real'] = ds[var].real
+            ds[var+'_imag'] = ds[var].imag
 
-            dataset = dataset.drop(var)
-            dataset.attrs['complex_vars'].append(var)
+            ds = ds.drop_vars(var)
+            ds.attrs['complex_vars'].append(var)
 
-    # Keeping time in raw file's time instance, unaware of timezone
-    t_list = [t for t in dataset.coords if 'time' in t]
-    for ky in t_list:
-        dt = epoch2date(dataset[ky])
-        dataset = dataset.assign_coords({ky: dt})
+    if compression:
+        enc = dict()
+        for ky in ds.variables:
+            enc[ky] = dict(zlib=True, complevel=1)
+        if 'encoding' in kwargs:
+            # Overwrite ('update') values in enc with whatever is in kwargs['encoding']
+            kwargs['encoding'] = enc.update(kwargs['encoding'])
+        else:
+            kwargs['encoding'] = enc
 
-    t_data = [t for t in dataset.data_vars if t in t_additional]
-    for ky in t_data:
-        dt = epoch2date(dataset[ky])
-        dataset = dataset.drop_vars(ky)  # must do b/c of netcdf encoding error
-        dataset[ky] = xr.DataArray(dt, coords={'time_gps': dataset.time_gps})
-
-    dataset.to_netcdf(filename, format='NETCDF4', engine='netcdf4')
+    ds.to_netcdf(filename, format=format, engine=engine, **kwargs)
 
 
 def load(filename):
@@ -137,20 +159,16 @@ def load(filename):
         An xarray dataset from the binary instrument data.
 
     """
-    if '.' in filename:
-        assert filename.endswith('nc'), 'File extension must be of the type nc'
-    else:
-        filename += '.nc'
+    filename = _check_file_ext(filename, 'nc')
 
     ds = xr.load_dataset(filename, engine='netcdf4')
 
-    # Single item lists were saved as 'int' or 'str'
-    if hasattr(ds, 'rotate_vars') and len(ds.rotate_vars[0]) == 1:
-        ds.attrs['rotate_vars'] = [ds.rotate_vars]
-
-    # Python lists were saved as numpy arrays
-    if hasattr(ds, 'rotate_vars') and type(ds.rotate_vars) is not list:
-        ds.attrs['rotate_vars'] = list(ds.rotate_vars)
+    # Convert numpy arrays and strings back to lists
+    for nm in ds.attrs:
+        if type(ds.attrs[nm]) == np.ndarray and ds.attrs[nm].size > 1:
+            ds.attrs[nm] = list(ds.attrs[nm])
+        elif type(ds.attrs[nm]) == str and nm in ['rotate_vars']:
+            ds.attrs[nm] = [ds.attrs[nm]]
 
     # Rejoin complex numbers
     if hasattr(ds, 'complex_vars') and len(ds.complex_vars):
@@ -161,79 +179,61 @@ def load(filename):
             ds = ds.drop_vars([var+'_real', var+'_imag'])
     ds.attrs.pop('complex_vars')
 
-    # Reload raw file's time instance since the timezone is unknown
-    t_list = [t for t in ds.coords if 'time' in t]
-    for ky in t_list:
-        dt = ds[ky].values.astype('datetime64[us]').tolist()
-        ds = ds.assign_coords({ky: date2epoch(dt)})
-        ds[ky].attrs['description'] = 'seconds since 1970-01-01 00:00:00'
-
-    # Time data variables
-    t_data = [t for t in ds.data_vars if t in t_additional]
-    for ky in t_data:
-        dt = ds[ky].values.astype('datetime64[us]').tolist()
-        ds[ky].data = date2epoch(dt)
-        ds[ky].attrs['description'] = 'seconds since 1970-01-01 00:00:00'
-
     return ds
 
 
-def save_mat(dataset, filename, datenum=True):
+def save_mat(ds, filename):
     """Save xarray dataset as a MATLAB (.mat) file
 
     Parameters
     ----------
-    dataset : xarray.Dataset
+    ds : xarray.Dataset
         Data to save
     filename : str
         Filename and/or path with the '.mat' extension
-    datenum : bool
-        Converts epoch time into MATLAB datenum
 
     Notes
     -----
     The xarray data format is saved as a MATLAB structure with the fields 
-    'vars, coords, config, units'
+    'vars, coords, config, units'. Converts time to datenum
 
     See Also
     --------
     scipy.io.savemat()
 
     """
-    if '.' in filename:
-        assert filename.endswith(
-            'mat'), 'File extension must be of the type mat'
-    else:
-        filename += '.mat'
+    filename = _check_file_ext(filename, 'mat')
 
-    # Convert from epoch time to datenum
-    if datenum:
-        t_list = [t for t in dataset.coords if 'time' in t]
-        for ky in t_list:
-            dt = date2matlab(epoch2date(dataset[ky]))
-            dataset = dataset.assign_coords({ky: dt})
+    # Convert time to datenum
+    t_coords = [t for t in ds.coords if np.issubdtype(
+        ds[t].dtype, np.datetime64)]
+    t_data = [t for t in ds.data_vars if np.issubdtype(
+        ds[t].dtype, np.datetime64)]
 
-        t_data = [t for t in dataset.data_vars if t in t_additional]
-        for ky in t_data:
-            dt = date2matlab(epoch2date(dataset[ky]))
-            dataset[ky].data = dt
+    for ky in t_coords:
+        dt = date2matlab(dt642date(ds[ky]))
+        ds = ds.assign_coords({ky: dt})
+    for ky in t_data:
+        dt = date2matlab(dt642date(ds[ky]))
+        ds[ky].data = dt
+
+    ds.attrs['time_coords'] = t_coords
+    ds.attrs['time_data_vars'] = t_data
 
     # Save xarray structure with more descriptive structure names
     matfile = {'vars': {}, 'coords': {}, 'config': {}, 'units': {}}
-    for key in dataset.data_vars:
-        matfile['vars'][key] = dataset[key].values
-        if hasattr(dataset[key], 'units'):
-            matfile['units'][key] = dataset[key].units
-
-    for key in dataset.coords:
-        matfile['coords'][key] = dataset[key].values
-
-    matfile['config'] = dataset.attrs
+    for key in ds.data_vars:
+        matfile['vars'][key] = ds[key].values
+        if hasattr(ds[key], 'units'):
+            matfile['units'][key] = ds[key].units
+    for key in ds.coords:
+        matfile['coords'][key] = ds[key].values
+    matfile['config'] = ds.attrs
 
     sio.savemat(filename, matfile)
 
 
-def load_mat(filename, datenum=True):
+def load_mat(filename):
     """Load xarray dataset from MATLAB (.mat) file, complimentary to `save_mat()`
 
     A .mat file must contain the fields: {vars, coords, config, units},
@@ -243,8 +243,6 @@ def load_mat(filename, datenum=True):
     ----------
     filename : str
         Filename and/or path with the '.mat' extension
-    datenum : bool
-        Converts MATLAB datenum into epoch time
 
     Returns
     -------
@@ -256,11 +254,7 @@ def load_mat(filename, datenum=True):
     scipy.io.loadmat()
 
     """
-    if '.' in filename:
-        assert filename.endswith(
-            'mat'), 'File extension must be of the type mat'
-    else:
-        filename += '.mat'
+    filename = _check_file_ext(filename, 'mat')
 
     data = sio.loadmat(filename, struct_as_record=False, squeeze_me=True)
 
@@ -277,24 +271,29 @@ def load_mat(filename, datenum=True):
     ds = _create_dataset(ds_dict)
     ds = _set_coords(ds, ds.coord_sys)
 
-    # Convert datenum time back into epoch time
-    if datenum:
-        t_list = [t for t in ds.coords if 'time' in t]
-        for ky in t_list:
-            dt = date2epoch(matlab2date(ds[ky].values))
+    # Convert numpy arrays and strings back to lists
+    for nm in ds.attrs:
+        if type(ds.attrs[nm]) == np.ndarray and ds.attrs[nm].size > 1:
+            try:
+                ds.attrs[nm] = [x.strip(' ') for x in list(ds.attrs[nm])]
+            except:
+                ds.attrs[nm] = list(ds.attrs[nm])
+        elif type(ds.attrs[nm]) == str and nm in ['time_coords', 'time_data_vars', 'rotate_vars']:
+            ds.attrs[nm] = [ds.attrs[nm]]
+
+    if hasattr(ds, 'orientation_down'):
+        ds['orientation_down'] = ds['orientation_down'].astype(bool)
+
+    # Restore datnum to np.dt64
+    if hasattr(ds, 'time_coords'):
+        for ky in ds.attrs['time_coords']:
+            dt = date2dt64(matlab2date(ds[ky].values))
             ds = ds.assign_coords({ky: dt})
-            ds[ky].attrs['description'] = 'seconds since 1970-01-01 00:00:00'
-
-        t_data = [t for t in ds.data_vars if t in t_additional]
-        for ky in t_data:
-            dt = date2epoch(matlab2date(ds[ky].values))
+        ds.attrs.pop('time_coords')
+    if hasattr(ds, 'time_data_vars'):
+        for ky in ds.attrs['time_data_vars']:
+            dt = date2dt64(matlab2date(ds[ky].values))
             ds[ky].data = dt
-            ds[ky].attrs['description'] = 'seconds since 1970-01-01 00:00:00'
-
-    # Restore 'rotate vars" to a proper list
-    if hasattr(ds, 'rotate_vars') and len(ds.rotate_vars[0]) == 1:
-        ds.attrs['rotate_vars'] = [ds.rotate_vars]
-    else:
-        ds.attrs['rotate_vars'] = [x.strip(' ') for x in list(ds.rotate_vars)]
+        ds.attrs.pop('time_data_vars')
 
     return ds

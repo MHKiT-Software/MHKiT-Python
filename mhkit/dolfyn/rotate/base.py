@@ -7,8 +7,8 @@ def _make_model(ds):
     """The make and model of the instrument that collected the data
     in this data object.
     """
-    return '{} {}'.format(ds.inst_make,
-                          ds.inst_model).lower()
+    return '{} {}'.format(ds.attrs['inst_make'],
+                          ds.attrs['inst_model']).lower()
 
 
 def _check_rotmat_det(rotmat, thresh=1e-3):
@@ -34,7 +34,7 @@ def _set_coords(ds, ref_frame, forced=False):
 
     XYZ = ['X', 'Y', 'Z']
     ENU = ['E', 'N', 'U']
-    beam = list(range(1, ds.vel.shape[0]+1))
+    beam = list(range(1, ds['vel'].shape[0]+1))
     principal = ['streamwise', 'x-stream', 'vert']
 
     # check make/model
@@ -63,9 +63,9 @@ def _set_coords(ds, ref_frame, forced=False):
         ref_frame += '-forced'
 
     # update 'orient' and 'orientIMU' dimensions
-    ds = ds.assign_coords({'dir': orient[ref_frame]})
-    if hasattr(ds, 'accel'):
-        ds = ds.assign_coords({'dirIMU': orientIMU[ref_frame]})
+    ds['dir'] = orient[ref_frame]
+    if hasattr(ds, 'dirIMU'):
+        ds['dirIMU'] = orientIMU[ref_frame]
     ds['dir'].attrs['ref_frame'] = ref_frame
     ds.attrs['coord_sys'] = ref_frame
 
@@ -102,10 +102,7 @@ def _beam2inst(dat, reverse=False, force=False):
         if reverse and dat.coord_sys != 'inst':
             raise ValueError('The input must be in inst coordinates.')
 
-    try:
-        rotmat = dat['beam2inst_orientmat']
-    except:
-        raise Exception("Unrecognized device type.")
+    rotmat = dat['beam2inst_orientmat']
 
     if isinstance(force, (list, set, tuple)):
         # You can force a distinct set of variables to be rotated by
@@ -124,7 +121,7 @@ def _beam2inst(dat, reverse=False, force=False):
         dat[ky].values = np.einsum('ij,j...->i...', rotmat, dat[ky].values)
 
     if force:
-        dat = dat._set_coords(dat, cs, forced=True)
+        dat = _set_coords(dat, cs, forced=True)
     else:
         dat = _set_coords(dat, cs)
 
