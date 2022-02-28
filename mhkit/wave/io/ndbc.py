@@ -6,7 +6,8 @@ import numpy as np
 import requests
 import zlib
 import pandas.errors
-
+from mhkit.tidal.graphics import plot_rose 
+from mhkit.tidal.graphics import plot_joint_probability_distribution
 
 
 def read_file(file_name, missing_values=['MM',9999,999,99]):
