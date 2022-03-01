@@ -4,7 +4,7 @@ from mhkit.dolfyn.rotate.api import rotate2
 from numpy.testing import assert_allclose
 import numpy as np
 import scipy.io as sio
-
+import unittest
 
 """
 Testing against velocity and bottom-track velocity data in Nortek mat files
@@ -19,7 +19,6 @@ orientation matrices doesn't close the gap.
 
 
 def load_nortek_matfile(filename):
-    # remember to transpose this data
     data = sio.loadmat(filename,
                        struct_as_record=False,
                        squeeze_me=True)
@@ -112,13 +111,16 @@ def rotate(axis):
                     vel_bt[axis][..., :nens], atol=5e-3)
 
 
-def test_rotate2_beam():
-    rotate('beam')
+class nortek_testcase(unittest.TestCase):
+    def test_rotate2_beam(self):
+        rotate('beam')
+
+    def test_rotate2_inst(self):
+        rotate('inst')
+
+    def test_rotate2_earth(self):
+        rotate('earth')
 
 
-def test_rotate2_inst():
-    rotate('inst')
-
-
-def test_rotate2_earth():
-    rotate('earth')
+if __name__ == '__main__':
+    unittest.main()
