@@ -250,11 +250,11 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
     if years:
         if isinstance(years,int):
             start_date = f'{years}-01-01'
-            end_date = f'{years}-12-31'            
+            end_date = f'{years+1}-01-01'            
         elif isinstance(years,list):
             if len(years)==1:
                 start_date = f'{years[0]}-01-01'
-                end_date = f'{years[0]}-12-31' 
+                end_date = f'{years[0]+1}-01-01'
             else:
                 multiyear=True
 
@@ -270,7 +270,7 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
         multiyear_data_2D={}
         for year in years: 
             start_date = f'{year}-01-01'
-            end_date = f'{year}-12-31'   
+            end_date = f'{year+1}-01-01'
             
             year_data = get_netcdf_variables(nc, 
                        start_date=start_date, end_date=end_date,  
