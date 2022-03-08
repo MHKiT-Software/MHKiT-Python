@@ -284,6 +284,19 @@ class TestIO(unittest.TestCase):
         # Every 15 minutes or 4 times per hour
         self.assertEqual(data.shape, (10*24*4, 1))
 
+    def test_get_all_timestamps(self): 
+        data= self.d3d_flume_data
+        time_stamps = river.io.d3d.get_all_timestamps(data)
+        time_stamps_expected= [0, 60, 120, 180, 240]
+        self.assertEqual(time_stamps, time_stamps_expected)
+        
+    def test_convert_time(self): 
+        data= self.d3d_flume_data
+        time_index = 2
+        time_stamp = river.io.d3d.convert_time(data, time_index = time_index)
+        time_stamp_expected = 120 
+        self.assertEqual(time_stamp, time_stamp_expected)
+        
 
     def test_layer_data(self): 
         data=self.d3d_flume_data
