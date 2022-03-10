@@ -287,8 +287,8 @@ class TestIO(unittest.TestCase):
     def test_get_all_timestamps(self): 
         data= self.d3d_flume_data
         time_stamps = river.io.d3d.get_all_timestamps(data)
-        time_stamps_expected= [0, 60, 120, 180, 240]
-        self.assertEqual(time_stamps, time_stamps_expected)
+        time_stamps_expected= np.ndarray(shape=(5,), buffer= np.array([0, 60, 120, 180, 240]), dtype=int)
+        np.testing.assert_array_equal(time_stamps, time_stamps_expected)
         
     def test_convert_time(self): 
         data= self.d3d_flume_data
