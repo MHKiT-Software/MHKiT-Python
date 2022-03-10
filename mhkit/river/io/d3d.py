@@ -19,8 +19,8 @@ def get_all_timestamps (data):
 
     Returns
     -------
-      time_stamps: int, float
-        a positive interger or float the repesents the amount of time in seconds 
+      time_stamps: array
+        An array of positive interger or float the repesents the amount of time in seconds 
         that simulation has been running
 
     '''
