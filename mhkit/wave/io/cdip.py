@@ -4,7 +4,7 @@ import numpy as np
 import datetime
 import netCDF4
 import time
-
+import pytz
 
 def _validate_date(date_text):
     '''
@@ -82,14 +82,18 @@ def _dates_to_timestamp(nc, start_date=None, end_date=None):
     end_stamp: float
          seconds since the Epoch to end_date
     '''
+    
     assert isinstance(start_date, (str, type(None))), ('start_date' /
         'must be of type str')
     assert isinstance(end_date, (str, type(None))), ('end_date must be' / 
         'of type str')
         
     time_all = nc.variables['waveTime'][:].compressed()
-    time_range_all = [datetime.datetime.fromtimestamp(time_all[0]).replace(tzinfo=timezone.utc), 
-                      datetime.datetime.fromtimestamp(time_all[-1]).replace(tzinfo=timezone.utc)]
+    t_i=(datetime.datetime.fromtimestamp(time_all[0])
+          .astimezone(pytz.timezone('UTC')))
+    t_f=(datetime.datetime.fromtimestamp(time_all[-1])
+          .astimezone(pytz.timezone('UTC')))
+    time_range_all = [t_i, t_f]
     
     if start_date:        
         start_datetime = _validate_date(start_date)   
@@ -101,38 +105,44 @@ def _dates_to_timestamp(nc, start_date=None, end_date=None):
         elif start_datetime == end_datetime:
             raise Exception(f'start_date ({start_datetime}) cannot be'+
                 f'the same as end_date ({end_datetime})')
+                
+    def to_timestamp(time):
+        stamp = (pd.to_datetime(time)
+                  .astimezone(pytz.timezone('UTC'))
+                  .timestamp())
+        return stamp
     
     if start_date:
         if start_datetime > time_range_all[0] and start_datetime < time_range_all[1]:
-            start_stamp = start_datetime.replace(tzinfo=timezone.utc).timestamp()
+            start_stamp = start_datetime.astimezone(pytz.timezone('UTC')).timestamp()
         else:
             print(f'WARNING: Provided start_date ({start_datetime}) is ' 
             f'not in the returned data range {time_range_all} \n' 
             f'Setting start_date to the earliest date in range '
             f'{time_range_all[0]}')
-            start_stamp = pd.to_datetime(time_range_all[0]).replace(tzinfo=timezone.utc).timestamp()         
+            start_stamp = to_timestamp(time_range_all[0])
     
     if end_date:
         if end_datetime > time_range_all[0] and end_datetime < time_range_all[1]:
-            end_stamp = end_datetime.replace(tzinfo=timezone.utc).timestamp()
+            end_stamp = end_datetime.astimezone(pytz.timezone('UTC')).timestamp()
         else:
             print(f'WARNING: Provided end_date ({end_datetime}) is ' 
             f'not in the returned data range {time_range_all} \n' 
             f'Setting end_date to the latest date in range '
             f'{time_range_all[1]}')
-            end_stamp = pd.to_datetime(time_range_all[1]).replace(tzinfo=timezone.utc).timestamp()        
+            end_stamp = to_timestamp(time_range_all[1])
     
     
     if start_date and not end_date:
-        end_stamp = pd.to_datetime(time_range_all[1]).replace(tzinfo=timezone.utc).timestamp()            
+        end_stamp = to_timestamp(time_range_all[1])
 
     elif end_date and not start_date:
-        start_stamp = pd.to_datetime(time_range_all[0]).replace(tzinfo=timezone.utc).timestamp()
+        start_stamp = to_timestamp(time_range_all[0])
         
     if not start_date:
-        start_stamp = pd.to_datetime(time_range_all[0]).replace(tzinfo=timezone.utc).timestamp()
+        start_stamp = to_timestamp(time_range_all[0])
     if not end_date:
-        end_stamp = pd.to_datetime(time_range_all[1]).replace(tzinfo=timezone.utc).timestamp()
+        end_stamp = to_timestamp(time_range_all[1])
 
     return start_stamp, end_stamp 
 
