@@ -30,7 +30,8 @@ DEPENDENCIES = ['pandas<=1.3.5',
                 'six>=1.13.0',
                 'netCDF4', 
                 'xarray',
-	       'statsmodels']
+	       'statsmodels',
+	       'pytz']
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))
