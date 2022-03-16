@@ -7,7 +7,7 @@ from .nortek2 import read_signature
 from .rdi import read_rdi
 from .base import _create_dataset, _get_filetype
 from ..rotate.base import _set_coords
-from ..time import date2matlab, matlab2date, date2dt64, dt642date
+from ..time import date2matlab, matlab2date, date2dt64, dt642date, date2epoch, epoch2date
 
 
 def _check_file_ext(path, ext):
@@ -138,7 +138,7 @@ def save(ds, filename,
             enc[ky] = dict(zlib=True, complevel=1)
         if 'encoding' in kwargs:
             # Overwrite ('update') values in enc with whatever is in kwargs['encoding']
-            kwargs['encoding'] = enc.update(kwargs['encoding'])
+            enc.update(kwargs['encoding'])
         else:
             kwargs['encoding'] = enc
 
@@ -182,7 +182,7 @@ def load(filename):
     return ds
 
 
-def save_mat(ds, filename):
+def save_mat(ds, filename, datenum=True):
     """Save xarray dataset as a MATLAB (.mat) file
 
     Parameters
@@ -191,11 +191,14 @@ def save_mat(ds, filename):
         Data to save
     filename : str
         Filename and/or path with the '.mat' extension
+    datenum : bool
+        If true, converts time to datenum. If false, time will be saved
+        in "epoch time".
 
     Notes
     -----
     The xarray data format is saved as a MATLAB structure with the fields 
-    'vars, coords, config, units'. Converts time to datenum
+    'vars, coords, config, units'.
 
     See Also
     --------
@@ -210,11 +213,16 @@ def save_mat(ds, filename):
     t_data = [t for t in ds.data_vars if np.issubdtype(
         ds[t].dtype, np.datetime64)]
 
+    if datenum:
+        func = date2matlab
+    else:
+        func = date2epoch
+
     for ky in t_coords:
-        dt = date2matlab(dt642date(ds[ky]))
+        dt = func(dt642date(ds[ky]))
         ds = ds.assign_coords({ky: dt})
     for ky in t_data:
-        dt = date2matlab(dt642date(ds[ky]))
+        dt = func(dt642date(ds[ky]))
         ds[ky].data = dt
 
     ds.attrs['time_coords'] = t_coords
@@ -233,7 +241,7 @@ def save_mat(ds, filename):
     sio.savemat(filename, matfile)
 
 
-def load_mat(filename):
+def load_mat(filename, datenum=True):
     """Load xarray dataset from MATLAB (.mat) file, complimentary to `save_mat()`
 
     A .mat file must contain the fields: {vars, coords, config, units},
@@ -243,6 +251,9 @@ def load_mat(filename):
     ----------
     filename : str
         Filename and/or path with the '.mat' extension
+    datenum : bool
+        If true, converts time from datenum. If false, converts time from 
+        "epoch time".
 
     Returns
     -------
@@ -284,15 +295,20 @@ def load_mat(filename):
     if hasattr(ds, 'orientation_down'):
         ds['orientation_down'] = ds['orientation_down'].astype(bool)
 
+    if datenum:
+        func = matlab2date
+    else:
+        func = epoch2date
+
     # Restore datnum to np.dt64
     if hasattr(ds, 'time_coords'):
         for ky in ds.attrs['time_coords']:
-            dt = date2dt64(matlab2date(ds[ky].values))
+            dt = date2dt64(func(ds[ky].values))
             ds = ds.assign_coords({ky: dt})
         ds.attrs.pop('time_coords')
     if hasattr(ds, 'time_data_vars'):
         for ky in ds.attrs['time_data_vars']:
-            dt = date2dt64(matlab2date(ds[ky].values))
+            dt = date2dt64(func(ds[ky].values))
             ds[ky].data = dt
         ds.attrs.pop('time_data_vars')
 
