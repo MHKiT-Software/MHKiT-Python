@@ -296,6 +296,10 @@ class TestIO(unittest.TestCase):
         time_stamp = river.io.d3d.convert_time(data, time_index = time_index)
         time_stamp_expected = 120 
         self.assertEqual(time_stamp, time_stamp_expected)
+        time_stamp = 60
+        time_index= river.io.d3d.convert_time(data, time_stamp = time_stamp)
+        time_index_expected = 1
+        self.assertEqual(time_index, time_index_expected)
         
 
     def test_layer_data(self): 
@@ -333,6 +337,22 @@ class TestIO(unittest.TestCase):
     def test_get_all_data_points(self): 
         data=self.d3d_flume_data
         variable= 'ucx'
+        time_step= 3
+        output = river.io.d3d.get_all_data_points(data, variable, time_step)
+        size_output = np.size(output) 
+        time_step_compair=4
+        output_expected= river.io.d3d.get_all_data_points(data, variable, time_step_compair)
+        size_output_expected= np.size(output_expected)
+        self.assertEqual(size_output, size_output_expected)
+        variable= 'turkin1'
+        time_step= 3
+        output = river.io.d3d.get_all_data_points(data, variable, time_step)
+        size_output = np.size(output) 
+        time_step_compair=4
+        output_expected= river.io.d3d.get_all_data_points(data, variable, time_step_compair)
+        size_output_expected= np.size(output_expected)
+        self.assertEqual(size_output, size_output_expected)
+        variable= 's1'
         time_step= 3
         output = river.io.d3d.get_all_data_points(data, variable, time_step)
         size_output = np.size(output) 
