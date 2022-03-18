@@ -6,7 +6,8 @@ import mhkit.wave.resource as resource
 
 
 def global_peaks(t, data):
-    """ Find the global peaks of a zero-centered response time-series.
+    """
+    Find the global peaks of a zero-centered response time-series.
 
     The global peaks are the maxima between consecutive zero
     up-crossings.
@@ -25,6 +26,9 @@ def global_peaks(t, data):
     peaks : np.array
         Peak values of the response time-series
     """
+    assert isinstance(t, np.ndarray), 't must be of type np.ndarray'
+    assert isinstance(data, np.ndarray), 'data must be of type np.ndarray'
+
     # eliminate zeros
     zeroMask = (data == 0)
     data[zeroMask] = 0.5 * np.min(np.abs(data))
@@ -47,7 +51,8 @@ def global_peaks(t, data):
 
 
 def npeaks_st(n, t, t_st):
-    """ Estimate the number of peaks in a specified period.
+    """ 
+    Estimate the number of peaks in a specified period.
 
     Parameters
     ----------
@@ -63,11 +68,16 @@ def npeaks_st(n, t, t_st):
     n_st : float
         Number of peaks in short term period.
     """
+    assert isinstance(n, int), 'n must be of type int'
+    assert isinstance(t, float), 't must be of type float'
+    assert isinstance(t_st, float), 't_st must be of type float'
+
     return n * t_st / t
 
 
 def peaks_distribution_Weibull(x):
-    """ Estimate the peaks distribution by fitting a Weibull
+    """ 
+    Estimate the peaks distribution by fitting a Weibull
     distribution to the peaks of the response.
 
     The fitted parameters can be accessed through the `params` field of
@@ -83,6 +93,8 @@ def peaks_distribution_Weibull(x):
     peaks: scipy.stats.rv_frozen
         Probability distribution of the peaks.
     """
+    assert isinstance(x, np.ndarray), 'x must be of type np.ndarray'
+
     # peaks distribution
     peaks_params = stats.exponweib.fit(x, f0=1, floc=0)
     param_names = ['a', 'c', 'loc', 'scale']
@@ -94,7 +106,8 @@ def peaks_distribution_Weibull(x):
 
 
 def peaks_distribution_WeibullTailFit(x):
-    """ Estimate the peaks distribution using the Weibull tail fit
+    """ 
+    Estimate the peaks distribution using the Weibull tail fit
     method.
 
     The fitted parameters can be accessed through the `params` field of
@@ -110,6 +123,8 @@ def peaks_distribution_WeibullTailFit(x):
     peaks: scipy.stats.rv_frozen
         Probability distribution of the peaks.
     """
+    assert isinstance(x, np.ndarray), 'x must be of type np.ndarray'
+
     # Initial guess for Weibull parameters
     p0 = stats.exponweib.fit(x, f0=1, floc=0)
     p0 = np.array([p0[1], p0[3]])
@@ -144,7 +159,8 @@ def peaks_distribution_WeibullTailFit(x):
 
 
 def peaks_distribution_peaksOverThreshold(x, threshold=None):
-    """ Estimate the peaks distribution using the peaks over threshold
+    """ 
+    Estimate the peaks distribution using the peaks over threshold
     method.
 
     This fits a generalized Pareto distribution to all the peaks above
@@ -169,8 +185,11 @@ def peaks_distribution_peaksOverThreshold(x, threshold=None):
     peaks: scipy.stats.rv_frozen
         Probability distribution of the peaks.
     """
+    assert isinstance(x, np.ndarray), 'x must be of type np.ndarray'
     if threshold is None:
         threshold = np.mean(x) + 1.4 * np.std(x)
+    assert isinstance(threshold, float), 'threshold must be of type float'
+    
     # peaks over threshold
     x = np.sort(x)
     pot = x[(x > threshold)] - threshold
@@ -209,7 +228,8 @@ def peaks_distribution_peaksOverThreshold(x, threshold=None):
 
 
 def ste_peaks(peaks_distribution, npeaks):
-    """ Estimate the short-term extreme distribution from the peaks
+    """ 
+    Estimate the short-term extreme distribution from the peaks
     distribution.
 
     Parameters
@@ -224,6 +244,10 @@ def ste_peaks(peaks_distribution, npeaks):
     ste: scipy.stats.rv_frozen
             Short-term extreme distribution.
     """
+    assert isinstance(
+        peaks_distribution, stats.rv_frozen), 'peaks_distribution must be of type scipy.stats.rv_frozen'
+    assert isinstance(npeaks, float), 'npeaks must be of type float'
+
     class _ShortTermExtreme(stats.rv_continuous):
 
         def __init__(self, *args, **kwargs):
@@ -245,7 +269,8 @@ def ste_peaks(peaks_distribution, npeaks):
 
 
 def blockMaxima(t, x, t_st):
-    '''Find the block maxima of a time-series.
+    '''
+    Find the block maxima of a time-series.
 
     The timeseries (t,x) is divided into blocks of length t_st, and the
     maxima of each bloock is returned.
@@ -264,6 +289,10 @@ def blockMaxima(t, x, t_st):
     block_maxima: np.array
         Block maxima (i.e. largest peak in each block).
     '''
+    assert isinstance(t, np.ndarray), 't must be of type np.ndarray'
+    assert isinstance(x, np.ndarray), 'x must be of type np.ndarray'
+    assert isinstance(t_st, float), 't_st must be of type float'
+
     nblock = int(t[-1] / t_st)
     block_maxima = np.zeros(int(nblock))
     for iblock in range(nblock):
@@ -273,7 +302,8 @@ def blockMaxima(t, x, t_st):
 
 
 def ste_block_maxima_GEV(block_maxima):
-    """ Approximate the short-term extreme distribution using the block
+    """ 
+    Approximate the short-term extreme distribution using the block
     maxima method and the Generalized Extreme Value distribution.
 
     Parameters
@@ -286,6 +316,8 @@ def ste_block_maxima_GEV(block_maxima):
     ste: scipy.stats.rv_frozen
             Short-term extreme distribution.
     """
+    assert isinstance(block_maxima, np.ndarray), 'block_maxima must be of type np.ndarray'
+
     ste_params = stats.genextreme.fit(block_maxima)
     param_names = ['c', 'loc', 'scale']
     ste_params = {k: v for k, v in zip(param_names, ste_params)}
@@ -295,7 +327,8 @@ def ste_block_maxima_GEV(block_maxima):
 
 
 def ste_block_maxima_Gumbel(block_maxima):
-    """ Approximate the short-term extreme distribution using the block
+    """ 
+    Approximate the short-term extreme distribution using the block
     maxima method and the Gumbel (right) distribution.
 
     Parameters
@@ -308,6 +341,8 @@ def ste_block_maxima_Gumbel(block_maxima):
     ste: scipy.stats.rv_frozen
             Short-term extreme distribution.
     """
+    assert isinstance(block_maxima, np.ndarray), 'block_maxima must be of type np.ndarray'
+
     ste_params = stats.gumbel_r.fit(block_maxima)
     param_names = ['loc', 'scale']
     ste_params = {k: v for k, v in zip(param_names, ste_params)}
@@ -317,7 +352,8 @@ def ste_block_maxima_Gumbel(block_maxima):
 
 
 def short_term_extreme(t, data, t_st, method):
-    """ Approximate the short-term  extreme distribution from a
+    """ 
+    Approximate the short-term  extreme distribution from a
     timeseries of the response using chosen method.
 
     The availabe methods are: 'peaksWeibull', 'peaksWeibullTailFit',
@@ -331,7 +367,7 @@ def short_term_extreme(t, data, t_st, method):
     ----------
     t : np.array
         Time array.
-    x : np.array
+    data : np.array
         Response timeseries.
     t_st : float
         Short-term period.
@@ -343,6 +379,10 @@ def short_term_extreme(t, data, t_st, method):
     ste: scipy.stats.rv_frozen
             Short-term extreme distribution.
     """
+    assert isinstance(t, np.ndarray), 't must be of type np.ndarray'
+    assert isinstance(data, np.ndarray), 'x must be of type np.ndarray'
+    assert isinstance(t_st, float), 't_st must be of type float'
+
     peaks_methods = {
         'peaksWeibull': peaks_distribution_Weibull,
         'peaksWeibullTailFit': peaks_distribution_WeibullTailFit,
@@ -368,7 +408,8 @@ def short_term_extreme(t, data, t_st, method):
 
 
 def full_seastate_long_term_extreme(ste, weights):
-    """Return the long-term extreme distribution of a response of
+    """
+    Return the long-term extreme distribution of a response of
     interest using the full sea state approach.
 
     Parameters
@@ -385,6 +426,9 @@ def full_seastate_long_term_extreme(ste, weights):
         Short-term extreme distribution.
 
     """
+    assert isinstance(ste, list), 'ste must be of type list[scipy.stats.rv_frozen]'
+    assert isinstance(weights, list), 'weights must be of type list[floats]'
+
     class _LongTermExtreme(stats.rv_continuous):
 
         def __init__(self, *args, **kwargs):
@@ -402,6 +446,7 @@ def full_seastate_long_term_extreme(ste, weights):
             return f
 
     return _LongTermExtreme(name="long_term_extreme", weights=weights, ste=ste)
+
 
 def MLERcoefficients(RAO, wave_spectrum, response_desired):
     """
@@ -424,10 +469,8 @@ def MLERcoefficients(RAO, wave_spectrum, response_desired):
         DataFrame containing conditioned wave spectral amplitude coefficient [m^2-s], and Phase [rad]
         indexed by freq [Hz]
     """
-
     try: RAO = np.array(RAO)
     except: pass
-
     assert isinstance(RAO, np.ndarray), 'RAO must be of type np.ndarray'
     assert isinstance(
         wave_spectrum, pd.DataFrame), 'wave_spectrum must be of type pd.DataFrame'
@@ -487,6 +530,7 @@ def MLERcoefficients(RAO, wave_spectrum, response_desired):
     mler = mler.fillna(0)
     return mler
 
+
 def MLERsimulation(parameters=None):
     '''
     Function to define simulation parameters that are used in various 
@@ -537,6 +581,7 @@ def MLERsimulation(parameters=None):
 
     return sim
 
+
 def MLERwaveAmpNormalize(wave_amp, mler, sim, k):
     '''
     Function that renormalizes the incoming amplitude of the MLER wave 
@@ -560,7 +605,6 @@ def MLERwaveAmpNormalize(wave_amp, mler, sim, k):
     '''
     try: k = np.array(k)
     except: pass
-
     assert isinstance(mler, pd.DataFrame), 'mler must be of type pd.DataFrame'
     assert isinstance(wave_amp, (int, float)), 'wave_amp must be of type int or float'
     assert isinstance(sim,dict), 'sim must be of type dict'
@@ -590,6 +634,7 @@ def MLERwaveAmpNormalize(wave_amp, mler, sim, k):
 
     return mler_norm
 
+
 def MLERexportTimeSeries(RAO,mler,sim,k):
     '''
     Generate the wave amplitude time series at X0 from the calculated MLER coefficients
@@ -615,7 +660,6 @@ def MLERexportTimeSeries(RAO,mler,sim,k):
     except: pass
     try: k = np.array(k)
     except: pass
-
     assert isinstance(RAO,np.ndarray), 'RAO must be of type ndarray'
     assert isinstance(mler, pd.DataFrame), 'mler must be of type pd.DataFrame'
     assert isinstance(sim,dict), 'sim must be of type dict'

@@ -1524,45 +1524,12 @@ def _bivariate_KDE(x1, x2, bw, fit, nb_steps, Ndata_bivariate_KDE, kwargs):
     return x1_bivariate_KDE, x2_bivariate_KDE
 
 
-### Contour tools
-# TODO: Migrate from WDRT and use in environmental contour example
-def steepness():
-    """Calculate the breaking wave steepness curve to be plotted in a
-    Hs-Tp plot.
-
-    Can be used to modify calculated contours by setting the contour
-    Hs values to the breaking value if the contour Hs is larger than
-    the breaking Hs for any given period.
-    """
-    raise NotImplementedError()
-
-
-def outside_points():
-    """Return the (buoy) points outside a specific contour. """
-    raise NotImplementedError()
-
-
-def contour_integrator():
-    """Calculate the area enclosed by a contour. """
-    raise NotImplementedError()
-
-
-def bootstrap():
-    """Add confidence intervals (e.g. 95%) to calculated contours. """
-    raise NotImplementedError()
-
-
-def data_contour():
-    """Create a contour around the data. """
-    raise NotImplementedError()
-
-
-### Sampling
 def samples_full_seastate(x1, x2, points_per_interval, return_periods,
                           sea_state_duration, method="PCA", bin_size=250):
-    """ Sample a sea-sate between contours of specified return periods.
+    """
+    Sample a sea state between contours of specified return periods.
 
-    This function is used for the full seastate approach for the
+    This function is used for the full sea state approach for the
     extreme load. See Coe et al. 2018 for more details. It was
     originally part of WDRT.
 
@@ -1601,8 +1568,15 @@ def samples_full_seastate(x1, x2, points_per_interval, return_periods,
     """
     if method != 'PCA':
         raise NotImplementedError(
-            "Full seastate sampling is currently only implemented using the " +
+            "Full sea state sampling is currently only implemented using the " +
             "'PCA' method.")
+    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
+    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    assert isinstance(points_per_interval, int), 'points_per_interval must be of int'
+    assert isinstance(return_periods, np.ndarray), 'return_periods must be of type np.ndarray'
+    assert isinstance(sea_state_duration, (int,float)), 'sea_state_duration must be of int or float'
+    assert isinstance(method, (str,list)), 'method must be of type string or list'
+    assert isinstance(bin_size, int), 'bin_size must be of int'
 
     pca_fit = _principal_component_analysis(x1, x2, bin_size)
 
@@ -1673,7 +1647,6 @@ def samples_full_seastate(x1, x2, points_per_interval, return_periods,
     sample_u1 = sample_beta * np.cos(sample_alpha)
     sample_u2 = sample_beta * np.sin(sample_alpha)
 
-
     comp1_sample = stats.invgauss.ppf(
         stats.norm.cdf(sample_u1, loc=0, scale=1),
         mu=comp1['mu'], loc=0, scale=comp1['scale'])
@@ -1694,12 +1667,13 @@ def samples_full_seastate(x1, x2, points_per_interval, return_periods,
 
 
 def samples_contour(t_samples, t_contour, hs_contour):
-    """Get Hs points along a specified environmental contour using
+    """
+    Get Hs points along a specified environmental contour using
     user-defined T values.
 
     Parameters
     ----------
-    t_samples : nparray
+    t_samples : np.array
         Points for sampling along return contour
     t_contour : np.array
         T values along contour
@@ -1711,6 +1685,10 @@ def samples_contour(t_samples, t_contour, hs_contour):
     hs_samples : nparray
         points sampled along return contour
     """
+    assert isinstance(t_samples, np.ndarray), 't_samples must be of type np.ndarray'
+    assert isinstance(t_contour, np.ndarray), 't_contour must be of type np.ndarray'
+    assert isinstance(hs_contour, np.ndarray), 'hs_contour must be of type np.ndarray'
+
     #finds minimum and maximum energy period values
     amin = np.argmin(t_contour)
     amax = np.argmax(t_contour)
@@ -1739,7 +1717,8 @@ def samples_contour(t_samples, t_contour, hs_contour):
 
 def _generate_sample_data(beta_lines, rho_zeroline, theta_zeroline,
                           points_per_interval, contour_probs):
-    """ Calculate radius, angle, and weight for each sample point
+    """ 
+    Calculate radius, angle, and weight for each sample point
 
     Parameters
     ----------
@@ -1760,6 +1739,12 @@ def _generate_sample_data(beta_lines, rho_zeroline, theta_zeroline,
     weight_points: np.array
         Array of weights for each point.
     """
+    assert isinstance(beta_lines, np.ndarray), 'beta_lines must be of type np.ndarray'
+    assert isinstance(rho_zeroline, np.ndarray), 'rho_zeroline must be of type np.ndarray'
+    assert isinstance(theta_zeroline, np.ndarray), 'theta_zeroline must be of type np.ndarray'
+    assert isinstance(points_per_interval, np.ndarray), 'points_per_interval must be of type np.ndarray'
+    assert isinstance(contour_probs, np.ndarray), 'contour_probs must be of type np.ndarray'
+
     num_samples = (len(beta_lines) - 1) * points_per_interval
     alpha_bounds = np.zeros((len(beta_lines) - 1, 2))
     angular_dist = np.zeros(len(beta_lines) - 1)
@@ -1774,12 +1759,8 @@ def _generate_sample_data(beta_lines, rho_zeroline, theta_zeroline,
     for i in range(len(beta_lines) - 1):
         # Check if any of the radii for the Hs=0, line are smaller than
         # the radii of the contour, meaning that these lines intersect
-        # r = rho_zeroline - beta_lines[i + 1]  # TODO
         r = rho_zeroline - beta_lines[i + 1] + 0.01
         if any(r < 0):
-            # left = np.amin(np.where(r < -0.01))  # TODO
-            # right = np.amax(np.where(r < -0.01)) # TODO
-            # TODO
             left = np.amin(np.where(r < 0))
             right = np.amax(np.where(r < 0))
             # Save sampling bounds
@@ -1819,7 +1800,8 @@ def _generate_sample_data(beta_lines, rho_zeroline, theta_zeroline,
 
 
 def _princomp_inv(princip_data1, princip_data2, coeff, shift):
-    """Take the inverse of the principal component rotation given data,
+    """
+    Take the inverse of the principal component rotation given data,
     coefficients, and shift.
 
     Parameters
@@ -1840,6 +1822,11 @@ def _princomp_inv(princip_data1, princip_data2, coeff, shift):
     original2: np.array
         T values following rotation from principal component space.
     """
+    assert isinstance(princip_data1, np.ndarray), 'princip_data1 must be of type np.ndarray'
+    assert isinstance(princip_data2, np.ndarray), 'princip_data2 must be of type np.ndarray'
+    assert isinstance(coeff, np.ndarray), 'coeff must be of type np.ndarray'
+    assert isinstance(shift, float), 'float must be of type float'
+    
     original1 = np.zeros(len(princip_data1))
     original2 = np.zeros(len(princip_data1))
     for i in range(len(princip_data2)):
