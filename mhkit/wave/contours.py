@@ -1569,6 +1569,7 @@ def _bivariate_KDE(x1, x2, bw, fit, nb_steps, Ndata_bivariate_KDE, kwargs):
     return x1_bivariate_KDE, x2_bivariate_KDE
 
 
+### Sampling
 def samples_full_seastate(x1, x2, points_per_interval, return_periods,
                           sea_state_duration, method="PCA", bin_size=250):
     """
@@ -1779,7 +1780,7 @@ def _generate_sample_data(beta_lines, rho_zeroline, theta_zeroline,
     rho_zeroline: np.array
         Array of radii
     theta_zeroline: np.array
-    points_per_interval: np.array
+    points_per_interval: int
     contour_probs: np.array
 
     Returns
@@ -1797,8 +1798,8 @@ def _generate_sample_data(beta_lines, rho_zeroline, theta_zeroline,
         rho_zeroline, np.ndarray), 'rho_zeroline must be of type np.ndarray'
     assert isinstance(
         theta_zeroline, np.ndarray), 'theta_zeroline must be of type np.ndarray'
-    assert isinstance(points_per_interval, np.ndarray
-                      ), 'points_per_interval must be of type np.ndarray'
+    assert isinstance(points_per_interval, int
+                      ), 'points_per_interval must be of type int'
     assert isinstance(
         contour_probs, np.ndarray), 'contour_probs must be of type np.ndarray'
 
