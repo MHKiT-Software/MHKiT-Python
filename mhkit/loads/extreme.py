@@ -51,7 +51,7 @@ def global_peaks(t, data):
 
 
 def npeaks_st(n, t, t_st):
-    """ 
+    """
     Estimate the number of peaks in a specified period.
 
     Parameters
@@ -76,7 +76,7 @@ def npeaks_st(n, t, t_st):
 
 
 def peaks_distribution_Weibull(x):
-    """ 
+    """
     Estimate the peaks distribution by fitting a Weibull
     distribution to the peaks of the response.
 
@@ -106,7 +106,7 @@ def peaks_distribution_Weibull(x):
 
 
 def peaks_distribution_WeibullTailFit(x):
-    """ 
+    """
     Estimate the peaks distribution using the Weibull tail fit
     method.
 
@@ -159,7 +159,7 @@ def peaks_distribution_WeibullTailFit(x):
 
 
 def peaks_distribution_peaksOverThreshold(x, threshold=None):
-    """ 
+    """
     Estimate the peaks distribution using the peaks over threshold
     method.
 
@@ -189,7 +189,7 @@ def peaks_distribution_peaksOverThreshold(x, threshold=None):
     if threshold is None:
         threshold = np.mean(x) + 1.4 * np.std(x)
     assert isinstance(threshold, float), 'threshold must be of type float'
-    
+
     # peaks over threshold
     x = np.sort(x)
     pot = x[(x > threshold)] - threshold
@@ -228,7 +228,7 @@ def peaks_distribution_peaksOverThreshold(x, threshold=None):
 
 
 def ste_peaks(peaks_distribution, npeaks):
-    """ 
+    """
     Estimate the short-term extreme distribution from the peaks
     distribution.
 
@@ -244,8 +244,8 @@ def ste_peaks(peaks_distribution, npeaks):
     ste: scipy.stats.rv_frozen
             Short-term extreme distribution.
     """
-    assert isinstance(
-        peaks_distribution, stats.rv_frozen), 'peaks_distribution must be of type scipy.stats.rv_frozen'
+    assert callable(peaks_distribution.cdf
+                    ), 'peaks_distribution must be a scipy.stat distribution.'
     assert isinstance(npeaks, float), 'npeaks must be of type float'
 
     class _ShortTermExtreme(stats.rv_continuous):
@@ -302,7 +302,7 @@ def blockMaxima(t, x, t_st):
 
 
 def ste_block_maxima_GEV(block_maxima):
-    """ 
+    """
     Approximate the short-term extreme distribution using the block
     maxima method and the Generalized Extreme Value distribution.
 
@@ -327,7 +327,7 @@ def ste_block_maxima_GEV(block_maxima):
 
 
 def ste_block_maxima_Gumbel(block_maxima):
-    """ 
+    """
     Approximate the short-term extreme distribution using the block
     maxima method and the Gumbel (right) distribution.
 
@@ -352,7 +352,7 @@ def ste_block_maxima_Gumbel(block_maxima):
 
 
 def short_term_extreme(t, data, t_st, method):
-    """ 
+    """
     Approximate the short-term  extreme distribution from a
     timeseries of the response using chosen method.
 
@@ -533,7 +533,7 @@ def MLERcoefficients(RAO, wave_spectrum, response_desired):
 
 def MLERsimulation(parameters=None):
     '''
-    Function to define simulation parameters that are used in various 
+    Function to define simulation parameters that are used in various
     MLER functionality. See example for how this is useful. If no input is given,
     then default values are returned.
 
@@ -557,7 +557,7 @@ def MLERsimulation(parameters=None):
         spatial and time calculated arrays
     '''
     if not parameters==None: assert isinstance(parameters,dict), 'parameters must be of type dict'
-    
+
     sim = {}
 
     if parameters == None:
@@ -584,7 +584,7 @@ def MLERsimulation(parameters=None):
 
 def MLERwaveAmpNormalize(wave_amp, mler, sim, k):
     '''
-    Function that renormalizes the incoming amplitude of the MLER wave 
+    Function that renormalizes the incoming amplitude of the MLER wave
     to the desired peak height (peak to MSL).
 
     Parameters
@@ -601,7 +601,7 @@ def MLERwaveAmpNormalize(wave_amp, mler, sim, k):
     Returns
     -------
     mler_norm : pd.DataFrame
-        MLER coefficients 
+        MLER coefficients
     '''
     try: k = np.array(k)
     except: pass
@@ -618,8 +618,8 @@ def MLERwaveAmpNormalize(wave_amp, mler, sim, k):
         for it,t in enumerate(sim['T']):
             # conditioned wave
             waveAmpTime[ix,it] = np.sum(
-                    np.sqrt(2*mler['WaveSpectrum']*dw) * 
-                        np.cos( freq*(t-sim['T0']) - k*(x-sim['X0']) + mler['Phase'] ) 
+                    np.sqrt(2*mler['WaveSpectrum']*dw) *
+                        np.cos( freq*(t-sim['T0']) - k*(x-sim['X0']) + mler['Phase'] )
                     )
 
     tmpMaxAmp = np.max(np.abs(waveAmpTime))
@@ -673,16 +673,16 @@ def MLERexportTimeSeries(RAO,mler,sim,k):
     xi = sim['X0']
     for i,ti in enumerate(sim['T']):
         # conditioned wave
-        waveAmpTime[i,0] = np.sum( 
+        waveAmpTime[i,0] = np.sum(
                 np.sqrt(2*mler['WaveSpectrum']*dw) *
                     np.cos( freq*(ti-sim['T0']) + mler['Phase'] - k*(xi-sim['X0']) )
                 )
         # Response calculation
-        waveAmpTime[i,1] = np.sum( 
+        waveAmpTime[i,1] = np.sum(
                 np.sqrt(2*mler['WaveSpectrum']*dw) * np.abs(RAO) *
                     np.cos( freq*(ti-sim['T0']) - k*(xi-sim['X0']) )
                 )
-    
+
     mler_ts = pd.DataFrame(waveAmpTime, index=sim['T'])
     mler_ts = mler_ts.rename(columns={0:'WaveHeight',1:'LinearResponse'})
 
