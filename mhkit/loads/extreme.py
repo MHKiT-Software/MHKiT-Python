@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from scipy import optimize
-import mhkit.wave.resource as resource
+
+from mhkit.wave.resource import frequency_moment
 
 
 def global_peaks(t, data):
@@ -98,7 +99,7 @@ def peaks_distribution_Weibull(x):
     # peaks distribution
     peaks_params = stats.exponweib.fit(x, f0=1, floc=0)
     param_names = ['a', 'c', 'loc', 'scale']
-    peaks_params = {k: v for k,v in zip(param_names, peaks_params)}
+    peaks_params = {k: v for k, v in zip(param_names, peaks_params)}
     peaks = stats.exponweib(**peaks_params)
     # save the parameter info
     peaks.params = peaks_params
@@ -164,14 +165,12 @@ def peaks_distribution_peaksOverThreshold(x, threshold=None):
     method.
 
     This fits a generalized Pareto distribution to all the peaks above
-    the specified threshold.
-    The distribution is only defined for values above the threshold
-    and therefore cannot be used to obtain integral metrics such as the
-    expected value.
-    A typical choice of threshold is 1.4 standard deviations above the
-    mean.
-    The peaks over threshold distribution can be accessed through the
-    `pot` field of the returned peaks distribution.
+    the specified threshold. The distribution is only defined for values
+    above the threshold and therefore cannot be used to obtain integral
+    metrics such as the expected value. A typical choice of threshold is
+    1.4 standard deviations above the mean. The peaks over threshold
+    distribution can be accessed through the `pot` field of the returned
+    peaks distribution.
 
     Parameters
     ----------
@@ -188,7 +187,8 @@ def peaks_distribution_peaksOverThreshold(x, threshold=None):
     assert isinstance(x, np.ndarray), 'x must be of type np.ndarray'
     if threshold is None:
         threshold = np.mean(x) + 1.4 * np.std(x)
-    assert isinstance(threshold, float), 'threshold must be of type float'
+    assert isinstance(threshold, float
+                      ), 'threshold must be of type float'
 
     # peaks over threshold
     x = np.sort(x)
@@ -203,6 +203,7 @@ def peaks_distribution_peaksOverThreshold(x, threshold=None):
     # save the parameter info
     pot.params = pot_params
     # peaks
+
     class _Peaks(stats.rv_continuous):
 
         def __init__(self, *args, **kwargs):
@@ -269,7 +270,7 @@ def ste_peaks(peaks_distribution, npeaks):
 
 
 def blockMaxima(t, x, t_st):
-    '''
+    """
     Find the block maxima of a time-series.
 
     The timeseries (t,x) is divided into blocks of length t_st, and the
@@ -288,7 +289,7 @@ def blockMaxima(t, x, t_st):
     -------
     block_maxima: np.array
         Block maxima (i.e. largest peak in each block).
-    '''
+    """
     assert isinstance(t, np.ndarray), 't must be of type np.ndarray'
     assert isinstance(x, np.ndarray), 'x must be of type np.ndarray'
     assert isinstance(t_st, float), 't_st must be of type float'
@@ -316,7 +317,8 @@ def ste_block_maxima_GEV(block_maxima):
     ste: scipy.stats.rv_frozen
             Short-term extreme distribution.
     """
-    assert isinstance(block_maxima, np.ndarray), 'block_maxima must be of type np.ndarray'
+    assert isinstance(
+        block_maxima, np.ndarray), 'block_maxima must be of type np.ndarray'
 
     ste_params = stats.genextreme.fit(block_maxima)
     param_names = ['c', 'loc', 'scale']
@@ -341,7 +343,8 @@ def ste_block_maxima_Gumbel(block_maxima):
     ste: scipy.stats.rv_frozen
             Short-term extreme distribution.
     """
-    assert isinstance(block_maxima, np.ndarray), 'block_maxima must be of type np.ndarray'
+    assert isinstance(
+        block_maxima, np.ndarray), 'block_maxima must be of type np.ndarray'
 
     ste_params = stats.gumbel_r.fit(block_maxima)
     param_names = ['loc', 'scale']
@@ -359,9 +362,8 @@ def short_term_extreme(t, data, t_st, method):
     The availabe methods are: 'peaksWeibull', 'peaksWeibullTailFit',
     'peaksOverThreshold', 'blockMaximaGEV', and 'blockMaximaGumbel'.
     For the block maxima methods the timeseries needs to be many times
-    longer than the short-term period.
-    For the peak-fitting methods the timeseries can be of arbitrary
-    length.
+    longer than the short-term period. For the peak-fitting methods the
+    timeseries can be of arbitrary length.
 
     Parameters
     ----------
@@ -424,9 +426,9 @@ def full_seastate_long_term_extreme(ste, weights):
     -------
     ste: scipy.stats.rv_frozen
         Short-term extreme distribution.
-
     """
-    assert isinstance(ste, list), 'ste must be of type list[scipy.stats.rv_frozen]'
+    assert isinstance(
+        ste, list), 'ste must be of type list[scipy.stats.rv_frozen]'
     assert isinstance(weights, list), 'weights must be of type list[floats]'
 
     class _LongTermExtreme(stats.rv_continuous):
@@ -448,74 +450,81 @@ def full_seastate_long_term_extreme(ste, weights):
     return _LongTermExtreme(name="long_term_extreme", weights=weights, ste=ste)
 
 
-def MLERcoefficients(RAO, wave_spectrum, response_desired):
+def mler_coefficients(rao, wave_spectrum, response_desired):
     """
-    This function calculates MLER (most likely extreme response)
-    coefficients given a spectrum and RAO.
+    Calculate MLER (most likely extreme response) coefficients from a
+    sea state spectrum and a response RAO.
 
     Parameters
     ----------
-    RAO : numpy ndarray
-        Response amplitude operator
+    rao : numpy ndarray
+        Response amplitude operator.
     wave_spectrum : pd.DataFrame
-        Wave spectral density [m^2/Hz] indexed by frequency [Hz]
+        Wave spectral density [m^2/Hz] indexed by frequency [Hz].
     response_desired : int or float
-        Desired response, units should correspond to a
-        motion RAO or units of force for a force RAO
+        Desired response, units should correspond to a motion RAO or
+        units of force for a force RAO.
 
     Returns
     -------
     mler : pd.DataFrame
-        DataFrame containing conditioned wave spectral amplitude coefficient [m^2-s], and Phase [rad]
-        indexed by freq [Hz]
+        DataFrame containing conditioned wave spectral amplitude
+        coefficient [m^2-s], and Phase [rad] indexed by freq [Hz].
     """
-    try: RAO = np.array(RAO)
-    except: pass
-    assert isinstance(RAO, np.ndarray), 'RAO must be of type np.ndarray'
-    assert isinstance(
-        wave_spectrum, pd.DataFrame), 'wave_spectrum must be of type pd.DataFrame'
+    try:
+        rao = np.array(rao)
+    except:
+        pass
+    assert isinstance(rao, np.ndarray), 'rao must be of type np.ndarray'
+    assert isinstance(wave_spectrum, pd.DataFrame
+                      ), 'wave_spectrum must be of type pd.DataFrame'
     assert isinstance(response_desired, (int, float)
                       ), 'response_desired must be of type int or float'
 
     freq_hz = wave_spectrum.index.values
-    freq = freq_hz * (2*np.pi)  # convert from Hz to rad/s
+    # convert from Hz to rad/s
+    freq = freq_hz * (2*np.pi)
     # change from Hz to rad/s
     wave_spectrum = wave_spectrum.iloc[:, 0].values / (2*np.pi)
-    dw = (2*np.pi - 0.) / (len(freq)-1)  # get delta
+    # get delta
+    dw = (2*np.pi - 0.) / (len(freq)-1)
 
-    S_R = np.zeros(len(freq))  # [(response units)^2-s/rad]
-    _S = np.zeros(len(freq))  # [m^2-s/rad]
-    _A = np.zeros(len(freq))  # [m^2-s/rad]
-    _CoeffA_Rn = np.zeros(len(freq))  # [1/(response units)]
+    spectrum_r = np.zeros(len(freq))  # [(response units)^2-s/rad]
+    _s = np.zeros(len(freq))  # [m^2-s/rad]
+    _a = np.zeros(len(freq))  # [m^2-s/rad]
+    _coeff_a_rn = np.zeros(len(freq))  # [1/(response units)]
     _phase = np.zeros(len(freq))
 
-    # Note: waves.A is "S" in Quon2016; 'waves' naming convention matches WEC-Sim conventions (EWQ)
+    # Note: waves.A is "S" in Quon2016; 'waves' naming convention
+    # matches WEC-Sim conventions (EWQ)
     # Response spectrum [(response units)^2-s/rad] -- Quon2016 Eqn. 3
-    S_R[:] = np.abs(RAO)**2 * (2*wave_spectrum)
+    spectrum_r[:] = np.abs(rao)**2 * (2*wave_spectrum)
 
     # calculate spectral moments and other important spectral values.
-    m0 = (resource.frequency_moment(pd.Series(S_R, index=freq), 0)).iloc[0, 0]
-    m1 = (resource.frequency_moment(pd.Series(S_R, index=freq), 1)).iloc[0, 0]
-    m2 = (resource.frequency_moment(pd.Series(S_R, index=freq), 2)).iloc[0, 0]
+    m0 = (frequency_moment(pd.Series(spectrum_r, index=freq), 0)).iloc[0, 0]
+    m1 = (frequency_moment(pd.Series(spectrum_r, index=freq), 1)).iloc[0, 0]
+    m2 = (frequency_moment(pd.Series(spectrum_r, index=freq), 2)).iloc[0, 0]
     wBar = m1 / m0
 
     # calculate coefficient A_{R,n} [(response units)^-1] -- Quon2016 Eqn. 8
-    _CoeffA_Rn[:] = np.abs(RAO) * np.sqrt(2*wave_spectrum*dw) * ((m2 - freq*m1) + wBar*(freq*m0 - m1)) \
-        / (m0*m2 - m1**2)  # Drummen version.  Dietz has negative of this.
+    # Drummen version.  Dietz has negative of this.
+    _coeff_a_rn[:] = np.abs(rao) * np.sqrt(2*wave_spectrum*dw) * \
+        ((m2 - freq*m1) + wBar*(freq*m0 - m1)) / (m0*m2 - m1**2)
 
     # save the new spectral info to pass out
     # Phase delay should be a positive number in this convention (AP)
-    _phase[:] = -np.unwrap(np.angle(RAO))
+    _phase[:] = -np.unwrap(np.angle(rao))
 
     # for negative values of Amp, shift phase by pi and flip sign
-    # for negative amplitudes, add a pi phase shift
-    _phase[_CoeffA_Rn < 0] -= np.pi
-    _CoeffA_Rn[_CoeffA_Rn < 0] *= -1    # then flip sign on negative Amplitudes
+    # for negative amplitudes, add a pi phase shift, then flip sign on
+    # negative Amplitudes
+    _phase[_coeff_a_rn < 0] -= np.pi
+    _coeff_a_rn[_coeff_a_rn < 0] *= -1
 
     # calculate the conditioned spectrum [m^2-s/rad]
-    _S[:] = wave_spectrum * _CoeffA_Rn[:]**2 * response_desired**2
-    _A[:] = 2*wave_spectrum * _CoeffA_Rn[:]**2 * \
-        response_desired**2  # self.A == 2*self.S
+    _s[:] = wave_spectrum * _coeff_a_rn[:]**2 * response_desired**2
+    _a[:] = 2*wave_spectrum * _coeff_a_rn[:]**2 * \
+        response_desired**2
 
     # if the response amplitude we ask for is negative, we will add
     # a pi phase shift to the phase information.  This is because
@@ -526,164 +535,184 @@ def MLERcoefficients(RAO, wave_spectrum, response_desired):
     if response_desired < 0:
         _phase += np.pi
 
-    mler = pd.DataFrame(data={'WaveSpectrum': _S, 'Phase': _phase}, index=freq_hz)
+    mler = pd.DataFrame(
+        data={'WaveSpectrum': _s, 'Phase': _phase}, index=freq_hz)
     mler = mler.fillna(0)
     return mler
 
 
-def MLERsimulation(parameters=None):
-    '''
-    Function to define simulation parameters that are used in various
-    MLER functionality. See example for how this is useful. If no input is given,
-    then default values are returned.
+def mler_simulation(parameters=None):
+    """
+    Define the simulation parameters that are used in various MLER
+    functionalities.
+
+    See example for how this is useful. If no input is given, then
+    default values are returned.
 
     Parameters
     ----------
     parameters : dict (optional)
-        Must contain the following parameters:
-            startTime [s] = starting time
-            endTime [s] = ending time
-            dT [s] = time-step size
-            T0 [s] = time of maximum event
-            startx [m] = start of simulation space
-            endX [m] = end of simulation space
-            dX [m] = horizontal spacing
-            X [m] = position of maximum event
+        Simulation parameters.
+        Keys:
+        -----
+        'startTime': starting time [s]
+        'endTime': ending time [s]
+        'dT': time-step size [s]
+        'T0': time of maximum event [s]
+        'startx': start of simulation space [m]
+        'endX': end of simulation space [m]
+        'dX': horizontal spacing [m]
+        'X': position of maximum event [m]
 
     Returns
     -------
     sim : dict
-        Dictionary of simulation parameters including
-        spatial and time calculated arrays
-    '''
-    if not parameters==None: assert isinstance(parameters,dict), 'parameters must be of type dict'
+        Simulation parameters including spatial and time calculated
+        arrays.
+    """
+    if not parameters == None:
+        assert isinstance(parameters, dict), 'parameters must be of type dict'
 
     sim = {}
 
     if parameters == None:
-        sim['startTime']  = -150.0        # [s]       Starting time
-        sim['endTime']    = 150.0         # [s]       Ending time
-        sim['dT']         = 1.0           # [s]       Time-step size
-        sim['T0']         = 0.0           # [s]       Time of maximum event
+        sim['startTime'] = -150.0  # [s] Starting time
+        sim['endTime'] = 150.0  # [s] Ending time
+        sim['dT'] = 1.0  # [s] Time-step size
+        sim['T0'] = 0.0  # [s] Time of maximum event
 
-        sim['startX']     = -300.0        # [m]       Start of simulation space
-        sim['endX']       = 300.0         # [m]       End of simulation space
-        sim['dX']         = 1.0           # [m]       Horiontal spacing
-        sim['X0']         = 0.0           # [m]       Position of maximum event
+        sim['startX'] = -300.0  # [m] Start of simulation space
+        sim['endX'] = 300.0  # [m] End of simulation space
+        sim['dX'] = 1.0  # [m] Horiontal spacing
+        sim['X0'] = 0.0  # [m] Position of maximum event
     else:
         sim = parameters
 
-    sim['maxIT'] = int(np.ceil( (sim['endTime'] - sim['startTime'])/sim['dT'] + 1 )) # maximum timestep index
-    sim['T']     = np.linspace( sim['startTime'], sim['endTime'], sim['maxIT'] )
+    # maximum timestep index
+    sim['maxIT'] = int(
+        np.ceil((sim['endTime'] - sim['startTime'])/sim['dT'] + 1))
+    sim['T'] = np.linspace(sim['startTime'], sim['endTime'], sim['maxIT'])
 
-    sim['maxIX'] = int(np.ceil( (sim['endX'] - sim['startX'])/sim['dX'] + 1 ))
-    sim['X']     = np.linspace( sim['startX'], sim['endX'], sim['maxIX'] )
+    sim['maxIX'] = int(np.ceil((sim['endX'] - sim['startX'])/sim['dX'] + 1))
+    sim['X'] = np.linspace(sim['startX'], sim['endX'], sim['maxIX'])
 
     return sim
 
 
-def MLERwaveAmpNormalize(wave_amp, mler, sim, k):
-    '''
+def mler_wave_amp_normalize(wave_amp, mler, sim, k):
+    """
     Function that renormalizes the incoming amplitude of the MLER wave
     to the desired peak height (peak to MSL).
 
     Parameters
     ----------
     wave_amp : float
-        Desired wave amplitude (peak to MSL)
+        Desired wave amplitude (peak to MSL).
     mler : pd.DataFrame
-        MLER coefficients generated by 'MLERcoefficients' function
+        MLER coefficients generated by 'mler_coefficients' function.
     sim : dict
-        Simulation parameters formatted by output from 'MLERsimulation'
+        Simulation parameters formatted by output from
+        'mler_simulation'.
     k : numpy ndarray
-        Wave number
+        Wave number.
 
     Returns
     -------
     mler_norm : pd.DataFrame
         MLER coefficients
-    '''
-    try: k = np.array(k)
-    except: pass
+    """
+    try:
+        k = np.array(k)
+    except:
+        pass
     assert isinstance(mler, pd.DataFrame), 'mler must be of type pd.DataFrame'
-    assert isinstance(wave_amp, (int, float)), 'wave_amp must be of type int or float'
-    assert isinstance(sim,dict), 'sim must be of type dict'
-    assert isinstance(k,np.ndarray), 'k must be of type ndarray'
+    assert isinstance(wave_amp, (int, float)
+                      ), 'wave_amp must be of type int or float'
+    assert isinstance(sim, dict), 'sim must be of type dict'
+    assert isinstance(k, np.ndarray), 'k must be of type ndarray'
 
     freq = mler.index.values * 2*np.pi
     dw = (max(freq) - min(freq)) / (len(freq)-1)  # get delta
 
-    waveAmpTime = np.zeros( (sim['maxIX'], sim['maxIT']) )
-    for ix,x in enumerate(sim['X']):
-        for it,t in enumerate(sim['T']):
+    wave_amp_time = np.zeros((sim['maxIX'], sim['maxIT']))
+    for ix, x in enumerate(sim['X']):
+        for it, t in enumerate(sim['T']):
             # conditioned wave
-            waveAmpTime[ix,it] = np.sum(
-                    np.sqrt(2*mler['WaveSpectrum']*dw) *
-                        np.cos( freq*(t-sim['T0']) - k*(x-sim['X0']) + mler['Phase'] )
-                    )
+            wave_amp_time[ix, it] = np.sum(
+                np.sqrt(2*mler['WaveSpectrum']*dw) *
+                np.cos(freq*(t-sim['T0']) - k*(x-sim['X0']) + mler['Phase'])
+            )
 
-    tmpMaxAmp = np.max(np.abs(waveAmpTime))
+    tmp_max_amp = np.max(np.abs(wave_amp_time))
 
     # renormalization of wave amplitudes
-    rescaleFact = np.abs(wave_amp) / np.abs(tmpMaxAmp)
-    S = mler['WaveSpectrum'] * rescaleFact**2 # rescale the wave spectral amplitude coefficients
+    rescale_fact = np.abs(wave_amp) / np.abs(tmp_max_amp)
+    # rescale the wave spectral amplitude coefficients
+    spectrum = mler['WaveSpectrum'] * rescale_fact**2
 
-    mler_norm = pd.DataFrame(index = mler.index)
-    mler_norm['WaveSpectrum'] = S
+    mler_norm = pd.DataFrame(index=mler.index)
+    mler_norm['WaveSpectrum'] = spectrum
     mler_norm['Phase'] = mler['Phase']
 
     return mler_norm
 
 
-def MLERexportTimeSeries(RAO,mler,sim,k):
-    '''
-    Generate the wave amplitude time series at X0 from the calculated MLER coefficients
+def mler_export_time_series(rao, mler, sim, k):
+    """
+    Generate the wave amplitude time series at X0 from the calculated
+    MLER coefficients
 
     Parameters
     ----------
-    RAO : numpy ndarray
-        Response amplitude operator
+    rao : numpy ndarray
+        Response amplitude operator.
     mler : pd.DataFrame
-        MLER coefficients dataframe generated from an MLER function
+        MLER coefficients dataframe generated from an MLER function.
     sim : dict
-        Simulation parameters formatted by output from 'MLERsimulation'
+        Simulation parameters formatted by output from
+        'mler_simulation'.
     k : numpy ndarray
-        Wave number
+        Wave number.
 
     Returns
     -------
     mler_ts : pd.DataFrame
-        Time series of wave height [m] and linear response [*] indexed by time [s]
+        Time series of wave height [m] and linear response [*] indexed
+        by time [s].
 
-    '''
-    try: RAO = np.array(RAO)
-    except: pass
-    try: k = np.array(k)
-    except: pass
-    assert isinstance(RAO,np.ndarray), 'RAO must be of type ndarray'
+    """
+    try:
+        rao = np.array(rao)
+    except:
+        pass
+    try:
+        k = np.array(k)
+    except:
+        pass
+    assert isinstance(rao, np.ndarray), 'rao must be of type ndarray'
     assert isinstance(mler, pd.DataFrame), 'mler must be of type pd.DataFrame'
-    assert isinstance(sim,dict), 'sim must be of type dict'
-    assert isinstance(k,np.ndarray), 'k must be of type ndarray'
+    assert isinstance(sim, dict), 'sim must be of type dict'
+    assert isinstance(k, np.ndarray), 'k must be of type ndarray'
 
-    freq = mler.index.values * 2*np.pi # convert Hz to rad/s
+    freq = mler.index.values * 2*np.pi  # convert Hz to rad/s
     dw = (max(freq) - min(freq)) / (len(freq)-1)  # get delta
 
     # calculate the series
-    waveAmpTime = np.zeros( (sim['maxIT'],2) )
+    wave_amp_time = np.zeros((sim['maxIT'], 2))
     xi = sim['X0']
-    for i,ti in enumerate(sim['T']):
+    for i, ti in enumerate(sim['T']):
         # conditioned wave
-        waveAmpTime[i,0] = np.sum(
-                np.sqrt(2*mler['WaveSpectrum']*dw) *
-                    np.cos( freq*(ti-sim['T0']) + mler['Phase'] - k*(xi-sim['X0']) )
-                )
+        wave_amp_time[i, 0] = np.sum(
+            np.sqrt(2*mler['WaveSpectrum']*dw) *
+            np.cos(freq*(ti-sim['T0']) + mler['Phase'] - k*(xi-sim['X0']))
+        )
         # Response calculation
-        waveAmpTime[i,1] = np.sum(
-                np.sqrt(2*mler['WaveSpectrum']*dw) * np.abs(RAO) *
-                    np.cos( freq*(ti-sim['T0']) - k*(xi-sim['X0']) )
-                )
+        wave_amp_time[i, 1] = np.sum(
+            np.sqrt(2*mler['WaveSpectrum']*dw) * np.abs(rao) *
+            np.cos(freq*(ti-sim['T0']) - k*(xi-sim['X0']))
+        )
 
-    mler_ts = pd.DataFrame(waveAmpTime, index=sim['T'])
-    mler_ts = mler_ts.rename(columns={0:'WaveHeight',1:'LinearResponse'})
+    mler_ts = pd.DataFrame(wave_amp_time, index=sim['T'])
+    mler_ts = mler_ts.rename(columns={0: 'WaveHeight', 1: 'LinearResponse'})
 
     return mler_ts

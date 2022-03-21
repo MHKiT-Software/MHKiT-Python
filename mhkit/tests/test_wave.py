@@ -682,8 +682,8 @@ class TestContours(unittest.TestCase):
     def test_samples_contours(self):
         te_samples = np.array([10, 15, 20])
         hs_samples_0 = np.array([8.56637939, 9.27612515, 8.70427774])
-        hs_contour = self.wdrt_copulas["gaussian_x1"]
-        te_contour = self.wdrt_copulas["gaussian_x2"]
+        hs_contour = np.array(self.wdrt_copulas["gaussian_x1"])
+        te_contour = np.array(self.wdrt_copulas["gaussian_x2"])
         hs_samples = wave.contours.samples_contour(
             te_samples, te_contour, hs_contour)
         assert_allclose(hs_samples, hs_samples_0)
