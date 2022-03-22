@@ -1255,7 +1255,7 @@ class TestIOcdip(unittest.TestCase):
             years=years, parameters =parameters )
 
         expected_index0 = datetime(year1,1,1)
-        expected_index_final = datetime(year2,12,30) # last data on 30th
+        expected_index_final = datetime(year2,12,31)
 
         wave1D = data['data']['wave']
         self.assertEqual(wave1D.index[0].floor('d').to_pydatetime(), expected_index0)
