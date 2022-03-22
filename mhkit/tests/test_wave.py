@@ -680,10 +680,10 @@ class TestContours(unittest.TestCase):
         self.assertTrue(all(close))
 
     def test_samples_contours(self):
-        te_samples = [10, 15, 20]
+        te_samples = np.array([10, 15, 20])
         hs_samples_0 = np.array([8.56637939, 9.27612515, 8.70427774])
-        hs_contour = self.wdrt_copulas["gaussian_x1"]
-        te_contour = self.wdrt_copulas["gaussian_x2"]
+        hs_contour = np.array(self.wdrt_copulas["gaussian_x1"])
+        te_contour = np.array(self.wdrt_copulas["gaussian_x2"])
         hs_samples = wave.contours.samples_contour(
             te_samples, te_contour, hs_contour)
         assert_allclose(hs_samples, hs_samples_0)
@@ -699,7 +699,7 @@ class TestContours(unittest.TestCase):
         df = self.Hm0Te[self.Hm0Te['Hm0'] < 20]
         dt_ss = (self.Hm0Te.index[2]-self.Hm0Te.index[1]).seconds
         points_per_interval = 3
-        return_periods = [50, 100]
+        return_periods = np.array([50, 100])
         np.random.seed(0)
         hs, te, w = wave.contours.samples_full_seastate(
             df.Hm0.values, df.Te.values, points_per_interval, return_periods,
