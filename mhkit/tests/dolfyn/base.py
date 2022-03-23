@@ -30,11 +30,8 @@ def assert_allclose(dat0, dat1, *args, **kwargs):
     _assert_allclose(dat0, dat1, *args, **kwargs)
     # Check attributes
     for nm in dat0.attrs:
-        if nm == 'complex_vars':
-            pass  # appears to be reminiscent of a rfnm bug
-        else:
-            assert dat0.attrs[nm] == dat1.attrs[nm], "The " + \
-                nm + " attribute does not match."
+        assert dat0.attrs[nm] == dat1.attrs[nm], "The " + \
+            nm + " attribute does not match."
     # If test debugging
     for v in names:
         dat0[v] = time.epoch2dt64(dat0[v])

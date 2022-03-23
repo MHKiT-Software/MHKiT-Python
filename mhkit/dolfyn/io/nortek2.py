@@ -60,7 +60,7 @@ def read_signature(filename, userdata=True, nens=None, rebuild_index=False,
             tag = ky.lstrip('time')
             warnings.warn("Zero/NaN values found in '{}'. Interpolating and "
                           "extrapolating them. To identify which values were filled later, "
-                          "look for 0 values in 'status{}' or status0{}".format(ky, tag, tag))
+                          "look for 0 values in 'status{}'".format(ky, tag))
             tdat = _fill_time_gaps(tdat, sample_rate_hz=out['attrs']['fs'])
         coords[ky] = epoch2dt64(tdat).astype('datetime64[us]')
 
@@ -310,6 +310,9 @@ class _Ad2cpReader():
     def _advance_ens_count(self, c, ens_start, nens_total):
         """This method advances the counter when appropriate to do so.
         """
+        # It's unfortunate that all of this count checking is so
+        # complex, but this is the best I could come up with right
+        # now.
         try:
             # Checks to makes sure we're not already at the end of the
             # self._ens_pos array
@@ -389,17 +392,17 @@ def _reorg(dat):
         cfg['n_cells' + tag] = tmp['n_cells']
         cfg['coord_sys_axes' + tag] = tmp['cy']
         cfg['n_beams' + tag] = tmp['n_beams']
-        cfg['xmit_energy' + tag] = np.median(dnow['xmit_energy'])
-        cfg['ambig_vel' + tag] = np.median(dnow['ambig_vel'])
+        cfg['ambig_vel' +
+            tag] = lib._collapse(dnow['ambig_vel'], name='ambig_vel')
 
-        for ky in ['SerialNum', 'cell_size', 'blank_dist', 'nom_corr',
-                   'data_desc', 'vel_scale', 'power_level']:
+        for ky in ['SerialNum', 'cell_size', 'blank_dist', 'nominal_corr',
+                   'power_level_dB']:
             cfg[ky + tag] = lib._collapse(dnow[ky],
                                           exclude=collapse_exclude,
                                           name=ky)
 
         for ky in ['c_sound', 'temp', 'pressure', 'heading', 'pitch', 'roll',
-                   'mag', 'accel', 'batt', 'temp_mag', 'temp_clock', 'error',
+                   'mag', 'accel', 'batt', 'temp_clock', 'error',
                    'status', 'ensemble',
                    ]:
             outdat['data_vars'][ky + tag] = dnow[ky]
@@ -408,12 +411,12 @@ def _reorg(dat):
                 outdat['units'][ky + tag] = '#'
 
         for ky in ['vel', 'amp', 'corr', 'prcnt_gd', 'echo', 'dist',
-                   'orientmat', 'angrt', 'quaternion', 'ast_pressure',
+                   'orientmat', 'angrt', 'quaternions', 'ast_pressure',
                    'alt_dist', 'alt_quality', 'alt_status',
                    'ast_dist', 'ast_quality', 'ast_offset_time',
                    'altraw_nsamp', 'altraw_dsamp', 'altraw_samp',
                    'status0', 'fom', 'temp_press', 'press_std',
-                   'pitch_std', 'roll_std', 'heading_std',
+                   'pitch_std', 'roll_std', 'heading_std', 'xmit_energy',
                    ]:
             if ky in dnow:
                 outdat['data_vars'][ky + tag] = dnow[ky]
@@ -428,20 +431,63 @@ def _reorg(dat):
                     ard[grp] = {}
                 ard[ky.rstrip('_ast')] = outdat['data_vars'].pop(ky)
 
-    outdat['attrs']['coord_sys'] = {'XYZ': 'inst',
-                                    'ENU': 'earth',
-                                    'beam': 'beam'}[cfg['coord_sys_axes']]
-    tmp = lib._status2data(outdat['data_vars']['status'])  # returns a dict
+        # Read altimeter status
+        alt_status = lib._alt_status2data(outdat['data_vars']['alt_status'])
+        for ky in alt_status:
+            outdat['attrs'][ky] = lib._collapse(
+                alt_status[ky].astype('uint8'), name=ky)
+        outdat['data_vars'].pop('alt_status')
+
+        # Power level index
+        power = {0: 'high', 1: 'med-high', 2: 'med-low', 3: 'low'}
+        outdat['attrs']['power_level_alt'] = power[outdat['attrs'].pop(
+            'power_level_idx_alt')]
+
+    # Read status data
+    status0_vars = [x for x in outdat['data_vars'] if 'status0' in x]
+    # Status data is the same across all tags, and there is always a 'status' and 'status0'
+    status0_key = status0_vars[0]
+    status0_data = lib._status02data(outdat['data_vars'][status0_key])
+    status_key = status0_key.replace('0', '')
+    status_data = lib._status2data(outdat['data_vars'][status_key])
+
+    # Individual status codes
+    # Wake up state
+    wake = {0: 'bad power', 1: 'power on', 2: 'break', 3: 'clock'}
+    outdat['attrs']['wakeup_state'] = wake[lib._collapse(
+        status_data.pop('wakeup_state'), name=ky)]
 
     # Instrument direction
     # 0: XUP, 1: XDOWN, 2: YUP, 3: YDOWN, 4: ZUP, 5: ZDOWN,
     # 7: AHRS, handle as ZUP
     nortek_orient = {0: 'horizontal', 1: 'horizontal', 2: 'horizontal',
                      3: 'horizontal', 4: 'up', 5: 'down', 7: 'AHRS'}
-    outdat['attrs']['orientation'] = nortek_orient[tmp['orient_up'][0]]
-    orient_status = {0: 'fixed', 1: 'auto_UD', 3: 'AHRS-3D'}
-    outdat['attrs']['orient_status'] = orient_status[tmp['auto orientation'][0]]
+    outdat['attrs']['orientation'] = nortek_orient[lib._collapse(
+        status_data.pop('orient_up'), name='orientation')]
 
+    # Orientation detection
+    orient_status = {0: 'fixed', 1: 'auto_UD', 3: 'AHRS-3D'}
+    outdat['attrs']['orient_status'] = orient_status[lib._collapse(
+        status_data.pop('auto_orientation'), name='orient_status')]
+
+    # Status variables
+    for ky in ['low_volt_skip', 'active_config', 'telemetry_data', 'boost_running']:
+        outdat['data_vars'][ky] = status_data[ky].astype('uint8')
+
+    # Processor idle state - need to save as 1/0 per netcdf attribute limitations
+    for ky in status0_data:
+        outdat['attrs'][ky] = lib._collapse(
+            status0_data[ky].astype('uint8'), name=ky)
+
+    # Remove status0 variables - keep status variables as they useful for finding missing pings
+    [outdat['data_vars'].pop(var) for var in status0_vars]
+
+    # Set coordinate system
+    outdat['attrs']['coord_sys'] = {'XYZ': 'inst',
+                                    'ENU': 'earth',
+                                    'beam': 'beam'}[cfg['coord_sys_axes']]
+
+    # Copy appropriate vars to rotate_vars
     for ky in ['accel', 'angrt', 'mag']:
         for dky in outdat['data_vars'].keys():
             if dky == ky or dky.startswith(ky + '_'):
@@ -453,10 +499,10 @@ def _reorg(dat):
 
 
 def _reduce(data):
-    """This function takes the output from `reorg`, and further simplifies the 
-    data. Mostly this is combining system, environmental, and orientation data 
+    """This function takes the output from `reorg`, and further simplifies the
+    data. Mostly this is combining system, environmental, and orientation data
     --- from different data structures within the same ensemble --- by
-    averaging.  
+    averaging.
     """
     dv = data['data_vars']
     dc = data['coords']
@@ -464,8 +510,7 @@ def _reduce(data):
 
     # Average these fields
     for ky in ['c_sound', 'temp', 'pressure',
-               'temp_press', 'temp_clock', 'temp_mag',
-               'batt']:
+               'temp_press', 'temp_clock', 'batt']:
         lib._reduce_by_average(dv, ky, ky + '_b5')
 
     # Angle-averaging is treated separately

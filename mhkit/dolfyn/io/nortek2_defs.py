@@ -175,7 +175,7 @@ _burst_hdr = [
     ('beam_config', 'H', [], None),
     ('cell_size', 'H', [], _LinFunc(0.001), 'm'),
     ('blank_dist', 'H', [], _LinFunc(0.01), 'm'),
-    ('nom_corr', 'B', [], None, '%'),
+    ('nominal_corr', 'B', [], None, '%'),
     ('temp_press', 'B', [], _LinFunc(0.2, -20, dtype=dt32), 'deg C'),
     ('batt', 'H', [], _LinFunc(0.1, dtype=dt32), 'V'),
     ('mag', 'h', [3], _LinFunc(0.1, dtype=dt32), 'uT'),
@@ -184,12 +184,12 @@ _burst_hdr = [
     ('data_desc', 'H', [], None),
     ('xmit_energy', 'H', [], None, 'dB'),
     ('vel_scale', 'b', [], None),
-    ('power_level', 'b', [], None),
-    ('temp_mag', 'h', [], None, 'deg C'),
+    ('power_level_dB', 'b', [], _LinFunc(dtype=dt32)),
+    ('temp_mag', 'h', [], None),  # uncalibrated
     ('temp_clock', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg C'),
     ('error', 'H', [], None),
-    ('status0', 'H', [], None, 'binary'),
-    ('status', 'I', [], None, 'binary'),
+    ('status0', 'H', [], None),
+    ('status', 'I', [], None),
     ('_ensemble', 'I', [], None),
 ]
 
@@ -214,7 +214,7 @@ _bt_hdr = [
     ('beam_config', 'H', [], None),
     ('cell_size', 'H', [], _LinFunc(0.001), 'm'),
     ('blank_dist', 'H', [], _LinFunc(0.01), 'm'),
-    ('nom_corr', 'B', [], None, '%'),
+    ('nominal_corr', 'B', [], None, '%'),
     ('unused', 'B', [], None),
     ('batt', 'H', [], _LinFunc(0.1, dtype=dt32), 'V'),
     ('mag', 'h', [3], None, 'gauss'),
@@ -223,8 +223,8 @@ _bt_hdr = [
     ('data_desc', 'H', [], None),
     ('xmit_energy', 'H', [], None, 'dB'),
     ('vel_scale', 'b', [], None),
-    ('power_level', 'b', [], None),
-    ('temp_mag', 'h', [], None, 'deg C'),
+    ('power_level_dB', 'b', [], _LinFunc(dtype=dt32)),
+    ('temp_mag', 'h', [], None),  # uncalibrated
     ('temp_clock', 'h', [], _LinFunc(0.01, dtype=dt32), 'deg C'),
     ('error', 'I', [], None),
     ('status', 'I', [], None, 'binary'),
@@ -233,7 +233,7 @@ _bt_hdr = [
 
 _ahrs_def = [
     ('orientmat', 'f', [3, 3], None),
-    ('quaternion', 'f', [4], None),
+    ('quaternions', 'f', [4], None),
     ('angrt', 'f', [3], _LinFunc(np.pi / 180, dtype=dt32), 'rad/s'),
 ]
 

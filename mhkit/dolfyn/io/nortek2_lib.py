@@ -354,24 +354,51 @@ def _headconfig_int2dict(val, mode='burst'):
         )
 
 
+def _status02data(val):
+    # This is detailed in the 6.1.2 of the Nortek Signature
+    # Integrators Guide (2017)
+    bi = _BitIndexer(val)
+    out = {}
+    if any(bi[15]):  # 'status0_in_use'
+        out['proc_idle_less_3pct'] = bi[0]
+        out['proc_idle_less_6pct'] = bi[1]
+        out['proc_idle_less_12pct'] = bi[2]
+
+    return out
+
+
 def _status2data(val):
     # This is detailed in the 6.1.2 of the Nortek Signature
     # Integrators Guide (2017)
     bi = _BitIndexer(val)
     out = {}
-    out['wakeup state'] = bi[28:32]
+    out['wakeup_state'] = bi[28:32]
     out['orient_up'] = bi[25:28]
-    out['auto orientation'] = bi[22:25]
-    out['previous wakeup state'] = bi[18:22]
-    out['last meas low voltage skip'] = bi[17]
-    out['active config'] = bi[16]
-    out['echo sounder index'] = bi[12:16]
-    out['telemetry data'] = bi[11]
-    out['boost running'] = bi[10]
-    out['echo sounder freq bin'] = bi[5:10]
+    out['auto_orientation'] = bi[22:25]
+    out['previous_wakeup_state'] = bi[18:22]
+    out['low_volt_skip'] = bi[17]
+    out['active_config'] = bi[16]
+    out['echo_index'] = bi[12:16]
+    out['telemetry_data'] = bi[11]
+    out['boost_running'] = bi[10]
+    out['echo_freq_bin'] = bi[5:10]
     # 2,3,4 unused
-    out['bd scaling'] = bi[1]  # if True: cm scaling of blanking dist
+    out['bd_scaling'] = bi[1]  # if True: cm scaling of blanking dist
     # 0 unused
+    return out
+
+
+def _alt_status2data(val):
+    # This is detailed in the 6.1.2 of the Nortek Signature
+    # Integrators Guide (2017)
+    bi = _BitIndexer(val)
+    out = {}
+    out['tilt_over_5deg'] = bi[0]
+    out['tilt_over_10deg'] = bi[1]
+    out['multibeam_alt'] = bi[2]
+    out['n_beams_alt'] = bi[3:7]
+    out['power_level_idx_alt'] = bi[7:10]
+
     return out
 
 
@@ -405,15 +432,17 @@ def _collapse(vec, name=None, exclude=[]):
         uniq, idx, counts = np.unique(
             vec, return_index=True, return_counts=True)
 
-        if all(e==counts[0] for e in counts):
-            val = max(vec) # pings saved out of order, but equal # of pings
+        if all(e == counts[0] for e in counts):
+            val = max(vec)  # pings saved out of order, but equal # of pings
         else:
             val = vec[idx[np.argmax(counts)]]
 
         if not set(uniq) == set([0, val]) and set(counts) == set([1, np.max(counts)]):
             # warn when the 'wrong value' is not just a single zero.
-            warnings.warn("The variable {} is expected to be uniform, but it is not.\nValues found: {} (counts: {}).\nUsing the most common value: {}".format(
-                name, list(uniq), list(counts), val))
+            warnings.warn("The variable {} is expected to be uniform, but it is not.\n"
+                          "Values found: {} (counts: {}).\n"
+                          "Using the most common value: {}".format(
+                              name, list(uniq), list(counts), val))
         return val
 
 
