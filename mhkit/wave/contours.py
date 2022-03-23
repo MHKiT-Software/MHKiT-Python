@@ -1796,8 +1796,8 @@ def _generate_sample_data(beta_lines, rho_zeroline, theta_zeroline,
         beta_lines, np.ndarray), 'beta_lines must be of type np.ndarray'
     assert isinstance(
         rho_zeroline, np.ndarray), 'rho_zeroline must be of type np.ndarray'
-    assert isinstance(
-        theta_zeroline, np.ndarray), 'theta_zeroline must be of type np.ndarray'
+    assert isinstance(theta_zeroline, np.ndarray
+                      ), 'theta_zeroline must be of type np.ndarray'
     assert isinstance(points_per_interval, int
                       ), 'points_per_interval must be of type int'
     assert isinstance(

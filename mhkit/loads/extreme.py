@@ -38,10 +38,10 @@ def global_peaks(t, data):
     zeroUpCrossings_index = np.where(zeroUpCrossings_mask)[0]
     zeroUpCrossings_index = np.append(zeroUpCrossings_index, len(data) - 1)
     # global peaks
-    N = len(zeroUpCrossings_index)
+    npeaks = len(zeroUpCrossings_index)
     peaks = np.array([])
     t_peaks = np.array([])
-    for i in range(N - 1):
+    for i in range(npeaks - 1):
         peak_index = np.argmax(
             data[zeroUpCrossings_index[i]:zeroUpCrossings_index[i + 1]])
         t_peaks = np.append(t_peaks, t[zeroUpCrossings_index[i] + peak_index])
@@ -49,7 +49,7 @@ def global_peaks(t, data):
     return t_peaks, peaks
 
 
-def npeaks_st(n, t, t_st):
+def number_of_short_term_peaks(n, t, t_st):
     """
     Estimate the number of peaks in a specified period.
 
@@ -74,7 +74,7 @@ def npeaks_st(n, t, t_st):
     return n * t_st / t
 
 
-def peaks_distribution_Weibull(x):
+def peaks_distribution_weibull(x):
     """
     Estimate the peaks distribution by fitting a Weibull
     distribution to the peaks of the response.
@@ -104,7 +104,7 @@ def peaks_distribution_Weibull(x):
     return peaks
 
 
-def peaks_distribution_WeibullTailFit(x):
+def peaks_distribution_weibull_tail_fit(x):
     """
     Estimate the peaks distribution using the Weibull tail fit
     method.
@@ -129,10 +129,10 @@ def peaks_distribution_WeibullTailFit(x):
     p0 = np.array([p0[1], p0[3]])
     # Approximate CDF
     x = np.sort(x)
-    N = len(x)
-    F = np.zeros(N)
-    for i in range(N):
-        F[i] = i / (N + 1.0)
+    npeaks = len(x)
+    F = np.zeros(npeaks)
+    for i in range(npeaks):
+        F[i] = i / (npeaks + 1.0)
     # Divide into seven sets & fit Weibull
     subset_shape_params = np.zeros(7)
     subset_scale_params = np.zeros(7)
@@ -157,7 +157,7 @@ def peaks_distribution_WeibullTailFit(x):
     return peaks
 
 
-def peaks_distribution_peaksOverThreshold(x, threshold=None):
+def peaks_distribution_peaks_over_threshold(x, threshold=None):
     """
     Estimate the peaks distribution using the peaks over threshold
     method.
@@ -192,8 +192,8 @@ def peaks_distribution_peaksOverThreshold(x, threshold=None):
     # peaks over threshold
     x = np.sort(x)
     pot = x[(x > threshold)] - threshold
-    N = len(x)
-    Npot = len(pot)
+    npeaks = len(x)
+    npot = len(pot)
     # Fit a generalized Pareto
     pot_params = stats.genpareto.fit(pot, floc=0.)
     param_names = ['c', 'loc', 'scale']
@@ -201,7 +201,7 @@ def peaks_distribution_peaksOverThreshold(x, threshold=None):
     pot = stats.genpareto(**pot_params)
     # save the parameter info
     pot.params = pot_params
-    
+
     # peaks
     class _Peaks(stats.rv_continuous):
 
@@ -217,7 +217,7 @@ def peaks_distribution_peaksOverThreshold(x, threshold=None):
             xt = x[x >= self.threshold]
             if xt.size != 0:
                 pot_ccdf = 1. - self.pot.cdf(xt-self.threshold)
-                prop_pot = Npot/N
+                prop_pot = npot/npeaks
                 out[x >= self.threshold] = 1. - (prop_pot * pot_ccdf)
             return out
 
@@ -268,7 +268,7 @@ def ste_peaks(peaks_distribution, npeaks):
     return ste
 
 
-def blockMaxima(t, x, t_st):
+def block_maxima(t, x, t_st):
     """
     Find the block maxima of a time-series.
 
@@ -301,7 +301,7 @@ def blockMaxima(t, x, t_st):
     return block_maxima
 
 
-def ste_block_maxima_GEV(block_maxima):
+def ste_block_maxima_gev(block_maxima):
     """
     Approximate the short-term extreme distribution using the block
     maxima method and the Generalized Extreme Value distribution.
@@ -327,7 +327,7 @@ def ste_block_maxima_GEV(block_maxima):
     return ste
 
 
-def ste_block_maxima_Gumbel(block_maxima):
+def ste_block_maxima_gumbel(block_maxima):
     """
     Approximate the short-term extreme distribution using the block
     maxima method and the Gumbel (right) distribution.
@@ -366,8 +366,8 @@ def short_term_extreme(t, data, t_st, method):
     Approximate the short-term  extreme distribution from a
     timeseries of the response using chosen method.
 
-    The availabe methods are: 'peaksWeibull', 'peaksWeibullTailFit',
-    'peaksOverThreshold', 'blockMaximaGEV', and 'blockMaximaGumbel'.
+    The availabe methods are: 'peaks_weibull', 'peaks_weibull_tail_fit',
+    'peaks_over_threshold', 'block_maxima_gev', and 'block_maxima_gumbel'.
     For the block maxima methods the timeseries needs to be many times
     longer than the short-term period. For the peak-fitting methods the
     timeseries can be of arbitrary length.
@@ -394,12 +394,12 @@ def short_term_extreme(t, data, t_st, method):
     assert isinstance(method, str), 'method must be of type string'
 
     peaks_methods = {
-        'peaksWeibull': peaks_distribution_Weibull,
-        'peaksWeibullTailFit': peaks_distribution_WeibullTailFit,
-        'peaksOverThreshold': peaks_distribution_peaksOverThreshold}
+        'peaks_weibull': peaks_distribution_weibull,
+        'peaks_weibull_tail_fit': peaks_distribution_weibull_tail_fit,
+        'peaks_over_threshold': peaks_distribution_peaks_over_threshold}
     blockmaxima_methods = {
-        'blockMaximaGEV': ste_block_maxima_GEV,
-        'blockMaximaGumbel': ste_block_maxima_Gumbel,
+        'block_maxima_gev': ste_block_maxima_gev,
+        'block_maxima_gumbel': ste_block_maxima_gumbel,
     }
 
     if method in peaks_methods.keys():
@@ -407,12 +407,12 @@ def short_term_extreme(t, data, t_st, method):
         _, peaks = global_peaks(t, data)
         npeaks = len(peaks)
         time = t[-1]-t[0]
-        nst = npeaks_st(npeaks, time, t_st)
+        nst = number_of_short_term_peaks(npeaks, time, t_st)
         peaks_dist = fit_peaks(peaks)
         ste = ste_peaks(peaks_dist, nst)
     elif method in blockmaxima_methods.keys():
         fit_maxima = blockmaxima_methods[method]
-        maxima = blockMaxima(t, data, t_st)
+        maxima = block_maxima(t, data, t_st)
         ste = fit_maxima(maxima)
     else:
         print("Passed `method` not found.")
@@ -556,8 +556,8 @@ def mler_simulation(parameters=None):
     Define the simulation parameters that are used in various MLER
     functionalities.
 
-    See example for how this is useful. If no input is given, then
-    default values are returned.
+    See `extreme_response_contour_example.ipynb` example for how this is
+    useful. If no input is given, then default values are returned.
 
     Parameters
     ----------
