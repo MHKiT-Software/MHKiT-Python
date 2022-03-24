@@ -439,7 +439,7 @@ def full_seastate_long_term_extreme(ste, weights):
     """
     assert isinstance(
         ste, list), 'ste must be of type list[scipy.stats.rv_frozen]'
-    assert isinstance(weights, (list, np.array)
+    assert isinstance(weights, (list, np.ndarray)
                       ), 'weights must be of type list[floats]'
 
     class _LongTermExtreme(stats.rv_continuous):
