@@ -1852,7 +1852,7 @@ def _generate_sample_data(beta_lines, rho_zeroline, theta_zeroline,
                 alpha[i, j] +
                 np.random.random_sample() * (alpha[i, j + 1] - alpha[i, j]))
             # Save the weight for each sample point
-            weight_points[(i) * points_per_interval + j] = weight[i]
+            weight_points[i * points_per_interval + j] = weight[i]
 
     return sample_alpha, sample_beta, weight_points
 
