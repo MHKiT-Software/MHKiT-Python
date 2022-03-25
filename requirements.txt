@@ -12,3 +12,4 @@ six>=1.13.0
 netCDF4
 xarray
 statsmodels
+dolfyn>=1.0.0

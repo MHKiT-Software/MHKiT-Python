@@ -31,7 +31,8 @@ DEPENDENCIES = ['pandas',
                 'netCDF4',
                 'xarray',
                 'statsmodels',
-                'pytz']
+                'pytz',
+                'dolfyn>=1.0.0']
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))
