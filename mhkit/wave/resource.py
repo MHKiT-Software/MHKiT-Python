@@ -1,12 +1,11 @@
-from mhkit.wave._environmental_contours import (environmental_contours, 
-                                               PCA_contour)
 from scipy.optimize import fsolve as _fsolve
 from scipy import signal as _signal
 import pandas as pd
 import numpy as np
+from scipy import stats
 
 ### Spectrum
-def elevation_spectrum(eta, sample_rate, nnft, window='hann', 
+def elevation_spectrum(eta, sample_rate, nnft, window='hann',
     detrend=True, noverlap=None):
     """
     Calculates the wave energy spectrum from wave elevation time-series
@@ -23,7 +22,7 @@ def elevation_spectrum(eta, sample_rate, nnft, window='hann',
         Signal window type. 'hann' is used by default given the broadband
         nature of waves. See scipy.signal.get_window for more options.
     detrend: bool (optional)
-        Specifies if a linear trend is removed from the data before 
+        Specifies if a linear trend is removed from the data before
         calculating the wave energy spectrum.  Data is detrended by default.
     noverlap: int, optional
         Number of points to overlap between segments. If None,
@@ -176,8 +175,6 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
         for example, time = np.arange(0,100,0.01)
     seed: int (optional)
         Random seed
-    frequency_bins: numpy array or pandas Series (optional)
-        Bin widths for frequency of S. Required for unevenly sized bins
     phases: numpy array or pandas DataFrame (optional)
         Explicit phases for frequency components (overrides seed)
         for example, phases = np.random.rand(len(S)) * 2 * np.pi
@@ -188,10 +185,7 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
         Wave surface elevation [m] indexed by time [s]
 
     """
-    try:
-        time_index = np.array(time_index)
-    except:
-        pass
+    time_index = np.array(time_index)
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
     assert isinstance(time_index, np.ndarray), ('time_index must be of type'
             'np.ndarray')
@@ -248,7 +242,6 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
         C = np.cos(B+phase[mcol])
         C = pd.DataFrame(C, index=time_index, columns=omega.index)
         eta[mcol] = (C*A[mcol]).sum(axis=1)
-
     return eta
 
 
