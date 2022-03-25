@@ -1,0 +1,2811 @@
+
+Reading file ...
+2
+  cfgid0: [7f, 7f]
+  ###In checkheader.
+  ###Leaving checkheader.
+2
+4
+  1721 pings estimated in this file
+  taking data from pings 0 - 100
+  100 ensembles will be produced.
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+4
+  pos: 22, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 81, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 146, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 284, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 354, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 424, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 494, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 581, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+585
+  pos: 603, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 662, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 727, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 865, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 935, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 1005, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 1075, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 1162, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+1166
+  pos: 1184, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 1243, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 1308, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 1446, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 1516, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 1586, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 1656, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 1743, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+1747
+  pos: 1765, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 1824, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 1889, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 2027, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 2097, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 2167, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 2237, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 2324, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+2328
+  pos: 2346, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 2405, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 2470, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 2608, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 2678, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 2748, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 2818, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 2905, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+2909
+  pos: 2927, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 2986, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 3051, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 3189, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 3259, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 3329, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 3399, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 3486, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+3490
+  pos: 3508, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 3567, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 3632, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 3770, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 3840, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 3910, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 3980, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 4067, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+4071
+  pos: 4089, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 4148, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 4213, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 4351, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 4421, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 4491, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 4561, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 4648, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+4652
+  pos: 4670, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 4729, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 4794, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 4932, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 5002, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 5072, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 5142, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 5229, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+5233
+  pos: 5251, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 5310, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 5375, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 5513, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 5583, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 5653, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 5723, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 5810, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+5814
+  pos: 5832, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 5891, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 5956, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 6094, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 6164, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 6234, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 6304, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 6391, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+6395
+  pos: 6413, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 6472, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 6537, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 6675, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 6745, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 6815, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 6885, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 6972, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+6976
+  pos: 6994, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 7053, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 7118, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 7256, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 7326, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 7396, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 7466, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 7553, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+7557
+  pos: 7575, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 7634, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 7699, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 7837, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 7907, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 7977, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 8047, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 8134, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+8138
+  pos: 8156, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 8215, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 8280, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 8418, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 8488, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 8558, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 8628, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 8715, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+8719
+  pos: 8737, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 8796, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 8861, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 8999, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 9069, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 9139, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 9209, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 9296, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+9300
+  pos: 9318, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 9377, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 9442, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 9580, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 9650, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 9720, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 9790, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 9877, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+9881
+  pos: 9899, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 9958, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 10023, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 10161, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 10231, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 10301, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 10371, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 10458, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+10462
+  pos: 10480, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 10539, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 10604, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 10742, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 10812, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 10882, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 10952, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 11039, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+11043
+  pos: 11061, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 11120, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 11185, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 11323, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 11393, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 11463, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 11533, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 11620, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+11624
+  pos: 11642, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 11701, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 11766, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 11904, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 11974, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 12044, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 12114, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 12201, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+12205
+  pos: 12223, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 12282, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 12347, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 12485, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 12555, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 12625, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 12695, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 12782, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+12786
+  pos: 12804, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 12863, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 12928, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 13066, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 13136, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 13206, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 13276, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 13363, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+13367
+  pos: 13385, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 13444, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 13509, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 13647, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 13717, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 13787, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 13857, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 13944, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+13948
+  pos: 13966, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 14025, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 14090, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 14228, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 14298, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 14368, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 14438, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 14525, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+14529
+  pos: 14547, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 14606, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 14671, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 14809, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 14879, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 14949, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 15019, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 15106, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+15110
+  pos: 15128, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 15187, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 15252, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 15390, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 15460, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 15530, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 15600, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 15687, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+15691
+  pos: 15709, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 15768, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 15833, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 15971, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 16041, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 16111, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 16181, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 16268, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+16272
+  pos: 16290, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 16349, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 16414, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 16552, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 16622, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 16692, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 16762, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 16849, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+16853
+  pos: 16871, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 16930, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 16995, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 17133, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 17203, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 17273, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 17343, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 17430, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+17434
+  pos: 17452, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 17511, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 17576, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 17714, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 17784, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 17854, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 17924, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 18011, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+18015
+  pos: 18033, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 18092, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 18157, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 18295, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 18365, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 18435, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 18505, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 18592, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+18596
+  pos: 18614, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 18673, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 18738, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 18876, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 18946, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 19016, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 19086, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 19173, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+19177
+  pos: 19195, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 19254, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 19319, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 19457, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 19527, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 19597, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 19667, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 19754, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+19758
+  pos: 19776, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 19835, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 19900, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 20038, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 20108, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 20178, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 20248, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 20335, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+20339
+  pos: 20357, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 20416, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 20481, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 20619, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 20689, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 20759, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 20829, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 20916, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+20920
+  pos: 20938, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 20997, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 21062, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 21200, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 21270, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 21340, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 21410, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 21497, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+21501
+  pos: 21519, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 21578, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 21643, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 21781, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 21851, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 21921, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 21991, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 22078, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+22082
+  pos: 22100, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 22159, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 22224, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 22362, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 22432, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 22502, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 22572, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 22659, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+22663
+  pos: 22681, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 22740, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 22805, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 22943, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 23013, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 23083, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 23153, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 23240, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+23244
+  pos: 23262, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 23321, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 23386, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 23524, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 23594, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 23664, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 23734, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 23821, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+23825
+  pos: 23843, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 23902, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 23967, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 24105, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 24175, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 24245, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 24315, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 24402, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+24406
+  pos: 24424, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 24483, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 24548, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 24686, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 24756, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 24826, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 24896, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 24983, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+24987
+  pos: 25005, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 25064, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 25129, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 25267, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 25337, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 25407, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 25477, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 25564, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+25568
+  pos: 25586, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 25645, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 25710, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 25848, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 25918, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 25988, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 26058, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 26145, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+26149
+  pos: 26167, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 26226, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 26291, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 26429, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 26499, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 26569, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 26639, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 26726, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+26730
+  pos: 26748, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 26807, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 26872, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 27010, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 27080, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 27150, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 27220, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 27307, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+27311
+  pos: 27329, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 27388, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 27453, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 27591, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 27661, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 27731, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 27801, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 27888, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+27892
+  pos: 27910, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 27969, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 28034, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 28172, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 28242, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 28312, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 28382, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 28469, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+28473
+  pos: 28491, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 28550, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 28615, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 28753, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 28823, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 28893, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 28963, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 29050, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+29054
+  pos: 29072, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 29131, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 29196, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 29334, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 29404, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 29474, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 29544, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 29631, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+29635
+  pos: 29653, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 29712, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 29777, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 29915, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 29985, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 30055, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 30125, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 30212, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+30216
+  pos: 30234, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 30293, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 30358, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 30496, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 30566, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 30636, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 30706, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 30793, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+30797
+  pos: 30815, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 30874, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 30939, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 31077, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 31147, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 31217, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 31287, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 31374, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+31378
+  pos: 31396, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 31455, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 31520, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 31658, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 31728, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 31798, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 31868, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 31955, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+31959
+  pos: 31977, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 32036, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 32101, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 32239, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 32309, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 32379, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 32449, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 32536, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+32540
+  pos: 32558, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 32617, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 32682, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 32820, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 32890, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 32960, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 33030, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 33117, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+33121
+  pos: 33139, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 33198, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 33263, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 33401, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 33471, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 33541, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 33611, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 33698, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+33702
+  pos: 33720, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 33779, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 33844, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 33982, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 34052, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 34122, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 34192, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 34279, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+34283
+  pos: 34301, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 34360, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 34425, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 34563, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 34633, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 34703, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 34773, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 34860, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+34864
+  pos: 34882, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 34941, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 35006, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 35144, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 35214, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 35284, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 35354, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 35441, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+35445
+  pos: 35463, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 35522, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 35587, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 35725, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 35795, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 35865, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 35935, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 36022, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+36026
+  pos: 36044, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 36103, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 36168, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 36306, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 36376, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 36446, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 36516, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 36603, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+36607
+  pos: 36625, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 36684, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 36749, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 36887, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 36957, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 37027, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 37097, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 37184, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+37188
+  pos: 37206, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 37265, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 37330, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 37468, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 37538, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 37608, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 37678, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 37765, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+37769
+  pos: 37787, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 37846, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 37911, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 38049, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 38119, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 38189, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 38259, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 38346, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+38350
+  pos: 38368, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 38427, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 38492, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 38630, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 38700, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 38770, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 38840, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 38927, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+38931
+  pos: 38949, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 39008, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 39073, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 39211, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 39281, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 39351, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 39421, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 39508, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+39512
+  pos: 39530, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 39589, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 39654, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 39792, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 39862, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 39932, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 40002, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 40089, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+40093
+  pos: 40111, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 40170, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 40235, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 40373, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 40443, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 40513, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 40583, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 40670, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+40674
+  pos: 40692, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 40751, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 40816, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 40954, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 41024, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 41094, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 41164, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 41251, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+41255
+  pos: 41273, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 41332, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 41397, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 41535, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 41605, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 41675, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 41745, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 41832, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+41836
+  pos: 41854, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 41913, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 41978, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 42116, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 42186, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 42256, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 42326, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 42413, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+42417
+  pos: 42435, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 42494, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 42559, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 42697, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 42767, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 42837, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 42907, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 42994, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+42998
+  pos: 43016, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 43075, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 43140, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 43278, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 43348, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 43418, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 43488, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 43575, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+43579
+  pos: 43597, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 43656, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 43721, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 43859, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 43929, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 43999, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 44069, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 44156, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+44160
+  pos: 44178, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 44237, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 44302, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 44440, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 44510, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 44580, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 44650, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 44737, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+44741
+  pos: 44759, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 44818, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 44883, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 45021, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 45091, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 45161, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 45231, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 45318, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+45322
+  pos: 45340, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 45399, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 45464, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 45602, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 45672, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 45742, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 45812, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 45899, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+45903
+  pos: 45921, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 45980, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 46045, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 46183, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 46253, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 46323, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 46393, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 46480, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+46484
+  pos: 46502, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 46561, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 46626, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 46764, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 46834, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 46904, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 46974, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 47061, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+47065
+  pos: 47083, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 47142, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 47207, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 47345, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 47415, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 47485, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 47555, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 47642, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+47646
+  pos: 47664, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 47723, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 47788, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 47926, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 47996, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 48066, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 48136, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 48223, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+48227
+  pos: 48245, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 48304, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 48369, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 48507, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 48577, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 48647, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 48717, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 48804, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+48808
+  pos: 48826, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 48885, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 48950, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 49088, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 49158, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 49228, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 49298, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 49385, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+49389
+  pos: 49407, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 49466, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 49531, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 49669, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 49739, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 49809, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 49879, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 49966, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+49970
+  pos: 49988, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 50047, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 50112, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 50250, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 50320, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 50390, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 50460, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 50547, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+50551
+  pos: 50569, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 50628, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 50693, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 50831, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 50901, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 50971, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 51041, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 51128, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+51132
+  pos: 51150, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 51209, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 51274, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 51412, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 51482, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 51552, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 51622, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 51709, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+51713
+  pos: 51731, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 51790, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 51855, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 51993, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 52063, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 52133, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 52203, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 52290, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+52294
+  pos: 52312, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 52371, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 52436, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 52574, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 52644, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 52714, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 52784, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 52871, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+52875
+  pos: 52893, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 52952, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 53017, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 53155, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 53225, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 53295, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 53365, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 53452, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+53456
+  pos: 53474, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 53533, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 53598, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 53736, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 53806, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 53876, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 53946, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 54033, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+54037
+  pos: 54055, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 54114, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 54179, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 54317, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 54387, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 54457, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 54527, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 54614, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+54618
+  pos: 54636, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 54695, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 54760, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 54898, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 54968, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 55038, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 55108, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 55195, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+55199
+  pos: 55217, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 55276, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 55341, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 55479, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 55549, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 55619, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 55689, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 55776, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+55780
+  pos: 55798, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 55857, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 55922, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 56060, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 56130, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 56200, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 56270, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 56357, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+56361
+  pos: 56379, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 56438, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 56503, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 56641, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 56711, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 56781, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 56851, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 56938, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+56942
+  pos: 56960, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 57019, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 57084, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 57222, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 57292, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 57362, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 57432, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 57519, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
+  pos 0mb/1mb
+
+  -->In search_buffer...
+  ###In checkheader.
+  ###Leaving checkheader.
+57523
+  pos: 57541, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
+  Reading code 0x0...0
+    success!
+  0: Adjust location by 17
+
+  pos: 57600, pos_: 0, nbyte: 42, k: -1, byte_offset: -1
+  Reading code 0x80...    success!
+  128: Adjust location by 23
+
+  pos: 57665, pos_: 0, nbyte: 42, k: 0, byte_offset: -1
+  Reading code 0x100...    success!
+  pos: 57803, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+  Reading code 0x200...    success!
+  pos: 57873, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x300...    success!
+  pos: 57943, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x400...    success!
+  pos: 58013, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+  Reading code 0x600...    success!
+  1536: Adjust location by 4
+
+  pos: 58100, pos_: 0, nbyte: 81, k: 0, byte_offset: 577
