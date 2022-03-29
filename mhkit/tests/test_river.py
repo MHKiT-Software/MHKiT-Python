@@ -313,11 +313,35 @@ class TestIO(unittest.TestCase):
         layer_data_expected= river.io.d3d.get_layer_data(data,
                                                         variable, layer_compare,
                                                         time_index_compare)
+        assert_array_almost_equal(layer_data.x,layer_data_expected.x, decimal = 2)
+        assert_array_almost_equal(layer_data.y,layer_data_expected.y, decimal = 2)
+        assert_array_almost_equal(layer_data.v,layer_data_expected.v, decimal= 2)
+        variable= 'turkin1'
+        layer=2 
+        time_index= 3
+        layer_data= river.io.d3d.get_layer_data(data, variable, layer, time_index)
+        layer_compare = 2
+        time_index_compare= 4
+        layer_data_expected= river.io.d3d.get_layer_data(data,
+                                                        variable, layer_compare,
+                                                        time_index_compare)
        
         assert_array_almost_equal(layer_data.x,layer_data_expected.x, decimal = 2)
         assert_array_almost_equal(layer_data.y,layer_data_expected.y, decimal = 2)
         assert_array_almost_equal(layer_data.v,layer_data_expected.v, decimal= 2)
-        
+        variable= 's1'
+        layer=2 
+        time_index= 3
+        layer_data= river.io.d3d.get_layer_data(data, variable, layer, time_index)
+        layer_compare = 2
+        time_index_compare= 4
+        layer_data_expected= river.io.d3d.get_layer_data(data,
+                                                        variable, layer_compare,
+                                                        time_index_compare)
+       
+        assert_array_almost_equal(layer_data.x,layer_data_expected.x, decimal = 2)
+        assert_array_almost_equal(layer_data.y,layer_data_expected.y, decimal = 2)
+        assert_array_almost_equal(layer_data.v,layer_data_expected.v, decimal= 2)
         
     def test_create_points(self):
         x=np.linspace(1, 3, num= 3)
@@ -331,7 +355,18 @@ class TestIO(unittest.TestCase):
         
         points_array= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x, y, z)]) 
         points_expected= pd.DataFrame(points_array, columns=('x','y','z'))
-        assert_array_almost_equal(points, points_expected,decimal = 2)  
+        assert_array_almost_equal(points, points_expected,decimal = 2) 
+        
+        x=np.linspace(1, 3, num= 3)
+        y=1
+        z=2 
+        points= river.io.d3d.create_points(x,y,z)
+        x=[1,2,3]
+        y=[1,1,1]
+        z=[2,2,2]
+        points_array= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x, y, z)]) 
+        points_expected= pd.DataFrame(points_array, columns=('x','y','z'))
+        assert_array_almost_equal(points, points_expected,decimal = 2)
         
         
     def test_get_all_data_points(self): 
