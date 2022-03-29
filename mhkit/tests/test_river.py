@@ -284,6 +284,23 @@ class TestIO(unittest.TestCase):
         # Every 15 minutes or 4 times per hour
         self.assertEqual(data.shape, (10*24*4, 1))
 
+    def test_get_all_timestamps(self): 
+        data= self.d3d_flume_data
+        time_stamps = river.io.d3d.get_all_timestamps(data)
+        time_stamps_expected= np.ndarray(shape=(5,), buffer= np.array([0, 60, 120, 180, 240]), dtype=int)
+        np.testing.assert_array_equal(time_stamps, time_stamps_expected)
+        
+    def test_convert_time(self): 
+        data= self.d3d_flume_data
+        time_index = 2
+        time_stamp = river.io.d3d.convert_time(data, time_index = time_index)
+        time_stamp_expected = 120 
+        self.assertEqual(time_stamp, time_stamp_expected)
+        time_stamp = 60
+        time_index= river.io.d3d.convert_time(data, time_stamp = time_stamp)
+        time_index_expected = 1
+        self.assertEqual(time_index, time_index_expected)
+        
 
     def test_layer_data(self): 
         data=self.d3d_flume_data
@@ -327,6 +344,22 @@ class TestIO(unittest.TestCase):
         output_expected= river.io.d3d.get_all_data_points(data, variable, time_step_compair)
         size_output_expected= np.size(output_expected)
         self.assertEqual(size_output, size_output_expected)
+        variable= 'turkin1'
+        time_step= 3
+        output = river.io.d3d.get_all_data_points(data, variable, time_step)
+        size_output = np.size(output) 
+        time_step_compair=4
+        output_expected= river.io.d3d.get_all_data_points(data, variable, time_step_compair)
+        size_output_expected= np.size(output_expected)
+        self.assertEqual(size_output, size_output_expected)
+        variable= 's1'
+        time_step= 3
+        output = river.io.d3d.get_all_data_points(data, variable, time_step)
+        size_output = np.size(output) 
+        time_step_compair=4
+        output_expected= river.io.d3d.get_all_data_points(data, variable, time_step_compair)
+        size_output_expected= np.size(output_expected)
+        self.assertEqual(size_output, size_output_expected)
  
     
     def test_unorm(self): 
@@ -360,6 +393,14 @@ class TestIO(unittest.TestCase):
         for var in TI_vars:    
             TI_data[var] = interp.griddata(TI_data_raw[var][['x','y','z']],
                                 TI_data_raw[var][var], points[['x','y','z']])
+            idx= np.where(np.isnan(TI_data[var]))
+        
+            if len(idx[0]):
+                for i in idx[0]: 
+                    TI_data[var][i]= interp.griddata(TI_data_raw[var][['x','y','z']], 
+                                TI_data_raw[var][var],
+                                [points['x'][i],points['y'][i], points['z'][i]],
+                                method='nearest')
         
         u_mag=river.io.d3d.unorm(TI_data['ucx'],TI_data['ucy'], TI_data['ucz'])
         turbulent_intensity_expected= np.sqrt(2/3*TI_data['turkin1'])/u_mag
