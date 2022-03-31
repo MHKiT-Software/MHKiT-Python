@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import netCDF4
+import warnings
 
 
 def get_all_timestamps (data):
@@ -35,7 +36,6 @@ def get_all_timestamps (data):
         time= np.ma.getdata(data.variables['time'][i], False)
         time_stamps= np.append(time_stamps, time)
 
-    
     return time_stamps
 
 def convert_time (data, time_index=None, time_stamp=None):
@@ -83,7 +83,7 @@ def convert_time (data, time_index=None, time_stamp=None):
         except: 
             idx = (np.abs(times - time_stamp)).argmin()
             QoI= idx
-            print(f'ERROR: invalid time_stamp. Closest time_stamp found {times[idx]}')
+            warnings.warn( f'ERROR: invalid time_stamp. Closest time stamp found {times[idx]}', stacklevel= 2)
 
     return QoI
 
@@ -148,17 +148,14 @@ def get_layer_data(data, variable, layer_index= -1 , time_index=-1):
                                     'coords':data.variables['LayCoord_cc'][:]},
                        'FlowLink_xu FlowLink_yu': {'name':'wdim', 
                                 'coords':data.variables['LayCoord_w'][:]}}
-    layer_dim =  str(data.variables['waterdepth'].coordinates)
+    layer_dim =  str(data.variables[variable].coordinates)
     
-    try:    
-        cord_sys= cords_to_layers[layer_dim]['coords']
-    except: 
-        raise Exception('coordinates not recognized')
-    else: 
-        layer_percentages= np.ma.getdata(cord_sys, False) #accumulative
+    
+    cord_sys= cords_to_layers[layer_dim]['coords']
+    layer_percentages= np.ma.getdata(cord_sys, False) #accumulative
     bottom_depth=np.ma.getdata(data.variables['waterdepth'][time_index, :], False)
     water_level= np.ma.getdata(data.variables['s1'][time_index, :], False)
-    if layer_dim == 'FlowLink_xu FlowLink_yu': 
+    if layer_dim == 'FlowLink_xu FlowLink_yu':
         #interpolate 
         coords = str(data.variables['waterdepth'].coordinates).split()
         x_laydim=np.ma.getdata(data.variables[coords[0]][:], False) 
@@ -424,7 +421,7 @@ def get_all_data_points(data, variable, time_index= -1):
                        'FlowLink_xu FlowLink_yu': {'name':'wdim', 
                                 'coords':data.variables['LayCoord_w'][:]}}
 
-    layer_dim =  str(data.variables['waterdepth'].coordinates)
+    layer_dim =  str(data.variables[variable].coordinates)
     
     try:    
         cord_sys= cords_to_layers[layer_dim]['coords']
