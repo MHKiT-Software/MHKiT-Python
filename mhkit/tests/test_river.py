@@ -300,6 +300,11 @@ class TestIO(unittest.TestCase):
         time_index= river.io.d3d.convert_time(data, time_stamp = time_stamp)
         time_index_expected = 1
         self.assertEqual(time_index, time_index_expected)
+        time_stamp = 62
+        time_index= river.io.d3d.convert_time(data, time_stamp = time_stamp)
+        time_index_expected = 1
+        output_expected= f'ERROR: invalid time_stamp. Closest time_stamp found {time_index_expected}'
+        self.assertWarns(UserWarning)
         
 
     def test_layer_data(self): 
@@ -330,10 +335,10 @@ class TestIO(unittest.TestCase):
         assert_array_almost_equal(layer_data.y,layer_data_expected.y, decimal = 2)
         assert_array_almost_equal(layer_data.v,layer_data_expected.v, decimal= 2)
         variable= 's1'
-        layer=2 
+        layer=-1
         time_index= 3
         layer_data= river.io.d3d.get_layer_data(data, variable, layer, time_index)
-        layer_compare = 2
+        layer_compare =-1
         time_index_compare= 4
         layer_data_expected= river.io.d3d.get_layer_data(data,
                                                         variable, layer_compare,
@@ -343,16 +348,15 @@ class TestIO(unittest.TestCase):
         assert_array_almost_equal(layer_data.y,layer_data_expected.y, decimal = 2)
         assert_array_almost_equal(layer_data.v,layer_data_expected.v, decimal= 2)
         
+        
     def test_create_points(self):
         x=np.linspace(1, 3, num= 3)
         y=np.linspace(1, 3, num= 3)
         z=1 
         points= river.io.d3d.create_points(x,y,z)
-        
         x=[1,2,3,1,2,3,1,2,3]
         y=[1,1,1,2,2,2,3,3,3]
         z=[1,1,1,1,1,1,1,1,1]
-        
         points_array= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x, y, z)]) 
         points_expected= pd.DataFrame(points_array, columns=('x','y','z'))
         assert_array_almost_equal(points, points_expected,decimal = 2) 
@@ -367,6 +371,21 @@ class TestIO(unittest.TestCase):
         points_array= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x, y, z)]) 
         points_expected= pd.DataFrame(points_array, columns=('x','y','z'))
         assert_array_almost_equal(points, points_expected,decimal = 2)
+        
+        # x=[]
+        # y=np.linspace(1, 3, num= 3)
+        # z=1 
+        # points= river.io.d3d.create_points(x,y,z)
+        # self.assertRaises(Exception, msg='length of direction x was neagative or zero')
+        
+        # x=np.linspace(1, 3, num= 3)
+        # y=np.linspace(1, 3, num= 3)
+        # z=np.linspace(1, 3, num= 3)
+        # points= river.io.d3d.create_points(x,y,z)
+        # self.assertRaises(Exception, msg='Can provide at most two arrays')
+        
+    def test_variable_interpolation(self):
+        data=self.d3d_flume_data
         
         
     def test_get_all_data_points(self): 
