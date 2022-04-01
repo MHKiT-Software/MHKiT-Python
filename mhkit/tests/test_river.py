@@ -372,21 +372,29 @@ class TestIO(unittest.TestCase):
         points_expected= pd.DataFrame(points_array, columns=('x','y','z'))
         assert_array_almost_equal(points, points_expected,decimal = 2)
         
-        # x=[]
-        # y=np.linspace(1, 3, num= 3)
-        # z=1 
-        # points= river.io.d3d.create_points(x,y,z)
-        # self.assertRaises(Exception, msg='length of direction x was neagative or zero')
+        x=[]
+        y=np.linspace(1, 3, num= 3)
+        z=1 
+        self.assertRaises(Exception, river.io.d3d.create_points, [x,y,z])
         
-        # x=np.linspace(1, 3, num= 3)
-        # y=np.linspace(1, 3, num= 3)
-        # z=np.linspace(1, 3, num= 3)
-        # points= river.io.d3d.create_points(x,y,z)
-        # self.assertRaises(Exception, msg='Can provide at most two arrays')
+        x=np.linspace(1, 3, num= 3)
+        y=np.linspace(1, 3, num= 3)
+        z=np.linspace(1, 3, num= 3)
+        self.assertRaises(Exception, river.io.d3d.create_points, [x,y,z])
         
     def test_variable_interpolation(self):
         data=self.d3d_flume_data
-        
+        variables= ['ucx','turkin1']
+        transformes_data= river.io.d3d.variable_interpolation(data, variables, points= 'faces')
+        self.assertEqual(np.size(transformes_data['ucx']), np.size(transformes_data['turkin1']))
+        transformes_data= river.io.d3d.variable_interpolation(data, variables, points= 'cells')
+        self.assertEqual(np.size(transformes_data['ucx']), np.size(transformes_data['turkin1']))        
+        x=np.linspace(1, 3, num= 3)
+        y=np.linspace(1, 3, num= 3)
+        z=1 
+        points= river.io.d3d.create_points(x,y,z)
+        transformes_data= river.io.d3d.variable_interpolation(data, variables, points= points)
+        self.assertEqual(np.size(transformes_data['ucx']), np.size(transformes_data['turkin1']))
         
     def test_get_all_data_points(self): 
         data=self.d3d_flume_data
