@@ -221,8 +221,9 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
         # get metadata
         col = data_raw.columns[:]
         meta = rex_waves.meta.loc[col,:]
-        meta = meta.reset_index(drop=True) 
+        meta = meta.reset_index(drop=True)
 
-    data = data_raw.to_xarray()
+    data = data_raw.to_xarray().to_array().drop('variable').squeeze()
+    data['time_index'] = pd.to_datetime(data.time_index)
 
-    return data, meta    
+    return data, meta, data_raw
