@@ -284,6 +284,28 @@ class TestIO(unittest.TestCase):
         # Every 15 minutes or 4 times per hour
         self.assertEqual(data.shape, (10*24*4, 1))
 
+    def test_get_all_timestamps(self): 
+        data= self.d3d_flume_data
+        time_stamps = river.io.d3d.get_all_timestamps(data)
+        time_stamps_expected= np.ndarray(shape=(5,), buffer= np.array([0, 60, 120, 180, 240]), dtype=int)
+        np.testing.assert_array_equal(time_stamps, time_stamps_expected)
+        
+    def test_convert_time(self): 
+        data= self.d3d_flume_data
+        time_index = 2
+        time_stamp = river.io.d3d.convert_time(data, time_index = time_index)
+        time_stamp_expected = 120 
+        self.assertEqual(time_stamp, time_stamp_expected)
+        time_stamp = 60
+        time_index= river.io.d3d.convert_time(data, time_stamp = time_stamp)
+        time_index_expected = 1
+        self.assertEqual(time_index, time_index_expected)
+        time_stamp = 62
+        time_index= river.io.d3d.convert_time(data, time_stamp = time_stamp)
+        time_index_expected = 1
+        output_expected= f'ERROR: invalid time_stamp. Closest time_stamp found {time_index_expected}'
+        self.assertWarns(UserWarning)
+        
 
     def test_layer_data(self): 
         data=self.d3d_flume_data
@@ -292,6 +314,31 @@ class TestIO(unittest.TestCase):
         time_index= 3
         layer_data= river.io.d3d.get_layer_data(data, variable, layer, time_index)
         layer_compare = 2
+        time_index_compare= 4
+        layer_data_expected= river.io.d3d.get_layer_data(data,
+                                                        variable, layer_compare,
+                                                        time_index_compare)
+        assert_array_almost_equal(layer_data.x,layer_data_expected.x, decimal = 2)
+        assert_array_almost_equal(layer_data.y,layer_data_expected.y, decimal = 2)
+        assert_array_almost_equal(layer_data.v,layer_data_expected.v, decimal= 2)
+        variable= 'turkin1'
+        layer=2 
+        time_index= 3
+        layer_data= river.io.d3d.get_layer_data(data, variable, layer, time_index)
+        layer_compare = 2
+        time_index_compare= 4
+        layer_data_expected= river.io.d3d.get_layer_data(data,
+                                                        variable, layer_compare,
+                                                        time_index_compare)
+       
+        assert_array_almost_equal(layer_data.x,layer_data_expected.x, decimal = 2)
+        assert_array_almost_equal(layer_data.y,layer_data_expected.y, decimal = 2)
+        assert_array_almost_equal(layer_data.v,layer_data_expected.v, decimal= 2)
+        variable= 's1'
+        layer=-1
+        time_index= 3
+        layer_data= river.io.d3d.get_layer_data(data, variable, layer, time_index)
+        layer_compare =-1
         time_index_compare= 4
         layer_data_expected= river.io.d3d.get_layer_data(data,
                                                         variable, layer_compare,
@@ -307,19 +354,67 @@ class TestIO(unittest.TestCase):
         y=np.linspace(1, 3, num= 3)
         z=1 
         points= river.io.d3d.create_points(x,y,z)
-        
         x=[1,2,3,1,2,3,1,2,3]
         y=[1,1,1,2,2,2,3,3,3]
         z=[1,1,1,1,1,1,1,1,1]
-        
         points_array= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x, y, z)]) 
         points_expected= pd.DataFrame(points_array, columns=('x','y','z'))
-        assert_array_almost_equal(points, points_expected,decimal = 2)  
+        assert_array_almost_equal(points, points_expected,decimal = 2) 
         
+        x=np.linspace(1, 3, num= 3)
+        y=1
+        z=2 
+        points= river.io.d3d.create_points(x,y,z)
+        x=[1,2,3]
+        y=[1,1,1]
+        z=[2,2,2]
+        points_array= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x, y, z)]) 
+        points_expected= pd.DataFrame(points_array, columns=('x','y','z'))
+        assert_array_almost_equal(points, points_expected,decimal = 2)
+        
+        x=[]
+        y=np.linspace(1, 3, num= 3)
+        z=1 
+        self.assertRaises(Exception, river.io.d3d.create_points, [x,y,z])
+        
+        x=np.linspace(1, 3, num= 3)
+        y=np.linspace(1, 3, num= 3)
+        z=np.linspace(1, 3, num= 3)
+        self.assertRaises(Exception, river.io.d3d.create_points, [x,y,z])
+        
+    def test_variable_interpolation(self):
+        data=self.d3d_flume_data
+        variables= ['ucx','turkin1']
+        transformes_data= river.io.d3d.variable_interpolation(data, variables, points= 'faces')
+        self.assertEqual(np.size(transformes_data['ucx']), np.size(transformes_data['turkin1']))
+        transformes_data= river.io.d3d.variable_interpolation(data, variables, points= 'cells')
+        self.assertEqual(np.size(transformes_data['ucx']), np.size(transformes_data['turkin1']))        
+        x=np.linspace(1, 3, num= 3)
+        y=np.linspace(1, 3, num= 3)
+        z=1 
+        points= river.io.d3d.create_points(x,y,z)
+        transformes_data= river.io.d3d.variable_interpolation(data, variables, points= points)
+        self.assertEqual(np.size(transformes_data['ucx']), np.size(transformes_data['turkin1']))
         
     def test_get_all_data_points(self): 
         data=self.d3d_flume_data
         variable= 'ucx'
+        time_step= 3
+        output = river.io.d3d.get_all_data_points(data, variable, time_step)
+        size_output = np.size(output) 
+        time_step_compair=4
+        output_expected= river.io.d3d.get_all_data_points(data, variable, time_step_compair)
+        size_output_expected= np.size(output_expected)
+        self.assertEqual(size_output, size_output_expected)
+        variable= 'turkin1'
+        time_step= 3
+        output = river.io.d3d.get_all_data_points(data, variable, time_step)
+        size_output = np.size(output) 
+        time_step_compair=4
+        output_expected= river.io.d3d.get_all_data_points(data, variable, time_step_compair)
+        size_output_expected= np.size(output_expected)
+        self.assertEqual(size_output, size_output_expected)
+        variable= 's1'
         time_step= 3
         output = river.io.d3d.get_all_data_points(data, variable, time_step)
         size_output = np.size(output) 
@@ -339,7 +434,7 @@ class TestIO(unittest.TestCase):
     
     def test_turbulent_intensity(self): 
         data=self.d3d_flume_data
-        time_step= -1
+        time_index= -1
         x_test=np.linspace(1, 17, num= 10)
         y_test=np.linspace(3, 3, num= 10)
         z_test=np.linspace(1, 1, num= 10)
@@ -347,25 +442,46 @@ class TestIO(unittest.TestCase):
         test_points = np.array([ [x, y, z] for x, y, z in zip(x_test, y_test, z_test)])
         points= pd.DataFrame(test_points, columns=['x','y','z'])
         
-        TI= river.io.d3d.turbulent_intensity(data, points, time_step)
+        TI= river.io.d3d.turbulent_intensity(data, points, time_index)
 
         TI_vars= ['turkin1', 'ucx', 'ucy', 'ucz']
         TI_data_raw = {}
         for var in TI_vars:
             #get all data
-            var_data_df = river.io.d3d.get_all_data_points(data, var,time_step)           
+            var_data_df = river.io.d3d.get_all_data_points(data, var,time_index)           
             TI_data_raw[var] = var_data_df 
             TI_data= points.copy(deep=True)
         
         for var in TI_vars:    
             TI_data[var] = interp.griddata(TI_data_raw[var][['x','y','z']],
                                 TI_data_raw[var][var], points[['x','y','z']])
+            idx= np.where(np.isnan(TI_data[var]))
+        
+            if len(idx[0]):
+                for i in idx[0]: 
+                    TI_data[var][i]= interp.griddata(TI_data_raw[var][['x','y','z']], 
+                                TI_data_raw[var][var],
+                                [points['x'][i],points['y'][i], points['z'][i]],
+                                method='nearest')
         
         u_mag=river.io.d3d.unorm(TI_data['ucx'],TI_data['ucy'], TI_data['ucz'])
         turbulent_intensity_expected= np.sqrt(2/3*TI_data['turkin1'])/u_mag
        
         
         assert_array_almost_equal(TI.turbulent_intensity, turbulent_intensity_expected, decimal = 2)     
+        
+        TI = river.io.d3d.turbulent_intensity(data, points='faces')
+        TI_size = np.size(TI)
+        turkin1= river.io.d3d.get_all_data_points(data, 'turkin1',time_index)
+        turkin1_size= np.size(turkin1)
+        self.assertEqual(TI_size, turkin1_size)
+        
+        TI = river.io.d3d.turbulent_intensity(data, points='cells')
+        TI_size = np.size(TI)
+        ucx= river.io.d3d.get_all_data_points(data, 'ucx',time_index)
+        ucx_size= np.size(ucx)
+        self.assertEqual(TI_size, ucx_size)
+       
        
 if __name__ == '__main__':
     unittest.main() 
