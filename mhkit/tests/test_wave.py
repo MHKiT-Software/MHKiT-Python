@@ -1045,7 +1045,7 @@ class TestWPTOhindcast(unittest.TestCase):
             meta_dir)=(wave.io.hindcast
                        .request_wpto_directional_spectrum(lat_lon,year='1995'))
             dir_multiyear = dir_multiyear.sel(time_index=slice(dir_multiyear.time_index[0],dir_multiyear.time_index[99]))
-            dir_multiyear = dir_multiyear.rename_vars({87:'87',58:'58'})
+            dir_multiyear = dir_multiyear.rename({87:'87',58:'58'})
 
             assert_frame_equal(self.ml,wave_multiloc)
             assert_frame_equal(self.ml_meta,meta)
