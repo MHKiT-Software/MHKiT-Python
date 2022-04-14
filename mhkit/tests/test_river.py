@@ -297,13 +297,13 @@ class TestIO(unittest.TestCase):
         time_stamp_expected = 120 
         self.assertEqual(time_stamp, time_stamp_expected)
         time_stamp = 60
-        time_index= river.io.d3d.convert_time(data, time_stamp = time_stamp)
+        time_index= river.io.d3d.convert_time(data, timestamp = time_stamp)
         time_index_expected = 1
         self.assertEqual(time_index, time_index_expected)
         time_stamp = 62
-        time_index= river.io.d3d.convert_time(data, time_stamp = time_stamp)
+        time_index= river.io.d3d.convert_time(data, timestamp = time_stamp)
         time_index_expected = 1
-        output_expected= f'ERROR: invalid time_stamp. Closest time_stamp found {time_index_expected}'
+        output_expected= f'ERROR: invalid timestamp. Closest timestamp found {time_index_expected}'
         self.assertWarns(UserWarning)
         
 
