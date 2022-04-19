@@ -9,7 +9,7 @@ import netCDF4
 import warnings
 
 
-def get_all_timestamps (data):
+def get_all_time (data):
     '''
     retunes all of the time stamps and their associated time index
     Parameters
@@ -20,22 +20,22 @@ def get_all_timestamps (data):
 
     Returns
     -------
-      timestamps: array
-        An array of positive integer or float the represents the amount of time in seconds 
-        that simulation has been running
+      seconds_run: array
+        An array of positive integer or float the represents the amount of time
+        in seconds that simulation has been running
     '''
     
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be netCDF4 object'
         
 
-    timestamps= np.ma.getdata(data.variables['time'][:], False)
+    seconds_run = np.ma.getdata(data.variables['time'][:], False)
 
-    return timestamps
+    return seconds_run
 
-def convert_time (data, time_index=None, timestamp=None):
+def convert_time (data, time_index=None, seconds_run=None):
     '''
-    Output the timestamp for a time_index and vice versa. The output captains 
-    both the time_index and timestamp. 
+    Output the seconds_run for a time_index and vice versa. The output captains 
+    both the time_index and seconds_run. 
 
     Parameters
     ----------
@@ -45,7 +45,7 @@ def convert_time (data, time_index=None, timestamp=None):
     time_index: int 
         A positive integer to pull the time step from the dataset. 0 being closest
         to time 0. Default is last time step -1.
-    timestamp: int, float
+    seconds_run: int, float
         a positive integer or float the represents the amount of time in seconds 
         that simulation has been running
 
@@ -53,31 +53,31 @@ def convert_time (data, time_index=None, timestamp=None):
     -------
     QoI: int, float
         The quantity of interest is the unknown value either the time_index or
-        the timestamp. The time_index is a positive integer starting form 0 
-        and incrementing until in simulation is complete. The timestamp is the 
+        the seconds_run. The time_index is a positive integer starting form 0 
+        and incrementing until in simulation is complete. The seconds_run is the 
         seconds corresponding to those increments
     '''
     
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be netCDF4 object'
-    assert time_index or timestamp, 'input of time_index or timestamp needed'
-    assert not(time_index and timestamp), (f'only one time_index or timestamp'
+    assert time_index or seconds_run, 'input of time_index or seconds_run needed'
+    assert not(time_index and seconds_run), (f'only one time_index or seconds_run'
                                             +' can be input')
-    assert isinstance(time_index, (int, float)) or isinstance(timestamp, 
+    assert isinstance(time_index, (int, float)) or isinstance(seconds_run 
                         (int, float)), 'time input must be a int or float'
    
     
-    times = get_all_timestamps(data)
+    times = get_all_time(data)
     
     if time_index:
         QoI= times[time_index]
-    if timestamp:
+    if seconds_run:
         try: 
-            idx=np.where(times == timestamp)
+            idx=np.where(times == seconds_run)
             QoI=idx[0][0]
         except: 
-            idx = (np.abs(times - timestamp)).argmin()
+            idx = (np.abs(times - seconds_run)).argmin()
             QoI= idx
-            warnings.warn( f'ERROR: invalid timestamp. Closest time stamp' 
+            warnings.warn( f'ERROR: invalid seconds_run. Closest time stamp' 
                           +'found {times[idx]}', stacklevel= 2)
 
     return QoI
