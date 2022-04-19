@@ -60,10 +60,8 @@ def convert_time (data, time_index=None, seconds_run=None):
     
     assert type(data)== netCDF4._netCDF4.Dataset, 'data must be netCDF4 object'
     assert time_index or seconds_run, 'input of time_index or seconds_run needed'
-    assert not(time_index and seconds_run), (f'only one time_index or seconds_run'
-                                            +' can be input')
-    assert isinstance(time_index, (int, float)) or isinstance(seconds_run 
-                        (int, float)), 'time input must be a int or float'
+    assert not(time_index and seconds_run), f'only one time_index or seconds_run'
+    assert isinstance(time_index, (int, float)) or isinstance(seconds_run, (int, float)), 'time input must be a int or float'
    
     
     times = get_all_time(data)
