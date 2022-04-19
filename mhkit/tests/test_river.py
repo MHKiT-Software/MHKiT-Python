@@ -284,26 +284,26 @@ class TestIO(unittest.TestCase):
         # Every 15 minutes or 4 times per hour
         self.assertEqual(data.shape, (10*24*4, 1))
 
-    def test_get_all_timestamps(self): 
+    def test_get_all_time(self): 
         data= self.d3d_flume_data
-        time_stamps = river.io.d3d.get_all_timestamps(data)
-        time_stamps_expected= np.ndarray(shape=(5,), buffer= np.array([0, 60, 120, 180, 240]), dtype=int)
-        np.testing.assert_array_equal(time_stamps, time_stamps_expected)
+        seconds_run = river.io.d3d.get_all_time(data)
+        seconds_run_expected= np.ndarray(shape=(5,), buffer= np.array([0, 60, 120, 180, 240]), dtype=int)
+        np.testing.assert_array_equal(seconds_run, seconds_run_expected)
         
     def test_convert_time(self): 
         data= self.d3d_flume_data
         time_index = 2
-        time_stamp = river.io.d3d.convert_time(data, time_index = time_index)
-        time_stamp_expected = 120 
-        self.assertEqual(time_stamp, time_stamp_expected)
-        time_stamp = 60
-        time_index= river.io.d3d.convert_time(data, timestamp = time_stamp)
+        seconds_run = river.io.d3d.convert_time(data, time_index = time_index)
+        seconds_run_expected = 120 
+        self.assertEqual(seconds_run, seconds_run_expected)
+        seconds_run = 60
+        time_index= river.io.d3d.convert_time(data, seconds_run = seconds_run)
         time_index_expected = 1
         self.assertEqual(time_index, time_index_expected)
-        time_stamp = 62
-        time_index= river.io.d3d.convert_time(data, timestamp = time_stamp)
+        seconds_run = 62
+        time_index= river.io.d3d.convert_time(data, seconds_run = seconds_run)
         time_index_expected = 1
-        output_expected= f'ERROR: invalid timestamp. Closest timestamp found {time_index_expected}'
+        output_expected= f'ERROR: invalid seconds_run. Closest seconds_run found {time_index_expected}'
         self.assertWarns(UserWarning)
         
 
