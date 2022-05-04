@@ -1,7 +1,7 @@
 <ADV data object>:  Nortek Vector
-  . 3.12 seconds (started: Jun 12, 2012 12:00)
+  . 3.09 seconds (started: Jun 12, 2012 12:00)
   . inst-frame
-  . (101 pings @ 32.0Hz)
+  . (100 pings @ 32.0Hz)
   Variables:
   - time ('time',)
   - vel ('dir', 'time')
@@ -11,6 +11,6 @@
   - roll ('time',)
   - temp ('time',)
   - pressure ('time',)
-  - amp ('dir', 'time')
-  - corr ('dir', 'time')
+  - amp ('beam', 'time')
+  - corr ('beam', 'time')
   ... and others (see `<obj>.variables`)

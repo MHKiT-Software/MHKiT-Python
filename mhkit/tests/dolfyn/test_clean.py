@@ -54,18 +54,24 @@ class clean_testcase(unittest.TestCase):
         assert_allclose(td, load('vector_data01_rclean.nc'), atol=1e-6)
 
     def test_clean_upADCP(self):
-        td = tp.dat_sig_tide.copy(deep=True)
+        td_awac = tp.dat_awac.copy(deep=True)
+        td_sig = tp.dat_sig_tide.copy(deep=True)
 
-        apm.clean.set_range_offset(td, 0.6)
-        apm.clean.find_surface_from_P(td, salinity=31)
-        td = apm.clean.nan_beyond_surface(td)
-        td = apm.clean.correlation_filter(td, thresh=50)
+        apm.clean.find_surface_from_P(td_awac, salinity=30)
+        td_awac = apm.clean.nan_beyond_surface(td_awac)
+
+        apm.clean.set_range_offset(td_sig, 0.6)
+        apm.clean.find_surface_from_P(td_sig, salinity=31)
+        td_sig = apm.clean.nan_beyond_surface(td_sig)
+        td_sig = apm.clean.correlation_filter(td_sig, thresh=50)
 
         if make_data:
-            save(td, 'Sig1000_tidal_clean.nc')
+            save(td_awac, 'AWAC_test01_clean.nc')
+            save(td_sig, 'Sig1000_tidal_clean.nc')
             return
 
-        assert_allclose(td, load('Sig1000_tidal_clean.nc'), atol=1e-6)
+        assert_allclose(td_awac, load('AWAC_test01_clean.nc'), atol=1e-6)
+        assert_allclose(td_sig, load('Sig1000_tidal_clean.nc'), atol=1e-6)
 
     def test_clean_downADCP(self):
         td = tp.dat_sig_ie.copy(deep=True)

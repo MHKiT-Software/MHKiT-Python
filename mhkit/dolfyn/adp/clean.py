@@ -10,9 +10,9 @@ from ..rotate.base import _make_model, quaternion2orient
 
 def set_range_offset(ds, h_deploy):
     """
-    Adds an instrument's height above seafloor (for an up-facing instrument) 
+    Adds an instrument's height above seafloor (for an up-facing instrument)
     or depth below water surface (for a down-facing instrument) to the range
-    coordinate. Also adds an attribute to the Dataset with the current 
+    coordinate. Also adds an attribute to the Dataset with the current
     "h_deploy" distance.
 
     Parameters
@@ -30,13 +30,13 @@ def set_range_offset(ds, h_deploy):
     -----
     `Center of bin 1 = h_deploy + blank_dist + cell_size`
 
-    Nortek doesn't take `h_deploy` into account, so the range that DOLfYN 
-    calculates distance is from the ADCP transducers. TRDI asks for `h_deploy` 
+    Nortek doesn't take `h_deploy` into account, so the range that DOLfYN
+    calculates distance is from the ADCP transducers. TRDI asks for `h_deploy`
     input in their deployment software and is thereby known by DOLfYN.
 
     If the ADCP is mounted on a tripod on the seafloor, `h_deploy` will be
     the height of the tripod +/- any extra distance to the transducer faces.
-    If the instrument is vessel-mounted, `h_deploy` is the distance between 
+    If the instrument is vessel-mounted, `h_deploy` is the distance between
     the surface and downward-facing ADCP's transducers.
 
     """
@@ -118,7 +118,7 @@ def find_surface_from_P(ds, salinity=35):
 
     Returns
     -------
-    None, operates "in place" and adds the variables "water_density" and 
+    None, operates "in place" and adds the variables "water_density" and
     "depth" to the input dataset.
 
     Notes
@@ -126,7 +126,7 @@ def find_surface_from_P(ds, salinity=35):
     Requires that the instrument's pressure sensor was calibrated/zeroed
     before deployment to remove atmospheric pressure.
 
-    Calculates seawater density at normal atmospheric pressure according 
+    Calculates seawater density at normal atmospheric pressure according
     to the UNESCO 1981 equation of state. Does not include hydrostatic pressure.
 
     """
@@ -171,15 +171,15 @@ def nan_beyond_surface(ds, val=np.nan):
     val : nan or numeric
       Specifies the value to set the bad values to (default np.nan).
 
-    Returns 
+    Returns
     -------
     ds : xarray.Dataset
-      The adcp dataset where relevant arrays with values greater than 
+      The adcp dataset where relevant arrays with values greater than
       `depth` are set to NaN
 
     Notes
     -----
-    Surface interference expected to happen at `r > depth * cos(beam_angle)`
+    Surface interference expected to happen at `distance > range * cos(beam angle) - cell size`
 
     """
     ds = ds.copy(deep=True)
@@ -195,19 +195,28 @@ def nan_beyond_surface(ds, val=np.nan):
         except:
             beam_angle = 20 * (np.pi/180)
 
-    bds = ds.range > (ds.depth * np.cos(beam_angle) - ds.cell_size)
+    # Surface interference distance calculated from distance of transducers to surface
+    if hasattr(ds, 'h_deploy'):
+        range_limit = ((ds.depth-ds.h_deploy) * np.cos(beam_angle) -
+                       ds.cell_size) + ds.h_deploy
+    else:
+        range_limit = ds.depth * np.cos(beam_angle) - ds.cell_size
 
+    bds = ds.range > range_limit
+
+    # Echosounder data needs only be trimmed at water surface
     if 'echo' in var:
         bds_echo = ds.range_echo > ds.depth
         ds['echo'].values[..., bds_echo] = val
         var.remove('echo')
 
+    # Correct rest of "range" data for surface interference
     for nm in var:
         a = ds[nm].values
-        if 'corr' in nm:
-            a[..., bds] = 0
-        else:
+        try:  # float dtype
             a[..., bds] = val
+        except:  # int dtype
+            a[..., bds] = 0
         ds[nm].values = a
 
     return ds
@@ -246,7 +255,7 @@ def val_exceeds_thresh(var, thresh=5, val=np.nan):
 
 def correlation_filter(ds, thresh=50, val=np.nan):
     """
-    Filters out velocity data where correlation is below a 
+    Filters out velocity data where correlation is below a
     threshold in the beam correlation data.
 
     Parameters

@@ -62,7 +62,7 @@ def group(bl, min_length=0):
     bl : |np.ndarray| (dtype='bool')
       The input boolean array.
     min_length : int (optional)
-      Specifies the minimum number of continuos points to consider a
+      Specifies the minimum number of continuous points to consider a
       `group` (i.e. that will be returned).
 
     Returns

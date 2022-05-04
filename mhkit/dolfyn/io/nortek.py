@@ -206,7 +206,7 @@ class _NortekReader():
         self.f = open(_abspath(fname), 'rb', bufsize)
         self.close = self.f.close
         if self._npings is not None:
-            self.n_samp_guess = self._npings + 1
+            self.n_samp_guess = self._npings
         self.f.seek(pnow, 0)  # Seek to the previous position.
 
         props = self.data['attrs']
@@ -219,8 +219,7 @@ class _NortekReader():
         props['coord_sys'] = {'XYZ': 'inst',
                               'ENU': 'earth',
                               'beam': 'beam'}[self.config['coord_sys_axes']]
-        # This just initializes it; this gets overwritten in read_microstrain
-        props['has_imu'] = 0
+        props['has_imu'] = 0  # Initiate attribute
         if self.debug:
             print('Init completed')
 
