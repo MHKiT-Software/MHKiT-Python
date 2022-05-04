@@ -1,13 +1,13 @@
 from . import test_read_adv as trv
 from . import test_read_adp as trp
+import mhkit.dolfyn.time as time
 from numpy.testing import assert_equal, assert_allclose
 import numpy as np
-import mhkit.dolfyn.time as time
 from datetime import datetime
 import unittest
 
 
-class warnings_testcase(unittest.TestCase):
+class time_testcase(unittest.TestCase):
     def test_time_conversion(self):
         td = trv.dat_imu.copy(deep=True)
         dat_sig = trp.dat_sig_i.copy(deep=True)

@@ -1,7 +1,7 @@
 import mhkit.dolfyn.tools.misc as tools
 from numpy.testing import assert_equal, assert_allclose
-import unittest
 import numpy as np
+import unittest
 
 
 class tools_testcase(unittest.TestCase):
