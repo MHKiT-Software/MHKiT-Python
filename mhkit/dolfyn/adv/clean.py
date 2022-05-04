@@ -121,7 +121,7 @@ def spike_thresh(u, thresh=10):
 
     Returns
     -------
-    mask : |np.ndarray|
+    mask : numpy.ndarray
       Logical vector with spikes labeled as 'True'
 
     """
@@ -146,7 +146,7 @@ def range_limit(u, range=[-5, 5]):
 
     Returns
     -------
-    mask : |np.ndarray|
+    mask : numpy.ndarray
       Logical vector with spikes labeled as 'True'
 
     """
@@ -182,7 +182,8 @@ def _phaseSpaceThresh(u):
     a = np.empty_like(alpha)
     b = np.empty_like(alpha)
     with warnings.catch_warnings() as w:
-        warnings.filterwarnings('ignore', category=RuntimeWarning, message='invalid value encountered in ')
+        warnings.filterwarnings(
+            'ignore', category=RuntimeWarning, message='invalid value encountered in ')
         for idx, al in enumerate(alpha):
             a[idx], b[idx] = _calcab(al, Lu * std_u[idx], Lu * std_d2u[idx])
             if np.any(np.isnan(a)) or np.any(np.isnan(a[idx])):
@@ -212,7 +213,7 @@ def GN2002(u, npt=5000):
 
     Returns
     -------
-    mask : |np.ndarray|
+    mask : numpy.ndarray
       Logical vector with spikes labeled as 'True'
 
     """

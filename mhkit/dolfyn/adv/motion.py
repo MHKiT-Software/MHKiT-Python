@@ -106,7 +106,7 @@ class _CalcMotion():
 
         Returns
         -------
-        velacc : |np.ndarray| (3 x n_time)
+        velacc : numpy.ndarray (3 x n_time)
                The acceleration-induced velocity array (3, n_time).
         """
         samp_freq = self.ds.fs
@@ -135,14 +135,14 @@ class _CalcMotion():
 
         Parameters
         ----------
-        vec : |np.ndarray| (len(3) or 3 x M)
+        vec : numpy.ndarray (len(3) or 3 x M)
           The vector in meters (or vectors) from the body-origin
           (center of head end-cap) to the point of interest (in the
           body coord-sys).
 
         Returns
         -------
-        velrot : |np.ndarray| (3 x M x N_time)
+        velrot : numpy.ndarray (3 x M x N_time)
           The rotation-induced velocity array (3, n_time).
 
         """

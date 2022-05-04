@@ -95,7 +95,7 @@ class ADVBinner(VelBinner):
         ----------
         psd : xarray.DataArray (...,n_time,n_f)
           The psd [m^2/s/rad] with frequency vector 'omega' [rad/s]
-        U_mag : |np.ndarray| (...,n_time)
+        U_mag : numpy.ndarray (...,n_time)
           The bin-averaged horizontal velocity [m/s] (from dataset shortcut)
         omega_range : iterable(2)
           The range over which to integrate/average the spectrum.
@@ -192,12 +192,12 @@ class ADVBinner(VelBinner):
 
         Parameters
         ----------
-        U_complex  : |np.ndarray| (..., n_time * n_bin)
+        U_complex  : numpy.ndarray (..., n_time * n_bin)
           The complex, raw horizontal velocity (non-binned)
 
         Returns
         -------
-        theta : |np.ndarray| (..., n_time)
+        theta : numpy.ndarray (..., n_time)
           The angle of the turbulence [rad]
 
         """
@@ -213,10 +213,10 @@ class ADVBinner(VelBinner):
 
         Parameters
         ----------
-        I_tke : |np.ndarray|
+        I_tke : numpy.ndarray
           (beta in TE01) is the turbulence intensity ratio:
           \\sigma_u / V
-        theta : |np.ndarray|
+        theta : numpy.ndarray
           is the angle between the mean flow and the primary axis of
           velocity fluctuations
 
@@ -302,7 +302,7 @@ class ADVBinner(VelBinner):
 
         Returns
         -------
-        L_int : |np.ndarray| (..., n_time)
+        L_int : numpy.ndarray (..., n_time)
           The integral length scale (T_int*U_mag).
 
         Notes

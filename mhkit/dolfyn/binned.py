@@ -86,7 +86,7 @@ class TimeBinner:
 
         Parameters
         ----------
-        arr : |np.ndarray|
+        arr : numpy.ndarray
         n_pad : int
           Is used to add `n_pad`/2 points from the end of the previous
           ensemble to the top of the current, and `n_pad`/2 points
@@ -99,7 +99,7 @@ class TimeBinner:
 
         Returns
         -------
-        out : |np.ndarray|
+        out : numpy.ndarray
 
         Notes
         -----
@@ -207,7 +207,7 @@ class TimeBinner:
         names : list of strings
            The names of variables to be averaged.  If `names` is None,
            all data in `raw_ds` will be binned.
-        noise : list or |np.ndarray|
+        noise : list or numpy.ndarray
           instrument's doppler noise in same units as velocity
 
         Returns
@@ -712,10 +712,10 @@ class TimeBinner:
 
         Parameters
         ----------
-        dat1 : |np.ndarray|
+        dat1 : numpy.ndarray
           The first (shorter, if applicable) raw dataArray of which to 
           calculate the cpsd.
-        dat2 : |np.ndarray|
+        dat2 : numpy.ndarray
           The second (the shorter, if applicable) raw dataArray of which to 
           calculate the cpsd.
         fs : float (optional)
@@ -731,7 +731,7 @@ class TimeBinner:
 
         Returns
         -------
-        out : |np.ndarray|
+        out : numpy.ndarray
           The cross-spectral density of `dat1` and `dat2`
 
         Notes
@@ -783,7 +783,7 @@ class TimeBinner:
 
         Returns
         -------
-        out: |np.ndarray|
+        out: numpy.ndarray
           Spectrum frequency array in units of 'Hz' or 'rad/s'
         """
         if n_fft is None:

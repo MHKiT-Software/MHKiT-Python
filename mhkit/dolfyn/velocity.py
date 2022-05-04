@@ -150,12 +150,12 @@ class Velocity():
 
         Notes
         -----
-        See |dlfn|'s :func:`save <dolfyn.io.api.save>` function for
+        See DOLfYN's :func:`save <dolfyn.io.api.save>` function for
         additional details.
 
         """
         save(self.ds, filename, **kwargs)
-    
+
     ########
     # Magic methods of the API
 
@@ -432,7 +432,7 @@ class Velocity():
 
 class VelBinner(TimeBinner):
     """This is the base binning (averaging) tool.
-    All |dlfn| binning tools derive from this base class.
+    All DOLfYN binning tools derive from this base class.
 
     Examples
     ========
@@ -653,7 +653,7 @@ class VelBinner(TimeBinner):
 
         # Spectra, if input is full velocity or a single array
         if len(veldat.shape) == 2:
-            assert veldat.shape[0]==3, "Function can only handle 1D or 3D arrays"
+            assert veldat.shape[0] == 3, "Function can only handle 1D or 3D arrays"
 
             out = np.empty(self._outshape_fft(veldat[:3].shape),
                            dtype=np.float32)

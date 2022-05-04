@@ -59,7 +59,7 @@ def group(bl, min_length=0):
 
     Parameters
     ----------
-    bl : |np.ndarray| (dtype='bool')
+    bl : numpy.ndarray (dtype='bool')
       The input boolean array.
     min_length : int (optional)
       Specifies the minimum number of continuous points to consider a
@@ -157,9 +157,9 @@ def fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
 
     Parameters
     ----------
-    a : |np.ndarray|
+    a : numpy.ndarray
       The array to be filled.
-    maxgap : |np.ndarray| (optional: inf)
+    maxgap : numpy.ndarray (optional: inf)
       The maximum gap to fill.
     dim : int (optional: 0)
       The dimension to operate along.
@@ -227,11 +227,11 @@ def interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
 
     Parameters
     ----------
-    a : |np.ndarray|
+    a : numpy.ndarray
       The array containing NaN values to be filled.
-    t : |np.ndarray| (len(t) == a.shape[dim])
+    t : numpy.ndarray (len(t) == a.shape[dim])
       Independent variable of the points in ``a``, e.g. timestep
-    maxgap : |np.ndarray| (optional: inf)
+    maxgap : numpy.ndarray (optional: inf)
       The maximum gap to fill.
     dim : int (optional: 0)
       The dimension to operate along.
@@ -281,9 +281,9 @@ def medfiltnan(a, kernel, thresh=0):
 
     Parameters
     ----------
-    a : |np.ndarray|
+    a : numpy.ndarray
       2D array containing data to be filtered.
-    kernel_size : |np.ndarray| or list, optional
+    kernel_size : numpy.ndarray or list, optional
       A scalar or a list of length 2, giving the size of the median 
       filter window in each dimension. Elements of kernel_size should 
       be odd. If kernel_size is a scalar, then this scalar is used as 
@@ -293,7 +293,7 @@ def medfiltnan(a, kernel, thresh=0):
 
     Returns
     -------
-    out : |np.ndarray|
+    out : numpy.ndarray
       2D array of same size containing filtered data
 
     See Also

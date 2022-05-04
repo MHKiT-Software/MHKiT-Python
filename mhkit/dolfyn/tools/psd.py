@@ -18,7 +18,7 @@ def psd_freq(nfft, fs, full=False):
 
     Returns
     -------
-    freq : |np.ndarray|
+    freq : numpy.ndarray
       The frequency vector, in same units as 'fs'
 
     """
@@ -83,9 +83,9 @@ def coherence(a, b, nfft, window='hann', debias=True, noise=(0, 0)):
 
     Parameters
     ----------
-    a : |np.ndarray|
+    a : numpy.ndarray
       The first array over which to compute coherence.
-    b : |np.ndarray|
+    b : numpy.ndarray
       The second array over which to compute coherence.
     nfft : int
       The number of points to use in the fft.
@@ -102,7 +102,7 @@ def coherence(a, b, nfft, window='hann', debias=True, noise=(0, 0)):
 
     Returns
     -------
-    out : |np.ndarray|
+    out : numpy.ndarray
       Coherence between `a` and `b`
 
     Notes
@@ -151,15 +151,15 @@ def cpsd_quasisync(a, b, nfft, fs, window='hann'):
 
     Parameters
     ----------
-    a : |np.ndarray|
+    a : numpy.ndarray
       The first signal.
-    b : |np.ndarray|
+    b : numpy.ndarray
       The second signal.
     nfft : int
       The number of points in the fft.
     fs : float
       The sample rate (e.g. sample/second).
-    window : {None, 1, 'hann', |np.ndarray|}
+    window : {None, 1, 'hann', numpy.ndarray}
       The window to use (default: 'hann'). Valid entries are:
       - None,1               : uses a 'boxcar' or ones window.
       - 'hann'               : hanning window.
@@ -167,7 +167,7 @@ def cpsd_quasisync(a, b, nfft, fs, window='hann'):
 
     Returns
     -------
-    cpsd : |np.ndarray|
+    cpsd : numpy.ndarray
       The cross-spectral density of `a` and `b`.
 
     See Also
@@ -234,15 +234,15 @@ def cpsd(a, b, nfft, fs, window='hann', step=None):
 
     Parameters
     ----------
-    a : |np.ndarray|
+    a : numpy.ndarray
       The first signal.
-    b : |np.ndarray|
+    b : numpy.ndarray
       The second signal.
     nfft : int
       The number of points in the fft.
     fs : float
       The sample rate (e.g. sample/second).
-    window : {None, 1, 'hann', |np.ndarray|}
+    window : {None, 1, 'hann', numpy.ndarray}
       The window to use (default: 'hann'). Valid entries are:
       - None,1               : uses a 'boxcar' or ones window.
       - 'hann'               : hanning window.
@@ -257,7 +257,7 @@ def cpsd(a, b, nfft, fs, window='hann', step=None):
 
     Returns
     -------
-    cpsd : |np.ndarray|
+    cpsd : numpy.ndarray
       The cross-spectral density of `a` and `b`.
 
     See also
@@ -325,13 +325,13 @@ def psd(a, nfft, fs, window='hann', step=None):
 
     Parameters
     ----------
-    a : |np.ndarray|
+    a : numpy.ndarray
       The first signal, as a 1D vector
     nfft : int
       The number of points in the fft.
     fs : float
       The sample rate (e.g. sample/second).
-    window : {None, 1, 'hann', |np.ndarray|}
+    window : {None, 1, 'hann', numpy.ndarray}
       The window to use (default: 'hann'). Valid entries are:
       - None,1               : uses a 'boxcar' or ones window.
       - 'hann'               : hanning window.
@@ -346,7 +346,7 @@ def psd(a, nfft, fs, window='hann', step=None):
 
     Returns
     -------
-    cpsd : |np.ndarray|
+    cpsd : numpy.ndarray
       The cross-spectral density of `a` and `b`.
 
     Notes
@@ -399,7 +399,7 @@ def phase_angle(a, b, nfft, window='hann', step=None):
 
     Returns
     -------
-    ang    : complex |np.ndarray| (unit magnitude values)
+    ang    : complex numpy.ndarray (unit magnitude values)
 
     See Also
     --------
