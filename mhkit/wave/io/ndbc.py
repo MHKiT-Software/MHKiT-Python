@@ -2,14 +2,17 @@ from collections import OrderedDict as _OrderedDict
 from collections import defaultdict as _defaultdict
 from io import BytesIO
 import pandas as pd
+import xarray as xr
 import numpy as np
+from datetime import datetime
+import csv
 import requests
 import zlib
 import pandas.errors
 
 
 
-def read_file(file_name, missing_values=['MM',9999,999,99]):
+def read_file(file_name, xarray=False, missing_values=['MM',9999,999,99]):
     """
     Reads a NDBC wave buoy data file (from https://www.ndbc.noaa.gov).
     
@@ -28,6 +31,9 @@ def read_file(file_name, missing_values=['MM',9999,999,99]):
     ------------
     file_name: string
         Name of NDBC wave buoy data file
+
+    xarray: bool
+        If true returns xarray instead of pandas DataFrame
     
     missing_value: list of values
         List of values that denote missing data    
@@ -40,8 +46,10 @@ def read_file(file_name, missing_values=['MM',9999,999,99]):
     metadata: dict or None
         Dictionary with {column name: units} key value pairs when the NDBC file  
         contains unit information, otherwise None is returned
+        (If xarray is true, then metadata will simply be a part of the data)
     """
     assert isinstance(file_name, str), 'file_name must be of type str'
+    assert isinstance(xarray, bool), 'xarray must be of type bool'
     assert isinstance(missing_values, list), 'missing_values must be of type list'
     
     # Open file and get header rows
@@ -69,49 +77,119 @@ def read_file(file_name, missing_values=['MM',9999,999,99]):
         parse_vals = header[0:5]
         date_format = '%Y %m %d %H %M'
         units = units[5:]   #remove date columns from units
+        columns = header[5:]  
     else:
         parse_vals = header[0:4]
         date_format = '%Y %m %d %H'
         units = units[4:]   #remove date columns from units
-    
-    # If first line is commented, manually feed in column names
-    if header_commented:
-        data = pd.read_csv(file_name, sep='\s+', header=None, names = header,
-                           comment = "#", parse_dates=[parse_vals]) 
-    # If first line is not commented, then the first row can be used as header                        
-    else:
-        data = pd.read_csv(file_name, sep='\s+', header=0,
-                           comment = "#", parse_dates=[parse_vals])
-                             
-    # Convert index to datetime
-    date_column = "_".join(parse_vals)
-    data['Time'] = pd.to_datetime(data[date_column], format=date_format)
-    data.index = data['Time'].values
-    # Remove date columns
-    del data[date_column]
-    del data['Time']
-    
+        columns = header[4:] 
+
+    # Create neutral dictionary of data for xr or pd
+    data_vars = {k:[] for k in header}   
+    count = 1
+    with open(file_name, newline='') as csvfile:
+        ndbc_reader = csv.reader(csvfile, delimiter=' ')
+        for row in ndbc_reader:
+            if header_commented and count == 1:
+                count += 1
+                continue
+            row = [i for i in row if i]
+            for key, value in zip(header,row):
+                data_vars[key].append(float(value))
+    # Create Time values
+    time = []
+    for i in range(len(data_vars[parse_vals[0]])):
+        dates = []
+        for key in parse_vals:
+            dates.append(data_vars[key][i])
+        time.append(datetime(*map(int, dates)))
+    # Remove the time from the data_vars
+    for key in parse_vals:
+        del data_vars[key]
+
     # If there was a row of units, convert to dictionary
     if units_exist:
-        metadata = {column:unit for column,unit in zip(data.columns,units)}
+        metadata = {column:unit for column,unit in zip(columns,units)}
     else:
         metadata = None
 
-    # Convert columns to numeric data if possible, otherwise leave as string
-    for column in data:
-        data[column] = pd.to_numeric(data[column], errors='ignore')
-        
-    # Convert column names to float if possible (handles frequency headers)
-    # if there is non-numeric name, just leave all as strings.
+    # Convert columns to numeric data if possible, otherwise leave as string    
     try:
-        data.columns = [float(column) for column in data.columns]
+        data_vars = {float(k):v for k,v in data_vars.items()}
     except:
-        data.columns = data.columns
+        pass
+            
+    # Convert dictionaries to either pandas or xarray
+    if xarray:
+        # Need to format dictionary for dataset before converting
+        d = {
+            "coords": {
+                "Time": {"dims": "Time", "data":time }},
+            "attrs":{}, # A title and other such details can go here
+            "dims": "Time",
+            "data_vars":{}            
+        }
+        for key in data_vars.keys():
+            if metadata is not None:
+                d["data_vars"][key] = { "dims": "Time",
+                                        "data": data_vars[key],
+                                        "attrs": {"units": metadata[key]}}
+            else:
+                d["data_vars"][key] = { "dims": "Time",
+                                        "data": data_vars[key]}
+
+        data = xr.Dataset.from_dict(d)
+        # Replace indicated missing values with nan
+        for val in missing_values:            
+            data.where(data != val) 
+
+        return data
+
+    else: 
+        # Pandas DataFrame (put time back into data_vars)
+        data_vars["Time"] = time
+        data = pd.DataFrame.from_dict(data_vars)
+        # Set time as index
+        data.set_index("Time",drop=True,inplace=True)         
+        # Replace indicated missing values with nan
+        data.replace(missing_values, np.nan, inplace=True)
+        return data, metadata
     
-    # Replace indicated missing values with nan
-    data.replace(missing_values, np.nan, inplace=True)
+    # # If first line is commented, manually feed in column names    
+    # if header_commented:
+    #     data = pd.read_csv(file_name, sep='\s+', header=None, names = header,
+    #                        comment = "#", parse_dates=[parse_vals]) 
+    # # If first line is not commented, then the first row can be used as header                        
+    # else:
+    #     data = pd.read_csv(file_name, sep='\s+', header=0,
+    #                        comment = "#", parse_dates=[parse_vals])
+                             
+    # # Convert index to datetime
+    # date_column = "_".join(parse_vals)
+    # data['Time'] = pd.to_datetime(data[date_column], format=date_format)
+    # data.index = data['Time'].values
+    # # Remove date columns
+    # del data[date_column]
+    # del data['Time']
     
-    return data, metadata
+    # # If there was a row of units, convert to dictionary
+    # if units_exist:
+    #     metadata = {column:unit for column,unit in zip(data.columns,units)}
+    # else:
+    #     metadata = None
+
+    # # Convert columns to numeric data if possible, otherwise leave as string
+    # for column in data:
+    #     data[column] = pd.to_numeric(data[column], errors='ignore')
+        
+    # # Convert column names to float if possible (handles frequency headers)
+    # # if there is non-numeric name, just leave all as strings.
+    # try:
+    #     data.columns = [float(column) for column in data.columns]
+    # except:
+    #     data.columns = data.columns 
+    
+    
 
 
 def available_data(parameter,
