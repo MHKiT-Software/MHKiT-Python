@@ -75,27 +75,29 @@ def read_file(file_name, xarray=False, missing_values=['MM',9999,999,99]):
     # to parse for date
     if header[4] == 'mm':
         parse_vals = header[0:5]
-        date_format = '%Y %m %d %H %M'
         units = units[5:]   #remove date columns from units
         columns = header[5:]  
     else:
         parse_vals = header[0:4]
-        date_format = '%Y %m %d %H'
         units = units[4:]   #remove date columns from units
         columns = header[4:] 
 
     # Create neutral dictionary of data for xr or pd
-    data_vars = {k:[] for k in header}   
-    count = 1
+    data_vars = {k:[] for k in header}
     with open(file_name, newline='') as csvfile:
         ndbc_reader = csv.reader(csvfile, delimiter=' ')
         for row in ndbc_reader:
-            if header_commented and count == 1:
-                count += 1
+            if row[0].startswith("#"):
                 continue
             row = [i for i in row if i]
             for key, value in zip(header,row):
-                data_vars[key].append(float(value))
+                if value in missing_values:
+                    data_vars[key].append(np.nan)
+                else:
+                    try:
+                        data_vars[key].append(float(value))
+                    except ValueError:
+                        data_vars[key].append(value)
     # Create Time values
     time = []
     for i in range(len(data_vars[parse_vals[0]])):
@@ -138,10 +140,7 @@ def read_file(file_name, xarray=False, missing_values=['MM',9999,999,99]):
                 d["data_vars"][key] = { "dims": "Time",
                                         "data": data_vars[key]}
 
-        data = xr.Dataset.from_dict(d)
-        # Replace indicated missing values with nan
-        for val in missing_values:            
-            data.where(data != val) 
+        data = xr.Dataset.from_dict(d)        
 
         return data
 
@@ -150,46 +149,8 @@ def read_file(file_name, xarray=False, missing_values=['MM',9999,999,99]):
         data_vars["Time"] = time
         data = pd.DataFrame.from_dict(data_vars)
         # Set time as index
-        data.set_index("Time",drop=True,inplace=True)         
-        # Replace indicated missing values with nan
-        data.replace(missing_values, np.nan, inplace=True)
-        return data, metadata
-    
-    # # If first line is commented, manually feed in column names    
-    # if header_commented:
-    #     data = pd.read_csv(file_name, sep='\s+', header=None, names = header,
-    #                        comment = "#", parse_dates=[parse_vals]) 
-    # # If first line is not commented, then the first row can be used as header                        
-    # else:
-    #     data = pd.read_csv(file_name, sep='\s+', header=0,
-    #                        comment = "#", parse_dates=[parse_vals])
-                             
-    # # Convert index to datetime
-    # date_column = "_".join(parse_vals)
-    # data['Time'] = pd.to_datetime(data[date_column], format=date_format)
-    # data.index = data['Time'].values
-    # # Remove date columns
-    # del data[date_column]
-    # del data['Time']
-    
-    # # If there was a row of units, convert to dictionary
-    # if units_exist:
-    #     metadata = {column:unit for column,unit in zip(data.columns,units)}
-    # else:
-    #     metadata = None
-
-    # # Convert columns to numeric data if possible, otherwise leave as string
-    # for column in data:
-    #     data[column] = pd.to_numeric(data[column], errors='ignore')
-        
-    # # Convert column names to float if possible (handles frequency headers)
-    # # if there is non-numeric name, just leave all as strings.
-    # try:
-    #     data.columns = [float(column) for column in data.columns]
-    # except:
-    #     data.columns = data.columns 
-    
-    
+        data.set_index("Time",drop=True,inplace=True) 
+        return data, metadata  
 
 
 def available_data(parameter,
