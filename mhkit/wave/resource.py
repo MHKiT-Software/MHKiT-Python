@@ -1,6 +1,7 @@
 from scipy.optimize import fsolve as _fsolve
 from scipy import signal as _signal
 import pandas as pd
+import xarray as xr
 import numpy as np
 from scipy import stats
 
@@ -256,38 +257,80 @@ def frequency_moment(S, N, frequency_bins=None):
     N: int
         Moment (0 for 0th, 1 for 1st ....)
     frequency_bins: numpy array or pandas Series (optional)
-        Bin widths for frequency of S. Required for unevenly sized bins
+        Bin widths for frequency of S. Required for unevenly sized bins    
 
     Returns
     -------
     m: pandas DataFrame
         Nth Frequency Moment indexed by S.columns
     """
-    assert isinstance(S, (pd.Series,pd.DataFrame)), 'S must be of type pd.DataFrame or pd.Series'
+    assert isinstance(S, (pd.Series,pd.DataFrame, 
+                        xr.DataArray, xr.Dataset)), \
+                        'S must be of type pd.DataFrame, pd.Series, xr.DataArray, or xr.Dataset'
     assert isinstance(N, int), 'N must be of type int'
 
-    # Eq 8 in IEC 62600-101
-    spec = S[S.index > 0] # omit frequency of 0
+    # xr_used = isinstance(S, (xr.DataArray, xr.Dataset))
+    # if xr_used:
+    #     # convert the xarray to pandas
+    #     S = S.to_pandas()
 
-    f = spec.index
-    fn = np.power(f, N)
-    if frequency_bins is None:
-        delta_f = pd.Series(f).diff()
-        delta_f[0] = f[1]-f[0]
+    # if xr_used:
+        #     m = m.to_xarray()
+
+    if isinstance(S,(xr.DataArray, xr.Dataset)):
+        f = [i for i in list(S.data_vars.keys()) if i > 0.0]
+        fn = np.power(f, N)
+        spec = xr.concat([S[f]],"freq").to_array()
+        spec = spec.transpose().squeeze('freq')
+
+        if frequency_bins is None:
+            delta_f = np.diff(f)
+            delta_f = np.insert(delta_f, 0, f[1]-f[0])
+        else:
+            assert isinstance(frequency_bins, (np.ndarray,pd.Series,pd.DataFrame)),(
+            'frequency_bins must be of type np.ndarray or pd.Series')
+            if isinstance(frequency_bins, (pd.Series,pd.DataFrame)):
+                frequency_bins = frequency_bins.to_numpy()
+            delta_f = frequency_bins
+
+        m = np.einsum('ij,j->ji', spec, fn)
+        m = np.einsum('ij,i->ij', m, delta_f)
+        m = np.sum(m, axis=0)
+       
+
+        if isinstance(S,xr.DataArray):
+            m = xr.DataArray(data=m,coords=S.indexes.values(),dims="Time" )
+        else:            
+            m = xr.Dataset(
+                data_vars=dict(
+                    freq_mom=("Time", m)),
+                coords=dict(                   
+                    Time=S.coords["Time"]),
+                attrs=dict(
+                    description=f"The {N} frequency moment of the spectrum"))                
+    
     else:
+        # Eq 8 in IEC 62600-101
+        spec = S[S.index > 0] # omit frequency of 0
 
-        assert isinstance(frequency_bins, (np.ndarray,pd.Series,pd.DataFrame)),(
-         'frequency_bins must be of type np.ndarray or pd.Series')
-        delta_f = pd.Series(frequency_bins)
+        f = spec.index
+        fn = np.power(f, N)
+        if frequency_bins is None:
+            delta_f = pd.Series(f).diff()
+            delta_f[0] = f[1]-f[0]
+        else:
+            assert isinstance(frequency_bins, (np.ndarray,pd.Series,pd.DataFrame)),(
+            'frequency_bins must be of type np.ndarray or pd.Series')
+            delta_f = pd.Series(frequency_bins)
 
-    delta_f.index = f
+        delta_f.index = f
 
-    m = spec.multiply(fn,axis=0).multiply(delta_f,axis=0)
-    m = m.sum(axis=0)
-    if isinstance(S,pd.Series):
-        m = pd.DataFrame(m, index=[0], columns = ['m'+str(N)])
-    else:
-        m = pd.DataFrame(m, index=S.columns, columns = ['m'+str(N)])
+        m = spec.multiply(fn,axis=0).multiply(delta_f,axis=0)
+        m = m.sum(axis=0)
+        if isinstance(S,pd.Series):
+            m = pd.DataFrame(m, index=[0], columns = ['m'+str(N)])
+        else:
+            m = pd.DataFrame(m, index=S.columns, columns = ['m'+str(N)])          
 
     return m
 
@@ -443,7 +486,16 @@ def energy_period(S,frequency_bins=None):
         Wave energy period [s] indexed by S.columns
     """
 
-    assert isinstance(S, (pd.Series,pd.DataFrame)), 'S must be of type pd.DataFrame or pd.Series'
+    assert isinstance(S, (pd.Series,pd.DataFrame, 
+                        xr.DataArray, xr.Dataset)), \
+                        'S must be of type pd.DataFrame, pd.Series, xr.DataArray, or xr.Dataset'
+
+    # xr_used = isinstance(S, (xr.DataArray, xr.Dataset))
+    # if xr_used:
+    #     # Pandas does a better job of swapping index and data so we 
+    #     # convert the xarray to pandas
+    #     S = S.to_pandas()
+    #     S = S.transpose()
 
     mn1 = frequency_moment(S,-1,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
     m0  = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze()
@@ -454,6 +506,10 @@ def energy_period(S,frequency_bins=None):
             Te = pd.DataFrame(Te, index=[0], columns=['Te'])
     else:
             Te = pd.DataFrame(Te, S.columns, columns=['Te'])
+
+    # if xr_used:
+    #     # Convert back to xarray
+    #     Te = Te.to_xarray()
 
 
     return Te
