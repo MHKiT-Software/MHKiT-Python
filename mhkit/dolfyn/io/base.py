@@ -85,6 +85,19 @@ def _handle_nan(data):
 
     if any(np.isnan(data['coords']['time'])):
         nan += np.isnan(data['coords']['time'])
+        
+    # Required for motion-correction algorithm
+    var = ['accel', 'angrt', 'mag']
+    for key in data['data_vars']:
+        if any(val in key for val in var):
+            shp = data['data_vars'][key].shape
+            if shp[-1] == l:
+                if len(shp) == 1:
+                    if any(np.isnan(data['data_vars'][key])):
+                        nan += np.isnan(data['data_vars'][key])
+                elif len(shp) == 2:
+                    if any(np.isnan(data['data_vars'][key][-1])):
+                        nan += np.isnan(data['data_vars'][key][-1])
 
     if nan.sum() > 0:
         data['coords']['time'] = data['coords']['time'][~nan]

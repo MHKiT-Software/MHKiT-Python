@@ -1,7 +1,8 @@
 from . import test_read_adv as tv
 #from . import test_read_adp as tp
-from .base import load_netcdf as load, save_netcdf as save, assert_allclose
+from .base import load_netcdf as load, save_netcdf as save, assert_allclose, drop_config
 from mhkit.dolfyn.adv import api
+from mhkit.dolfyn.io.api import read_example as read
 import unittest
 
 make_data = False
@@ -33,6 +34,13 @@ class mc_testcase(unittest.TestCase):
         tdmE.velds.set_declination(10.0, inplace=True)
         tdmE.velds.rotate2('earth', inplace=True)
         tdmE = api.correct_motion(tdmE)
+
+        # ensure trailing nans are removed from AHRS data
+        ahrs = drop_config(read(
+            'vector_data_imu01.VEC', userdata=True))
+        for var in ['accel', 'angrt', 'mag']:
+            assert not ahrs[var].isnull().any(
+            ), "nan's in {} variable".format(var)
 
         if make_data:
             save(tdm, 'vector_data_imu01_mc.nc')
