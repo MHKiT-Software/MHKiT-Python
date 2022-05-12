@@ -94,7 +94,7 @@ class TimeBinner:
           current.  Zeros are padded in the upper-left and lower-right
           corners of the matrix (beginning/end of timeseries).  In
           this case, the array shape will be (...,`n`,`n_pad`+`n_bin`)
-        n_bin : float, int (optional)
+        n_bin : int (default is self.n_bin)
           Override this binner's n_bin.
 
         Returns
@@ -138,65 +138,105 @@ class TimeBinner:
 
         return out
 
-    def detrend(self, dat, n_pad=0, n_bin=None):
-        """Reshape the array `dat` and remove the best-fit trend line.
-        """
-        return detrend(self.reshape(dat, n_pad=n_pad, n_bin=n_bin), axis=-1)
-
-    def demean(self, dat, n_pad=0, n_bin=None):
-        """Reshape the array `dat` and remove the mean from each ensemble.
-        """
-        dt = self.reshape(dat, n_pad=n_pad, n_bin=n_bin)
-        return dt - np.nanmean(dt, -1)[..., None]
-
-    def mean(self, dat, axis=-1, n_bin=None):
-        """Takes the average of binned data
+    def detrend(self, arr, axis=-1, n_pad=0, n_bin=None):
+        """Reshape the array `arr` and remove the best-fit trend line
+        from each ensemble.
 
         Parameters
         ----------
-        dat : numpy.ndarray
+        arr : numpy.ndarray
+        axis : int (default is -1)
+          Axis along which to take mean
+        n_pad : int (default is 0)
+          Is used to add `n_pad`/2 points from the end of the previous
+          ensemble to the top of the current, and `n_pad`/2 points
+          from the top of the next ensemble to the bottom of the
+          current.  Zeros are padded in the upper-left and lower-right
+          corners of the matrix (beginning/end of timeseries).  In
+          this case, the array shape will be (...,`n`,`n_pad`+`n_bin`)
         n_bin : int (default is self.n_bin)
+          Override this binner's n_bin.
 
         """
-        if np.issubdtype(dat.dtype, np.datetime64):
-            return epoch2dt64(self.mean(dt642epoch(dat), axis=axis, n_bin=n_bin))
+        return detrend(self.reshape(arr, n_pad=n_pad, n_bin=n_bin), axis=axis)
+
+    def demean(self, arr, axis=-1, n_pad=0, n_bin=None):
+        """Reshape the array `arr` and remove the mean from each ensemble.
+
+        Parameters
+        ----------
+        arr : numpy.ndarray
+        axis : int (default is -1)
+          Axis along which to take mean
+        n_pad : int (default is 0)
+          Is used to add `n_pad`/2 points from the end of the previous
+          ensemble to the top of the current, and `n_pad`/2 points
+          from the top of the next ensemble to the bottom of the
+          current.  Zeros are padded in the upper-left and lower-right
+          corners of the matrix (beginning/end of timeseries).  In
+          this case, the array shape will be (...,`n`,`n_pad`+`n_bin`)
+        n_bin : int (default is self.n_bin)
+          Override this binner's n_bin.
+
+        """
+        dt = self.reshape(arr, n_pad=n_pad, n_bin=n_bin)
+        return dt - np.nanmean(dt, axis)[..., None]
+
+    def mean(self, arr, axis=-1, n_bin=None):
+        """Reshape the array `arr` and take the mean of each ensemble
+        along the specified `axis`.
+
+        Parameters
+        ----------
+        arr : numpy.ndarray
+        axis : int (default is -1)
+          Axis along which to take mean
+        n_bin : int (default is self.n_bin)
+          Override this binner's n_bin.
+
+        """
+        if np.issubdtype(arr.dtype, np.datetime64):
+            return epoch2dt64(self.mean(dt642epoch(arr), axis=axis, n_bin=n_bin))
         if axis != -1:
-            dat = np.swapaxes(dat, axis, -1)
+            arr = np.swapaxes(arr, axis, -1)
         n_bin = self._parse_nbin(n_bin)
-        tmp = self.reshape(dat, n_bin=n_bin)
+        tmp = self.reshape(arr, n_bin=n_bin)
 
         return np.nanmean(tmp, -1)
 
-    def var(self, dat, n_bin=None):
-        """Finds the variance of binned data
-        """
-        return self.reshape(dat, n_bin=n_bin).var(-1)
+    def var(self, arr, axis=-1, n_bin=None):
+        """Reshape the array `arr` and take the variance of each ensemble
+        along the specified `axis`.
 
-    def std(self, dat, n_bin=None):
-        """Finds the standard deviation of binned data
-        """
-        return self.reshape(dat, n_bin=n_bin).std(-1)
+        Parameters
+        ----------
+        arr : numpy.ndarray
+        axis : int (default is -1)
+          Axis along which to take variance
+        n_bin : int (default is self.n_bin)
+          Override this binner's n_bin.
 
-    def _new_coords(self, array):
-        """Function for setting up a new xarray.DataArray regardless of how 
-        many dimensions the input data-array has
         """
-        dims = array.dims
-        dims_list = []
-        coords_dict = {}
-        if len(array.shape) == 1 & ('dir' in array.coords):
-            array = array.drop_vars('dir')
-        for ky in dims:
-            dims_list.append(ky)
-            if 'time' in ky:
-                coords_dict[ky] = self.mean(array.time.values)
-            else:
-                coords_dict[ky] = array.coords[ky].values
+        return self.reshape(arr, n_bin=n_bin).var(axis)
 
-        return dims_list, coords_dict
+    def std(self, arr, axis=-1, n_bin=None):
+        """Reshape the array `arr` and take the standard deviation of each ensemble
+        along the specified `axis`.
+
+        Parameters
+        ----------
+        arr : numpy.ndarray
+        axis : int (default is -1)
+          Axis along which to take std dev
+        n_bin : int (default is self.n_bin)
+          Override this binner's n_bin.
+
+        """
+        return self.reshape(arr, n_bin=n_bin).std(axis)
 
     def do_avg(self, raw_ds, out_ds=None, names=None, noise=[0, 0, 0]):
-        """Average data into bins/ensembles
+        """Bin the dataset and calculate the ensemble averages of each 
+        variable.
 
         Parameters
         ----------
@@ -267,7 +307,8 @@ class TimeBinner:
         return out_ds
 
     def do_var(self, raw_ds, out_ds=None, names=None, suffix='_var'):
-        """Find the variances of binned data. Complementary to `do_avg()`.
+        """Bin the dataset and calculate the ensemble variances of each 
+        variable. Complementary to `do_avg()`.
 
         Parameters
         ----------
@@ -365,6 +406,24 @@ class TimeBinner:
             else:
                 o_attrs[ky] = props[ky]
         return out_ds
+
+    def _new_coords(self, array):
+        """Function for setting up a new xarray.DataArray regardless of how 
+        many dimensions the input data-array has
+        """
+        dims = array.dims
+        dims_list = []
+        coords_dict = {}
+        if len(array.shape) == 1 & ('dir' in array.coords):
+            array = array.drop_vars('dir')
+        for ky in dims:
+            dims_list.append(ky)
+            if 'time' in ky:
+                coords_dict[ky] = self.mean(array.time.values)
+            else:
+                coords_dict[ky] = array.coords[ky].values
+
+        return dims_list, coords_dict
 
     def _calc_lag(self, npt=None, one_sided=False):
         if npt is None:
