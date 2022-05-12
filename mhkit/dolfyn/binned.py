@@ -138,18 +138,18 @@ class TimeBinner:
 
         return out
 
-    def _detrend(self, dat, n_pad=0, n_bin=None):
+    def detrend(self, dat, n_pad=0, n_bin=None):
         """Reshape the array `dat` and remove the best-fit trend line.
         """
         return detrend(self.reshape(dat, n_pad=n_pad, n_bin=n_bin), axis=-1)
 
-    def _demean(self, dat, n_pad=0, n_bin=None):
+    def demean(self, dat, n_pad=0, n_bin=None):
         """Reshape the array `dat` and remove the mean from each ensemble.
         """
         dt = self.reshape(dat, n_pad=n_pad, n_bin=n_bin)
         return dt - np.nanmean(dt, -1)[..., None]
 
-    def _mean(self, dat, axis=-1, n_bin=None):
+    def mean(self, dat, axis=-1, n_bin=None):
         """Takes the average of binned data
 
         Parameters
@@ -159,7 +159,7 @@ class TimeBinner:
 
         """
         if np.issubdtype(dat.dtype, np.datetime64):
-            return epoch2dt64(self._mean(dt642epoch(dat), axis=axis, n_bin=n_bin))
+            return epoch2dt64(self.mean(dt642epoch(dat), axis=axis, n_bin=n_bin))
         if axis != -1:
             dat = np.swapaxes(dat, axis, -1)
         n_bin = self._parse_nbin(n_bin)
@@ -167,12 +167,12 @@ class TimeBinner:
 
         return np.nanmean(tmp, -1)
 
-    def _var(self, dat, n_bin=None):
+    def var(self, dat, n_bin=None):
         """Finds the variance of binned data
         """
         return self.reshape(dat, n_bin=n_bin).var(-1)
 
-    def _std(self, dat, n_bin=None):
+    def std(self, dat, n_bin=None):
         """Finds the standard deviation of binned data
         """
         return self.reshape(dat, n_bin=n_bin).std(-1)
@@ -189,7 +189,7 @@ class TimeBinner:
         for ky in dims:
             dims_list.append(ky)
             if 'time' in ky:
-                coords_dict[ky] = self._mean(array.time.values)
+                coords_dict[ky] = self.mean(array.time.values)
             else:
                 coords_dict[ky] = array.coords[ky].values
 
@@ -241,14 +241,14 @@ class TimeBinner:
             coords_dict = {}
             for nm in dims_list:
                 if 'time' in nm:
-                    coords_dict[nm] = self._mean(raw_ds[ky][nm].values)
+                    coords_dict[nm] = self.mean(raw_ds[ky][nm].values)
                 else:
                     coords_dict[nm] = raw_ds[ky][nm].values
 
             # create Dataset
             if 'ensemble' not in ky:
                 try:  # variables with time coordinate
-                    out_ds[ky] = xr.DataArray(self._mean(raw_ds[ky].values),
+                    out_ds[ky] = xr.DataArray(self.mean(raw_ds[ky].values),
                                               coords=coords_dict,
                                               dims=dims_list,
                                               attrs=raw_ds[ky].attrs)
@@ -311,14 +311,14 @@ class TimeBinner:
             coords_dict = {}
             for nm in dims_list:
                 if 'time' in nm:
-                    coords_dict[nm] = self._mean(raw_ds[ky][nm].values)
+                    coords_dict[nm] = self.mean(raw_ds[ky][nm].values)
                 else:
                     coords_dict[nm] = raw_ds[ky][nm].values
 
             # create Dataset
             if 'ensemble' not in ky:
                 try:  # variables with time coordinate
-                    out_ds[ky+suffix] = xr.DataArray(self._var(raw_ds[ky].values),
+                    out_ds[ky+suffix] = xr.DataArray(self.var(raw_ds[ky].values),
                                                      coords=coords_dict,
                                                      dims=dims_list,
                                                      attrs=raw_ds[ky].attrs)
@@ -564,7 +564,7 @@ class TimeBinner:
         # Here we de-mean only on the 'valid' range:
         dt1 = dt1 - dt1[..., :, int(n_bin // 4):
                         int(-n_bin // 4)].mean(-1)[..., None]
-        dt2 = self._demean(indat)
+        dt2 = self.demean(indat)
         se = slice(int(n_bin // 4) - 1, None, 1)
         sb = slice(int(n_bin // 4) - 1, None, -1)
         for slc in slice1d_along_axis(dt1.shape, -1):
@@ -639,13 +639,13 @@ class TimeBinner:
         dt1 = dt1 - dt1[..., :, int(tmp // 2)
                                     :int(-tmp // 2)].mean(-1)[..., None]
         # Don't need to pad the second variable:
-        dt2 = self._demean(dat2, n_bin=n_bin2)
+        dt2 = self.demean(dat2, n_bin=n_bin2)
 
         for slc in slice1d_along_axis(shp, -1):
             out[slc] = np.correlate(dt1[slc], dt2[slc], 'valid')
         if normed:
-            out /= (self._std(dat1, n_bin=n_bin1)[..., :shp[-2]] *
-                    self._std(dat2, n_bin=n_bin2)[..., :shp[-2]] *
+            out /= (self.std(dat1, n_bin=n_bin1)[..., :shp[-2]] *
+                    self.std(dat2, n_bin=n_bin2)[..., :shp[-2]] *
                     n_bin2)[..., None]
 
         dims_list, coords_dict = self._new_coords(veldat1)

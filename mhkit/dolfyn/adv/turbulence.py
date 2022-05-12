@@ -201,7 +201,7 @@ class ADVBinner(VelBinner):
           The angle of the turbulence [rad]
 
         """
-        dt = self._demean(U_complex)
+        dt = self.demean(U_complex)
         fx = dt.imag <= 0
         dt[fx] = dt[fx] * np.exp(1j * np.pi)
 

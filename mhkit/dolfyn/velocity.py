@@ -513,14 +513,14 @@ class VelBinner(TimeBinner):
             vel = veldat.values
 
         if detrend:
-            vel = self._detrend(vel)
+            vel = self.detrend(vel)
         else:
-            vel = self._demean(vel)
+            vel = self.demean(vel)
 
         if 'b5' in veldat.name:
-            time = self._mean(veldat.time_b5.values)
+            time = self.mean(veldat.time_b5.values)
         else:
-            time = self._mean(veldat.time.values)
+            time = self.mean(veldat.time.values)
 
         out = np.nanmean(vel**2, -1,
                          dtype=np.float64,
@@ -565,16 +565,16 @@ class VelBinner(TimeBinner):
         ds : xarray.DataArray
 
         """
-        time = self._mean(veldat.time.values)
+        time = self.mean(veldat.time.values)
         vel = veldat.values
 
         out = np.empty(self._outshape(vel[:3].shape)[:-1],
                        dtype=np.float32)
 
         if detrend:
-            vel = self._detrend(vel)
+            vel = self.detrend(vel)
         else:
-            vel = self._demean(vel)
+            vel = self.demean(vel)
 
         for idx, p in enumerate(self._cross_pairs):
             out[idx] = np.nanmean(vel[p[0]] * vel[p[1]],
@@ -630,10 +630,10 @@ class VelBinner(TimeBinner):
 
         """
         try:
-            time = self._mean(veldat.time.values)
+            time = self.mean(veldat.time.values)
             time_str = 'time'
         except:
-            time = self._mean(veldat.time_b5.values)
+            time = self.mean(veldat.time_b5.values)
             time_str = 'time_b5'
         fs = self._parse_fs(fs)
         n_fft = self._parse_nfft(n_fft)
@@ -711,7 +711,7 @@ class VelBinner(TimeBinner):
         """
         fs = self._parse_fs(fs)
         n_fft = self._parse_nfft_coh(n_fft_coh)
-        time = self._mean(veldat.time.values)
+        time = self.mean(veldat.time.values)
         veldat = veldat.values
 
         out = np.empty(self._outshape_fft(veldat[:3].shape, n_fft=n_fft),
