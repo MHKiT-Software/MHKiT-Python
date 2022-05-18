@@ -1,6 +1,6 @@
 from collections import OrderedDict as _OrderedDict
 from collections import defaultdict as _defaultdict
-from io import BytesIO
+from io import StringIO
 import pandas as pd
 import xarray as xr
 import numpy as np
@@ -126,7 +126,7 @@ def read_file(file_name, xarray=False, missing_values=['MM',9999,999,99]):
         # Need to format dictionary for dataset before converting
         d = {
             "coords": {
-                "Time": {"dims": "Time", "data":time }},
+                "Time": {"dims": "Time", "data": time }},
             "attrs":{}, # A title and other such details can go here
             "dims": "Time",
             "data_vars":{}            
@@ -140,8 +140,7 @@ def read_file(file_name, xarray=False, missing_values=['MM',9999,999,99]):
                 d["data_vars"][key] = { "dims": "Time",
                                         "data": data_vars[key]}
 
-        data = xr.Dataset.from_dict(d)        
-
+        data = xr.Dataset.from_dict(d)  
         return data
 
     else: 
@@ -261,7 +260,7 @@ def _parse_filenames(parameter, filenames):
     buoys['filename'] = filenames  
     return buoys    
         
-def request_data(parameter, filenames, proxy=None):
+def request_data(parameter, filenames, proxy=None, xarray=False):
     '''
     Requests data by filenames and returns a dictionary of DataFrames 
     for each filename passed. If filenames for a sigle buoy are passed 
@@ -282,6 +281,9 @@ def request_data(parameter, filenames, proxy=None):
     proxy: dict
 	    Proxy dict passed to python requests, 
         (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
+
+    xarray: bool
+        If true returns xarray instead of pandas DataFrame
         
     Returns
     -------
@@ -293,6 +295,7 @@ def request_data(parameter, filenames, proxy=None):
     assert isinstance(parameter, str), 'parameter must be a string'
     assert isinstance(proxy, (dict, type(None))), ('If specified proxy' 
       'must be a dict')
+    assert isinstance(xarray, bool), 'xarray must be of type bool'
     
     supported =_supported_params(parameter)
     if isinstance(filenames,pd.DataFrame):
@@ -315,21 +318,118 @@ def request_data(parameter, filenames, proxy=None):
             else:
                 response = requests.get(file_url, proxies=proxy)
             try: 
-                data = zlib.decompress(response.content, 16+zlib.MAX_WBITS)
-                df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)                
+                data = zlib.decompress(response.content, 16+zlib.MAX_WBITS).decode()
+                if not data:
+                    raise ValueError
+                temp = data.partition('\n')
+                header = temp[0].split(" ")
+                header = [i for i in header if i]
+                temp = temp[2].partition('\n')
+                units = temp[0].split(" ")
+                units = [i for i in units if i]
+
+                # If first line is commented, remove comment sign #
+                if header[0].startswith("#"):
+                    header[0] = header[0][1:]
+                    
+                # If second line is commented, indicate that units exist
+                if units[0].startswith("#"):
+                    units_exist = True
+                    data = temp[2]
+                else:
+                    units_exist = False
+                    data = "".join(temp)
+                
+                # Check if the time stamp contains minutes, and create list of column names 
+                # to parse for date
+                if header[4] == 'mm':
+                    parse_vals = header[0:5]
+                    units = units[5:]   #remove date columns from units
+                    columns = header[5:]  
+                else:
+                    parse_vals = header[0:4]
+                    units = units[4:]   #remove date columns from units
+                    columns = header[4:]
+
+                # Create neutral dictionary of data for xr or pd
+                data_vars = {k:[] for k in header}
+                with StringIO(data) as csvfile:
+                    ndbc_reader = csv.reader(csvfile, delimiter=' ')
+                    for row in ndbc_reader: 
+                        row = [i for i in row if i]
+                        for key, value in zip(header,row):                            
+                            try:
+                                data_vars[key].append(float(value))
+                            except ValueError:
+                                data_vars[key].append(value)
+
+                # Create Time values
+                time = []                
+                for i in range(len(data_vars[parse_vals[0]])):
+                    dates = []
+                    for key in parse_vals:
+                        dates.append(data_vars[key][i])
+                    # For some of the early swden documents the year appears as a 2
+                    # digit number so check and correct for this
+                    if data_vars[parse_vals[0]][0] < 1900:
+                        dates[0] += 1900
+                    time.append(datetime(*map(int, dates)))
+                # Remove the time from the data_vars
+                for key in parse_vals:
+                    del data_vars[key]
+                # Add datetime 
+                data_vars["Time"] = time
+
+                # If there was a row of units, convert to dictionary
+                if units_exist:
+                    units = {column:unit for column,unit in zip(columns,units)}
+                
+
+                # Convert columns to numeric data if possible, otherwise leave as string    
+                try:
+                    data_vars = {float(k):v for k,v in data_vars.items()}
+                except:
+                    pass
+
+                #df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)                
             except zlib.error: 
                 msg = (f'Issue decompressing the NDBC file {filename}'  
                        f'(id: {buoy_id}, year: {year}). Please request ' 
                        'the data again.')
                 print(msg)
-            except pandas.errors.EmptyDataError: 
+            except ValueError: 
                 msg = (f'The NDBC buoy {buoy_id} for year {year} with ' 
                        f'filename {filename} is empty or missing '     
                         'data. Please omit this file from your data '   
                         'request in the future.')
                 print(msg)
             else:
-                ndbc_data[buoy_id][year] = df    
+                if xarray:
+                    time = data_vars.pop("Time")
+                    # Need to format dictionary for dataset before converting
+                    d = {
+                        "coords": {
+                            "Time": {"dims": "Time", "data":  time}},
+                        "attrs":{}, # A title and other such details can go here
+                        "dims": "Time",
+                        "data_vars":{}            
+                    }
+                    for key in data_vars.keys():
+                        if units_exist:
+                            d["data_vars"][key] = { "dims": "Time",
+                                                    "data": data_vars[key],
+                                                    "attrs": {"units":  units[key]}}
+                        else:
+                            d["data_vars"][key] = { "dims": "Time",
+                                                    "data": data_vars[key]}
+
+                    ds = xr.Dataset.from_dict(d)
+                    ndbc_data[buoy_id][year] = ds
+                else:
+                    df = pd.DataFrame.from_dict(data_vars)
+                    # Set time as index
+                    df.set_index("Time",drop=True,inplace=True)
+                    ndbc_data[buoy_id][year] = df    
                              
     if len(ndbc_data) == 1:
         ndbc_data = ndbc_data[buoy_id]
@@ -502,7 +602,7 @@ def parameter_units(parameter=''):
     '''
     Returns an ordered dictionary of NDBC parameters with unit values. 
     If no parameter is passed then an ordered dictionary of all NDBC 
-    parameterz specified unites is returned. If a parameter is specified
+    parameters specified units is returned. If a parameter is specified
     then only the units associated with that parameter are returned. 
     Note that many NDBC paramters report multiple measurements and in 
     that case the returned dictionary will contain the NDBC measurement
