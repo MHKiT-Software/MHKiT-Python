@@ -343,7 +343,7 @@ def medfilt_orient(ds, nfilt=7):
         return ds.drop_vars('orientmat')
 
 
-def fillgaps_time(var, method='cubic', max_gap=None):
+def fillgaps_time(var, method='cubic', maxgap=None):
     """
     Fill gaps (nan values) in var across time using the specified method
 
@@ -353,28 +353,29 @@ def fillgaps_time(var, method='cubic', max_gap=None):
       The variable to clean
     method : string
       Interpolation method to use
-    max_gap : numeric
-      Max number of consective NaN's to interpolate across
+    maxgap : numeric
+      Maximum length of missing data in seconds to interpolate across
 
     Returns
     -------
-    ds : xarray.Dataset
-      The adcp dataset with gaps in velocity interpolated across time
+    out : xarray.DataArray
+      The input DataArray 'var' with gaps in 'var' interpolated across time
 
     See Also
     --------
     xarray.DataArray.interpolate_na()
 
     """
-    var = var.copy(deep=True)
     time_dim = [t for t in var.dims if 'time' in t][0]
+    if maxgap:
+        maxgap = np.timedelta64(maxgap, 's')
 
     return var.interpolate_na(dim=time_dim, method=method,
                               use_coordinate=True,
-                              max_gap=max_gap)
+                              max_gap=maxgap)
 
 
-def fillgaps_depth(var, method='cubic', max_gap=None):
+def fillgaps_depth(var, method='cubic', maxgap=None):
     """
     Fill gaps (nan values) in var along the depth profile using the specified method
 
@@ -384,22 +385,21 @@ def fillgaps_depth(var, method='cubic', max_gap=None):
       The variable to clean
     method : string
       Interpolation method to use
-    max_gap : numeric
-      Max number of consective NaN's to interpolate across
+    maxgap : int
+      Maximum length of missing data in bins to interpolate across depth
 
     Returns
     -------
-    ds : xarray.Dataset
-      The adcp dataset with gaps in velocity interpolated across depth profiles
+    out : xarray.DataArray
+      The input DataArray 'var' with gaps in 'var' interpolated across depth
 
     See Also
     --------
     xarray.DataArray.interpolate_na()
 
     """
-    var = var.copy(deep=True)
     range_dim = [t for t in var.dims if 'range' in t][0]
 
     return var.interpolate_na(dim=range_dim, method=method,
                               use_coordinate=False,
-                              max_gap=max_gap)
+                              max_gap=maxgap)
