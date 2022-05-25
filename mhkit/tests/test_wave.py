@@ -806,7 +806,6 @@ class TestPerformance(unittest.TestCase):
 
         self.assertLess(error, 1e-6)
 
-
 class TestIOndbc(unittest.TestCase):
 
     @classmethod
@@ -859,6 +858,17 @@ class TestIOndbc(unittest.TestCase):
         self.assertEqual(data.shape, (743, 47))
         self.assertEqual(units, None)
 
+    ### Continuous wind data
+    def test_ndbc_read_cwind_no_units(self):
+        data, units = wave.io.ndbc.read_file(join(datadir, '42a01c2003.txt'))
+        self.assertEqual(data.shape, (4320, 5))
+        self.assertEqual(units, None)
+    
+    def test_ndbc_read_cwind_units(self):
+        data, units = wave.io.ndbc.read_file(join(datadir, '46002c2016.txt'))
+        self.assertEqual(data.shape, (28468, 5))
+        self.assertEqual(units, wave.io.ndbc.parameter_units('cwind'))
+    
     def test_ndbc_available_data(self):
         data=wave.io.ndbc.available_data('swden', buoy_number='46029')
         cols = data.columns.tolist()
