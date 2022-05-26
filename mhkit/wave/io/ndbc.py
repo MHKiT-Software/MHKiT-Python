@@ -1,6 +1,6 @@
 from collections import OrderedDict as _OrderedDict
 from collections import defaultdict as _defaultdict
-from io import StringIO
+from io import StringIO, BytesIO
 import pandas as pd
 import xarray as xr
 import numpy as np
@@ -150,7 +150,6 @@ def read_file(file_name, xarray=False, missing_values=['MM',9999,999,99]):
         # Set time as index
         data.set_index("Time",drop=True,inplace=True) 
         return data, metadata  
-
 
 def available_data(parameter,
                    buoy_number=None, 
@@ -351,17 +350,24 @@ def request_data(parameter, filenames, proxy=None, xarray=False):
                     units = units[4:]   #remove date columns from units
                     columns = header[4:]
 
-                # Create neutral dictionary of data for xr or pd
-                data_vars = {k:[] for k in header}
+                # Create neutral dictionary of data for xr or pd                
                 with StringIO(data) as csvfile:
                     ndbc_reader = csv.reader(csvfile, delimiter=' ')
+                    num_lines = sum(1 for row in ndbc_reader)
+                    
+                data_vars = {k:np.empty(num_lines) for k in header}
+
+                with StringIO(data) as csvfile:
+                    ndbc_reader = csv.reader(csvfile, delimiter=' ')   
+                    index = 0 
                     for row in ndbc_reader: 
-                        row = [i for i in row if i]
+                        row = [i for i in row if i]                        
                         for key, value in zip(header,row):                            
                             try:
-                                data_vars[key].append(float(value))
+                                data_vars[key][index] = float(value)#data_vars[key].append(float(value))
                             except ValueError:
-                                data_vars[key].append(value)
+                                data_vars[key][index] = value#data_vars[key].append(value)
+                        index += 1
 
                 # Create Time values
                 time = []                
@@ -556,7 +562,6 @@ def dates_to_datetime(parameter, data,
         return date, ndbc_date_cols        
     
     return date
-
     
 def _date_string_to_datetime(df, columns, year_fmt):
     '''
@@ -786,7 +791,6 @@ def parameter_units(parameter=''):
     units = _OrderedDict(sorted(units.items()))
         
     return units
-
 
 def _supported_params(parameter):
     '''
