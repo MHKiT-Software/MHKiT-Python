@@ -1,6 +1,6 @@
 from collections import OrderedDict as _OrderedDict
 from collections import defaultdict as _defaultdict
-from io import StringIO, BytesIO
+from io import StringIO
 import pandas as pd
 import xarray as xr
 import numpy as np
@@ -364,9 +364,9 @@ def request_data(parameter, filenames, proxy=None, xarray=False):
                         row = [i for i in row if i]                        
                         for key, value in zip(header,row):                            
                             try:
-                                data_vars[key][index] = float(value)#data_vars[key].append(float(value))
+                                data_vars[key][index] = float(value)
                             except ValueError:
-                                data_vars[key][index] = value#data_vars[key].append(value)
+                                data_vars[key][index] = value
                         index += 1
 
                 # Create Time values
