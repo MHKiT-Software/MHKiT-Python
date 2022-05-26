@@ -214,8 +214,7 @@ def excel_to_datetime(excel_num):
     time = pd.to_datetime('1899-12-30')+pd.to_timedelta(excel_num,'D')
 
     return time                
-    
-    
+        
 def magnitude_phase(x,y,z=None):
     '''
     Retuns magnitude and phase in two or three dimensions. 
@@ -297,3 +296,32 @@ def unorm(x, y ,z):
 
     return unorm
     
+def _xarray_dict(data_vars, coord, metadata=None):
+    """
+    Creates a dictionary for creating an Xarray Dataset
+
+    Args:
+        data_vars (dict): dictionary of data to be written
+        coord (tuple): (xarray dimension name, dimension data)
+        metadata (dict): (optional) dictionary of units for each data key       
+
+    Returns:
+        d: xarray formatted dictionary
+    """
+    d = {
+        "coords": {
+            f"{coord[0]}": {"dims": f"{coord[0]}", "data": coord[1] }},
+        "attrs":{}, 
+        "dims": f"{coord[0]}",
+        "data_vars":{}            
+    }
+    for key in data_vars.keys():
+        if metadata is not None:            
+            d["data_vars"][key] = { "dims": f"{coord[0]}",
+                                    "data": data_vars[key],
+                                    "attrs": {"units": metadata[key]}}
+        else:
+            d["data_vars"][key] = { "dims": f"{coord[0]}",
+                                    "data": data_vars[key]}
+
+    return d

@@ -8,7 +8,7 @@ from datetime import datetime
 import csv
 import requests
 import zlib
-import pandas.errors
+from utils import _xarray_dict
 
 
 
@@ -123,25 +123,9 @@ def read_file(file_name, xarray=False, missing_values=['MM',9999,999,99]):
             
     # Convert dictionaries to either pandas or xarray
     if xarray:
-        # Need to format dictionary for dataset before converting
-        d = {
-            "coords": {
-                "Time": {"dims": "Time", "data": time }},
-            "attrs":{}, # A title and other such details can go here
-            "dims": "Time",
-            "data_vars":{}            
-        }
-        for key in data_vars.keys():
-            if metadata is not None:
-                d["data_vars"][key] = { "dims": "Time",
-                                        "data": data_vars[key],
-                                        "attrs": {"units": metadata[key]}}
-            else:
-                d["data_vars"][key] = { "dims": "Time",
-                                        "data": data_vars[key]}
-
+        d = _xarray_dict(data_vars, ("Time",time), metadata)
         data = xr.Dataset.from_dict(d)  
-        return data
+        return data       
 
     else: 
         # Pandas DataFrame (put time back into data_vars)
@@ -413,24 +397,32 @@ def request_data(parameter, filenames, proxy=None, xarray=False):
                 if xarray:
                     time = data_vars.pop("Time")
                     # Need to format dictionary for dataset before converting
-                    d = {
-                        "coords": {
-                            "Time": {"dims": "Time", "data":  time}},
-                        "attrs":{}, # A title and other such details can go here
-                        "dims": "Time",
-                        "data_vars":{}            
-                    }
-                    for key in data_vars.keys():
-                        if units_exist:
-                            d["data_vars"][key] = { "dims": "Time",
-                                                    "data": data_vars[key],
-                                                    "attrs": {"units":  units[key]}}
-                        else:
-                            d["data_vars"][key] = { "dims": "Time",
-                                                    "data": data_vars[key]}
-
+                    if units_exist:
+                        metadata = units
+                    else:
+                        metadata = None
+                    d = _xarray_dict(data_vars, ("Time",time), metadata)
                     ds = xr.Dataset.from_dict(d)
                     ndbc_data[buoy_id][year] = ds
+                    
+                    # d = {
+                    #     "coords": {
+                    #         "Time": {"dims": "Time", "data":  time}},
+                    #     "attrs":{}, # A title and other such details can go here
+                    #     "dims": "Time",
+                    #     "data_vars":{}            
+                    # }
+                    # for key in data_vars.keys():
+                    #     if units_exist:
+                    #         d["data_vars"][key] = { "dims": "Time",
+                    #                                 "data": data_vars[key],
+                    #                                 "attrs": {"units":  units[key]}}
+                    #     else:
+                    #         d["data_vars"][key] = { "dims": "Time",
+                    #                                 "data": data_vars[key]}
+
+                    # ds = xr.Dataset.from_dict(d)
+                    # ndbc_data[buoy_id][year] = ds
                 else:
                     df = pd.DataFrame.from_dict(data_vars)
                     # Set time as index

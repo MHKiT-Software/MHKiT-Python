@@ -2,6 +2,7 @@ from scipy.io import loadmat
 from os.path import isfile
 import pandas as pd
 import xarray as xr
+from utils import _xarray_dict
 import numpy as np
 import csv
 import re 
@@ -64,38 +65,17 @@ def read_table(swan_file, xarray=False):
 
     # Convert dictionaries to either pandas or xarray
     if xarray:
-        # Need to format dictionary for dataset before converting
-        d = {
-            "coords": {
-                "range": {"dims": "range", "data": np.arange(len(data_vars[key])) }},
-            "attrs":{}, 
-            "dims": "range",
-            "data_vars":{}            
-        }
-        for key in data_vars.keys():
-            if units is not None:
-                for i in range(len(metaDict['header'])):
-                    if metaDict['header'][i] == key:
-                        break
-                d["data_vars"][key] = { "dims": "range",
-                                        "data": data_vars[key],
-                                        "attrs": {"units": metaDict['units'][i]}}
-            else:
-                d["data_vars"][key] = { "dims": "range",
-                                        "data": data_vars[key]}
-
+        # Need to format dictionary for dataset before converting               
+        d = _xarray_dict(data_vars, 
+            ("range", np.arange(len(data_vars[key]))), 
+            dict(zip(metaDict['header'],metaDict['units'])))
         swan_data = xr.Dataset.from_dict(d)  
-        return swan_data
+        return swan_data        
 
     else: 
         # Pandas DataFrame 
         swan_data = pd.DataFrame.from_dict(data_vars)         
-        return swan_data, metaDict 
-    
-    # swan_data = pd.read_csv(swan_file, sep='\s+', comment='%', 
-    #                         names=metaDict['header'])                
-    # return swan_data, metaDict    
-
+        return swan_data, metaDict  
 
 def read_block(swan_file):
     '''
