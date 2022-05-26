@@ -1,11 +1,13 @@
 from scipy.io import loadmat
 from os.path import isfile
 import pandas as pd
+import xarray as xr
 import numpy as np
+import csv
 import re 
   
 
-def read_table(swan_file):
+def read_table(swan_file, xarray=False):
     '''
     Reads in SWAN table format output
     
@@ -13,13 +15,19 @@ def read_table(swan_file):
     ----------
     swan_file: str
         filename to import
+
+    xarray: bool
+        If true returns xarray instead of pandas DataFrame
         
     Returns
     -------
     swan_data: DataFrame
         Dataframe of swan output
     metaDict: Dictionary
-        Dictionary of metaData
+        Dictionary of metaData  
+
+    If xarray, metaDict will be part of swan_data
+    and only one object will be returned
     '''
     assert isinstance(swan_file, str), 'swan_file must be of type str'
     assert isfile(swan_file)==True, f'File not found: {swan_file}'
@@ -38,11 +46,55 @@ def read_table(swan_file):
         if i == header_line_number+1:
             units = re.split('\s+',line.strip(' %\n').replace('[','').replace(']',''))
             metaDict['units'] = units
-    f.close()    
+    f.close()  
+
+    # Create neutral dictionary of data for xr or pd
+    data_vars = {k:[] for k in header}
+    with open(swan_file, newline='') as csvfile:
+        swan_reader = csv.reader(csvfile, delimiter=' ')
+        for row in swan_reader:
+            if row[0].startswith("%"):
+                continue
+            row = [i for i in row if i]
+            for key, value in zip(header,row):                
+                try:
+                    data_vars[key].append(float(value))
+                except ValueError:
+                    data_vars[key].append(value)  
+
+    # Convert dictionaries to either pandas or xarray
+    if xarray:
+        # Need to format dictionary for dataset before converting
+        d = {
+            "coords": {
+                "range": {"dims": "range", "data": np.arange(len(data_vars[key])) }},
+            "attrs":{}, 
+            "dims": "range",
+            "data_vars":{}            
+        }
+        for key in data_vars.keys():
+            if units is not None:
+                for i in range(len(metaDict['header'])):
+                    if metaDict['header'][i] == key:
+                        break
+                d["data_vars"][key] = { "dims": "range",
+                                        "data": data_vars[key],
+                                        "attrs": {"units": metaDict['units'][i]}}
+            else:
+                d["data_vars"][key] = { "dims": "range",
+                                        "data": data_vars[key]}
+
+        swan_data = xr.Dataset.from_dict(d)  
+        return swan_data
+
+    else: 
+        # Pandas DataFrame 
+        swan_data = pd.DataFrame.from_dict(data_vars)         
+        return swan_data, metaDict 
     
-    swan_data = pd.read_csv(swan_file, sep='\s+', comment='%', 
-                            names=metaDict['header'])                
-    return swan_data, metaDict    
+    # swan_data = pd.read_csv(swan_file, sep='\s+', comment='%', 
+    #                         names=metaDict['header'])                
+    # return swan_data, metaDict    
 
 
 def read_block(swan_file):
