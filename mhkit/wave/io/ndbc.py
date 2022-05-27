@@ -405,24 +405,6 @@ def request_data(parameter, filenames, proxy=None, xarray=False):
                     ds = xr.Dataset.from_dict(d)
                     ndbc_data[buoy_id][year] = ds
                     
-                    # d = {
-                    #     "coords": {
-                    #         "Time": {"dims": "Time", "data":  time}},
-                    #     "attrs":{}, # A title and other such details can go here
-                    #     "dims": "Time",
-                    #     "data_vars":{}            
-                    # }
-                    # for key in data_vars.keys():
-                    #     if units_exist:
-                    #         d["data_vars"][key] = { "dims": "Time",
-                    #                                 "data": data_vars[key],
-                    #                                 "attrs": {"units":  units[key]}}
-                    #     else:
-                    #         d["data_vars"][key] = { "dims": "Time",
-                    #                                 "data": data_vars[key]}
-
-                    # ds = xr.Dataset.from_dict(d)
-                    # ndbc_data[buoy_id][year] = ds
                 else:
                     df = pd.DataFrame.from_dict(data_vars)
                     # Set time as index

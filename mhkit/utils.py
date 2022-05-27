@@ -1,7 +1,7 @@
 from pecos.utils import index_to_datetime
 import matplotlib.pyplot as plt 
 import datetime as dt
-from mhkit import qc
+#from mhkit import qc
 import pandas as pd 
 import numpy as np 
 

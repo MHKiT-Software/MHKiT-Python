@@ -1,3 +1,4 @@
+from importlib.metadata import metadata
 from scipy.io import loadmat
 from os.path import isfile
 import pandas as pd
@@ -77,7 +78,7 @@ def read_table(swan_file, xarray=False):
         swan_data = pd.DataFrame.from_dict(data_vars)         
         return swan_data, metaDict  
 
-def read_block(swan_file):
+def read_block(swan_file, xarray=False):
     '''
     Reads in SWAN block output with headers and creates a dictionary 
     of DataFrames for each SWAN output variable in the output file.
@@ -99,15 +100,23 @@ def read_block(swan_file):
     
     extension = swan_file.split('.')[1].lower()
     if extension == 'mat':
-        dataDict = _read_block_mat(swan_file)
-        metaData = {'filetype': 'mat',
-                    'variables': [var for var in dataDict.keys()]}
+        dataDict = _read_block_mat(swan_file, xarray)
+        metaData = None
+        if not xarray:
+            metaData = {'filetype': 'mat',
+                        'variables': [var for var in dataDict.keys()]} 
     else:
-        dataDict, metaData = _read_block_txt(swan_file)
-    return dataDict, metaData
+        dataDict, metaData = _read_block_txt(swan_file, xarray)
+        if xarray:
+            metaData = None
+
+    if metaData is not None:
+        return dataDict, metaData
+    else:
+        return dataDict
     
 
-def _read_block_txt(swan_file):
+def _read_block_txt(swan_file, xarray):
     '''
     Reads in SWAN block output with headers and creates a dictionary 
     of DataFrames for each SWAN output variable in the output file.
@@ -177,21 +186,43 @@ def _read_block_txt(swan_file):
                 
     metaData = pd.DataFrame(metaDict).T        
     f.close()
-    
-    for var in metaData.vars.values: 
-        df = pd.DataFrame(dataDict[var]).T        
-        varCols =  metaData[metaData.vars == var].cols.values.tolist()[0]
-        colsDict = dict(zip(df.columns.values.tolist(), varCols))
-        df.rename(columns=colsDict)
-        unitMultiplier = metaData[metaData.vars == var].unitMultiplier.values[0]
-        dataDict[var] = df * unitMultiplier 
+        
+    if xarray:
+        ds = xr.Dataset()
+        for var in metaData.vars.values: 
+            cols = np.array(list(dataDict[var].keys())) 
+            data = np.array(list(dataDict[var].values())) 
+            unitMultiplier = metaData[metaData.vars == var].unitMultiplier.values[0]   
+            data *= unitMultiplier 
+            attrs={'Run': metaData[metaData.vars == var].Run.values[0],
+            'Frame': metaData[metaData.vars == var].Frame.values[0],
+            'units': metaData[metaData.vars == var].Unit.values[0].split(" ")[-1],
+            'unitMultiplier': metaData[metaData.vars == var].unitMultiplier.values[0] }  
+            coords = {}
+            dims = []
+            for qq in range(len(data.shape)):
+                dims.append(f"dim{qq}")
+                coords[f"dim{qq}"] = cols
+            ds[var] = xr.DataArray(data,
+                                    attrs=attrs, 
+                                    coords=coords,
+                                    dims=dims) 
+        dataDict = ds.copy()
+    else:
+        for var in metaData.vars.values: 
+            df = pd.DataFrame(dataDict[var]).T        
+            varCols =  metaData[metaData.vars == var].cols.values.tolist()[0]
+            colsDict = dict(zip(df.columns.values.tolist(), varCols))
+            df.rename(columns=colsDict)
+            unitMultiplier = metaData[metaData.vars == var].unitMultiplier.values[0]
+            dataDict[var] = df * unitMultiplier              
     
     metaData.pop('cols')
     metaData = metaData.set_index('vars').T.to_dict()           
     return dataDict, metaData              
     
 
-def _read_block_mat(swan_file):
+def _read_block_mat(swan_file, xarray):
     '''
     Reads in SWAN matlab output and creates a dictionary of DataFrames
     for each swan output variable.
@@ -213,9 +244,22 @@ def _read_block_mat(swan_file):
     removeKeys = ['__header__', '__version__', '__globals__']
     for key in removeKeys:
         dataDict.pop(key, None)
-    for key in dataDict.keys():
-        dataDict[key] = pd.DataFrame(dataDict[key])
-    return dataDict
+    if xarray:
+        ds = xr.Dataset()
+        for key in dataDict.keys():
+            coords = {}
+            dims = []
+            for qq in range(len(dataDict[key].shape)):
+                dims.append(f"dim{qq}")
+                coords[f"dim{qq}"] = list(range(1, dataDict[key].shape[qq]+1))
+            ds[key] = xr.DataArray(dataDict[key],
+                                    coords=coords,
+                                    dims=dims)
+        return ds
+    else:
+        for key in dataDict.keys():
+            dataDict[key] = pd.DataFrame(dataDict[key])
+        return dataDict
    
     
 def _parse_line_metadata(line):
