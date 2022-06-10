@@ -1,5 +1,6 @@
 from datetime import timezone
 import pandas as pd
+import xarray as xr
 import numpy as np
 import datetime
 import netCDF4
@@ -182,7 +183,7 @@ def request_netCDF(station_number, data_type):
 
     
 def request_parse_workflow(nc=None, station_number=None, parameters=None, 
-               years=None, start_date=None, end_date=None, 
+               years=None, start_date=None, end_date=None, xarray=False,
                data_type='historic', all_2D_variables=False):
     '''
     Parses a passed CDIP netCDF file or requests a station number 
@@ -252,6 +253,7 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
    
     if not nc:
         nc = request_netCDF(station_number, data_type)
+        #test = xr.open_dataset(xr.backends.NetCDF4DataStore(nc))
     
     buoy_name = nc.variables['metaStationName'][:].compressed().tobytes().decode("utf-8")
     
@@ -271,7 +273,7 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
     if not multiyear:
         data = get_netcdf_variables(nc, 
                        start_date=start_date, end_date=end_date, 
-                       parameters=parameters, 
+                       parameters=parameters, xarray=xarray,
                        all_2D_variables=all_2D_variables)  
 
     elif multiyear:
@@ -310,8 +312,8 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
     return data
     
     
-def get_netcdf_variables(nc, start_date=None, end_date=None, 
-                         parameters=None, all_2D_variables=False):
+def get_netcdf_variables(nc, start_date=None, end_date=None, parameters=None, 
+                         xarray=False, all_2D_variables=False):
     '''
     Iterates over and extracts variables from CDIP bouy data. See
     the MHKiT CDiP example Jupyter notbook for information on available 
@@ -352,9 +354,10 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
     assert isinstance(start_date, (str, type(None))), ('start_date' /
         'must be of type str')
     assert isinstance(end_date, (str, type(None))), ('end_date must be' / 
-        'of type str')
+        'of type str')    
     assert isinstance(parameters, (str, type(None), list)), ('parameters' /
-        'must be of type str or list of strings')        
+        'must be of type str or list of strings')   
+    assert isinstance(xarray, bool), 'xarray must be a boolean'
     assert isinstance(all_2D_variables, bool), ('all_2D_variables'/
         'must be a boolean')
 
@@ -417,60 +420,74 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         if not variables_by_type[prefix]:
             del variables_by_type[prefix]
 
-    results={'data':{}, 'metadata':{}}
-    for prefix in variables_by_type:
-        var_results={}
-        time_variables={}
-        metadata={}
-        
-        if prefix != 'meta':
-            prefixTime = nc.variables[f'{prefix}Time'][:]
-            
-            masked_time = np.ma.masked_outside(prefixTime, start_stamp,
-            end_stamp)
-            mask = masked_time.mask                               
-            var_time = masked_time.compressed() 
-            N_time = masked_time.size
+    if xarray:
+        results = xr.open_dataset(xr.backends.NetCDF4DataStore(nc))        
+        if include_2D_variables:
+            results = results[include_vars+include_2D_vars]
         else:
-            N_time= np.nan
-    
-        for var in variables_by_type[prefix]:   
-            variable = np.ma.filled(nc.variables[var])
-            if variable.size == N_time:              
-                variable = np.ma.masked_array(variable, mask).astype(float)
-                time_variables[var] = variable.compressed()
-            else:
-                metadata[var] = nc.variables[var][:].compressed()
+            results = results[include_vars]
 
-        time_slice = pd.to_datetime(var_time, unit='s')
-        data = pd.DataFrame(time_variables, index=time_slice)        
-         
-        if prefix != 'meta':      
-            results['data'][prefix] = data
-            results['data'][prefix].name = buoy_name
-        results['metadata'][prefix] = metadata
+        for prefix in variables_by_type:          
+            if prefix != 'meta':    
+                ind = results.coords[f'{prefix}Time']     
+                results = results.sel(ind=slice(start_date, end_date))
+
+        print("")
+    else:
+        results={'data':{}, 'metadata':{}}
+        for prefix in variables_by_type:
+            var_results={}
+            time_variables={}
+            metadata={}
             
-        if (prefix == 'wave') and (include_2D_variables):
-            
-            print('Processing 2D Variables:')
-            vars2D={}
-            columns=metadata['waveFrequency']
-            N_time= len(time_slice)
-            N_frequency = len(columns)
-            try:
-                l = len(mask)
-            except:
-                mask = np.array([False] * N_time)
+            if prefix != 'meta':
+                prefixTime = nc.variables[f'{prefix}Time'][:]
                 
-            mask2D= np.tile(mask, (len(columns),1)).T
-            for var in include_2D_vars:
-                variable2D = nc.variables[var][:].data
-                variable2D = np.ma.masked_array(variable2D, mask2D)
-                variable2D = variable2D.compressed().reshape(N_time, N_frequency)            
-                variable = pd.DataFrame(variable2D,index=time_slice,
-                                        columns=columns)
-                vars2D[var] = variable
-            results['data']['wave2D'] = vars2D
-    results['metadata']['name'] = buoy_name
+                masked_time = np.ma.masked_outside(prefixTime, start_stamp,
+                end_stamp)
+                mask = masked_time.mask                               
+                var_time = masked_time.compressed() 
+                N_time = masked_time.size
+            else:
+                N_time= np.nan
+        
+            for var in variables_by_type[prefix]:   
+                variable = np.ma.filled(nc.variables[var])
+                if variable.size == N_time:              
+                    variable = np.ma.masked_array(variable, mask).astype(float)
+                    time_variables[var] = variable.compressed()
+                else:
+                    metadata[var] = nc.variables[var][:].compressed()
+
+            time_slice = pd.to_datetime(var_time, unit='s')
+            data = pd.DataFrame(time_variables, index=time_slice)        
+            
+            if prefix != 'meta':      
+                results['data'][prefix] = data
+                results['data'][prefix].name = buoy_name
+            results['metadata'][prefix] = metadata
+                
+            if (prefix == 'wave') and (include_2D_variables):
+                
+                print('Processing 2D Variables:')
+                vars2D={}
+                columns=metadata['waveFrequency']
+                N_time= len(time_slice)
+                N_frequency = len(columns)
+                try:
+                    l = len(mask)
+                except:
+                    mask = np.array([False] * N_time)
+                    
+                mask2D= np.tile(mask, (len(columns),1)).T
+                for var in include_2D_vars:
+                    variable2D = nc.variables[var][:].data
+                    variable2D = np.ma.masked_array(variable2D, mask2D)
+                    variable2D = variable2D.compressed().reshape(N_time, N_frequency)            
+                    variable = pd.DataFrame(variable2D,index=time_slice,
+                                            columns=columns)
+                    vars2D[var] = variable
+                results['data']['wave2D'] = vars2D
+        results['metadata']['name'] = buoy_name
         
     return results
