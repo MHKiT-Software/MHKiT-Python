@@ -301,13 +301,12 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
                     data['data'][data_key][data_key2D]=pd.concat(data_list)
             else:                
                 data_list = [multiyear_data[year][data_key] for year in years]
-                data['data'][data_key] = pd.concat(data_list)
-
-
-                
+                data['data'][data_key] = pd.concat(data_list)                
 
         data['metadata'] = year_data['metadata']
-    data['metadata']['name'] = buoy_name    
+
+    if not xarray:    
+        data['metadata']['name'] = buoy_name    
 
     return data
     
@@ -436,8 +435,6 @@ def get_netcdf_variables(nc, start_date=None, end_date=None, parameters=None,
                 results = results.sel(gpsTime=slice(start_date, end_date))
             elif prefix == 'dwr':
                 results = results.sel(dwrTime=slice(start_date, end_date))
-
-        print("")
     else:
         results={'data':{}, 'metadata':{}}
         for prefix in variables_by_type:
