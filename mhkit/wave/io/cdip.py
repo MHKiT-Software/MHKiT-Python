@@ -428,9 +428,14 @@ def get_netcdf_variables(nc, start_date=None, end_date=None, parameters=None,
             results = results[include_vars]
 
         for prefix in variables_by_type:          
-            if prefix != 'meta':    
-                ind = results.coords[f'{prefix}Time']     
-                results = results.sel(ind=slice(start_date, end_date))
+            if prefix == 'wave':
+                results = results.sel(waveTime=slice(start_date, end_date))
+            elif prefix == 'sst':
+                results = results.sel(sstTime=slice(start_date, end_date))
+            elif prefix == 'gps':
+                results = results.sel(gpsTime=slice(start_date, end_date))
+            elif prefix == 'dwr':
+                results = results.sel(dwrTime=slice(start_date, end_date))
 
         print("")
     else:
