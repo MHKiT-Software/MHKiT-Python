@@ -1,4 +1,5 @@
 from datetime import timezone
+from attr import s
 import pandas as pd
 import xarray as xr
 import numpy as np
@@ -177,8 +178,8 @@ def request_netCDF(station_number, data_type):
         cdip_realtime = 'http://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/realtime'
         data_url = f'{cdip_realtime}/{station_number}p1_rt.nc'
     
-    nc = netCDF4.Dataset(data_url)
-    
+    nc = netCDF4.Dataset(data_url)  
+
     return nc
 
     
@@ -253,7 +254,6 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
    
     if not nc:
         nc = request_netCDF(station_number, data_type)
-        #test = xr.open_dataset(xr.backends.NetCDF4DataStore(nc))
     
     buoy_name = nc.variables['metaStationName'][:].compressed().tobytes().decode("utf-8")
     
@@ -286,24 +286,31 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
             
             year_data = get_netcdf_variables(nc, 
                        start_date=start_date, end_date=end_date,  
-                       parameters=parameters, 
+                       parameters=parameters, xarray=xarray,
                        all_2D_variables=all_2D_variables) 
-            multiyear_data[year] = year_data['data']
-          
-        for data_key in year_data['data'].keys():
-            if data_key.endswith('2D'):
-                data['data'][data_key]={}
-                for data_key2D in year_data['data'][data_key].keys():
-                    data_list=[]
-                    for year in years:    
-                        data2D = multiyear_data[year][data_key][data_key2D]
-                        data_list.append(data2D)
-                    data['data'][data_key][data_key2D]=pd.concat(data_list)
-            else:                
-                data_list = [multiyear_data[year][data_key] for year in years]
-                data['data'][data_key] = pd.concat(data_list)                
+            if xarray:
+                multiyear_data[year] = year_data
+            else:
+                multiyear_data[year] = year_data['data']
 
-        data['metadata'] = year_data['metadata']
+        if xarray:
+            data = xr.combine_by_coords([multiyear_data[year] for year in years])            
+
+        else:
+            for data_key in year_data['data'].keys():
+                if data_key.endswith('2D'):
+                    data['data'][data_key]={}
+                    for data_key2D in year_data['data'][data_key].keys():
+                        data_list=[]
+                        for year in years:    
+                            data2D = multiyear_data[year][data_key][data_key2D]
+                            data_list.append(data2D)
+                        data['data'][data_key][data_key2D]=pd.concat(data_list)
+                else:                
+                    data_list = [multiyear_data[year][data_key] for year in years]
+                    data['data'][data_key] = pd.concat(data_list)                
+
+            data['metadata'] = year_data['metadata']
 
     if not xarray:    
         data['metadata']['name'] = buoy_name    
@@ -364,10 +371,8 @@ def get_netcdf_variables(nc, start_date=None, end_date=None, parameters=None,
         if isinstance(parameters,str):
             parameters = [parameters]        
         assert all([isinstance(param , str) for param in parameters]), ('All'/
-           'elements of parameters must be strings')
-
-
-    buoy_name = nc.variables['metaStationName'][:].compressed().tobytes().decode("utf-8")           
+           'elements of parameters must be strings')              
+      
     allVariables = [var for var in nc.variables]
     
     include_2D_variables=False
@@ -378,7 +383,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None, parameters=None,
     
     if parameters:
         params = set(parameters)
-        include_params = params.intersection(set(allVariables))            
+        include_params = params.intersection(set(allVariables))                  
         if params != include_params:
            not_found = params.difference(include_params)
            print(f'WARNING: {not_found} was not found in data.\n' \
@@ -393,7 +398,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None, parameters=None,
             include_params.add('waveFrequency')
             include_2D_vars = sorted(include_params_2D)
         
-        include_vars = sorted(include_params)
+        include_vars = sorted(include_params)        
             
     else:
         include_vars = allVariables
@@ -403,11 +408,12 @@ def get_netcdf_variables(nc, start_date=None, end_date=None, parameters=None,
             
         if all_2D_variables:
             include_2D_variables=True
-            include_2D_vars = twoDimensionalVars                 
+            include_2D_vars = twoDimensionalVars   
 
-    
-    start_stamp, end_stamp =_dates_to_timestamp(nc, start_date=start_date, 
-                                                 end_date=end_date)
+    if include_2D_variables:
+        drop_variables = list(set(allVariables).difference(set(include_vars+include_2D_vars))) 
+    else:
+        drop_variables = list(set(allVariables).difference(set(include_vars)))
     
     variables_by_type={}       
     prefixs = ['wave', 'sst', 'gps', 'dwr', 'meta']
@@ -415,16 +421,17 @@ def get_netcdf_variables(nc, start_date=None, end_date=None, parameters=None,
     for prefix in prefixs:
         variables_by_type[prefix] = [var for var in include_vars 
             if var.startswith(prefix)]
-        remainingVariables -= set(variables_by_type[prefix])
+        remainingVariables -= set(variables_by_type[prefix])        
         if not variables_by_type[prefix]:
             del variables_by_type[prefix]
 
     if xarray:
-        results = xr.open_dataset(xr.backends.NetCDF4DataStore(nc))        
-        if include_2D_variables:
-            results = results[include_vars+include_2D_vars]
-        else:
-            results = results[include_vars]
+        for prefix in variables_by_type.keys():
+            if prefix != 'meta':
+                drop_variables.remove(f'{prefix}Time')
+        
+        results = xr.open_dataset(xr.backends.NetCDF4DataStore(nc),\
+             drop_variables=drop_variables)          
 
         for prefix in variables_by_type:          
             if prefix == 'wave':
@@ -435,7 +442,11 @@ def get_netcdf_variables(nc, start_date=None, end_date=None, parameters=None,
                 results = results.sel(gpsTime=slice(start_date, end_date))
             elif prefix == 'dwr':
                 results = results.sel(dwrTime=slice(start_date, end_date))
-    else:
+    else:   
+        buoy_name = nc.variables['metaStationName'][:].compressed().tobytes().decode("utf-8")    
+        start_stamp, end_stamp =_dates_to_timestamp(nc, start_date=start_date, 
+                                                 end_date=end_date)
+
         results={'data':{}, 'metadata':{}}
         for prefix in variables_by_type:
             var_results={}
