@@ -465,7 +465,7 @@ class TestIO(unittest.TestCase):
                                 method='nearest')
         
         u_mag=river.io.d3d.unorm(TI_data['ucx'],TI_data['ucy'], TI_data['ucz'])
-        turbulent_intensity_expected= np.sqrt(2/3*TI_data['turkin1'])/u_mag
+        turbulent_intensity_expected= (np.sqrt(2/3*TI_data['turkin1'])/u_mag)*100
        
         
         assert_array_almost_equal(TI.turbulent_intensity, turbulent_intensity_expected, decimal = 2)     
