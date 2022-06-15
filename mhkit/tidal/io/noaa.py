@@ -1,12 +1,13 @@
 import requests
 import pandas as pd
+import xarray as xr
 import xml.etree.ElementTree as ET
 import json
 import datetime
 import math
 
 def request_noaa_data(station, parameter, start_date, end_date,
-                      proxy=None, write_json=None):
+                      proxy=None, write_json=None, xarray=False):
     """
     Loads NOAA current data directly from https://tidesandcurrents.noaa.gov/api/ using a 
     get request into a pandas DataFrame. NOAA sets max of 31 days between start and end date.
@@ -94,9 +95,13 @@ def request_noaa_data(station, parameter, start_date, end_date,
             # Add metadata to pyData
             pyData['metadata']=metadata
             # Wrtie the pyData to a json file
-            json.dump(pyData, outfile) 
-    #import ipdb; ipdb.set_trace()        
-    return data, metadata
+            json.dump(pyData, outfile)
+    if xarray:
+        data = xr.Dataset.from_dataframe(data)
+        data.attrs = metadata
+        return data
+    else:
+        return data, metadata
 
 
 def _json_to_dataframe(response):
@@ -162,7 +167,7 @@ def _xml_to_dataframe(response):
     return df, metadata
 
 
-def read_noaa_json(filename):
+def read_noaa_json(filename, xarray=False):
     '''
     Returns site DataFrame and metadata from a json saved from the 
     request_noaa_data
@@ -170,6 +175,11 @@ def read_noaa_json(filename):
     ----------
     filename: string
         filename with path of json file to load
+    xarray: bool
+        If true, returns xarray dataset instead 
+        of pandas DataFrame (metadata will not be
+        returned if true as it will be part of the
+        dataset)
     Returns
     -------
     data: DataFrame
@@ -187,5 +197,10 @@ def read_noaa_json(filename):
     data = pd.DataFrame.from_dict(jsonData)
     # Convert from epoch to date time
     data.index = pd.to_datetime(data.index,unit='ms')
-    return data, metadata
+    if xarray:
+        data = xr.Dataset.from_dataframe(data)
+        data.attrs = metadata
+        return data
+    else:
+        return data, metadata
 
