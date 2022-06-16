@@ -1,5 +1,4 @@
 from . import test_read_adv as tv
-#from . import test_read_adp as tp
 from .base import load_netcdf as load, save_netcdf as save, assert_allclose, drop_config
 from mhkit.dolfyn.adv import api
 from mhkit.dolfyn.io.api import read_example as read
@@ -66,12 +65,3 @@ class mc_testcase(unittest.TestCase):
             return
 
         assert_allclose(tdm, load('vector_data_imu01_mcsp.nc'), atol=1e-7)
-
-    # def test_motion_adcp(self):
-    #     # Correction for ADCPs not completed yet
-    #     tdm = tp.dat_sig_i.copy(deep=True)
-    #     avm.set_inst2head_rotmat(tdm, rotmat=np.eye(4), inplace=True) # 4th doesn't matter
-    #     tdm.attrs['inst2head_vec'] = np.array([0,0,0,0])
-    #     tdmc = avm.correct_motion(tdm)
-
-    #    assert type(tdm)==type(tdmc) # simple way of making sure tdmc exists

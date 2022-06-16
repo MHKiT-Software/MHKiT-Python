@@ -3,7 +3,6 @@ import scipy.signal as ss
 from scipy.integrate import cumtrapz
 import xarray as xr
 from ..rotate import vector as rot
-#from ..rotate import signature as sig
 from ..rotate.api import _make_model, rotate2
 import warnings
 
@@ -12,9 +11,6 @@ def _get_body2imu(make_model):
     if make_model == 'nortek vector':
         # In inches it is: (0.25, 0.25, 5.9)
         return np.array([0.00635, 0.00635, 0.14986])
-    # Placeholder
-    # elif make_model.startswith('nortek signature'):
-    #     return np.array([0.0, 0.0, 0.0])
     else:
         raise Exception("The imu->body vector is unknown for this instrument.")
 
@@ -99,10 +95,10 @@ class _CalcMotion():
             for idx in range(3):
                 acc[idx] = ss.filtfilt(flt[0], flt[1], acc[idx])
 
-    def calc_velacc(self, ):
+    def _calc_velacc(self, ):
         """
         Calculates the translational velocity from the high-pass
-        filtered acceleration sigal.
+        filtered acceleration signal.
 
         Returns
         -------
@@ -118,7 +114,6 @@ class _CalcMotion():
         dat = np.concatenate((np.zeros(list(hp.shape[:-1]) + [1]),
                               cumtrapz(hp, dx=1 / samp_freq)), axis=-1)
 
-        # Filter again?
         if self.accelvel_filtfreq > 0:
             filt_freq = self.accelvel_filtfreq
             # 2nd order Butterworth filter
@@ -128,7 +123,7 @@ class _CalcMotion():
                 dat[idx] = dat[idx] - ss.filtfilt(filt[0], filt[1], dat[idx])
         return dat
 
-    def calc_velrot(self, vec, to_earth=None):
+    def _calc_velrot(self, vec, to_earth=None):
         """
         Calculate the induced velocity due to rotations of the instrument
         about the IMU center.
@@ -186,23 +181,35 @@ class _CalcMotion():
 
 def _calc_probe_pos(ds, separate_probes=False):
     """
-    Currently this only works for Nortek Vectors!
+    Calculates the position of probe (or "head") of an ADV.
 
-    In the future, we could use the transformation matrix (and a
-    probe-length lookup-table?)
+    Paratmeters
+    -----------
+    ds : xarray.Dataset
+      ADV dataset
+    separate_probes : bool (optional, default=False)
+      If a Nortek Vector ADV, this function returns the 
+      transformation matrix of positions of the probe's 
+      acoustic recievers to the ADV's instrument frame of
+      reference
+
+    Returns
+    -------
+    vec : 3x3 numpy.ndarray
+      Transformation matrix to convert from ADV probe to 
+      instrument frame of reference
 
     """
-    # According to the ADV_DataSheet, the probe-length radius is
-    # 8.6cm @ 120deg from probe-stem axis.  If I subtract 1cm
-    # to get acoustic receiver center, this is 7.6cm.
-    # In the coordinate sys of the center of the probe
-    # then, the positions of the centers of the receivers is:
-    # if separate_probes and p['inst_make'].lower() == 'nortek' and\
-    #    p['inst_model'].lower == 'vector':
     vec = ds.inst2head_vec
     if type(vec) != np.ndarray:
         vec = np.array(vec)
 
+    # According to the ADV technical drawing, the probe-length radius
+    # is 8.6 cm @ 120 deg from probe-stem axis.  If I subtract 1 cm
+    # to get the center of a acoustic receiver, this is 7.6 cm.
+    # In the coordinate system of the center of the probe (origin at
+    # the acoustic transmitter) then, the positions of the centers of
+    # the receivers is:
     if separate_probes and _make_model(ds) == 'nortek vector':
         r = 0.076
         # The angle between the x-y plane and the probes
@@ -338,7 +345,7 @@ def correct_motion(ds,
 
     ##########
     # Calculate the translational velocity (from the accel):
-    ds['velacc'] = xr.DataArray(calcobj.calc_velacc(),
+    ds['velacc'] = xr.DataArray(calcobj._calc_velacc(),
                                 dims=['dirIMU', 'time'])
     # Copy acclow to the adv-object.
     ds['acclow'] = xr.DataArray(calcobj.acclow,
@@ -348,7 +355,7 @@ def correct_motion(ds,
     # Calculate rotational velocity (from angrt):
     pos = _calc_probe_pos(ds, separate_probes)
     # Calculate the velocity of the head (or probes).
-    velrot = calcobj.calc_velrot(pos, to_earth=False)
+    velrot = calcobj._calc_velrot(pos, to_earth=False)
     if separate_probes:
         # The head->beam transformation matrix
         transMat = ds.get('beam2inst_orientmat', None)
@@ -367,10 +374,7 @@ def correct_motion(ds,
                                                  velrot)))
         # 5) Rotate back to body-coord.
         velrot = np.dot(rmat.T, velrot)
-    # try:
     ds['velrot'] = xr.DataArray(velrot, dims=['dirIMU', 'time'])
-    # except:
-    #    ds['velrot'] = xr.DataArray(velrot, dims=['dirIMU','range','time'])
 
     ##########
     # Rotate the data into the correct coordinate system.
@@ -383,10 +387,7 @@ def correct_motion(ds,
         ds.attrs['rotate_vars'].extend(['velrot', 'velacc', 'acclow'])
 
     # NOTE: accel, acclow, and velacc are in the earth-frame after
-    #       calc_velacc() call.
-    # if _make_model(ds).startswith('nortek signature'):
-    #     inst2earth = sig._inst2earth
-    # else: # nortek vector
+    #       _calc_velacc() call.
     inst2earth = rot._inst2earth
     if to_earth:
         ds['accel'].values = calcobj.accel
@@ -407,7 +408,7 @@ def correct_motion(ds,
     ds.attrs['rotate_vars'].append('vel_raw')
 
     ##########
-    # Remove motion from measured velocity! <woot!>
+    # Remove motion from measured velocity
     # NOTE: The plus sign is because the measured-induced velocities
     #       are in the opposite direction of the head motion.
     #       i.e. when the head moves one way in stationary flow, it
@@ -416,13 +417,6 @@ def correct_motion(ds,
     # use xarray to keep dimensions consistent
     velmot = ds['velrot'] + ds['velacc']
     velmot = velmot.values
-
-    # if _make_model(ds).startswith('nortek signature'):
-    #     # drop xarray to not break code between ADV and AD2CP
-    #     ds['vel'][:3] += velmot[:,None,:]
-    #     # This assumes these are w.
-    #     ds['vel'][3:] += velmot[2:]
-    # else: # nortek vector
     ds['vel'][:3] += velmot
 
     ds.attrs['motion corrected'] = 1

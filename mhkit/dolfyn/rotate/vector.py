@@ -38,7 +38,7 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
            If True, this function performs the inverse rotation
            (earth->inst).
 
-    rotate_vars : iterable
+    rotate_vars : list
       The list of variables to rotate. By default this is taken from
       advo.props['rotate_vars'].
 
@@ -78,7 +78,7 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
     else:
         if 'vector' in advo.inst_model.lower():
             orientation_down = advo['orientation_down']
-            
+
         omat = _calc_omat(advo['heading'].values, advo['pitch'].values,
                           advo['roll'].values, orientation_down)
 

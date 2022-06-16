@@ -453,37 +453,6 @@ class VelBinner(TimeBinner):
     # This defines how cross-spectra and stresses are computed.
     _cross_pairs = [(0, 1), (0, 2), (1, 2)]
 
-    def do_tke(self, ds, out_ds=None):
-        """Calculate the tke (variances of u,v,w) and stresses 
-        (cross-covariances of u,v,w)
-
-        Parameters
-        ----------
-        ds : xarray.Dataset
-            Xarray dataset containing raw velocity data
-        out_ds : xarray.Dataset
-            Averaged dataset to save tke and stress dataArrays to, 
-            nominally dataset output from `do_avg()`.
-
-        Returns
-        -------
-        ds : xarray.Dataset
-            Dataset containing tke and stress dataArrays
-
-        """
-        props = {}
-        if out_ds is None:
-            out_ds = type(ds)()
-            props['fs'] = self.fs
-            props['n_bin'] = self.n_bin
-            props['n_fft'] = self.n_fft
-            out_ds.attrs = props
-
-        out_ds['tke_vec'] = self.calc_tke(ds['vel'])
-        out_ds['stress'] = self.calc_stress(ds['vel'])
-
-        return out_ds
-
     def calc_tke(self, veldat, noise=[0, 0, 0], detrend=True):
         """Calculate the tke (variances of u,v,w).
 
