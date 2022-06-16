@@ -98,12 +98,14 @@ def _handle_nan(data):
                 elif len(shp) == 2:
                     if any(np.isnan(data['data_vars'][key][-1])):
                         nan += np.isnan(data['data_vars'][key][-1])
+    trailing = np.cumsum(nan)[-1]
 
-    if nan.sum() > 0:
-        data['coords']['time'] = data['coords']['time'][~nan]
+    if trailing > 0:
+        data['coords']['time'] = data['coords']['time'][:-trailing]
         for key in data['data_vars']:
             if data['data_vars'][key].shape[-1] == l:
-                data['data_vars'][key] = data['data_vars'][key][..., ~nan]
+                data['data_vars'][key] = data['data_vars'][key][..., :-trailing]
+
     return data
 
 

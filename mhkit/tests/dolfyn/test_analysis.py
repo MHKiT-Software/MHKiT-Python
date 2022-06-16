@@ -14,7 +14,7 @@ class analysis_testcase(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.adv1 = tv.dat.copy(deep=True)
-        self.adv2 = read_example('burst_mode01.VEC', nens=200)
+        self.adv2 = read_example('burst_mode01.VEC', nens=90)
         self.adv_tool = VelBinner(n_bin=self.adv1.fs, fs=self.adv1.fs)
 
         self.adp = tr.dat_sig.copy(deep=True)
@@ -30,7 +30,8 @@ class analysis_testcase(unittest.TestCase):
     def test_do_func(self):
         adat_vec = self.adv_tool.do_avg(self.adv1)
         adat_vec = self.adv_tool.do_var(self.adv1, out_ds=adat_vec)
-        adat_vec = self.adv_tool.do_tke(self.adv1, out_ds=adat_vec)
+        adat_vec['tke_vec'] = self.adv_tool.calc_tke(self.adv1.vel)
+        adat_vec['stress'] = self.adv_tool.calc_stress(self.adv1.vel)
 
         adat_sig = self.adp_tool.do_avg(self.adp)
         adat_sig = self.adp_tool.do_var(self.adp, out_ds=adat_sig)
