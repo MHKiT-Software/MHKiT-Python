@@ -4,6 +4,8 @@ from .binned import TimeBinner
 from .time import dt642epoch, dt642date
 from .rotate.api import rotate2, set_declination, set_inst2head_rotmat
 from .io.api import save
+from .tools.fft import _psd, _cpsd, _cpsd_quasisync
+from .tools.misc import slice1d_along_axis
 
 
 @xr.register_dataset_accessor('velds')  # 'vel dataset'
@@ -447,14 +449,15 @@ class VelBinner(TimeBinner):
         binner = dlfn.VelBinner(n_bin=600, fs=rawdat.fs)
 
         # This computes the basic averages
-        avg = binner.do_avg(rawdat)
+        avg = binner.bin_average(rawdat)
 
     """
     # This defines how cross-spectra and stresses are computed.
     _cross_pairs = [(0, 1), (0, 2), (1, 2)]
 
-    def calc_tke(self, veldat, noise=[0, 0, 0], detrend=True):
-        """Calculate the tke (variances of u,v,w).
+    def turbulent_kinetic_energy(self, veldat, noise=[0, 0, 0], detrend=True):
+        """Calculate the turbulent kinetic energy (TKE) (variances 
+        of u,v,w).
 
         Parameters
         ----------
@@ -515,7 +518,7 @@ class VelBinner(TimeBinner):
 
         return da
 
-    def calc_stress(self, veldat, detrend=True):
+    def stresses(self, veldat, detrend=True):
         """Calculate the stresses (cross-covariances of u,v,w)
 
         Parameters
@@ -558,13 +561,61 @@ class VelBinner(TimeBinner):
                                'time': time})
         return da
 
-    def calc_psd(self, veldat,
-                 freq_units='Hz',
-                 fs=None,
-                 window='hann',
-                 noise=[0, 0, 0],
-                 n_bin=None, n_fft=None, n_pad=None,
-                 step=None):
+    def _psd_base(self, dat, fs=None, window='hann', noise=0,
+                  n_bin=None, n_fft=None, n_pad=None, step=None):
+        """Calculate power spectral density of `dat`
+
+        Parameters
+        ----------
+        dat : xarray.DataArray
+          The raw dataArray of which to calculate the psd.
+        fs : float (optional)
+          The sample rate (Hz).
+        window : str
+          String indicating the window function to use (default: 'hanning').
+        noise  : float
+          The white-noise level of the measurement (in the same units
+          as `dat`).
+        n_bin : int
+          n_bin of veldat2, number of elements per bin if 'None' is taken 
+          from VelBinner
+        n_fft : int
+          n_fft of veldat2, number of elements per bin if 'None' is taken 
+          from VelBinner
+        n_pad : int (optional)
+          The number of values to pad with zero (default: 0)
+        step : int (optional)
+          Controls amount of overlap in fft (default: the step size is
+          chosen to maximize data use, minimize nens, and have a
+          minimum of 50% overlap.).
+
+        """
+        fs = self._parse_fs(fs)
+        n_bin = self._parse_nbin(n_bin)
+        n_fft = self._parse_nfft(n_fft)
+        if n_pad is None:
+            n_pad = min(n_bin - n_fft, n_fft)
+        out = np.empty(self._outshape_fft(dat.shape, n_fft=n_fft, n_bin=n_bin))
+        # The data is detrended in psd, so we don't need to do it here.
+        dat = self.reshape(dat, n_pad=n_pad)
+
+        for slc in slice1d_along_axis(dat.shape, -1):
+            # PSD's are computed in radian units: - set prior to function
+            out[slc] = _psd(dat[slc], n_fft, fs,
+                            window=window, step=step)
+        if noise != 0:
+            out -= noise**2 / (fs/2)
+            # Make sure all values of the PSD are >0 (but still small):
+            out[out < 0] = np.min(np.abs(out)) / 100
+        return out
+
+    def power_spectral_density(self, veldat,
+                               freq_units='Hz',
+                               fs=None,
+                               window='hann',
+                               noise=[0, 0, 0],
+                               n_bin=None, n_fft=None, n_pad=None,
+                               step=None):
         """Calculate the power spectral density of velocity.
 
         Parameters
@@ -609,7 +660,7 @@ class VelBinner(TimeBinner):
         veldat = veldat.values
 
         # Create frequency vector, also checks whether using f or omega
-        freq = self.calc_freq(units=freq_units)
+        freq = self.fft_frequency(units=freq_units)
         if 'rad' in freq_units:
             fs = 2*np.pi*fs
             freq_units = 'rad/s'
@@ -627,14 +678,14 @@ class VelBinner(TimeBinner):
             out = np.empty(self._outshape_fft(veldat[:3].shape),
                            dtype=np.float32)
             for idx in range(3):
-                out[idx] = self._psd(veldat[idx], fs=fs, noise=noise[idx],
-                                     window=window, n_bin=n_bin,
-                                     n_pad=n_pad, n_fft=n_fft, step=step)
+                out[idx] = self._psd_base(veldat[idx], fs=fs, noise=noise[idx],
+                                          window=window, n_bin=n_bin,
+                                          n_pad=n_pad, n_fft=n_fft, step=step)
             coords = {'S': ['Sxx', 'Syy', 'Szz'], time_str: time, f_key: freq}
             dims = ['S', time_str, f_key]
         else:
-            out = self._psd(veldat, fs=fs, noise=noise[0], window=window,
-                            n_bin=n_bin, n_pad=n_pad, n_fft=n_fft, step=step)
+            out = self._psd_base(veldat, fs=fs, noise=noise[0], window=window,
+                                 n_bin=n_bin, n_pad=n_pad, n_fft=n_fft, step=step)
             coords = {time_str: time, f_key: freq}
             dims = [time_str, f_key]
 
@@ -647,12 +698,70 @@ class VelBinner(TimeBinner):
 
         return da
 
-    def calc_csd(self, veldat,
-                 freq_units='Hz',
-                 fs=None,
-                 window='hann',
-                 n_bin=None,
-                 n_fft_coh=None):
+    def _cpsd_base(self, dat1, dat2, fs=None, window='hann',
+                   n_fft=None, n_bin=None):
+        """Calculate the cross power spectral density of `dat`.
+
+        Parameters
+        ----------
+        dat1 : numpy.ndarray
+          The first (shorter, if applicable) raw dataArray of which to 
+          calculate the cpsd.
+        dat2 : numpy.ndarray
+          The second (the shorter, if applicable) raw dataArray of which to 
+          calculate the cpsd.
+        fs : float (optional)
+          The sample rate (Hz).
+        window : str
+          String indicating the window function to use (default: 'hanning').
+        n_fft : int
+          n_fft of veldat2, number of elements per bin if 'None' is taken 
+          from VelBinner
+        n_bin : int
+          n_bin of veldat2, number of elements per bin if 'None' is taken 
+          from VelBinner
+
+        Returns
+        -------
+        out : numpy.ndarray
+          The cross-spectral density of `dat1` and `dat2`
+
+        Notes
+        -----
+        The two velocity inputs do not have to be perfectly synchronized, but 
+        they should have the same start and end timestamps
+
+        """
+        fs = self._parse_fs(fs)
+        if n_fft is None:
+            n_fft = self.n_fft_coh
+        # want each slice to carry the same timespan
+        n_bin2 = self._parse_nbin(n_bin)  # bins for shorter array
+        n_bin1 = int(dat1.shape[-1]/(dat2.shape[-1]/n_bin2))
+
+        oshp = self._outshape_fft(dat1.shape, n_fft=n_fft, n_bin=n_bin1)
+        oshp[-2] = np.min([oshp[-2], int(dat2.shape[-1] // n_bin2)])
+
+        # The data is detrended in psd, so we don't need to do it here:
+        dat1 = self.reshape(dat1, n_pad=n_fft)
+        dat2 = self.reshape(dat2, n_pad=n_fft)
+        out = np.empty(oshp, dtype='c{}'.format(dat1.dtype.itemsize * 2))
+        if dat1.shape == dat2.shape:
+            cross = _cpsd
+        else:
+            cross = _cpsd_quasisync
+        for slc in slice1d_along_axis(out.shape, -1):
+            # PSD's are computed in radian units: - set prior to function
+            out[slc] = cross(dat1[slc], dat2[slc], n_fft,
+                             fs, window=window)
+        return out
+
+    def cross_spectral_density(self, veldat,
+                               freq_units='Hz',
+                               fs=None,
+                               window='hann',
+                               n_bin=None,
+                               n_fft_coh=None):
         """Calculate the cross-spectral density of velocity components.
 
         Parameters
@@ -687,7 +796,7 @@ class VelBinner(TimeBinner):
                        dtype='complex')
 
         # Create frequency vector, also checks whether using f or omega
-        coh_freq = self.calc_freq(units=freq_units, coh=True)
+        coh_freq = self.fft_frequency(units=freq_units, coh=True)
         if 'rad' in freq_units:
             fs = 2*np.pi*fs
             freq_units = 'rad/s'
@@ -699,11 +808,11 @@ class VelBinner(TimeBinner):
             f_key = 'f'
 
         for ip, ipair in enumerate(self._cross_pairs):
-            out[ip] = self._cpsd(veldat[ipair[0]],
-                                 veldat[ipair[1]],
-                                 n_bin=n_bin,
-                                 n_fft=n_fft,
-                                 window=window)
+            out[ip] = self._cpsd_base(veldat[ipair[0]],
+                                      veldat[ipair[1]],
+                                      n_bin=n_bin,
+                                      n_fft=n_fft,
+                                      window=window)
 
         da = xr.DataArray(out,
                           name='csd',

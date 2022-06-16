@@ -1,9 +1,9 @@
 import numpy as np
-from .misc import detrend
+from .misc import _detrend
 fft = np.fft.fft
 
 
-def psd_freq(nfft, fs, full=False):
+def _fft_freq(nfft, fs, full=False):
     """
     Compute the frequency for vector for a `nfft` and `fs`.
 
@@ -40,7 +40,7 @@ def _getwindow(window, nfft):
     return window
 
 
-def stepsize(l, nfft, nens=None, step=None):
+def _stepsize(l, nfft, nens=None, step=None):
     """
     Calculates the fft-step size for a length *l* array.
 
@@ -77,7 +77,7 @@ def stepsize(l, nfft, nens=None, step=None):
         return int((l - nfft) / (nens - 1)), int(nens), int(nfft)
 
 
-def coherence(a, b, nfft, window='hann', debias=True, noise=(0, 0)):
+def _coherence(a, b, nfft, window='hann', debias=True, noise=(0, 0)):
     """
     Computes the magnitude-squared coherence of `a` and `b`.
 
@@ -118,14 +118,14 @@ def coherence(a, b, nfft, window='hann', debias=True, noise=(0, 0)):
 
     """
     l = [len(a), len(b)]
-    cross = cpsd_quasisync
+    cross = _cpsd_quasisync
     if l[0] == l[1]:
-        cross = cpsd
+        cross = _cpsd
     elif l[0] > l[1]:
         a, b = b, a
         l = l[::-1]
-    step1, nens, nfft = stepsize(l[0], nfft)
-    step2, nens, nfft = stepsize(l[1], nfft, nens=nens)
+    step1, nens, nfft = _stepsize(l[0], nfft)
+    step2, nens, nfft = _stepsize(l[1], nfft, nens=nens)
     if noise.__class__ not in [list, tuple, np.ndarray]:
         noise = [noise, noise]
     elif len(noise) == 1:
@@ -135,8 +135,8 @@ def coherence(a, b, nfft, window='hann', debias=True, noise=(0, 0)):
     # fs=1 is ok because it comes out in the normalization.  (noise
     # normalization depends on this)
     out = ((np.abs(cross(a, b, nfft, 1, window=window)) ** 2) /
-           ((psd(a, nfft, 1, window=window, step=step1) - noise[0] ** 2 / np.pi) *
-            (psd(b, nfft, 1, window=window, step=step2) - noise[1] ** 2 / np.pi))
+           ((_psd(a, nfft, 1, window=window, step=step1) - noise[0] ** 2 / np.pi) *
+            (_psd(b, nfft, 1, window=window, step=step2) - noise[1] ** 2 / np.pi))
            )
     if debias:
         # This is from Benignus1969, it seems to work (make data with different
@@ -145,7 +145,7 @@ def coherence(a, b, nfft, window='hann', debias=True, noise=(0, 0)):
     return out
 
 
-def cpsd_quasisync(a, b, nfft, fs, window='hann'):
+def _cpsd_quasisync(a, b, nfft, fs, window='hann'):
     """
     Compute the cross power spectral density (CPSD) of the signals `a` and `b`.
 
@@ -172,9 +172,9 @@ def cpsd_quasisync(a, b, nfft, fs, window='hann'):
 
     See Also
     ---------
-    :func:`psd`,
-    :func:`coherence`,
-    :func:`cpsd`,
+    :func:`_psd`,
+    :func:`_coherence`,
+    :func:`_cpsd`,
     numpy.fft
 
     Notes
@@ -206,29 +206,29 @@ def cpsd_quasisync(a, b, nfft, fs, window='hann'):
         raise Exception("Velocity cannot be complex")
     l = [len(a), len(b)]
     if l[0] == l[1]:
-        return cpsd(a, b, nfft, fs, window=window)
+        return _cpsd(a, b, nfft, fs, window=window)
     elif l[0] > l[1]:
         a, b = b, a
         l = l[::-1]
     step = [0, 0]
-    step[0], nens, nfft = stepsize(l[0], nfft)
-    step[1], nens, nfft = stepsize(l[1], nfft, nens=nens)
+    step[0], nens, nfft = _stepsize(l[0], nfft)
+    step[1], nens, nfft = _stepsize(l[1], nfft, nens=nens)
     fs = np.float64(fs)
     window = _getwindow(window, nfft)
     fft_inds = slice(1, int(nfft / 2. + 1))
     wght = 2. / (window ** 2).sum()
-    pwr = fft(detrend(a[0:nfft]) * window)[fft_inds] * \
-        np.conj(fft(detrend(b[0:nfft]) * window)[fft_inds])
+    pwr = fft(_detrend(a[0:nfft]) * window)[fft_inds] * \
+        np.conj(fft(_detrend(b[0:nfft]) * window)[fft_inds])
     if nens - 1:
         for i1, i2 in zip(range(step[0], l[0] - nfft + 1, step[0]),
                           range(step[1], l[1] - nfft + 1, step[1])):
-            pwr += fft(detrend(a[i1:(i1 + nfft)]) * window)[fft_inds] * \
-                np.conj(fft(detrend(b[i2:(i2 + nfft)]) * window)[fft_inds])
+            pwr += fft(_detrend(a[i1:(i1 + nfft)]) * window)[fft_inds] * \
+                np.conj(fft(_detrend(b[i2:(i2 + nfft)]) * window)[fft_inds])
     pwr *= wght / nens / fs
     return pwr
 
 
-def cpsd(a, b, nfft, fs, window='hann', step=None):
+def _cpsd(a, b, nfft, fs, window='hann', step=None):
     """
     Compute the cross power spectral density (CPSD) of the signals `a` and `b`.
 
@@ -262,8 +262,8 @@ def cpsd(a, b, nfft, fs, window='hann', step=None):
 
     See also
     --------
-    :func:`psd`
-    :func:`coherence`
+    :func:`_psd`
+    :func:`_coherence`
     `numpy.fft`
 
     Notes
@@ -292,29 +292,29 @@ def cpsd(a, b, nfft, fs, window='hann', step=None):
     if a is b:
         auto_psd = True
     l = len(a)
-    step, nens, nfft = stepsize(l, nfft, step=step)
+    step, nens, nfft = _stepsize(l, nfft, step=step)
     fs = np.float64(fs)
     window = _getwindow(window, nfft)
     fft_inds = slice(1, int(nfft / 2. + 1))
     wght = 2. / (window ** 2).sum()
-    s1 = fft(detrend(a[0:nfft]) * window)[fft_inds]
+    s1 = fft(_detrend(a[0:nfft]) * window)[fft_inds]
     if auto_psd:
         pwr = np.abs(s1) ** 2
     else:
-        pwr = s1 * np.conj(fft(detrend(b[0:nfft]) * window)[fft_inds])
+        pwr = s1 * np.conj(fft(_detrend(b[0:nfft]) * window)[fft_inds])
     if nens - 1:
         for i in range(step, l - nfft + 1, step):
-            s1 = fft(detrend(a[i:(i + nfft)]) * window)[fft_inds]
+            s1 = fft(_detrend(a[i:(i + nfft)]) * window)[fft_inds]
             if auto_psd:
                 pwr += np.abs(s1) ** 2
             else:
                 pwr += s1 * \
-                    np.conj(fft(detrend(b[i:(i + nfft)]) * window)[fft_inds])
+                    np.conj(fft(_detrend(b[i:(i + nfft)]) * window)[fft_inds])
     pwr *= wght / nens / fs
     return pwr
 
 
-def psd(a, nfft, fs, window='hann', step=None):
+def _psd(a, nfft, fs, window='hann', step=None):
     """
     Compute the power spectral density (PSD).
 
@@ -356,18 +356,18 @@ def psd(a, nfft, fs, window='hann', step=None):
 
     See Also
     --------
-    :func:`cpsd`
-    :func:`coherence`
+    :func:`_cpsd`
+    :func:`_coherence`
     `numpy.fft`
 
     """
-    return np.abs(cpsd(a, a, nfft, fs, window=window, step=step))
+    return np.abs(_cpsd(a, a, nfft, fs, window=window, step=step))
 
 
-def phase_angle(a, b, nfft, window='hann', step=None):
+def _phase_angle(a, b, nfft, window='hann', step=None):
     """
     Compute the phase difference between signals `a` and `b`. This is the
-    complimentary function to coherence and cpsd.
+    complimentary function to _coherence and _cpsd.
 
     Positive angles means that `b` leads `a`, i.e. this does,
     essentially:
@@ -404,24 +404,24 @@ def phase_angle(a, b, nfft, window='hann', step=None):
     See Also
     --------
     `numpy.fft`
-    :func:`coherence`
-    :func:`cpsd`
+    :func:`_coherence`
+    :func:`_cpsd`
 
     """
     window = _getwindow(window, nfft)
     fft_inds = slice(1, int(nfft / 2. + 1))
-    s1 = fft(detrend(a[0:nfft]) * window)[fft_inds]
-    s2 = fft(detrend(b[0:nfft]) * window)[fft_inds]
+    s1 = fft(_detrend(a[0:nfft]) * window)[fft_inds]
+    s2 = fft(_detrend(b[0:nfft]) * window)[fft_inds]
     s1 /= np.abs(s1)
     s2 /= np.abs(s2)
     ang = s2 / s1
     l = len(a)
-    step, nens, nfft = stepsize(l, nfft, step=step)
+    step, nens, nfft = _stepsize(l, nfft, step=step)
     if nens - 1:
         for i in range(step, l - nfft + 1, step):
-            s1 = fft(detrend(a[i:(i + nfft)]) * window)[fft_inds]
+            s1 = fft(_detrend(a[i:(i + nfft)]) * window)[fft_inds]
             s1 /= np.abs(s1)
-            s2 = fft(detrend(a[i:(i + nfft)]) * window)[fft_inds]
+            s2 = fft(_detrend(a[i:(i + nfft)]) * window)[fft_inds]
             s2 /= np.abs(s2)
             ang += s2 / s1
     ang /= nens

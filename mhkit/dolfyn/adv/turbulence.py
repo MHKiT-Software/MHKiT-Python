@@ -67,16 +67,16 @@ class ADVBinner(VelBinner):
 
         """
         out = type(ds)()
-        out = self.do_avg(ds, out)
+        out = self.bin_average(ds, out)
 
         noise = ds.get('doppler_noise', [0, 0, 0])
-        out['tke_vec'] = self.calc_tke(ds['vel'], noise=noise)
-        out['stress'] = self.calc_stress(ds['vel'])
+        out['tke_vec'] = self.turbulent_kinetic_energy(ds['vel'], noise=noise)
+        out['stress'] = self.stresses(ds['vel'])
 
-        out['psd'] = self.calc_psd(ds['vel'],
-                                   window=window,
-                                   freq_units=freq_units,
-                                   noise=noise)
+        out['psd'] = self.power_spectral_density(ds['vel'],
+                                                 window=window,
+                                                 freq_units=freq_units,
+                                                 noise=noise)
         for key in list(ds.attrs.keys()):
             if 'config' in key:
                 ds.attrs.pop(key)
@@ -87,7 +87,7 @@ class ADVBinner(VelBinner):
 
         return out
 
-    def calc_epsilon_LT83(self, psd, U_mag, omega_range=[6.28, 12.57]):
+    def dissipation_rate_LT83(self, psd, U_mag, omega_range=[6.28, 12.57]):
         """
         Calculate the dissipation rate from the PSD
 
@@ -138,7 +138,7 @@ class ADVBinner(VelBinner):
                                   'method': 'LT83'})
         return out
 
-    def calc_epsilon_SF(self, vel_raw, U_mag, fs=None, freq_rng=[2., 4.]):
+    def dissipation_rate_SF(self, vel_raw, U_mag, fs=None, freq_rng=[2., 4.]):
         """
         Calculate dissipation rate using the "structure function" (SF) method
 
@@ -207,7 +207,7 @@ class ADVBinner(VelBinner):
 
         return np.angle(np.mean(dt, -1, dtype=np.complex128))
 
-    def _calc_epsTE01_int(self, I_tke, theta):
+    def _integral_TE01(self, I_tke, theta):
         """
         The integral, equation A13, in [TE01].
 
@@ -231,7 +231,7 @@ class ADVBinner(VelBinner):
         return out.reshape(I_tke.shape) * \
             (2 * np.pi) ** (-0.5) * I_tke ** (2 / 3)
 
-    def calc_epsilon_TE01(self, dat_raw, dat_avg, omega_range=[6.28, 12.57]):
+    def dissipation_rate_TE01(self, dat_raw, dat_avg, omega_range=[6.28, 12.57]):
         """
         Calculate the dissipation rate according to TE01.
 
@@ -242,8 +242,8 @@ class ADVBinner(VelBinner):
           The raw (off the instrument) adv dataset
 
         dat_avg : xarray.Dataset
-          The bin-averaged adv dataset (calc'd from 'calc_turbulence' or
-          'do_avg'). The spectra (psd) and basic turbulence statistics 
+          The bin-averaged adv dataset (calc'd from 'turbulence_statistics' or
+          'bin_average'). The spectra (psd) and basic turbulence statistics 
           ('tke_vec' and 'stress') must already be computed.
 
         Notes
@@ -262,7 +262,7 @@ class ADVBinner(VelBinner):
 
         # Calculate constants
         alpha = 1.5
-        intgrl = self._calc_epsTE01_int(I_tke, theta)
+        intgrl = self._integral_TE01(I_tke, theta)
 
         # Index data to be used
         inds = (omega_range[0] < omega) & (omega < omega_range[1])
@@ -287,14 +287,14 @@ class ADVBinner(VelBinner):
                             attrs={'units': 'm^2/s^3',
                                    'method': 'TE01'})
 
-    def calc_L_int(self, a_cov, U_mag, fs=None):
+    def integral_length_scales(self, a_cov, U_mag, fs=None):
         """
         Calculate integral length scales.
 
         Parameters
         ----------
         a_cov : xarray.DataArray
-          The auto-covariance array (i.e. computed using `calc_acov`).
+          The auto-covariance array (i.e. computed using `autocovariance`).
         U_mag : xarray.DataArray
           The bin-averaged horizontal velocity (from dataset shortcut)
         fs : float
@@ -322,7 +322,7 @@ class ADVBinner(VelBinner):
         return xr.DataArray(L_int, name='L_int', attrs={'units': 'm'})
 
 
-def calc_turbulence(ds_raw, n_bin, fs, n_fft=None, freq_units='rad/s', window='hann'):
+def turbulence_statistics(ds_raw, n_bin, fs, n_fft=None, freq_units='rad/s', window='hann'):
     """
     Functional version of `ADVBinner` that computes a suite of turbulence 
     statistics for the input dataset, and returns a `binned` data object.

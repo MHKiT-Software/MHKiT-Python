@@ -15,7 +15,7 @@ class tools_testcase(unittest.TestCase):
         pass
 
     def test_detrend(self):
-        d = tools.detrend(self.array)
+        d = tools._detrend(self.array)
         assert_allclose(d, np.zeros(10), atol=1e-10)
 
     def test_group(self):

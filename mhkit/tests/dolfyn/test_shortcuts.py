@@ -15,7 +15,8 @@ class analysis_testcase(unittest.TestCase):
     def setUpClass(self):
         dat = tv.dat.copy(deep=True)
         self.dat = rotate2(dat, 'earth', inplace=False)
-        self.tdat = avm.calc_turbulence(self.dat, n_bin=20.0, fs=self.dat.fs)
+        self.tdat = avm.turbulence_statistics(
+            self.dat, n_bin=20.0, fs=self.dat.fs)
 
         short = xr.Dataset()
         short['u'] = self.tdat.velds.u
