@@ -97,9 +97,9 @@ class analysis_testcase(unittest.TestCase):
             'vector_data01_func_demean.nc'), atol=1e-6)
         assert_allclose(test_ds_adp, load('BenchFile01_func.nc'), atol=1e-6)
 
-    def test_fft_frequency(self):
-        f = self.adv_tool.fft_frequency(units='Hz')
-        omega = self.adv_tool.fft_frequency(units='rad/s')
+    def test__fft_freq(self):
+        f = self.adv_tool._fft_freq(units='Hz')
+        omega = self.adv_tool._fft_freq(units='rad/s')
 
         np.testing.assert_equal(f, np.arange(1, 17, 1, dtype='float'))
         np.testing.assert_equal(omega, np.arange(

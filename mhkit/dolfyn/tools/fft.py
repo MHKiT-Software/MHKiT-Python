@@ -3,7 +3,7 @@ from .misc import detrend_array
 fft = np.fft.fft
 
 
-def fft_freq(nfft, fs, full=False):
+def fft_frequency(nfft, fs, full=False):
     """
     Compute the frequency vector for a given `nfft` and `fs`.
 
@@ -118,9 +118,9 @@ def coherence_1D(a, b, nfft, window='hann', debias=True, noise=(0, 0)):
 
     """
     l = [len(a), len(b)]
-    cross = cpsd_quasisync
+    cross = cpsd_quasisync_1D
     if l[0] == l[1]:
-        cross = cpsd
+        cross = cpsd_1D
     elif l[0] > l[1]:
         a, b = b, a
         l = l[::-1]
@@ -135,8 +135,8 @@ def coherence_1D(a, b, nfft, window='hann', debias=True, noise=(0, 0)):
     # fs=1 is ok because it comes out in the normalization.  (noise
     # normalization depends on this)
     out = ((np.abs(cross(a, b, nfft, 1, window=window)) ** 2) /
-           ((psd(a, nfft, 1, window=window, step=step1) - noise[0] ** 2 / np.pi) *
-            (psd(b, nfft, 1, window=window, step=step2) - noise[1] ** 2 / np.pi))
+           ((psd_1D(a, nfft, 1, window=window, step=step1) - noise[0] ** 2 / np.pi) *
+            (psd_1D(b, nfft, 1, window=window, step=step2) - noise[1] ** 2 / np.pi))
            )
     if debias:
         # This is from Benignus1969, it seems to work (make data with different
@@ -186,7 +186,7 @@ def phase_angle_1D(a, b, nfft, window='hann', step=None):
     --------
     `numpy.fft`
     :func:`coherence_1D`
-    :func:`cpsd`
+    :func:`cpsd_1D`
 
     """
     window = _getwindow(window, nfft)
@@ -209,7 +209,7 @@ def phase_angle_1D(a, b, nfft, window='hann', step=None):
     return ang
 
 
-def cpsd_quasisync(a, b, nfft, fs, window='hann'):
+def cpsd_quasisync_1D(a, b, nfft, fs, window='hann'):
     """
     Compute the cross power spectral density (CPSD) of the signals `a` and `b`.
 
@@ -238,7 +238,7 @@ def cpsd_quasisync(a, b, nfft, fs, window='hann'):
     ---------
     :func:`psd`,
     :func:`coherence_1D`,
-    :func:`cpsd`,
+    :func:`cpsd_1D`,
     numpy.fft
 
     Notes
@@ -270,7 +270,7 @@ def cpsd_quasisync(a, b, nfft, fs, window='hann'):
         raise Exception("Velocity cannot be complex")
     l = [len(a), len(b)]
     if l[0] == l[1]:
-        return cpsd(a, b, nfft, fs, window=window)
+        return cpsd_1D(a, b, nfft, fs, window=window)
     elif l[0] > l[1]:
         a, b = b, a
         l = l[::-1]
@@ -293,7 +293,7 @@ def cpsd_quasisync(a, b, nfft, fs, window='hann'):
     return pwr
 
 
-def cpsd(a, b, nfft, fs, window='hann', step=None):
+def cpsd_1D(a, b, nfft, fs, window='hann', step=None):
     """
     Compute the cross power spectral density (CPSD) of the signals `a` and `b`.
 
@@ -380,7 +380,7 @@ def cpsd(a, b, nfft, fs, window='hann', step=None):
     return pwr
 
 
-def psd(a, nfft, fs, window='hann', step=None):
+def psd_1D(a, nfft, fs, window='hann', step=None):
     """
     Compute the power spectral density (PSD).
 
@@ -422,9 +422,9 @@ def psd(a, nfft, fs, window='hann', step=None):
 
     See Also
     --------
-    :func:`cpsd`
+    :func:`cpsd_1D`
     :func:`coherence_1D`
     `numpy.fft`
 
     """
-    return np.abs(cpsd(a, a, nfft, fs, window=window, step=step))
+    return np.abs(cpsd_1D(a, a, nfft, fs, window=window, step=step))
