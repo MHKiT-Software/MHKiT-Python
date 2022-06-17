@@ -1,11 +1,11 @@
 import numpy as np
-from .misc import _detrend
+from .misc import detrend_array
 fft = np.fft.fft
 
 
-def _fft_freq(nfft, fs, full=False):
+def fft_freq(nfft, fs, full=False):
     """
-    Compute the frequency for vector for a `nfft` and `fs`.
+    Compute the frequency vector for a given `nfft` and `fs`.
 
     Parameters
     ----------
@@ -77,7 +77,7 @@ def _stepsize(l, nfft, nens=None, step=None):
         return int((l - nfft) / (nens - 1)), int(nens), int(nfft)
 
 
-def _coherence(a, b, nfft, window='hann', debias=True, noise=(0, 0)):
+def coherence_1D(a, b, nfft, window='hann', debias=True, noise=(0, 0)):
     """
     Computes the magnitude-squared coherence of `a` and `b`.
 
@@ -118,9 +118,9 @@ def _coherence(a, b, nfft, window='hann', debias=True, noise=(0, 0)):
 
     """
     l = [len(a), len(b)]
-    cross = _cpsd_quasisync
+    cross = cpsd_quasisync
     if l[0] == l[1]:
-        cross = _cpsd
+        cross = cpsd
     elif l[0] > l[1]:
         a, b = b, a
         l = l[::-1]
@@ -135,8 +135,8 @@ def _coherence(a, b, nfft, window='hann', debias=True, noise=(0, 0)):
     # fs=1 is ok because it comes out in the normalization.  (noise
     # normalization depends on this)
     out = ((np.abs(cross(a, b, nfft, 1, window=window)) ** 2) /
-           ((_psd(a, nfft, 1, window=window, step=step1) - noise[0] ** 2 / np.pi) *
-            (_psd(b, nfft, 1, window=window, step=step2) - noise[1] ** 2 / np.pi))
+           ((psd(a, nfft, 1, window=window, step=step1) - noise[0] ** 2 / np.pi) *
+            (psd(b, nfft, 1, window=window, step=step2) - noise[1] ** 2 / np.pi))
            )
     if debias:
         # This is from Benignus1969, it seems to work (make data with different
@@ -145,7 +145,71 @@ def _coherence(a, b, nfft, window='hann', debias=True, noise=(0, 0)):
     return out
 
 
-def _cpsd_quasisync(a, b, nfft, fs, window='hann'):
+def phase_angle_1D(a, b, nfft, window='hann', step=None):
+    """
+    Compute the phase difference between signals `a` and `b`. This is the
+    complimentary function to coherence and cpsd.
+
+    Positive angles means that `b` leads `a`, i.e. this does,
+    essentially:
+
+          angle(b) - angle(a)
+
+    This function computes one-dimensional `n`-point PSD.
+
+    The angles are output as magnitude = 1 complex numbers (to
+    simplify averaging). Therefore, use `numpy.angle` to actually
+    output the angle.
+
+
+    Parameters
+    ----------
+    a      : 1d-array_like, the signal. Currently only supports vectors.
+    nfft   : The number of points in the fft.
+    window : The window to use (default: 'hann'). Valid entries are:
+                 None,1               : uses a 'boxcar' or ones window.
+                 'hann'               : hanning window.
+                 a length(nfft) array : use this as the window directly.
+    step   : Use this to specify the overlap.  For example:
+             -  step=nfft/2 specifies a 50% overlap.
+             -  step=nfft specifies no overlap.
+             -  step=2*nfft means that half the data will be skipped.
+
+             By default, `step` is calculated to maximize data use, have
+             at least 50% overlap and minimize the number of ensembles.
+
+    Returns
+    -------
+    ang    : complex numpy.ndarray (unit magnitude values)
+
+    See Also
+    --------
+    `numpy.fft`
+    :func:`coherence_1D`
+    :func:`cpsd`
+
+    """
+    window = _getwindow(window, nfft)
+    fft_inds = slice(1, int(nfft / 2. + 1))
+    s1 = fft(detrend_array(a[0:nfft]) * window)[fft_inds]
+    s2 = fft(detrend_array(b[0:nfft]) * window)[fft_inds]
+    s1 /= np.abs(s1)
+    s2 /= np.abs(s2)
+    ang = s2 / s1
+    l = len(a)
+    step, nens, nfft = _stepsize(l, nfft, step=step)
+    if nens - 1:
+        for i in range(step, l - nfft + 1, step):
+            s1 = fft(detrend_array(a[i:(i + nfft)]) * window)[fft_inds]
+            s1 /= np.abs(s1)
+            s2 = fft(detrend_array(a[i:(i + nfft)]) * window)[fft_inds]
+            s2 /= np.abs(s2)
+            ang += s2 / s1
+    ang /= nens
+    return ang
+
+
+def cpsd_quasisync(a, b, nfft, fs, window='hann'):
     """
     Compute the cross power spectral density (CPSD) of the signals `a` and `b`.
 
@@ -172,9 +236,9 @@ def _cpsd_quasisync(a, b, nfft, fs, window='hann'):
 
     See Also
     ---------
-    :func:`_psd`,
-    :func:`_coherence`,
-    :func:`_cpsd`,
+    :func:`psd`,
+    :func:`coherence_1D`,
+    :func:`cpsd`,
     numpy.fft
 
     Notes
@@ -206,7 +270,7 @@ def _cpsd_quasisync(a, b, nfft, fs, window='hann'):
         raise Exception("Velocity cannot be complex")
     l = [len(a), len(b)]
     if l[0] == l[1]:
-        return _cpsd(a, b, nfft, fs, window=window)
+        return cpsd(a, b, nfft, fs, window=window)
     elif l[0] > l[1]:
         a, b = b, a
         l = l[::-1]
@@ -217,18 +281,19 @@ def _cpsd_quasisync(a, b, nfft, fs, window='hann'):
     window = _getwindow(window, nfft)
     fft_inds = slice(1, int(nfft / 2. + 1))
     wght = 2. / (window ** 2).sum()
-    pwr = fft(_detrend(a[0:nfft]) * window)[fft_inds] * \
-        np.conj(fft(_detrend(b[0:nfft]) * window)[fft_inds])
+    pwr = fft(detrend_array(a[0:nfft]) * window)[fft_inds] * \
+        np.conj(fft(detrend_array(b[0:nfft]) * window)[fft_inds])
     if nens - 1:
         for i1, i2 in zip(range(step[0], l[0] - nfft + 1, step[0]),
                           range(step[1], l[1] - nfft + 1, step[1])):
-            pwr += fft(_detrend(a[i1:(i1 + nfft)]) * window)[fft_inds] * \
-                np.conj(fft(_detrend(b[i2:(i2 + nfft)]) * window)[fft_inds])
+            pwr += fft(detrend_array(a[i1:(i1 + nfft)]) * window)[fft_inds] * \
+                np.conj(
+                    fft(detrend_array(b[i2:(i2 + nfft)]) * window)[fft_inds])
     pwr *= wght / nens / fs
     return pwr
 
 
-def _cpsd(a, b, nfft, fs, window='hann', step=None):
+def cpsd(a, b, nfft, fs, window='hann', step=None):
     """
     Compute the cross power spectral density (CPSD) of the signals `a` and `b`.
 
@@ -262,8 +327,8 @@ def _cpsd(a, b, nfft, fs, window='hann', step=None):
 
     See also
     --------
-    :func:`_psd`
-    :func:`_coherence`
+    :func:`psd`
+    :func:`coherence_1D`
     `numpy.fft`
 
     Notes
@@ -297,24 +362,25 @@ def _cpsd(a, b, nfft, fs, window='hann', step=None):
     window = _getwindow(window, nfft)
     fft_inds = slice(1, int(nfft / 2. + 1))
     wght = 2. / (window ** 2).sum()
-    s1 = fft(_detrend(a[0:nfft]) * window)[fft_inds]
+    s1 = fft(detrend_array(a[0:nfft]) * window)[fft_inds]
     if auto_psd:
         pwr = np.abs(s1) ** 2
     else:
-        pwr = s1 * np.conj(fft(_detrend(b[0:nfft]) * window)[fft_inds])
+        pwr = s1 * np.conj(fft(detrend_array(b[0:nfft]) * window)[fft_inds])
     if nens - 1:
         for i in range(step, l - nfft + 1, step):
-            s1 = fft(_detrend(a[i:(i + nfft)]) * window)[fft_inds]
+            s1 = fft(detrend_array(a[i:(i + nfft)]) * window)[fft_inds]
             if auto_psd:
                 pwr += np.abs(s1) ** 2
             else:
                 pwr += s1 * \
-                    np.conj(fft(_detrend(b[i:(i + nfft)]) * window)[fft_inds])
+                    np.conj(
+                        fft(detrend_array(b[i:(i + nfft)]) * window)[fft_inds])
     pwr *= wght / nens / fs
     return pwr
 
 
-def _psd(a, nfft, fs, window='hann', step=None):
+def psd(a, nfft, fs, window='hann', step=None):
     """
     Compute the power spectral density (PSD).
 
@@ -356,73 +422,9 @@ def _psd(a, nfft, fs, window='hann', step=None):
 
     See Also
     --------
-    :func:`_cpsd`
-    :func:`_coherence`
+    :func:`cpsd`
+    :func:`coherence_1D`
     `numpy.fft`
 
     """
-    return np.abs(_cpsd(a, a, nfft, fs, window=window, step=step))
-
-
-def _phase_angle(a, b, nfft, window='hann', step=None):
-    """
-    Compute the phase difference between signals `a` and `b`. This is the
-    complimentary function to _coherence and _cpsd.
-
-    Positive angles means that `b` leads `a`, i.e. this does,
-    essentially:
-
-          angle(b) - angle(a)
-
-    This function computes one-dimensional `n`-point PSD.
-
-    The angles are output as magnitude = 1 complex numbers (to
-    simplify averaging). Therefore, use `numpy.angle` to actually
-    output the angle.
-
-
-    Parameters
-    ----------
-    a      : 1d-array_like, the signal. Currently only supports vectors.
-    nfft   : The number of points in the fft.
-    window : The window to use (default: 'hann'). Valid entries are:
-                 None,1               : uses a 'boxcar' or ones window.
-                 'hann'               : hanning window.
-                 a length(nfft) array : use this as the window directly.
-    step   : Use this to specify the overlap.  For example:
-             -  step=nfft/2 specifies a 50% overlap.
-             -  step=nfft specifies no overlap.
-             -  step=2*nfft means that half the data will be skipped.
-
-             By default, `step` is calculated to maximize data use, have
-             at least 50% overlap and minimize the number of ensembles.
-
-    Returns
-    -------
-    ang    : complex numpy.ndarray (unit magnitude values)
-
-    See Also
-    --------
-    `numpy.fft`
-    :func:`_coherence`
-    :func:`_cpsd`
-
-    """
-    window = _getwindow(window, nfft)
-    fft_inds = slice(1, int(nfft / 2. + 1))
-    s1 = fft(_detrend(a[0:nfft]) * window)[fft_inds]
-    s2 = fft(_detrend(b[0:nfft]) * window)[fft_inds]
-    s1 /= np.abs(s1)
-    s2 /= np.abs(s2)
-    ang = s2 / s1
-    l = len(a)
-    step, nens, nfft = _stepsize(l, nfft, step=step)
-    if nens - 1:
-        for i in range(step, l - nfft + 1, step):
-            s1 = fft(_detrend(a[i:(i + nfft)]) * window)[fft_inds]
-            s1 /= np.abs(s1)
-            s2 = fft(_detrend(a[i:(i + nfft)]) * window)[fft_inds]
-            s2 /= np.abs(s2)
-            ang += s2 / s1
-    ang /= nens
-    return ang
+    return np.abs(cpsd(a, a, nfft, fs, window=window, step=step))

@@ -14,8 +14,8 @@ class tools_testcase(unittest.TestCase):
     def tearDownClass(self):
         pass
 
-    def test_detrend(self):
-        d = tools._detrend(self.array)
+    def testdetrend_array(self):
+        d = tools.detrend_array(self.array)
         assert_allclose(d, np.zeros(10), atol=1e-10)
 
     def test_group(self):

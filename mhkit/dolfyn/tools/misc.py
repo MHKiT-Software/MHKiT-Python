@@ -22,7 +22,7 @@ def _find(arr):
     return np.nonzero(np.ravel(arr))[0]
 
 
-def _detrend(arr, axis=-1, in_place=False):
+def detrend_array(arr, axis=-1, in_place=False):
     """Remove a linear trend from arr.
 
     Parameters

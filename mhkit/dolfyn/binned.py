@@ -1,8 +1,8 @@
 import numpy as np
 import xarray as xr
 import warnings
-from .tools.fft import _fft_freq, _coherence, _phase_angle
-from .tools.misc import slice1d_along_axis, _detrend
+from .tools.fft import fft_freq, coherence_1D, phase_angle_1D
+from .tools.misc import slice1d_along_axis, detrend_array
 from .time import epoch2dt64, dt642epoch
 warnings.simplefilter('ignore', RuntimeWarning)
 
@@ -233,7 +233,7 @@ class TimeBinner:
         out : numpy.ndarray
 
         """
-        return _detrend(self.reshape(arr, n_pad=n_pad, n_bin=n_bin), axis=axis)
+        return detrend_array(self.reshape(arr, n_pad=n_pad, n_bin=n_bin), axis=axis)
 
     def demean(self, arr, axis=-1, n_pad=0, n_bin=None):
         """Reshape the array `arr` to shape (...,n,n_bin+n_pad)
@@ -463,7 +463,8 @@ class TimeBinner:
 
     def coherence(self, veldat1, veldat2, window='hann', debias=True,
                   noise=(0, 0), n_fft_coh=None, n_bin=None):
-        """Calculate coherence between `veldat1` and `veldat2`.
+        """Reshape the arrays veldat1 and veldat2 into bins and calculate 
+        the coherence between the two signals for each bin.
 
         Parameters
         ----------
@@ -521,9 +522,9 @@ class TimeBinner:
         dat2 = self.reshape(dat2, n_pad=n_fft, n_bin=n_bin2)
 
         for slc in slice1d_along_axis(out.shape, -1):
-            out[slc] = _coherence(dat1[slc], dat2[slc], n_fft,
-                                  window=window, debias=debias,
-                                  noise=noise)
+            out[slc] = coherence_1D(dat1[slc], dat2[slc], n_fft,
+                                    window=window, debias=debias,
+                                    noise=noise)
 
         freq = self.fft_frequency(self.fs, coh=True)
 
@@ -542,8 +543,9 @@ class TimeBinner:
 
     def phase_angle(self, veldat1, veldat2, window='hann',
                     n_fft_coh=None, n_bin=None):
-        """Calculate the phase difference between two signals as a
-        function of frequency (complimentary to coherence).
+        """Reshape the arrays veldat1 and veldat2 into bins and calculate 
+        the phase difference between the two signals as a function of frequency 
+        (complimentary to coherence).
 
         Parameters
         ----------
@@ -598,8 +600,8 @@ class TimeBinner:
 
         for slc in slice1d_along_axis(out.shape, -1):
             # PSD's are computed in radian units:
-            out[slc] = _phase_angle(dat1[slc], dat2[slc], n_fft,
-                                    window=window)
+            out[slc] = phase_angle_1D(dat1[slc], dat2[slc], n_fft,
+                                      window=window)
 
         freq = self.fft_frequency(self.fs, coh=True)
 
@@ -779,6 +781,6 @@ class TimeBinner:
                             or rad/s')
 
         if 'rad' in units:
-            return _fft_freq(n_fft, 2*np.pi*fs)
+            return fft_freq(n_fft, 2*np.pi*fs)
         else:
-            return _fft_freq(n_fft, fs)
+            return fft_freq(n_fft, fs)

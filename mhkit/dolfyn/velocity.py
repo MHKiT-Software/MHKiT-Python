@@ -4,7 +4,7 @@ from .binned import TimeBinner
 from .time import dt642epoch, dt642date
 from .rotate.api import rotate2, set_declination, set_inst2head_rotmat
 from .io.api import save
-from .tools.fft import _psd, _cpsd, _cpsd_quasisync
+from .tools.fft import psd, cpsd, cpsd_quasisync
 from .tools.misc import slice1d_along_axis
 
 
@@ -601,8 +601,8 @@ class VelBinner(TimeBinner):
 
         for slc in slice1d_along_axis(dat.shape, -1):
             # PSD's are computed in radian units: - set prior to function
-            out[slc] = _psd(dat[slc], n_fft, fs,
-                            window=window, step=step)
+            out[slc] = psd(dat[slc], n_fft, fs,
+                           window=window, step=step)
         if noise != 0:
             out -= noise**2 / (fs/2)
             # Make sure all values of the PSD are >0 (but still small):
@@ -747,9 +747,9 @@ class VelBinner(TimeBinner):
         dat2 = self.reshape(dat2, n_pad=n_fft)
         out = np.empty(oshp, dtype='c{}'.format(dat1.dtype.itemsize * 2))
         if dat1.shape == dat2.shape:
-            cross = _cpsd
+            cross = cpsd
         else:
-            cross = _cpsd_quasisync
+            cross = cpsd_quasisync
         for slc in slice1d_along_axis(out.shape, -1):
             # PSD's are computed in radian units: - set prior to function
             out[slc] = cross(dat1[slc], dat2[slc], n_fft,
