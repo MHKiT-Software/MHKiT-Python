@@ -22,6 +22,9 @@ import os
 
 
 testdir = dirname(abspath(__file__))
+plotdir = join(testdir, 'plots')
+isdir = os.path.isdir(plotdir)
+if not isdir: os.mkdir(plotdir)
 datadir = normpath(join(testdir,relpath('../../../examples/data/wave')))
 
 
@@ -295,7 +298,7 @@ class TestResourceMetrics(unittest.TestCase):
 
 
     def test_plot_elevation_timeseries(self):
-        filename = abspath(join(testdir, 'wave_plot_elevation_timeseries.png'))
+        filename = abspath(join(plotdir, 'wave_plot_elevation_timeseries.png'))
         if isfile(filename):
             os.remove(filename)
 

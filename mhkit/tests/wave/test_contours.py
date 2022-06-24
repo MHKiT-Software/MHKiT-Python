@@ -22,6 +22,9 @@ import os
 
 
 testdir = dirname(abspath(__file__))
+plotdir = join(testdir, 'plots')
+isdir = os.path.isdir(plotdir)
+if not isdir: os.mkdir(plotdir)
 datadir = normpath(join(testdir,relpath('../../../examples/data/wave')))
 
 
@@ -98,7 +101,7 @@ class TestContours(unittest.TestCase):
                              self.pca['sigma_fit']['x'])
 
     def test_plot_environmental_contour(self):
-        file_loc= join(testdir, 'wave_plot_environmental_contour.png')
+        file_loc= join(plotdir, 'wave_plot_environmental_contour.png')
         filename = abspath(file_loc)
         if isfile(filename):
             os.remove(filename)
@@ -136,7 +139,7 @@ class TestContours(unittest.TestCase):
         self.assertTrue(isfile(filename))
 
     def test_plot_environmental_contour_multiyear(self):
-        filename = abspath(join(testdir,
+        filename = abspath(join(plotdir,
                        'wave_plot_environmental_contour_multiyear.png'))
         if isfile(filename):
             os.remove(filename)

@@ -22,6 +22,9 @@ import os
 
 
 testdir = dirname(abspath(__file__))
+plotdir = join(testdir, 'plots')
+isdir = os.path.isdir(plotdir)
+if not isdir: os.mkdir(plotdir)
 datadir = normpath(join(testdir,relpath('../../../examples/data/wave')))
 
 
@@ -127,7 +130,7 @@ class TestResourceSpectrum(unittest.TestCase):
         self.assertLess(rmse_sum, 0.02)
 
     def test_plot_spectrum(self):
-        filename = abspath(join(testdir, 'wave_plot_spectrum.png'))
+        filename = abspath(join(plotdir, 'wave_plot_spectrum.png'))
         if isfile(filename):
             os.remove(filename)
 
@@ -141,7 +144,7 @@ class TestResourceSpectrum(unittest.TestCase):
         self.assertTrue(isfile(filename))
 
     def test_plot_chakrabarti(self):
-        filename = abspath(join(testdir, 'wave_plot_chakrabarti.png'))
+        filename = abspath(join(plotdir, 'wave_plot_chakrabarti.png'))
         if isfile(filename):
             os.remove(filename)
 
@@ -153,7 +156,7 @@ class TestResourceSpectrum(unittest.TestCase):
         plt.savefig(filename)
 
     def test_plot_chakrabarti_np(self):
-        filename = abspath(join(testdir, 'wave_plot_chakrabarti_np.png'))
+        filename = abspath(join(plotdir, 'wave_plot_chakrabarti_np.png'))
         if isfile(filename):
             os.remove(filename)
 
@@ -167,7 +170,7 @@ class TestResourceSpectrum(unittest.TestCase):
         self.assertTrue(isfile(filename))
 
     def test_plot_chakrabarti_pd(self):
-        filename = abspath(join(testdir, 'wave_plot_chakrabarti_pd.png'))
+        filename = abspath(join(plotdir, 'wave_plot_chakrabarti_pd.png'))
         if isfile(filename):
             os.remove(filename)
 

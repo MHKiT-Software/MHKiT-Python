@@ -22,6 +22,9 @@ import os
 
 
 testdir = dirname(abspath(__file__))
+plotdir = join(testdir, 'plots')
+isdir = os.path.isdir(plotdir)
+if not isdir: os.mkdir(plotdir)
 datadir = normpath(join(testdir,relpath('../../../examples/data/wave')))
 
 
@@ -36,7 +39,7 @@ class TestPlotResouceCharacterizations(unittest.TestCase):
         pass
     def test_plot_avg_annual_energy_matrix(self):
 
-        filename = abspath(join(testdir, 'avg_annual_scatter_table.png'))
+        filename = abspath(join(plotdir, 'avg_annual_scatter_table.png'))
         if isfile(filename):
             os.remove(filename)
 
@@ -54,7 +57,7 @@ class TestPlotResouceCharacterizations(unittest.TestCase):
 
     def test_plot_monthly_cumulative_distribution(self):
 
-        filename = abspath(join(testdir, 'monthly_cumulative_distribution.png'))
+        filename = abspath(join(plotdir, 'monthly_cumulative_distribution.png'))
         if isfile(filename):
             os.remove(filename)
 

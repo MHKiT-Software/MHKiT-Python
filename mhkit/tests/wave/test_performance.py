@@ -22,6 +22,9 @@ import os
 
 
 testdir = dirname(abspath(__file__))
+plotdir = join(testdir, 'plots')
+isdir = os.path.isdir(plotdir)
+if not isdir: os.mkdir(plotdir)
 datadir = normpath(join(testdir,relpath('../../../examples/data/wave')))
 
 
@@ -87,7 +90,7 @@ class TestPerformance(unittest.TestCase):
 
 
     def test_plot_matrix(self):
-        filename = abspath(join(testdir, 'wave_plot_matrix.png'))
+        filename = abspath(join(plotdir, 'wave_plot_matrix.png'))
         if isfile(filename):
             os.remove(filename)
 
@@ -102,12 +105,12 @@ class TestPerformance(unittest.TestCase):
         self.assertTrue(isfile(filename))
 
     def test_powerperformance_workflow(self):
-        filename = abspath(join(testdir, 'Capture Length Matrix mean.png'))
+        filename = abspath(join(plotdir, 'Capture Length Matrix mean.png'))
         if isfile(filename):
             os.remove(filename)
         P = pd.Series(np.random.normal(200, 40, 743),index = self.S.columns)
         statistic = ['mean']
-        savepath = testdir
+        savepath = plotdir
         show_values = True
         h = 60
         expected = 401239.4822345051
