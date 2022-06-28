@@ -10,7 +10,6 @@ from ..tools import misc as tbx
 from ..rotate.vector import _calc_omat
 from ..rotate.base import _set_coords
 from ..rotate import api as rot
-from ..time import _fill_time_gaps
 
 
 def read_nortek(filename, userdata=True, debug=False, do_checksum=False,
@@ -57,7 +56,8 @@ def read_nortek(filename, userdata=True, debug=False, do_checksum=False,
             warnings.warn("Zero/NaN values found in '{}'. Interpolating and "
                           "extrapolating them. To identify which values were filled later, "
                           "look for 0 values in 'status{}'".format(ky, tag))
-            tdat = _fill_time_gaps(tdat, sample_rate_hz=dat['attrs']['fs'])
+            tdat = time._fill_time_gaps(
+                tdat, sample_rate_hz=dat['attrs']['fs'])
         coords[ky] = tdat
 
     # Apply rotation matrix and declination

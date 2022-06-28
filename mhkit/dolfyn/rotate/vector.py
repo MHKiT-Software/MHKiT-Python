@@ -88,7 +88,8 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
 
     _dcheck = rotb._check_rotmat_det(rmat)
     if not _dcheck.all():
-        warnings.warn("Invalid orientation matrix (determinant != 1) at indices: {}."
+        warnings.warn("Invalid orientation matrix (determinant != 1) at indices: {}. "
+                      "If rotated, data at these indices will be erroneous."
                       .format(np.nonzero(~_dcheck)[0]), UserWarning)
 
     for nm in rotate_vars:
