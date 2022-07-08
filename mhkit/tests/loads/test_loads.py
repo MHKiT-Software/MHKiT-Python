@@ -13,7 +13,7 @@ import json
 import os
 
 testdir = dirname(abspath(__file__))
-datadir = normpath(join(testdir,relpath('../../examples/data/loads')))
+datadir = normpath(join(testdir,relpath('../../../examples/data/loads')))
 
 class TestLoads(unittest.TestCase):
 
