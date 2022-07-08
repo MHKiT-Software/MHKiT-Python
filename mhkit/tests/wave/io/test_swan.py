@@ -22,7 +22,7 @@ import os
 
 
 testdir = dirname(abspath(__file__))
-datadir = normpath(join(testdir,relpath('../../../examples/data/wave')))
+datadir = normpath(join(testdir,relpath('../../../../examples/data/wave')))
 
 
 class TestSWAN(unittest.TestCase):
