@@ -11,26 +11,28 @@ AUTHOR = 'MHKiT developers'
 MAINTAINER_EMAIL = ''
 LICENSE = 'Revised BSD'
 URL = 'https://github.com/MHKiT-Software/mhkit-python'
-CLASSIFIERS=['Development Status :: 3 - Alpha',
-             'Programming Language :: Python :: 3',
-             'Topic :: Scientific/Engineering',
-             'Intended Audience :: Science/Research',
-             'Operating System :: OS Independent',
-            ]
-DEPENDENCIES = ['pandas<=1.3.5', 
-                'numpy<1.21.0', 
+CLASSIFIERS = ['Development Status :: 3 - Alpha',
+               'Programming Language :: Python :: 3',
+               'Topic :: Scientific/Engineering',
+               'Intended Audience :: Science/Research',
+               'Operating System :: OS Independent',
+               ]
+DEPENDENCIES = ['pandas',
+                'numpy',
                 'scipy',
-                'matplotlib', 
-                'requests', 
+                'matplotlib',
+                'requests',
                 'pecos>=0.1.9',
                 'fatpack',
                 'lxml',
                 'scikit-learn',
-		        'NREL-rex>=0.2.63',
+                'NREL-rex>=0.2.63',
                 'six>=1.13.0',
-                'netCDF4', 
+                'netCDF4',
                 'xarray',
-	       'statsmodels']
+                'statsmodels',
+                'pytz',
+                'dolfyn>=1.0.0']
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))
@@ -46,7 +48,7 @@ with open(os.path.join(file_dir, 'mhkit', '__init__.py')) as f:
         VERSION = version_match.group(1)
     else:
         raise RuntimeError("Unable to find version string.")
-        
+
 setup(name=DISTNAME,
       version=VERSION,
       packages=PACKAGES,
@@ -62,4 +64,4 @@ setup(name=DISTNAME,
       install_requires=DEPENDENCIES,
       scripts=[],
       include_package_data=True
-  )
+      )
