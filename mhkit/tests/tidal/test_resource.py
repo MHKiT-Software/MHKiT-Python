@@ -7,32 +7,11 @@ import matplotlib.pylab as plt
 import mhkit.tidal as tidal
 
 testdir = dirname(abspath(__file__))
-datadir = normpath(join(testdir,relpath('../../examples/data/tidal')))
+plotdir = join(testdir, 'plots')
+isdir = os.path.isdir(plotdir)
+if not isdir: os.mkdir(plotdir)
+datadir = normpath(join(testdir,relpath('../../../examples/data/tidal')))
 
-
-class TestIO(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(self):
-        pass
-        
-    @classmethod
-    def tearDownClass(self):
-        pass
-    
-    def test_load_noaa_data(self):
-        file_name = join(datadir, 's08010.json')
-        data, metadata = tidal.io.noaa.read_noaa_json(file_name)
-        self.assertTrue(np.all(data.columns == ['s','d','b']) )
-        self.assertEqual(data.shape, (18890, 3))
-
-    def test_request_noaa_data(self):
-        data, metadata = tidal.io.noaa.request_noaa_data(station='s08010', parameter='currents',
-                                       start_date='20180101', end_date='20180102',
-                                       proxy=None, write_json=None)
-        self.assertTrue(np.all(data.columns == ['s','d','b']) )
-        self.assertEqual(data.shape, (92, 3))
-        
 
 class TestResource(unittest.TestCase):
 
@@ -63,7 +42,7 @@ class TestResource(unittest.TestCase):
         self.assertEqual(round(direction2,1),round(352.3,1))                                                                                   
     
     def test_plot_current_timeseries(self):
-        filename = abspath(join(testdir, 'tidal_plot_current_timeseries.png'))
+        filename = abspath(join(plotdir, 'tidal_plot_current_timeseries.png'))
         if isfile(filename):
             os.remove(filename)
         
@@ -75,7 +54,7 @@ class TestResource(unittest.TestCase):
         self.assertTrue(isfile(filename))
         
     def test_plot_joint_probability_distribution(self):
-        filename = abspath(join(testdir, 'tidal_plot_joint_probability_distribution.png'))
+        filename = abspath(join(plotdir, 'tidal_plot_joint_probability_distribution.png'))
         if isfile(filename):
             os.remove(filename)
         
@@ -87,7 +66,7 @@ class TestResource(unittest.TestCase):
         self.assertTrue(isfile(filename))
     
     def test_plot_rose(self):
-        filename = abspath(join(testdir, 'tidal_plot_rose.png'))
+        filename = abspath(join(plotdir, 'tidal_plot_rose.png'))
         if isfile(filename):
             os.remove(filename)
         
@@ -99,7 +78,7 @@ class TestResource(unittest.TestCase):
         self.assertTrue(isfile(filename))
 
     def test_tidal_phase_probability(self):
-        filename = abspath(join(testdir, 'tidal_plot_tidal_phase_probability.png'))
+        filename = abspath(join(plotdir, 'tidal_plot_tidal_phase_probability.png'))
         if isfile(filename):
             os.remove(filename)
         
@@ -112,7 +91,7 @@ class TestResource(unittest.TestCase):
         self.assertTrue(isfile(filename))
         
     def test_tidal_phase_exceedance(self):
-        filename = abspath(join(testdir, 'tidal_plot_tidal_phase_exceedance.png'))
+        filename = abspath(join(plotdir, 'tidal_plot_tidal_phase_exceedance.png'))
         if isfile(filename):
             os.remove(filename)
         
