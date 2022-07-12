@@ -24,8 +24,10 @@ def region_selection(lat_lon):
     assert isinstance(lat_lon[1], (float,int)), 'lat_lon  values must be of type float or int'
 
     rDict = {
+        'california':{  'lat':[15.0,27.000002], 'lon':[-164.0,-151.0] },
+        'Great Lakes':{ 'lat':[15.0,27.000002], 'lon':[-164.0,-151.0] },
         'Hawaii':{      'lat':[15.0,27.000002], 'lon':[-164.0,-151.0] },
-        'West_Coast':{  'lat':[30.0906, 48.8641], 'lon':[-130.072, -116.899] },
+        'Pacific':{     'lat':[30.0906, 48.8641], 'lon':[-130.072, -116.899] },
         'Atlantic':{    'lat':[24.382, 44.8247], 'lon':[-81.552, -65.721] },
     }
 
