@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import scipy.io as sio
 
+
 def read_output(file_name):
     """
     Loads the wecSim response class once 'output' has been saved to a `.mat` 
@@ -63,7 +64,7 @@ def read_output(file_name):
     #      forceRadiationDamping: [iterations x 6 double]
     #             forceAddedMass: [iterations x 6 double]
     #             forceRestoring: [iterations x 6 double]
-    #    forceMorrisonAndViscous: [iterations x 6 double]
+    #    forceMorisonAndViscous: [iterations x 6 double]
     #         forceLinearDamping: [iterations x 6 double]
     ######################################    
     try:
@@ -79,7 +80,7 @@ def read_output(file_name):
         forceRadiationDamping = []
         forceAddedMass = []
         forceRestoring = []
-        forceMorrisonAndViscous = []
+        forceMorisonAndViscous = []
         forceLinearDamping = []
         for body in range(num_bodies):
             name.append(bodies[0][0]['name'][0][body][0])   
@@ -92,7 +93,7 @@ def read_output(file_name):
             forceRadiationDamping.append(bodies[0][0]['forceRadiationDamping'][0][body])
             forceAddedMass.append(bodies[0][0]['forceAddedMass'][0][body])
             forceRestoring.append(bodies[0][0]['forceRestoring'][0][body])
-            forceMorrisonAndViscous.append(bodies[0][0]['forceMorrisonAndViscous'][0][body])
+            forceMorisonAndViscous.append(bodies[0][0]['forceMorisonAndViscous'][0][body])
             forceLinearDamping.append(bodies[0][0]['forceLinearDamping'][0][body])    
     except:
         num_bodies = 0         
@@ -110,7 +111,7 @@ def read_output(file_name):
             tmp_body[f'forceRadiationDamping_dof{dof+1}'] = forceRadiationDamping[body][:,dof]
             tmp_body[f'forceAddedMass_dof{dof+1}'] = forceAddedMass[body][:,dof]
             tmp_body[f'forceRestoring_dof{dof+1}'] = forceRestoring[body][:,dof]
-            tmp_body[f'forceMorrisonAndViscous_dof{dof+1}'] = forceMorrisonAndViscous[body][:,dof]
+            tmp_body[f'forceMorisonAndViscous_dof{dof+1}'] = forceMorisonAndViscous[body][:,dof]
             tmp_body[f'forceLinearDamping_dof{dof+1}'] = forceLinearDamping[body][:,dof]                            
         return tmp_body
 
@@ -256,7 +257,7 @@ def read_output(file_name):
 
 
     ######################################
-    ## import wecSim moopring class
+    ## import wecSim mooring class
     # 
     #         name: ''
     #         time: [iterations x 1 double]
