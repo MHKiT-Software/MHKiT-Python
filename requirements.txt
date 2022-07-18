@@ -9,6 +9,6 @@ lxml
 scikit-learn
 NREL-rex>=0.2.63
 six>=1.13.0
-netCDF4
+netCDF4<=1.5.8
 xarray
 statsmodels
