@@ -314,7 +314,7 @@ def create_points(x, y, z):
         not_max_idxs= [i for i in directions.keys()]
         
         del not_max_idxs[max_len_idx]
-        print(max_len_idx)
+        
         for not_max in not_max_idxs:     
             N= len(directions[max_len_idx]['values'])
             vals =np.ones(N)*directions[not_max]['values']
