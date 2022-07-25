@@ -317,9 +317,11 @@ class ADVBinner(VelBinner):
         fs = self._parse_fs(fs)
 
         scale = np.argmin((acov/acov[..., :1]) > (1/np.e), axis=-1)
-        L_int = (abs(U_mag) / fs * scale)
+        L_int = U_mag.values / fs * scale
 
-        return xr.DataArray(L_int, name='L_int', attrs={'units': 'm'})
+        return xr.DataArray(L_int, name='L_int',
+                            coords={'dir': a_cov.dir, 'time': a_cov.time},
+                            attrs={'units': 'm'})
 
 
 def turbulence_statistics(ds_raw, n_bin, fs, n_fft=None, freq_units='rad/s', window='hann'):

@@ -375,7 +375,7 @@ class Velocity():
     def I(self, thresh=0):
         """Turbulence intensity.
 
-        Ratio of standard deviation of horizontal velocity std dev
+        Ratio of standard deviation of horizontal velocity
         to horizontal velocity magnitude.
         """
         I = np.ma.masked_where(self.U_mag < thresh,

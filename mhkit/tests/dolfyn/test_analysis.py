@@ -117,7 +117,7 @@ class analysis_testcase(unittest.TestCase):
         tdat['LT83'] = bnr.dissipation_rate_LT83(tdat.psd, tdat.velds.U_mag)
         tdat['SF'] = bnr.dissipation_rate_SF(dat.vel[0], tdat.velds.U_mag)
         tdat['TE01'] = bnr.dissipation_rate_TE01(dat, tdat)
-        tdat['L'] = bnr.integral_length_scales(acov, tdat.vel)
+        tdat['L'] = bnr.integral_length_scales(acov, tdat.velds.U_mag)
 
         if make_data:
             save(tdat, 'vector_data01_bin.nc')

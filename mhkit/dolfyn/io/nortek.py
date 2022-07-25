@@ -228,8 +228,9 @@ class _NortekReader():
         da = self.data['attrs']
         if self.config['n_burst'] > 0:
             da['duty_cycle_n_burst'] = self.config['n_burst']
-            da['duty_cycle_n_cycles'] = (self.config['usr']['profile_interval'] *
-                                         self.config['fs'])
+            da['duty_cycle_interval'] = self.config['burst_interval']
+            da['duty_cycle_description'] = "{} second bursts collected at {} Hz, with bursts taken every {} minutes".format(
+                self.config['n_burst']/self.config['fs'], self.config['fs'], self.config['burst_interval']/60)
         self.burst_start = np.zeros(self.n_samp_guess, dtype='bool')
         da['fs'] = self.config['fs']
         da['coord_sys'] = {'XYZ': 'inst',
@@ -447,7 +448,7 @@ class _NortekReader():
         TimCtrlReg = _int2binarray(tmp[8], 16).astype(int)
         # From the nortek system integrator manual
         # (note: bit numbering is zero-based)
-        cfg_u['usr']['burst_interval'] = [
+        cfg_u['usr']['profile_mode'] = [
             'single', 'continuous'][TimCtrlReg[1]]
         cfg_u['usr']['burst_mode'] = str(bool(~TimCtrlReg[2]))
         cfg_u['usr']['power_level'] = TimCtrlReg[5] + 2 * TimCtrlReg[6] + 1
@@ -462,7 +463,7 @@ class _NortekReader():
         cfg_u['coord_sys_axes'] = ['ENU', 'XYZ', 'beam'][tmp[14]]
         cfg_u['usr']['n_bins'] = tmp[15]
         cfg_u['bin_length'] = tmp[16]
-        cfg_u['usr']['profile_interval'] = tmp[17]
+        cfg_u['burst_interval'] = tmp[17]
         cfg_u['usr']['deployment_name'] = tmp[18].partition(b'\x00')[
             0].decode('utf-8')
         cfg_u['usr']['wrap_mode'] = str(bool(tmp[19]))
