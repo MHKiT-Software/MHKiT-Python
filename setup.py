@@ -28,10 +28,10 @@ DEPENDENCIES = ['pandas',
                 'scikit-learn',
                 'NREL-rex>=0.2.63',
                 'six>=1.13.0',
+                'h5py',                
                 'netCDF4',
                 'xarray',
                 'statsmodels',
-                'h5py',
                 'pytz',
                 'dolfyn>=1.0.0']
 
