@@ -10,6 +10,7 @@ scikit-learn
 NREL-rex>=0.2.63
 six>=1.13.0
 netCDF4
+h5py
 xarray
 statsmodels
 dolfyn>=1.0.0

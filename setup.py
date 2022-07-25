@@ -31,6 +31,7 @@ DEPENDENCIES = ['pandas',
                 'netCDF4',
                 'xarray',
                 'statsmodels',
+                'h5py',
                 'pytz',
                 'dolfyn>=1.0.0']
 
