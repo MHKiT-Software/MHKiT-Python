@@ -8,13 +8,8 @@ import unittest
 
 """
 Testing against velocity and bottom-track velocity data in Nortek mat files
-exported from SignatureDeployment.
+exported from Nortek SignatureDeployment software.
 
-inst2earth rotation fails for AHRS-equipped istruments and I don't know why - 
-I believe it's due to an RC filter (or some such) on Nortek's side after they
-load in the orientation matrix from the AHRS (Check out the difference 
-colorplots compared to non-AHRS instruments.) Using HPR- or quaterion-calc'd 
-orientation matrices doesn't close the gap.
 """
 
 
