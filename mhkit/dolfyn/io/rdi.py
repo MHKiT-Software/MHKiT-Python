@@ -94,7 +94,6 @@ def _remove_gps_duplicates(dat):
     """
 
     dat['data_vars']['hdwtime_gps'] = dat['coords']['time']
-    dat['units']['hdwtime'] = 'seconds since 1970-01-01 00:00:00'
 
     # Remove duplicate timestamp values, if applicable
     dat['coords']['time_gps'], idx = np.unique(dat['coords']['time_gps'],
