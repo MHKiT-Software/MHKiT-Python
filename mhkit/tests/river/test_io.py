@@ -69,6 +69,27 @@ class TestIO(unittest.TestCase):
         # Every 15 minutes or 4 times per hour
         self.assertEqual(data.shape, (10*24*4, 1))
 
+    def test_get_all_time(self): 
+        data= self.d3d_flume_data
+        seconds_run = river.io.d3d.get_all_time(data)
+        seconds_run_expected= np.ndarray(shape=(5,), buffer= np.array([0, 60, 120, 180, 240]), dtype=int)
+        np.testing.assert_array_equal(seconds_run, seconds_run_expected)
+        
+    def test_convert_time(self): 
+        data= self.d3d_flume_data
+        time_index = 2
+        seconds_run = river.io.d3d.index_to_seconds(data, time_index = time_index)
+        seconds_run_expected = 120 
+        self.assertEqual(seconds_run, seconds_run_expected)
+        seconds_run = 60
+        time_index= river.io.d3d.seconds_to_index(data, seconds_run = seconds_run)
+        time_index_expected = 1
+        self.assertEqual(time_index, time_index_expected)
+        seconds_run = 62
+        time_index= river.io.d3d.seconds_to_index(data, seconds_run = seconds_run)
+        time_index_expected = 1
+        output_expected= f'ERROR: invalid seconds_run. Closest seconds_run found {time_index_expected}'
+        self.assertWarns(UserWarning)
 
     def test_layer_data(self): 
         data=self.d3d_flume_data
@@ -124,7 +145,7 @@ class TestIO(unittest.TestCase):
     
     def test_turbulent_intensity(self): 
         data=self.d3d_flume_data
-        time_step= -1
+        time_index= -1
         x_test=np.linspace(1, 17, num= 10)
         y_test=np.linspace(3, 3, num= 10)
         z_test=np.linspace(1, 1, num= 10)
@@ -132,26 +153,45 @@ class TestIO(unittest.TestCase):
         test_points = np.array([ [x, y, z] for x, y, z in zip(x_test, y_test, z_test)])
         points= pd.DataFrame(test_points, columns=['x','y','z'])
         
-        TI= river.io.d3d.turbulent_intensity(data, points, time_step)
+        TI= river.io.d3d.turbulent_intensity(data, points, time_index)
 
         TI_vars= ['turkin1', 'ucx', 'ucy', 'ucz']
         TI_data_raw = {}
         for var in TI_vars:
             #get all data
-            var_data_df = river.io.d3d.get_all_data_points(data, var,time_step)           
+            var_data_df = river.io.d3d.get_all_data_points(data, var,time_index)           
             TI_data_raw[var] = var_data_df 
             TI_data= points.copy(deep=True)
         
         for var in TI_vars:    
             TI_data[var] = interp.griddata(TI_data_raw[var][['x','y','z']],
                                 TI_data_raw[var][var], points[['x','y','z']])
+            idx= np.where(np.isnan(TI_data[var]))
+        
+            if len(idx[0]):
+                for i in idx[0]: 
+                    TI_data[var][i]= interp.griddata(TI_data_raw[var][['x','y','z']], 
+                                TI_data_raw[var][var],
+                                [points['x'][i],points['y'][i], points['z'][i]],
+                                method='nearest')
         
         u_mag=river.io.d3d.unorm(TI_data['ucx'],TI_data['ucy'], TI_data['ucz'])
-        turbulent_intensity_expected= np.sqrt(2/3*TI_data['turkin1'])/u_mag
+        turbulent_intensity_expected= (np.sqrt(2/3*TI_data['turkin1'])/u_mag)*100
        
         
         assert_array_almost_equal(TI.turbulent_intensity, turbulent_intensity_expected, decimal = 2)     
-       
+        
+        TI = river.io.d3d.turbulent_intensity(data, points='faces')
+        TI_size = np.size(TI)
+        turkin1= river.io.d3d.get_all_data_points(data, 'turkin1',time_index)
+        turkin1_size= np.size(turkin1)
+        self.assertEqual(TI_size, turkin1_size)
+        
+        TI = river.io.d3d.turbulent_intensity(data, points='cells')
+        TI_size = np.size(TI)
+        ucx= river.io.d3d.get_all_data_points(data, 'ucx',time_index)
+        ucx_size= np.size(ucx)
+        self.assertEqual(TI_size, ucx_size)
 if __name__ == '__main__':
     unittest.main() 
 
