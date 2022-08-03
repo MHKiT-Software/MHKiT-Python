@@ -1,4 +1,3 @@
-
 from os.path import abspath, dirname, join, isfile, normpath, relpath
 from numpy.testing import assert_array_almost_equal
 from pandas.testing import assert_frame_equal
