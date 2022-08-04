@@ -92,35 +92,66 @@ class TestIO(unittest.TestCase):
 
     def test_layer_data(self): 
         data=self.d3d_flume_data
-        variable= 'ucx'
-        layer=2 
-        time_index= 3
-        layer_data= river.io.d3d.get_layer_data(data, variable, layer, time_index)
-        layer_compare = 2
-        time_index_compare= 4
-        layer_data_expected= river.io.d3d.get_layer_data(data,
-                                                        variable, layer_compare,
-                                                        time_index_compare)
-       
-        assert_array_almost_equal(layer_data.x,layer_data_expected.x, decimal = 2)
-        assert_array_almost_equal(layer_data.y,layer_data_expected.y, decimal = 2)
-        assert_array_almost_equal(layer_data.v,layer_data_expected.v, decimal= 2)
+        variable = ['ucx', 's1']
+        for var in variable:
+            layer=2 
+            time_index= 3
+            layer_data= river.io.d3d.get_layer_data(data, var, layer, time_index)
+            layer_compare = 2
+            time_index_compare= 4
+            layer_data_expected= river.io.d3d.get_layer_data(data,
+                                                            var, layer_compare,
+                                                            time_index_compare)
+           
+            assert_array_almost_equal(layer_data.x,layer_data_expected.x, decimal = 2)
+            assert_array_almost_equal(layer_data.y,layer_data_expected.y, decimal = 2)
+            assert_array_almost_equal(layer_data.v,layer_data_expected.v, decimal= 2)
         
+
         
     def test_create_points(self):
         x=np.linspace(1, 3, num= 3)
         y=np.linspace(1, 3, num= 3)
         z=1 
         points= river.io.d3d.create_points(x,y,z)
-        
         x=[1,2,3,1,2,3,1,2,3]
         y=[1,1,1,2,2,2,3,3,3]
         z=[1,1,1,1,1,1,1,1,1]
+        points_array= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x, y, z)]) 
+        points_expected= pd.DataFrame(points_array, columns=('x','y','z'))
+        assert_array_almost_equal(points, points_expected,decimal = 2)
         
+        x=np.linspace(1, 3, num= 3)
+        y=2
+        z=1 
+        points= river.io.d3d.create_points(x,y,z)
+        x=[1,2,3]
+        y=[2,2,2]
+        z=[1,1,1]
         points_array= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x, y, z)]) 
         points_expected= pd.DataFrame(points_array, columns=('x','y','z'))
         assert_array_almost_equal(points, points_expected,decimal = 2)  
         
+        x=3
+        y=2
+        z=1 
+        points= river.io.d3d.create_points(x,y,z)
+        output_expected='Can provide at most two arrays'
+        self.assertWarns(UserWarning)
+        
+    def test_variable_interpolation(self):
+        data=self.d3d_flume_data
+        variables= ['ucx','turkin1']
+        transformes_data= river.io.d3d.variable_interpolation(data, variables, points= 'faces')
+        self.assertEqual(np.size(transformes_data['ucx']), np.size(transformes_data['turkin1']))
+        transformes_data= river.io.d3d.variable_interpolation(data, variables, points= 'cells')
+        self.assertEqual(np.size(transformes_data['ucx']), np.size(transformes_data['turkin1']))        
+        x=np.linspace(1, 3, num= 3)
+        y=np.linspace(1, 3, num= 3)
+        z=1 
+        points= river.io.d3d.create_points(x,y,z)
+        transformes_data= river.io.d3d.variable_interpolation(data, variables, points= points)
+        self.assertEqual(np.size(transformes_data['ucx']), np.size(transformes_data['turkin1']))
         
     def test_get_all_data_points(self): 
         data=self.d3d_flume_data
