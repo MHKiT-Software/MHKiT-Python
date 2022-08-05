@@ -19,16 +19,16 @@ jobs:
 
     steps:
     # - uses: conda-incubator/setup-miniconda@v2
+      uses: actions/checkout@v3
     
     - name: Set up Python ${{ matrix.python-version }}
+      shell: bash -l {0}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-        
-    - name: Set up Git repository
-      uses: actions/checkout@v3
       
     - name: Update and install packages
+      shell: bash -l {0}
       run: |
         python -m pip install --upgrade pip wheel
         pip install h5py --upgrade --no-dependencies --force
