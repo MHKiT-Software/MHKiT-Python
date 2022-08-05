@@ -1,7 +1,9 @@
 import pandas as pd
+import xarray as xr
 import numpy as np
 import json
 import requests
+from datetime import datetime
 
 def _read_usgs_json(text):
     
@@ -22,7 +24,51 @@ def _read_usgs_json(text):
      
     return data # we could also extract metadata and return that here
 
-def read_usgs_file(file_name):
+def _read_usgs_json_to_xr(text):
+    
+    ds = xr.Dataset()
+    for i in range(len(text['value']['timeSeries'])):
+        site_name = text['value']['timeSeries'][i]['variable']['variableDescription']
+        n_samples = len(text['value']['timeSeries'][i]['values'][0]['value'])
+        data = np.zeros(n_samples)
+        cols = np.empty(n_samples,dtype=object)
+        try:           
+            for qq in range(n_samples):
+                data[qq] = text['value']['timeSeries'][i]['values'][0]['value'][qq]['value']
+                cols[qq] = datetime.fromisoformat(
+                    text['value']['timeSeries'][i]['values'][0]['value'][qq]['dateTime'])            
+            attrs={
+                'siteName': text['value']['timeSeries'][i]['sourceInfo']['siteName'],
+                'siteCode': text['value']['timeSeries'][i]['sourceInfo']['siteCode'][0]['value'],
+                'siteNetwork': text['value']['timeSeries'][i]['sourceInfo']['siteCode'][0]['network'],
+                'siteAgencyCode': text['value']['timeSeries'][i]['sourceInfo']['siteCode'][0]['agencyCode'],
+                'TimeZoneOffset': text['value']['timeSeries'][i]['sourceInfo']['timeZoneInfo']['defaultTimeZone']['zoneOffset'],
+                'TimeZoneAbbreviation': text['value']['timeSeries'][i]['sourceInfo']['timeZoneInfo']['defaultTimeZone']['zoneAbbreviation'],
+                'SiteUsesDaylightSavings': text['value']['timeSeries'][i]['sourceInfo']['timeZoneInfo']['siteUsesDaylightSavingsTime'],
+                'DaylightSavingsTimeZoneOffset': text['value']['timeSeries'][i]['sourceInfo']['timeZoneInfo']['daylightSavingsTimeZone']['zoneOffset'],
+                'latitude': text['value']['timeSeries'][i]['sourceInfo']['geoLocation']['geogLocation']['latitude'],
+                'longitude': text['value']['timeSeries'][i]['sourceInfo']['geoLocation']['geogLocation']['longitude'],
+                'variableName': text['value']['timeSeries'][i]['variable']['variableName'],
+                'valueType': text['value']['timeSeries'][i]['variable']['valueType'],
+                'units': text['value']['timeSeries'][i]['variable']['unit']['unitCode'],
+                'USGS_Code': text['value']['timeSeries'][i]['name'],
+                'queryURL': text['value']['queryInfo']['queryURL']} 
+            if i == 0:
+                ds[site_name] = xr.DataArray(data,
+                                    attrs=attrs, 
+                                    coords={'dateTime': cols},
+                                    dims=['dateTime'])
+            else:
+                ds[site_name].combine_first(xr.DataArray(data,
+                                    attrs=attrs, 
+                                    coords={'dateTime': cols},
+                                    dims=['dateTime']))
+        except:
+            pass
+     
+    return ds
+
+def read_usgs_file(file_name, xarray=False):
     """
     Reads a USGS JSON data file (from https://waterdata.usgs.gov/nwis)
 
@@ -39,14 +85,17 @@ def read_usgs_file(file_name):
     """
     with open(file_name) as json_file:
         text = json.load(json_file)
-    
-    data = _read_usgs_json(text)
+
+    if not xarray:
+        data = _read_usgs_json(text)
+    else:
+        data = _read_usgs_json_to_xr(text)    
     
     return data 
 
 
 def request_usgs_data(station, parameter, start_date, end_date, 
-                      data_type='Daily', proxy=None, write_json=None):
+                      data_type='Daily', xarray=False, proxy=None, write_json=None):
     """
     Loads USGS data directly from https://waterdata.usgs.gov/nwis using a 
     GET request
@@ -101,6 +150,9 @@ def request_usgs_data(station, parameter, start_date, end_date,
         with open(write_json, 'w') as outfile:
             json.dump(text, outfile)
     
-    data = _read_usgs_json(text)
+    if not xarray:
+        data = _read_usgs_json(text)
+    else:
+        data = _read_usgs_json_to_xr(text)
     
     return data 
