@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from scipy import optimize
-#from mhkit.wave.resource import frequency_moment
+from mhkit.wave.resource import frequency_moment
 
 
 def global_peaks(t, data):
