@@ -300,13 +300,19 @@ def _xarray_dict(data_vars, coord, metadata=None):
     """
     Creates a dictionary for creating an Xarray Dataset
 
-    Args:
-        data_vars (dict): dictionary of data to be written
-        coord (tuple): (xarray dimension name, dimension data)
-        metadata (dict): (optional) dictionary of units for each data key       
-
-    Returns:
-        d: xarray formatted dictionary
+    Parameters
+    ----------
+    data_vars : dictionary
+        Dictionary of data to be written
+    coord : tuple
+        xarray dimension name, dimension data
+    metadata : dictionary or None
+        Dictionary of units for each data key 
+        
+    Returns
+    -------
+    d : dictionary
+        xarray formatted dictionary
     """
     d = {
         "coords": {

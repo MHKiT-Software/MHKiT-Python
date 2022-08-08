@@ -31,6 +31,11 @@ def request_noaa_data(station, parameter, start_date, end_date,
          for example {"http": 'localhost:8080'}
     write_json : str or None
         Name of json file to write data
+    xarray : bool
+        If true, returns xarray dataset instead 
+        of pandas DataFrame (metadata will not be
+        returned if true as it will be part of the
+        dataset)
         
     Returns
     -------

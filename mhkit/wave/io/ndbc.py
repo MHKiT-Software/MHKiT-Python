@@ -19,8 +19,8 @@ def read_file(file_name, xarray=False, missing_values=['MM',9999,999,99]):
     Realtime and historical data files can be loaded with this function.  
     
     Note: With realtime data, missing data is denoted by "MM".  With historical 
-    data, missing data is denoted using a variable number of 
-    # 9's, depending on the data type (for example: 9999.0 999.0 99.0).
+    data, missing data is denoted using a variable number of 9's, depending on the 
+    data type (for example: 9999.0 999.0 99.0).
     'N/A' is automatically converted to missing data.
     
     Data values are converted to float/int when possible. Column names are 
@@ -33,8 +33,9 @@ def read_file(file_name, xarray=False, missing_values=['MM',9999,999,99]):
         Name of NDBC wave buoy data file
 
     xarray: bool
-        If true returns xarray instead of pandas DataFrame
-    
+            If true, returns xarray dataset instead of pandas DataFrame (metadata will 
+            not be returned if true as it will be part of the dataset)
+                
     missing_value: list of values
         List of values that denote missing data    
     

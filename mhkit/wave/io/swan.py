@@ -17,9 +17,10 @@ def read_table(swan_file, xarray=False):
     ----------
     swan_file: str
         filename to import
-
-    xarray: bool
-        If true returns xarray instead of pandas DataFrame
+    xarray: bool (optional)
+            If true, returns xarray dataset instead of pandas DataFrame (metadata will 
+            not be returned if true as it will be part of the dataset)
+            Default = False
         
     Returns
     -------
@@ -87,6 +88,10 @@ def read_block(swan_file, xarray=False):
     ----------
     swan_file: str
         swan block file to import
+    xarray: bool (optional)
+        If true, returns xarray dataset instead of pandas DataFrame (metadata will 
+        not be returned if true as it will be part of the dataset)
+        Default = False
         
     Returns
     -------
@@ -115,7 +120,6 @@ def read_block(swan_file, xarray=False):
     else:
         return dataDict
     
-
 def _read_block_txt(swan_file, xarray):
     '''
     Reads in SWAN block output with headers and creates a dictionary 
@@ -125,6 +129,8 @@ def _read_block_txt(swan_file, xarray):
     ----------
     swan_file: str
         swan block file to import (must be written with headers)
+    xarray: bool
+        If true, returns xarray dataset instead of pandas DataFrame
         
     Returns
     -------
@@ -221,7 +227,6 @@ def _read_block_txt(swan_file, xarray):
     metaData = metaData.set_index('vars').T.to_dict()           
     return dataDict, metaData              
     
-
 def _read_block_mat(swan_file, xarray):
     '''
     Reads in SWAN matlab output and creates a dictionary of DataFrames
@@ -231,6 +236,8 @@ def _read_block_mat(swan_file, xarray):
     ----------
     swan_file: str
         filename to import
+    xarray: bool
+        If true, returns xarray dataset instead of pandas DataFrame
         
     Returns
     -------
@@ -261,7 +268,6 @@ def _read_block_mat(swan_file, xarray):
             dataDict[key] = pd.DataFrame(dataDict[key])
         return dataDict
    
-    
 def _parse_line_metadata(line):
     '''
     Parses the variable metadata into a dictionary
@@ -295,7 +301,6 @@ def _parse_line_metadata(line):
     metaDict[key] = ' '.join(elms[-1]) 
         
     return metaDict    
-
 
 def dictionary_of_block_to_table(dictionary_of_DataFrames, names=None):
     '''
@@ -341,8 +346,7 @@ def dictionary_of_block_to_table(dictionary_of_DataFrames, names=None):
         swanTables[var] = tmp_dat[var]
     
     return swanTables
-        
-
+     
 def block_to_table(data, name='values'):
     '''
     Converts structured 2D grid SWAN block format x (columns), y (index) 

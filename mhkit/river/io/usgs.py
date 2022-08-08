@@ -76,6 +76,9 @@ def read_usgs_file(file_name, xarray=False):
     ----------
     file_name : str
         Name of USGS JSON data file
+    xarray : bool
+        If true, return data will be xarray Dataset rather than pandas DataFrame.
+        Default value is false.
         
     Returns
     -------
@@ -115,6 +118,9 @@ def request_usgs_data(station, parameter, start_date, end_date,
     data_type : str
         Data type, options include 'Daily' (return the mean daily value) and 
         'Instantaneous'.
+    xarray : bool
+        If true, return data will be xarray Dataset rather than pandas DataFrame.
+        Default value is false.
     proxy : dict or None
          To request data from behind a firewall, define a dictionary of proxy settings, 
          for example {"http": 'localhost:8080'}

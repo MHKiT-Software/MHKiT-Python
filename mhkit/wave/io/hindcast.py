@@ -39,7 +39,6 @@ def region_selection(lat_lon):
     else:
         return region[0]
 
-
 def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None, 
                                  unscale=True, str_decode=True,hsds=True, xarray=False):
     
@@ -84,6 +83,10 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
             Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
             behind HSDS. Setting to False will indicate to look for files on 
             local machine, not AWS. Default = True
+        xarray: bool (optional)
+            If true, returns xarray dataset instead of pandas DataFrame (metadata will 
+            not be returned if true as it will be part of the dataset)
+            Default = False
 
         Returns
         ---------
