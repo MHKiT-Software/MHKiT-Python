@@ -16,7 +16,9 @@ make_data = False
 class io_testcase(unittest.TestCase):
     def test_save(self):
         ds = tv.dat.copy(deep=True)
-        save_netcdf(ds, 'test_save', compression=True)
+        print(ds)
+        # save_netcdf(ds, 'test_save', compression=True)
+        save_netcdf(ds, 'test_save')
         save_matlab(ds, 'test_save')
 
         assert os.path.exists(rfnm('test_save.nc'))
