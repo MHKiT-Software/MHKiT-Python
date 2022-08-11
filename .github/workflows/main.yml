@@ -18,28 +18,31 @@ jobs:
         python-version: [3.7, 3.8, 3.9]
 
     steps:
-    - name: Checkout MHKiT source
-      uses: actions/checkout@v3
+
+
+    - uses: conda-incubator/setup-miniconda@v2
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Set up Git repository
+      uses: actions/checkout@v2
+      
+    # - name: Checkout MHKiT source
+    #   uses: actions/checkout@v3
     
     # - name: Setup Conda
     #   uses: s-weigand/setup-conda@v1
     #   with:
     #     activate-conda: false
     #     conda-channels: conda-forge
-    
-    - uses: conda-incubator/setup-miniconda@v2
-    
     # - name: Set up Python ${{ matrix.python-version }}
-    #   uses: actions/setup-python@v2
+    #   # shell: bash -l {0}
+    #   uses: actions/setup-python@v4
     #   with:
     #     python-version: ${{ matrix.python-version }}
-
-
-    - name: Set up Python ${{ matrix.python-version }}
-      # shell: bash -l {0}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
       
     - name: Update and install packages
       shell: bash -l {0}
