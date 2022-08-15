@@ -67,6 +67,7 @@ jobs:
     - name: Run nose
       shell: bash -l {0}
       run: |          
+        source activate TEST
         nosetests -v --traverse-namespace --with-coverage --cover-package=mhkit mhkit
 
     - name: Upload coverage data to coveralls.io
