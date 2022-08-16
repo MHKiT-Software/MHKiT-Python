@@ -135,7 +135,7 @@ def save(ds, filename,
     if compression:
         enc = dict()
         for ky in ds.variables:
-            enc[ky] = dict(zlib=True, complevel=1)
+            enc[ky] = dict(compression='zlib', complevel=1)
         if 'encoding' in kwargs:
             # Overwrite ('update') values in enc with whatever is in kwargs['encoding']
             enc.update(kwargs['encoding'])
