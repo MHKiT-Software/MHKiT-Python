@@ -1,8 +1,8 @@
+from .base import assert_allclose
+from . import base as tb
 import mhkit.dolfyn.io.nortek2 as sig
 from mhkit.dolfyn.io.nortek2_lib import crop_ensembles
 from mhkit.dolfyn.io.api import read_example as read
-from .base import assert_allclose
-from . import base as tb
 import warnings
 import unittest
 import pytest
