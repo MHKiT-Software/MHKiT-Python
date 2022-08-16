@@ -64,7 +64,7 @@ def read_output(file_name):
     #      forceRadiationDamping: [iterations x 6 double]
     #             forceAddedMass: [iterations x 6 double]
     #             forceRestoring: [iterations x 6 double]
-    #    forceMorisonAndViscous: [iterations x 6 double]
+    #     forceMorisonAndViscous: [iterations x 6 double]
     #         forceLinearDamping: [iterations x 6 double]
     ######################################    
     try:
@@ -93,7 +93,12 @@ def read_output(file_name):
             forceRadiationDamping.append(bodies[0][0]['forceRadiationDamping'][0][body])
             forceAddedMass.append(bodies[0][0]['forceAddedMass'][0][body])
             forceRestoring.append(bodies[0][0]['forceRestoring'][0][body])
-            forceMorisonAndViscous.append(bodies[0][0]['forceMorisonAndViscous'][0][body])
+            try:
+                # Format in WEC-Sim responseClass >= v4.2 
+                forceMorisonAndViscous.append(bodies[0][0]['forceMorisonAndViscous'][0][body])
+            except:
+                # Format in WEC-Sim responseClass <= v4.1
+                forceMorisonAndViscous.append(bodies[0][0]['forceMorrisonAndViscous'][0][body])
             forceLinearDamping.append(bodies[0][0]['forceLinearDamping'][0][body])    
     except:
         num_bodies = 0         
