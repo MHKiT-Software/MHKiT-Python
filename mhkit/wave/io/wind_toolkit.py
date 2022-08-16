@@ -53,7 +53,7 @@ def region_selection(lat_lon, preferred_region):
 
 
 
-def request_wtk_point_data(data_type, parameter, lat_lon, years, preferred_region='', 
+def request_wtk_point_data(time_interval, parameter, lat_lon, years, preferred_region='', 
                            tree=None, unscale=True, str_decode=True,hsds=True):
     
         """ 
@@ -67,22 +67,40 @@ def request_wtk_point_data(data_type, parameter, lat_lon, years, preferred_regio
 
         Parameters
         ----------
-        data_type : string
+        time_interval : string
             Data set type of interest
             Options: '1-hour' '5-minute'
         parameter: string or list of strings
             Dataset parameter to be downloaded
-            5-minute dataset options: 'windspeed_10m', 'windspeed_40m', 'windspeed_60m', 'windspeed_80m',
-                'windspeed_100m', 'windspeed_120m', 'windspeed_140m', 'windspeed_160m',
-                'windspeed_200m', 'winddirection_10m', 'winddirection_40m', 'winddirection_60m',
-                'winddirection_80m' 'winddirection_100m', 'winddirection_120m', 'winddirection_140m',
-                'winddirection_160m', 'winddirection_200m',
-            1-hour dataset options: 'datetime', 'coordinates', 'inversemoninobukhovlength_2m', 
-                'precipitationrate_0m', 'relativehumidity_2m', 'temperature_2m', 'temperature_10m', 
+            5-minute dataset options: 
+                'windspeed_10m', 'windspeed_40m', 'windspeed_60m', 'windspeed_80m',
+                'windspeed_100m', 'windspeed_120m', 'windspeed_140m', 'windspeed_160m', windspeed_200m', 
+                'winddirection_10m', 'winddirection_40m', 'winddirection_60m', 'winddirection_80m',
+                'winddirection_100m', 'winddirection_120m', 'winddirection_140m', 'winddirection_160m', 'winddirection_200m',
+            1-hour dataset options: 'time_index', 'coordinates', 'inversemoninobukhovlength_2m', 
+                'precipitationrate_0m', 'relativehumidity_2m', 
+                'temperature_2m', 'temperature_10m', 
                 'temperature_40m', 'temperature_60m', 'temperature_80m', 'temperature_100m', 
                 'temperature_120m', 'temperature_140m', 'temperature_160m', 'temperature_200m', 
                 'pressure_0m', 'pressure_100m', 'pressure_200m',
                 'DIF', 'GHI', 'DNI', 'status'
+                
+                
+                TODO : also available??
+                ['', 'friction_velocity_2m', '', 'meta', 
+                 'roughness_length', 'surface_sea_temperature'
+                 '', '', '', 
+                 '', '', '', '', 
+                 '', 'temperature_180m', '', 'temperature_20m', 
+                 '', '', '', '', 
+                 '', 
+                 '', '', '', '', 
+                 '', 'winddirection_180m', '', 'winddirection_20m', 
+                 '', '', '', 
+                 '', '', '', '', '', 
+                 'windspeed_180m', '', 'windspeed_20m', '', '', 
+                 '']
+                
         lat_lon: tuple or list of tuples
             Latitude longitude pairs at which to extract data 
         years : list 
@@ -119,7 +137,7 @@ def request_wtk_point_data(data_type, parameter, lat_lon, years, preferred_regio
         
         assert isinstance(parameter, (str, list)), 'parameter must be of type string or list'
         assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
-        assert isinstance(data_type, str), 'data_type must be a string'
+        assert isinstance(time_interval, str), 'time_interval must be a string'
         assert isinstance(years,list), 'years must be a list'
         assert isinstance(preferred_region, str), 'preferred_region must be a string'
         assert isinstance(tree,(str,type(None))), 'tree must be a string'
@@ -139,12 +157,12 @@ def request_wtk_point_data(data_type, parameter, lat_lon, years, preferred_regio
             else:
                 raise TypeError('Coordinates must be within the same region!')
         
-        if data_type == '1-hour':
+        if time_interval == '1-hour':
             wind_path = f'/nrel/wtk/'+region.lower()+'/'+region+'_*.h5'
-        elif data_type == '5-minute':
+        elif time_interval == '5-minute':
             wind_path = f'/nrel/wtk/'+region.lower()+'-5min/'+region+'_*.h5'
         else:
-            raise TypeError(f"Invalid data_type '{data_type}', must be '1-hour' or '5-minute'")
+            raise TypeError(f"Invalid time_interval '{time_interval}', must be '1-hour' or '5-minute'")
         windKwargs = {'tree':tree,'unscale':unscale,'str_decode':str_decode, 'hsds':hsds,
             'years':years}
         data_list = []
