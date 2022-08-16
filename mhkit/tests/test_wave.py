@@ -966,7 +966,7 @@ class TestWECSim(unittest.TestCase):
     def tearDownClass(self):
         pass
 
-    ### WEC-Sim data, mo mooring
+    ### WEC-Sim data, no mooring
     def test_read_wecSim_no_mooring(self):
         ws_output = wave.io.wecsim.read_output(join(datadir, 'RM3_matlabWorkspace_structure.mat'))
         self.assertEqual(ws_output['wave'].elevation.name,'elevation')
@@ -976,6 +976,19 @@ class TestWECSim(unittest.TestCase):
         self.assertEqual(len(ws_output['mooring']),0)
         self.assertEqual(len(ws_output['moorDyn']),0)
         self.assertEqual(len(ws_output['ptosim']),0)
+        self.assertEqual(len(ws_output['cables']),0)
+    
+    ### WEC-Sim data, with cable
+    def test_read_wecSim_cable(self):
+        ws_output = wave.io.wecsim.read_output(join(datadir, 'Cable_matlabWorkspace_structure.mat'))
+        self.assertEqual(ws_output['wave'].elevation.name,'elevation')
+        self.assertEqual(ws_output['bodies']['body1'].name,'BuoyDraft5cm')
+        self.assertEqual(ws_output['cables'].name,'Cable')
+        self.assertEqual(ws_output['constraints']['constraint1'].name,'Mooring')
+        self.assertEqual(len(ws_output['mooring']),0)
+        self.assertEqual(len(ws_output['moorDyn']),0)
+        self.assertEqual(len(ws_output['ptosim']),0)
+        self.assertEqual(len(ws_output['ptos']),0)
 
     ### WEC-Sim data, with mooring
     def test_read_wecSim_with_mooring(self):
@@ -987,6 +1000,7 @@ class TestWECSim(unittest.TestCase):
         self.assertEqual(len(ws_output['mooring']),40001)
         self.assertEqual(len(ws_output['moorDyn']),0)
         self.assertEqual(len(ws_output['ptosim']),0)
+        self.assertEqual(len(ws_output['cables']),0)
 
     ### WEC-Sim data, with moorDyn
     def test_read_wecSim_with_moorDyn(self):
@@ -998,6 +1012,7 @@ class TestWECSim(unittest.TestCase):
         self.assertEqual(len(ws_output['mooring']),40001)
         self.assertEqual(len(ws_output['moorDyn']),7)
         self.assertEqual(len(ws_output['ptosim']),0)
+        self.assertEqual(len(ws_output['cables']),0)
 
 class TestWPTOhindcast(unittest.TestCase):
 
