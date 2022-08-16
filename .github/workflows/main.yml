@@ -43,7 +43,7 @@ jobs:
     - name: Python ${{ matrix.python-version }}
       shell: bash -l {0}
       run: |
-        conda create --name TEST python=${{ matrix.python-version }} numpy cython pip pytest hdf5 libnetcdf cftime netcdf4 coveralls --strict-channel-priority
+        conda create --name TEST python=${{ matrix.python-version }} numpy cython pip pytest hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
         source activate TEST
         export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH" # so setup.py finds nc-config
         pip install -e . --no-deps --force-reinstall
@@ -71,6 +71,7 @@ jobs:
         nosetests -v --traverse-namespace --with-coverage --cover-package=mhkit mhkit
 
     - name: Upload coverage data to coveralls.io
+      shell: bash -l {0}
       run: coveralls --service=github
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
