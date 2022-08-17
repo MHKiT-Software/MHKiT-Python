@@ -1,6 +1,6 @@
+from . import base as tb
 from mhkit.dolfyn.rotate.api import set_inst2head_rotmat
 from mhkit.dolfyn.io.api import read_example as read
-from . import base as tb
 import numpy as np
 import unittest
 
