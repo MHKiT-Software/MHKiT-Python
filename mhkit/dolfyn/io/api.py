@@ -135,14 +135,15 @@ def save(ds, filename,
     if compression:
         enc = dict()
         for ky in ds.variables:
-            enc[ky] = dict(compression='zlib', complevel=1)
+            enc[ky] = dict(compression='True', complevel=1)
         if 'encoding' in kwargs:
             # Overwrite ('update') values in enc with whatever is in kwargs['encoding']
             enc.update(kwargs['encoding'])
         else:
             kwargs['encoding'] = enc
 
-    ds.to_netcdf(filename, format=format, engine=engine, **kwargs)
+    ds.to_netcdf(filename, format=format, engine=engine, compression='zlib', **kwargs)
+    # ds.to_netcdf(filename, format=format, engine=engine, **kwargs)
 
 
 def load(filename):
