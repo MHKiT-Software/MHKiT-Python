@@ -142,8 +142,7 @@ def save(ds, filename,
         else:
             kwargs['encoding'] = enc
 
-    ds.to_netcdf(filename, format=format, engine=engine, compression='zlib', **kwargs)
-    # ds.to_netcdf(filename, format=format, engine=engine, **kwargs)
+    ds.to_netcdf(filename, format=format, engine=engine, **kwargs)
 
 
 def load(filename):
