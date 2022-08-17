@@ -9,7 +9,7 @@ on:
       - Develop
 
 jobs:
-  build:
+  conda:
     name: conda-${{ matrix.os }}/${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -81,7 +81,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
-  build:
+  pip:
     name: pip-${{ matrix.os }}/${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
