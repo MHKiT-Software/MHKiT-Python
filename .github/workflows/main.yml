@@ -9,7 +9,7 @@ on:
       - Develop
 
 jobs:
-  conda:
+  conda-build:
     name: conda-${{ matrix.os }}/${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -69,7 +69,7 @@ jobs:
         COVERALLS_PARALLEL: true
   coveralls:
     name: Indicate completion to coveralls.io
-    needs: build
+    needs: conda-build
     runs-on: ubuntu-latest
     container: python:3-slim
     steps:
@@ -81,7 +81,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
-  pip:
+  pip-build:
     name: pip-${{ matrix.os }}/${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
