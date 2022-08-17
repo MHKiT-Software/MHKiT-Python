@@ -10,6 +10,7 @@ on:
 
 jobs:
   build:
+    name: conda-${{ matrix.os }}/${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -18,20 +19,7 @@ jobs:
         python-version: [3.7, 3.8, 3.9]
 
     steps:
-
-
-    # - uses: conda-incubator/setup-miniconda@v2
-    
-    # - name: Set up Python ${{ matrix.python-version }}
-    #   uses: actions/setup-python@v2
-    #   with:
-    #     python-version: ${{ matrix.python-version }}
-
-    # - name: Set up Git repository
-    #   uses: actions/checkout@v2
       
-
-
     - uses: actions/checkout@v2
 
     - name: Setup Conda
@@ -91,3 +79,43 @@ jobs:
         coveralls --finish
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+  build:
+    name: pip-${{ matrix.os }}/${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
+        python-version: [3.8, 3.9]
+
+    steps:
+
+    - uses: conda-incubator/setup-miniconda@v2
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Set up Git repository
+      uses: actions/checkout@v2
+      
+
+    - name: Update and install packages
+      run: |
+        python -m pip install --upgrade pip wheel
+        pip install cython
+        pip install h5py --upgrade --no-dependencies --force
+        pip install h5pyd --upgrade
+        echo "THE PATH: $PATH"        
+        pip install nose
+        pip install pytest
+        pip install coveralls
+        pip install .
+        
+    - name: Run nose
+      shell: bash -l {0}
+      run: |          
+        nosetests -v --traverse-namespace --with-coverage --cover-package=mhkit mhkit
+
