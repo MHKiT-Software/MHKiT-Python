@@ -1,13 +1,14 @@
-import unittest
-import numpy as np
-import pandas as pd
-import mhkit.utils as utils
-from pandas.testing import assert_frame_equal
-import json
 from os.path import abspath, dirname, join, isfile, normpath, relpath
+from pandas.testing import assert_frame_equal
+import mhkit.utils as utils
+import pandas as pd
+import numpy as np
+import unittest
+import json
+
 
 testdir = dirname(abspath(__file__))
-loads_datadir = normpath(join(testdir,relpath('../../examples/data/loads')))
+loads_datadir = normpath(join(testdir,relpath('../../../examples/data/loads')))
 
 class TestGenUtils(unittest.TestCase):
 

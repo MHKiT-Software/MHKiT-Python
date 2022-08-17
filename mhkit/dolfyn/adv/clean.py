@@ -21,7 +21,7 @@ def clean_fill(u, mask, npt=12, method='cubic', max_gap=6):
       Logical tensor of elements to "nan" out (from `spikeThresh`, `rangeLimit`,
       or `GN2002`) and replace
     npt : int
-      The number of points on either side of the bad values that 
+      The number of points on either side of the bad values that
       interpolation occurs over
     method : string
       Interpolation scheme to use (linear, cubic, pchip, etc)
@@ -134,7 +134,7 @@ def spike_thresh(u, thresh=10):
 
 def range_limit(u, range=[-5, 5]):
     """
-    Returns a logical vector that is True where the values of `u` are 
+    Returns a logical vector that is True where the values of `u` are
     outside of `range`.
 
     Parameters
