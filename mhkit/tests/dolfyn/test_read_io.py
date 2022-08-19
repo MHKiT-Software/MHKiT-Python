@@ -16,6 +16,7 @@ make_data = False
 class io_testcase(unittest.TestCase):
     def test_save(self):
         ds = tv.dat.copy(deep=True)
+
         save_netcdf(ds, 'test_save')
         save_matlab(ds, 'test_save')
 
