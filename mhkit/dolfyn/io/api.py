@@ -92,7 +92,6 @@ def read_example(name, **kwargs):
 
 def save(ds, filename,
          format='NETCDF4', engine='netcdf4',
-         compression=False,
          **kwargs):
     """Save xarray dataset as netCDF (.nc).
 
@@ -101,18 +100,11 @@ def save(ds, filename,
     ds : xarray.Dataset
     filename : str
         Filename and/or path with the '.nc' extension
-    compression : bool (default: False)
-        When true, compress all variables with zlib complevel=1.
     **kwargs : these are passed directly to :func:`xarray.Dataset.to_netcdf`
 
     Notes
     -----
     Drops 'config' lines.
-
-    More detailed compression options can be specified by specifying
-    'encoding' in kwargs. The values in encoding will take precedence
-    over whatever is set according to the compression option above.
-    See the xarray.to_netcdf documentation for more details.
 
     """
     filename = _check_file_ext(filename, 'nc')
@@ -131,16 +123,6 @@ def save(ds, filename,
 
             ds = ds.drop_vars(var)
             ds.attrs['complex_vars'].append(var)
-
-    if compression:
-        enc = dict()
-        for ky in ds.variables:
-            enc[ky] = dict(compression='zlib', complevel=1)
-        if 'encoding' in kwargs:
-            # Overwrite ('update') values in enc with whatever is in kwargs['encoding']
-            enc.update(kwargs['encoding'])
-        else:
-            kwargs['encoding'] = enc
 
     ds.to_netcdf(filename, format=format, engine=engine, **kwargs)
 
