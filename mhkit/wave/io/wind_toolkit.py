@@ -28,7 +28,6 @@ def region_selection(lat_lon, preferred_region):
     rDict = {
         'CA_NWP_overlap':{'lat':[41.213, 42.642], 'lon':[-129.090, -121.672]},
         'Offshore_CA':{   'lat':[31.932,42.642], 'lon':[-129.090,-115.806] },
-        # 'Great Lakes':{ 'lat':[15.0,27.000002], 'lon':[-164.0,-151.0] },
         'Hawaii':{        'lat':[15.565,26.221], 'lon':[-164.451,-151.278] },
         'NW_Pacific':{    'lat':[41.213, 49.579], 'lon':[-130.831, -121.672] },
         'Mid_Atlantic':{  'lat':[37.273, 42.211], 'lon':[-76.427, -64.800] },
@@ -73,34 +72,18 @@ def request_wtk_point_data(time_interval, parameter, lat_lon, years, preferred_r
         parameter: string or list of strings
             Dataset parameter to be downloaded
             5-minute dataset options: 
-                'windspeed_10m', 'windspeed_40m', 'windspeed_60m', 'windspeed_80m',
-                'windspeed_100m', 'windspeed_120m', 'windspeed_140m', 'windspeed_160m', windspeed_200m', 
-                'winddirection_10m', 'winddirection_40m', 'winddirection_60m', 'winddirection_80m',
-                'winddirection_100m', 'winddirection_120m', 'winddirection_140m', 'winddirection_160m', 'winddirection_200m',
+                'windspeed_10m', 'windspeed_20m', 'windspeed_40m', 'windspeed_60m', 'windspeed_80m',
+                'windspeed_100m', 'windspeed_120m', 'windspeed_140m', 'windspeed_160m', 'windspeed_180m', 'windspeed_200m', 
+                'winddirection_10m', 'winddirection_20m', 'winddirection_40m', 'winddirection_60m', 'winddirection_80m',
+                'winddirection_100m', 'winddirection_120m', 'winddirection_140m', 'winddirection_160m', 'winddirection_180m', 'winddirection_200m',
             1-hour dataset options: 'time_index', 'coordinates', 'inversemoninobukhovlength_2m', 
-                'precipitationrate_0m', 'relativehumidity_2m', 
-                'temperature_2m', 'temperature_10m', 
-                'temperature_40m', 'temperature_60m', 'temperature_80m', 'temperature_100m', 
-                'temperature_120m', 'temperature_140m', 'temperature_160m', 'temperature_200m', 
+                'precipitationrate_0m', 'relativehumidity_2m', 'friction_velocity_2m', 
+                'roughness_length', 'surface_sea_temperature',
+                'temperature_2m', 'temperature_10m', 'temperature_20m','temperature_40m', 
+                'temperature_60m', 'temperature_80m', 'temperature_100m', 'temperature_120m',
+                'temperature_140m', 'temperature_160m', 'temperature_180m', 'temperature_200m', 
                 'pressure_0m', 'pressure_100m', 'pressure_200m',
                 'DIF', 'GHI', 'DNI', 'status'
-                
-                
-                TODO : also available??
-                ['', 'friction_velocity_2m', '', 'meta', 
-                 'roughness_length', 'surface_sea_temperature'
-                 '', '', '', 
-                 '', '', '', '', 
-                 '', 'temperature_180m', '', 'temperature_20m', 
-                 '', '', '', '', 
-                 '', 
-                 '', '', '', '', 
-                 '', 'winddirection_180m', '', 'winddirection_20m', 
-                 '', '', '', 
-                 '', '', '', '', '', 
-                 'windspeed_180m', '', 'windspeed_20m', '', '', 
-                 '']
-                
         lat_lon: tuple or list of tuples
             Latitude longitude pairs at which to extract data 
         years : list 
