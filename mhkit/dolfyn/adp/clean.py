@@ -3,7 +3,7 @@
 import numpy as np
 import xarray as xr
 from scipy.signal import medfilt
-from ..tools.misc import medfiltnan
+from ..tools.misc import _medfiltnan
 from ..rotate.api import rotate2
 from ..rotate.base import _make_model, quaternion2orient
 
@@ -96,7 +96,7 @@ def find_surface(ds, thresh=10, nfilt=None):
             d[ip] = np.NaN
 
     if nfilt:
-        dfilt = medfiltnan(d, nfilt, thresh=.4)
+        dfilt = _medfiltnan(d, nfilt, thresh=.4)
         dfilt[dfilt == 0] = np.NaN
         d = dfilt
 
@@ -343,7 +343,7 @@ def medfilt_orient(ds, nfilt=7):
         return ds.drop_vars('orientmat')
 
 
-def fillgaps_time(var, method='cubic', maxgap=None):
+def _fillgaps_time(var, method='cubic', maxgap=None):
     """
     Fill gaps (nan values) in var across time using the specified method
 
@@ -375,7 +375,7 @@ def fillgaps_time(var, method='cubic', maxgap=None):
                               max_gap=maxgap)
 
 
-def fillgaps_depth(var, method='cubic', maxgap=None):
+def _fillgaps_depth(var, method='cubic', maxgap=None):
     """
     Fill gaps (nan values) in var along the depth profile using the specified method
 

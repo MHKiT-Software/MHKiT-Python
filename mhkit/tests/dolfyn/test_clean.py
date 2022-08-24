@@ -77,10 +77,10 @@ class clean_testcase(unittest.TestCase):
 
         # First remove bad data
         td['vel'] = apm.clean.val_exceeds_thresh(td.vel, thresh=3)
-        td['vel'] = apm.clean.fillgaps_time(td.vel)
-        td['vel_b5'] = apm.clean.fillgaps_time(td.vel_b5)
-        td['vel'] = apm.clean.fillgaps_depth(td.vel)
-        td['vel_b5'] = apm.clean.fillgaps_depth(td.vel_b5)
+        td['vel'] = apm.clean._fillgaps_time(td.vel)
+        td['vel_b5'] = apm.clean._fillgaps_time(td.vel_b5)
+        td['vel'] = apm.clean._fillgaps_depth(td.vel)
+        td['vel_b5'] = apm.clean._fillgaps_depth(td.vel_b5)
 
         # Then clean below seabed
         apm.clean.set_range_offset(td, 0.5)

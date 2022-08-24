@@ -126,10 +126,9 @@ def spike_thresh(u, thresh=10):
 
     """
     du = np.diff(u.values, prepend=0)
-    bds1 = ((du > thresh) & (du < -thresh))
-    bds2 = ((du < -thresh) & (du > thresh))
+    mask = (du > thresh) + (du < -thresh)
 
-    return bds1 + bds2
+    return mask
 
 
 def range_limit(u, range=[-5, 5]):
