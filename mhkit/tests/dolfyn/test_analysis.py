@@ -30,9 +30,6 @@ class analysis_testcase(unittest.TestCase):
     def test_do_func(self):
         adat_vec = self.adv_tool.bin_average(self.adv1)
         adat_vec = self.adv_tool.bin_variance(self.adv1, out_ds=adat_vec)
-        adat_vec['tke_vec'] = self.adv_tool.turbulent_kinetic_energy(
-            self.adv1.vel)
-        adat_vec['stress'] = self.adv_tool.stresses(self.adv1.vel)
 
         adat_sig = self.adp_tool.bin_average(self.adp)
         adat_sig = self.adp_tool.bin_variance(self.adp, out_ds=adat_sig)
@@ -62,14 +59,9 @@ class analysis_testcase(unittest.TestCase):
             self.adv1.vel[0], self.adv1.vel[1])
         test_ds['acov'] = c.autocovariance(self.adv1.vel)
         test_ds['tke_vec'] = c.turbulent_kinetic_energy(self.adv1.vel)
-        test_ds['stress'] = c.stresses(self.adv1.vel)
-        test_ds['psd'] = c.power_spectral_density(self.adv1.vel)
-        test_ds['csd'] = c.cross_spectral_density(self.adv1.vel)
-
         test_ds_demean['tke_vec'] = c.turbulent_kinetic_energy(
             self.adv1.vel, detrend=False)
-        test_ds_demean['stress'] = c.stresses(
-            self.adv1.vel, detrend=False)
+        test_ds['psd'] = c.power_spectral_density(self.adv1.vel)
 
         # Different lengths
         test_ds_dif['coh_dif'] = c.coherence(self.adv1.vel, self.adv2.vel)
@@ -80,8 +72,6 @@ class analysis_testcase(unittest.TestCase):
         test_ds_adp['psd_b5'] = c2.power_spectral_density(
             self.adp.vel_b5.isel(range_b5=5), window='hamm')
         test_ds_adp['tke_b5'] = c2.turbulent_kinetic_energy(self.adp.vel_b5)
-        test_ds_adp['csd'] = c2.cross_spectral_density(self.adp.vel.isel(dir=slice(0, 3), range=0),
-                                                       freq_units='rad', window='hamm')
 
         if make_data:
             save(test_ds, 'vector_data01_func.nc')
@@ -114,6 +104,10 @@ class analysis_testcase(unittest.TestCase):
         assert_identical(tdat, avm.turbulence_statistics(
             dat, n_bin=20.0, fs=dat.fs))
 
+        tdat['stress_detrend'] = bnr.reynolds_stress(dat.vel)
+        tdat['stress_demean'] = bnr.reynolds_stress(dat.vel, detrend=False)
+        tdat['csd'] = bnr.cross_spectral_density(
+            dat.vel, freq_units='rad', window='hamm')
         tdat['LT83'] = bnr.dissipation_rate_LT83(tdat.psd, tdat.velds.U_mag)
         tdat['SF'] = bnr.dissipation_rate_SF(dat.vel[0], tdat.velds.U_mag)
         tdat['TE01'] = bnr.dissipation_rate_TE01(dat, tdat)

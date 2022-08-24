@@ -13,7 +13,7 @@ class Velocity():
     """All ADCP and ADV xarray datasets wrap this base class.
 
     The turbulence-related attributes defined within this class 
-    assume that the  ``'tke_vec'`` and ``'stress'`` data entries are 
+    assume that the  ``'tke_vec'`` and ``'stress_vec'`` data entries are 
     included in the dataset. These are typically calculated using a
     :class:`VelBinner` tool, but the method for calculating these
     variables can depend on the details of the measurement
@@ -352,9 +352,9 @@ class Velocity():
         E_coh = (self.upwp_**2 + self.upvp_**2 + self.vpwp_**2) ** (0.5)
 
         return xr.DataArray(E_coh,
-                            coords={'time': self.ds['stress'].time},
+                            coords={'time': self.ds['stress_vec'].time},
                             dims=['time'],
-                            attrs={'units': self.ds['stress'].units},
+                            attrs={'units': self.ds['stress_vec'].units},
                             name='E_coh')
 
     @property
@@ -399,19 +399,19 @@ class Velocity():
     def upvp_(self,):
         """u'v'bar Reynolds stress
         """
-        return self.ds['stress'].sel(tau="upvp_")
+        return self.ds['stress_vec'].sel(tau="upvp_")
 
     @property
     def upwp_(self,):
         """u'w'bar Reynolds stress
         """
-        return self.ds['stress'].sel(tau="upwp_")
+        return self.ds['stress_vec'].sel(tau="upwp_")
 
     @property
     def vpwp_(self,):
         """v'w'bar Reynolds stress
         """
-        return self.ds['stress'].sel(tau="vpwp_")
+        return self.ds['stress_vec'].sel(tau="vpwp_")
 
     @property
     def upup_(self,):
@@ -882,8 +882,8 @@ class VelBinner(TimeBinner):
         Parameters
         ----------
         veldat : xarray.DataArray
-            a velocity data array. The last dimension is assumed
-            to be time.
+            Velocity data array from ADV or single beam from ADCP. 
+            The last dimension is assumed to be time.
         noise : float
             a three-element vector of the noise levels of the
             velocity data for ach component of velocity.
@@ -900,7 +900,8 @@ class VelBinner(TimeBinner):
 
         """
         if 'dir' in veldat.dims:
-            vel = veldat[:3].values
+            # will error for ADCP 4-beam, but not for single beam
+            vel = veldat.values
         else:  # for single beam input
             vel = veldat.values
 
@@ -936,49 +937,6 @@ class VelBinner(TimeBinner):
             else:
                 da = da.assign_coords({'time': time})
 
-        return da
-
-    def stresses(self, veldat, detrend=True):
-        """Calculate the stresses (cross-covariances of u,v,w)
-
-        Parameters
-        ----------
-        veldat : xr.DataArray
-            A velocity data array. The last dimension is assumed
-            to be time.
-        detrend : bool (default: True)
-            detrend the velocity data (True), or simply de-mean it
-            (False), prior to computing stress. Note: the psd routines
-            use detrend, so if you want to have the same amount of
-            variance here as there use ``detrend=True``.
-
-        Returns
-        -------
-        ds : xarray.DataArray
-
-        """
-        time = self.mean(veldat.time.values)
-        vel = veldat.values
-
-        out = np.empty(self._outshape(vel[:3].shape)[:-1],
-                       dtype=np.float32)
-
-        if detrend:
-            vel = self.detrend(vel)
-        else:
-            vel = self.demean(vel)
-
-        for idx, p in enumerate(self._cross_pairs):
-            out[idx] = np.nanmean(vel[p[0]] * vel[p[1]],
-                                  -1, dtype=np.float64
-                                  ).astype(np.float32)
-
-        da = xr.DataArray(out, name='stress',
-                          dims=veldat.dims,
-                          attrs={'units': 'm^2/^2'})
-        da = da.rename({'dir': 'tau'})
-        da = da.assign_coords({'tau': ["upvp_", "upwp_", "vpwp_"],
-                               'time': time})
         return da
 
     def power_spectral_density(self, veldat,
@@ -1066,75 +1024,6 @@ class VelBinner(TimeBinner):
                           coords=coords,
                           dims=dims,
                           attrs={'units': units, 'n_fft': n_fft})
-        da[f_key].attrs['units'] = freq_units
-
-        return da
-
-    def cross_spectral_density(self, veldat,
-                               freq_units='Hz',
-                               fs=None,
-                               window='hann',
-                               n_bin=None,
-                               n_fft_coh=None):
-        """Calculate the cross-spectral density of velocity components.
-
-        Parameters
-        ----------
-        veldat   : xarray.DataArray
-          The raw 3D velocity data.
-        freq_units : string
-          Frequency units of the returned spectra in either Hz or rad/s 
-          (`f` or :math:`\\omega`)
-        fs : float (optional)
-          The sample rate (default: from the binner).
-        window : string or array
-          Specify the window function.
-        n_bin : int (optional)
-          The bin-size (default: from the binner).
-        n_fft_coh : int (optional)
-          The fft size (default: n_fft_coh from the binner).
-
-        Returns
-        -------
-        csd : xarray.DataArray (3, M, N_FFT)
-          The first-dimension of the cross-spectrum is the three
-          different cross-spectra: 'uv', 'uw', 'vw'.
-
-        """
-        fs = self._parse_fs(fs)
-        n_fft = self._parse_nfft_coh(n_fft_coh)
-        time = self.mean(veldat.time.values)
-        veldat = veldat.values
-
-        out = np.empty(self._outshape_fft(veldat[:3].shape, n_fft=n_fft),
-                       dtype='complex')
-
-        # Create frequency vector, also checks whether using f or omega
-        coh_freq = self._fft_freq(units=freq_units, coh=True)
-        if 'rad' in freq_units:
-            fs = 2*np.pi*fs
-            freq_units = 'rad/s'
-            units = 'm^2/s/rad'
-            f_key = 'omega'
-        else:
-            freq_units = 'Hz'
-            units = 'm^2/s^2/Hz'
-            f_key = 'f'
-
-        for ip, ipair in enumerate(self._cross_pairs):
-            out[ip] = self._cpsd_ndarray(veldat[ipair[0]],
-                                         veldat[ipair[1]],
-                                         n_bin=n_bin,
-                                         n_fft=n_fft,
-                                         window=window)
-
-        da = xr.DataArray(out,
-                          name='csd',
-                          coords={'C': ['Cxy', 'Cxz', 'Cyz'],
-                                  'time': time,
-                                  f_key: coh_freq},
-                          dims=['C', 'time', f_key],
-                          attrs={'units': units, 'n_fft_coh': n_fft})
         da[f_key].attrs['units'] = freq_units
 
         return da
