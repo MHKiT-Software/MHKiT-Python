@@ -132,11 +132,50 @@ class TestWINDToolkit(unittest.TestCase):
             assert_frame_equal(self.mp,wtk_multiparm)
             assert_frame_equal(self.mp_meta,meta)
     
-    # test catch for multiple region
-    # test catch for preferred region
-    # test plot_region()
-    # test region_selection, especially CA overlap
+    # test region_selection function and catch for the preferred region
+    region = wtk.region_selection((41.9,-125.3), preferred_region='Offshore_CA')
+    assert region=='Offshore_CA'
+    
+    region = wtk.region_selection((41.9,-125.3), preferred_region='NW_Pacific')
+    assert region=='NW_Pacific'
+    
+    try:
+        region = wtk.region_selection((41.9,-125.3))
+    except TypeError:
+    else:
+        assert False, 'Check wind_toolkit.region_selection() method for catching regional overlap'
+    
+    region = wtk.region_selection((36.3,-122.3), preferred_region='')
+    assert region=='Offshore_CA'
+    
+    region = wtk.region_selection((16.3,-155.3), preferred_region='')
+    assert region=='Hawaii'
+    
+    region = wtk.region_selection((45.3,-126.3), preferred_region='')
+    assert region=='NW_Pacific'
+    
+    region = wtk.region_selection((39.3,-70.3), preferred_region='')
+    assert region=='Mid_Atlantic'
+    
+    # test the check for multiple region
+    data_type = '1-hour'
+    years = [2012]
+    lat_lon = ((17.2,-156.5),(45.3,-126.3))
+    parameters = ['temperature_20m']
+    try:
+        data, meta = wtk.request_wtk_point_data(
+                                 data_type, parameters,
+                                 lat_lon, years)
+    except TypeError:
+    else:
+        assert False, 'Check wind_toolkit.region_selection() method for catching requests over multiple regions'
 
+    # test plot_region()
+    fig, ax1 = plt.subplots()
+    ax1 = wtk.plot_region('Hawaii',ax=ax1)
+    
+    ax2 = wtk.plot_region('Hawaii')
+    
 
 if __name__ == '__main__':
     unittest.main()
