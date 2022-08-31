@@ -82,7 +82,7 @@ def plot_region(region,ax=None):
     lons = rex_wind.lat_lon[:,1]
     
     # Plot the latitude longitude pairs
-    if ax=None:
+    if ax is None:
         fig, ax = plt.subplots()
     ax.plot(lons,lats,'o')
     ax.set_xlabel('Longitude (deg)')
