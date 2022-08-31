@@ -1,8 +1,9 @@
 import pandas as pd
 from rex import MultiYearWindX
+import matplotlib.pyplot as plt
 
 
-def region_selection(lat_lon, preferred_region):
+def region_selection(lat_lon, preferred_region=''):
     '''
     Returns the name of the predefined region in which the given coordinates reside.
     Can be used to check if the passed lat/lon pair is within the WIND Toolkit hindcast dataset. 
@@ -12,7 +13,7 @@ def region_selection(lat_lon, preferred_region):
     lat_lon : list or tuple
         Latitude and longitude coordinates as floats or integers
         
-    preferred_region : string
+    preferred_region : string (optional)
         Latitude and longitude coordinates as floats or integers
     
     Returns
@@ -27,10 +28,10 @@ def region_selection(lat_lon, preferred_region):
     
     rDict = {
         'CA_NWP_overlap':{'lat':[41.213, 42.642], 'lon':[-129.090, -121.672]},
-        'Offshore_CA':{   'lat':[31.932,42.642], 'lon':[-129.090,-115.806] },
-        'Hawaii':{        'lat':[15.565,26.221], 'lon':[-164.451,-151.278] },
-        'NW_Pacific':{    'lat':[41.213, 49.579], 'lon':[-130.831, -121.672] },
-        'Mid_Atlantic':{  'lat':[37.273, 42.211], 'lon':[-76.427, -64.800] },
+        'Offshore_CA':{   'lat':[31.932, 42.642], 'lon':[-129.090, -115.806]},
+        'Hawaii':{        'lat':[15.565, 26.221], 'lon':[-164.451, -151.278]},
+        'NW_Pacific':{    'lat':[41.213, 49.579], 'lon':[-130.831, -121.672]},
+        'Mid_Atlantic':{  'lat':[37.273, 42.211], 'lon':[-76.427, -64.800]},
     }
 
     region_search = lambda x: all( ( True if rDict[x][dk][0] <= d <= rDict[x][dk][1] else False
@@ -50,7 +51,47 @@ def region_selection(lat_lon, preferred_region):
     else:
         return region[0]
 
+def plot_region(region,ax=None):
+    '''
+    Visualizes the area that a given region covers. Can help users understand 
+    the extent of a region since they are not all rectangular.
 
+    Parameters
+    ----------
+    region : string
+        Name of predefined region in the WIND Toolkit
+        Options: 'Offshore_CA','Hawaii','Mid_Atlantic','NW_Pacific'
+    ax : matplotlib axes object (optional)
+        Axes for plotting.  If None, then a new figure is created.
+    
+    Returns
+    ---------
+        ax : matplotlib pyplot axes
+    '''
+    assert isinstance(region, str), 'region must be of type string'
+    assert region in ['Offshore_CA','Hawaii','Mid_Atlantic','NW_Pacific'], f'{region} not in list of supported regions'
+    
+    wind_path = f'/nrel/wtk/'+region.lower()+'/'+region+'_*.h5'
+    # wind_path = f'/nrel/wtk/'+region.lower()+'-5min/'+region+'_*.h5'
+    windKwargs = {'tree':None, 'unscale':True, 'str_decode':True, 'hsds':True,
+        'years':[2019]}
+    
+    # Get the latitude and longitude list from the region in rex
+    rex_wind = MultiYearWindX(wind_path, **windKwargs)
+    lats = rex_wind.lat_lon[:,0]
+    lons = rex_wind.lat_lon[:,1]
+    
+    # Plot the latitude longitude pairs
+    if ax=None:
+        fig, ax = plt.subplots()
+    ax.plot(lons,lats,'o')
+    ax.set_xlabel('Longitude (deg)')
+    ax.set_ylabel('Latitude (deg)')
+    ax.grid()
+    ax.set_title(f'Extent of the WIND Toolkit {region} region')
+    
+    return ax
+    
 
 def request_wtk_point_data(time_interval, parameter, lat_lon, years, preferred_region='', 
                            tree=None, unscale=True, str_decode=True,hsds=True):
