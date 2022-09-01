@@ -142,6 +142,7 @@ class TestWINDToolkit(unittest.TestCase):
     try:
         region = wtk.region_selection((41.9,-125.3))
     except TypeError:
+        pass
     else:
         assert False, 'Check wind_toolkit.region_selection() method for catching regional overlap'
     
@@ -167,14 +168,15 @@ class TestWINDToolkit(unittest.TestCase):
                                  data_type, parameters,
                                  lat_lon, years)
     except TypeError:
+        pass
     else:
         assert False, 'Check wind_toolkit.region_selection() method for catching requests over multiple regions'
 
     # test plot_region()
     fig, ax1 = plt.subplots()
-    ax1 = wtk.plot_region('Hawaii',ax=ax1)
+    ax1 = wtk.plot_region('Mid_Atlantic',ax=ax1)
     
-    ax2 = wtk.plot_region('Hawaii')
+    ax2 = wtk.plot_region('NW_Pacific')
     
 
 if __name__ == '__main__':
