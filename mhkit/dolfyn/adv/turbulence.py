@@ -182,11 +182,11 @@ class ADVBinner(VelBinner):
             f_key = 'f'
 
         for ip, ipair in enumerate(self._cross_pairs):
-            out[ip] = self._cpsd_ndarray(veldat[ipair[0]],
-                                         veldat[ipair[1]],
-                                         n_bin=n_bin,
-                                         n_fft=n_fft,
-                                         window=window)
+            out[ip] = self._csd_base(veldat[ipair[0]],
+                                     veldat[ipair[1]],
+                                     n_bin=n_bin,
+                                     n_fft=n_fft,
+                                     window=window)
 
         da = xr.DataArray(out,
                           name='csd',

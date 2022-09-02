@@ -854,7 +854,8 @@ class VelBinner(TimeBinner):
         dt1 = self.reshape(dat1, n_pad=tmp-1, n_bin=n_bin1)
 
         # Note here I am demeaning only on the 'valid' range:
-        dt1 = dt1 - dt1[..., :, int(tmp // 2):int(-tmp // 2)].mean(-1)[..., None]
+        dt1 = dt1 - dt1[..., :, int(tmp // 2)
+                                    :int(-tmp // 2)].mean(-1)[..., None]
         # Don't need to pad the second variable:
         dt2 = self.demean(dat2, n_bin=n_bin2)
 
@@ -1008,14 +1009,14 @@ class VelBinner(TimeBinner):
             out = np.empty(self._outshape_fft(veldat[:3].shape),
                            dtype=np.float32)
             for idx in range(3):
-                out[idx] = self._psd_ndarray(veldat[idx], fs=fs, noise=noise[idx],
-                                             window=window, n_bin=n_bin,
-                                             n_pad=n_pad, n_fft=n_fft, step=step)
+                out[idx] = self._psd_base(veldat[idx], fs=fs, noise=noise[idx],
+                                          window=window, n_bin=n_bin,
+                                          n_pad=n_pad, n_fft=n_fft, step=step)
             coords = {'S': ['Sxx', 'Syy', 'Szz'], time_str: time, f_key: freq}
             dims = ['S', time_str, f_key]
         else:
-            out = self._psd_ndarray(veldat, fs=fs, noise=noise[0], window=window,
-                                    n_bin=n_bin, n_pad=n_pad, n_fft=n_fft, step=step)
+            out = self._psd_base(veldat, fs=fs, noise=noise[0], window=window,
+                                 n_bin=n_bin, n_pad=n_pad, n_fft=n_fft, step=step)
             coords = {time_str: time, f_key: freq}
             dims = [time_str, f_key]
 

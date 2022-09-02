@@ -327,8 +327,8 @@ class TimeBinner:
         """
         return np.nanstd(self.reshape(arr, n_bin=n_bin), axis=axis)
 
-    def _psd_ndarray(self, dat, fs=None, window='hann', noise=0,
-                     n_bin=None, n_fft=None, n_pad=None, step=None):
+    def _psd_base(self, dat, fs=None, window='hann', noise=0,
+                  n_bin=None, n_fft=None, n_pad=None, step=None):
         """Calculate power spectral density of `dat`
 
         Parameters
@@ -355,6 +355,15 @@ class TimeBinner:
           chosen to maximize data use, minimize nens, and have a
           minimum of 50% overlap.).
 
+        Returns
+        -------
+        out : numpy.ndarray
+          The power spectral density of `dat`
+
+        Notes
+        -----
+        PSD's are calculated based on sample rate units
+
         """
         fs = self._parse_fs(fs)
         n_bin = self._parse_nbin(n_bin)
@@ -375,8 +384,8 @@ class TimeBinner:
             out[out < 0] = np.min(np.abs(out)) / 100
         return out
 
-    def _cpsd_ndarray(self, dat1, dat2, fs=None, window='hann',
-                      n_fft=None, n_bin=None):
+    def _csd_base(self, dat1, dat2, fs=None, window='hann',
+                  n_fft=None, n_bin=None):
         """Calculate the cross power spectral density of `dat`.
 
         Parameters
@@ -401,10 +410,12 @@ class TimeBinner:
         Returns
         -------
         out : numpy.ndarray
-          The cross-spectral density of `dat1` and `dat2`
+          The cross power spectral density of `dat1` and `dat2`
 
         Notes
         -----
+        PSD's are calculated based on sample rate units
+
         The two velocity inputs do not have to be perfectly synchronized, but 
         they should have the same start and end timestamps
 
