@@ -163,6 +163,7 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
     x=np.ma.getdata(data.variables[coords[0]][:], False) 
     y=np.ma.getdata(data.variables[coords[1]][:], False)
     
+    
     if type(var[0][0]) == np.ma.core.MaskedArray: 
         max_layer= len(var[0][0])
         
@@ -202,7 +203,7 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
         
         bottom_depth_wdim = interp.griddata(points_laydim, bottom_depth,
                                             points_wdim)
-        water_level_wdim = interp.griddata(points_laydim, water_level,
+        water_level_wdim= interp.griddata(points_laydim, water_level,
                                             points_wdim)
         
         idx_bd= np.where(np.isnan(bottom_depth_wdim))
@@ -212,31 +213,34 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
                                               points_wdim[i], method='nearest')
             water_level_wdim[i]= interp.griddata(points_laydim, water_level,
                                               points_wdim[i], method='nearest')
- 
+
+    
     depth=[]
     
     if dimensions== 2:
         if layer_dim == 'FlowLink_xu FlowLink_yu': 
-            z = [bottom_depth_wdim]-water_level_wdim
+            z = [bottom_depth_wdim]
+            water_level=water_level_wdim
         else:
-            z = [bottom_depth]-water_level
+            z = [bottom_depth]
     else:
         if layer_dim == 'FlowLink_xu FlowLink_yu': 
-            z = [bottom_depth_wdim*layer_percentages[layer_index]]-water_level_wdim 
+            z = [bottom_depth_wdim*layer_percentages[layer_index]]
+            water_level=water_level_wdim
         else:
-            z = [bottom_depth*layer_percentages[layer_index]]-water_level
+            z = [bottom_depth*layer_percentages[layer_index]]
     depth=np.append(depth, z)
 
     time= np.ma.getdata(data.variables['time'][time_index], False)*np.ones(len(x))
 
-    layer= np.array([ [x_i, y_i, z_i, v_i, t_i] for x_i, y_i, z_i, v_i, t_i in
-                     zip(x, y, depth, v, time)]) 
-    layer_data = pd.DataFrame(layer, columns=['x', 'y', 'z', 'v', 'time'])
+    layer= np.array([ [x_i, y_i, d_i, w_i, v_i, t_i] for x_i, y_i, d_i, w_i, v_i, t_i in
+                     zip(x, y, depth, water_level, v, time)]) 
+    layer_data = pd.DataFrame(layer, columns=['x', 'y', 'depth','water_level', 'v', 'time'])
 
     return layer_data
 
 
-def create_points(x, y, z):
+def create_points(x, y, depth):
     '''
     Turns three coordinate inputs into a single output DataFrame of points. 
     In any order the three inputs can consist of 3 points, 2 points and 1 array,
@@ -280,15 +284,15 @@ def create_points(x, y, z):
                                                      +' or array')
     assert isinstance(y, (int, float, np.ndarray)), ('y must be a int, float'
                                                      +' or array')
-    assert isinstance(z, (int, float, np.ndarray)), ('z must be a int, float'
+    assert isinstance(depth, (int, float, np.ndarray)), ('z must be a int, float'
                                                      +' or array')
     
     directions = {0:{'name':  'x',
                      'values': x},
                   1:{'name':  'y',
                      'values': y},
-                  2:{'name':  'z',
-                     'values': z}}
+                  2:{'name':  'depth',
+                     'values': depth}}
 
     for i in directions:
         try:
@@ -322,11 +326,11 @@ def create_points(x, y, z):
                     
         x_new = directions[0]['values']
         y_new = directions[1]['values']
-        z_new = directions[2]['values']
+        depth_new = directions[2]['values']
             
-        request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(x_new, 
-                                                             y_new, z_new)]) 
-        points= pd.DataFrame(request, columns=[ 'x', 'y', 'z'])
+        request= np.array([ [x_i, y_i, depth_i] for x_i, y_i, depth_i in zip(x_new, 
+                                                             y_new, depth_new)]) 
+        points= pd.DataFrame(request, columns=[ 'x', 'y', 'depth'])
         
     elif N_points == 1: 
         # treat as plane
@@ -394,24 +398,24 @@ def variable_interpolation(data, variables, points='cells'):
     if type(points) == pd.DataFrame:  
         print('points provided')
     elif points=='faces':
-        points = data_raw['ucx'][['x','y','z']]
+        points = data_raw['ucx'][['x','y','depth']]
     elif points=='cells':
-        points = data_raw['turkin1'][['x','y','z']]
+        points = data_raw['turkin1'][['x','y','depth']]
     
     transformed_data= points.copy(deep=True)
     
     for var in variables :    
-        transformed_data[var] = interp.griddata(data_raw[var][['x','y','z']],
-                                        data_raw[var][var], points[['x','y','z']])
+        transformed_data[var] = interp.griddata(data_raw[var][['x','y','depth']],
+                                        data_raw[var][var], points[['x','y','depth']])
         idx= np.where(np.isnan(transformed_data[var]))
         
         if len(idx[0]):
             for i in idx[0]: 
                 transformed_data[var][i]= (interp
-                                          .griddata(data_raw[var][['x','y','z']], 
+                                          .griddata(data_raw[var][['x','y','depth']], 
                                            data_raw[var][var],
                                            [points['x'][i],points['y'][i],
-                                            points['z'][i]], method='nearest'))
+                                            points['depth'][i]], method='nearest'))
             
     return transformed_data
 
@@ -464,7 +468,8 @@ def get_all_data_points(data, variable, time_index=-1):
         
     x_all=[]
     y_all=[]
-    z_all=[]
+    depth_all=[]
+    water_level_all=[]
     v_all=[]
     time_all=[]
     
@@ -474,14 +479,15 @@ def get_all_data_points(data, variable, time_index=-1):
 
         x_all=np.append(x_all, layer_data.x)
         y_all=np.append(y_all, layer_data.y)
-        z_all=np.append(z_all, layer_data.z)
+        depth_all=np.append(depth_all, layer_data.depth)
+        water_level_all=np.append(water_level_all, layer_data.water_level)
         v_all=np.append(v_all, layer_data.v)
         time_all= np.append(time_all, layer_data.time)
     
-    known_points = np.array([ [x, y, z, v, time] for x, y, z, v, time in zip(x_all, y_all, 
-                                                                z_all, v_all, time_all)])
+    known_points = np.array([ [x, y, depth, water_level, v, time] for x, y, depth, water_level, v, time in zip(x_all, y_all, 
+                                                                depth_all, water_level_all, v_all, time_all)])
     
-    all_data= pd.DataFrame(known_points, columns=['x','y','z',f'{variable}', 'time'])
+    all_data= pd.DataFrame(known_points, columns=['x','y','depth', 'water_level',f'{variable}', 'time'])
 
     return all_data
 
@@ -553,22 +559,22 @@ def turbulent_intensity(data, points='cells', time_index= -1,
     if type(points) == pd.DataFrame:  
         print('points provided')
     elif points=='faces':
-        points = TI_data_raw['turkin1'].drop(['turkin1'],axis=1)
+        points = TI_data_raw['turkin1'].drop(['water_level','turkin1'],axis=1)
     elif points=='cells':
-        points = TI_data_raw['ucx'].drop(['ucx'],axis=1)
+        points = TI_data_raw['ucx'].drop(['water_level','ucx'],axis=1)
        
     TI_data = points.copy(deep=True)
 
     for var in TI_vars:    
-        TI_data[var] = interp.griddata(TI_data_raw[var][['x','y','z']],
-                                TI_data_raw[var][var], points[['x','y','z']])
+        TI_data[var] = interp.griddata(TI_data_raw[var][['x','y','depth']],
+                                TI_data_raw[var][var], points[['x','y','depth']])
         idx= np.where(np.isnan(TI_data[var]))
         
         if len(idx[0]):
             for i in idx[0]: 
-                TI_data[var][i]= interp.griddata(TI_data_raw[var][['x','y','z']], 
+                TI_data[var][i]= interp.griddata(TI_data_raw[var][['x','y','depth']], 
                                 TI_data_raw[var][var],
-                                [points['x'][i],points['y'][i], points['z'][i]],
+                                [points['x'][i],points['y'][i], points['depth'][i]],
                                 method='nearest')
 
     u_mag=unorm(np.array(TI_data['ucx']),np.array(TI_data['ucy']), 
