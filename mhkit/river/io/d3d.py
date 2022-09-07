@@ -145,9 +145,10 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
     Returns
     -------
     layer_data: DataFrame
-        DataFrame with columns of "x", "y", and "z" location on specified layer, 
-        the variable values "v", the "time" the simulation has run. The value
-        "z" is the depth from the zero-water level at the surface. 
+        DataFrame with columns of "x", "y", "depth", and "water_level" location
+        of the specified layer, variable values "v", and the "time" the 
+        simulation has run. The depth is measured from the water surface and the
+        "water_level" is the water height displacement from the zero water level. 
     '''
     
     assert isinstance(time_index, int), 'time_index  must be an int'
@@ -253,13 +254,13 @@ def create_points(x, y, depth):
         x values to create points.
     y: float, array or int
         y values to create points.
-    z: float, array or int
-        z values to create points.
+    depth: float, array or int
+        depth values to create points.
 
     Returns
     -------
     points: DateFrame 
-        DataFrame with columns x, y and z points. 
+        DataFrame with columns x, y and depth points. 
         
     Example 
     -------
@@ -268,10 +269,10 @@ def create_points(x, y, depth):
     
     x=np.array([1,2])
     y=np.array([3,4,5])
-    z= 6
-    d3d.create_points(x,y,z)
+    depth= 6
+    d3d.create_points(x,y,depth)
     
-       x    y    z
+       x    y    depth
     0  1.0  3.0  6.0
     1  2.0  3.0  6.0
     2  1.0  4.0  6.0
@@ -374,14 +375,14 @@ def variable_interpolation(data, variables, points='cells'):
         The points to interpolate data onto.
           'cells'- interpolates all data onto the Delft3D cell coordinate system (Default)
           'faces'- interpolates all dada onto the Delft3D face coordinate system 
-          DataFrame of x, y, and z coordinates - Interpolates data onto user 
+          DataFrame of x, y, and depth coordinates - Interpolates data onto user 
           povided points. Can be created with `create_points` function.
   
     Returns
     -------
     transformed_data: DataFrame  
         Variables on specified grid points saved under the input variable names 
-        and the x, y, and z coordinates of those points. 
+        and the x, y, and depth coordinates of those points. 
     '''
     
     assert isinstance(points, (str, pd.DataFrame)),('points must be a string ' 
@@ -440,8 +441,10 @@ def get_all_data_points(data, variable, time_index=-1):
     Returns
     -------
     all_data: DataFrame 
-        Dataframe with columns x, y, z, variable, and time. The value
-        "z" is the depth from the zero-water level at the surface.
+        Dataframe with columns x, y, depth, water_level, variable, and time.
+        The depth is measured from the water surface and the "water_level" is 
+        the water height displacement from the zero water level.
+ 
     '''  
     
     assert isinstance(time_index, int), 'time_index  must be a int'
@@ -484,10 +487,12 @@ def get_all_data_points(data, variable, time_index=-1):
         v_all=np.append(v_all, layer_data.v)
         time_all= np.append(time_all, layer_data.time)
     
-    known_points = np.array([ [x, y, depth, water_level, v, time] for x, y, depth, water_level, v, time in zip(x_all, y_all, 
-                                                                depth_all, water_level_all, v_all, time_all)])
+    known_points = np.array([ [x, y, depth, water_level, v, time] 
+                    for x, y, depth, water_level, v, time in zip(x_all, y_all, 
+                                depth_all, water_level_all, v_all, time_all)])
     
-    all_data= pd.DataFrame(known_points, columns=['x','y','depth', 'water_level',f'{variable}', 'time'])
+    all_data= pd.DataFrame(known_points, columns=['x','y','depth', 'water_level'
+                                                  ,f'{variable}', 'time'])
 
     return all_data
 
@@ -521,18 +526,18 @@ def turbulent_intensity(data, points='cells', time_index= -1,
     Returns
     -------
       TI_data: Dataframe
-        If intermediate_values is true all values are output 
+        If intermediate_values is true all values are output. 
         If intermediate_values is equal to false only turbulent_intesity and 
-        x, y, and z varibles are output 
+        x, y, and z variables are output.  
             x- position in the x direction 
             y- position in the y direction 
-            z- position in the z direction
+            depth- position in the vertical direction
             turbulet_intesity- turbulent kinetic energy divided by the root
                                 mean squared velocity
             turkin1- turbulent kinetic energy 
             ucx- velocity in the x direction 
             ucy- velocity in the y direction 
-            ucx- velocity in the z direction 
+            ucz- velocity in the vertical direction 
     '''
     
     assert isinstance(points, (str, pd.DataFrame)),('points must a string or'
