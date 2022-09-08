@@ -145,10 +145,10 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
     Returns
     -------
     layer_data: DataFrame
-        DataFrame with columns of "x", "y", "depth", and "water_level" location
+        DataFrame with columns of "x", "y", "waterdepth", and "s1" location
         of the specified layer, variable values "v", and the "time" the 
-        simulation has run. The depth is measured from the water surface and the
-        "water_level" is the water height displacement from the zero water level. 
+        simulation has run. The waterdepth is measured from the water surface and the
+        "s1" is the water level diffrencein meters from the zero water level. 
     '''
     
     assert isinstance(time_index, int), 'time_index  must be an int'
@@ -178,7 +178,7 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
         dimensions= 2
         v= np.ma.getdata(var[time_index,:], False)
         
-    #depth 
+    #waterdepth 
     cords_to_layers= {'FlowElem_xcc FlowElem_ycc':{'name':'laydim', 
                                     'coords':data.variables['LayCoord_cc'][:]},
                        'FlowLink_xu FlowLink_yu': {'name':'wdim', 
@@ -189,7 +189,7 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
     cord_sys= cords_to_layers[layer_dim]['coords']
     layer_percentages= np.ma.getdata(cord_sys, False) #accumulative
     bottom_depth=np.ma.getdata(data.variables['waterdepth'][time_index, :], False)
-    water_level= np.ma.getdata(data.variables['s1'][time_index, :], False)
+    s1= np.ma.getdata(data.variables['s1'][time_index, :], False)
     if layer_dim == 'FlowLink_xu FlowLink_yu':
         #interpolate 
         coords = str(data.variables['waterdepth'].coordinates).split()
@@ -204,7 +204,7 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
         
         bottom_depth_wdim = interp.griddata(points_laydim, bottom_depth,
                                             points_wdim)
-        water_level_wdim= interp.griddata(points_laydim, water_level,
+        water_level_wdim= interp.griddata(points_laydim, s1,
                                             points_wdim)
         
         idx_bd= np.where(np.isnan(bottom_depth_wdim))
@@ -212,36 +212,36 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
         for i in idx_bd: 
             bottom_depth_wdim[i]= interp.griddata(points_laydim, bottom_depth,
                                               points_wdim[i], method='nearest')
-            water_level_wdim[i]= interp.griddata(points_laydim, water_level,
+            water_level_wdim[i]= interp.griddata(points_laydim, s1,
                                               points_wdim[i], method='nearest')
 
     
-    depth=[]
+    waterdepth=[]
     
     if dimensions== 2:
         if layer_dim == 'FlowLink_xu FlowLink_yu': 
             z = [bottom_depth_wdim]
-            water_level=water_level_wdim
+            s1=water_level_wdim
         else:
             z = [bottom_depth]
     else:
         if layer_dim == 'FlowLink_xu FlowLink_yu': 
             z = [bottom_depth_wdim*layer_percentages[layer_index]]
-            water_level=water_level_wdim
+            s1=water_level_wdim
         else:
             z = [bottom_depth*layer_percentages[layer_index]]
-    depth=np.append(depth, z)
+    waterdepth=np.append(waterdepth, z)
 
     time= np.ma.getdata(data.variables['time'][time_index], False)*np.ones(len(x))
 
     layer= np.array([ [x_i, y_i, d_i, w_i, v_i, t_i] for x_i, y_i, d_i, w_i, v_i, t_i in
-                     zip(x, y, depth, water_level, v, time)]) 
-    layer_data = pd.DataFrame(layer, columns=['x', 'y', 'depth','water_level', 'v', 'time'])
+                     zip(x, y, waterdepth, s1, v, time)]) 
+    layer_data = pd.DataFrame(layer, columns=['x', 'y', 'waterdepth','s1', 'v', 'time'])
 
     return layer_data
 
 
-def create_points(x, y, depth):
+def create_points(x, y, waterdepth):
     '''
     Turns three coordinate inputs into a single output DataFrame of points. 
     In any order the three inputs can consist of 3 points, 2 points and 1 array,
@@ -254,13 +254,13 @@ def create_points(x, y, depth):
         x values to create points.
     y: float, array or int
         y values to create points.
-    depth: float, array or int
-        depth values to create points.
+    waterdepth: float, array or int
+        waterdepth values to create points.
 
     Returns
     -------
     points: DateFrame 
-        DataFrame with columns x, y and depth points. 
+        DataFrame with columns x, y and waterdepth points. 
         
     Example 
     -------
@@ -269,10 +269,10 @@ def create_points(x, y, depth):
     
     x=np.array([1,2])
     y=np.array([3,4,5])
-    depth= 6
-    d3d.create_points(x,y,depth)
+    waterdepth= 6
+    d3d.create_points(x,y,waterdepth)
     
-       x    y    depth
+       x    y    waterdepth
     0  1.0  3.0  6.0
     1  2.0  3.0  6.0
     2  1.0  4.0  6.0
@@ -285,15 +285,15 @@ def create_points(x, y, depth):
                                                      +' or array')
     assert isinstance(y, (int, float, np.ndarray)), ('y must be a int, float'
                                                      +' or array')
-    assert isinstance(depth, (int, float, np.ndarray)), ('z must be a int, float'
+    assert isinstance(waterdepth, (int, float, np.ndarray)), ('waterdepth must be a int, float'
                                                      +' or array')
     
     directions = {0:{'name':  'x',
                      'values': x},
                   1:{'name':  'y',
                      'values': y},
-                  2:{'name':  'depth',
-                     'values': depth}}
+                  2:{'name':  'waterdepth',
+                     'values': waterdepth}}
 
     for i in directions:
         try:
@@ -331,7 +331,7 @@ def create_points(x, y, depth):
             
         request= np.array([ [x_i, y_i, depth_i] for x_i, y_i, depth_i in zip(x_new, 
                                                              y_new, depth_new)]) 
-        points= pd.DataFrame(request, columns=[ 'x', 'y', 'depth'])
+        points= pd.DataFrame(request, columns=[ 'x', 'y', 'waterdepth'])
         
     elif N_points == 1: 
         # treat as plane
@@ -375,14 +375,14 @@ def variable_interpolation(data, variables, points='cells'):
         The points to interpolate data onto.
           'cells'- interpolates all data onto the Delft3D cell coordinate system (Default)
           'faces'- interpolates all dada onto the Delft3D face coordinate system 
-          DataFrame of x, y, and depth coordinates - Interpolates data onto user 
+          DataFrame of x, y, and waterdepth coordinates - Interpolates data onto user 
           povided points. Can be created with `create_points` function.
   
     Returns
     -------
     transformed_data: DataFrame  
         Variables on specified grid points saved under the input variable names 
-        and the x, y, and depth coordinates of those points. 
+        and the x, y, and waterdepth coordinates of those points. 
     '''
     
     assert isinstance(points, (str, pd.DataFrame)),('points must be a string ' 
@@ -399,24 +399,24 @@ def variable_interpolation(data, variables, points='cells'):
     if type(points) == pd.DataFrame:  
         print('points provided')
     elif points=='faces':
-        points = data_raw['ucx'][['x','y','depth']]
+        points = data_raw['ucx'][['x','y','waterdepth']]
     elif points=='cells':
-        points = data_raw['turkin1'][['x','y','depth']]
+        points = data_raw['turkin1'][['x','y','waterdepth']]
     
     transformed_data= points.copy(deep=True)
     
     for var in variables :    
-        transformed_data[var] = interp.griddata(data_raw[var][['x','y','depth']],
-                                        data_raw[var][var], points[['x','y','depth']])
+        transformed_data[var] = interp.griddata(data_raw[var][['x','y','waterdepth']],
+                                        data_raw[var][var], points[['x','y','waterdepth']])
         idx= np.where(np.isnan(transformed_data[var]))
         
         if len(idx[0]):
             for i in idx[0]: 
                 transformed_data[var][i]= (interp
-                                          .griddata(data_raw[var][['x','y','depth']], 
+                                          .griddata(data_raw[var][['x','y','waterdepth']], 
                                            data_raw[var][var],
                                            [points['x'][i],points['y'][i],
-                                            points['depth'][i]], method='nearest'))
+                                            points['waterdepth'][i]], method='nearest'))
             
     return transformed_data
 
@@ -441,9 +441,9 @@ def get_all_data_points(data, variable, time_index=-1):
     Returns
     -------
     all_data: DataFrame 
-        Dataframe with columns x, y, depth, water_level, variable, and time.
-        The depth is measured from the water surface and the "water_level" is 
-        the water height displacement from the zero water level.
+        Dataframe with columns x, y, waterdepth, s1, variable, and time.
+        The waterdepth is measured from the water surface and the "s1" is 
+        the water level diffrence in meters from the zero water level.
  
     '''  
     
@@ -482,16 +482,16 @@ def get_all_data_points(data, variable, time_index=-1):
 
         x_all=np.append(x_all, layer_data.x)
         y_all=np.append(y_all, layer_data.y)
-        depth_all=np.append(depth_all, layer_data.depth)
-        water_level_all=np.append(water_level_all, layer_data.water_level)
+        depth_all=np.append(depth_all, layer_data.waterdepth)
+        water_level_all=np.append(water_level_all, layer_data.s1)
         v_all=np.append(v_all, layer_data.v)
         time_all= np.append(time_all, layer_data.time)
     
-    known_points = np.array([ [x, y, depth, water_level, v, time] 
-                    for x, y, depth, water_level, v, time in zip(x_all, y_all, 
+    known_points = np.array([ [x, y, waterdepth, s1, v, time] 
+                    for x, y, waterdepth, s1, v, time in zip(x_all, y_all, 
                                 depth_all, water_level_all, v_all, time_all)])
     
-    all_data= pd.DataFrame(known_points, columns=['x','y','depth', 'water_level'
+    all_data= pd.DataFrame(known_points, columns=['x','y','waterdepth', 's1'
                                                   ,f'{variable}', 'time'])
 
     return all_data
@@ -531,7 +531,7 @@ def turbulent_intensity(data, points='cells', time_index= -1,
         x, y, and z variables are output.  
             x- position in the x direction 
             y- position in the y direction 
-            depth- position in the vertical direction
+            waterdepth- position in the vertical direction
             turbulet_intesity- turbulent kinetic energy divided by the root
                                 mean squared velocity
             turkin1- turbulent kinetic energy 
@@ -564,22 +564,22 @@ def turbulent_intensity(data, points='cells', time_index= -1,
     if type(points) == pd.DataFrame:  
         print('points provided')
     elif points=='faces':
-        points = TI_data_raw['turkin1'].drop(['water_level','turkin1'],axis=1)
+        points = TI_data_raw['turkin1'].drop(['s1','turkin1'],axis=1)
     elif points=='cells':
-        points = TI_data_raw['ucx'].drop(['water_level','ucx'],axis=1)
+        points = TI_data_raw['ucx'].drop(['s1','ucx'],axis=1)
        
     TI_data = points.copy(deep=True)
 
     for var in TI_vars:    
-        TI_data[var] = interp.griddata(TI_data_raw[var][['x','y','depth']],
-                                TI_data_raw[var][var], points[['x','y','depth']])
+        TI_data[var] = interp.griddata(TI_data_raw[var][['x','y','waterdepth']],
+                                TI_data_raw[var][var], points[['x','y','waterdepth']])
         idx= np.where(np.isnan(TI_data[var]))
         
         if len(idx[0]):
             for i in idx[0]: 
-                TI_data[var][i]= interp.griddata(TI_data_raw[var][['x','y','depth']], 
+                TI_data[var][i]= interp.griddata(TI_data_raw[var][['x','y','waterdepth']], 
                                 TI_data_raw[var][var],
-                                [points['x'][i],points['y'][i], points['depth'][i]],
+                                [points['x'][i],points['y'][i], points['waterdepth'][i]],
                                 method='nearest')
 
     u_mag=unorm(np.array(TI_data['ucx']),np.array(TI_data['ucy']), 
