@@ -180,8 +180,8 @@ class TestIO(unittest.TestCase):
         y_test=np.linspace(3, 3, num= 10)
         depth_test=np.linspace(1, 1, num= 10)
        
-        test_points = np.array([ [x, y, depth] for x, y, depth in zip(x_test, y_test, depth_test)])
-        points= pd.DataFrame(test_points, columns=['x','y','depth'])
+        test_points = np.array([ [x, y, waterdepth] for x, y, waterdepth in zip(x_test, y_test, depth_test)])
+        points= pd.DataFrame(test_points, columns=['x','y','waterdepth'])
         
         TI= river.io.d3d.turbulent_intensity(data, points, time_index)
 
@@ -194,15 +194,15 @@ class TestIO(unittest.TestCase):
             TI_data= points.copy(deep=True)
         
         for var in TI_vars:    
-            TI_data[var] = interp.griddata(TI_data_raw[var][['x','y','depth']],
-                                TI_data_raw[var][var], points[['x','y','depth']])
+            TI_data[var] = interp.griddata(TI_data_raw[var][['x','y','waterdepth']],
+                                TI_data_raw[var][var], points[['x','y','waterdepth']])
             idx= np.where(np.isnan(TI_data[var]))
         
             if len(idx[0]):
                 for i in idx[0]: 
-                    TI_data[var][i]= interp.griddata(TI_data_raw[var][['x','y','depth']], 
+                    TI_data[var][i]= interp.griddata(TI_data_raw[var][['x','y','waterdepth']], 
                                 TI_data_raw[var][var],
-                                [points['x'][i],points['y'][i], points['depth'][i]],
+                                [points['x'][i],points['y'][i], points['waterdepth'][i]],
                                 method='nearest')
         
         u_mag=river.io.d3d.unorm(TI_data['ucx'],TI_data['ucy'], TI_data['ucz'])
