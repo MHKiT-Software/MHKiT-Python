@@ -1,0 +1,5 @@
+{"inst2head_rotmat": "identity",
+ "inst2head_vec": [-1.0, 0.5, 0.2],
+ "motion accel_filtfreq Hz": 0.03,
+ "declination": 10.0
+}

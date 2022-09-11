@@ -12,7 +12,6 @@ from matplotlib import pylab
 import datetime
 
 
-
 def plot_spectrum(S, ax=None):
     """
     Plots wave amplitude spectrum versus omega
@@ -31,10 +30,9 @@ def plot_spectrum(S, ax=None):
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
 
     f = S.index
-
-    ax = _xy_plot(f*2*np.pi, S/(2*np.pi), fmt='-', xlabel='omega [rad/s]',
+    for key in S.keys():
+        ax = _xy_plot(f*2*np.pi, S[key]/(2*np.pi), fmt='-', xlabel='omega [rad/s]',
              ylabel='Spectral density [m$^2$s/rad]', ax=ax)
-
 
     return ax
 
@@ -57,8 +55,9 @@ def plot_elevation_timeseries(eta, ax=None):
 
     assert isinstance(eta, pd.DataFrame), 'eta must be of type pd.DataFrame'
 
-    ax = _xy_plot(eta.index, eta, fmt='-', xlabel='Time',
-                  ylabel='$\eta$ [m]', ax=ax)
+    for key in eta.keys():
+        ax = _xy_plot(eta.index, eta[key], fmt='-', xlabel='Time',
+            ylabel='$\eta$ [m]', ax=ax)
 
     return ax
 
@@ -296,6 +295,7 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
 
     plt.tight_layout()
 
+
 def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     '''
     Plots an overlay of the x1 and x2 variables to the calculate
@@ -306,9 +306,9 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
         x-axis data
     x2: numpy array 
         x-axis data
-    x1_contour: numpy array 
+    x1_contour: numpy array or list
         Calculated x1 contour values
-    x2_contour: numpy array 
+    x2_contour: numpy array or list
         Calculated x2 contour values 
     **kwargs : optional         
         x_label: string (optional)
@@ -324,35 +324,51 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
         ax : matplotlib axes object (optional)
             Axes for plotting.  If None, then a new figure is created.
             Default None.
+        markers: string
+            string or list of strings to use as marker types
     Returns
     -------
     ax : matplotlib pyplot axes
-    '''
-    
+    '''      
+    try: x1 = x1.values
+    except: pass
+    try: x2 = x2.values
+    except: pass
     assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
     assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(x1_contour, np.ndarray), ('x1_contour must be of '
-                                                'type np.ndarray')
-    assert isinstance(x2_contour, np.ndarray), ('x2_contour must be of '
-                                               'type np.ndarray')
+    assert isinstance(x1_contour, (np.ndarray,list)), ('x1_contour must be of '
+                                                'type np.ndarray or list')
+    assert isinstance(x2_contour, (np.ndarray,list)), ('x2_contour must be of '
+                                               'type np.ndarray or list')
     x_label = kwargs.get("x_label", None)
     y_label = kwargs.get("y_label", None)
     data_label=kwargs.get("data_label", None)
     contour_label=kwargs.get("contour_label", None)
     ax=kwargs.get("ax", None)
-    assert isinstance(data_label, str), 'data_label must be of type str'
-    assert isinstance(contour_label, (str,list)), ('contour_label be of '
-                                                  'type str')
-    assert x2_contour.ndim == x1_contour.ndim,  ('contour must be of' 
-            f'equal dimesion got {x2_contour.ndim} and {x1_contour.ndim}')                                                  
+    markers=kwargs.get("markers", '-')
+    assert isinstance(data_label, (str,type(None))), 'data_label must be of type str'
+    assert isinstance(contour_label, (str,list, type(None))), ('contour_label be of '
+                                                  'type str')    
     
+    if isinstance(markers, list):
+        assert all( [isinstance(marker, (str)) for marker in markers] )
+    elif isinstance(markers, str):
+        markers=[markers]
+        assert all( [isinstance(marker, (str)) for marker in markers] )
+    else:
+        assert isinstance(markers, (str,list)), ('markers must be of type str or list of strings')
         
-    if x2_contour.ndim == 1:
-        x2_contour  = x2_contour.reshape(-1,1) 
-        x1_contour = x1_contour.reshape(-1,1) 
+    assert len(x2_contour) == len(x1_contour),  ('contour must be of' 
+            f'equal dimesion got {len(x2_contour)} and {len(x1_contour)}')
     
-    N_contours = x2_contour.shape[1]
     
+    if isinstance(x1_contour, np.ndarray):   
+        N_contours=1
+        x2_contour  = [x2_contour]
+        x1_contour = [x1_contour]
+    elif isinstance(x1_contour, list):   
+        N_contours=len(x1_contour) 
+
     if contour_label != None:
         if isinstance(contour_label, str):
             contour_label = [contour_label] 
@@ -362,18 +378,26 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
             f'number of contour years. Got {N_c_labels} and {N_contours}')   
     else:
         contour_label = [None] * N_contours
+        
+    if len(markers)==1:
+        markers=markers*N_contours   
+    assert len(markers) == N_contours,  ('Markers must be same length'               
+            f'as N contours specified. Got: {len(markers)} and {len(x1_contour)}')        
     
-    for i in range(N_contours):       
-        ax = _xy_plot(x1_contour[:,i], x2_contour[:,i],'-', 
+    for i in range(N_contours):
+        contour1 = np.array(x1_contour[i]).T
+        contour2 = np.array(x2_contour[i]).T
+        ax = _xy_plot(contour1, contour2, markers[i], 
                       label=contour_label[i], ax=ax)
-            
-    ax = plt.plot(x1, x2, 'bo', alpha=0.1, 
-                  label=data_label) 
+                      
+    plt.plot(x1, x2, 'bo', alpha=0.1, label=data_label) 
+    
     plt.legend(loc='lower right')
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     plt.tight_layout()
     return ax
+    
     
 def plot_avg_annual_energy_matrix(Hm0, Te, J, time_index=None, 
     Hm0_bin_size=None, Te_bin_size=None, Hm0_edges=None, Te_edges=None):
@@ -507,17 +531,17 @@ def monthly_cumulative_distribution(J):
     for month in months:
         plt.semilogx(J.loc[cumSum[month].index], cumSum[month].F, '--', 
             label=calendar.month_abbr[month])
-
+    
     F = exceedance_probability(J)
     F.sort_values('F', inplace=True)
-    ax = plt.semilogx(J.loc[F.index], 1-F/100, 'k-', fillstyle='none', label='All')
+    ax = plt.semilogx(J.loc[F.index], 1-F['F']/100, 'k-', fillstyle='none', label='All')
 
-    #plt.xlim([1000, 1E6])    
     plt.grid()
     plt.xlabel('Energy Flux')
     plt.ylabel('Cumulative Distribution')
     plt.legend()
     return ax
+
 
 def plot_compendium(Hs, Tp, Dp, buoy_title=None, ax=None):
     """
