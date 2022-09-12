@@ -92,6 +92,41 @@ def plot_region(region,ax=None):
     
     return ax
     
+def elevation_to_string(parameter, elevations):
+    """ 
+    Takes in a parameter (e.g. 'windspeed') and elevations (e.g. [20, 40, 120]) 
+    and returns the formatted strings that are input to WIND Toolkit (e.g. windspeed_10m).
+    Does not check parameter against the elevation levels. This is done in request_wtk_point_data.
+    
+    Parameters
+    ----------
+    parameter: string
+        Name of the WIND toolkit parameter.
+        Options: 'windspeed', 'winddirection', 'temperature', 'pressure'
+    elevations : list
+        List of elevations (float).
+        Values can range from approxiamtely 20 to 200 in increments of 20, depending
+        on the parameter in question. See Documentation for wtk_request_point_data 
+        for the full list of available parameters.
+
+    Returns
+    ---------
+    parameter_list: list
+        Formatted List of WIND Toolkit parameter strings
+        
+    """
+    
+    assert isinstance(parameter,str)
+    assert isinstance(elevations,(float,list))
+    assert parameter in ['windspeed','winddirection','temperature','pressure']
+    
+    parameter_list = []
+    for e in elevations:
+        parameter_list.append(parameter+'_'+str(e)+'m')    
+    
+    return parameter_list
+
+
 
 def request_wtk_point_data(time_interval, parameter, lat_lon, years, preferred_region='', 
                            tree=None, unscale=True, str_decode=True,hsds=True):

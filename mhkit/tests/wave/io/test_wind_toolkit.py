@@ -178,6 +178,13 @@ class TestWINDToolkit(unittest.TestCase):
     
     ax2 = wtk.plot_region('NW_Pacific')
     
+    # test elevation_to_string()
+    parameter = 'windspeed'
+    elevations = [20, 40, 60, 120, 180]
+    parameter_list = wtk.elevation_to_string(parameter, elevations)
+    assert parameter_list==['windspeed_20m','windspeed_40m','windspeed_60m',
+                            'windspeed_120m','windspeed_180m']
+    
 
 if __name__ == '__main__':
     unittest.main()
