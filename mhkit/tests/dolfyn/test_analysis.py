@@ -43,30 +43,18 @@ class analysis_testcase(unittest.TestCase):
         assert_allclose(adat_sig, load('BenchFile01_avg.nc'), atol=1e-6)
 
     def test_calc_func(self):
-        test_ds = type(self.adv1)()
-        test_ds_demean = type(self.adv1)()
-        test_ds_dif = type(self.adv1)()
         c = self.adv_tool
-
         c2 = self.adp_tool
+
+        test_ds = type(self.adv1)()
         test_ds_adp = type(self.adp)()
 
-        test_ds['coh'] = c.coherence(
-            self.adv1.vel[0], self.adv1.vel[1], n_fft_coh=self.adv1.fs)
-        test_ds['pang'] = c.phase_angle(
-            self.adv1.vel[0], self.adv1.vel[1], n_fft_coh=self.adv1.fs)
-        test_ds['xcov'] = c.cross_covariance(
-            self.adv1.vel[0], self.adv1.vel[1])
         test_ds['acov'] = c.autocovariance(self.adv1.vel)
-        test_ds['tke_vec'] = c.turbulent_kinetic_energy(self.adv1.vel)
-        test_ds_demean['tke_vec'] = c.turbulent_kinetic_energy(
+        test_ds['tke_vec_detrended'] = c.turbulent_kinetic_energy(
+            self.adv1.vel)
+        test_ds['tke_vec_demeaned'] = c.turbulent_kinetic_energy(
             self.adv1.vel, detrend=False)
         test_ds['psd'] = c.power_spectral_density(self.adv1.vel)
-
-        # Different lengths
-        test_ds_dif['coh_dif'] = c.coherence(self.adv1.vel, self.adv2.vel)
-        test_ds_dif['pang_dif'] = c.phase_angle(
-            self.adv1.vel, self.adv2.vel)
 
         # Test ADCP single vector spectra, cross-spectra to test radians code
         test_ds_adp['psd_b5'] = c2.power_spectral_density(
@@ -75,19 +63,13 @@ class analysis_testcase(unittest.TestCase):
 
         if make_data:
             save(test_ds, 'vector_data01_func.nc')
-            save(test_ds_dif, 'vector_data01_funcdif.nc')
-            save(test_ds_demean, 'vector_data01_func_demean.nc')
             save(test_ds_adp, 'BenchFile01_func.nc')
             return
 
         assert_allclose(test_ds, load('vector_data01_func.nc'), atol=1e-6)
-        assert_allclose(test_ds_dif, load(
-            'vector_data01_funcdif.nc'), atol=1e-6)
-        assert_allclose(test_ds_demean, load(
-            'vector_data01_func_demean.nc'), atol=1e-6)
         assert_allclose(test_ds_adp, load('BenchFile01_func.nc'), atol=1e-6)
 
-    def test__fft_freq(self):
+    def test_fft_freq(self):
         f = self.adv_tool._fft_freq(units='Hz')
         omega = self.adv_tool._fft_freq(units='rad/s')
 

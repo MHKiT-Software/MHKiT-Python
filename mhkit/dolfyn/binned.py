@@ -465,6 +465,7 @@ class TimeBinner:
         -------
         out: numpy.ndarray
           Spectrum frequency array in units of 'Hz' or 'rad/s'
+
         """
         if n_fft is None:
             n_fft = self.n_fft
