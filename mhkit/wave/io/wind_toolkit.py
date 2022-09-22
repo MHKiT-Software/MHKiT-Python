@@ -10,7 +10,7 @@ def region_selection(lat_lon, preferred_region=''):
 
     Parameters
     ----------
-    lat_lon : list or tuple
+    lat_lon : tuple
         Latitude and longitude coordinates as floats or integers
         
     preferred_region : string (optional)
@@ -21,7 +21,8 @@ def region_selection(lat_lon, preferred_region=''):
     region : string
         Name of predefined region for given coordinates
     '''
-    assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
+    assert isinstance(lat_lon, tuple), 'lat_lon must be of type list or tuple'
+    assert len(lat_lon)==2, 'lat_lon must be of length 2'
     assert isinstance(lat_lon[0], (float,int)), 'lat_lon values must be of type float or int'
     assert isinstance(lat_lon[1], (float,int)), 'lat_lon values must be of type float or int'
     assert isinstance(preferred_region, str), 'preferred_region must be of type string'
@@ -51,6 +52,7 @@ def region_selection(lat_lon, preferred_region=''):
     else:
         return region[0]
 
+
 def plot_region(region,ax=None):
     '''
     Visualizes the area that a given region covers. Can help users understand 
@@ -72,7 +74,6 @@ def plot_region(region,ax=None):
     assert region in ['Offshore_CA','Hawaii','Mid_Atlantic','NW_Pacific'], f'{region} not in list of supported regions'
     
     wind_path = f'/nrel/wtk/'+region.lower()+'/'+region+'_*.h5'
-    # wind_path = f'/nrel/wtk/'+region.lower()+'-5min/'+region+'_*.h5'
     windKwargs = {'tree':None, 'unscale':True, 'str_decode':True, 'hsds':True,
         'years':[2019]}
     
@@ -91,7 +92,8 @@ def plot_region(region,ax=None):
     ax.set_title(f'Extent of the WIND Toolkit {region} region')
     
     return ax
-    
+
+
 def elevation_to_string(parameter, elevations):
     """ 
     Takes in a parameter (e.g. 'windspeed') and elevations (e.g. [20, 40, 120]) 
@@ -127,7 +129,6 @@ def elevation_to_string(parameter, elevations):
     return parameter_list
 
 
-
 def request_wtk_point_data(time_interval, parameter, lat_lon, years, preferred_region='', 
                            tree=None, unscale=True, str_decode=True,hsds=True):
     
@@ -136,7 +137,10 @@ def request_wtk_point_data(time_interval, parameter, lat_lon, years, preferred_r
         or the closest available point(s).
         Visit https://registry.opendata.aws/nrel-pds-wtk/ for more information about the dataset and available 
         locations and years. 
-
+        
+        Calls with multiple parameters must have the same time interval. Calls 
+        with multiple locations must use the same region (use the plot_region function). 
+        
         Note: To access the WIND Toolkit hindcast data, you will need to configure h5pyd for data access on HSDS. 
         Please see the WTK_hindcast_example notebook for more information.  
 
@@ -146,7 +150,7 @@ def request_wtk_point_data(time_interval, parameter, lat_lon, years, preferred_r
             Data set type of interest
             Options: '1-hour' '5-minute'
         parameter: string or list of strings
-            Dataset parameter to be downloaded
+            Dataset parameter to be downloaded. 
             5-minute dataset options: 
                 'windspeed_10m', 'windspeed_20m', 'windspeed_40m', 'windspeed_60m', 'windspeed_80m',
                 'windspeed_100m', 'windspeed_120m', 'windspeed_140m', 'windspeed_160m', 'windspeed_180m', 'windspeed_200m', 
@@ -161,7 +165,8 @@ def request_wtk_point_data(time_interval, parameter, lat_lon, years, preferred_r
                 'pressure_0m', 'pressure_100m', 'pressure_200m',
                 'DIF', 'GHI', 'DNI', 'status'
         lat_lon: tuple or list of tuples
-            Latitude longitude pairs at which to extract data 
+            Latitude longitude pairs at which to extract data. Use plot_region() or 
+            region_selection() to see the corresponding region for a given location.
         years : list 
             Year(s) to be accessed. The years 2000-2019 available (up to 2020 
             for Mid-Atlantic). Examples: [2015] or [2004,2006,2007]
