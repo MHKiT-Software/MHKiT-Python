@@ -55,7 +55,7 @@ def region_selection(lat_lon, preferred_region=''):
         return region[0]
 
 
-def plot_region(region,ax=None):
+def plot_region(region,lat_lon=None,ax=None):
     '''
     Visualizes the area that a given region covers. Can help users understand 
     the extent of a region since they are not all rectangular.
@@ -65,6 +65,9 @@ def plot_region(region,ax=None):
     region : string
         Name of predefined region in the WIND Toolkit
         Options: 'Offshore_CA','Hawaii','Mid_Atlantic','NW_Pacific'
+    lat_lon : couple (optional)
+        Latitude and longitude pair to plot on top of the chosen region. Useful 
+        to inform accurate latitude-longitude selection for data analysis.
     ax : matplotlib axes object (optional)
         Axes for plotting.  If None, then a new figure is created.
     
@@ -75,7 +78,7 @@ def plot_region(region,ax=None):
     assert isinstance(region, str), 'region must be of type string'
     assert region in ['Offshore_CA','Hawaii','Mid_Atlantic','NW_Pacific'], f'{region} not in list of supported regions'
     
-    wind_path = f'/nrel/wtk/'+region.lower()+'/'+region+'_*.h5'
+    wind_path = '/nrel/wtk/'+region.lower()+'/'+region+'_*.h5'
     windKwargs = {'tree':None, 'unscale':True, 'str_decode':True, 'hsds':True,
         'years':[2019]}
     
@@ -87,11 +90,14 @@ def plot_region(region,ax=None):
     # Plot the latitude longitude pairs
     if ax is None:
         fig, ax = plt.subplots()
-    ax.plot(lons,lats,'o')
+    ax.plot(lons,lats,'o',label=f'{region} region')
+    if lat_lon is not None:
+        ax.plot(lat_lon[1],lat_lon[0],'o-',label='Specified lat-lon point')
     ax.set_xlabel('Longitude (deg)')
     ax.set_ylabel('Latitude (deg)')
     ax.grid()
     ax.set_title(f'Extent of the WIND Toolkit {region} region')
+    ax.legend()
     
     return ax
 
