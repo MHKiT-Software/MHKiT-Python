@@ -50,15 +50,15 @@ class analysis_testcase(unittest.TestCase):
         test_ds_adp = type(self.adp)()
 
         test_ds['acov'] = c.autocovariance(self.adv1.vel)
-        test_ds['tke_vec_detrended'] = c.turbulent_kinetic_energy(
+        test_ds['tke_vec_detrend'] = c.turbulent_kinetic_energy(
             self.adv1.vel)
-        test_ds['tke_vec_demeaned'] = c.turbulent_kinetic_energy(
+        test_ds['tke_vec_demean'] = c.turbulent_kinetic_energy(
             self.adv1.vel, detrend=False)
         test_ds['psd'] = c.power_spectral_density(self.adv1.vel)
 
         # Test ADCP single vector spectra, cross-spectra to test radians code
         test_ds_adp['psd_b5'] = c2.power_spectral_density(
-            self.adp.vel_b5.isel(range_b5=5), window='hamm')
+            self.adp.vel_b5.isel(range_b5=5), freq_units='Hz', window='hamm')
         test_ds_adp['tke_b5'] = c2.turbulent_kinetic_energy(self.adp.vel_b5)
 
         if make_data:

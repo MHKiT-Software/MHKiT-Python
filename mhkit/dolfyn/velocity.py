@@ -639,15 +639,14 @@ class VelBinner(TimeBinner):
                 out[slc] = (tmp[se] + tmp[sb]) / 2
 
         dims_list, coords_dict = self._new_coords(veldat)
-
         # tack on new coordinate
-        dims_list.append('dt')
-        coords_dict['dt'] = np.arange(n_bin//4)
+        dims_list.append('lag')
+        coords_dict['lag'] = np.arange(n_bin//4)
 
-        da = xr.DataArray(out, name='auto-covariance',
+        da = xr.DataArray(out, name='auto_covariance',
                           coords=coords_dict,
                           dims=dims_list,)
-        da['dt'].attrs['units'] = 'timestep'
+        da['lag'].attrs['units'] = 'timestep'
 
         return da
 
@@ -755,12 +754,12 @@ class VelBinner(TimeBinner):
           The spectra in the 'u', 'v', and 'w' directions.
 
         """
-        try:
-            time = self.mean(veldat.time.values)
-            time_str = 'time'
-        except:
+        if 'b5' in veldat.name:
             time = self.mean(veldat.time_b5.values)
             time_str = 'time_b5'
+        else:
+            time = self.mean(veldat.time.values)
+            time_str = 'time'
         fs = self._parse_fs(fs)
         n_fft = self._parse_nfft(n_fft)
         veldat = veldat.values
@@ -771,15 +770,14 @@ class VelBinner(TimeBinner):
             fs = 2*np.pi*fs
             freq_units = 'rad/s'
             units = 'm^2/s/rad'
-            f_key = 'omega'
         else:
             freq_units = 'Hz'
             units = 'm^2/s^2/Hz'
-            f_key = 'f'
 
         # Spectra, if input is full velocity or a single array
         if len(veldat.shape) == 2:
-            assert veldat.shape[0] == 3, "Function can only handle 1D or 3D arrays"
+            assert veldat.shape[0] == 3, "Function can only handle 1D or 3D arrays." \
+                " If ADCP data, please select a specific depth bin."
 
             out = np.empty(self._outshape_fft(veldat[:3].shape),
                            dtype=np.float32)
@@ -787,19 +785,18 @@ class VelBinner(TimeBinner):
                 out[idx] = self._psd_base(veldat[idx], fs=fs, noise=noise[idx],
                                           window=window, n_bin=n_bin,
                                           n_pad=n_pad, n_fft=n_fft, step=step)
-            coords = {'S': ['Sxx', 'Syy', 'Szz'], time_str: time, f_key: freq}
-            dims = ['S', time_str, f_key]
+            coords = {'S': ['Sxx', 'Syy', 'Szz'], time_str: time, 'freq': freq}
+            dims = ['S', time_str, 'freq']
         else:
             out = self._psd_base(veldat, fs=fs, noise=noise[0], window=window,
                                  n_bin=n_bin, n_pad=n_pad, n_fft=n_fft, step=step)
-            coords = {time_str: time, f_key: freq}
-            dims = [time_str, f_key]
+            coords = {time_str: time, 'freq': freq}
+            dims = [time_str, 'freq']
 
-        da = xr.DataArray(out,
-                          name='psd',
-                          coords=coords,
-                          dims=dims,
-                          attrs={'units': units, 'n_fft': n_fft})
-        da[f_key].attrs['units'] = freq_units
+        psd = xr.DataArray(out, name='psd',
+                           coords=coords,
+                           dims=dims,
+                           attrs={'units': units, 'n_fft': n_fft})
+        psd['freq'].attrs['units'] = freq_units
 
-        return da
+        return psd
