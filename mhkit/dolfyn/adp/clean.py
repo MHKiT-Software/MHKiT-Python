@@ -343,7 +343,7 @@ def medfilt_orient(ds, nfilt=7):
         return ds.drop_vars('orientmat')
 
 
-def _fillgaps_time(var, method='cubic', maxgap=None):
+def fillgaps_time(var, method='cubic', maxgap=None):
     """
     Fill gaps (nan values) in var across time using the specified method
 
@@ -375,7 +375,7 @@ def _fillgaps_time(var, method='cubic', maxgap=None):
                               max_gap=maxgap)
 
 
-def _fillgaps_depth(var, method='cubic', maxgap=None):
+def fillgaps_depth(var, method='cubic', maxgap=None):
     """
     Fill gaps (nan values) in var along the depth profile using the specified method
 
