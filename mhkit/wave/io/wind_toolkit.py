@@ -92,7 +92,7 @@ def plot_region(region,lat_lon=None,ax=None):
         fig, ax = plt.subplots()
     ax.plot(lons,lats,'o',label=f'{region} region')
     if lat_lon is not None:
-        ax.plot(lat_lon[1],lat_lon[0],'o-',label='Specified lat-lon point')
+        ax.plot(lat_lon[1],lat_lon[0],'o',label='Specified lat-lon point')
     ax.set_xlabel('Longitude (deg)')
     ax.set_ylabel('Latitude (deg)')
     ax.grid()
