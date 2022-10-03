@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import scipy.io as sio
 
+
 def read_output(file_name):
     """
     Loads the wecSim response class once 'output' has been saved to a `.mat` 
@@ -63,7 +64,7 @@ def read_output(file_name):
     #      forceRadiationDamping: [iterations x 6 double]
     #             forceAddedMass: [iterations x 6 double]
     #             forceRestoring: [iterations x 6 double]
-    #    forceMorrisonAndViscous: [iterations x 6 double]
+    #     forceMorisonAndViscous: [iterations x 6 double]
     #         forceLinearDamping: [iterations x 6 double]
     ######################################    
     try:
@@ -79,7 +80,7 @@ def read_output(file_name):
         forceRadiationDamping = []
         forceAddedMass = []
         forceRestoring = []
-        forceMorrisonAndViscous = []
+        forceMorisonAndViscous = []
         forceLinearDamping = []
         for body in range(num_bodies):
             name.append(bodies[0][0]['name'][0][body][0])   
@@ -92,7 +93,12 @@ def read_output(file_name):
             forceRadiationDamping.append(bodies[0][0]['forceRadiationDamping'][0][body])
             forceAddedMass.append(bodies[0][0]['forceAddedMass'][0][body])
             forceRestoring.append(bodies[0][0]['forceRestoring'][0][body])
-            forceMorrisonAndViscous.append(bodies[0][0]['forceMorrisonAndViscous'][0][body])
+            try:
+                # Format in WEC-Sim responseClass >= v4.2 
+                forceMorisonAndViscous.append(bodies[0][0]['forceMorisonAndViscous'][0][body])
+            except:
+                # Format in WEC-Sim responseClass <= v4.1
+                forceMorisonAndViscous.append(bodies[0][0]['forceMorrisonAndViscous'][0][body])
             forceLinearDamping.append(bodies[0][0]['forceLinearDamping'][0][body])    
     except:
         num_bodies = 0         
@@ -110,7 +116,7 @@ def read_output(file_name):
             tmp_body[f'forceRadiationDamping_dof{dof+1}'] = forceRadiationDamping[body][:,dof]
             tmp_body[f'forceAddedMass_dof{dof+1}'] = forceAddedMass[body][:,dof]
             tmp_body[f'forceRestoring_dof{dof+1}'] = forceRestoring[body][:,dof]
-            tmp_body[f'forceMorrisonAndViscous_dof{dof+1}'] = forceMorrisonAndViscous[body][:,dof]
+            tmp_body[f'forceMorisonAndViscous_dof{dof+1}'] = forceMorisonAndViscous[body][:,dof]
             tmp_body[f'forceLinearDamping_dof{dof+1}'] = forceLinearDamping[body][:,dof]                            
         return tmp_body
 
@@ -256,7 +262,7 @@ def read_output(file_name):
 
 
     ######################################
-    ## import wecSim moopring class
+    ## import wecSim mooring class
     # 
     #         name: ''
     #         time: [iterations x 1 double]
@@ -374,6 +380,67 @@ def read_output(file_name):
     except:
         print("ptosim class not used") 
         ptosim_output = []
+    
+    
+    ######################################
+    ## import wecSim cable class
+    # 
+    #       name: ''
+    #       time: [iterations x 1 double]
+    #   position: [iterations x 6 double]
+    #   velocity: [iterations x 6 double]
+    # forcecable: [iterations x 6 double]
+    ######################################
+    try:
+        cables = output['cables']
+        num_cables = len(cables[0][0]['name'][0])   
+        name = []   
+        time = []
+        position = []
+        velocity = []
+        acceleration = []
+        forcetotal = []
+        forceactuation = []
+        forceconstraint = []
+        for cable in range(num_cables):
+            name.append(cables[0][0]['name'][0][cable][0])   
+            time.append(cables[0][0]['time'][0][cable])
+            position.append(cables[0][0]['position'][0][cable])
+            velocity.append(cables[0][0]['velocity'][0][cable])
+            acceleration.append(cables[0][0]['acceleration'][0][cable])
+            forcetotal.append(cables[0][0]['forceTotal'][0][cable])
+            forceactuation.append(cables[0][0]['forceActuation'][0][cable])
+            forceconstraint.append(cables[0][0]['forceConstraint'][0][cable])
+    except:
+        num_cables = 0 
+
+    ######################################
+    ## create cable_output DataFrame
+    ######################################    
+    def _write_cable_output(cable):
+        for dof in range(6):                
+            tmp_cable[f'position_dof{dof+1}'] = position[cable][:,dof]
+            tmp_cable[f'velocity_dof{dof+1}'] = velocity[cable][:,dof]
+            tmp_cable[f'acceleration_dof{dof+1}'] = acceleration[cable][:,dof]
+            tmp_cable[f'forcetotal_dof{dof+1}'] = forcetotal[cable][:,dof]
+            tmp_cable[f'forceactuation_dof{dof+1}'] = forceactuation[cable][:,dof]
+            tmp_cable[f'forceconstraint_dof{dof+1}'] = forceconstraint[cable][:,dof]
+        return tmp_cable
+
+    if num_cables >= 1:   
+        cable_output = {}
+        for cable in range(num_cables):
+            tmp_cable = pd.DataFrame(data = time[0],columns=['time'])   
+            tmp_cable = tmp_cable.set_index('time') 
+            tmp_cable.name = name[cable]
+            if num_cables == 1:   
+                cable_output = _write_cable_output(cable)
+            elif num_cables > 1:   
+                cable_output[f'cable{cable+1}'] = _write_cable_output(cable)
+    else:
+        print("cable class not used") 
+        cable_output = []
+
 
 
     ######################################
@@ -385,6 +452,7 @@ def read_output(file_name):
                  'constraints' : constraint_output,                 
                  'mooring' : mooring_output,
                   'moorDyn': moorDyn_output, 
-                  'ptosim' : ptosim_output
+                  'ptosim' : ptosim_output,
+                  'cables': cable_output
                  }
     return ws_output 
