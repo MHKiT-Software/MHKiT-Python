@@ -441,13 +441,29 @@ def get_netcdf_variables(nc, start_date=None, end_date=None, parameters=None,
 
         for prefix in variables_by_type:          
             if prefix == 'wave':
-                results = results.sel(waveTime=slice(start_date, end_date))
+                try:                
+                    results = results.sel(waveTime=slice(start_date, end_date))
+                except:
+                    results['waveTime'] = np.sort(results['waveTime'].values)
+                    results = results.sel(waveTime=slice(start_date, end_date))
             elif prefix == 'sst':
-                results = results.sel(sstTime=slice(start_date, end_date))
+                try:                
+                    results = results.sel(sstTime=slice(start_date, end_date))
+                except:
+                    results['sstTime'] = np.sort(results['sstTime'].values)
+                    results = results.sel(sstTime=slice(start_date, end_date))
             elif prefix == 'gps':
-                results = results.sel(gpsTime=slice(start_date, end_date))
+                try:                
+                    results = results.sel(gpsTime=slice(start_date, end_date))
+                except:
+                    results['gpsTime'] = np.sort(results['gpsTime'].values)
+                    results = results.sel(gpsTime=slice(start_date, end_date))
             elif prefix == 'dwr':
-                results = results.sel(dwrTime=slice(start_date, end_date))
+                try:                
+                    results = results.sel(dwrTime=slice(start_date, end_date))
+                except:
+                    results['dwrTime'] = np.sort(results['dwrTime'].values)
+                    results = results.sel(dwrTime=slice(start_date, end_date))
     else:   
         buoy_name = nc.variables['metaStationName'][:].compressed().tobytes().decode("utf-8")    
         start_stamp, end_stamp =_dates_to_timestamp(nc, start_date=start_date, 

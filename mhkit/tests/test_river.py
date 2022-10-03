@@ -4,6 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pylab as plt
+import xarray
 import mhkit.river as river
 import netCDF4
 from numpy.testing import assert_array_almost_equal
@@ -253,6 +254,13 @@ class TestIO(unittest.TestCase):
         
         self.assertEqual(data.columns, ['Discharge, cubic feet per second'])
         self.assertEqual(data.shape, (2972, 1)) # 4 data points are missing
+
+    def test_load_usgs_data_instantaneous_xr(self):
+        file_name = join(datadir, 'USGS_08313000_Jan2019_instantaneous.json')
+        data = river.io.usgs.read_usgs_file(file_name, xarray=True)
+        
+        self.assertEqual(list(data.keys()), ['Discharge, cubic feet per second'])
+        self.assertEqual(data['Discharge, cubic feet per second'].shape, (2972, )) 
         
     def test_load_usgs_data_daily(self):
         file_name = join(datadir, 'USGS_08313000_Jan2019_daily.json')
@@ -263,6 +271,15 @@ class TestIO(unittest.TestCase):
         self.assertEqual((data.index == expected_index.tz_localize('UTC')).all(), True)
         self.assertEqual(data.shape, (31, 1))
 
+    def test_load_usgs_data_daily_xr(self):
+        file_name = join(datadir, 'USGS_08313000_Jan2019_daily.json')
+        data = river.io.usgs.read_usgs_file(file_name, xarray=True)
+
+        expected_index = pd.date_range('2019-01-01', '2019-01-31', freq='D')
+        self.assertEqual(list(data.keys()), ['Discharge, cubic feet per second'])
+        self.assertTrue(all(data.dateTime == expected_index))
+        self.assertEqual(data['Discharge, cubic feet per second'].shape, (31, ))
+
 
     def test_request_usgs_data_daily(self):
         data=river.io.usgs.request_usgs_data(station="15515500",
@@ -272,6 +289,15 @@ class TestIO(unittest.TestCase):
                             data_type='Daily')
         self.assertEqual(data.columns, ['Discharge, cubic feet per second'])
         self.assertEqual(data.shape, (10, 1))
+
+    def test_request_usgs_data_daily_xr(self):
+        data=river.io.usgs.request_usgs_data(station="15515500",
+                            parameter='00060',
+                            start_date='2009-08-01',
+                            end_date='2009-08-10',
+                            data_type='Daily', xarray=True)
+        self.assertEqual(list(data.keys()), ['Discharge, cubic feet per second'])
+        self.assertEqual(data['Discharge, cubic feet per second'].shape, (10, ))
     
    
     def test_request_usgs_data_instant(self):
@@ -283,6 +309,16 @@ class TestIO(unittest.TestCase):
         self.assertEqual(data.columns, ['Discharge, cubic feet per second'])
         # Every 15 minutes or 4 times per hour
         self.assertEqual(data.shape, (10*24*4, 1))
+
+    def test_request_usgs_data_instant_xr(self):
+        data=river.io.usgs.request_usgs_data(station="15515500",
+                            parameter='00060',
+                            start_date='2009-08-01',
+                            end_date='2009-08-10',
+                            data_type='Instantaneous')
+        self.assertEqual(list(data.keys()), ['Discharge, cubic feet per second'])
+        # Every 15 minutes or 4 times per hour
+        self.assertEqual(data['Discharge, cubic feet per second'].shape, (10*24*4, ))
 
 
     def test_layer_data(self): 

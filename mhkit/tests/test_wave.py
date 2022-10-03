@@ -9,6 +9,7 @@ import xarray.testing as xrt
 import mhkit.wave as wave
 from io import StringIO
 import pandas as pd
+import xarray as xr
 import numpy as np
 import contextlib
 import unittest
@@ -720,6 +721,7 @@ class TestPerformance(unittest.TestCase):
         J = np.random.normal(300, 10, 100000)
         ndbc_data_file = join(datadir,'data.txt')
         [raw_ndbc_data, meta] = wave.io.ndbc.read_file(ndbc_data_file)
+        self.pd_to_xr = raw_ndbc_data.to_xarray()
         self.S = raw_ndbc_data.T
 
         self.data = pd.DataFrame({'Hm0': Hm0, 'Te': Te, 'P': P,'J': J})
@@ -730,6 +732,10 @@ class TestPerformance(unittest.TestCase):
     @classmethod
     def tearDownClass(self):
         pass
+
+    def test_ndbc_read_xarray(self):
+        ndbc_data_xr = wave.io.ndbc.read_file(join(datadir,'data.txt'), xarray=True)
+        self.assertTrue(self.pd_to_xr.equals(ndbc_data_xr))
 
     def test_capture_length(self):
         L = wave.performance.capture_length(self.data['P'], self.data['J'])
@@ -885,6 +891,12 @@ class TestIOndbc(unittest.TestCase):
     def test_ndbc_request_data(self):
         filenames= pd.Series(self.filenames[0])
         ndbc_data = wave.io.ndbc.request_data('swden', filenames)
+        self.assertTrue(self.swden.equals(ndbc_data['1996']))
+
+    def test_ndbc_request_data_xr(self):
+        filenames= pd.Series(self.filenames[0])
+        ndbc_data_xr = wave.io.ndbc.request_data('swden', filenames, xarray=True)
+        ndbc_data = ndbc_data_xr.to_dataframe()
         self.assertTrue(self.swden.equals(ndbc_data['1996']))
 
     def test_ndbc_request_data_from_dataframe(self):
@@ -1057,6 +1069,17 @@ class TestWPTOhindcast(unittest.TestCase):
             assert_frame_equal(self.my_swh,wave_multiyear)
             assert_frame_equal(self.my_meta,meta)
 
+        def test_multi_year_xr(self):
+            data_type = '3-hour'
+            years = [1990,1992]
+            lat_lon = (44.624076,-124.280097)
+            parameters = 'significant_wave_height'
+            wave_multiyear = (wave.io.hindcast
+                    .request_wpto_point_data(data_type,parameters,
+                                            lat_lon,years,xarray=True))
+            xrt.assert_allclose(self.my_swh.to_xarray,wave_multiyear)
+            assert_frame_equal(self.my_meta,pd.DataFrame.from_dict(wave_multiyear.attrs, orient='index'))
+
     elif float(sys.version[0:3]) == 3.8:
         # wait five minute to ensure python 3.7 call is complete
         time.sleep(300)
@@ -1079,6 +1102,18 @@ class TestWPTOhindcast(unittest.TestCase):
             xrt.assert_allclose(self.my_dir,dir_multiyear)
             assert_frame_equal(self.my_dir_meta,meta_dir)
 
+        def test_multi_loc_xr(self):
+            data_type = '3-hour'
+            years = [1995]
+            lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137))
+            parameters = 'mean_absolute_period'
+            wave_multiloc = (wave.io.hindcast
+                                .request_wpto_point_data(data_type,
+                                              parameters,lat_lon,years, xarray=True))            
+
+            xrt.assert_allclose(self.ml.to_xarray,wave_multiloc)
+            assert_frame_equal(self.ml_meta,pd.DataFrame.from_dict(wave_multiloc.attrs, orient='index'))
+
     elif float(sys.version[0:3]) == 3.9:
         # wait ten minutes to ensure python 3.7 and 3.8 call is complete
         time.sleep(500)
@@ -1093,6 +1128,18 @@ class TestWPTOhindcast(unittest.TestCase):
 
             assert_frame_equal(self.mp,wave_multiparm)
             assert_frame_equal(self.mp_meta,meta)
+
+        def test_multi_parm_xr(self):
+            data_type = '1-hour'
+            years = [1996]
+            lat_lon = (44.624076,-124.280097)
+            parameters = ['energy_period','mean_zero-crossing_period']
+            wave_multiparm = wave.io.hindcast.request_wpto_point_data(data_type,
+            parameters,lat_lon,years, xarray=True)
+
+            xrt.assert_allclose(self.mp.to_xarray,wave_multiparm)
+            assert_frame_equal(self.mp_meta,pd.DataFrame.from_dict(wave_multiparm.attrs, orient='index'))
+            
 
 class TestSWAN(unittest.TestCase):
 
@@ -1113,6 +1160,10 @@ class TestSWAN(unittest.TestCase):
         swan_table, swan_meta = wave.io.swan.read_table(self.table_file)
         assert_frame_equal(self.expected_table, swan_table)
 
+    def test_read_table_xr(self):
+        swan_table = wave.io.swan.read_table(self.table_file, xarray=True)         
+        assert_frame_equal(self.expected_table, swan_table.to_dataframe())
+
     def test_read_block_mat(self):
         swanBlockMat, metaDataMat = wave.io.swan.read_block(self.swan_block_mat_file )
         self.assertEqual(len(swanBlockMat), 4)
@@ -1122,7 +1173,20 @@ class TestSWAN(unittest.TestCase):
     def test_read_block_txt(self):
         swanBlockTxt, metaData = wave.io.swan.read_block(self.swan_block_txt_file)
         self.assertEqual(len(swanBlockTxt), 4)
-        sumSum = swanBlockTxt['Significant wave height'].sum().sum()
+        sumSum = swanBlockTxt['Significant wave height'].sum()
+        self.assertAlmostEqual(self.expected_table['Hsig'].sum(),
+                               sumSum, places=-2)
+
+    def test_read_block_mat_xr(self):
+        swanBlockMat = wave.io.swan.read_block(self.swan_block_mat_file, xarray=True)
+        self.assertEqual(len(swanBlockMat), 4)
+        self.assertAlmostEqual(self.expected_table['Hsig'].sum(),
+                               swanBlockMat['Hsig'].sum().sum(), places=1)
+
+    def test_read_block_txt_xr(self):
+        swanBlockTxt = wave.io.swan.read_block(self.swan_block_txt_file, xarray=True)
+        self.assertEqual(len(swanBlockTxt), 4)
+        sumSum = swanBlockTxt['Significant wave height'].sum()
         self.assertAlmostEqual(self.expected_table['Hsig'].sum(),
                                sumSum, places=-2)
 
@@ -1265,6 +1329,22 @@ class TestIOcdip(unittest.TestCase):
         for key,wave2D  in data['data']['wave2D'].items():
             self.assertEqual(wave2D.index[0].floor('d').to_pydatetime(), expected_index0)
             self.assertEqual(wave2D.index[-1].floor('d').to_pydatetime(), expected_index_final)
+
+    def test_request_parse_workflow_multiyear_xr(self):
+        station_number = '067'
+        year1=2011
+        year2=2013
+        years = [year1, year2]
+        parameters =['waveHs', 'waveMeanDirection', 'waveA1Value']
+        data = wave.io.cdip.request_parse_workflow(station_number=station_number,
+            years=years, parameters =parameters, xarray=True)
+
+        expected_index0 = datetime(year1,1,1)
+        expected_index_final = datetime(year2,12,31)
+
+        wave1D = data['waveHs']
+        pd.Timestamp(wave1D.waveTime.data[0]).floor('d').to_pydatetime() == expected_index0
+        pd.Timestamp(wave1D.waveTime.data[-1]).floor('d').to_pydatetime() == expected_index_final
 
 
     def test_plot_boxplot(self):

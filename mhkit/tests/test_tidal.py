@@ -32,8 +32,15 @@ class TestIO(unittest.TestCase):
                                        proxy=None, write_json=None)
         self.assertTrue(np.all(data.columns == ['s','d','b']) )
         self.assertEqual(data.shape, (92, 3))
-        
 
+    def test_request_noaa_data_xr(self):
+        data, metadata = tidal.io.noaa.request_noaa_data(station='s08010', parameter='currents',
+                                       start_date='20180101', end_date='20180102',
+                                       proxy=None, write_json=None, xarray=True)
+        self.assertTrue(np.all(list(data.keys()) == ['s','d','b']) )
+        self.assertEqual(data.d.shape, (92,))
+        
+        
 class TestResource(unittest.TestCase):
 
     @classmethod
