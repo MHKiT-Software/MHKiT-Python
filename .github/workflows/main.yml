@@ -102,7 +102,6 @@ jobs:
       - name: Update and install packages
         run: |
           python -m pip install --upgrade pip wheel
-          pip install h5pyd --upgrade
           pip install nose
           pip install pytest
           pip install coveralls
