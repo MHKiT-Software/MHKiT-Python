@@ -109,6 +109,6 @@ jobs:
           pip install .
 
       - name: Run nose
-        shell: bash -l {0}
+        # shell: bash -l {0}
         run: |
           nosetests -v --traverse-namespace --with-coverage --cover-package=mhkit mhkit
