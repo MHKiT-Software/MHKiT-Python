@@ -102,12 +102,32 @@ jobs:
       - name: Update and install packages
         run: |
           python -m pip install --upgrade pip wheel
-          pip install nose
+          pip install coverage
           pip install pytest
           pip install coveralls
           pip install .
 
-      - name: Run nose
+      - name: Run pytest
         # shell: bash -l {0}
         run: |
-          nosetests -v --traverse-namespace --with-coverage --cover-package=mhkit mhkit
+          coverage run --source=mhkit -m pytest -v
+
+    - name: Upload coverage data to coveralls.io
+      run: coveralls --service=github
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
+        COVERALLS_PARALLEL: true
+
+  coveralls:
+    name: Indicate completion to coveralls.io
+    needs: build
+    runs-on: ubuntu-latest
+    container: python:3-slim
+    steps:
+    - name: Finished
+      run: |
+        pip3 install --upgrade coveralls
+        coveralls --finish
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
