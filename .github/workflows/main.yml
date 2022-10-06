@@ -110,7 +110,8 @@ jobs:
       - name: Run pytest
         # shell: bash -l {0}
         run: |
-          coverage run --source=mhkit -m pytest -v
+          # coverage run --source=mhkit -m pytest -v
+          coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/  -m pytest -c .github/workflows/pytest.ini
 
       - name: Upload coverage data to coveralls.io
         run: coveralls --service=github
