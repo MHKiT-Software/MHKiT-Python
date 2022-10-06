@@ -149,10 +149,10 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
     Returns
     -------
     layer_data: DataFrame
-        DataFrame with columns of "x", "y", "waterdepth", and "s1" location
+        DataFrame with columns of "x", "y", "waterdepth", and "waterlevel" location
         of the specified layer, variable values "v", and the "time" the 
         simulation has run. The waterdepth is measured from the water surface 
-        and the "s1" is the water level diffrence in meters from the zero water
+        and the "waterlevel" is the water level diffrence in meters from the zero water
         level. 
     '''
     
@@ -192,7 +192,7 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
     cord_sys= cords_to_layers[layer_dim]['coords']
     layer_percentages= np.ma.getdata(cord_sys, False) #accumulative
     bottom_depth=np.ma.getdata(data.variables['waterdepth'][time_index, :], False)
-    s1= np.ma.getdata(data.variables['s1'][time_index, :], False)
+    waterlevel= np.ma.getdata(data.variables['s1'][time_index, :], False)
     if layer_dim == 'FlowLink_xu FlowLink_yu':
         #interpolate 
         coords = str(data.variables['waterdepth'].coordinates).split()
@@ -207,7 +207,7 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
         
         bottom_depth_wdim = interp.griddata(points_laydim, bottom_depth,
                                             points_wdim)
-        water_level_wdim= interp.griddata(points_laydim, s1,
+        water_level_wdim= interp.griddata(points_laydim, waterlevel,
                                             points_wdim)
         
         idx_bd= np.where(np.isnan(bottom_depth_wdim))
@@ -215,7 +215,7 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
         for i in idx_bd: 
             bottom_depth_wdim[i]= interp.griddata(points_laydim, bottom_depth,
                                               points_wdim[i], method='nearest')
-            water_level_wdim[i]= interp.griddata(points_laydim, s1,
+            water_level_wdim[i]= interp.griddata(points_laydim, waterlevel,
                                               points_wdim[i], method='nearest')
 
     waterdepth=[]
@@ -223,13 +223,13 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
     if dimensions== 2:
         if layer_dim == 'FlowLink_xu FlowLink_yu': 
             z = [bottom_depth_wdim]
-            s1=water_level_wdim
+            waterlevel=water_level_wdim
         else:
             z = [bottom_depth]
     else:
         if layer_dim == 'FlowLink_xu FlowLink_yu': 
             z = [bottom_depth_wdim*layer_percentages[layer_index]]
-            s1=water_level_wdim
+            waterlevel=water_level_wdim
         else:
             z = [bottom_depth*layer_percentages[layer_index]]
     waterdepth=np.append(waterdepth, z)
@@ -237,8 +237,8 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
     time= np.ma.getdata(data.variables['time'][time_index], False)*np.ones(len(x))
 
     layer= np.array([ [x_i, y_i, d_i, w_i, v_i, t_i] for x_i, y_i, d_i, w_i, v_i, t_i in
-                     zip(x, y, waterdepth, s1, v, time)]) 
-    layer_data = pd.DataFrame(layer, columns=['x', 'y', 'waterdepth','s1', 'v', 'time'])
+                     zip(x, y, waterdepth, waterlevel, v, time)]) 
+    layer_data = pd.DataFrame(layer, columns=['x', 'y', 'waterdepth','waterlevel', 'v', 'time'])
 
     return layer_data
 
@@ -443,8 +443,8 @@ def get_all_data_points(data, variable, time_index=-1):
     Returns
     -------
     all_data: DataFrame 
-        Dataframe with columns x, y, waterdepth, s1, variable, and time.
-        The waterdepth is measured from the water surface and the "s1" is 
+        Dataframe with columns x, y, waterdepth, waterlevel, variable, and time.
+        The waterdepth is measured from the water surface and the "waterlevel" is 
         the water level diffrence in meters from the zero water level.
  
     '''  
@@ -485,15 +485,15 @@ def get_all_data_points(data, variable, time_index=-1):
         x_all=np.append(x_all, layer_data.x)
         y_all=np.append(y_all, layer_data.y)
         depth_all=np.append(depth_all, layer_data.waterdepth)
-        water_level_all=np.append(water_level_all, layer_data.s1)
+        water_level_all=np.append(water_level_all, layer_data.waterlevel)
         v_all=np.append(v_all, layer_data.v)
         time_all= np.append(time_all, layer_data.time)
     
-    known_points = np.array([ [x, y, waterdepth, s1, v, time] 
-                    for x, y, waterdepth, s1, v, time in zip(x_all, y_all, 
+    known_points = np.array([ [x, y, waterdepth, waterlevel, v, time] 
+                    for x, y, waterdepth, waterlevel, v, time in zip(x_all, y_all, 
                                 depth_all, water_level_all, v_all, time_all)])
     
-    all_data= pd.DataFrame(known_points, columns=['x','y','waterdepth', 's1'
+    all_data= pd.DataFrame(known_points, columns=['x','y','waterdepth', 'waterlevel'
                                                   ,f'{variable}', 'time'])
 
     return all_data
@@ -566,9 +566,9 @@ def turbulent_intensity(data, points='cells', time_index= -1,
     if type(points) == pd.DataFrame:  
         print('points provided')
     elif points=='faces':
-        points = TI_data_raw['turkin1'].drop(['s1','turkin1'],axis=1)
+        points = TI_data_raw['turkin1'].drop(['waterlevel','turkin1'],axis=1)
     elif points=='cells':
-        points = TI_data_raw['ucx'].drop(['s1','ucx'],axis=1)
+        points = TI_data_raw['ucx'].drop(['waterlevel','ucx'],axis=1)
        
     TI_data = points.copy(deep=True)
 
