@@ -1,7 +1,7 @@
 [run]
 include =
-    ./mhkit/tests/wave/io/test_hindcast.py
+    ./mhkit/wave/io/hindcast.py
 
 [report]
 include =
-    ./mhkit/tests/wave/io/test_hindcast.py
+    ./mhkit/wave/io/hindcast.py
