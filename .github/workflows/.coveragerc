@@ -1,11 +1,11 @@
 [run]
 omit =
-    # omit everything in /wave
-    ./mhkit/tests/wave/*
+    # omit everything in tests and /wave
+    ./mhkit/tests/*
     ./mhkit/wave/*
 
 [report]
 omit =
-    # omit everything in /wave
-    ./mhkit/tests/wave/*    
+    # omit everything in tests and /wave
+    ./mhkit/tests/*    
     ./mhkit/wave/*

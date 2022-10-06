@@ -144,7 +144,7 @@ jobs:
         shell: bash -l {0}
         run: |
           source activate TEST
-          coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/ -m pytest -c .github/workflows/pytest.ini
+          coverage run --rcfile=.github/workflows/.coveragehindcastrc -m  pytest -c  .github/workflows/pytest-hindcast.ini
 
       - name: Upload coverage data to coveralls.io
         shell: bash -l {0}
