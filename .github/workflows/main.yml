@@ -49,7 +49,7 @@ jobs:
           pip install .
 
       - name: Run nose
-        # shell: bash -l {0}
+        shell: bash -l {0}
         run: |
           source activate TEST
           coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/ -m pytest -c .github/workflows/pytest.ini
