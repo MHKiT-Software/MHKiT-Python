@@ -103,7 +103,7 @@ jobs:
           COVERALLS_PARALLEL: true
 
   hindcast-calls:
-    name: conda-${{ matrix.os }}/${{ matrix.python-version }}
+    name: hindcast-${{ matrix.os }}/${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 1
