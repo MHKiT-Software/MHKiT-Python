@@ -1,0 +1,11 @@
+[run]
+omit =
+    # omit everything in /wave
+    ./mhkit/tests/wave/*
+    ./mhkit/wave/*
+
+[report]
+omit =
+    # omit everything in /wave
+    ./mhkit/tests/wave/*    
+    ./mhkit/wave/*
