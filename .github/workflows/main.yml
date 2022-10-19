@@ -15,9 +15,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        os: ["windows-latest"]
-        python-version: [3.9]
+        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
+        # os: ["windows-latest"]
+        python-version: [3.7, 3.8, 3.9]
 
     steps:
       - uses: actions/checkout@v2
@@ -68,9 +68,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        os: ["ubuntu-latest"]
-        python-version: [3.8]
+        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
+        # os: ["ubuntu-latest"]
+        python-version: [3.7, 3.8, 3.9]
 
     steps:
       - uses: conda-incubator/setup-miniconda@v2
@@ -109,9 +109,9 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        # os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        os: ["windows-latest"]
-        python-version: [3.8, 3.9]
+        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
+        # os: ["windows-latest"]
+        python-version: [3.7, 3.8, 3.9]
 
     steps:
       - uses: actions/checkout@v2
