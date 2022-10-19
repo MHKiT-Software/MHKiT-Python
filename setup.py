@@ -30,7 +30,7 @@ DEPENDENCIES = ['pandas>=1.0.0, <=1.5.0',
                 'six>=1.13.0',
                 'h5py',
                 'netCDF4<=1.5.8',
-                'xarray',
+                'xarray<=2022.9.0',
                 'statsmodels',
                 'pytz',
                 'dolfyn>=1.0.0']

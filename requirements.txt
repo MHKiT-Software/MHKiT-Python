@@ -11,5 +11,5 @@ NREL-rex>=0.2.63
 six>=1.13.0
 h5py
 netCDF4
-xarray
+xarray<=2022.9.0
 statsmodels
