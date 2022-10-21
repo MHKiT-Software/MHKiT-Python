@@ -109,9 +109,9 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        # os: ["windows-latest"]
-        python-version: [3.7, 3.8, 3.9]
+        # os: ["windows-latest", "ubuntu-latest", "macos-latest"]
+        os: ["windows-latest"]
+        python-version: [3.8]
 
     steps:
       - uses: actions/checkout@v2
@@ -125,19 +125,16 @@ jobs:
       - name: Python ${{ matrix.python-version }}
         shell: bash -l {0}
         run: |
-          conda create --name TEST python=${{ matrix.python-version }} numpy cython pip pytest hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
+          conda create --name TEST python=${{ matrix.python-version }} numpy cython pip pytest hdf5 libnetcdf cftime netcdf4 coverage --strict-channel-priority
           source activate TEST
           export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH" # so setup.py finds nc-config
           pip install -e . --no-deps --force-reinstall
 
-      - name: Tests
+      - name: Install MHKiT
         shell: bash -l {0}
         run: |
           source activate TEST
           python -m pip install --upgrade pip wheel
-          pip install coverage
-          pip install pytest
-          pip install coveralls
           pip install .
 
       - name: Run pytest
