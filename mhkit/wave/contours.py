@@ -1752,7 +1752,7 @@ def samples_contour(t_samples, t_contour, hs_contour):
     w2 = np.concatenate((hs_contour[aamax:], hs_contour[:aamin]))
     if (np.max(w1) > np.max(w2)):
         x1 = t_contour[aamin:aamax]
-        y = hs_contour[aamin:aamax]
+        y1 = hs_contour[aamin:aamax]
     else:
         x1 = np.concatenate((t_contour[aamax:], t_contour[:aamin]))
         y1 = np.concatenate((hs_contour[aamax:], hs_contour[:aamin]))
