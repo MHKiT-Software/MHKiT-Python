@@ -42,6 +42,25 @@ def read_nortek(filename, userdata=True, debug=False, do_checksum=False,
     rdr.dat2sci()
     dat = rdr.data
 
+    # Remove trailing nan's in time and orientation data
+    dat = _handle_nan(dat)
+
+    # Search for missing timestamps and interpolate them
+    coords = dat['coords']
+    t_list = [t for t in coords if 'time' in t]
+    for ky in t_list:
+        tdat = coords[ky]
+        tdat[tdat == 0] = np.NaN
+        if np.isnan(tdat).any():
+            tag = ky.lstrip('time')
+            warnings.warn("Zero/NaN values found in '{}'. Interpolating and "
+                          "extrapolating them. To identify which values were filled later, "
+                          "look for 0 values in 'status{}'".format(ky, tag))
+            tdat = time._fill_time_gaps(
+                tdat, sample_rate_hz=dat['attrs']['fs'])
+        coords[ky] = tdat
+
+    # Apply rotation matrix and declination
     rotmat = None
     declin = None
     for nm in userdata:
@@ -51,9 +70,6 @@ def read_nortek(filename, userdata=True, debug=False, do_checksum=False,
             declin = userdata[nm]
         else:
             dat['attrs'][nm] = userdata[nm]
-
-    # NaN in time and orientation data
-    dat = _handle_nan(dat)
 
     # Create xarray dataset from upper level dictionary
     ds = _create_dataset(dat)
@@ -189,9 +205,9 @@ class _NortekReader():
             self.read_user_cfg()
         else:
             raise Exception(err_msg)
-        if self.config['serialNum'][0:3].upper() == 'WPR':
+        if self.config['hdw']['serial_number'][0:3].upper() == 'WPR':
             self.config['config_type'] = 'AWAC'
-        elif self.config['serialNum'][0:3].upper() == 'VEC':
+        elif self.config['hdw']['serial_number'][0:3].upper() == 'VEC':
             self.config['config_type'] = 'ADV'
         # Initialize the instrument type:
         self._inst = self.config.pop('config_type')
@@ -206,21 +222,21 @@ class _NortekReader():
         self.f = open(_abspath(fname), 'rb', bufsize)
         self.close = self.f.close
         if self._npings is not None:
-            self.n_samp_guess = self._npings + 1
+            self.n_samp_guess = self._npings
         self.f.seek(pnow, 0)  # Seek to the previous position.
 
-        props = self.data['attrs']
-        if self.config['NBurst'] > 0:
-            props['DutyCycle_NBurst'] = self.config['NBurst']
-            props['DutyCycle_NCycle'] = (self.config['MeasInterval'] *
-                                         self.config['fs'])
+        da = self.data['attrs']
+        if self.config['n_burst'] > 0:
+            da['duty_cycle_n_burst'] = self.config['n_burst']
+            da['duty_cycle_interval'] = self.config['burst_interval']
+            da['duty_cycle_description'] = "{} second bursts collected at {} Hz, with bursts taken every {} minutes".format(
+                self.config['n_burst']/self.config['fs'], self.config['fs'], self.config['burst_interval']/60)
         self.burst_start = np.zeros(self.n_samp_guess, dtype='bool')
-        props['fs'] = self.config['fs']
-        props['coord_sys'] = {'XYZ': 'inst',
-                              'ENU': 'earth',
-                              'beam': 'beam'}[self.config['coord_sys_axes']]
-        # This just initializes it; this gets overwritten in read_microstrain
-        props['has_imu'] = 0
+        da['fs'] = self.config['fs']
+        da['coord_sys'] = {'XYZ': 'inst',
+                           'ENU': 'earth',
+                           'beam': 'beam'}[self.config['coord_sys_axes']]
+        da['has_imu'] = 0  # Initiate attribute
         if self.debug:
             print('Init completed')
 
@@ -243,18 +259,19 @@ class _NortekReader():
                            'units': {}, 'sys': {}}
         da = dat['attrs']
         dv = dat['data_vars']
-        da['config'] = self.config
         da['inst_make'] = 'Nortek'
         da['inst_model'] = 'Vector'
         da['inst_type'] = 'ADV'
         da['rotate_vars'] = ['vel']
-        da['freq'] = self.config['freq']
-        da['SerialNum'] = self.config.pop('serialNum')
         dv['beam2inst_orientmat'] = self.config.pop('beam2inst_orientmat')
-        da['Comments'] = self.config.pop('Comments')
+        self.config['fs'] = 512 / self.config['awac']['avg_interval']
+        da.update(self.config['usr'])
+        da.update(self.config['adv'])
+        da.update(self.config['head'])
+        da.update(self.config['hdw'])
+
         # No apparent way to determine how many samples are in a file
         dlta = self.code_spacing('0x11')
-        self.config['fs'] = 512 / self.config['AvgInterval']
         self.n_samp_guess = int(self.filesize / dlta + 1)
         self.n_samp_guess *= int(self.config['fs'])
 
@@ -263,24 +280,23 @@ class _NortekReader():
                            'units': {}, 'sys': {}}
         da = dat['attrs']
         dv = dat['data_vars']
-        da['config'] = self.config
         da['inst_make'] = 'Nortek'
         da['inst_model'] = 'AWAC'
         da['inst_type'] = 'ADCP'
-        da['SerialNum'] = self.config.pop('serialNum')
         dv['beam2inst_orientmat'] = self.config.pop('beam2inst_orientmat')
-        da['Comments'] = self.config.pop('Comments')
-        da['freq'] = self.config['freq']
-        da['n_beams'] = self.config['NBeams']
-        da['avg_interval'] = self.config['AvgInterval']
         da['rotate_vars'] = ['vel']
+        self.config['fs'] = 1. / self.config['awac']['avg_interval']
+        da.update(self.config['usr'])
+        da.update(self.config['awac'])
+        da.update(self.config['head'])
+        da.update(self.config['hdw'])
+
         space = self.code_spacing('0x20')
         if space == 0:
             # code spacing is zero if there's only 1 profile
             self.n_samp_guess = 1
         else:
             self.n_samp_guess = int(self.filesize / space + 1)
-        self.config['fs'] = 1. / self.config['AvgInterval']
 
     def read(self, nbyte):
         byts = self.f.read(nbyte)
@@ -413,113 +429,126 @@ class _NortekReader():
                   .format(self.c, self.pos))
         cfg_u = self.config
         byts = self.read(508)
+        # the first two bytes are the size.
         tmp = unpack(self.endian +
-                     '2x5H13H6s4HI8H2x90H180s6H4xH2x2H2xH30x8H',
+                     '2x18H6s4HI9H90H80s48xH50x6H4xH2x2H2xH30x8H',
                      byts)
-        # the first two are the size.
-        cfg_u['Transmit'] = {
-            'pulse_length': tmp[0],
-            'blank_distance': tmp[1],
-            'receive_length': tmp[2],
-            'time_between_pings': tmp[3],
-            'time_between_bursts': tmp[4],
-        }
-        cfg_u['Npings'] = tmp[5]
-        cfg_u['AvgInterval'] = tmp[6]
-        cfg_u['NBeams'] = tmp[7]
-        cfg_u['TimCtrlReg'] = _int2binarray(tmp[8], 16)
+        cfg_u['usr'] = {}
+        cfg_u['adv'] = {}
+        cfg_u['awac'] = {}
+
+        cfg_u['transmit_pulse_length_m'] = tmp[0]  # counts
+        cfg_u['blank_dist'] = tmp[1]  # overridden below
+        cfg_u['receive_length_m'] = tmp[2]  # counts
+        cfg_u['time_between_pings'] = tmp[3]  # counts
+        cfg_u['time_between_bursts'] = tmp[4]  # counts
+        cfg_u['adv']['n_pings_per_burst'] = tmp[5]
+        cfg_u['awac']['avg_interval'] = tmp[6]
+        cfg_u['usr']['n_beams'] = tmp[7]
+        TimCtrlReg = _int2binarray(tmp[8], 16).astype(int)
         # From the nortek system integrator manual
         # (note: bit numbering is zero-based)
-        treg = cfg_u['TimCtrlReg'].astype(int)
-        cfg_u['Profile_Timing'] = ['single', 'continuous'][treg[1]]
-        cfg_u['Burst_Mode'] = bool(~treg[2])
-        cfg_u['Power Level'] = treg[5] + 2 * treg[6] + 1
-        cfg_u['sync-out'] = ['middle', 'end', ][treg[7]]
-        cfg_u['Sample_on_Sync'] = bool(treg[8])
-        cfg_u['Start_on_Sync'] = bool(treg[9])
+        cfg_u['usr']['profile_mode'] = [
+            'single', 'continuous'][TimCtrlReg[1]]
+        cfg_u['usr']['burst_mode'] = str(bool(~TimCtrlReg[2]))
+        cfg_u['usr']['power_level'] = TimCtrlReg[5] + 2 * TimCtrlReg[6] + 1
+        cfg_u['usr']['sync_out_pos'] = ['middle', 'end', ][TimCtrlReg[7]]
+        cfg_u['usr']['sample_on_sync'] = str(bool(TimCtrlReg[8]))
+        cfg_u['usr']['start_on_sync'] = str(bool(TimCtrlReg[9]))
         cfg_u['PwrCtrlReg'] = _int2binarray(tmp[9], 16)
         cfg_u['A1'] = tmp[10]
         cfg_u['B0'] = tmp[11]
         cfg_u['B1'] = tmp[12]
-        cfg_u['CompassUpdRate'] = tmp[13]
+        cfg_u['usr']['compass_update_rate'] = tmp[13]
         cfg_u['coord_sys_axes'] = ['ENU', 'XYZ', 'beam'][tmp[14]]
-        cfg_u['NBins'] = tmp[15]
-        cfg_u['BinLength'] = tmp[16]
-        cfg_u['MeasInterval'] = tmp[17]
-        cfg_u['DeployName'] = tmp[18].partition(b'\x00')[0].decode('utf-8')
-        cfg_u['WrapMode'] = tmp[19]
-        cfg_u['ClockDeploy'] = np.array(tmp[20:23])
-        cfg_u['DiagInterval'] = tmp[23]
-        cfg_u['Mode0'] = _int2binarray(tmp[24], 16)
-        cfg_u['AdjSoundSpeed'] = tmp[25]
-        cfg_u['NSampDiag'] = tmp[26]
-        cfg_u['NBeamsCellDiag'] = tmp[27]
-        cfg_u['NPingsDiag'] = tmp[28]
-        cfg_u['ModeTest'] = _int2binarray(tmp[29], 16)
-        cfg_u['AnaInAddr'] = tmp[30]
-        cfg_u['SWVersion'] = tmp[31]
-        cfg_u['VelAdjTable'] = np.array(tmp[32:122])
-        cfg_u['Comments'] = tmp[122].partition(b'\x00')[0].decode('utf-8')
-        cfg_u['Mode1'] = _int2binarray(tmp[123], 16)
-        cfg_u['DynPercPos'] = tmp[124]
-        cfg_u['T1w'] = tmp[125]
-        cfg_u['T2w'] = tmp[126]
-        cfg_u['T3w'] = tmp[127]
-        cfg_u['NSamp'] = tmp[128]
-        cfg_u['NBurst'] = tmp[129]
-        cfg_u['AnaOutScale'] = tmp[130]
-        cfg_u['CorrThresh'] = tmp[131]
-        cfg_u['TiLag2'] = tmp[132]
-        cfg_u['QualConst'] = np.array(tmp[133:141])
+        cfg_u['usr']['n_bins'] = tmp[15]
+        cfg_u['bin_length'] = tmp[16]
+        cfg_u['burst_interval'] = tmp[17]
+        cfg_u['usr']['deployment_name'] = tmp[18].partition(b'\x00')[
+            0].decode('utf-8')
+        cfg_u['usr']['wrap_mode'] = str(bool(tmp[19]))
+        cfg_u['deployment_time'] = np.array(tmp[20:23])
+        cfg_u['diagnotics_interval'] = tmp[23]
+        Mode0 = _int2binarray(tmp[24], 16)
+        cfg_u['user_soundspeed_adj_factor'] = tmp[25]
+        cfg_u['n_samples_diag'] = tmp[26]
+        cfg_u['n_beams_cells_diag'] = tmp[27]
+        cfg_u['n_pings_diag_wave'] = tmp[28]
+        ModeTest = _int2binarray(tmp[29], 16)
+        cfg_u['usr']['analog_in'] = tmp[30]
+        sfw_ver = str(tmp[31])
+        cfg_u['usr']['software_version'] = sfw_ver[0] + \
+            '.'+sfw_ver[1:3]+'.'+sfw_ver[3:]
+        cfg_u['usr']['salinity'] = tmp[32]/10
+        cfg_u['VelAdjTable'] = np.array(tmp[33:123])
+        cfg_u['usr']['comments'] = tmp[123].partition(b'\x00')[
+            0].decode('utf-8')
+        cfg_u['awac']['wave_processing_method'] = [
+            'PUV', 'SUV', 'MLM', 'MLMST', 'None'][tmp[124]]
+        Mode1 = _int2binarray(tmp[125], 16)
+        cfg_u['awac']['prc_dyn_wave_cell_pos'] = int(tmp[126]/32767 * 100)
+        cfg_u['wave_transmit_pulse'] = tmp[127]
+        cfg_u['wave_blank_dist'] = tmp[128]
+        cfg_u['awac']['wave_cell_size'] = tmp[129]
+        cfg_u['awac']['n_samples_wave'] = tmp[130]
+        cfg_u['n_burst'] = tmp[131]
+        cfg_u['analog_out_scale'] = tmp[132]
+        cfg_u['corr_thresh'] = tmp[133]
+        cfg_u['transmit_pulse_lag2'] = tmp[134]  # counts
+        cfg_u['QualConst'] = np.array(tmp[135:143])
         self.checksum(byts)
-        cfg_u['mode'] = {}
-        cfg_u['mode']['user_sound'] = cfg_u['Mode0'][0]
-        cfg_u['mode']['diagnostics_mode'] = cfg_u['Mode0'][1]
-        cfg_u['mode']['analog_output_mode'] = cfg_u['Mode0'][2]
-        cfg_u['mode']['output_format'] = ['Vector', 'ADV'][int(cfg_u['Mode0'][3])]  # noqa
-        cfg_u['mode']['vel_scale'] = [1, 0.1][int(cfg_u['Mode0'][4])]
-        cfg_u['mode']['serial_output'] = cfg_u['Mode0'][5]
-        cfg_u['mode']['reserved_EasyQ'] = cfg_u['Mode0'][6]
-        cfg_u['mode']['stage'] = cfg_u['Mode0'][7]
-        cfg_u['mode']['output_power'] = cfg_u['Mode0'][8]
-        cfg_u['mode']['mode_test_use_DSP'] = cfg_u['ModeTest'][0]
-        cfg_u['mode']['mode_test_filter_output'] = ['total', 'correction_only'][int(cfg_u['ModeTest'][1])]  # noqa
-        cfg_u['mode']['rate'] = ['1hz', '2hz'][int(cfg_u['Mode1'][0])]
-        cfg_u['mode']['cell_position'] = ['fixed', 'dynamic'][int(cfg_u['Mode1'][1])]  # noqa
-        cfg_u['mode']['dynamic_pos_type'] = ['pct of mean press', 'pct of min re'][int(cfg_u['Mode1'][2])]  # noqa
+        cfg_u['usr']['user_specified_sound_speed'] = str(Mode0[0])
+        cfg_u['awac']['wave_mode'] = ['Disabled', 'Enabled'][int(Mode0[1])]
+        cfg_u['usr']['analog_output'] = str(Mode0[2])
+        cfg_u['usr']['output_format'] = ['Vector', 'ADV'][int(Mode0[3])]  # noqa
+        cfg_u['vel_scale_mm'] = [1, 0.1][int(Mode0[4])]
+        cfg_u['usr']['serial_output'] = str(Mode0[5])
+        cfg_u['reserved_EasyQ'] = str(Mode0[6])
+        cfg_u['usr']['power_output_analog'] = str(Mode0[8])
+        cfg_u['mode_test_use_DSP'] = str(ModeTest[0])
+        cfg_u['mode_test_filter_output'] = ['total', 'correction_only'][int(ModeTest[1])]  # noqa
+        cfg_u['awac']['wave_fs'] = ['1 Hz', '2 Hz'][int(Mode1[0])]
+        cfg_u['awac']['wave_cell_position'] = ['fixed', 'dynamic'][int(Mode1[1])]  # noqa
+        cfg_u['awac']['type_wave_cell_pos'] = ['pct_of_mean_pressure', 'pct_of_min_re'][int(Mode1[2])]  # noqa
 
     def read_head_cfg(self,):
         # ID: '0x04 = 04
-        cfg = self.config
         if self.debug:
             print('Reading head configuration (0x04) ping #{} @ {}...'
                   .format(self.c, self.pos))
+        cfg = self.config
+        cfg['head'] = {}
         byts = self.read(220)
         tmp = unpack(self.endian + '2x3H12s176s22sH', byts)
-        cfg['freq'] = tmp[1]
+        head_config = _int2binarray(tmp[0], 16).astype(int)
+        cfg['head']['pressure_sensor'] = ['no', 'yes'][head_config[0]]
+        cfg['head']['compass'] = ['no', 'yes'][head_config[1]]
+        cfg['head']['tilt_sensor'] = ['no', 'yes'][head_config[2]]
+        cfg['head']['carrier_freq_kHz'] = tmp[1]
         cfg['beam2inst_orientmat'] = np.array(
             unpack(self.endian + '9h', tmp[4][8:26])).reshape(3, 3) / 4096.
         self.checksum(byts)
 
     def read_hw_cfg(self,):
         # ID 0x05 = 05
-        cfg = self.config
         if self.debug:
             print('Reading hardware configuration (0x05) ping #{} @ {}...'
                   .format(self.c, self.pos))
-        cfg_hw = cfg
+        cfg_hw = self.config
+        cfg_hw['hdw'] = {}
         byts = self.read(44)
-        tmp = unpack(self.endian + '2x14s6H12xI', byts)
-        cfg_hw['serialNum'] = tmp[0][:8].decode('utf-8')
+        tmp = unpack(self.endian + '2x14s6H12x4s', byts)
+        cfg_hw['hdw']['serial_number'] = tmp[0][:8].decode('utf-8')
         cfg_hw['ProLogID'] = unpack('B', tmp[0][8:9])[0]
-        cfg_hw['ProLogFWver'] = tmp[0][10:].decode('utf-8')
-        cfg_hw['config'] = tmp[1]
-        cfg_hw['freq'] = tmp[2]
-        cfg_hw['PICversion'] = tmp[3]
-        cfg_hw['HWrevision'] = tmp[4]
-        cfg_hw['recSize'] = tmp[5] * 65536
-        cfg_hw['status'] = tmp[6]
-        cfg_hw['FWversion'] = tmp[7]
+        cfg_hw['hdw']['ProLogFWver'] = tmp[0][10:].decode('utf-8')
+        cfg_hw['board_config'] = tmp[1]
+        cfg_hw['board_freq'] = tmp[2]
+        cfg_hw['hdw']['PIC_version'] = tmp[3]
+        cfg_hw['hdw']['hardware_rev'] = tmp[4]
+        cfg_hw['hdw']['recorder_size_bytes'] = tmp[5] * 65536
+        status = _int2binarray(tmp[6], 16).astype(int)
+        cfg_hw['hdw']['vel_range'] = ['normal', 'high'][status[0]]
+        cfg_hw['hdw']['firmware_version'] = tmp[7].decode('utf-8')
         self.checksum(byts)
 
     def rd_time(self, strng):
@@ -545,7 +574,7 @@ class _NortekReader():
         """
         shape_args = {'n': self.n_samp_guess}
         try:
-            shape_args['nbins'] = self.config['NBins']
+            shape_args['nbins'] = self.config['usr']['n_bins']
         except KeyError:
             pass
         for nm, va in list(vardict.items()):
@@ -652,7 +681,7 @@ class _NortekReader():
         dat['data_vars'].pop('PressureLSW')
 
         # Apply velocity scaling (1 or 0.1)
-        dat['data_vars']['vel'] *= self.config['mode']['vel_scale']
+        dat['data_vars']['vel'] *= self.config['vel_scale_mm']
 
     def read_vec_hdr(self,):
         # ID: '0x12 = 18
@@ -721,7 +750,7 @@ class _NortekReader():
         dat['sys']['_sysi'] = ~np.isnan(t)
         # These are the indices in the sysdata variables
         # that are not interpolated.
-        nburst = self.config['NBurst']
+        nburst = self.config['n_burst']
         dv['orientation_down'] = tbx._nans(len(t), dtype='bool')
         if nburst == 0:
             num_bursts = 1
@@ -897,14 +926,14 @@ class _NortekReader():
         if self.debug:
             print('Reading AWAC velocity data (0x20) ping #{} @ {}...'
                   .format(self.c, self.pos))
-        nbins = self.config['NBins']
+        nbins = self.config['usr']['n_bins']
         if 'temp' not in dat['data_vars']:
             self._init_data(nortek_defs.awac_profile)
             self._dtypes += ['awac_profile']
 
         # Note: docs state there is 'fill' byte at the end, if nbins is odd,
         # but doesn't appear to be the case
-        n = self.config['NBeams']
+        n = self.config['usr']['n_beams']
         byts = self.read(116 + n*3 * nbins)
         c = self.c
         dat['coords']['time'][c] = self.rd_time(byts[2:8])
@@ -941,13 +970,13 @@ class _NortekReader():
                     400: 0.1195}
         h_ang = 25 * (np.pi / 180)  # Head angle is 25 degrees for all awacs.
         # Cell size
-        cs = round(float(self.config['BinLength']) / 256. *
-                   cs_coefs[self.config['freq']] * np.cos(h_ang), ndigits=2)
+        cs = round(float(self.config['bin_length']) / 256. *
+                   cs_coefs[self.config['head']['carrier_freq_kHz']] * np.cos(h_ang), ndigits=2)
         # Blanking distance
-        bd = round(self.config['Transmit']['blank_distance'] *
+        bd = round(self.config['blank_dist'] *
                    0.0229 * np.cos(h_ang) - cs, ndigits=2)
 
-        r = (np.float32(np.arange(self.config['NBins']))+1)*cs + bd
+        r = (np.float32(np.arange(self.config['usr']['n_bins']))+1)*cs + bd
         self.data['coords']['range'] = r
         self.data['attrs']['cell_size'] = cs
         self.data['attrs']['blank_dist'] = bd

@@ -1,10 +1,10 @@
+from . import test_read_adp as tp
+from . import test_read_adv as tv
+from .base import assert_allclose, save_netcdf, save_matlab, load_matlab, exdt, rfnm, drop_config
 import mhkit.dolfyn.io.rdi as wh
 import mhkit.dolfyn.io.nortek as awac
 import mhkit.dolfyn.io.nortek2 as sig
 from mhkit.dolfyn.io.api import read_example as read
-from .base import assert_allclose, save_netcdf, save_matlab, load_matlab, exdt, rfnm, drop_config
-from . import test_read_adp as tp
-from . import test_read_adv as tv
 import contextlib
 import unittest
 import pytest
@@ -16,7 +16,9 @@ make_data = False
 class io_testcase(unittest.TestCase):
     def test_save(self):
         ds = tv.dat.copy(deep=True)
-        save_netcdf(ds, 'test_save', compression=True)
+        print(ds)
+        save_netcdf(ds, 'test_save')
+        # save_netcdf(ds, 'test_save', compression='zlib')
         save_matlab(ds, 'test_save')
 
         assert os.path.exists(rfnm('test_save.nc'))
