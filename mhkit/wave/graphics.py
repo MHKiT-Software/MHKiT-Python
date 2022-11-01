@@ -30,10 +30,9 @@ def plot_spectrum(S, ax=None):
     assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
 
     f = S.index
-
-    ax = _xy_plot(f*2*np.pi, S/(2*np.pi), fmt='-', xlabel='omega [rad/s]',
+    for key in S.keys():
+        ax = _xy_plot(f*2*np.pi, S[key]/(2*np.pi), fmt='-', xlabel='omega [rad/s]',
              ylabel='Spectral density [m$^2$s/rad]', ax=ax)
-
 
     return ax
 
@@ -56,8 +55,9 @@ def plot_elevation_timeseries(eta, ax=None):
 
     assert isinstance(eta, pd.DataFrame), 'eta must be of type pd.DataFrame'
 
-    ax = _xy_plot(eta.index, eta, fmt='-', xlabel='Time',
-                  ylabel='$\eta$ [m]', ax=ax)
+    for key in eta.keys():
+        ax = _xy_plot(eta.index, eta[key], fmt='-', xlabel='Time',
+            ylabel='$\eta$ [m]', ax=ax)
 
     return ax
 
@@ -534,9 +534,8 @@ def monthly_cumulative_distribution(J):
 
     F = exceedance_probability(J)
     F.sort_values('F', inplace=True)
-    ax = plt.semilogx(J.loc[F.index], 1-F/100, 'k-', fillstyle='none', label='All')
+    ax = plt.semilogx(J.loc[F.index], 1-F['F']/100, 'k-', fillstyle='none', label='All')
 
-    #plt.xlim([1000, 1E6])
     plt.grid()
     plt.xlabel('Energy Flux')
     plt.ylabel('Cumulative Distribution')

@@ -469,7 +469,7 @@ class TestResourceMetrics(unittest.TestCase):
 
         self.assertTrue(isfile(filename))
 
-class TestResourceContours(unittest.TestCase):
+class TestContours(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
@@ -509,7 +509,7 @@ class TestResourceContours(unittest.TestCase):
         dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds
         period = 100
 
-        copula = wave.resource.environmental_contours(Hm0,
+        copula = wave.contours.environmental_contours(Hm0,
             Te, dt_ss, period, 'PCA')
 
         Hm0_contour=copula['PCA_x1']
@@ -520,14 +520,13 @@ class TestResourceContours(unittest.TestCase):
         assert_allclose(expected_contours.Hm0_contour.values,
             Hm0_contour, rtol=1e-3)
 
-
     def test__principal_component_analysis(self):
         Hm0Te = self.Hm0Te
         df = Hm0Te[Hm0Te['Hm0'] < 20]
 
         Hm0 = df.Hm0.values
         Te = df.Te.values
-        PCA = (wave._environmental_contours
+        PCA = (wave.contours
             ._principal_component_analysis(Hm0,Te, bin_size=250))
 
         assert_allclose(PCA['principal_axes'],
@@ -541,7 +540,6 @@ class TestResourceContours(unittest.TestCase):
                                self.pca['mu_fit'].intercept)
         assert_allclose(PCA['sigma_fit']['x'],
                              self.pca['sigma_fit']['x'])
-
 
     def test_plot_environmental_contour(self):
         file_loc= join(testdir, 'wave_plot_environmental_contour.png')
@@ -558,7 +556,7 @@ class TestResourceContours(unittest.TestCase):
         dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds
         time_R = 100
 
-        copulas = wave.resource.environmental_contours(Hm0, Te, dt_ss,
+        copulas = wave.contours.environmental_contours(Hm0, Te, dt_ss,
             time_R, 'PCA')
 
         Hm0_contour=copulas['PCA_x1']
@@ -600,7 +598,7 @@ class TestResourceContours(unittest.TestCase):
         Hm0s=[]
         Tes=[]
         for period in time_R:
-            copulas = (wave.resource
+            copulas = (wave.contours
                        .environmental_contours(Hm0,Te,dt_ss,period,'PCA'))
 
             Hm0s.append(copulas['PCA_x1'])
@@ -621,9 +619,8 @@ class TestResourceContours(unittest.TestCase):
 
         self.assertTrue(isfile(filename))
 
-
     def test_standard_copulas(self):
-        copulas = (wave.resource
+        copulas = (wave.contours
                    .environmental_contours(self.wdrt_Hm0, self.wdrt_Te,
                            self.wdrt_dt, self.wdrt_period,
                            method=['gaussian', 'gumbel', 'clayton'])
@@ -631,7 +628,7 @@ class TestResourceContours(unittest.TestCase):
 
         # WDRT slightly vaires Rosenblatt copula parameters from
         #    the other copula default  parameters
-        rosen =(wave.resource
+        rosen = (wave.contours
                 .environmental_contours(self.wdrt_Hm0, self.wdrt_Te,
                 self.wdrt_dt, self.wdrt_period, method=['rosenblatt'],
                 min_bin_count=50, initial_bin_max_val=0.5,
@@ -652,7 +649,7 @@ class TestResourceContours(unittest.TestCase):
         methods=['nonparametric_gaussian','nonparametric_clayton',
             'nonparametric_gumbel']
 
-        np_copulas=wave.resource.environmental_contours(self.wdrt_Hm0,
+        np_copulas = wave.contours.environmental_contours(self.wdrt_Hm0,
             self.wdrt_Te, self.wdrt_dt, self.wdrt_period, method=methods)
 
         close=[]
@@ -664,10 +661,10 @@ class TestResourceContours(unittest.TestCase):
         self.assertTrue(all(close))
 
     def test_kde_copulas(self):
-        kde_copula = wave.resource.environmental_contours(self.wdrt_Hm0,
+        kde_copula = wave.contours.environmental_contours(self.wdrt_Hm0,
             self.wdrt_Te, self.wdrt_dt, self.wdrt_period,
             method=['bivariate_KDE'], bandwidth=[0.23, 0.23])
-        log_kde_copula = (wave.resource
+        log_kde_copula = (wave.contours
             .environmental_contours(self.wdrt_Hm0, self.wdrt_Te,
             self.wdrt_dt, self.wdrt_period, method=['bivariate_KDE_log'], bandwidth=[0.02, 0.11])
             )
@@ -681,6 +678,36 @@ class TestResourceContours(unittest.TestCase):
                  np.allclose(log_kde_copula['bivariate_KDE_log_x2'],
                      self.wdrt_copulas['bivariate_KDE_log_x2'])]
         self.assertTrue(all(close))
+
+    def test_samples_contours(self):
+        te_samples = np.array([10, 15, 20])
+        hs_samples_0 = np.array([8.56637939, 9.27612515, 8.70427774])
+        hs_contour = np.array(self.wdrt_copulas["gaussian_x1"])
+        te_contour = np.array(self.wdrt_copulas["gaussian_x2"])
+        hs_samples = wave.contours.samples_contour(
+            te_samples, te_contour, hs_contour)
+        assert_allclose(hs_samples, hs_samples_0)
+
+    def test_samples_seastate(self):
+        hs_0 = np.array([5.91760129, 4.55185088, 1.41144991, 12.64443154,
+                         7.89753791, 0.93890797])
+        te_0 = np.array([14.24199604, 8.25383556, 6.03901866, 16.9836369,
+                         9.51967777, 3.46969355])
+        w_0 = np.array([2.18127398e-01, 2.18127398e-01, 2.18127398e-01,
+                        2.45437862e-07, 2.45437862e-07, 2.45437862e-07])
+
+        df = self.Hm0Te[self.Hm0Te['Hm0'] < 20]
+        dt_ss = (self.Hm0Te.index[2]-self.Hm0Te.index[1]).seconds
+        points_per_interval = 3
+        return_periods = np.array([50, 100])
+        np.random.seed(0)
+        hs, te, w = wave.contours.samples_full_seastate(
+            df.Hm0.values, df.Te.values, points_per_interval, return_periods,
+            dt_ss)
+        assert_allclose(hs, hs_0)
+        assert_allclose(te, te_0)
+        assert_allclose(w, w_0)
+
 
 class TestPerformance(unittest.TestCase):
 
@@ -832,6 +859,17 @@ class TestIOndbc(unittest.TestCase):
         data, units = wave.io.ndbc.read_file(join(datadir, 'data.txt'))
         self.assertEqual(data.shape, (743, 47))
         self.assertEqual(units, None)
+
+    ### Continuous wind data
+    def test_ndbc_read_cwind_no_units(self):
+        data, units = wave.io.ndbc.read_file(join(datadir, '42a01c2003.txt'))
+        self.assertEqual(data.shape, (4320, 5))
+        self.assertEqual(units, None)
+
+    def test_ndbc_read_cwind_units(self):
+        data, units = wave.io.ndbc.read_file(join(datadir, '46002c2016.txt'))
+        self.assertEqual(data.shape, (28468, 5))
+        self.assertEqual(units, wave.io.ndbc.parameter_units('cwind'))
 
     def test_ndbc_available_data(self):
         data=wave.io.ndbc.available_data('swden', buoy_number='46029')
@@ -1276,7 +1314,7 @@ class TestIOcdip(unittest.TestCase):
             years=years, parameters =parameters )
 
         expected_index0 = datetime(year1,1,1)
-        expected_index_final = datetime(year2,12,30) # last data on 30th
+        expected_index_final = datetime(year2,12,31)
 
         wave1D = data['data']['wave']
         self.assertEqual(wave1D.index[0].floor('d').to_pydatetime(), expected_index0)

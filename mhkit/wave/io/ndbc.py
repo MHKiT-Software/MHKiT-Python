@@ -9,6 +9,8 @@ import pandas as pd
 import pandas.errors
 import xarray as xr
 
+from mhkit.tidal.graphics import plot_rose
+from mhkit.tidal.graphics import plot_joint_probability_distribution
 
 def read_file(file_name, missing_values=['MM', 9999, 999, 99]):
     """
@@ -129,6 +131,7 @@ def available_data(parameter, buoy_number=None, proxy=None):
         'swr1':   'Spectral Wave Current Year Historical Data (r1)'
         'swr2':   'Spectral Wave Current Year Historical Data (r2)'
         'stdmet': 'Standard Meteorological Current Year Historical Data'
+        'cwind' :   'Continuous Winds Current Year Historical Data'
 
     buoy_number: string (optional)
         Buoy Number.  5-character alpha-numeric station identifier
@@ -200,6 +203,7 @@ def _parse_filenames(parameter, filenames):
         'swr1':   'Spectral wave data (r1)'
         'swr2':   'Spectral wave data (r2)'
         'stdmet': 'Standard Meteorological Current Year Historical Data'
+        'cwind' :   'Continuous Winds Current Year Historical Data'
 
     filenames: Series
         List of compressed file names from NDBC
@@ -219,7 +223,8 @@ def _parse_filenames(parameter, filenames):
                 'swdir2' : 'i',
                 'swr1' : 'j',
                 'swr2' : 'k',
-                'stdmet' : 'h'
+                'stdmet' : 'h',
+                'cwind' : 'c'
                 }
     file_sep= file_seps[parameter]
 
@@ -237,7 +242,7 @@ def _parse_filenames(parameter, filenames):
 def request_data(parameter, filenames, proxy=None):
     '''
     Requests data by filenames and returns a dictionary of DataFrames
-    for each filename passed. If filenames for a sigle buoy are passed
+    for each filename passed. If filenames for a single buoy are passed
     then the yearly DataFrames in the returned dictionary (ndbc_data) are
     indexed by year (e.g. ndbc_data['2014']). If multiple buoy ids are
     passed then the returned dictionary is indexed by buoy id and year
@@ -252,6 +257,7 @@ def request_data(parameter, filenames, proxy=None):
         'swr1':   'Spectral wave data (r1)'
         'swr2':   'Spectral wave data (r2)'
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+        'cwind' :   'Continuous Winds Current Year Historical Data'
 
     filenames: pandas Series or DataFrame
 	    Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
@@ -294,6 +300,11 @@ def request_data(parameter, filenames, proxy=None):
             try:
                 data = zlib.decompress(response.content, 16+zlib.MAX_WBITS)
                 df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False)
+
+                # catch when units are included below the header
+                firstYear = df['MM'][0]
+                if isinstance(firstYear,str) and firstYear == 'mo':
+                    df = pd.read_csv(BytesIO(data), sep='\s+', low_memory=False, skiprows=[1])
             except zlib.error:
                 msg = (f'Issue decompressing the NDBC file {filename}'
                        f'(id: {buoy_id}, year: {year}). Please request '
@@ -325,6 +336,7 @@ def to_datetime_index(parameter, ndbc_data):
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
         'stdmet':   'Standard Meteorological Current Year Historical Data'
+        'cwind' :   'Continuous Winds Current Year Historical Data'
 
     ndbc_data: DataFrame
         NDBC data in dataframe with date and time columns to be converted
@@ -357,6 +369,11 @@ def dates_to_datetime(data, return_date_cols=False, return_as_dataframe=False):
 
     Parameters
     ----------
+    parameter: string
+        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
+        'stdmet':   'Standard Meteorological Current Year Historical Data'
+        'cwind' :   'Continuous Winds Current Year Historical Data'
+
     data: DataFrame
         Dataframe with headers (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
 
@@ -698,13 +715,14 @@ def _supported_params(parameter):
                        'swr1',
                        'swr2',
                        'stdmet',
+                       'cwind'
                       ]
     param = [param for param in supported_params if param == parameter]
 
     if not param:
         supported=False
         msg = ["Currently parameters ['swden', 'swdir', 'swdir2', " +
-               "'swr1', 'swr2', 'stdmet']  are supported. \n" +
+               "'swr1', 'swr2', 'stdmet', 'cwind']  are supported. \n" +
                "If you would like to see more data types please \n" +
                " open an issue or submit a Pull Request on GitHub"]
         raise Exception(msg[0])
