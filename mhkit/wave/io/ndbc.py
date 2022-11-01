@@ -1,14 +1,13 @@
 from collections import OrderedDict as _OrderedDict
 from collections import defaultdict as _defaultdict
 from io import BytesIO
-import pandas as pd
-import numpy as np
 import requests
 import zlib
+
+import numpy as np
+import pandas as pd
 import pandas.errors
-
-
-directional_parameters = ['swden', 'swdir', 'swdir2', 'swr1', 'swr2']
+import xarray as xr
 
 
 def read_file(file_name, missing_values=['MM', 9999, 999, 99]):
@@ -752,3 +751,238 @@ def _historical_parameters():
     'wlevel': 'Tide Current Year Historical Data',
     }
     return parameters
+
+
+# directional
+def request_directional_data(buoy, year):
+    """
+    Request the directional spectrum data and return an
+    `xarray.Dataset` containing all 5 variables. The NDBC historical
+    data is organized into files based on buoy number, year, and
+    parameter. For a given buoy number and year, the five
+    files—corresponding to the 5 parameters NDBC uses to describe
+    directional wave spectrum—are fetched and processed.
+
+    Parameters
+    ----------
+    buoy: string
+        Buoy Number.  Five character alpha-numeric station identifier.
+    year: int
+        Four digit year.
+
+    Returns
+    -------
+    ndbc_data: xr.Dataset
+        Dataset containing the five parameter data indexed by frequency
+        and date.
+    """
+    assert isinstance(buoy, str), 'buoy must be a string'
+    assert isinstance(year, int), 'year must be an int'
+
+    directional_parameters = ['swden', 'swdir', 'swdir2', 'swr1', 'swr2']
+
+    seps = {'swden' : 'w',
+            'swdir' : 'd',
+            'swdir2' : 'i',
+            'swr1' : 'j',
+            'swr2' : 'k',
+        }
+
+    data_dict = {}
+
+    for param in directional_parameters:
+        file = f'{buoy}{seps[param]}{year}.txt.gz'
+        raw_data = request_data(param, pd.Series([file,]))[str(year)]
+        pd_data = to_datetime_index(param, raw_data)
+
+        xr_data = xr.DataArray(pd_data)
+        xr_data = xr_data.astype(float).rename({'dim_1': 'frequency',})
+        if param in ['swr1', 'swr2']:
+            xr_data = xr_data/100.0
+        xr_data.frequency.attrs = {
+            'units': 'Hz',
+            'long_name': 'frequency',
+            'standard_name': 'f',
+        }
+        xr_data.date.attrs = {
+            'units': '',
+            'long_name': 'datetime',
+            'standard_name': 't',
+        }
+        data_dict[param] = xr_data
+
+    data_dict['swden'].attrs = {
+        'units': 'm^2/Hz',
+        'long_name': 'omnidirecational spectrum',
+        'standard_name': 'S',
+        'description': 'Omnidirectional *sea surface elevation variance (m^2)* spectrum (/Hz).'
+    }
+
+    data_dict['swdir'].attrs = {
+        'units': 'deg',
+        'long_name': 'mean wave direction',
+        'standard_name': 'α1',
+        'description': 'Mean wave direction.'
+    }
+
+    data_dict['swdir2'].attrs = {
+        'units': 'deg',
+        'long_name': 'principal wave direction',
+        'standard_name': 'α2',
+        'description': 'Principal wave direction.'
+    }
+
+    data_dict['swr1'].attrs = {
+        'units': '',
+        'long_name': 'coordinate r1',
+        'standard_name': 'r1',
+        'description': 'First normalized polar coordinate of the Fourier coefficients (nondimensional).'
+    }
+
+    data_dict['swr2'].attrs = {
+        'units': '',
+        'long_name': 'coordinate r2',
+        'standard_name': 'r2',
+        'description': 'Second normalized polar coordinate of the Fourier coefficients (nondimensional).'
+    }
+
+    return xr.Dataset(data_dict)
+
+
+def _create_spectrum(data, frequencies, directions, name, units):
+    """
+    Create an xarray.DataArray for storing spectrum data with correct
+    dimensions, coordinates, names, and units.
+
+    Parameters
+    ----------
+    data: np.ndarray
+        Spectrum values.
+        Size number of frequencies x number of directions.
+    frequencies: np.ndarray
+        One-dimensional array of frequencies in Hz.
+    directions: np.ndarray
+        One-dimensional array of wave directions in degrees.
+    name: string
+        Name of the (integral) quantity the spectrum is for.
+    units: string
+        Units of the (integral) quantity the spectrum is for.
+
+    Returns
+    -------
+    spectrum: xr.Dataset
+        DataArray containing the spectrum values indexed by frequency
+        and wave direction.
+    """
+    assert isinstance(data, np.ndarray), 'data must be an array'
+    assert isinstance(frequencies, np.ndarray), 'frequencies must be an array'
+    assert isinstance(directions, np.ndarray), 'directions must be an array'
+    assert isinstance(name, str), 'name must be a string'
+    assert isinstance(units, str), 'units must be a string'
+
+    assert data.shape==(len(frequencies), len(directions))
+
+    direction_attrs = {
+        'units': 'deg',
+        'long_name': 'wave direction',
+        'standard_name': 'direction',
+    }
+
+    frequency_attrs = {
+        'units': 'Hz',
+        'long_name': 'frequency',
+        'standard_name': 'f',
+    }
+
+    spectrum = xr.DataArray(
+        data,
+        coords={
+            'frequency': ('frequency', frequencies, frequency_attrs),
+            'direction': ('direction', directions, direction_attrs)
+        },
+        attrs={
+            'units': f'{units}/Hz/deg',
+            'long_name': f'{name} spectrum',
+            'standard_name': 'spectrum',
+            'description': f'*{name} ({units})* spectrum (/Hz/deg).',
+        }
+    )
+    return spectrum
+
+
+def create_spread_function(data, directions):
+    """
+    Create the spread function from the 4 relevant NDBC parameter data.
+    Return as an xarray.DataArray indexed by frequency and wave
+    direction.
+
+    Parameters
+    ----------
+    data: xr.Dataset
+        Dataset containing the four NDBC parameter data indexed by
+        frequency.
+    directions: np.ndarray
+        One-dimensional array of wave directions in degrees.
+
+    Returns
+    -------
+    spread: xr.DataArray
+        DataArray containing the spread function values indexed by
+        frequency and wave direction.
+    """
+    assert isinstance(data, xr.Dataset), 'data must be a Dataset'
+    assert isinstance(directions, np.ndarray), 'directions must be an array'
+
+    r1 = data['swr1'].data.reshape(-1, 1)
+    r2 = data['swr2'].data.reshape(-1, 1)
+    a1 = data['swdir'].data.reshape(-1, 1)
+    a2 = data['swdir2'].data.reshape(-1, 1)
+    a = directions.reshape(1, -1)
+    spread = (
+        1/np.pi *(
+            0.5 +
+            r1*np.cos(np.deg2rad(a-a1)) +
+            r2*np.cos(2*np.deg2rad(a-a2))
+        )
+    )
+    spread = _create_spectrum(
+        spread,
+        data.frequency.values,
+        directions,
+        name="Spread",
+        units="1")
+    return spread
+
+
+def create_directional_spectrum(data, directions):
+    """
+    Create the spectrum from the 5 relevant NDBC parameter data. Return
+    as an xarray.DataArray indexed by frequency and wave direction.
+
+    Parameters
+    ----------
+    data: xr.Dataset
+        Dataset containing the five NDBC parameter data indexed by
+        frequency.
+    directions: np.ndarray
+        One-dimensional array of wave directions in degrees.
+
+    Returns
+    -------
+    spectrum: xr.DataArray
+        DataArray containing the spectrum values indexed by frequency
+        and wave direction.
+    """
+    assert isinstance(data, xr.Dataset), 'data must be a Dataset'
+    assert isinstance(directions, np.ndarray), 'directions must be an array'
+
+    spread = create_spread_function(data, directions).values
+    omnidirectional_spectrum = data['swden'].data.reshape(-1, 1)
+    spectrum = omnidirectional_spectrum * spread
+    spectrum = _create_spectrum(
+        spectrum,
+        data.frequency.values,
+        directions,
+        name="Elevation variance",
+        units="m^2")
+    return spectrum
