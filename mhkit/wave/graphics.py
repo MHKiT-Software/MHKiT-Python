@@ -1,16 +1,14 @@
+import calendar
+
 import numpy as np
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
-from mhkit.wave.resource import significant_wave_height as _sig_wave_height
-from mhkit.wave.resource import peak_period as _peak_period
+from matplotlib import gridspec
+import xarray as xr
+
 from mhkit.river.graphics import _xy_plot
 from mhkit.river.resource import exceedance_probability
-import calendar
-from matplotlib import gridspec
-from matplotlib import pylab
-import datetime
-
 
 def plot_spectrum(S, ax=None):
     """
@@ -730,7 +728,38 @@ def plot_boxplot(Hs, buoy_title=None):
     return ax
 
 
-def plot_directional_spectrum(spectrum, min=None, fill=True, nlevels=11, name="Elevation Variance", units="m^2"):
+def plot_directional_spectrum(spectrum, min=None, fill=True, nlevels=11,
+                              name="Elevation Variance", units="m^2"):
+    """
+    Create a contour polar plot of a directional spectrum.
+
+    Parameters
+    ------------
+    spectrum: xarray.DataArray
+        Spectral data indexed frequency [Hz] and wave direction [deg].
+    min: float (optional)
+        Minimum value to plot.
+    fill: bool
+        Whether to use `contourf` (filled) instead of `contour` (lines).
+    nlevels: int
+        Number of contour levels to plot.
+    name: str
+        Name of the (integral) spectrum variable.
+    units: str
+        Units of the (integral) spectrum variable.
+
+    Returns
+    ---------
+    ax : matplotlib pyplot axes
+    """
+    assert isinstance(spectrum, xr.DataArray), 'spectrum must be a DataArray'
+    if min is not None:
+        assert isinstance(min, float), 'min must be a float'
+    assert isinstance(fill, bool), 'fill must be a bool'
+    assert isinstance(nlevels, int), 'nlevels must be an int'
+    assert isinstance(name, str), 'name must be a string'
+    assert isinstance(units, str), 'units must be a string'
+
     a,f = np.meshgrid(np.deg2rad(spectrum.direction), spectrum.frequency)
     _, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     tmp = np.floor(np.min(spectrum.data)*10)/10
@@ -750,3 +779,4 @@ def plot_directional_spectrum(spectrum, min=None, fill=True, nlevels=11, name="E
     ticks_loc = ax.get_yticks()
     ax.set_yticks(ticks_loc)
     ax.set_yticklabels(ylabels)
+    return ax
