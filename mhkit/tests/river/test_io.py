@@ -142,14 +142,14 @@ class TestIO(unittest.TestCase):
     def test_variable_interpolation(self):
         data=self.d3d_flume_data
         variables= ['ucx','turkin1']
-        transformes_data= river.io.d3d.variable_interpolation(data, variables, points= 'faces')
+        transformes_data= river.io.d3d.variable_interpolation(data, variables, points= 'faces', edges='nearest')
         self.assertEqual(np.size(transformes_data['ucx']), np.size(transformes_data['turkin1']))
-        transformes_data= river.io.d3d.variable_interpolation(data, variables, points= 'cells')
+        transformes_data= river.io.d3d.variable_interpolation(data, variables, points= 'cells', edges='nearest')
         self.assertEqual(np.size(transformes_data['ucx']), np.size(transformes_data['turkin1']))        
         x=np.linspace(1, 3, num= 3)
         y=np.linspace(1, 3, num= 3)
-        z=1 
-        points= river.io.d3d.create_points(x,y,z)
+        waterdepth=1 
+        points= river.io.d3d.create_points(x,y,waterdepth)
         transformes_data= river.io.d3d.variable_interpolation(data, variables, points= points)
         self.assertEqual(np.size(transformes_data['ucx']), np.size(transformes_data['turkin1']))
         
@@ -178,10 +178,10 @@ class TestIO(unittest.TestCase):
         time_index= -1
         x_test=np.linspace(1, 17, num= 10)
         y_test=np.linspace(3, 3, num= 10)
-        z_test=np.linspace(1, 1, num= 10)
+        waterdepth_test=np.linspace(1, 1, num= 10)
        
-        test_points = np.array([ [x, y, z] for x, y, z in zip(x_test, y_test, z_test)])
-        points= pd.DataFrame(test_points, columns=['x','y','z'])
+        test_points = np.array([ [x, y, waterdepth] for x, y, waterdepth in zip(x_test, y_test, waterdepth_test)])
+        points= pd.DataFrame(test_points, columns=['x','y','waterdepth'])
         
         TI= river.io.d3d.turbulent_intensity(data, points, time_index)
 
@@ -194,15 +194,15 @@ class TestIO(unittest.TestCase):
             TI_data= points.copy(deep=True)
         
         for var in TI_vars:    
-            TI_data[var] = interp.griddata(TI_data_raw[var][['x','y','z']],
-                                TI_data_raw[var][var], points[['x','y','z']])
+            TI_data[var] = interp.griddata(TI_data_raw[var][['x','y','waterdepth']],
+                                TI_data_raw[var][var], points[['x','y','waterdepth']])
             idx= np.where(np.isnan(TI_data[var]))
         
             if len(idx[0]):
                 for i in idx[0]: 
-                    TI_data[var][i]= interp.griddata(TI_data_raw[var][['x','y','z']], 
+                    TI_data[var][i]= interp.griddata(TI_data_raw[var][['x','y','waterdepth']], 
                                 TI_data_raw[var][var],
-                                [points['x'][i],points['y'][i], points['z'][i]],
+                                [points['x'][i],points['y'][i], points['waterdepth'][i]],
                                 method='nearest')
         
         u_mag=river.io.d3d.unorm(TI_data['ucx'],TI_data['ucy'], TI_data['ucz'])
@@ -212,15 +212,15 @@ class TestIO(unittest.TestCase):
         assert_array_almost_equal(TI.turbulent_intensity, turbulent_intensity_expected, decimal = 2)     
         
         TI = river.io.d3d.turbulent_intensity(data, points='faces')
-        TI_size = np.size(TI)
+        TI_size = np.size(TI['turbulent_intensity'])
         turkin1= river.io.d3d.get_all_data_points(data, 'turkin1',time_index)
-        turkin1_size= np.size(turkin1)
+        turkin1_size= np.size(turkin1['turkin1'])
         self.assertEqual(TI_size, turkin1_size)
         
         TI = river.io.d3d.turbulent_intensity(data, points='cells')
-        TI_size = np.size(TI)
+        TI_size = np.size(TI['turbulent_intensity'])
         ucx= river.io.d3d.get_all_data_points(data, 'ucx',time_index)
-        ucx_size= np.size(ucx)
+        ucx_size= np.size(ucx['ucx'])
         self.assertEqual(TI_size, ucx_size)
 if __name__ == '__main__':
     unittest.main() 
