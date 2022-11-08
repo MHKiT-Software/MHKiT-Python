@@ -23,7 +23,7 @@ def _check_file_ext(path, ext):
     return path + '.' + ext
 
 
-def read(fname, userdata=True, nens=None):
+def read(fname, userdata=True, nens=None, **kwargs):
     """Read a binary Nortek (e.g., .VEC, .wpr, .ad2cp, etc.) or RDI
     (.000, .PD0, .ENX, etc.) data file.
 
@@ -57,7 +57,7 @@ def read(fname, userdata=True, nens=None):
                         nortek=read_nortek,
                         signature=read_signature)
         func = func_map[file_type]
-    return func(fname, userdata=userdata, nens=nens)
+    return func(fname, userdata=userdata, nens=nens, **kwargs)
 
 
 def read_example(name, **kwargs):

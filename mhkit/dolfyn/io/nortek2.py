@@ -2,6 +2,9 @@ import numpy as np
 import xarray as xr
 from struct import unpack, calcsize
 import warnings
+from pathlib import Path
+import logging
+
 from . import nortek2_defs as defs
 from . import nortek2_lib as lib
 from .base import _find_userdata, _create_dataset, _abspath
@@ -12,7 +15,7 @@ from ..time import epoch2dt64, _fill_time_gaps
 
 
 def read_signature(filename, userdata=True, nens=None, rebuild_index=False,
-                   debug=False):
+                   debug=False, **kwargs):
     """Read a Nortek Signature (.ad2cp) datafile
 
     Parameters
@@ -29,7 +32,19 @@ def read_signature(filename, userdata=True, nens=None, rebuild_index=False,
     -------
     ds : xarray.Dataset
         An xarray dataset from the binary instrument data
+
     """
+    # Start debugger logging
+    if debug:
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+        filepath = Path(filename)
+        logfile = filepath.with_suffix('.log')
+        logging.basicConfig(filename=str(logfile),
+                            filemode='w',
+                            level=logging.NOTSET,
+                            format='%(name)s - %(levelname)s - %(message)s')
+
     if nens is None:
         nens = [0, None]
     else:
@@ -84,6 +99,11 @@ def read_signature(filename, userdata=True, nens=None, rebuild_index=False,
                                        dims=['earth', 'inst', 'time'])
     if declin is not None:
         set_declination(ds, declin, inplace=True)
+
+    # Close handler
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+        handler.close()
 
     return ds
 
@@ -284,9 +304,9 @@ class _Ad2cpReader():
 
             elif id in [22, 27, 29, 30, 31, 35, 36]:  # avg record, bt record,
                 # DVL, alt record, avg alt_raw record, raw echo, raw echo transmit
-                warnings.warn(
-                    "Unhandled ID: 0x{:02X} ({:02d})\n"
-                    "    This ID is not yet handled by DOLfYN.\n".format(id, id))
+                if self.debug:
+                    logging.debug(
+                        "Skipped ID: 0x{:02X} ({:02d})\n".format(id, id))
                 self.f.seek(hdr['sz'], 1)
             elif id == 160:
                 # 0xa0 (i.e., 160) is a 'string data record'
@@ -297,7 +317,8 @@ class _Ad2cpReader():
             else:
                 if id not in self.unknown_ID_count:
                     self.unknown_ID_count[id] = 1
-                    print('Unknown ID: 0x{:02X}!'.format(id))
+                    if self.debug:
+                        logging.warning('Unknown ID: 0x{:02X}!'.format(id))
                 else:
                     self.unknown_ID_count[id] += 1
                 self.f.seek(hdr['sz'], 1)
