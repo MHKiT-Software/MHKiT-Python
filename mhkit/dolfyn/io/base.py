@@ -85,7 +85,7 @@ def _handle_nan(data):
 
     if any(np.isnan(data['coords']['time'])):
         nan += np.isnan(data['coords']['time'])
-        
+
     # Required for motion-correction algorithm
     var = ['accel', 'angrt', 'mag']
     for key in data['data_vars']:
@@ -179,12 +179,11 @@ def _create_dataset(data):
                                                      'time_echo': data['coords']['time_echo']})
                 # ADV/ADCP instrument vector data, bottom tracking
                 elif shp[0] == vshp[0] and not any(val in key for val in tag[:2]):
-                    # b/c rdi time
                     if 'bt' in key and 'time_bt' in data['coords']:
                         tg = '_bt'
                     else:
                         tg = ''
-                    if 'amp' in key or 'corr' in key:
+                    if any(key.rsplit('_')[0] in s for s in ['amp', 'corr', 'dist', 'prcnt_gd']):
                         dim0 = 'beam'
                     else:
                         dim0 = 'dir'

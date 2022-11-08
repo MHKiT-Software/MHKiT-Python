@@ -727,3 +727,31 @@ def mler_export_time_series(rao, mler, sim, k):
     mler_ts = mler_ts.rename(columns={0: 'WaveHeight', 1: 'LinearResponse'})
 
     return mler_ts
+
+
+def return_year_value(ppf, return_year, short_term_period_hr):
+    """
+    Calculate the value from a given distribution corresponding to a particular
+    return year.
+
+    Parameters
+    ----------
+    ppf: callable function of 1 argument
+        Percentage Point Function (inverse CDF) of short term distribution.
+    return_year: int, float
+        Return period in years.
+    short_term_period_hr: int, float
+        Short term period the distribution is created from in hours.
+
+    Returns
+    -------
+    value: float
+        The value corresponding to the return period from the distribution.
+    """
+    assert callable(ppf)
+    assert isinstance(return_year, int)
+    assert isinstance(short_term_period_hr, (float, int))
+
+    p = 1 / (return_year * 365.25 * 24 / short_term_period_hr)
+
+    return ppf(1 - p)
