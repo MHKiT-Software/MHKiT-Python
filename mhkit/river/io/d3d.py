@@ -363,7 +363,7 @@ def create_points(x, y, waterdepth):
     return points 
 
 
-def variable_interpolation(data, variables, points='cells'):
+def variable_interpolation(data, variables, points='cells', edges= 'none'):
     '''
     Interpolate multiple variables from the Delft3D onto the same points. 
 
@@ -381,6 +381,9 @@ def variable_interpolation(data, variables, points='cells'):
           'faces'- interpolates all dada onto the Delft3D face coordinate system 
           DataFrame of x, y, and waterdepth coordinates - Interpolates data onto user 
           povided points. Can be created with `create_points` function.
+    edges: sting: 'nearest'
+        If edges is set to 'nearest' the code will fill in nan values with nearest 
+        interpolation. Otherwise only linear interpolarion will be used. 
   
     Returns
     -------
@@ -398,7 +401,8 @@ def variable_interpolation(data, variables, points='cells'):
 
     data_raw = {}
     for var in variables:
-        var_data_df = get_all_data_points(data, var,time_index=-1)           
+        var_data_df = get_all_data_points(data, var,time_index=-1)   
+        var_data_df=var_data_df.loc[:,~var_data_df.T.duplicated(keep='first')]        
         data_raw[var] = var_data_df 
     if type(points) == pd.DataFrame:  
         print('points provided')
@@ -412,16 +416,17 @@ def variable_interpolation(data, variables, points='cells'):
     for var in variables :    
         transformed_data[var] = interp.griddata(data_raw[var][['x','y','waterdepth']],
                                         data_raw[var][var], points[['x','y','waterdepth']])
-        idx= np.where(np.isnan(transformed_data[var]))
+        if edges == 'nearest' :
+            idx= np.where(np.isnan(transformed_data[var]))
         
-        if len(idx[0]):
-            for i in idx[0]: 
-                transformed_data[var][i]= (interp
-                                          .griddata(data_raw[var][['x','y','waterdepth']], 
-                                           data_raw[var][var],
-                                           [points['x'][i],points['y'][i],
-                                            points['waterdepth'][i]], method='nearest'))
-            
+            if len(idx[0]):
+                for i in idx[0]: 
+                    transformed_data[var][i]= (interp
+                                              .griddata(data_raw[var][['x','y','waterdepth']], 
+                                                data_raw[var][var],
+                                                [points['x'][i],points['y'][i],
+                                                points['waterdepth'][i]], method='nearest'))
+     
     return transformed_data
 
 
