@@ -9,7 +9,7 @@ sin = np.sin
 cos = np.cos
 
 
-def clean_fill(u, mask, npt=12, method='cubic', max_gap=None):
+def clean_fill(u, mask, npt=12, method='cubic', max_gap=6):
     """
     Interpolate over mask values in timeseries data using the specified method
 
@@ -21,12 +21,12 @@ def clean_fill(u, mask, npt=12, method='cubic', max_gap=None):
       Logical tensor of elements to "nan" out (from `spikeThresh`, `rangeLimit`,
       or `GN2002`) and replace
     npt : int
-      The number of points on either side of the bad values that 
+      The number of points on either side of the bad values that
       interpolation occurs over
     method : string
       Interpolation scheme to use (linear, cubic, pchip, etc)
     max_gap : int
-      Max number of consective nan's to interpolate across, must be <= npt/2
+      Max number of consective nan's to interpolate across
 
     Returns
     -------
@@ -39,7 +39,7 @@ def clean_fill(u, mask, npt=12, method='cubic', max_gap=None):
 
     """
     if max_gap:
-        assert max_gap <= npt, 'Max_gap must be less than half of npt'
+        max_gap = u.time.diff('time')[0].values * max_gap
 
     # Apply mask
     u.values[..., mask] = np.nan
@@ -126,15 +126,14 @@ def spike_thresh(u, thresh=10):
 
     """
     du = np.diff(u.values, prepend=0)
-    bds1 = ((du > thresh) & (du < -thresh))
-    bds2 = ((du < -thresh) & (du > thresh))
+    mask = (du > thresh) + (du < -thresh)
 
-    return bds1 + bds2
+    return mask
 
 
 def range_limit(u, range=[-5, 5]):
     """
-    Returns a logical vector that is True where the values of `u` are 
+    Returns a logical vector that is True where the values of `u` are
     outside of `range`.
 
     Parameters
@@ -186,8 +185,6 @@ def _phaseSpaceThresh(u):
             'ignore', category=RuntimeWarning, message='invalid value encountered in ')
         for idx, al in enumerate(alpha):
             a[idx], b[idx] = _calcab(al, Lu * std_u[idx], Lu * std_d2u[idx])
-            if np.any(np.isnan(a)) or np.any(np.isnan(a[idx])):
-                print('Coefficient calculation error')
         theta = np.arctan2(du, u)
         phi = np.arctan2((du ** 2 + u ** 2) ** 0.5, d2u)
         pe = (((sin(phi) * cos(theta) * cos(alpha) +

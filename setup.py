@@ -34,7 +34,7 @@ DEPENDENCIES = ['pandas>=1.0.0, <=1.5.0',
                 'xarray<=2022.9.0',
                 'statsmodels',
                 'pytz',
-                'dolfyn>=1.0.0']
+                'bottleneck']
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))
