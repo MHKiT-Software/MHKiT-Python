@@ -980,7 +980,7 @@ class TestIOndbc(unittest.TestCase):
 
     def test_ndbc_create_directional_spectrum(self):
         directions = np.arange(0, 360, 2.0)
-        spectrum = wave.io.ndbc.create_spread_function(
+        spectrum = wave.io.ndbc.create_directional_spectrum(
             self.directional_data, directions)
         self.assertEqual(spectrum.shape, (47, 180))
         self.assertEqual(spectrum.units, 'm^2/Hz/deg')

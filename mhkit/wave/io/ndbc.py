@@ -199,7 +199,7 @@ def _parse_filenames(parameter, filenames):
     parameter: string
         'swden'	: 'Raw Spectral Wave Current Year Historical Data'
         'swdir':  'Spectral wave data (alpha1)'
-        'swdir2': 'Spectral wave data (alpha1)'
+        'swdir2': 'Spectral wave data (alpha2)'
         'swr1':   'Spectral wave data (r1)'
         'swr2':   'Spectral wave data (r2)'
         'stdmet': 'Standard Meteorological Current Year Historical Data'
@@ -253,7 +253,7 @@ def request_data(parameter, filenames, proxy=None):
     parameter: string
         'swden'	:	'Raw Spectral Wave Current Year Historical Data'
         'swdir':  'Spectral wave data (alpha1)'
-        'swdir2': 'Spectral wave data (alpha1)'
+        'swdir2': 'Spectral wave data (alpha2)'
         'swr1':   'Spectral wave data (r1)'
         'swr2':   'Spectral wave data (r2)'
         'stdmet':   'Standard Meteorological Current Year Historical Data'
@@ -334,9 +334,13 @@ def to_datetime_index(parameter, ndbc_data):
     Parameters
     ----------
     parameter: string
-        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
-        'stdmet':   'Standard Meteorological Current Year Historical Data'
-        'cwind' :   'Continuous Winds Current Year Historical Data'
+        'swden': 'Raw Spectral Wave Current Year Historical Data'
+        'swdir': 'Spectral wave data (alpha1)'
+        'swdir2': 'Spectral wave data (alpha2)'
+        'swr1': 'Spectral wave data (r1)'
+        'swr2': 'Spectral wave data (r2)'
+        'stdmet': 'Standard Meteorological Current Year Historical Data'
+        'cwind': 'Continuous Winds Current Year Historical Data'
 
     ndbc_data: DataFrame
         NDBC data in dataframe with date and time columns to be converted
@@ -369,11 +373,6 @@ def dates_to_datetime(data, return_date_cols=False, return_as_dataframe=False):
 
     Parameters
     ----------
-    parameter: string
-        'swden'	:	'Raw Spectral Wave Current Year Historical Data'
-        'stdmet':   'Standard Meteorological Current Year Historical Data'
-        'cwind' :   'Continuous Winds Current Year Historical Data'
-
     data: DataFrame
         Dataframe with headers (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
 
