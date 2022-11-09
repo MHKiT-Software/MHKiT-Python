@@ -48,8 +48,10 @@ class TestIOndbc(unittest.TestCase):
         self.swden = pd.read_csv(join(datadir,self.filenames[0]), sep=r'\s+',
                                  compression='gzip')
 
-        self.directional_data = wave.io.ndbc.request_directional_data(
+        directional_data_all = wave.io.ndbc.request_directional_data(
             buoy='42012', year=2021)
+        date = np.datetime64('2021-02-21T12:40:00')
+        self.directional_data = directional_data_all.sel(date=date)
 
     @classmethod
     def tearDownClass(self):

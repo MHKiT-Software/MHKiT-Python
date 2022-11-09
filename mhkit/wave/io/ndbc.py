@@ -897,7 +897,9 @@ def _create_spectrum(data, frequencies, directions, name, units):
     assert isinstance(name, str), 'name must be a string'
     assert isinstance(units, str), 'units must be a string'
 
-    assert data.shape==(len(frequencies), len(directions)), f'data has wrong shape {data.shape}'
+    msg = (f'data has wrong shape {data.shape}, ' +
+           f'expected {(len(frequencies), len(directions))}')
+    assert data.shape==(len(frequencies), len(directions)), msg
 
     direction_attrs = {
         'units': 'deg',
