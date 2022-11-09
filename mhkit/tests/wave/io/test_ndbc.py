@@ -159,10 +159,10 @@ class TestIOndbc(unittest.TestCase):
         self.assertEqual(1, len(ndbc_data))
 
     def test_ndbc_dates_to_datetime(self):
-        dt = wave.io.ndbc.dates_to_datetime('swden', self.swden)
+        dt = wave.io.ndbc.dates_to_datetime(self.swden)
         self.assertEqual(datetime(1996, 1, 1, 1, 0), dt[1])
 
-    def test_date_string_to_datetime(self):
+    def test_ndbc_date_string_to_datetime(self):
         swden = self.swden.copy(deep=True)
         swden['mm'] = np.zeros(len(swden)).astype(int).astype(str)
         year_string='YY'
@@ -173,12 +173,12 @@ class TestIOndbc(unittest.TestCase):
         dt = df['date']
         self.assertEqual(datetime(1996, 1, 1, 1, 0), dt[1])
 
-    def test_parameter_units(self):
+    def test_ndbc_parameter_units(self):
         parameter='swden'
         units = wave.io.ndbc.parameter_units(parameter)
         self.assertEqual(units[parameter], '(m*m)/Hz')
 
-    def test_request_directional_data(self):
+    def test_ndbc_request_directional_data(self):
         data = self.directional_data
         # correct 5 parameters
         self.assertEqual(len(data), 5)
@@ -191,14 +191,14 @@ class TestIOndbc(unittest.TestCase):
         self.assertEqual(len(data.frequency), 47)
         self.assertEqual(len(data.date), 8572)
 
-    def test_create_spread_function(self):
+    def test_ndbc_create_spread_function(self):
         directions = np.arange(0, 360, 2.0)
         spread = wave.io.ndbc.create_spread_function(
             self.directional_data, directions)
         self.assertEqual(spread.shape, (47, 180))
         self.assertEqual(spread.units, '1/Hz/deg')
 
-    def test_create_directional_spectrum(self):
+    def test_ndbc_create_directional_spectrum(self):
         directions = np.arange(0, 360, 2.0)
         spectrum = wave.io.ndbc.create_directional_spectrum(
             self.directional_data, directions)

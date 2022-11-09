@@ -392,7 +392,7 @@ def dates_to_datetime(data, return_date_cols=False, return_as_dataframe=False):
         List of the DataFrame columns headers for dates as provided by
         NDBC
     '''
-    assert isinstance(data, pd.DataFrame), 'filenames must be of type pd.DataFrame'
+    assert isinstance(data, pd.DataFrame), 'data must be of type pd.DataFrame'
     assert isinstance(return_date_cols, bool), 'return_date_cols must be of type bool'
 
     df = data.copy(deep=True)
@@ -897,7 +897,7 @@ def _create_spectrum(data, frequencies, directions, name, units):
     assert isinstance(name, str), 'name must be a string'
     assert isinstance(units, str), 'units must be a string'
 
-    assert data.shape==(len(frequencies), len(directions))
+    assert data.shape==(len(frequencies), len(directions)), f'data has wrong shape {data.shape}'
 
     direction_attrs = {
         'units': 'deg',
