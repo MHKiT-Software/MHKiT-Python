@@ -19,7 +19,7 @@ def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
            If True, this function performs the inverse rotation
            (earth->inst).
 
-    rotate_vars : iterable
+    rotate_vars : list
       The list of variables to rotate. By default this is taken from
       adcpo.props['rotate_vars'].
 
@@ -73,11 +73,9 @@ def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
 
     _dcheck = rotb._check_rotmat_det(rmat)
     if not _dcheck.all():
-        warnings.warn("Invalid orientation matrix"
-                      " (determinant != 1) at"
-                      " indices: {}."
-                      .format(np.nonzero(~_dcheck)[0]),
-                      UserWarning)
+        warnings.warn("Invalid orientation matrix (determinant != 1) at indices: {}. "
+                      "If rotated, data at these indices will be erroneous."
+                      .format(np.nonzero(~_dcheck)[0]), UserWarning)
 
     # The dictionary of rotation matrices for different sized arrays.
     rmd = {3: rmat, }

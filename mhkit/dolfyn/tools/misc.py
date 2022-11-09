@@ -22,7 +22,7 @@ def _find(arr):
     return np.nonzero(np.ravel(arr))[0]
 
 
-def detrend(arr, axis=-1, in_place=False):
+def detrend_array(arr, axis=-1, in_place=False):
     """Remove a linear trend from arr.
 
     Parameters
@@ -59,10 +59,10 @@ def group(bl, min_length=0):
 
     Parameters
     ----------
-    bl : |np.ndarray| (dtype='bool')
+    bl : numpy.ndarray (dtype='bool')
       The input boolean array.
     min_length : int (optional)
-      Specifies the minimum number of continuos points to consider a
+      Specifies the minimum number of continuous points to consider a
       `group` (i.e. that will be returned).
 
     Returns
@@ -152,14 +152,45 @@ def slice1d_along_axis(arr_shape, axis=0):
         k += 1
 
 
-def fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
+def convert_degrees(deg, tidal_mode=True):
+    """
+    Converts between the 'cartesian angle' (counter-clockwise from East) and
+    the 'polar angle' in (degrees clockwise from North)
+
+    Parameters
+    ----------
+    deg: float or array-like
+      Number or array in 'degrees CCW from East' or 'degrees CW from North'
+    tidal_mode : bool (default: True)
+      If true, range is set from 0 to +/-180 degrees. If false, range is 0 to 
+      360 degrees
+
+    Returns
+    -------
+    out : float or array-like
+      Input data transformed to 'degrees CW from North' or 
+      'degrees CCW from East', respectively (based on `deg`)
+
+    Notes
+    -----
+    The same algorithm is used to convert back and forth between 'CCW from E' 
+    and 'CW from N'
+
+    """
+    out = -(deg - 90) % 360
+    if tidal_mode:
+        out[out > 180] -= 360
+    return out
+
+
+def _fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
     """Linearly fill NaN value in an array.
 
     Parameters
     ----------
-    a : |np.ndarray|
+    a : numpy.ndarray
       The array to be filled.
-    maxgap : |np.ndarray| (optional: inf)
+    maxgap : numpy.ndarray (optional: inf)
       The maximum gap to fill.
     dim : int (optional: 0)
       The dimension to operate along.
@@ -169,20 +200,20 @@ def fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
 
     See Also
     --------
-    mhkit.dolfyn.tools.misc.interpgaps : Linearly interpolates in time.
+    mhkit.dolfyn.tools.misc._interpgaps : Linearly interpolates in time.
 
     Notes
     -----
     This function interpolates assuming spacing/timestep between
     successive points is constant. If the spacing is not constant, use
-    interpgaps.
+    _interpgaps.
 
     """
 
     # If this is a multi-dimensional array, operate along axis dim.
     if a.ndim > 1:
         for inds in slice1d_along_axis(a.shape, dim):
-            fillgaps(a[inds], maxgap, 0, extrapFlg)
+            _fillgaps(a[inds], maxgap, 0, extrapFlg)
         return
 
     a = np.asarray(a)
@@ -220,18 +251,18 @@ def fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
     return a
 
 
-def interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
+def _interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
     """
     Fill gaps (NaN values) in ``a`` by linear interpolation along
     dimension ``dim`` with the point spacing specified in ``t``.
 
     Parameters
     ----------
-    a : |np.ndarray|
+    a : numpy.ndarray
       The array containing NaN values to be filled.
-    t : |np.ndarray| (len(t) == a.shape[dim])
+    t : numpy.ndarray (len(t) == a.shape[dim])
       Independent variable of the points in ``a``, e.g. timestep
-    maxgap : |np.ndarray| (optional: inf)
+    maxgap : numpy.ndarray (optional: inf)
       The maximum gap to fill.
     dim : int (optional: 0)
       The dimension to operate along.
@@ -241,14 +272,14 @@ def interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
 
     See Also
     --------
-    mhkit.dolfyn.tools.misc.fillgaps : Linearly interpolates in array-index space.
+    mhkit.dolfyn.tools.misc._fillgaps : Linearly interpolates in array-index space.
 
     """
 
     # If this is a multi-dimensional array, operate along dim dim.
     if a.ndim > 1:
         for inds in slice1d_along_axis(a.shape, dim):
-            interpgaps(a[inds], t, maxgap, 0, extrapFlg)
+            _interpgaps(a[inds], t, maxgap, 0, extrapFlg)
         return
 
     gd = _find(~np.isnan(a))
@@ -274,16 +305,16 @@ def interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
     return a
 
 
-def medfiltnan(a, kernel, thresh=0):
+def _medfiltnan(a, kernel, thresh=0):
     """
     Do a running median filter of the data. Regions where more than 
     ``thresh`` fraction of the points are NaN are set to NaN.
 
     Parameters
     ----------
-    a : |np.ndarray|
+    a : numpy.ndarray
       2D array containing data to be filtered.
-    kernel_size : |np.ndarray| or list, optional
+    kernel_size : numpy.ndarray or list, optional
       A scalar or a list of length 2, giving the size of the median 
       filter window in each dimension. Elements of kernel_size should 
       be odd. If kernel_size is a scalar, then this scalar is used as 
@@ -293,7 +324,7 @@ def medfiltnan(a, kernel, thresh=0):
 
     Returns
     -------
-    out : |np.ndarray|
+    out : numpy.ndarray
       2D array of same size containing filtered data
 
     See Also
@@ -316,35 +347,4 @@ def medfiltnan(a, kernel, thresh=0):
                        'same') > thresh] = np.NaN
     if flag_1D:
         return out[0]
-    return out
-
-
-def convert_degrees(deg, tidal_mode=True):
-    """
-    Converts between the 'cartesian angle' (counter-clockwise from East) and
-    the 'polar angle' in (degrees clockwise from North)
-
-    Parameters
-    ----------
-    deg: float or array-like
-      Number or array in 'degrees CCW from East' or 'degrees CW from North'
-    tidal_mode : bool
-      If true, range is set from 0 to +/-180 degrees. If false, range is 0 to 
-      360 degrees
-
-    Returns
-    -------
-    out : float or array-like
-      Input data transformed to 'degrees CW from North' or 
-      'degrees CCW from East', respectively (based on `deg`)
-
-    Notes
-    -----
-    The same algorithm is used to convert back and forth between 'CCW from E' 
-    and 'CW from N'
-
-    """
-    out = -(deg - 90) % 360
-    if tidal_mode:
-        out[out > 180] -= 360
     return out

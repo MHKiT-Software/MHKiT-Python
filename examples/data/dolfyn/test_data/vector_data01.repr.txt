@@ -1,0 +1,16 @@
+<ADV data object>:  Nortek Vector
+  . 3.09 seconds (started: Jun 12, 2012 12:00)
+  . inst-frame
+  . (100 pings @ 32.0Hz)
+  Variables:
+  - time ('time',)
+  - vel ('dir', 'time')
+  - orientmat ('earth', 'inst', 'time')
+  - heading ('time',)
+  - pitch ('time',)
+  - roll ('time',)
+  - temp ('time',)
+  - pressure ('time',)
+  - amp ('beam', 'time')
+  - corr ('beam', 'time')
+  ... and others (see `<obj>.variables`)
