@@ -184,7 +184,7 @@ class TestIOndbc(unittest.TestCase):
     def test_ndbc_request_directional_data(self):
         data = self.directional_data
         # correct 5 parameters
-        # self.assertEqual(len(data), 5)
+        self.assertEqual(len(data), 5)
         self.assertIn("swden", data)
         self.assertIn("swdir", data)
         self.assertIn("swdir2", data)
@@ -192,7 +192,6 @@ class TestIOndbc(unittest.TestCase):
         self.assertIn("swr2", data)
         # correct number of data points
         self.assertEqual(len(data.frequency), 47)
-        self.assertEqual(len(data.date), 8572)
 
     def test_ndbc_create_spread_function(self):
         directions = np.arange(0, 360, 2.0)
