@@ -48,6 +48,12 @@ class TestIOndbc(unittest.TestCase):
         self.swden = pd.read_csv(join(datadir,self.filenames[0]), sep=r'\s+',
                                  compression='gzip')
 
+        buoy='42012'
+        year=2021
+        date = np.datetime64('2021-02-21T12:40:00')
+        directional_data_all = wave.io.ndbc.request_directional_data(buoy, year)
+        self.directional_data = directional_data_all.sel(date=date)
+
     @classmethod
     def tearDownClass(self):
         pass
@@ -82,12 +88,12 @@ class TestIOndbc(unittest.TestCase):
         data, units = wave.io.ndbc.read_file(join(datadir, '42a01c2003.txt'))
         self.assertEqual(data.shape, (4320, 5))
         self.assertEqual(units, None)
-    
+
     def test_ndbc_read_cwind_units(self):
         data, units = wave.io.ndbc.read_file(join(datadir, '46002c2016.txt'))
         self.assertEqual(data.shape, (28468, 5))
         self.assertEqual(units, wave.io.ndbc.parameter_units('cwind'))
-    
+
     def test_ndbc_available_data(self):
         data=wave.io.ndbc.available_data('swden', buoy_number='46029')
         cols = data.columns.tolist()
@@ -156,10 +162,10 @@ class TestIOndbc(unittest.TestCase):
         self.assertEqual(1, len(ndbc_data))
 
     def test_ndbc_dates_to_datetime(self):
-        dt = wave.io.ndbc.dates_to_datetime('swden', self.swden)
+        dt = wave.io.ndbc.dates_to_datetime(self.swden)
         self.assertEqual(datetime(1996, 1, 1, 1, 0), dt[1])
 
-    def test_date_string_to_datetime(self):
+    def test_ndbc_date_string_to_datetime(self):
         swden = self.swden.copy(deep=True)
         swden['mm'] = np.zeros(len(swden)).astype(int).astype(str)
         year_string='YY'
@@ -170,11 +176,56 @@ class TestIOndbc(unittest.TestCase):
         dt = df['date']
         self.assertEqual(datetime(1996, 1, 1, 1, 0), dt[1])
 
-    def test_parameter_units(self):
+    def test_ndbc_parameter_units(self):
         parameter='swden'
         units = wave.io.ndbc.parameter_units(parameter)
         self.assertEqual(units[parameter], '(m*m)/Hz')
 
+    def test_ndbc_request_directional_data(self):
+        data = self.directional_data
+        # correct 5 parameters
+        self.assertEqual(len(data), 5)
+        self.assertIn("swden", data)
+        self.assertIn("swdir", data)
+        self.assertIn("swdir2", data)
+        self.assertIn("swr1", data)
+        self.assertIn("swr2", data)
+        # correct number of data points
+        self.assertEqual(len(data.frequency), 47)
+
+    def test_ndbc_create_spread_function(self):
+        directions = np.arange(0, 360, 2.0)
+        spread = wave.io.ndbc.create_spread_function(
+            self.directional_data, directions)
+        self.assertEqual(spread.shape, (47, 180))
+        self.assertEqual(spread.units, '1/Hz/deg')
+
+    def test_ndbc_create_directional_spectrum(self):
+        directions = np.arange(0, 360, 2.0)
+        spectrum = wave.io.ndbc.create_directional_spectrum(
+            self.directional_data, directions)
+        self.assertEqual(spectrum.shape, (47, 180))
+        self.assertEqual(spectrum.units, 'm^2/Hz/deg')
+
+    def test_plot_directional_spectrum(self):
+        directions = np.arange(0, 360, 2.0)
+        spectrum = wave.io.ndbc.create_spread_function(
+            self.directional_data, directions)
+        wave.graphics.plot_directional_spectrum(
+            spectrum,
+            min=0.0,
+            fill=True,
+            nlevels=6,
+            name="Elevation Variance",
+            units="m^2")
+
+        filename = abspath(join(testdir, 'wave_plot_directional_spectrum.png'))
+        if isfile(filename):
+            os.remove(filename)
+        plt.savefig(filename)
+
+        self.assertTrue(isfile(filename))
+        os.remove(filename)
 
 if __name__ == '__main__':
     unittest.main()
