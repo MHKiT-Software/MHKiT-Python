@@ -381,6 +381,9 @@ def variable_interpolation(data, variables, points='cells', edges= 'none'):
           'faces'- interpolates all dada onto the Delft3D face coordinate system 
           DataFrame of x, y, and waterdepth coordinates - Interpolates data onto user 
           povided points. Can be created with `create_points` function.
+    edges: sting: 'nearest'
+        If edges is set to 'nearest' the code will fill in nan values with nearest 
+        interpolation. Otherwise only linear interpolarion will be used. 
   
     Returns
     -------
