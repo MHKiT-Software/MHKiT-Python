@@ -474,14 +474,9 @@ def plot_avg_annual_energy_matrix(Hm0, Te, J, time_index=None,
         hist_counts[year] = counts
         hist_J[year] = H
 
-    # Initialize average annually with first year
-    avg_annual_counts_hist = hist_counts[years[0]]
-    avg_annual_J_hist = hist_J[years[0]]
-
-    # Iterate over each year and average
-    for year in years[1:]:
-        avg_annual_counts_hist = (avg_annual_counts_hist+ hist_counts[year])/2
-        avg_annual_J_hist = (avg_annual_J_hist+ hist_J[year])/2
+    # Calculate avg annual
+    avg_annual_counts_hist = sum(hist_counts.values())/len(years)
+    avg_annual_J_hist = sum(hist_J.values())/len(years)
 
     # Create a mask of non-zero weights to hide from imshow
     Hmasked = np.ma.masked_where(~(avg_annual_J_hist>0),avg_annual_J_hist)
