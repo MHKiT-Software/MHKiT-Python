@@ -1,14 +1,15 @@
-import calendar
 
-import numpy as np
-import pandas as pd
-import matplotlib
+from mhkit.river.resource import exceedance_probability
+from mhkit.river.graphics import _xy_plot
+import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+import pandas as pd
 import xarray as xr
+import numpy as np
+import matplotlib
+import calendar
 
-from mhkit.river.graphics import _xy_plot
-from mhkit.river.resource import exceedance_probability
 
 def plot_spectrum(S, ax=None):
     """
@@ -487,7 +488,14 @@ def plot_avg_annual_energy_matrix(Hm0, Te, J, time_index=None,
     for xi in range(len(xcenters)):
         for yi in range(len(ycenters)):
             if avg_annual_counts_hist[xi][yi] != 0:
-                plt.text(xedges[xi], yedges[yi], int(np.ceil(avg_annual_counts_hist[xi][yi])), fontsize=10)
+                plt.text(
+                    xedges[xi], 
+                    yedges[yi], 
+                    int(np.ceil(avg_annual_counts_hist[xi][yi])), 
+                    fontsize=10, 
+                    color='white', 
+                    path_effects=[pe.withStroke(linewidth=1, foreground="k")]
+                ) 
     plt.xlabel('Wave Energy Period (s)')
     plt.ylabel('Significant Wave Height (m)')
 
