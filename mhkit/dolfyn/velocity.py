@@ -4,7 +4,6 @@ from .binned import TimeBinner
 from .time import dt642epoch, dt642date
 from .rotate.api import rotate2, set_declination, set_inst2head_rotmat
 from .io.api import save
-from .tools.fft import coherence_1D, phase_angle_1D
 from .tools.misc import slice1d_along_axis
 
 
@@ -13,7 +12,7 @@ class Velocity():
     """All ADCP and ADV xarray datasets wrap this base class.
 
     The turbulence-related attributes defined within this class 
-    assume that the  ``'tke_vec'`` and ``'stress'`` data entries are 
+    assume that the  ``'tke_vec'`` and ``'stress_vec'`` data entries are 
     included in the dataset. These are typically calculated using a
     :class:`VelBinner` tool, but the method for calculating these
     variables can depend on the details of the measurement
@@ -352,9 +351,9 @@ class Velocity():
         E_coh = (self.upwp_**2 + self.upvp_**2 + self.vpwp_**2) ** (0.5)
 
         return xr.DataArray(E_coh,
-                            coords={'time': self.ds['stress'].time},
+                            coords={'time': self.ds['stress_vec'].time},
                             dims=['time'],
-                            attrs={'units': self.ds['stress'].units},
+                            attrs={'units': self.ds['stress_vec'].units},
                             name='E_coh')
 
     @property
@@ -399,19 +398,19 @@ class Velocity():
     def upvp_(self,):
         """u'v'bar Reynolds stress
         """
-        return self.ds['stress'].sel(tau="upvp_")
+        return self.ds['stress_vec'].sel(tau="upvp_")
 
     @property
     def upwp_(self,):
         """u'w'bar Reynolds stress
         """
-        return self.ds['stress'].sel(tau="upwp_")
+        return self.ds['stress_vec'].sel(tau="upwp_")
 
     @property
     def vpwp_(self,):
         """v'w'bar Reynolds stress
         """
-        return self.ds['stress'].sel(tau="vpwp_")
+        return self.ds['stress_vec'].sel(tau="vpwp_")
 
     @property
     def upup_(self,):
@@ -443,10 +442,10 @@ class VelBinner(TimeBinner):
     example::
 
         # First read or load some data.
-        rawdat = dlfn.read_example('BenchFile01.ad2cp')
+        rawdat = dolfyn.read_example('BenchFile01.ad2cp')
 
         # Now initialize the averaging tool:
-        binner = dlfn.VelBinner(n_bin=600, fs=rawdat.fs)
+        binner = dolfyn.VelBinner(n_bin=600, fs=rawdat.fs)
 
         # This computes the basic averages
         avg = binner.bin_average(rawdat)
@@ -589,163 +588,6 @@ class VelBinner(TimeBinner):
 
         return out_ds
 
-    def coherence(self, veldat1, veldat2, window='hann', debias=True,
-                  noise=(0, 0), n_fft_coh=None, n_bin=None):
-        """Reshape the arrays veldat1 and veldat2 into bins and calculate 
-        the coherence between the two signals for each bin.
-
-        Parameters
-        ----------
-        veldat1 : xarray.DataArray
-          The first (the longer, if applicable) raw dataArray of which to 
-          calculate coherence
-        veldat2 : xarray.DataArray
-          The second (the shorter, if applicable) raw dataArray of which to 
-          calculate coherence
-        window : str
-          String indicating the window function to use (default: 'hanning')
-        noise : float
-          The white-noise level of the measurement (in the same units
-          as `veldat`).
-        n_fft_coh : int
-          n_fft of veldat2, number of elements per bin if 'None' is taken 
-          from VelBinner
-        n_bin : int
-          n_bin of veldat2, number of elements per bin if 'None' is taken 
-          from VelBinner
-
-        Returns
-        -------
-        da : xarray.DataArray
-          The coherence between signal veldat1 and veldat2.
-
-        Notes
-        -----
-        The two velocity inputs do not have to be perfectly synchronized, but 
-        they should have the same start and end timestamps.
-
-        """
-        if veldat1.size < veldat2.size:
-            raise Exception(
-                "veldat1 is shorter than veldat2. Please switch these inputs.")
-
-        dat1 = veldat1.values
-        dat2 = veldat2.values
-
-        if n_fft_coh is None:
-            n_fft = self.n_fft_coh
-        else:
-            n_fft = int(n_fft_coh)
-
-        # want each slice to carry the same timespan
-        n_bin2 = self._parse_nbin(n_bin)  # bins for shorter array
-        n_bin1 = int(dat1.shape[-1]/(dat2.shape[-1]/n_bin2))
-
-        oshp = self._outshape_fft(dat1.shape, n_fft=n_fft, n_bin=n_bin1)
-        oshp[-2] = np.min([oshp[-2], int(dat2.shape[-1] // n_bin2)])
-        out = np.empty(oshp, dtype=dat1.dtype)
-
-        # The data is detrended in psd, so we don't need to do it here.
-        dat1 = self.reshape(dat1, n_pad=n_fft, n_bin=n_bin1)
-        dat2 = self.reshape(dat2, n_pad=n_fft, n_bin=n_bin2)
-
-        for slc in slice1d_along_axis(out.shape, -1):
-            out[slc] = coherence_1D(dat1[slc], dat2[slc], n_fft,
-                                    window=window, debias=debias,
-                                    noise=noise)
-
-        freq = self._fft_freq(self.fs, coh=True)
-
-        # Get time from shorter vector
-        dims_list, coords_dict = self._new_coords(veldat2)
-        # tack on new coordinate
-        dims_list.append('f')
-        coords_dict['f'] = freq
-
-        da = xr.DataArray(out, name='coherence',
-                          coords=coords_dict,
-                          dims=dims_list)
-        da['f'].attrs['units'] = 'Hz'
-
-        return da
-
-    def phase_angle(self, veldat1, veldat2, window='hann',
-                    n_fft_coh=None, n_bin=None):
-        """Reshape the arrays veldat1 and veldat2 into bins and calculate 
-        the phase difference between the two signals as a function of frequency 
-        (complimentary to coherence).
-
-        Parameters
-        ----------
-        veldat1 : xarray.DataArray
-          The first (the longer, if applicable) raw dataArray of which to 
-          calculate phase angle
-        veldat2 : xarray.DataArray
-          The second (the shorter, if applicable) raw dataArray of which 
-          to calculate phase angle
-        window : str
-          String indicating the window function to use (default: 'hanning').
-        n_fft : int
-          Number of elements per bin if 'None' is taken from VelBinner
-        n_bin : int
-          Number of elements per bin from veldat2 if 'None' is taken 
-          from VelBinner
-
-        Returns
-        -------
-        da : xarray.DataArray
-          The phase difference between signal veldat1 and veldat2.
-
-        Notes
-        -----
-        The two velocity inputs do not have to be perfectly synchronized, but 
-        they should have the same start and end timestamps.
-
-        """
-        if veldat1.size < veldat2.size:
-            raise Exception(
-                "veldat1 is shorter than veldat2. Please switch these inputs.")
-
-        dat1 = veldat1.values
-        dat2 = veldat2.values
-
-        if n_fft_coh is None:
-            n_fft = self.n_fft_coh
-        else:
-            n_fft = int(n_fft_coh)
-
-        # want each slice to carry the same timespan
-        n_bin2 = self._parse_nbin(n_bin)  # bins for shorter array
-        n_bin1 = int(dat1.shape[-1]/(dat2.shape[-1]/n_bin2))
-
-        oshp = self._outshape_fft(dat1.shape, n_fft=n_fft, n_bin=n_bin1)
-        oshp[-2] = np.min([oshp[-2], int(dat2.shape[-1] // n_bin2)])
-
-        # The data is detrended in psd, so we don't need to do it here:
-        dat1 = self.reshape(dat1, n_pad=n_fft, n_bin=n_bin1)
-        dat2 = self.reshape(dat2, n_pad=n_fft, n_bin=n_bin2)
-        out = np.empty(oshp, dtype='c{}'.format(dat2.dtype.itemsize * 2))
-
-        for slc in slice1d_along_axis(out.shape, -1):
-            # PSD's are computed in radian units:
-            out[slc] = phase_angle_1D(dat1[slc], dat2[slc], n_fft,
-                                      window=window)
-
-        freq = self._fft_freq(self.fs, coh=True)
-
-        # Get time from shorter vector
-        dims_list, coords_dict = self._new_coords(veldat2)
-        # tack on new coordinate
-        dims_list.append('f')
-        coords_dict['f'] = freq
-
-        da = xr.DataArray(out, name='phase_angle',
-                          coords=coords_dict,
-                          dims=dims_list)
-        da['f'].attrs['units'] = 'Hz'
-
-        return da
-
     def autocovariance(self, veldat, n_bin=None):
         """Calculate the auto-covariance of the raw-signal `veldat`
 
@@ -797,82 +639,15 @@ class VelBinner(TimeBinner):
                 out[slc] = (tmp[se] + tmp[sb]) / 2
 
         dims_list, coords_dict = self._new_coords(veldat)
-
         # tack on new coordinate
-        dims_list.append('dt')
-        coords_dict['dt'] = np.arange(n_bin//4)
+        dims_list.append('lag')
+        coords_dict['lag'] = np.arange(n_bin//4)
 
-        da = xr.DataArray(out, name='auto-covariance',
+        da = xr.DataArray(out, name='auto_covariance',
                           coords=coords_dict,
                           dims=dims_list,)
-        da['dt'].attrs['units'] = 'timestep'
+        da['lag'].attrs['units'] = 'timestep'
 
-        return da
-
-    def cross_covariance(self, veldat1, veldat2, npt=1,
-                         n_bin=None, normed=False):
-        """Calculate the cross-covariance between arrays veldat1 and veldat2
-
-        Parameters
-        ----------
-        veldat1 : xarray.DataArray
-          The first raw dataArray of which to calculate cross-covariance
-        veldat2 : xarray.DataArray
-          The second raw dataArray of which to calculate cross-covariance
-        npt : int
-          Number of timesteps (lag) to calculate covariance
-        n_fft : int
-          n_fft of veldat2, number of elements per bin if 'None' is taken 
-          from VelBinner
-        n_bin : int
-          n_bin of veldat2, number of elements per bin if 'None' is taken 
-          from VelBinner
-
-        Returns
-        -------
-        da : xarray.DataArray
-          The cross-covariance between signal veldat1 and veldat2.
-
-        Notes
-        -----
-        The two velocity inputs must be the same length
-
-        """
-        dat1 = veldat1.values
-        dat2 = veldat2.values
-
-        # want each slice to carry the same timespan
-        n_bin2 = self._parse_nbin(n_bin)
-        n_bin1 = int(dat1.shape[-1]/(dat2.shape[-1]/n_bin2))
-
-        shp = self._outshape(dat1.shape, n_bin=n_bin1)
-        shp[-2] = min(shp[-2], self._outshape(dat2.shape, n_bin=n_bin2)[-2])
-
-        # reshape dat1 to be the same size as dat2
-        out = np.empty(shp[:-1] + [npt], dtype=dat1.dtype)
-        tmp = int(n_bin2) - int(n_bin1) + npt
-        dt1 = self.reshape(dat1, n_pad=tmp-1, n_bin=n_bin1)
-
-        # Note here I am demeaning only on the 'valid' range:
-        dt1 = dt1 - dt1[..., :, int(tmp // 2):int(-tmp // 2)].mean(-1)[..., None]
-        # Don't need to pad the second variable:
-        dt2 = self.demean(dat2, n_bin=n_bin2)
-
-        for slc in slice1d_along_axis(shp, -1):
-            out[slc] = np.correlate(dt1[slc], dt2[slc], 'valid')
-        if normed:
-            out /= (self.std(dat1, n_bin=n_bin1)[..., :shp[-2]] *
-                    self.std(dat2, n_bin=n_bin2)[..., :shp[-2]] *
-                    n_bin2)[..., None]
-
-        dims_list, coords_dict = self._new_coords(veldat1)
-        # tack on new coordinate
-        dims_list.append('dt')
-        coords_dict['dt'] = np.arange(npt)
-
-        da = xr.DataArray(out, name='cross-covariance',
-                          coords=coords_dict,
-                          dims=dims_list)
         return da
 
     def turbulent_kinetic_energy(self, veldat, noise=[0, 0, 0], detrend=True):
@@ -882,8 +657,8 @@ class VelBinner(TimeBinner):
         Parameters
         ----------
         veldat : xarray.DataArray
-            a velocity data array. The last dimension is assumed
-            to be time.
+            Velocity data array from ADV or single beam from ADCP. 
+            The last dimension is assumed to be time.
         noise : float
             a three-element vector of the noise levels of the
             velocity data for ach component of velocity.
@@ -900,7 +675,8 @@ class VelBinner(TimeBinner):
 
         """
         if 'dir' in veldat.dims:
-            vel = veldat[:3].values
+            # will error for ADCP 4-beam, but not for single beam
+            vel = veldat.values
         else:  # for single beam input
             vel = veldat.values
 
@@ -936,49 +712,6 @@ class VelBinner(TimeBinner):
             else:
                 da = da.assign_coords({'time': time})
 
-        return da
-
-    def stresses(self, veldat, detrend=True):
-        """Calculate the stresses (cross-covariances of u,v,w)
-
-        Parameters
-        ----------
-        veldat : xr.DataArray
-            A velocity data array. The last dimension is assumed
-            to be time.
-        detrend : bool (default: True)
-            detrend the velocity data (True), or simply de-mean it
-            (False), prior to computing stress. Note: the psd routines
-            use detrend, so if you want to have the same amount of
-            variance here as there use ``detrend=True``.
-
-        Returns
-        -------
-        ds : xarray.DataArray
-
-        """
-        time = self.mean(veldat.time.values)
-        vel = veldat.values
-
-        out = np.empty(self._outshape(vel[:3].shape)[:-1],
-                       dtype=np.float32)
-
-        if detrend:
-            vel = self.detrend(vel)
-        else:
-            vel = self.demean(vel)
-
-        for idx, p in enumerate(self._cross_pairs):
-            out[idx] = np.nanmean(vel[p[0]] * vel[p[1]],
-                                  -1, dtype=np.float64
-                                  ).astype(np.float32)
-
-        da = xr.DataArray(out, name='stress',
-                          dims=veldat.dims,
-                          attrs={'units': 'm^2/^2'})
-        da = da.rename({'dir': 'tau'})
-        da = da.assign_coords({'tau': ["upvp_", "upwp_", "vpwp_"],
-                               'time': time})
         return da
 
     def power_spectral_density(self, veldat,
@@ -1021,12 +754,12 @@ class VelBinner(TimeBinner):
           The spectra in the 'u', 'v', and 'w' directions.
 
         """
-        try:
-            time = self.mean(veldat.time.values)
-            time_str = 'time'
-        except:
+        if 'b5' in veldat.name:
             time = self.mean(veldat.time_b5.values)
             time_str = 'time_b5'
+        else:
+            time = self.mean(veldat.time.values)
+            time_str = 'time'
         fs = self._parse_fs(fs)
         n_fft = self._parse_nfft(n_fft)
         veldat = veldat.values
@@ -1037,104 +770,33 @@ class VelBinner(TimeBinner):
             fs = 2*np.pi*fs
             freq_units = 'rad/s'
             units = 'm^2/s/rad'
-            f_key = 'omega'
         else:
             freq_units = 'Hz'
             units = 'm^2/s^2/Hz'
-            f_key = 'f'
 
         # Spectra, if input is full velocity or a single array
         if len(veldat.shape) == 2:
-            assert veldat.shape[0] == 3, "Function can only handle 1D or 3D arrays"
+            assert veldat.shape[0] == 3, "Function can only handle 1D or 3D arrays." \
+                " If ADCP data, please select a specific depth bin."
 
             out = np.empty(self._outshape_fft(veldat[:3].shape),
                            dtype=np.float32)
             for idx in range(3):
-                out[idx] = self._psd_ndarray(veldat[idx], fs=fs, noise=noise[idx],
-                                             window=window, n_bin=n_bin,
-                                             n_pad=n_pad, n_fft=n_fft, step=step)
-            coords = {'S': ['Sxx', 'Syy', 'Szz'], time_str: time, f_key: freq}
-            dims = ['S', time_str, f_key]
+                out[idx] = self._psd_base(veldat[idx], fs=fs, noise=noise[idx],
+                                          window=window, n_bin=n_bin,
+                                          n_pad=n_pad, n_fft=n_fft, step=step)
+            coords = {'S': ['Sxx', 'Syy', 'Szz'], time_str: time, 'freq': freq}
+            dims = ['S', time_str, 'freq']
         else:
-            out = self._psd_ndarray(veldat, fs=fs, noise=noise[0], window=window,
-                                    n_bin=n_bin, n_pad=n_pad, n_fft=n_fft, step=step)
-            coords = {time_str: time, f_key: freq}
-            dims = [time_str, f_key]
+            out = self._psd_base(veldat, fs=fs, noise=noise[0], window=window,
+                                 n_bin=n_bin, n_pad=n_pad, n_fft=n_fft, step=step)
+            coords = {time_str: time, 'freq': freq}
+            dims = [time_str, 'freq']
 
-        da = xr.DataArray(out,
-                          name='psd',
-                          coords=coords,
-                          dims=dims,
-                          attrs={'units': units, 'n_fft': n_fft})
-        da[f_key].attrs['units'] = freq_units
+        psd = xr.DataArray(out, name='psd',
+                           coords=coords,
+                           dims=dims,
+                           attrs={'units': units, 'n_fft': n_fft})
+        psd['freq'].attrs['units'] = freq_units
 
-        return da
-
-    def cross_spectral_density(self, veldat,
-                               freq_units='Hz',
-                               fs=None,
-                               window='hann',
-                               n_bin=None,
-                               n_fft_coh=None):
-        """Calculate the cross-spectral density of velocity components.
-
-        Parameters
-        ----------
-        veldat   : xarray.DataArray
-          The raw 3D velocity data.
-        freq_units : string
-          Frequency units of the returned spectra in either Hz or rad/s 
-          (`f` or :math:`\\omega`)
-        fs : float (optional)
-          The sample rate (default: from the binner).
-        window : string or array
-          Specify the window function.
-        n_bin : int (optional)
-          The bin-size (default: from the binner).
-        n_fft_coh : int (optional)
-          The fft size (default: n_fft_coh from the binner).
-
-        Returns
-        -------
-        csd : xarray.DataArray (3, M, N_FFT)
-          The first-dimension of the cross-spectrum is the three
-          different cross-spectra: 'uv', 'uw', 'vw'.
-
-        """
-        fs = self._parse_fs(fs)
-        n_fft = self._parse_nfft_coh(n_fft_coh)
-        time = self.mean(veldat.time.values)
-        veldat = veldat.values
-
-        out = np.empty(self._outshape_fft(veldat[:3].shape, n_fft=n_fft),
-                       dtype='complex')
-
-        # Create frequency vector, also checks whether using f or omega
-        coh_freq = self._fft_freq(units=freq_units, coh=True)
-        if 'rad' in freq_units:
-            fs = 2*np.pi*fs
-            freq_units = 'rad/s'
-            units = 'm^2/s/rad'
-            f_key = 'omega'
-        else:
-            freq_units = 'Hz'
-            units = 'm^2/s^2/Hz'
-            f_key = 'f'
-
-        for ip, ipair in enumerate(self._cross_pairs):
-            out[ip] = self._cpsd_ndarray(veldat[ipair[0]],
-                                         veldat[ipair[1]],
-                                         n_bin=n_bin,
-                                         n_fft=n_fft,
-                                         window=window)
-
-        da = xr.DataArray(out,
-                          name='csd',
-                          coords={'C': ['Cxy', 'Cxz', 'Cyz'],
-                                  'time': time,
-                                  f_key: coh_freq},
-                          dims=['C', 'time', f_key],
-                          attrs={'units': units, 'n_fft_coh': n_fft})
-        da[f_key].attrs['units'] = freq_units
-
-        return da
+        return psd

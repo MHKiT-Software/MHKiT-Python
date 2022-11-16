@@ -17,8 +17,8 @@ CLASSIFIERS = ['Development Status :: 3 - Alpha',
                'Intended Audience :: Science/Research',
                'Operating System :: OS Independent',
                ]
-DEPENDENCIES = ['pandas',
-                'numpy',
+DEPENDENCIES = ['pandas>=1.0.0, <=1.5.0',
+                'numpy>=1.21.0',
                 'scipy',
                 'matplotlib',
                 'requests',
@@ -28,12 +28,13 @@ DEPENDENCIES = ['pandas',
                 'scikit-learn',
                 'NREL-rex>=0.2.63',
                 'six>=1.13.0',
-                'h5py',                
-                'netCDF4',
-                'xarray',
+                'h5py>=3.6.0',
+                'h5pyd >=0.7.0, <=0.10.3',
+                'netCDF4<=1.5.8',
+                'xarray<=2022.9.0',
                 'statsmodels',
                 'pytz',
-                'dolfyn>=1.0.0']
+                'bottleneck']
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))
