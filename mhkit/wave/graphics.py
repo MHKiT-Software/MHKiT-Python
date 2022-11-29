@@ -1,14 +1,15 @@
-import calendar
 
-import numpy as np
-import pandas as pd
-import matplotlib
+from mhkit.river.resource import exceedance_probability
+from mhkit.river.graphics import _xy_plot
+import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+import pandas as pd
 import xarray as xr
+import numpy as np
+import matplotlib
+import calendar
 
-from mhkit.river.graphics import _xy_plot
-from mhkit.river.resource import exceedance_probability
 
 def plot_spectrum(S, ax=None):
     """
@@ -60,8 +61,14 @@ def plot_elevation_timeseries(eta, ax=None):
     return ax
 
 
-def plot_matrix(M, xlabel='Te', ylabel='Hm0', zlabel=None, show_values=True,
-                ax=None):
+def plot_matrix(
+        M, 
+        xlabel='Te', 
+        ylabel='Hm0', 
+        zlabel=None, 
+        show_values=True,
+        ax=None
+    ):
     """
     Plots values in the matrix as a scatter diagram
 
@@ -397,8 +404,16 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     return ax
 
 
-def plot_avg_annual_energy_matrix(Hm0, Te, J, time_index=None,
-    Hm0_bin_size=None, Te_bin_size=None, Hm0_edges=None, Te_edges=None):
+def plot_avg_annual_energy_matrix(
+        Hm0, 
+        Te, 
+        J, 
+        time_index=None, 
+        Hm0_bin_size=None, 
+        Te_bin_size=None, 
+        Hm0_edges=None, 
+        Te_edges=None
+    ):
     '''
     Creates an average annual energy matrix with frequency of occurance.
 
@@ -426,6 +441,7 @@ def plot_avg_annual_energy_matrix(Hm0, Te, J, time_index=None,
     fig: Figure
         Average annual energy table plot
     '''
+
     fig = plt.figure()
     if isinstance(time_index, type(None)):
         data = pd.DataFrame(dict(Hm0=Hm0, Te=Te, J=J))
@@ -449,10 +465,11 @@ def plot_avg_annual_energy_matrix(Hm0, Te, J, time_index=None,
         year_data = data.loc[str(year)].copy(deep=True)
 
         # Get the counts of each bin
-        counts, xedges, yedges= np.histogram2d(year_data.Te,
-                                     year_data.Hm0,
-                                     bins = (Te_edges,Hm0_edges),
-                                     )
+        counts, xedges, yedges= np.histogram2d(
+            year_data.Te,
+            year_data.Hm0,
+            bins = (Te_edges,Hm0_edges),
+        )
 
         # Get centers for number of counts plot location
         xcenters = xedges[:-1]+ np.diff(xedges)
@@ -474,14 +491,9 @@ def plot_avg_annual_energy_matrix(Hm0, Te, J, time_index=None,
         hist_counts[year] = counts
         hist_J[year] = H
 
-    # Initialize average annually with first year
-    avg_annual_counts_hist = hist_counts[years[0]]
-    avg_annual_J_hist = hist_J[years[0]]
-
-    # Iterate over each year and average
-    for year in years[1:]:
-        avg_annual_counts_hist = (avg_annual_counts_hist+ hist_counts[year])/2
-        avg_annual_J_hist = (avg_annual_J_hist+ hist_J[year])/2
+    # Calculate avg annual
+    avg_annual_counts_hist = sum(hist_counts.values())/len(years)
+    avg_annual_J_hist = sum(hist_J.values())/len(years)
 
     # Create a mask of non-zero weights to hide from imshow
     Hmasked = np.ma.masked_where(~(avg_annual_J_hist>0),avg_annual_J_hist)
@@ -492,7 +504,14 @@ def plot_avg_annual_energy_matrix(Hm0, Te, J, time_index=None,
     for xi in range(len(xcenters)):
         for yi in range(len(ycenters)):
             if avg_annual_counts_hist[xi][yi] != 0:
-                plt.text(xedges[xi], yedges[yi], int(np.ceil(avg_annual_counts_hist[xi][yi])), fontsize=10)
+                plt.text(
+                    xedges[xi], 
+                    yedges[yi], 
+                    int(np.ceil(avg_annual_counts_hist[xi][yi])), 
+                    fontsize=10, 
+                    color='white', 
+                    path_effects=[pe.withStroke(linewidth=1, foreground="k")]
+                ) 
     plt.xlabel('Wave Energy Period (s)')
     plt.ylabel('Significant Wave Height (m)')
 
@@ -672,7 +691,7 @@ def plot_boxplot(Hs, buoy_title=None):
                     horizontalalignment='center',verticalalignment='bottom',
                     color='g')
 
-    #Create a second row of x-axis labels for top subplot
+    # Create a second row of x-axis labels for top subplot
     newax = bp.twiny()
     newax.tick_params(which='major', direction='in', pad=-18)
     newax.set_xlim(bp.get_xlim())
@@ -728,8 +747,14 @@ def plot_boxplot(Hs, buoy_title=None):
     return ax
 
 
-def plot_directional_spectrum(spectrum, min=None, fill=True, nlevels=11,
-                              name="Elevation Variance", units="m^2"):
+def plot_directional_spectrum(
+        spectrum, 
+        min=None, 
+        fill=True, 
+        nlevels=11,
+        name="Elevation Variance", 
+        units="m^2"
+    ):
     """
     Create a contour polar plot of a directional spectrum.
 
