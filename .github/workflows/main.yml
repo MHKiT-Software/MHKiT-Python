@@ -135,6 +135,7 @@ jobs:
         run: |
           source activate TEST
           python -m pip install --upgrade pip wheel
+          pip install coveralls
           pip install .
 
       - name: Run pytest
