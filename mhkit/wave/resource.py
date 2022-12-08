@@ -591,6 +591,34 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2):
     return J
 
 
+def energy_period_to_peak_period(Te, gamma):
+    """
+    Convert from spectral energy period (Te) to peak period (Tp) using ITTC approximation for JONSWAP Spectrum.
+
+    Approximation is given in "The Specialist Committee on Waves, Final Report
+    and Recommendations of the 23rd ITTC", Procedings of the 23rd ITTC - Volume
+    2, Table A4.
+
+    Parameters:
+    ----------
+    Te: float or array
+        Spectral energy period (s)
+    gamma: float or int
+        Peak enhancement factor for JONSWAP spectrum
+
+    Returns
+    -------
+    Tp: float or array
+       Spectral peak period (s)
+    """
+    assert isinstance(Te, (float, np.ndarray)), 'Te must be a float or a ndarray'
+    assert isinstance(gamma, (float, int)), 'gamma must be of type float or int'
+
+    factor = 0.8255 + 0.03852*gamma - 0.005537*gamma**2 + 0.0003154*gamma**3
+
+    return Te / factor
+
+
 def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2):
     """
     Calculates wave celerity (group velocity)
