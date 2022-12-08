@@ -155,7 +155,7 @@ jobs:
 
   coveralls:
     name: Indicate completion to coveralls.io
-    needs: [conda-build, pip-build]
+    needs: [conda-build, pip-build, hindcast-calls]
     runs-on: ubuntu-latest
     container: python:3-slim
     steps:
