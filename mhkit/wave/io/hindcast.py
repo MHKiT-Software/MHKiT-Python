@@ -233,7 +233,7 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
         )                    
 
         # Create bins for multiple smaller API dataset requests
-        N=6
+        N=8
         length = len(rex_waves)        
         quotient=length//N
         remainder=length%N    
