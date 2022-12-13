@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 from rex import MultiYearWaveX, WaveX
 import sys
+from time import sleep
+
 
 
 def region_selection(lat_lon):
@@ -233,7 +235,7 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
         )                    
 
         # Create bins for multiple smaller API dataset requests
-        N=8
+        N=6
         length = len(rex_waves)        
         quotient=length//N
         remainder=length%N    
@@ -245,8 +247,24 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
         datas={}
         for i in range(len(bins)-1):
             idx=index[index_bins[i]:index_bins[i+1]] 
-            data_array = rex_waves[parameter, bins[i]:bins[i+1], :, :, gid]
 
+            # Request with exponential back off wait time
+            sleep_time = 2
+            num_retries = 4
+            for x in range(0, num_retries):  
+                try:
+                    data_array = rex_waves[parameter, bins[i]:bins[i+1], :, :, gid]
+                    str_error = None
+
+                except Exception as e:
+                    str_error = str(e)
+
+                if str_error:
+                    sleep(sleep_time)
+                    sleep_time *= 2  
+                else:
+                    break
+        
             ax1 = np.product(data_array.shape[:3])
             ax2 = data_array.shape[-1] if len(data_array.shape) == 4 else 1
             data_array = data_array.reshape(ax1, ax2)        
