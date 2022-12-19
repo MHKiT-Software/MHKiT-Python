@@ -273,7 +273,7 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
             df.name = parameter
             datas[i]=df
 
-        # Appednd each request into an xarray
+        # Append each request into an xarray
         data_raw=datas[0]
         for i in list(datas.keys())[1:]:
             data_raw =  pd.concat([data_raw,datas[i]])        
