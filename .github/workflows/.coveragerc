@@ -1,11 +1,12 @@
 [run]
 omit =
-    # omit everything in tests and /wave
+    # omit everything in tests and /hindcast
     ./mhkit/tests/*
-    ./mhkit/wave/io/hindcast.py
+    ./mhkit/wave/io/hindcast/*
 
 [report]
 omit =
-    # omit everything in tests and /wave
+    # omit everything in tests and /hindcast
     ./mhkit/tests/*    
-    ./mhkit/wave/io/hindcast.py
+    ./mhkit/wave/io/hindcast/*
+
