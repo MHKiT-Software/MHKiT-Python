@@ -321,7 +321,7 @@ class Velocity():
         """Horizontal velocity magnitude
         """
         return xr.DataArray(
-            np.abs(self.U),
+            np.abs(self.U).astype('float32'),
             attrs={'units': 'm/s',
                    'description': 'horizontal velocity magnitude'})
 
@@ -333,7 +333,7 @@ class Velocity():
         # Convert from radians to degrees
         angle = np.angle(self.U)*(180/np.pi)
 
-        return xr.DataArray(angle,
+        return xr.DataArray(angle.astype('float32'),
                             dims=self.U.dims,
                             coords=self.U.coords,
                             attrs={'units': 'deg',
@@ -350,11 +350,10 @@ class Velocity():
         """
         E_coh = (self.upwp_**2 + self.upvp_**2 + self.vpwp_**2) ** (0.5)
 
-        return xr.DataArray(E_coh,
+        return xr.DataArray(E_coh.astype('float32'),
                             coords={'time': self.ds['stress_vec'].time},
                             dims=['time'],
-                            attrs={'units': self.ds['stress_vec'].units},
-                            name='E_coh')
+                            attrs={'units': self.ds['stress_vec'].units})
 
     @property
     def I_tke(self, thresh=0):
@@ -364,11 +363,10 @@ class Velocity():
         """
         I_tke = np.ma.masked_where(self.U_mag < thresh,
                                    np.sqrt(2 * self.tke) / self.U_mag)
-        return xr.DataArray(I_tke.data,
+        return xr.DataArray(I_tke.data.astype('float32'),
                             coords=self.U_mag.coords,
                             dims=self.U_mag.dims,
-                            attrs={'units': '% [0,1]'},
-                            name='TKE intensity')
+                            attrs={'units': '% [0,1]'})
 
     @property
     def I(self, thresh=0):
@@ -379,11 +377,10 @@ class Velocity():
         """
         I = np.ma.masked_where(self.U_mag < thresh,
                                self.ds['U_std'] / self.U_mag)
-        return xr.DataArray(I.data,
+        return xr.DataArray(I.data.astype('float32'),
                             coords=self.U_mag.coords,
                             dims=self.U_mag.dims,
-                            attrs={'units': '% [0,1]'},
-                            name='turbulence intensity')
+                            attrs={'units': '% [0,1]'})
 
     @property
     def tke(self,):
@@ -513,7 +510,8 @@ class VelBinner(TimeBinner):
                     out_ds[ky] = xr.DataArray(self.mean(raw_ds[ky].values),
                                               coords=coords_dict,
                                               dims=dims_list,
-                                              attrs=raw_ds[ky].attrs)
+                                              attrs=raw_ds[ky].attrs
+                                              ).astype('float32')
                 except:  # variables not needing averaging
                     pass
             # Add standard deviation
@@ -521,7 +519,7 @@ class VelBinner(TimeBinner):
                              axis=-1,
                              dtype=np.float64) - (noise[0] + noise[1])/2)
             out_ds['U_std'] = xr.DataArray(
-                std,
+                std.astype('float32'),
                 dims=raw_ds.vel.dims[1:],
                 attrs={'units': 'm/s',
                        'description': 'horizontal velocity std dev'})
@@ -585,7 +583,8 @@ class VelBinner(TimeBinner):
                     out_ds[ky+suffix] = xr.DataArray(self.variance(raw_ds[ky].values),
                                                      coords=coords_dict,
                                                      dims=dims_list,
-                                                     attrs=raw_ds[ky].attrs)
+                                                     attrs=raw_ds[ky].attrs
+                                                     ).astype('float32')
                 except:  # variables not needing averaging
                     pass
 
@@ -647,7 +646,7 @@ class VelBinner(TimeBinner):
         dims_list.append('lag')
         coords_dict['lag'] = np.arange(n_bin//4)
 
-        da = xr.DataArray(out, name='auto_covariance',
+        da = xr.DataArray(out.astype('float32'),
                           coords=coords_dict,
                           dims=dims_list,)
         da['lag'].attrs['units'] = 'timestep'
@@ -703,7 +702,7 @@ class VelBinner(TimeBinner):
         out[1] -= noise[1] ** 2
         out[2] -= noise[2] ** 2
 
-        da = xr.DataArray(out, name='tke_vec',
+        da = xr.DataArray(out.astype('float32'),
                           dims=veldat.dims,
                           attrs={'units': 'm^2/^2'})
 
@@ -799,7 +798,7 @@ class VelBinner(TimeBinner):
             coords = {time_str: time, 'freq': freq}
             dims = [time_str, 'freq']
 
-        psd = xr.DataArray(out, name='psd',
+        psd = xr.DataArray(out.astype('float32'),
                            coords=coords,
                            dims=dims,
                            attrs={'units': units, 'n_fft': n_fft})

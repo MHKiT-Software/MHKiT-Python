@@ -85,7 +85,7 @@ class ADVBinner(VelBinner):
                                   -1, dtype=np.float64
                                   ).astype(np.float32)
 
-        da = xr.DataArray(out, name='stress_vec',
+        da = xr.DataArray(out.astype('float32'),
                           dims=veldat.dims,
                           attrs={'units': 'm^2/^2'})
         da = da.rename({'dir': 'tau'})
@@ -150,7 +150,7 @@ class ADVBinner(VelBinner):
                                      n_fft=n_fft,
                                      window=window)
 
-        csd = xr.DataArray(out, name='csd',
+        csd = xr.DataArray(out,
                            coords={'C': ['Cxy', 'Cxz', 'Cyz'],
                                    'time': time,
                                    'freq': coh_freq},
@@ -217,7 +217,7 @@ class ADVBinner(VelBinner):
         out = (psd.isel(freq=idx) *
                freq.isel(freq=idx)**(5/3) / a).mean(axis=-1)**(3/2) / U
 
-        out = xr.DataArray(out, name='dissipation_rate',
+        out = xr.DataArray(out.astype('float32'),
                            attrs={'units': 'm^2/s^3',
                                   'method': 'LT83'})
         return out
@@ -266,7 +266,7 @@ class ADVBinner(VelBinner):
             cv2m = np.median(cv2[np.logical_not(np.isnan(cv2))])
             out[slc[:-1]] = (cv2m / 2.1) ** (3 / 2)
 
-        return xr.DataArray(out, name='dissipation_rate',
+        return xr.DataArray(out.astype('float32'),
                             coords=U_mag.coords,
                             dims=U_mag.dims,
                             attrs={'units': 'm^2/s^3',
@@ -367,7 +367,7 @@ class ADVBinner(VelBinner):
         # Average the two estimates
         out *= 0.5
 
-        return xr.DataArray(out, name='dissipation_rate',
+        return xr.DataArray(out.astype('float32'),
                             coords={'time': dat_avg.psd.time},
                             dims='time',
                             attrs={'units': 'm^2/s^3',
@@ -405,7 +405,7 @@ class ADVBinner(VelBinner):
         scale = np.argmin((acov/acov[..., :1]) > (1/np.e), axis=-1)
         L_int = U_mag.values / fs * scale
 
-        return xr.DataArray(L_int, name='L_int',
+        return xr.DataArray(L_int.astype('float32'),
                             coords={'dir': a_cov.dir, 'time': a_cov.time},
                             attrs={'units': 'm'})
 
