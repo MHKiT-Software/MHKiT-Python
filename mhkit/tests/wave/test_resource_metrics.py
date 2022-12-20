@@ -201,6 +201,26 @@ class TestResourceMetrics(unittest.TestCase):
                     self.assertLess(error, 0.01)
 
 
+    def test_energy_period_to_peak_period(self):
+        # This test checks that if we perform the
+        # Te to Tp conversion, we create a spectrum
+        # (using Tp) that has the provided Te.
+        Hs = 2.5
+        Te = np.linspace(5, 20, 10)
+        gamma = np.linspace(1, 7, 7)
+
+        for g in gamma:
+            for T in Te:
+                Tp = wave.resource.energy_period_to_peak_period(T, g)
+
+                f = np.linspace(1 / (10 * Tp), 3 / Tp, 100)
+                S = wave.resource.jonswap_spectrum(f, Tp, Hs, g)
+
+                Te_calc = wave.resource.energy_period(S).values[0][0]
+
+                error = np.abs(T - Te_calc)/Te_calc
+                self.assertLess(error, 0.01)
+
 
     def test_metrics(self):
        for file_i in self.valdata2.keys(): # for each file MC, AH, CDiP
@@ -356,6 +376,6 @@ class TestPlotResouceCharacterizations(unittest.TestCase):
 
         self.assertTrue(isfile(filename))
 
-        
+
 if __name__ == '__main__':
     unittest.main()

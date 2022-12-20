@@ -90,18 +90,27 @@ class TestWPTOhindcast(unittest.TestCase):
         assert_frame_equal(self.my_swh,wave_multiyear)
         assert_frame_equal(self.my_meta,meta)
 
+
     def test_multi_loc(self):
         data_type = '3-hour'
         years = [1995]
         lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137))
         parameters = 'mean_absolute_period'
-        wave_multiloc, meta=(wave.io.hindcast
-                            .request_wpto_point_data(data_type,
-                                            parameters,lat_lon,years))
-        (dir_multiyear,
-        meta_dir)=(wave.io.hindcast
-                    .request_wpto_directional_spectrum(lat_lon,year='1995'))
-        dir_multiyear = dir_multiyear.sel(time_index=slice(dir_multiyear.time_index[0],dir_multiyear.time_index[99]))
+        wave_multiloc, meta=wave.io.hindcast.request_wpto_point_data(
+            data_type,
+            parameters,
+            lat_lon,
+            years
+        )
+        dir_multiyear, meta_dir = (wave.io.hindcast
+            .request_wpto_directional_spectrum(lat_lon,year='1995')
+        )
+        dir_multiyear = dir_multiyear.sel(
+            time_index=slice(
+                dir_multiyear.time_index[0],
+                dir_multiyear.time_index[99]
+            )
+        )
         dir_multiyear = dir_multiyear.rename_vars({87:'87',58:'58'})
 
         assert_frame_equal(self.ml,wave_multiloc)
