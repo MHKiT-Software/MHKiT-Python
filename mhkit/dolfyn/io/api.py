@@ -34,14 +34,15 @@ def read(fname, userdata=True, nens=None, **kwargs):
     userdata : True, False, or string of userdata.json filename (default ``True``)
         Whether to read the '<base-filename>.userdata.json' file.
     nens : None (default: read entire file), int, or 2-element tuple (start, stop)
-        Number of pings or ensembles to read from the file
+        Number of pings or ensembles to read from the
+    **kwargs : passed to instrument-specific parser.
 
     Returns
     -------
     ds : xarray.Dataset
         An xarray dataset from instrument datafile.
-
     """
+
     file_type = _get_filetype(fname)
     if file_type == '<GIT-LFS pointer>':
         raise IOError("File '{}' looks like a git-lfs pointer. You may need to "
@@ -71,7 +72,7 @@ def read_example(name, **kwargs):
             AWAC_test01.wpr
             BenchFile01.ad2cp
             RDI_test01.000
-            burst_mode01.VEC
+            vector_burst_mode01.VEC
             vector_data01.VEC
             vector_data_imu01.VEC
             winriver01.PD0
@@ -81,7 +82,6 @@ def read_example(name, **kwargs):
     -------
     ds : xarray.Dataset
         An xarray dataset from the binary instrument data.
-
     """
     testdir = dirname(abspath(__file__))
     exdir = normpath(join(testdir, relpath('../../../examples/data/dolfyn/')))
@@ -92,6 +92,7 @@ def read_example(name, **kwargs):
 
 def save(ds, filename,
          format='NETCDF4', engine='netcdf4',
+         compression=False,
          **kwargs):
     """Save xarray dataset as netCDF (.nc).
 
@@ -100,13 +101,20 @@ def save(ds, filename,
     ds : xarray.Dataset
     filename : str
         Filename and/or path with the '.nc' extension
+    compression : bool (default: False)
+        When true, compress all variables with zlib complevel=1.
     **kwargs : these are passed directly to :func:`xarray.Dataset.to_netcdf`
 
     Notes
     -----
     Drops 'config' lines.
 
+    More detailed compression options can be specified by specifying
+    'encoding' in kwargs. The values in encoding will take precedence
+    over whatever is set according to the compression option above.
+    See the xarray.to_netcdf documentation for more details.
     """
+
     filename = _check_file_ext(filename, 'nc')
 
     # Dropping the detailed configuration stats because netcdf can't save it
@@ -124,6 +132,16 @@ def save(ds, filename,
             ds = ds.drop_vars(var)
             ds.attrs['complex_vars'].append(var)
 
+    if compression:
+        enc = dict()
+        for ky in ds.variables:
+            enc[ky] = dict(zlib=True, complevel=1)
+        if 'encoding' in kwargs:
+            # Overwrite ('update') values in enc with whatever is in kwargs['encoding']
+            enc.update(kwargs['encoding'])
+        else:
+            kwargs['encoding'] = enc
+
     ds.to_netcdf(filename, format=format, engine=engine, **kwargs)
 
 
@@ -139,8 +157,8 @@ def load(filename):
     -------
     ds : xarray.Dataset
         An xarray dataset from the binary instrument data.
-
     """
+
     filename = _check_file_ext(filename, 'nc')
 
     ds = xr.load_dataset(filename, engine='netcdf4')
@@ -179,14 +197,14 @@ def save_mat(ds, filename, datenum=True):
 
     Notes
     -----
-    The xarray data format is saved as a MATLAB structure with the fields 
-    'vars, coords, config, units'.
+    The xarray data format is saved as a MATLAB structure with the fields
+    'vars, coords, config, units'. Converts time to datenum
 
     See Also
     --------
     scipy.io.savemat()
-
     """
+
     filename = _check_file_ext(filename, 'mat')
 
     # Convert time to datenum
@@ -245,8 +263,8 @@ def load_mat(filename, datenum=True):
     See Also
     --------
     scipy.io.loadmat()
-
     """
+
     filename = _check_file_ext(filename, 'mat')
 
     data = sio.loadmat(filename, struct_as_record=False, squeeze_me=True)

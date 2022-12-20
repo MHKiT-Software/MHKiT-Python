@@ -109,7 +109,8 @@ def _beam2inst(dat, reverse=False, force=False):
         # specifying it here.
         rotate_vars = force
     else:
-        rotate_vars = [ky for ky in dat.rotate_vars if ky.startswith('vel')]
+        rotate_vars = [
+            ky for ky in dat.rotate_vars if dat[ky].shape[0] == rotmat.shape[0]]
 
     cs = 'inst'
     if reverse:
@@ -143,17 +144,17 @@ def euler2orient(heading, pitch, roll, units='degrees'):
 
     Parameters
     ----------
-    heading : numpy.ndarray (Nt)
+    heading : |np.ndarray| (Nt)
       The heading angle.
-    pitch : numpy.ndarray (Nt)
+    pitch : |np.ndarray| (Nt)
       The pitch angle.
-    roll : numpy.ndarray (Nt)
+    roll : |np.ndarray| (Nt)
       The roll angle.
     units : str {'degrees' (default), 'radians'}
 
     Returns
     =======
-    omat : numpy.ndarray (3x3xNt)
+    omat : |np.ndarray| (3x3xNt)
       The orientation matrix of the data. The returned orientation
       matrix obeys the following conventions:
 
@@ -221,12 +222,12 @@ def orient2euler(omat):
 
     Parameters
     ----------
-    omat : numpy.ndarray
+    omat : |np.ndarray|
       The orientation matrix
 
     Returns
     -------
-    heading : numpy.ndarray
+    heading : |np.ndarray|
       The heading angle. Heading is defined as the direction the x-axis points,
       positive clockwise from North (this is *opposite* the right-hand-rule
       around the Z-axis), range 0-360 degrees.
@@ -270,7 +271,7 @@ def quaternion2orient(quaternions):
 
     Returns
     -------
-    orientmat : numpy.ndarray
+    orientmat : |np.ndarray|
         The inst2earth rotation maxtrix as calculated from the quaternions
 
     See Also

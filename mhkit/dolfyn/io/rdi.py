@@ -14,7 +14,8 @@ from ..rotate.base import _set_coords
 from ..rotate.api import set_declination
 
 
-def read_rdi(filename, userdata=None, nens=None, debug_level=-1, vmdas_search=False, **kwargs):
+def read_rdi(filename, userdata=None, nens=None, debug_level=-1,
+             vmdas_search=False, winriver=False, **kwargs):
     """
     Read a TRDI binary data file.
 
@@ -24,20 +25,23 @@ def read_rdi(filename, userdata=None, nens=None, debug_level=-1, vmdas_search=Fa
       Filename of TRDI file to read.
     userdata : True, False, or string of userdata.json filename (default ``True``)
       Whether to read the '<base-filename>.userdata.json' file.
-    nens : None (default: read entire file), int, or 2-element tuple (start, stop)
+    nens : int, (default: None, read entire file)
       Number of pings to read from the file
     debug_level : int (default=-1)
       Debug level [0 - 2]
-    vmdas_search : boolean (default=False)
+    vmdas_search : bool (default=False)
       Search from the end of each ensemble for the VMDAS navigation
       block.  The byte offsets are sometimes incorrect.
+    winriver : bool (default=False)
+      If file is winriver or not. Automatically set by dolfyn, this is helpful 
+      for debugging
 
     Returns
     -------
     ds : xarray.Dataset
       An xarray dataset from the binary instrument data
-
     """
+
     # Start debugger logging
     if debug_level >= 0:
         for handler in logging.root.handlers[:]:
@@ -51,8 +55,10 @@ def read_rdi(filename, userdata=None, nens=None, debug_level=-1, vmdas_search=Fa
 
     # Reads into a dictionary of dictionaries using netcdf naming conventions
     # Should be easier to debug
-    with _RDIReader(filename, debug_level=debug_level,
-                    vmdas_search=vmdas_search) as ldr:
+    with _RDIReader(filename,
+                    debug_level=debug_level,
+                    vmdas_search=vmdas_search,
+                    winriver=winriver) as ldr:
         datNB, datBB = ldr.load_data(nens=nens)
 
     dats = [dat for dat in [datNB, datBB] if dat is not None]
@@ -121,9 +127,10 @@ def read_rdi(filename, userdata=None, nens=None, debug_level=-1, vmdas_search=Fa
                       "\nReturning first.")
 
     # Close handler
-    for handler in logging.root.handlers[:]:
-        logging.root.removeHandler(handler)
-        handler.close()
+    if debug_level >= 0:
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+            handler.close()
 
     return dss[0]
 
@@ -156,8 +163,10 @@ def _remove_gps_duplicates(dat):
 
 
 def _set_rdi_declination(dat, fname, inplace):
-    # If magnetic_var_deg is set, this means that the declination is already
-    # included in the heading and in the velocity data.
+    """
+    If magnetic_var_deg is set, this means that the declination is already
+    included in the heading and in the velocity data.
+    """
 
     declin = dat.attrs.pop('declination', None)  # userdata declination
 
@@ -181,32 +190,31 @@ def _set_rdi_declination(dat, fname, inplace):
 
 
 class _RDIReader():
-    _n_beams = 4  # Placeholder for 5-beam adcp, not currently used.
     _pos = 0
     progress = 0
     _cfac = 180 / 2 ** 31
     _source = 0
     _fixoffset = 0
     _nbyte = 0
-    _winrivprob = False
     _search_num = 30000  # Maximum distance? to search
     _debug7f79 = None
-    extrabytes = 0
 
-    def __init__(self, fname, navg=1, debug_level=0, vmdas_search=False):
+    def __init__(self, fname, navg=1, debug_level=0, vmdas_search=False, winriver=False):
         self.fname = _abspath(fname)
         print('\nReading file {} ...'.format(fname))
         self._debug_level = debug_level
         self._vmdas_search = vmdas_search
+        self._winrivprob = winriver
         self.flag = 0
         self.cfg = {}
         self.cfgbb = {}
         self.hdr = {}
         self.f = bin_reader(self.fname)
-        if not self.read_hdr():
-            raise RuntimeError('No header in this file')
 
-        self._bb = self.check_for_double_buffer()
+        # Check header, double buffer, and get filesize
+        self._filesize = getsize(self.fname)
+        space = self.code_spacing()  # '0x7F'
+        self._npings = int(self._filesize / (space + 2))
         if self._debug_level >= 0:
             logging.info('Done: {}'.format(self.cfg))
             logging.info('self._bb {}'.format(self._bb))
@@ -217,9 +225,7 @@ class _RDIReader():
         self.ensemble = defs._ensemble(self.n_avg, self.cfg['n_cells'])
         if self._bb:
             self.ensembleBB = defs._ensemble(self.n_avg, self.cfgbb['n_cells'])
-        self._filesize = getsize(self.fname)
-        self._npings = int(self._filesize / (self.hdr['nbyte'] + 2 +
-                                             self.extrabytes))
+
         self.vars_read = defs._variable_setlist(['time'])
         if self._bb:
             self.vars_readBB = defs._variable_setlist(['time'])
@@ -227,31 +233,32 @@ class _RDIReader():
         if self._debug_level >= 0:
             logging.info('  %d pings estimated in this file' % self._npings)
 
-    def check_for_double_buffer(self,):
+    def code_spacing(self, iternum=50):
         """
-        VMDAS will record two buffers in NB or NB/BB mode, so we need to
-        figure out if that is happening here
+        Returns the average spacing, in bytes, between pings.
+        Repeat this * iternum * times(default 50).
         """
-        found = False
-        pos = self.f.pos
-        if self._debug_level >= 0:
-            logging.info(self.hdr)
-            logging.info('pos {}'.format(pos))
-        self.id_positions = {}
-        for offset in self.hdr['dat_offsets']:
-            self.f.seek(offset+pos - self.hdr['dat_offsets'][0], rel=0)
-            id = self.f.read_ui16(1)
-            self.id_positions[id] = offset
-            if self._debug_level >= 0:
-                logging.info('pos {} id {}'.format(offset, id))
-            if id == 1:
-                self.read_fixed(bb=True)
-                found = True
-            elif id == 0:
-                self.read_fixed(bb=False)
-            elif id == 8192:
-                self._vmdas_search = True
-        return found
+        fd = self.f
+        p0 = self._pos
+        # Get basic header data and check dual profile
+        if not self.read_hdr():
+            raise RuntimeError('No header in this file')
+        self._bb = self.check_for_double_buffer()
+
+        # Turn off debugging to check code spacing
+        debug_level = self._debug_level
+        self._debug_level = -1
+        for i in range(iternum):
+            try:
+                self.read_hdr()
+            except:
+                break
+        # Compute the average of the data size:
+        size = (self._pos - p0) / (i+1) * 0.995
+        self.f = fd
+        self._pos = p0
+        self._debug_level = debug_level
+        return size
 
     def read_hdr(self,):
         fd = self.f
@@ -276,40 +283,33 @@ class _RDIReader():
         self.read_hdrseg()
         return True
 
-    def init_data(self,):
-        outd = {'data_vars': {}, 'coords': {},
-                'attrs': {}, 'units': {}, 'sys': {}}
-        outd['attrs']['inst_make'] = 'TRDI'
-        outd['attrs']['inst_type'] = 'ADCP'
-        outd['attrs']['rotate_vars'] = ['vel', ]
-        # Currently RDI doesn't use IMUs
-        outd['attrs']['has_imu'] = 0
-        if self._bb:
-            outdbb = {'data_vars': {}, 'coords': {},
-                      'attrs': {}, 'units': {}, 'sys': {}}
-            outdbb['attrs']['inst_make'] = 'TRDI'
-            outdbb['attrs']['inst_type'] = 'ADCP'
-            outdbb['attrs']['rotate_vars'] = ['vel', ]
-            # Currently RDI doesn't use IMUs
-            outdbb['attrs']['has_imu'] = 0
-
-        for nm in defs.data_defs:
-            outd = defs._idata(outd, nm,
-                               sz=defs._get_size(nm, self._nens, self.cfg['n_cells']))
-        self.outd = outd
-
-        if self._bb:
-            for nm in defs.data_defs:
-                outdbb = defs._idata(outdbb, nm,
-                                     sz=defs._get_size(nm, self._nens, self.cfgbb['n_cells']))
-            self.outdBB = outdbb
-            if self._debug_level > 1:
-                logging.info(np.shape(outdbb['data_vars']['vel']))
-
-        if self._debug_level > 1:
-            logging.info('{} ncells, not BB'.format(self.cfg['n_cells']))
-            if self._bb:
-                logging.info('{} ncells, BB'.format(self.cfgbb['n_cells']))
+    def check_for_double_buffer(self,):
+        """
+        VMDAS will record two buffers in NB or NB/BB mode, so we need to
+        figure out if that is happening here
+        """
+        found = False
+        pos = self.f.pos
+        if self._debug_level >= 0:
+            logging.info(self.hdr)
+            logging.info('pos {}'.format(pos))
+        self.id_positions = {}
+        for offset in self.hdr['dat_offsets']:
+            self.f.seek(offset+pos - self.hdr['dat_offsets'][0], rel=0)
+            id = self.f.read_ui16(1)
+            self.id_positions[id] = offset
+            if self._debug_level >= 0:
+                logging.info('pos {} id {}'.format(offset, id))
+            if id == 1:
+                self.read_fixed(bb=True)
+                found = True
+            elif id == 0:
+                self.read_fixed(bb=False)
+            elif id == 16:
+                self.read_fixed_sl()  # bb=True
+            elif id == 8192:
+                self._vmdas_search = True
+        return found
 
     def mean(self, dat):
         if self.n_avg == 1:
@@ -319,26 +319,14 @@ class _RDIReader():
     def load_data(self, nens=None):
         if nens is None:
             self._nens = int(self._npings / self.n_avg)
-            self._ens_range = (0, self._nens)
-        elif (nens.__class__ is tuple or nens.__class__ is list) and \
-                len(nens) == 2:
-            nens = list(nens)
-            if nens[1] == -1:
-                nens[1] = self._npings
-            self._nens = int((nens[1] - nens[0]) / self.n_avg)
-            self._ens_range = nens
-            self.f.seek((self.hdr['nbyte'] + 2 + self.extrabytes) *
-                        self._ens_range[0], 1)
+        elif (nens.__class__ is tuple or nens.__class__ is list):
+            raise Exception("    `nens` must be a integer")
         else:
             self._nens = nens
-            self._ens_range = (0, nens)
         if self._debug_level >= 0:
-            logging.info('  taking data from pings %d - %d' %
-                         tuple(self._ens_range))
+            logging.info('  taking data from pings 0 - %d' % self._nens)
             logging.info('  %d ensembles will be produced.\n' % self._nens)
         self.init_data()
-        dat = self.outd
-        cfg = self.cfg
 
         for iens in range(self._nens):
             if not self.read_buffer():
@@ -390,19 +378,11 @@ class _RDIReader():
                 else:
                     dat['coords']['time'][iens] = np.median(dates)
 
-        dat['coords']['range'] = (cfg['bin1_dist_m'] +
-                                  np.arange(self.ensemble['n_cells']) *
-                                  cfg['cell_size'])
-        for nm in cfg:
-            dat['attrs'][nm] = cfg[nm]
+        self.cleanup(self.cfg, self.outd)
         if self._bb:
-            dat = self.outdBB
-            cfg = self.cfgbb
-            dat['coords']['range'] = (cfg['bin1_dist_m'] +
-                                      np.arange(self.ensemble['n_cells']) *
-                                      cfg['cell_size'])
-            for nm in cfg:
-                dat['attrs'][nm] = cfg[nm]
+            self.cleanup(self.cfgbb, self.outdBB)
+
+        # Finalize dataset (runs through both nb and bb)
         for dat in datl:
             self.finalize(dat)
             if 'vel_bt' in dat['data_vars']:
@@ -411,6 +391,40 @@ class _RDIReader():
         dat = self.outd
         datbb = self.outdBB if self._bb else None
         return dat, datbb
+
+    def init_data(self,):
+        outd = {'data_vars': {}, 'coords': {},
+                'attrs': {}, 'units': {}, 'sys': {}}
+        outd['attrs']['inst_make'] = 'TRDI'
+        outd['attrs']['inst_type'] = 'ADCP'
+        outd['attrs']['rotate_vars'] = ['vel', ]
+        # Currently RDI doesn't use IMUs
+        outd['attrs']['has_imu'] = 0
+        if self._bb:
+            outdbb = {'data_vars': {}, 'coords': {},
+                      'attrs': {}, 'units': {}, 'sys': {}}
+            outdbb['attrs']['inst_make'] = 'TRDI'
+            outdbb['attrs']['inst_type'] = 'ADCP'
+            outdbb['attrs']['rotate_vars'] = ['vel', ]
+            outdbb['attrs']['has_imu'] = 0
+
+        for nm in defs.data_defs:
+            outd = defs._idata(outd, nm,
+                               sz=defs._get_size(nm, self._nens, self.cfg['n_cells']))
+        self.outd = outd
+
+        if self._bb:
+            for nm in defs.data_defs:
+                outdbb = defs._idata(outdbb, nm,
+                                     sz=defs._get_size(nm, self._nens, self.cfgbb['n_cells']))
+            self.outdBB = outdbb
+            if self._debug_level > 1:
+                logging.info(np.shape(outdbb['data_vars']['vel']))
+
+        if self._debug_level > 1:
+            logging.info('{} ncells, not BB'.format(self.cfg['n_cells']))
+            if self._bb:
+                logging.info('{} ncells, BB'.format(self.cfgbb['n_cells']))
 
     def read_buffer(self,):
         fd = self.f
@@ -454,7 +468,7 @@ class _RDIReader():
                                               .format(id, hdr['nbyte'] - 2 - byte_offset))
                             self.f.seek(hdr['nbyte'] - 2 - byte_offset, 1)
                     byte_offset = hdr['nbyte'] - 2
-            # check for vmdas again because VmDAS doesn't set the offsets
+            # Check for vmdas again because vmdas doesn't set the offsets
             # correctly, and we need this info:
             if not self._read_vmdas and self._vmdas_search:
                 if self._debug_level >= 1:
@@ -544,9 +558,7 @@ class _RDIReader():
         hdr = self.hdr
         hdr['nbyte'] = fd.read_i16(1)
         spare = fd.read_ui8(1)
-        # print('spare', spare)
         ndat = fd.read_ui8(1)
-        # print('ndat', ndat)
         hdr['dat_offsets'] = fd.read_ui16(ndat)
         self._nbyte = 4 + ndat * 2
 
@@ -582,46 +594,64 @@ class _RDIReader():
             self._fixoffset = offset - 4
         fd.seek(4 + self._fixoffset, 1)
 
+    def remove_end(self, iens):
+        dat = self.outd
+        if self._debug_level > 0:
+            logging.info('  Encountered end of file.  Cleaning up data.')
+        for nm in self.vars_read:
+            defs._setd(dat, nm, defs._get(dat, nm)[..., :iens])
+
     def read_dat(self, id):
         function_map = {0: (self.read_fixed, []),   # 0000 1st profile fixed leader
                         1:  (self.read_fixed, [True]),  # 0001
-                        # 0010 2nd profile fixed leader
-                        16: (self.read_fixed2, []),
+                        # 0010 Surface layer fixed leader (RiverPro & StreamPro)
+                        16: (self.read_fixed_sl, []),
                         # 0080 1st profile variable leader
-                        128: (self.read_var, []),
+                        128: (self.read_var, [0]),
                         # 0081 2nd profile variable leader
-                        129: (self.read_var, [True]),
+                        129: (self.read_var, [1]),
                         # 0100 1st profile velocity
-                        256: (self.read_vel, []),
+                        256: (self.read_vel, [0]),
                         # 0101 2nd profile velocity
-                        257: (self.read_vel, [True]),
+                        257: (self.read_vel, [1]),
                         # 0103 Waves first leader
                         259: (self.skip_Nbyte, [74]),
+                        # 0110 Surface layer velocity (RiverPro & StreamPro)
+                        272: (self.read_vel, [2]),
                         # 0200 1st profile correlation
-                        512: (self.read_corr, []),
+                        512: (self.read_corr, [0]),
                         # 0201 2nd profile correlation
-                        513: (self.read_corr, [True]),
+                        513: (self.read_corr, [1]),
                         # 0203 Waves data
                         515: (self.skip_Nbyte, [186]),
                         # 020C Ambient sound profile
                         524: (self.skip_Nbyte, [4]),
+                        # 0210 Surface layer correlation (RiverPro & StreamPro)
+                        528: (self.read_corr, [2]),
                         # 0300 1st profile amplitude
-                        768: (self.read_amp, []),
+                        768: (self.read_amp, [0]),
                         # 0301 2nd profile amplitude
-                        769: (self.read_amp, [True]),
+                        769: (self.read_amp, [1]),
                         # 0302 Beam 5 Sum of squared velocities
                         770: (self.skip_Ncol, []),
                         # 0303 Waves last leader
                         771: (self.skip_Ncol, [18]),
+                        # 0310 Surface layer amplitude (RiverPro & StreamPro)
+                        784: (self.read_amp, [2]),
                         # 0400 1st profile % good
-                        1024: (self.read_prcnt_gd, []),
+                        1024: (self.read_prcnt_gd, [0]),
                         # 0401 2nd profile pct good
-                        1025: (self.read_prcnt_gd, [True]),
+                        1025: (self.read_prcnt_gd, [1]),
                         # 0403 Waves HPR data
                         1027: (self.skip_Nbyte, [6]),
+                        # 0410 Surface layer pct good (RiverPro & StreamPro)
+                        1040: (self.read_prcnt_gd, [2]),
                         # 0500 1st profile status
-                        1280: (self.read_status, []),
-                        1281: (self.skip_Ncol, [4]),  # 0501 2nd profile status
+                        1280: (self.read_status, [0]),
+                        # 0501 2nd profile status
+                        1281: (self.read_status, [1]),
+                        # 0510 Surface layer status (RiverPro & StreamPro)
+                        1296: (self.read_status, [2]),
                         1536: (self.read_bottom, []),  # 0600 bottom tracking
                         1793: (self.skip_Ncol, [4]),  # 0701 number of pings
                         1794: (self.skip_Ncol, [4]),  # 0702 sum of squared vel
@@ -642,19 +672,23 @@ class _RDIReader():
                         8450: (self.read_winriver, [45]),  # 2102
                         8451: (self.read_winriver, [60]),  # 2103
                         8452: (self.read_winriver, [38]),  # 2104
-                        # 3200 transformation matrix
+                        # 3200 Transformation matrix
                         12800: (self.skip_Nbyte, [32]),
                         # 3000 Fixed attitude data format for Ocean Surveyor ADCPs
                         12288: (self.skip_Nbyte, [32]),
                         # 4100 beam 5 range
                         16640: (self.read_alt, []),
-                        # 5803 high res bottom track velocity
+                        # 4400 Firmware status data (RiverPro & StreamPro)
+                        17408: (self.skip_Nbyte, [28]),
+                        # 4401 Auto mode setup (RiverPro & StreamPro)
+                        17409: (self.skip_Nbyte, [82]),
+                        # 5803 High resolution bottom track velocity
                         22531: (self.skip_Nbyte, [68]),
-                        # 5804 bottom track range
+                        # 5804 Bottom track range
                         22532: (self.skip_Nbyte, [21]),
                         # 5901 ISM (IMU) data
                         22785: (self.skip_Nbyte, [65]),
-                        # 5902 ping attitude
+                        # 5902 Ping attitude
                         22786: (self.skip_Nbyte, [105]),
                         # 7001 ADC data
                         28673: (self.skip_Nbyte, [14]),
@@ -685,21 +719,22 @@ class _RDIReader():
             if diff > 0:
                 self.flag = diff
                 self.ensemble = defs._ensemble(self.n_avg, self.cfg['n_cells'])
-            if self._debug_level >= 1:
-                logging.warning('Number of cells changed to {}'
-                                .format(self.cfg['n_cells']))
+                # Not concerned if # of cells decreases
+                if self._debug_level >= 1:
+                    logging.warning('Number of cells changed to {}'
+                                    .format(self.cfg['n_cells']))
 
-    def read_fixed2(self,):
-        # Check if 2nd profile exists
-        offsets = list(self.id_positions.values())
-        idx = np.where(offsets == self.id_positions[16])[0][0]
-        byte_len = offsets[idx+1] - offsets[idx] - 2
-        # 2nd profile should have a length of 63 bytes
-        if byte_len == 63:
-            self.read_fixed(bb=not self._bb)  # set the other config
-        else:
-            logging.info("2nd profile config not found")
-            self.skip_nocode(16)
+    def read_fixed_sl(self,):
+        # Surface layer profile
+        cfg = self.cfg
+        cfg['surface_layer'] = 1
+        cfg['n_cells_sl'] = self.f.read_ui8(1)
+        cfg['cell_size_sl'] = self.f.read_ui16(1) * .01
+        cfg['bin1_dist_m_sl'] = round(self.f.read_ui16(1) * .01, 4)
+
+        if self._debug_level >= 0:
+            logging.info('Read Surface Layer Config')
+        self._nbyte = 2 + 5
 
     def read_cfgseg(self, bb=False):
         cfgstart = self.f.tell()
@@ -721,7 +756,7 @@ class _RDIReader():
         cfg['beam_pattern'] = (['concave',
                                 'convex'][int((config[0] & 8) == 8)])
         cfg['orientation'] = ['down', 'up'][int((config[0] & 128) == 128)]
-        # cfg['simflag'] = ['real', 'simulated'][tmp[4]]
+        simflag = ['real', 'simulated'][tmp[4]]
         fd.seek(1, 1)
         cfg['n_beams'] = fd.read_ui8(1) + beam5
         cfg['n_cells'] = fd.read_ui8(1)
@@ -834,7 +869,7 @@ class _RDIReader():
                 ens.rtc[:, k] = fd.read_ui8(7)
                 ens.rtc[0, k] = ens.rtc[0, k] + cent * 100
                 self._nbyte += 23
-        elif cfg['inst_model'].lower() == 'ocean_surveyor':
+        elif cfg['inst_model'].lower() == 'ocean surveyor':
             fd.seek(16, 1)  # 30 bytes all set to zero, 14 read above
             self._nbyte += 16
             if cfg['prog_ver'] > 23:
@@ -867,90 +902,85 @@ class _RDIReader():
         if self._debug_level >= 0:
             logging.info('Read Var')
 
-    def read_vel(self, bb=False):
-        if bb:
+    def switch_profile(self, bb):
+        if bb == 1:
             ens = self.ensembleBB
             cfg = self.cfgbb
-            self.vars_readBB += ['vel']
-
+            # Placeholder for dual profile mode
+            # Solution for vmdas profile in bb spot (vs nb)
+            tag = ''
+        elif bb == 2:
+            ens = self.ensemble
+            cfg = self.cfg
+            tag = '_sl'
         else:
             ens = self.ensemble
             cfg = self.cfg
-            self.vars_read += ['vel']
+            tag = ''
+
+        return ens, cfg, tag
+
+    def read_vel(self, bb=0):
+        ens, cfg, tg = self.switch_profile(bb)
+        self.vars_read += ['vel'+tg]
+        n_cells = cfg['n_cells'+tg]
 
         k = ens.k
         vel = np.array(
-            self.f.read_i16(4 * cfg['n_cells'])
-        ).reshape((cfg['n_cells'], 4)) * .001
-        ens['vel'][:cfg['n_cells'], :, k] = vel
-        self._nbyte = 2 + 4 * cfg['n_cells'] * 2
+            self.f.read_i16(4 * n_cells)
+        ).reshape((n_cells, 4)) * .001
+        ens['vel'+tg][:n_cells, :, k] = vel
+        self._nbyte = 2 + 4 * n_cells * 2
         if self._debug_level >= 0:
             logging.info('Read Vel')
 
-    def read_corr(self, bb=False):
-        if bb:
-            ens = self.ensembleBB
-            cfg = self.cfgbb
-            self.vars_readBB += ['corr']
-        else:
-            ens = self.ensemble
-            cfg = self.cfg
-            self.vars_read += ['corr']
+    def read_corr(self, bb=0):
+        ens, cfg, tg = self.switch_profile(bb)
+        self.vars_read += ['corr'+tg]
+        n_cells = cfg['n_cells'+tg]
 
         k = ens.k
-        ens.corr[:cfg['n_cells'], :, k] = np.array(
-            self.f.read_ui8(4 * cfg['n_cells'])
-        ).reshape((cfg['n_cells'], 4))
-        self._nbyte = 2 + 4 * cfg['n_cells']
+        ens['corr'+tg][:n_cells, :, k] = np.array(
+            self.f.read_ui8(4 * n_cells)
+        ).reshape((n_cells, 4))
+        self._nbyte = 2 + 4 * n_cells
         if self._debug_level >= 0:
             logging.info('Read Corr')
 
-    def read_amp(self, bb=False):
-        if bb:
-            ens = self.ensembleBB
-            cfg = self.cfgbb
-            self.vars_readBB += ['amp']
-        else:
-            ens = self.ensemble
-            cfg = self.cfg
-            self.vars_read += ['amp']
+    def read_amp(self, bb=0):
+        ens, cfg, tg = self.switch_profile(bb)
+        self.vars_read += ['amp'+tg]
+        n_cells = cfg['n_cells'+tg]
+
         k = ens.k
-        ens.amp[:cfg['n_cells'], :, k] = np.array(
-            self.f.read_ui8(4 * cfg['n_cells'])
-        ).reshape((cfg['n_cells'], 4))
-        self._nbyte = 2 + 4 * cfg['n_cells']
+        ens['amp'+tg][:n_cells, :, k] = np.array(
+            self.f.read_ui8(4 * n_cells)
+        ).reshape((n_cells, 4))
+        self._nbyte = 2 + 4 * n_cells
         if self._debug_level >= 0:
             logging.info('Read Amp')
 
-    def read_prcnt_gd(self, bb=False):
-        if bb:
-            ens = self.ensembleBB
-            cfg = self.cfgbb
-            self.vars_readBB += ['prcnt_gd']
-        else:
-            ens = self.ensemble
-            cfg = self.cfg
-            self.vars_read += ['prcnt_gd']
-        ens.prcnt_gd[:cfg['n_cells'], :, ens.k] = np.array(
-            self.f.read_ui8(4 * cfg['n_cells'])
-        ).reshape((cfg['n_cells'], 4))
-        self._nbyte = 2 + 4 * cfg['n_cells']
+    def read_prcnt_gd(self, bb=0):
+        ens, cfg, tg = self.switch_profile(bb)
+        self.vars_read += ['prcnt_gd'+tg]
+        n_cells = cfg['n_cells'+tg]
+
+        ens['prcnt_gd'+tg][:n_cells, :, ens.k] = np.array(
+            self.f.read_ui8(4 * n_cells)
+        ).reshape((n_cells, 4))
+        self._nbyte = 2 + 4 * n_cells
         if self._debug_level >= 0:
             logging.info('Read PG')
 
-    def read_status(self, bb=False):
-        if bb:
-            ens = self.ensembleBB
-            cfg = self.cfgbb
-            self.vars_readBB += ['status']
-        else:
-            ens = self.ensemble
-            cfg = self.cfg
-            self.vars_read += ['status']
-        ens.status[:cfg['n_cells'], :, ens.k] = np.array(
-            self.f.read_ui8(4 * cfg['n_cells'])
-        ).reshape((cfg['n_cells'], 4))
-        self._nbyte = 2 + 4 * cfg['n_cells']
+    def read_status(self, bb=0):
+        ens, cfg, tg = self.switch_profile(bb)
+        self.vars_read += ['status'+tg]
+        n_cells = cfg['n_cells'+tg]
+
+        ens['status'+tg][:n_cells, :, ens.k] = np.array(
+            self.f.read_ui8(4 * n_cells)
+        ).reshape((n_cells, 4))
+        self._nbyte = 2 + 4 * n_cells
         if self._debug_level >= 0:
             logging.info('Read Status')
 
@@ -1003,7 +1033,7 @@ class _RDIReader():
             fd.seek(7, 1)  # skip to rangeMsb bytes
             ens.dist_bt[:, k] = ens.dist_bt[:, k] + fd.read_ui8(4) * 655.36
             self._nbyte += 11
-        if cfg['prog_ver'] >= 16.2 and (cfg.get('sourceprog') is not 'WINRIVER'):
+        if cfg['prog_ver'] >= 16.2 and (cfg.get('sourceprog') != 'WINRIVER'):
             fd.seek(4, 1)  # not documented
             self._nbyte += 4
         if cfg['prog_ver'] >= 56.1:
@@ -1270,12 +1300,24 @@ class _RDIReader():
         if self._debug_level >= 0:
             logging.debug(f"Skipping ID code {id}\n")
 
-    def remove_end(self, iens):
-        dat = self.outd
-        if self._debug_level > 0:
-            logging.info('  Encountered end of file.  Cleaning up data.')
-        for nm in self.vars_read:
-            defs._setd(dat, nm, defs._get(dat, nm)[..., :iens])
+    def cleanup(self, cfg, dat):
+        dat['coords']['range'] = (cfg['bin1_dist_m'] +
+                                  np.arange(self.ensemble['n_cells']) *
+                                  cfg['cell_size'])
+
+        for nm in cfg:
+            dat['attrs'][nm] = cfg[nm]
+
+        if 'surface_layer' in cfg:  # RiverPro/StreamPro
+            dat['coords']['range_sl'] = (cfg['bin1_dist_m_sl'] +
+                                         np.arange(self.cfg['n_cells_sl']) *
+                                         cfg['cell_size_sl'])
+            # Trim surface layer profile to length
+            dv = dat['data_vars']
+            for var in dv:
+                if 'sl' in var:
+                    dv[var] = dv[var][:cfg['n_cells_sl']]
+            dat['attrs']['rotate_vars'].append('vel_sl')
 
     def finalize(self, dat):
         """Remove the attributes from the data that were never loaded.
@@ -1299,8 +1341,8 @@ class _RDIReader():
             if len(shp) and shp[0] == 'nc' and defs._in_group(dat, nm):
                 defs._setd(dat, nm, np.swapaxes(defs._get(dat, nm), 0, 1))
 
-    def __exit__(self, type, value, traceback):
-        self.f.close()
-
     def __enter__(self,):
         return self
+
+    def __exit__(self, type, value, traceback):
+        self.f.close()

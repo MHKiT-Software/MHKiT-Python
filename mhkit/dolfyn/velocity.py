@@ -21,7 +21,6 @@ class Velocity():
     See Also
     ========
     :class:`VelBinner`
-
     """
 
     ########
@@ -58,8 +57,8 @@ class Velocity():
 
           where here we are using the depth-averaged velocity to calculate
           the principal direction.
-
         """
+
         return rotate2(self.ds, out_frame, inplace)
 
     def set_declination(self, declin, inplace=True):
@@ -106,8 +105,8 @@ class Velocity():
         data object in the principal coordinate system, then calling
         dat.rotate2('earth') will yield a data object in the new
         'True' earth coordinate system)
-
         """
+
         return set_declination(self.ds, declin, inplace)
 
     def set_inst2head_rotmat(self, rotmat, inplace=True):
@@ -136,12 +135,13 @@ class Velocity():
         rotated back to the coordinate system in which it was input. This
         way the inst2head_rotmat gets applied correctly (in inst
         coordinate system).
-
         """
+
         return set_inst2head_rotmat(self.ds, rotmat, inplace)
 
     def save(self, filename, **kwargs):
-        """Save the data object (underlying xarray dataset) as netCDF (.nc).
+        """
+        Save the data object (underlying xarray dataset) as netCDF (.nc).
 
         Parameters
         ----------
@@ -153,8 +153,8 @@ class Velocity():
         -----
         See DOLfYN's :func:`save <dolfyn.io.api.save>` function for
         additional details.
-
         """
+
         save(self.ds, filename, **kwargs)
 
     ########
@@ -432,7 +432,8 @@ class Velocity():
 
 
 class VelBinner(TimeBinner):
-    """This is the base binning (averaging) tool.
+    """
+    This is the base binning (averaging) tool.
     All DOLfYN binning tools derive from this base class.
 
     Examples
@@ -449,13 +450,14 @@ class VelBinner(TimeBinner):
 
         # This computes the basic averages
         avg = binner.bin_average(rawdat)
-
     """
+
     # This defines how cross-spectra and stresses are computed.
     _cross_pairs = [(0, 1), (0, 2), (1, 2)]
 
     def bin_average(self, raw_ds, out_ds=None, names=None, noise=[0, 0, 0]):
-        """Bin the dataset and calculate the ensemble averages of each 
+        """
+        Bin the dataset and calculate the ensemble averages of each 
         variable.
 
         Parameters
@@ -488,8 +490,8 @@ class VelBinner(TimeBinner):
         raw_ds.attrs are copied to out_ds.attrs. Inconsistencies
         between the two (when out_ds is specified as input) raise an
         AttributeError.
-
         """
+
         out_ds = self._check_ds(raw_ds, out_ds)
 
         if names is None:
@@ -527,7 +529,8 @@ class VelBinner(TimeBinner):
         return out_ds
 
     def bin_variance(self, raw_ds, out_ds=None, names=None, suffix='_var'):
-        """Bin the dataset and calculate the ensemble variances of each 
+        """
+        Bin the dataset and calculate the ensemble variances of each 
         variable. Complementary to `bin_average()`.
 
         Parameters
@@ -559,8 +562,8 @@ class VelBinner(TimeBinner):
         raw_ds.attrs are copied to out_ds.attrs. Inconsistencies
         between the two (when out_ds is specified as input) raise an
         AttributeError.
-
         """
+
         out_ds = self._check_ds(raw_ds, out_ds)
 
         if names is None:
@@ -589,7 +592,8 @@ class VelBinner(TimeBinner):
         return out_ds
 
     def autocovariance(self, veldat, n_bin=None):
-        """Calculate the auto-covariance of the raw-signal `veldat`
+        """
+        Calculate the auto-covariance of the raw-signal `veldat`
 
         Parameters
         ----------
@@ -612,8 +616,8 @@ class VelBinner(TimeBinner):
         sides (to return a 'quartered' covariance).
 
         This has the advantage that the 0 index is actually zero-lag.
-
         """
+
         indat = veldat.values
 
         n_bin = self._parse_nbin(n_bin)
@@ -651,7 +655,8 @@ class VelBinner(TimeBinner):
         return da
 
     def turbulent_kinetic_energy(self, veldat, noise=[0, 0, 0], detrend=True):
-        """Calculate the turbulent kinetic energy (TKE) (variances 
+        """
+        Calculate the turbulent kinetic energy (TKE) (variances 
         of u,v,w).
 
         Parameters
@@ -672,8 +677,8 @@ class VelBinner(TimeBinner):
         -------
         ds : xarray.DataArray
             dataArray containing u'u'_, v'v'_ and w'w'_
-
         """
+
         if 'dir' in veldat.dims:
             # will error for ADCP 4-beam, but not for single beam
             vel = veldat.values
@@ -685,7 +690,7 @@ class VelBinner(TimeBinner):
         else:
             vel = self.demean(vel)
 
-        if 'b5' in veldat.name:
+        if 'time_b5' in veldat.dims:
             time = self.mean(veldat.time_b5.values)
         else:
             time = self.mean(veldat.time.values)
@@ -707,7 +712,7 @@ class VelBinner(TimeBinner):
             da = da.assign_coords({'tke': ["upup_", "vpvp_", "wpwp_"],
                                    'time': time})
         else:
-            if 'b5' in veldat.name:
+            if 'time_b5' in veldat.dims:
                 da = da.assign_coords({'time_b5': time})
             else:
                 da = da.assign_coords({'time': time})
@@ -715,13 +720,14 @@ class VelBinner(TimeBinner):
         return da
 
     def power_spectral_density(self, veldat,
-                               freq_units='Hz',
+                               freq_units='rad/s',
                                fs=None,
                                window='hann',
                                noise=[0, 0, 0],
                                n_bin=None, n_fft=None, n_pad=None,
                                step=None):
-        """Calculate the power spectral density of velocity.
+        """
+        Calculate the power spectral density of velocity.
 
         Parameters
         ----------
@@ -752,9 +758,9 @@ class VelBinner(TimeBinner):
         -------
         psd : xarray.DataArray (3, M, N_FFT)
           The spectra in the 'u', 'v', and 'w' directions.
-
         """
-        if 'b5' in veldat.name:
+
+        if 'time_b5' in veldat.dims:
             time = self.mean(veldat.time_b5.values)
             time_str = 'time_b5'
         else:

@@ -176,10 +176,10 @@ def set_declination(ds, declin, inplace=True):
     Parameters
     ----------
     ds : xarray.Dataset or :class:`dolfyn.velocity.Velocity`
-        The input dataset or velocity class
+       The input dataset or velocity class
     declination : float
-        The value of the magnetic declination in degrees (positive
-        values specify that Magnetic North is clockwise from True North)
+       The value of the magnetic declination in degrees (positive
+       values specify that Magnetic North is clockwise from True North)
     inplace : bool (default: True)
         When True ``ds`` is modified. When False a copy is returned.
 

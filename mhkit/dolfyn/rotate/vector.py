@@ -38,7 +38,7 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
            If True, this function performs the inverse rotation
            (earth->inst).
 
-    rotate_vars : list
+    rotate_vars : iterable
       The list of variables to rotate. By default this is taken from
       advo.props['rotate_vars'].
 

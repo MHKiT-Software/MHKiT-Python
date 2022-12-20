@@ -32,8 +32,8 @@ def read_signature(filename, userdata=True, nens=None, rebuild_index=False,
     -------
     ds : xarray.Dataset
         An xarray dataset from the binary instrument data
-
     """
+
     # Start debugger logging
     if debug:
         for handler in logging.root.handlers[:]:
@@ -101,9 +101,10 @@ def read_signature(filename, userdata=True, nens=None, rebuild_index=False,
         set_declination(ds, declin, inplace=True)
 
     # Close handler
-    for handler in logging.root.handlers[:]:
-        logging.root.removeHandler(handler)
-        handler.close()
+    if debug:
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+            handler.close()
 
     return ds
 

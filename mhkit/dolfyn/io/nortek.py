@@ -35,8 +35,8 @@ def read_nortek(filename, userdata=True, debug=False, do_checksum=False,
     -------
     ds : xarray.Dataset
         An xarray dataset from the binary instrument data
-
     """
+
     # Start debugger logging
     if debug:
         for handler in logging.root.handlers[:]:
@@ -107,9 +107,10 @@ def read_nortek(filename, userdata=True, debug=False, do_checksum=False,
     ds['time'] = time.epoch2dt64(ds['time']).astype('datetime64[us]')
 
     # Close handler
-    for handler in logging.root.handlers[:]:
-        logging.root.removeHandler(handler)
-        handler.close()
+    if debug:
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+            handler.close()
 
     return ds
 
@@ -156,8 +157,8 @@ class _NortekReader():
     nens : None (default: None, read all files), int, or 2-element tuple (start, stop).
         The number of pings to read from the file. By default, the entire file
         is read.
-
     """
+
     _lastread = [None, None, None, None, None]
     fun_map = {'0x00': 'read_user_cfg',
                '0x04': 'read_head_cfg',
@@ -682,7 +683,6 @@ class _NortekReader():
         vardict : (dict of :class:`<VarAttrs>`)
           The variable definitions in the :class:`<VarAttrs>` specify
           how to scale each data variable.
-
         """
         for nm, vd in list(vardict.items()):
             if vd.group is None:
@@ -804,18 +804,18 @@ class _NortekReader():
             tmpd = tbx._nans_like(dv['heading'][iburst])
             # The first status bit should be the orientation.
             tmpd[sysi] = dv['status'][iburst][sysi] & 1
-            tbx._fillgaps(tmpd, extrapFlg=True)
+            tbx.fillgaps(tmpd, extrapFlg=True)
             tmpd = np.nan_to_num(tmpd, nan=0)  # nans in pitch roll heading
             slope = np.diff(tmpd)
             tmpd[1:][slope < 0] = 1
             tmpd[:-1][slope > 0] = 0
             dv['orientation_down'][iburst] = tmpd.astype('bool')
-        tbx._interpgaps(dv['batt'], t)
-        tbx._interpgaps(dv['c_sound'], t)
-        tbx._interpgaps(dv['heading'], t)
-        tbx._interpgaps(dv['pitch'], t)
-        tbx._interpgaps(dv['roll'], t)
-        tbx._interpgaps(dv['temp'], t)
+        tbx.interpgaps(dv['batt'], t)
+        tbx.interpgaps(dv['c_sound'], t)
+        tbx.interpgaps(dv['heading'], t)
+        tbx.interpgaps(dv['pitch'], t)
+        tbx.interpgaps(dv['roll'], t)
+        tbx.interpgaps(dv['temp'], t)
 
     def read_microstrain(self,):
         """Read ADV microstrain sensor (IMU) data

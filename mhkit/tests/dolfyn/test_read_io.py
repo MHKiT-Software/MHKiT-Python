@@ -1,6 +1,6 @@
 from . import test_read_adp as tp
 from . import test_read_adv as tv
-from .base import assert_allclose, save_netcdf, save_matlab, load_matlab, exdt, rfnm, drop_config
+from mhkit.tests.dolfyn.base import assert_allclose, save_netcdf, save_matlab, load_matlab, exdt, rfnm, drop_config
 import mhkit.dolfyn.io.rdi as wh
 import mhkit.dolfyn.io.nortek as awac
 import mhkit.dolfyn.io.nortek2 as sig

@@ -86,7 +86,7 @@ def group(bl, min_length=0):
         if len(ups) == 0:
             ups = np.array([0])
         else:
-            ups = np.concatenate((np.arange([0]), [len(ups)]))
+            ups = np.concatenate((np.array([0]), [len(ups)]))
     if bl[-1]:
         if len(dns) == 0:
             dns = np.array([len(bl)])
@@ -183,7 +183,7 @@ def convert_degrees(deg, tidal_mode=True):
     return out
 
 
-def _fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
+def fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
     """Linearly fill NaN value in an array.
 
     Parameters
@@ -213,7 +213,7 @@ def _fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
     # If this is a multi-dimensional array, operate along axis dim.
     if a.ndim > 1:
         for inds in slice1d_along_axis(a.shape, dim):
-            _fillgaps(a[inds], maxgap, 0, extrapFlg)
+            fillgaps(a[inds], maxgap, 0, extrapFlg)
         return
 
     a = np.asarray(a)
@@ -251,7 +251,7 @@ def _fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
     return a
 
 
-def _interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
+def interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
     """
     Fill gaps (NaN values) in ``a`` by linear interpolation along
     dimension ``dim`` with the point spacing specified in ``t``.
@@ -272,7 +272,7 @@ def _interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
 
     See Also
     --------
-    mhkit.dolfyn.tools.misc._fillgaps : Linearly interpolates in array-index space.
+    mhkit.dolfyn.tools.misc.fillgaps : Linearly interpolates in array-index space.
 
     """
 
@@ -305,7 +305,7 @@ def _interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
     return a
 
 
-def _medfiltnan(a, kernel, thresh=0):
+def medfiltnan(a, kernel, thresh=0):
     """
     Do a running median filter of the data. Regions where more than 
     ``thresh`` fraction of the points are NaN are set to NaN.

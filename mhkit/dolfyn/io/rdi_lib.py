@@ -115,7 +115,7 @@ class bin_reader():
     def read_i32(self, n):
         return self.read(n, 'l')
 
-#ics = 0  # This is a holder for the checksum index
+# ics = 0  # This is a holder for the checksum index
 # class checksum():
 #     # Checksum for TRDI
 #     def __init__(self, file, val, size, error_behavior='exception'):

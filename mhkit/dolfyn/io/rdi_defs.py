@@ -86,6 +86,11 @@ data_defs = {'number': ([], 'data_vars', 'uint32', ''),
              'dir_over_grnd_gps': ([], 'data_vars', 'float32', 'deg'),
              'heading_gps': ([], 'data_vars', 'float64', 'deg'),
              'dist_nmea': ([], 'data_vars', 'float32', 'm'),
+             'vel_sl': (['nc', 4], 'data_vars', 'float32', 'm/s'),
+             'corr_sl': (['nc', 4], 'data_vars', 'uint8', 'counts'),
+             'amp_sl': (['nc', 4], 'data_vars', 'uint8', 'counts'),
+             'prcnt_gd_sl': (['nc', 4], 'data_vars', 'uint8', '%'),
+             'status_sl': (['nc', 4], 'data_vars', 'float32', ''),
              }
 
 

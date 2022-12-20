@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import numpy as np
-from .tools.misc import _fillgaps
+from .tools.misc import fillgaps
 
 
 def _fullyear(year):
@@ -252,7 +252,7 @@ def _fill_time_gaps(epoch, sample_rate_hz):
     """
     # epoch is seconds since 1970
     dt = 1. / sample_rate_hz
-    epoch = _fillgaps(epoch)
+    epoch = fillgaps(epoch)
     if np.isnan(epoch[0]):
         i0 = np.nonzero(~np.isnan(epoch))[0][0]
         delta = np.arange(-i0, 0, 1) * dt

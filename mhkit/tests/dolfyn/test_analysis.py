@@ -1,5 +1,5 @@
 from . import test_read_adp as tr, test_read_adv as tv
-from .base import load_netcdf as load, save_netcdf as save, assert_allclose
+from mhkit.tests.dolfyn.base import load_netcdf as load, save_netcdf as save, assert_allclose
 from mhkit.dolfyn import VelBinner, read_example
 import mhkit.dolfyn.adv.api as avm
 from xarray.testing import assert_identical
@@ -14,7 +14,7 @@ class analysis_testcase(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.adv1 = tv.dat.copy(deep=True)
-        self.adv2 = read_example('burst_mode01.VEC', nens=90)
+        self.adv2 = read_example('vector_burst_mode01.VEC', nens=90)
         self.adv_tool = VelBinner(n_bin=self.adv1.fs, fs=self.adv1.fs)
 
         self.adp = tr.dat_sig.copy(deep=True)
@@ -51,10 +51,11 @@ class analysis_testcase(unittest.TestCase):
 
         test_ds['acov'] = c.autocovariance(self.adv1.vel)
         test_ds['tke_vec_detrend'] = c.turbulent_kinetic_energy(
-            self.adv1.vel)
+            self.adv1.vel, detrend=True)
         test_ds['tke_vec_demean'] = c.turbulent_kinetic_energy(
             self.adv1.vel, detrend=False)
-        test_ds['psd'] = c.power_spectral_density(self.adv1.vel)
+        test_ds['psd'] = c.power_spectral_density(
+            self.adv1.vel, freq_units='Hz')
 
         # Test ADCP single vector spectra, cross-spectra to test radians code
         test_ds_adp['psd_b5'] = c2.power_spectral_density(

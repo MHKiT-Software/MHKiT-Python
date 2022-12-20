@@ -16,7 +16,7 @@ def _get_body2imu(make_model):
         raise Exception("The imu->body vector is unknown for this instrument.")
 
 
-class _CalcMotion():
+class CalcMotion():
     """
     A 'calculator' for computing the velocity of points that are
     rigidly connected to an ADV-body with an IMU.
@@ -135,7 +135,7 @@ class _CalcMotion():
             for idx in range(3):
                 acc[idx] = ss.filtfilt(flt[0], flt[1], acc[idx], axis=-1)
 
-    def _calc_velacc(self, ):
+    def calc_velacc(self, ):
         """
         Calculates the translational velocity from the high-pass
         filtered acceleration signal.
@@ -169,20 +169,23 @@ class _CalcMotion():
 
         if n:
             # remove reshape
-            acc_shaped = np.empty(self.angrt.shape)
+            velacc_shaped = np.empty(self.angrt.shape)
             acclow_shaped = np.empty(self.angrt.shape)
+            accel_shaped = np.empty(self.angrt.shape)
             for idx in range(hp.shape[0]):
-                acc_shaped[idx] = np.ravel(dat[idx], 'C')
+                velacc_shaped[idx] = np.ravel(dat[idx], 'C')
                 acclow_shaped[idx] = np.ravel(self.acclow[idx], 'C')
+                accel_shaped[idx] = np.ravel(self.accel[idx], 'C')
 
-            # return acclow and accel
+            # return acclow and velacc
             self.acclow = acclow_shaped
-            return acc_shaped
+            self.accel = accel_shaped
+            return velacc_shaped
 
         else:
             return dat
 
-    def _calc_velrot(self, vec, to_earth=None):
+    def calc_velrot(self, vec, to_earth=None):
         """
         Calculate the induced velocity due to rotations of the instrument
         about the IMU center.
@@ -397,24 +400,24 @@ def correct_motion(ds,
     rot._check_inst2head_rotmat(ds)
 
     # Create the motion 'calculator':
-    calcobj = _CalcMotion(ds,
-                          accel_filtfreq=accel_filtfreq,
-                          vel_filtfreq=vel_filtfreq,
-                          to_earth=to_earth)
+    calcobj = CalcMotion(ds,
+                         accel_filtfreq=accel_filtfreq,
+                         vel_filtfreq=vel_filtfreq,
+                         to_earth=to_earth)
 
     ##########
     # Calculate the translational velocity (from the accel):
-    ds['velacc'] = xr.DataArray(calcobj._calc_velacc(),
-                                dims=['dirIMU', 'time'])
+    ds['velacc'] = xr.DataArray(calcobj.calc_velacc(), dims=[
+                                'dirIMU', 'time']).astype('float32')
     # Copy acclow to the adv-object.
-    ds['acclow'] = xr.DataArray(calcobj.acclow,
-                                dims=['dirIMU', 'time'])
+    ds['acclow'] = xr.DataArray(
+        calcobj.acclow, dims=['dirIMU', 'time']).astype('float32')
 
     ##########
     # Calculate rotational velocity (from angrt):
     pos = _calc_probe_pos(ds, separate_probes)
     # Calculate the velocity of the head (or probes).
-    velrot = calcobj._calc_velrot(pos, to_earth=False)
+    velrot = calcobj.calc_velrot(pos, to_earth=False)
     if separate_probes:
         # The head->beam transformation matrix
         transMat = ds.get('beam2inst_orientmat', None)
@@ -433,7 +436,8 @@ def correct_motion(ds,
                                                  velrot)))
         # 5) Rotate back to body-coord.
         velrot = np.dot(rmat.T, velrot)
-    ds['velrot'] = xr.DataArray(velrot, dims=['dirIMU', 'time'])
+    ds['velrot'] = xr.DataArray(
+        velrot, dims=['dirIMU', 'time']).astype('float32')
 
     ##########
     # Rotate the data into the correct coordinate system.
@@ -446,9 +450,10 @@ def correct_motion(ds,
         ds.attrs['rotate_vars'].extend(['velrot', 'velacc', 'acclow'])
 
     # NOTE: accel, acclow, and velacc are in the earth-frame after
-    #       _calc_velacc() call.
+    #       calc_velacc() call.
     inst2earth = rot._inst2earth
     if to_earth:
+        # accel was converted to earth coordinates
         ds['accel'].values = calcobj.accel
         to_remove = ['accel', 'acclow', 'velacc']
         ds = inst2earth(ds, rotate_vars=[e for e in
@@ -457,12 +462,13 @@ def correct_motion(ds,
     else:
         # rotate these variables back to the instrument frame.
         ds = inst2earth(ds, reverse=True,
-                        rotate_vars=['accel', 'acclow', 'velacc'],
+                        rotate_vars=['acclow', 'velacc'],
                         force=True)
 
     ##########
     # Copy vel -> velraw prior to motion correction:
-    ds['vel_raw'] = xr.DataArray(ds.vel.copy(deep=True), dims=ds.vel.dims)
+    ds['vel_raw'] = xr.DataArray(ds.vel.copy(
+        deep=True), dims=ds.vel.dims).astype('float32')
     # Add it to rotate_vars:
     ds.attrs['rotate_vars'].append('vel_raw')
 

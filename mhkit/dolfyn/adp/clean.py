@@ -3,7 +3,7 @@
 import numpy as np
 import xarray as xr
 from scipy.signal import medfilt
-from ..tools.misc import _medfiltnan
+from ..tools.misc import medfiltnan
 from ..rotate.api import rotate2
 from ..rotate.base import _make_model, quaternion2orient
 
@@ -38,8 +38,8 @@ def set_range_offset(ds, h_deploy):
     the height of the tripod +/- any extra distance to the transducer faces.
     If the instrument is vessel-mounted, `h_deploy` is the distance between
     the surface and downward-facing ADCP's transducers.
-
     """
+
     r = [s for s in ds.dims if 'range' in s]
     for val in r:
         ds[val] = ds[val].values + h_deploy
@@ -70,8 +70,8 @@ def find_surface(ds, thresh=10, nfilt=None):
     Returns
     -------
     None, operates "in place"
-
     """
+
     # This finds the maximum of the echo profile:
     inds = np.argmax(ds.amp.values, axis=1)
     # This finds the first point that increases (away from the profiler) in
@@ -96,11 +96,12 @@ def find_surface(ds, thresh=10, nfilt=None):
             d[ip] = np.NaN
 
     if nfilt:
-        dfilt = _medfiltnan(d, nfilt, thresh=.4)
+        dfilt = medfiltnan(d, nfilt, thresh=.4)
         dfilt[dfilt == 0] = np.NaN
         d = dfilt
 
-    ds['depth'] = xr.DataArray(d, dims=['time'], attrs={'units': 'm'})
+    ds['depth'] = xr.DataArray(d, dims=['time'], attrs={
+                               'units': 'm'}).astype('float32')
 
 
 def find_surface_from_P(ds, salinity=35):
@@ -128,8 +129,8 @@ def find_surface_from_P(ds, salinity=35):
 
     Calculates seawater density at normal atmospheric pressure according
     to the UNESCO 1981 equation of state. Does not include hydrostatic pressure.
-
     """
+
     # Density calcation
     T = ds.temp.values
     S = salinity
@@ -152,15 +153,15 @@ def find_surface_from_P(ds, salinity=35):
         description = "Water depth to ADCP"
 
     ds['water_density'] = xr.DataArray(
-        rho_atm0,
+        rho_atm0.astype('float32'),
         dims=['time'],
         attrs={'units': 'kg/m^3',
                'description': 'Water density according to UNESCO 1981 equation of state'})
-    ds['depth'] = xr.DataArray(d, dims=['time'], attrs={
+    ds['depth'] = xr.DataArray(d.astype('float32'), dims=['time'], attrs={
                                'units': 'm', 'description': description})
 
 
-def nan_beyond_surface(ds, val=np.nan):
+def nan_beyond_surface(ds, val=np.nan, inplace=False):
     """
     Mask the values of 3D data (vel, amp, corr, echo) that are beyond the surface.
 
@@ -170,19 +171,24 @@ def nan_beyond_surface(ds, val=np.nan):
       The adcp dataset to clean
     val : nan or numeric
       Specifies the value to set the bad values to (default np.nan).
+    inplace : bool (default: False)
+      When True the existing data object is modified. When False
+      a copy is returned.
 
     Returns
     -------
     ds : xarray.Dataset
-      The adcp dataset where relevant arrays with values greater than
-      `depth` are set to NaN
+      Sets the adcp dataset where relevant arrays with values greater than `depth`
+      set to NaN
 
     Notes
     -----
-    Surface interference expected to happen at `distance > range * cos(beam angle) - cell size`
-
+    Surface interference expected to happen at 
+    `distance > range * cos(beam angle) - cell size`
     """
-    ds = ds.copy(deep=True)
+
+    if not inplace:
+        ds = ds.copy(deep=True)
 
     # Get all variables with 'range' coordinate
     var = [h for h in ds.keys() if any(s for s in ds[h].dims if 'range' in s)]
@@ -219,7 +225,108 @@ def nan_beyond_surface(ds, val=np.nan):
             a[..., bds] = 0
         ds[nm].values = a
 
-    return ds
+    if not inplace:
+        return ds
+
+
+def correlation_filter(ds, thresh=50, inplace=False):
+    """
+    Filters out data where correlation is below a threshold in the 
+    along-beam correlation data.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+      The adcp dataset to clean.
+    thresh : numeric
+      The maximum value of correlation to screen, in counts or %
+    inplace : bool (default: False)
+      When True the existing data object is modified. When False
+      a copy is returned.
+
+    Returns
+    -------
+    ds : xarray.Dataset
+      Elements in velocity, correlation, and amplitude are removed if below the 
+      correlation threshold
+
+    Notes
+    -----
+    Does not edit correlation or amplitude data.
+    """
+
+    if not inplace:
+        ds = ds.copy(deep=True)
+
+    # 4 or 5 beam
+    if hasattr(ds, 'vel_b5'):
+        tag = ['', '_b5']
+    else:
+        tag = ['']
+
+    # copy original ref frame
+    coord_sys_orig = ds.coord_sys
+
+    # correlation is always in beam coordinates
+    rotate2(ds, 'beam', inplace=True)
+    # correlation is always in beam coordinates
+    for tg in tag:
+        mask = ds['corr'+tg].values <= thresh
+
+        for var in ['vel', 'corr', 'amp']:
+            try:
+                ds[var+tg].values[mask] = np.nan
+            except:
+                ds[var+tg].values[mask] = 0
+            ds[var+tg].attrs['Comments'] = 'Filtered of data with a correlation value below ' + \
+                str(thresh) + ds.corr.units
+
+    rotate2(ds, coord_sys_orig, inplace=True)
+
+    if not inplace:
+        return ds
+
+
+def medfilt_orient(ds, nfilt=7):
+    """
+    Median filters the orientation data (heading-pitch-roll or quaternions)
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+      The adcp dataset to clean
+    nfilt : numeric
+      The length of the median-filtering kernel
+      *nfilt* must be odd.
+
+    Return
+    ------
+    ds : xarray.Dataset
+      The adcp dataset with the filtered orientation data
+
+    See Also
+    --------
+    scipy.signal.medfilt()
+    """
+
+    ds = ds.copy(deep=True)
+
+    if getattr(ds, 'has_imu'):
+        q_filt = np.zeros(ds.quaternions.shape)
+        for i in range(ds.quaternions.q.size):
+            q_filt[i] = medfilt(ds.quaternions[i].values, nfilt)
+        ds.quaternions.values = q_filt
+
+        ds['orientmat'] = quaternion2orient(ds.quaternions)
+        return ds
+
+    else:
+        # non Nortek AHRS-equipped instruments
+        do_these = ['pitch', 'roll', 'heading']
+        for nm in do_these:
+            ds[nm].values = medfilt(ds[nm].values, nfilt)
+
+        return ds.drop_vars('orientmat')
 
 
 def val_exceeds_thresh(var, thresh=5, val=np.nan):
@@ -253,96 +360,6 @@ def val_exceeds_thresh(var, thresh=5, val=np.nan):
     return var
 
 
-def correlation_filter(ds, thresh=50, val=np.nan):
-    """
-    Filters out velocity data where correlation is below a
-    threshold in the beam correlation data.
-
-    Parameters
-    ----------
-    ds : xarray.Dataset
-      The adcp dataset to clean.
-    thresh : numeric
-      The maximum value of correlation to screen, in counts or %
-    val : numeric
-      Value to set masked correlation data to, default is nan
-
-    Returns
-    -------
-    ds : xarray.Dataset
-     Velocity data with low correlation values set to `val`
-
-    Notes
-    -----
-    Does not edit correlation or amplitude data.
-
-    """
-    ds = ds.copy(deep=True)
-
-    # 4 or 5 beam
-    if hasattr(ds, 'vel_b5'):
-        tag = ['', '_b5']
-    else:
-        tag = ['']
-
-    # copy original ref frame
-    coord_sys_orig = ds.coord_sys
-
-    # correlation is always in beam coordinates
-    rotate2(ds, 'beam', inplace=True)
-    for tg in tag:
-        mask = (ds['corr'+tg].values <= thresh)
-        ds['vel'+tg].values[mask] = val
-        ds['vel'+tg].attrs['Comments'] = 'Filtered of data with a correlation value below ' + \
-            str(thresh) + ds.corr.units
-
-    rotate2(ds, coord_sys_orig, inplace=True)
-
-    return ds
-
-
-def medfilt_orient(ds, nfilt=7):
-    """
-    Median filters the orientation data (heading-pitch-roll or quaternions)
-
-    Parameters
-    ----------
-    ds : xarray.Dataset
-      The adcp dataset to clean
-    nfilt : numeric
-      The length of the median-filtering kernel
-      *nfilt* must be odd.
-
-    Return
-    ------
-    ds : xarray.Dataset
-      The adcp dataset with the filtered orientation data
-
-    See Also
-    --------
-    scipy.signal.medfilt()
-
-    """
-    ds = ds.copy(deep=True)
-
-    if getattr(ds, 'has_imu'):
-        q_filt = np.zeros(ds.quaternions.shape)
-        for i in range(ds.quaternions.q.size):
-            q_filt[i] = medfilt(ds.quaternions[i].values, nfilt)
-        ds.quaternions.values = q_filt
-
-        ds['orientmat'] = quaternion2orient(ds.quaternions)
-        return ds
-
-    else:
-        # non Nortek AHRS-equipped instruments
-        do_these = ['pitch', 'roll', 'heading']
-        for nm in do_these:
-            ds[nm].values = medfilt(ds[nm].values, nfilt)
-
-        return ds.drop_vars('orientmat')
-
-
 def fillgaps_time(var, method='cubic', maxgap=None):
     """
     Fill gaps (nan values) in var across time using the specified method
@@ -354,7 +371,7 @@ def fillgaps_time(var, method='cubic', maxgap=None):
     method : string
       Interpolation method to use
     maxgap : numeric
-      Maximum length of missing data in seconds to interpolate across
+      Maximum gap of missing data to interpolate across
 
     Returns
     -------
@@ -364,15 +381,13 @@ def fillgaps_time(var, method='cubic', maxgap=None):
     See Also
     --------
     xarray.DataArray.interpolate_na()
-
     """
+
     time_dim = [t for t in var.dims if 'time' in t][0]
-    if maxgap:
-        maxgap = np.timedelta64(maxgap, 's')
 
     return var.interpolate_na(dim=time_dim, method=method,
                               use_coordinate=True,
-                              max_gap=maxgap)
+                              limit=maxgap)
 
 
 def fillgaps_depth(var, method='cubic', maxgap=None):
@@ -386,7 +401,7 @@ def fillgaps_depth(var, method='cubic', maxgap=None):
     method : string
       Interpolation method to use
     maxgap : int
-      Maximum length of missing data in bins to interpolate across depth
+      Maximum gap of missing data to interpolate across
 
     Returns
     -------
@@ -396,10 +411,10 @@ def fillgaps_depth(var, method='cubic', maxgap=None):
     See Also
     --------
     xarray.DataArray.interpolate_na()
-
     """
+
     range_dim = [t for t in var.dims if 'range' in t][0]
 
     return var.interpolate_na(dim=range_dim, method=method,
                               use_coordinate=False,
-                              max_gap=maxgap)
+                              limit=maxgap)
