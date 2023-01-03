@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Aug 22 14:42:41 2022
-
-@author: akeeste
-"""
-
 from os.path import abspath, dirname, join, isfile, normpath, relpath
 from pandas.testing import assert_frame_equal
 from numpy.testing import assert_allclose
