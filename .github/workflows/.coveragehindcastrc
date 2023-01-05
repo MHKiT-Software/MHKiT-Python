@@ -1,7 +1,10 @@
 [run]
 include =
     ./mhkit/wave/io/hindcast.py
+    ./mhkit/wave/io/wind_toolkit.py
 
 [report]
 include =
     ./mhkit/wave/io/hindcast.py
+    ./mhkit/wave/io/wind_toolkit.py
+    
