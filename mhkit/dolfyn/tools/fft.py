@@ -20,8 +20,8 @@ def fft_frequency(nfft, fs, full=False):
     -------
     freq : numpy.ndarray
       The frequency vector, in same units as 'fs'
-
     """
+
     fs = np.float64(fs)
     f = np.fft.fftfreq(int(nfft), 1 / fs)
     if full:
@@ -60,8 +60,8 @@ def _stepsize(l, nfft, nens=None, step=None):
     step    : The step size.
     nens    : The number of ensemble ffts to average together.
     nfft    : The number of points in the fft (set to l if nfft>l).
-
     """
+
     if l < nfft:
         nfft = l
     if nens is None and step is None:
@@ -132,8 +132,8 @@ def cpsd_quasisync_1D(a, b, nfft, fs, window='hann'):
 
     The units of the spectra is the product of the units of `a` and
     `b`, divided by the units of fs.
-
     """
+
     if np.iscomplexobj(a) or np.iscomplexobj(b):
         raise Exception("Velocity cannot be complex")
     l = [len(a), len(b)]
@@ -217,8 +217,8 @@ def cpsd_1D(a, b, nfft, fs, window='hann', step=None):
 
     The units of the spectra is the product of the units of `a` and
     `b`, divided by the units of fs.
-
     """
+
     if np.iscomplexobj(a) or np.iscomplexobj(b):
         raise Exception("Velocity cannot be complex")
     auto_psd = False
@@ -293,6 +293,6 @@ def psd_1D(a, nfft, fs, window='hann', step=None):
     :func:`cpsd_1D`
     :func:`coherence_1D`
     `numpy.fft`
-
     """
+
     return np.abs(cpsd_1D(a, a, nfft, fs, window=window, step=step))

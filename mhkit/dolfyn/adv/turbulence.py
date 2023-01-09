@@ -20,9 +20,8 @@ class ADVBinner(VelBinner):
       Instrument sampling frequency in Hz
     n_fft : int (optional, default: n_fft = n_bin)
       The length of the FFT for computing spectra (must be <= n_bin)
-    n_fft_coh : int
+    n_fft_coh : int (optional, default: `n_fft_coh`=`n_fft`)
       Number of data points to use for coherence and cross-spectra ffts
-      Default: `n_fft_coh`=`n_fft`
     noise : float, list or numpy.ndarray
       Instrument's doppler noise in same units as velocity
     """
@@ -113,6 +112,7 @@ class ADVBinner(VelBinner):
           The sample rate (default: from the binner).
         window : string or array
           Specify the window function.
+         Options: 1, None, 'hann', 'hamm'
         n_bin : int (optional)
           The bin-size (default: from the binner).
         n_fft_coh : int (optional)
@@ -123,8 +123,8 @@ class ADVBinner(VelBinner):
         csd : xarray.DataArray (3, M, N_FFT)
           The first-dimension of the cross-spectrum is the three
           different cross-spectra: 'uv', 'uw', 'vw'.
-
         """
+
         fs = self._parse_fs(fs)
         n_fft = self._parse_nfft_coh(n_fft_coh)
         time = self.mean(veldat.time.values)
@@ -170,7 +170,7 @@ class ADVBinner(VelBinner):
           The power spectral density
         U_mag : xarray.DataArray (...,time)
           The bin-averaged horizontal velocity [m/s] (from dataset shortcut)
-        freq_range : iterable(2)
+        freq_range : iterable(2) (default: [6.28, 12.57])
           The range over which to integrate/average the spectrum, in units 
           of the psd frequency vector (Hz or rad/s)
 
@@ -235,7 +235,7 @@ class ADVBinner(VelBinner):
           The bin-averaged horizontal velocity (from dataset shortcut)
         fs : float
           The sample rate of `vel_raw` [Hz]
-        freq_range : iterable(2)
+        freq_range : iterable(2) (default: [2., 4.])
           The frequency range over which to compute the SF [Hz]
           (i.e. the frequency range within which the isotropic 
           turbulence cascade falls)
@@ -285,8 +285,8 @@ class ADVBinner(VelBinner):
         -------
         theta : numpy.ndarray (..., n_time)
           The angle of the turbulence [rad]
-
         """
+
         dt = self.demean(U_complex)
         fx = dt.imag <= 0
         dt[fx] = dt[fx] * np.exp(1j * np.pi)
@@ -305,8 +305,8 @@ class ADVBinner(VelBinner):
         theta : numpy.ndarray
           is the angle between the mean flow and the primary axis of
           velocity fluctuations
-
         """
+
         x = np.arange(-20, 20, 1e-2)  # I think this is a long enough range.
         out = np.empty_like(I_tke.flatten())
         for i, (b, t) in enumerate(zip(I_tke.flatten(), theta.flatten())):
@@ -329,7 +329,7 @@ class ADVBinner(VelBinner):
           The bin-averaged adv dataset (calc'd from 'calc_turbulence' or
           'do_avg'). The spectra (psd) and basic turbulence statistics 
           ('tke_vec' and 'stress_vec') must already be computed.
-        freq_range : iterable(2)
+        freq_range : iterable(2) (default: [6.28, 12.57])
           The range over which to integrate/average the spectrum, in units 
           of the psd frequency vector (Hz or rad/s)
 
@@ -420,11 +420,12 @@ def turbulence_statistics(ds_raw, n_bin, fs, n_fft=None, freq_units='rad/s', win
     ds_raw : xarray.Dataset
       The raw adv datset to `bin`, average and compute
       turbulence statistics of.
-    freq_units : string
+    freq_units : string (default: rad/s)
       Frequency units of the returned spectra in either Hz or rad/s 
       (`f` or :math:`\\omega`)
-    window : 1, None, 'hann'
-      The window to use for calculating power spectral densities
+    window : string or array
+      The window to use for calculating spectra.
+
 
     Returns
     -------

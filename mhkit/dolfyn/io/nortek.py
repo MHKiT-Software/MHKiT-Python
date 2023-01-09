@@ -17,24 +17,27 @@ from ..rotate import api as rot
 
 def read_nortek(filename, userdata=True, debug=False, do_checksum=False,
                 nens=None, **kwargs):
-    """Read a classic Nortek (AWAC and Vector) datafile
+    """
+    Read a classic Nortek (AWAC and Vector) datafile
 
     Parameters
     ----------
     filename : string
-        Filename of Nortek file to read.
+      Filename of Nortek file to read.
     userdata : True, False, or string of userdata.json filename
-        (default ``True``) Whether to read the '<base-filename>.userdata.json'
-        file.
+      (default ``True``) Whether to read the '<base-filename>.userdata.json'
+      file.
+    debug : bool (default: False)
+      Logs debugger ouput if true
     do_checksum : bool (default False)
-        Whether to perform the checksum of each data block.
+      Whether to perform the checksum of each data block.
     nens : None (default: read entire file), int, or 2-element tuple (start, stop)
-        Number of pings to read from the file
+      Number of pings or ensembles to read from the file
 
     Returns
     -------
     ds : xarray.Dataset
-        An xarray dataset from the binary instrument data
+      An xarray dataset from the binary instrument data
     """
 
     # Start debugger logging

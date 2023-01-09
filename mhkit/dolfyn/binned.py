@@ -167,7 +167,7 @@ class TimeBinner:
           current.  Zeros are padded in the upper-left and lower-right
           corners of the matrix (beginning/end of timeseries).  In
           this case, the array shape will be (...,`n`,`n_pad`+`n_bin`)
-        n_bin : int (default is self.n_bin)
+        n_bin : int (default: self.n_bin)
           Override this binner's n_bin.
 
         Returns
@@ -219,16 +219,16 @@ class TimeBinner:
         Parameters
         ----------
         arr : numpy.ndarray
-        axis : int (default is -1)
+        axis : int (default: -1)
           Axis along which to take mean
-        n_pad : int (default is 0)
+        n_pad : int (default: 0)
           Is used to add `n_pad`/2 points from the end of the previous
           ensemble to the top of the current, and `n_pad`/2 points
           from the top of the next ensemble to the bottom of the
           current.  Zeros are padded in the upper-left and lower-right
           corners of the matrix (beginning/end of timeseries).  In
           this case, the array shape will be (...,`n`,`n_pad`+`n_bin`)
-        n_bin : int (default is self.n_bin)
+        n_bin : int (default: self.n_bin)
           Override this binner's n_bin.
 
         Returns
@@ -246,16 +246,16 @@ class TimeBinner:
         Parameters
         ----------
         arr : numpy.ndarray
-        axis : int (default is -1)
+        axis : int (default: -1)
           Axis along which to take mean
-        n_pad : int (default is 0)
+        n_pad : int (default: 0)
           Is used to add `n_pad`/2 points from the end of the previous
           ensemble to the top of the current, and `n_pad`/2 points
           from the top of the next ensemble to the bottom of the
           current.  Zeros are padded in the upper-left and lower-right
           corners of the matrix (beginning/end of timeseries).  In
           this case, the array shape will be (...,`n`,`n_pad`+`n_bin`)
-        n_bin : int (default is self.n_bin)
+        n_bin : int (default: self.n_bin)
           Override this binner's n_bin.
 
         Returns
@@ -274,9 +274,9 @@ class TimeBinner:
         Parameters
         ----------
         arr : numpy.ndarray
-        axis : int (default is -1)
+        axis : int (default: -1)
           Axis along which to take mean
-        n_bin : int (default is self.n_bin)
+        n_bin : int (default: self.n_bin)
           Override this binner's n_bin.
 
         Returns
@@ -301,9 +301,9 @@ class TimeBinner:
         Parameters
         ----------
         arr : numpy.ndarray
-        axis : int (default is -1)
+        axis : int (default: -1)
           Axis along which to take variance
-        n_bin : int (default is self.n_bin)
+        n_bin : int (default: self.n_bin)
           Override this binner's n_bin.
 
         Returns
@@ -322,9 +322,9 @@ class TimeBinner:
         Parameters
         ----------
         arr : numpy.ndarray
-        axis : int (default is -1)
+        axis : int (default: -1)
           Axis along which to take std dev
-        n_bin : int (default is self.n_bin)
+        n_bin : int (default: self.n_bin)
           Override this binner's n_bin.
 
         Returns

@@ -60,11 +60,11 @@ def find_surface(ds, thresh=10, nfilt=None):
     ----------
     ds : xarray.Dataset
       The full adcp dataset
-    thresh : int
+    thresh : int (default: 10)
       Specifies the threshold used in detecting the surface.
       (The amount that amplitude must increase by near the surface for it to
       be considered a surface hit)
-    nfilt : int
+    nfilt : int (default: None)
       Specifies the width of the median filter applied, must be odd
 
     Returns
@@ -96,7 +96,7 @@ def find_surface(ds, thresh=10, nfilt=None):
             d[ip] = np.NaN
 
     if nfilt:
-        dfilt = medfiltnan(d, nfilt, thresh=.4)
+        dfilt = medfiltnan(d, nfilt, thresh=4)
         dfilt[dfilt == 0] = np.NaN
         d = dfilt
 
@@ -114,7 +114,7 @@ def find_surface_from_P(ds, salinity=35):
     ----------
     ds : xarray.Dataset
       The full adcp dataset
-    salinity: numeric
+    salinity: numeric (default: 35)
       Water salinity in psu
 
     Returns
@@ -169,8 +169,8 @@ def nan_beyond_surface(ds, val=np.nan, inplace=False):
     ----------
     ds : xarray.Dataset
       The adcp dataset to clean
-    val : nan or numeric
-      Specifies the value to set the bad values to (default np.nan).
+    val : nan or numeric (default: np.nan)
+      Specifies the value to set the bad values to
     inplace : bool (default: False)
       When True the existing data object is modified. When False
       a copy is returned.
@@ -238,7 +238,7 @@ def correlation_filter(ds, thresh=50, inplace=False):
     ----------
     ds : xarray.Dataset
       The adcp dataset to clean.
-    thresh : numeric
+    thresh : numeric (default: 50)
       The maximum value of correlation to screen, in counts or %
     inplace : bool (default: False)
       When True the existing data object is modified. When False
@@ -295,7 +295,7 @@ def medfilt_orient(ds, nfilt=7):
     ----------
     ds : xarray.Dataset
       The adcp dataset to clean
-    nfilt : numeric
+    nfilt : numeric (default: 7)
       The length of the median-filtering kernel
       *nfilt* must be odd.
 
@@ -339,17 +339,17 @@ def val_exceeds_thresh(var, thresh=5, val=np.nan):
     ----------
     var : xarray.DataArray
       Variable to clean
-    thresh : numeric
+    thresh : numeric (default: 5)
       The maximum value of velocity to screen
-    val : nan or numeric
-      Specifies the value to set the bad values to (default np.nan)
+    val : nan or numeric (default: np.nan)
+      Specifies the value to set the bad values to
 
     Returns
     -------
     ds : xarray.Dataset
       The adcp dataset with datapoints beyond thresh are set to `val`
-
     """
+
     var = var.copy(deep=True)
 
     bd = np.zeros(var.shape, dtype='bool')
@@ -368,9 +368,9 @@ def fillgaps_time(var, method='cubic', maxgap=None):
     ----------
     var : xarray.DataArray
       The variable to clean
-    method : string
+    method : string (default: 'cubic')
       Interpolation method to use
-    maxgap : numeric
+    maxgap : numeric (default: None)
       Maximum gap of missing data to interpolate across
 
     Returns
@@ -398,9 +398,9 @@ def fillgaps_depth(var, method='cubic', maxgap=None):
     ----------
     var : xarray.DataArray
       The variable to clean
-    method : string
+    method : string (default: 'cubic')
       Interpolation method to use
-    maxgap : int
+    maxgap : numeric (default: None)
       Maximum gap of missing data to interpolate across
 
     Returns

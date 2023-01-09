@@ -23,7 +23,8 @@ rot_module_dict = {
 
 
 def rotate2(ds, out_frame='earth', inplace=True):
-    """Rotate a dataset to a new coordinate system.
+    """
+    Rotate a dataset to a new coordinate system.
 
     Parameters
     ----------
@@ -32,7 +33,7 @@ def rotate2(ds, out_frame='earth', inplace=True):
     out_frame : string {'beam', 'inst', 'earth', 'principal'}
       The coordinate system to rotate the data into.
     inplace : bool (default: True)
-        When True ``ds`` is modified. When False a copy is returned.
+      When True ``ds`` is modified. When False a copy is returned.
 
     Returns
     -------
@@ -53,8 +54,8 @@ def rotate2(ds, out_frame='earth', inplace=True):
 
       where here we are using the depth-averaged velocity to calculate
       the principal direction.
-
     """
+
     # Create and return deep copy if not writing "in place"
     if not inplace:
         ds = ds.copy(deep=True)
@@ -120,7 +121,8 @@ def rotate2(ds, out_frame='earth', inplace=True):
 
 
 def calc_principal_heading(vel, tidal_mode=True):
-    """Compute the principal angle of the horizontal velocity.
+    """
+    Compute the principal angle of the horizontal velocity.
 
     Parameters
     ----------
@@ -150,8 +152,8 @@ def calc_principal_heading(vel, tidal_mode=True):
 
     Otherwise, this function simply computes the average direction
     using a vector method.
-
     """
+
     dt = vel[0] + vel[1] * 1j
     if tidal_mode:
         # Flip all vectors that are below the x-axis
@@ -171,7 +173,8 @@ def calc_principal_heading(vel, tidal_mode=True):
 
 
 def set_declination(ds, declin, inplace=True):
-    """Set the magnetic declination
+    """
+    Set the magnetic declination
 
     Parameters
     ----------
@@ -214,8 +217,8 @@ def set_declination(ds, declin, inplace=True):
       data object in the principal coordinate system, then calling
       dat.rotate2('earth') will yield a data object in the new
       'True' earth coordinate system)
-
     """
+
     # Create and return deep copy if not writing "in place"
     if not inplace:
         ds = ds.copy(deep=True)
@@ -283,8 +286,8 @@ def set_inst2head_rotmat(ds, rotmat, inplace=True):
     rotated back to the coordinate system in which it was input. This
     way the inst2head_rotmat gets applied correctly (in inst
     coordinate system).
-
     """
+
     # Create and return deep copy if not writing "in place"
     if not inplace:
         ds = ds.copy(deep=True)

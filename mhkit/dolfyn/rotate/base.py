@@ -4,7 +4,8 @@ from scipy.spatial.transform import Rotation as R
 
 
 def _make_model(ds):
-    """The make and model of the instrument that collected the data
+    """
+    The make and model of the instrument that collected the data
     in this data object.
     """
     return '{} {}'.format(ds.attrs['inst_make'],
@@ -18,6 +19,7 @@ def _check_rotmat_det(rotmat, thresh=1e-3):
 
     Returns a boolean array.
     """
+
     if rotmat.ndim > 2:
         rotmat = np.transpose(rotmat)
     return np.abs(det(rotmat) - 1) < thresh
@@ -28,8 +30,8 @@ def _set_coords(ds, ref_frame, forced=False):
     Checks the current reference frame and adjusts xarray coords/dims 
     as necessary.
     Makes sure assigned dataarray coordinates match what DOLfYN is reading in.
-
     """
+
     make = _make_model(ds)
 
     XYZ = ['X', 'Y', 'Z']
@@ -79,23 +81,24 @@ def _set_coords(ds, ref_frame, forced=False):
 
 
 def _beam2inst(dat, reverse=False, force=False):
-    """Rotate velocities from beam to instrument coordinates.
+    """
+    Rotate velocities from beam to instrument coordinates.
 
     Parameters
     ----------
     dat : xarray.Dataset
-        The ADCP dataset
+      The ADCP dataset
     reverse : bool (default: False)
-        If True, this function performs the inverse rotation (inst->beam).
+      If True, this function performs the inverse rotation (inst->beam).
     force : bool (default: False), or list
-        When true do not check which coordinate system the data is in
-        prior to performing this rotation. When forced-rotations are
-        applied, the string '-forced!' is appended to the
-        dat.props['coord_sys'] string. If force is a list, it contains
-        a list of variables that should be rotated (rather than the
-        default values in adpo.props['rotate_vars']).
-
+      When true do not check which coordinate system the data is in
+      prior to performing this rotation. When forced-rotations are
+      applied, the string '-forced!' is appended to the
+      dat.props['coord_sys'] string. If force is a list, it contains
+      a list of variables that should be rotated (rather than the
+      default values in adpo.props['rotate_vars']).
     """
+
     if not force:
         if not reverse and dat.coord_sys.lower() != 'beam':
             raise ValueError('The input must be in beam coordinates.')
@@ -173,8 +176,8 @@ def euler2orient(heading, pitch, roll, units='degrees'):
 
        - roll is positive according to the right-hand-rule around the
          instrument's x-axis
-
     """
+
     if units.lower() == 'degrees':
         pitch = np.deg2rad(pitch)
         roll = np.deg2rad(roll)
@@ -237,7 +240,6 @@ def orient2euler(omat):
     roll : np.ndarray
       The roll angle (degrees). Roll is positive according to the 
       right-hand-rule around the instrument's x-axis.
-
     """
 
     if isinstance(omat, np.ndarray) and \
@@ -272,13 +274,13 @@ def quaternion2orient(quaternions):
     Returns
     -------
     orientmat : |np.ndarray|
-        The inst2earth rotation maxtrix as calculated from the quaternions
+        The earth2inst rotation maxtrix as calculated from the quaternions
 
     See Also
     --------
     scipy.spatial.transform.Rotation
-
     """
+
     omat = type(quaternions)(np.empty((3, 3, quaternions.time.size)))
     omat = omat.rename({'dim_0': 'earth', 'dim_1': 'inst', 'dim_2': 'time'})
 
@@ -294,4 +296,4 @@ def quaternion2orient(quaternions):
 
     xyz = ['X', 'Y', 'Z']
     enu = ['E', 'N', 'U']
-    return omat.assign_coords({'inst': xyz, 'earth': enu, 'time': quaternions.time})
+    return omat.assign_coords({'earth': enu, 'inst': xyz, 'time': quaternions.time})

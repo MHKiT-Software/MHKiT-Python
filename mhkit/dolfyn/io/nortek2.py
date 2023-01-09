@@ -16,22 +16,26 @@ from ..time import epoch2dt64, _fill_time_gaps
 
 def read_signature(filename, userdata=True, nens=None, rebuild_index=False,
                    debug=False, **kwargs):
-    """Read a Nortek Signature (.ad2cp) datafile
+    """
+    Read a Nortek Signature (.ad2cp) datafile
 
     Parameters
     ----------
     filename : string
-        The filename of the file to load.
+      The filename of the file to load.
     userdata : bool
-        To search for and use a .userdata.json or not
-    nens : int, or tuple of 2 ints
-        The number of ensembles to read, if int (starting at the
-        beginning); or the range of ensembles to read, if tuple.
+      To search for and use a .userdata.json or not
+    nens : None (default: read entire file), int, or 2-element tuple (start, stop)
+      Number of pings or ensembles to read from the file
+    rebuild_index : bool (default: False)
+      Force rebuild of dolfyn-written datafile index. Useful for code updates.
+    debug : bool (default: False)
+      Logs debugger ouput if true
 
     Returns
     -------
     ds : xarray.Dataset
-        An xarray dataset from the binary instrument data
+      An xarray dataset from the binary instrument data
     """
 
     # Start debugger logging

@@ -739,6 +739,7 @@ class VelBinner(TimeBinner):
           The sample rate (default: from the binner).
         window : string or array
           Specify the window function.
+          Options: 1, None, 'hann', 'hamm'
         noise : list(3 floats) (optional)
           Noise level of each component's velocity measurement
           (default 0).

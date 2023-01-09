@@ -24,23 +24,25 @@ def _check_file_ext(path, ext):
 
 
 def read(fname, userdata=True, nens=None, **kwargs):
-    """Read a binary Nortek (e.g., .VEC, .wpr, .ad2cp, etc.) or RDI
+    """
+    Read a binary Nortek (e.g., .VEC, .wpr, .ad2cp, etc.) or RDI
     (.000, .PD0, .ENX, etc.) data file.
 
     Parameters
     ----------
     filename : string
-        Filename of instrument file to read.
+      Filename of instrument file to read.
     userdata : True, False, or string of userdata.json filename (default ``True``)
-        Whether to read the '<base-filename>.userdata.json' file.
+      Whether to read the '<base-filename>.userdata.json' file.
     nens : None (default: read entire file), int, or 2-element tuple (start, stop)
-        Number of pings or ensembles to read from the
-    **kwargs : passed to instrument-specific parser.
+      Number of pings or ensembles to read from the
+    **kwargs : dict
+      Passed to instrument-specific parser.
 
     Returns
     -------
     ds : xarray.Dataset
-        An xarray dataset from instrument datafile.
+      An xarray dataset from instrument datafile.
     """
 
     file_type = _get_filetype(fname)
@@ -62,12 +64,13 @@ def read(fname, userdata=True, nens=None, **kwargs):
 
 
 def read_example(name, **kwargs):
-    """Read an ADCP or ADV datafile from the examples directory.
+    """
+    Read an ADCP or ADV datafile from the examples directory.
 
     Parameters
     ----------
     name : str
-        A few available files:
+      A few available files:
 
             AWAC_test01.wpr
             BenchFile01.ad2cp
@@ -81,8 +84,9 @@ def read_example(name, **kwargs):
     Returns
     -------
     ds : xarray.Dataset
-        An xarray dataset from the binary instrument data.
+      An xarray dataset from the binary instrument data.
     """
+
     testdir = dirname(abspath(__file__))
     exdir = normpath(join(testdir, relpath('../../../examples/data/dolfyn/')))
     filename = exdir + '/' + name
@@ -94,16 +98,19 @@ def save(ds, filename,
          format='NETCDF4', engine='netcdf4',
          compression=False,
          **kwargs):
-    """Save xarray dataset as netCDF (.nc).
+    """
+    Save xarray dataset as netCDF (.nc).
 
     Parameters
     ----------
     ds : xarray.Dataset
+      Dataset to save
     filename : str
-        Filename and/or path with the '.nc' extension
+      Filename and/or path with the '.nc' extension
     compression : bool (default: False)
-        When true, compress all variables with zlib complevel=1.
-    **kwargs : these are passed directly to :func:`xarray.Dataset.to_netcdf`
+      When true, compress all variables with zlib complevel=1.
+    **kwargs : dict
+      These are passed directly to :func:`xarray.Dataset.to_netcdf`
 
     Notes
     -----
@@ -146,17 +153,18 @@ def save(ds, filename,
 
 
 def load(filename):
-    """Load xarray dataset from netCDF (.nc)
+    """
+    Load xarray dataset from netCDF (.nc)
 
     Parameters
     ----------
     filename : str
-        Filename and/or path with the '.nc' extension
+      Filename and/or path with the '.nc' extension
 
     Returns
     -------
     ds : xarray.Dataset
-        An xarray dataset from the binary instrument data.
+      An xarray dataset from the binary instrument data.
     """
 
     filename = _check_file_ext(filename, 'nc')
@@ -183,17 +191,18 @@ def load(filename):
 
 
 def save_mat(ds, filename, datenum=True):
-    """Save xarray dataset as a MATLAB (.mat) file
+    """
+    Save xarray dataset as a MATLAB (.mat) file
 
     Parameters
     ----------
     ds : xarray.Dataset
-        Data to save
+      Data to save
     filename : str
-        Filename and/or path with the '.mat' extension
+      Filename and/or path with the '.mat' extension
     datenum : bool
-        If true, converts time to datenum. If false, time will be saved
-        in "epoch time".
+      If true, converts time to datenum. If false, time will be saved
+      in "epoch time".
 
     Notes
     -----
@@ -242,7 +251,8 @@ def save_mat(ds, filename, datenum=True):
 
 
 def load_mat(filename, datenum=True):
-    """Load xarray dataset from MATLAB (.mat) file, complimentary to `save_mat()`
+    """
+    Load xarray dataset from MATLAB (.mat) file, complimentary to `save_mat()`
 
     A .mat file must contain the fields: {vars, coords, config, units},
     where 'coords' contain the dimensions of all variables in 'vars'.
@@ -250,15 +260,15 @@ def load_mat(filename, datenum=True):
     Parameters
     ----------
     filename : str
-        Filename and/or path with the '.mat' extension
+      Filename and/or path with the '.mat' extension
     datenum : bool
-        If true, converts time from datenum. If false, converts time from 
-        "epoch time".
+      If true, converts time from datenum. If false, converts time from 
+      "epoch time".
 
     Returns
     -------
     ds : xarray.Dataset
-        An xarray dataset from the binary instrument data.
+      An xarray dataset from the binary instrument data.
 
     See Also
     --------

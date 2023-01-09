@@ -27,12 +27,12 @@ def read_rdi(filename, userdata=None, nens=None, debug_level=-1,
       Whether to read the '<base-filename>.userdata.json' file.
     nens : int, (default: None, read entire file)
       Number of pings to read from the file
-    debug_level : int (default=-1)
+    debug_level : int (default: -1)
       Debug level [0 - 2]
-    vmdas_search : bool (default=False)
+    vmdas_search : bool (default: False)
       Search from the end of each ensemble for the VMDAS navigation
       block.  The byte offsets are sometimes incorrect.
-    winriver : bool (default=False)
+    winriver : bool (default: False)
       If file is winriver or not. Automatically set by dolfyn, this is helpful 
       for debugging
 
@@ -676,6 +676,8 @@ class _RDIReader():
                         12800: (self.skip_Nbyte, [32]),
                         # 3000 Fixed attitude data format for Ocean Surveyor ADCPs
                         12288: (self.skip_Nbyte, [32]),
+                        12496: (self.skip_Nbyte, [24]),  # 30D0
+                        12504: (self.skip_Nbyte, [48]),  # 30D8
                         # 4100 beam 5 range
                         16640: (self.read_alt, []),
                         # 4400 Firmware status data (RiverPro & StreamPro)

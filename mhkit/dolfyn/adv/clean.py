@@ -24,9 +24,9 @@ def clean_fill(u, mask, npt=12, method='cubic', maxgap=6):
     npt : int
       The number of points on either side of the bad values that 
       interpolation occurs over
-    method : string
+    method : string (default: 'cubic')
       Interpolation scheme to use (linear, cubic, pchip, etc)
-    limit : int
+    maxgap : int (default: 6)
       Max number of consective nan's to interpolate across
 
     Returns
@@ -63,6 +63,15 @@ def _interp_nan(da, npt, method, maxgap):
     npt : int
       The number of points on either side of the gap that the fit
       occurs over
+    method : string
+      Interpolation scheme to use (linear, cubic, pchip, etc)
+    maxgap : int
+      Max number of consective nan's to interpolate across
+
+    Returns
+    -------
+    da : xarray.DataArray
+      The dataArray with nan's filled in
     """
 
     searching = True
@@ -186,7 +195,7 @@ def spike_thresh(u, thresh=10):
     ----------
     u : xarray.DataArray
       The timeseries data to clean.
-    thresh : int
+    thresh : int (default: 10)
        Magnitude of velocity spike, must be positive.
 
     Returns
@@ -210,7 +219,7 @@ def range_limit(u, range=[-5, 5]):
     ----------
     u : xarray.DataArray
       The timeseries data to clean.
-    range : list
+    range : list (default: [-5, 5])
        Min and max magnitudes beyond which are masked
 
     Returns
@@ -275,7 +284,7 @@ def GN2002(u, npt=5000):
     ----------
     u : xarray.DataArray
       The velocity array (1D or 3D) to clean.
-    npt : int
+    npt : int (default: 5000)
       The number of points over which to perform the method.
 
     Returns

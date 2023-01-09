@@ -8,7 +8,6 @@ from mhkit.dolfyn.io.api import read_example as read
 import unittest
 import pytest
 import os
-from shutil import copy2
 
 make_data = False
 
@@ -23,7 +22,7 @@ class io_testcase(unittest.TestCase):
         assert os.path.exists(rfnm('test_save.nc'))
         assert os.path.exists(rfnm('test_save.mat'))
 
-    def test_matlab_io(self):
+    def test_matlab_io(self, make_data=False):
         nens = 100
         td_vec = drop_config(read('vector_data_imu01.VEC', nens=nens))
         td_rdi_bt = drop_config(read('RDI_withBT.000', nens=nens))
@@ -33,7 +32,7 @@ class io_testcase(unittest.TestCase):
         # .userdata.json file. NOTE: DOLfYN defaults to using what is in
         # the .userdata.json file.
         with pytest.warns(UserWarning, match='magnetic_var_deg'):
-            td_vm = drop_config(read('vmdas01.ENX', nens=nens))
+            td_vm = drop_config(read('vmdas01_wh.ENX', nens=nens))
 
         if make_data:
             save_matlab(td_vec, 'dat_vec')
@@ -49,16 +48,26 @@ class io_testcase(unittest.TestCase):
         assert_allclose(td_rdi_bt, mat_rdi_bt, atol=1e-6)
         assert_allclose(td_vm, mat_vm, atol=1e-6)
 
-    def test_debugging(self, make_data=False):
+    def test_debugging(make_data=False):
         def read_txt(fname, loc):
             with open(loc(fname), 'r') as f:
                 string = f.read()
             return string
 
+        def clip_file(fname):
+            log = read_txt(fname, exdt)
+            newlines = [i for i, ltr in enumerate(log) if ltr == '\n']
+            try:
+                log = log[:newlines[100]+1]
+            except:
+                pass
+            with open(rfnm(fname), 'w') as f:
+                f.write(log)
+
         def read_file_and_test(fname):
             td = read_txt(fname, exdt)
             cd = read_txt(fname, rfnm)
-            assert td == cd
+            assert cd in td
             os.remove(exdt(fname))
 
         nens = 100
@@ -73,10 +82,10 @@ class io_testcase(unittest.TestCase):
         os.remove(exdt('Sig500_Echo.ad2cp.index'))
 
         if make_data:
-            copy2(exdt('RDI_withBT.log'), rfnm('RDI_withBT.log'))
-            copy2(exdt('AWAC_test01.log'), rfnm('AWAC_test01.log'))
-            copy2(exdt('vector_data_imu01.log'), rfnm('vector_data_imu01.log'))
-            copy2(exdt('Sig500_Echo.log'), rfnm('Sig500_Echo.log'))
+            clip_file('RDI_withBT.log')
+            clip_file('AWAC_test01.log')
+            clip_file('vector_data_imu01.log')
+            clip_file('Sig500_Echo.log')
             return
 
         read_file_and_test('RDI_withBT.log')
