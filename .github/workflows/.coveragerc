@@ -2,12 +2,12 @@
 omit =
     # omit everything in tests and hindcast functions
     ./mhkit/tests/*
-    ./mhkit/wave/io/hindcast.py
-    ./mhkit/wave/io/wind_toolkit.py
+    ./mhkit/wave/io/hindcast/hindcast.py
+    ./mhkit/wave/io/hindcast/wind_toolkit.py
 
 [report]
 omit =
     # omit everything in tests and hindcast functions
     ./mhkit/tests/*    
-    ./mhkit/wave/io/hindcast.py
-    ./mhkit/wave/io/wind_toolkit.py
+    ./mhkit/wave/io/hindcast/hindcast.py
+    ./mhkit/wave/io/hindcast/wind_toolkit.py
