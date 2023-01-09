@@ -6,7 +6,7 @@ from random import seed, randint
 import matplotlib.pylab as plt
 from datetime import datetime
 import xarray.testing as xrt
-import mhkit.wave.io.wind_toolkit as wtk
+import mhkit.wave.io.hindcast.wind_toolkit as wtk
 from io import StringIO
 import pandas as pd
 import numpy as np
