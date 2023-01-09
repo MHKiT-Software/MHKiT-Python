@@ -1,5 +1,5 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 from rex import MultiYearWaveX, WaveX
 import sys
 from time import sleep
@@ -14,7 +14,7 @@ def region_selection(lat_lon):
     Parameters
     ----------
     lat_lon : list or tuple
-        Latitude and longitude coordinates as flaots or intigers
+        Latitude and longitude coordinates as flaots or integers
     
     Returns
     -------
@@ -47,7 +47,7 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
     
         """ 
         Returns data from the WPTO wave hindcast hosted on AWS at the specified latitude and longitude point(s), 
-        or the closest available pont(s).
+        or the closest available point(s).
         Visit https://registry.opendata.aws/wpto-pds-us-wave/ for more information about the dataset and available 
         locations and years. 
 
@@ -99,7 +99,7 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
         assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
         assert isinstance(data_type, str), 'data_type must be a string'
         assert isinstance(years,list), 'years must be a list'
-        assert isinstance(tree,(str,type(None))), 'tree must be a sring'
+        assert isinstance(tree,(str,type(None))), 'tree must be a string'
         assert isinstance(unscale,bool), 'unscale must be bool type'
         assert isinstance(str_decode,bool), 'str_decode must be bool type'
         assert isinstance(hsds,bool), 'hsds must be bool type'
@@ -159,7 +159,7 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
     
     """ 
     Returns directional spectra data from the WPTO wave hindcast hosted on AWS at the specified latitude and longitude point(s), 
-    or the closest available pont(s).
+    or the closest available point(s).
     Visit https://registry.opendata.aws/wpto-pds-us-wave/ for more information about the dataset and available 
     locations and years. 
 
