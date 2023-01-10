@@ -13,7 +13,8 @@ def _make_model(ds):
 
 
 def _check_rotmat_det(rotmat, thresh=1e-3):
-    """Check that the absolute error of the determinant is small.
+    """
+    Check that the absolute error of the determinant is small.
 
           abs(det(rotmat) - 1) < thresh
 
@@ -88,15 +89,17 @@ def _beam2inst(dat, reverse=False, force=False):
     ----------
     dat : xarray.Dataset
       The ADCP dataset
-    reverse : bool (default: False)
+    reverse : bool
       If True, this function performs the inverse rotation (inst->beam).
-    force : bool (default: False), or list
+      Default = False
+    force : bool, list
       When true do not check which coordinate system the data is in
       prior to performing this rotation. When forced-rotations are
       applied, the string '-forced!' is appended to the
       dat.props['coord_sys'] string. If force is a list, it contains
       a list of variables that should be rotated (rather than the
-      default values in adpo.props['rotate_vars']).
+      default values in adpo.rotate_vars).
+      Default = False
     """
 
     if not force:
@@ -147,17 +150,18 @@ def euler2orient(heading, pitch, roll, units='degrees'):
 
     Parameters
     ----------
-    heading : |np.ndarray| (Nt)
+    heading : numpy.ndarray
       The heading angle.
-    pitch : |np.ndarray| (Nt)
+    pitch : numpy.ndarray
       The pitch angle.
-    roll : |np.ndarray| (Nt)
+    roll : numpy.ndarray
       The roll angle.
-    units : str {'degrees' (default), 'radians'}
+    units : str
+      Units in degrees or radians.  is 'degrees'
 
     Returns
     =======
-    omat : |np.ndarray| (3x3xNt)
+    omat : numpy.ndarray (3x3xtime)
       The orientation matrix of the data. The returned orientation
       matrix obeys the following conventions:
 
@@ -225,12 +229,12 @@ def orient2euler(omat):
 
     Parameters
     ----------
-    omat : |np.ndarray|
+    omat : numpy.ndarray
       The orientation matrix
 
     Returns
     -------
-    heading : |np.ndarray|
+    heading : numpy.ndarray
       The heading angle. Heading is defined as the direction the x-axis points,
       positive clockwise from North (this is *opposite* the right-hand-rule
       around the Z-axis), range 0-360 degrees.
@@ -269,12 +273,12 @@ def quaternion2orient(quaternions):
     Parameters
     ----------
     quaternions : xarray.DataArray
-        Quaternion dataArray from the raw dataset
+      Quaternion dataArray from the raw dataset
 
     Returns
     -------
-    orientmat : |np.ndarray|
-        The earth2inst rotation maxtrix as calculated from the quaternions
+    orientmat : numpy.ndarray
+      The earth2inst rotation maxtrix as calculated from the quaternions
 
     See Also
     --------

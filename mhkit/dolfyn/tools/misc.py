@@ -164,9 +164,9 @@ def convert_degrees(deg, tidal_mode=True):
     ----------
     deg: float or array-like
       Number or array in 'degrees CCW from East' or 'degrees CW from North'
-    tidal_mode : bool (default: True)
+    tidal_mode : bool
       If true, range is set from 0 to +/-180 degrees. If false, range is 0 to 
-      360 degrees
+      360 degrees. Default = True
 
     Returns
     -------

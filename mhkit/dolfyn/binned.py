@@ -167,8 +167,8 @@ class TimeBinner:
           current.  Zeros are padded in the upper-left and lower-right
           corners of the matrix (beginning/end of timeseries).  In
           this case, the array shape will be (...,`n`,`n_pad`+`n_bin`)
-        n_bin : int (default: self.n_bin)
-          Override this binner's n_bin.
+        n_bin : int
+          Override this binner's n_bin. Default is `binner.n_bin`
 
         Returns
         -------
@@ -219,17 +219,18 @@ class TimeBinner:
         Parameters
         ----------
         arr : numpy.ndarray
-        axis : int (default: -1)
-          Axis along which to take mean
-        n_pad : int (default: 0)
+        axis : int
+          Axis along which to take mean. Default = -1
+        n_pad : int
           Is used to add `n_pad`/2 points from the end of the previous
           ensemble to the top of the current, and `n_pad`/2 points
           from the top of the next ensemble to the bottom of the
           current.  Zeros are padded in the upper-left and lower-right
           corners of the matrix (beginning/end of timeseries).  In
-          this case, the array shape will be (...,`n`,`n_pad`+`n_bin`)
-        n_bin : int (default: self.n_bin)
-          Override this binner's n_bin.
+          this case, the array shape will be (...,`n`,`n_pad`+`n_bin`).
+          Default = 0
+        n_bin : int
+          Override this binner's n_bin. Default is `binner.n_bin`
 
         Returns
         -------
@@ -246,17 +247,18 @@ class TimeBinner:
         Parameters
         ----------
         arr : numpy.ndarray
-        axis : int (default: -1)
-          Axis along which to take mean
-        n_pad : int (default: 0)
+        axis : int
+          Axis along which to take mean. Default = -1
+        n_pad : int
           Is used to add `n_pad`/2 points from the end of the previous
           ensemble to the top of the current, and `n_pad`/2 points
           from the top of the next ensemble to the bottom of the
           current.  Zeros are padded in the upper-left and lower-right
           corners of the matrix (beginning/end of timeseries).  In
-          this case, the array shape will be (...,`n`,`n_pad`+`n_bin`)
-        n_bin : int (default: self.n_bin)
-          Override this binner's n_bin.
+          this case, the array shape will be (...,`n`,`n_pad`+`n_bin`).
+          Default = 0
+        n_bin : int
+          Override this binner's n_bin. Default is `binner.n_bin`
 
         Returns
         -------
@@ -274,10 +276,10 @@ class TimeBinner:
         Parameters
         ----------
         arr : numpy.ndarray
-        axis : int (default: -1)
-          Axis along which to take mean
-        n_bin : int (default: self.n_bin)
-          Override this binner's n_bin.
+        axis : int
+          Axis along which to take mean. Default = -1
+        n_bin : int
+          Override this binner's n_bin. Default is `binner.n_bin`
 
         Returns
         -------
@@ -301,10 +303,10 @@ class TimeBinner:
         Parameters
         ----------
         arr : numpy.ndarray
-        axis : int (default: -1)
-          Axis along which to take variance
-        n_bin : int (default: self.n_bin)
-          Override this binner's n_bin.
+        axis : int
+          Axis along which to take variance. Default = -1
+        n_bin : int
+          Override this binner's n_bin. Default is `binner.n_bin`
 
         Returns
         -------
@@ -322,10 +324,10 @@ class TimeBinner:
         Parameters
         ----------
         arr : numpy.ndarray
-        axis : int (default: -1)
-          Axis along which to take std dev
-        n_bin : int (default: self.n_bin)
-          Override this binner's n_bin.
+        axis : int
+          Axis along which to take std dev. Default = -1
+        n_bin : int
+          Override this binner's n_bin. Default is `binner.n_bin`
 
         Returns
         -------
@@ -346,7 +348,7 @@ class TimeBinner:
         fs : float (optional)
           The sample rate (Hz).
         window : str
-          String indicating the window function to use (default: 'hanning').
+          String indicating the window function to use. Default is 'hanning'
         noise  : float
           The white-noise level of the measurement (in the same units
           as `dat`).
@@ -357,11 +359,11 @@ class TimeBinner:
           n_fft of veldat2, number of elements per bin if 'None' is taken 
           from VelBinner
         n_pad : int (optional)
-          The number of values to pad with zero (default: 0)
+          The number of values to pad with zero. Default = 0
         step : int (optional)
-          Controls amount of overlap in fft (default: the step size is
+          Controls amount of overlap in fft. Default: the step size is
           chosen to maximize data use, minimize nens, and have a
-          minimum of 50% overlap.).
+          minimum of 50% overlap.
 
         Returns
         -------
@@ -407,7 +409,7 @@ class TimeBinner:
         fs : float (optional)
           The sample rate (Hz).
         window : str
-          String indicating the window function to use (default: 'hanning').
+          String indicating the window function to use. Default is 'hanning'
         n_fft : int
           n_fft of veldat2, number of elements per bin if 'None' is taken 
           from VelBinner

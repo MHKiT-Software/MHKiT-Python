@@ -23,18 +23,19 @@ def read_rdi(filename, userdata=None, nens=None, debug_level=-1,
     ----------
     filename : string
       Filename of TRDI file to read.
-    userdata : True, False, or string of userdata.json filename (default ``True``)
-      Whether to read the '<base-filename>.userdata.json' file.
-    nens : int, (default: None, read entire file)
-      Number of pings to read from the file
-    debug_level : int (default: -1)
-      Debug level [0 - 2]
-    vmdas_search : bool (default: False)
+    userdata : True, False, or string of userdata.json filename
+      Whether to read the '<base-filename>.userdata.json' file. Default = True
+    nens : None, int or 2-element tuple (start, stop)
+      Number of pings or ensembles to read from the file. 
+      Default is None, read entire file
+    debug_level : int
+      Debug level [0 - 2]. Default = -1
+    vmdas_search : bool
       Search from the end of each ensemble for the VMDAS navigation
-      block.  The byte offsets are sometimes incorrect.
-    winriver : bool (default: False)
+      block.  The byte offsets are sometimes incorrect. Default = False
+    winriver : bool
       If file is winriver or not. Automatically set by dolfyn, this is helpful 
-      for debugging
+      for debugging. Default = False
 
     Returns
     -------

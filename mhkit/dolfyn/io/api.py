@@ -34,8 +34,9 @@ def read(fname, userdata=True, nens=None, **kwargs):
       Filename of instrument file to read.
     userdata : True, False, or string of userdata.json filename (default ``True``)
       Whether to read the '<base-filename>.userdata.json' file.
-    nens : None (default: read entire file), int, or 2-element tuple (start, stop)
-      Number of pings or ensembles to read from the
+    nens : None, int or 2-element tuple (start, stop)
+      Number of pings or ensembles to read from the file. 
+      Default is None, read entire file
     **kwargs : dict
       Passed to instrument-specific parser.
 
@@ -107,8 +108,9 @@ def save(ds, filename,
       Dataset to save
     filename : str
       Filename and/or path with the '.nc' extension
-    compression : bool (default: False)
+    compression : bool
       When true, compress all variables with zlib complevel=1.
+      Default is False
     **kwargs : dict
       These are passed directly to :func:`xarray.Dataset.to_netcdf`
 

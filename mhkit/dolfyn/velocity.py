@@ -34,9 +34,9 @@ class Velocity():
         out_frame : string {'beam', 'inst', 'earth', 'principal'}
           The coordinate system to rotate the data into.
 
-        inplace : bool (default: True)
+        inplace : bool
           When True the existing data object is modified. When False
-          a copy is returned.
+          a copy is returned. Default = True
 
         Returns
         -------
@@ -70,9 +70,9 @@ class Velocity():
           The value of the magnetic declination in degrees (positive
           values specify that Magnetic North is clockwise from True North)
 
-        inplace : bool (default: True)
+        inplace : bool
           When True the existing data object is modified. When False
-          a copy is returned.
+          a copy is returned. Default = True
 
         Returns
         -------
@@ -118,9 +118,9 @@ class Velocity():
         ----------
         rotmat : float
             3x3 rotation matrix
-        inplace : bool (default: True)
+        inplace : bool
             When True the existing data object is rotated. When False
-            a copy is returned that is rotated.
+            a copy is returned that is rotated. Default = True
 
         Returns
         -------
@@ -666,11 +666,12 @@ class VelBinner(TimeBinner):
         noise : float
             a three-element vector of the noise levels of the
             velocity data for ach component of velocity.
-        detrend : bool (default: False)
+        detrend : bool
             detrend the velocity data (True), or simply de-mean it
             (False), prior to computing tke. Note: the psd routines
             use detrend, so if you want to have the same amount of
-            variance here as there use ``detrend=True``.
+            variance here as there use ``detrend=True``. 
+            Default = False
 
         Returns
         -------
@@ -736,23 +737,23 @@ class VelBinner(TimeBinner):
           Frequency units of the returned spectra in either Hz or rad/s 
           (`f` or :math:`\\omega`)
         fs : float (optional)
-          The sample rate (default: from the binner).
+          The sample rate. Default is `binner.fs`
         window : string or array
           Specify the window function.
           Options: 1, None, 'hann', 'hamm'
         noise : list(3 floats) (optional)
-          Noise level of each component's velocity measurement
-          (default 0).
+          Noise level of each component's velocity measurement.
+          Default = 0
         n_bin : int (optional)
-          The bin-size (default: from the binner).
+          The bin-size Default: from the binner).
         n_fft : int (optional)
-          The fft size (default: from the binner).
+          The fft size Default: from the binner).
         n_pad : int (optional)
-          The number of values to pad with zero (default: 0)
+          The number of values to pad with zero Default: 0)
         step : int (optional)
-          Controls amount of overlap in fft (default: the step size is
+          Controls amount of overlap in fft. Default: the step size is
           chosen to maximize data use, minimize nens, and have a
-          minimum of 50% overlap.).
+          minimum of 50% overlap.
 
         Returns
         -------

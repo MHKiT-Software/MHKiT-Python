@@ -26,11 +26,11 @@ class CalcMotion():
     ds : xarray.Dataset
       The IMU-adv data that will be used to compute motion.
     accel_filtfreq : float
-      the frequency at which to high-pass filter the acceleration
-      sigal to remove low-frequency drift. (default: 0.03 Hz)
+      The frequency at which to high-pass filter the acceleration
+      sigal to remove low-frequency drift. Default = 0.03 Hz
     vel_filtfreq : float (optional)
       a second frequency to high-pass filter the integrated
-      acceleration.  (default: 1/3 of accel_filtfreq)
+      acceleration.  Default = 1/3 of `accel_filtfreq`
     """
 
     _default_accel_filtfreq = 0.03
@@ -248,11 +248,11 @@ def _calc_probe_pos(ds, separate_probes=False):
     -----------
     ds : xarray.Dataset
       ADV dataset
-    separate_probes : bool (optional, default: False)
+    separate_probes : bool 
       If a Nortek Vector ADV, this function returns the 
       transformation matrix of positions of the probe's 
       acoustic recievers to the ADV's instrument frame of
-      reference
+      reference. Optional, default = False
 
     Returns
     -------
@@ -305,21 +305,22 @@ def correct_motion(ds,
       the frequency at which to high-pass filter the acceleration
       sigal to remove low-frequency drift.
 
-    vel_filtfreq : float (optional)
+    vel_filtfreq : float
       a second frequency to high-pass filter the integrated
-      acceleration.  (default: 1/3 of accel_filtfreq)
+      acceleration.  Optional, default = 1/3 of `accel_filtfreq`
 
-    to_earth : bool (optional, default: True)
+    to_earth : bool 
       All variables in the ds.props['rotate_vars'] list will be
       rotated into either the earth frame (to_earth=True) or the
-      instrument frame (to_earth=False).
+      instrument frame (to_earth=False). Optional, default = True
 
-    separate_probes : bool (optional, default: False)
+    separate_probes : bool
       a flag to perform motion-correction at the probe tips, and
       perform motion correction in beam-coordinates, then transform
       back into XYZ/earth coordinates. This correction seems to be
       lower than the noise levels of the ADV, so the default is to not
       use it (False).
+      Optional, default = False
 
     Returns
     -------

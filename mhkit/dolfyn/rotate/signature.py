@@ -15,14 +15,15 @@ def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
     ----------
     adcpo : xarray.Dataset
       The adcp dataset containing the data.
-    reverse : bool (default: False)
+    reverse : bool
       If True, this function performs the inverse rotation (earth->inst).
-    rotate_vars : iterable (default: None, list in adcpo.rotate_vars)
+      Default = False
+    rotate_vars : iterable
       The list of variables to rotate. By default this is taken from
       adcpo.rotate_vars.
-    force : bool (default: False)
+    force : bool
       Do not check which frame the data is in prior to performing 
-      this rotation.
+      this rotation. Default = False
     """
 
     if reverse:

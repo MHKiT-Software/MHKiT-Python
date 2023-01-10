@@ -18,10 +18,12 @@ class ADVBinner(VelBinner):
       operator.
     fs : int
       Instrument sampling frequency in Hz
-    n_fft : int (optional, default: n_fft = n_bin)
-      The length of the FFT for computing spectra (must be <= n_bin)
-    n_fft_coh : int (optional, default: `n_fft_coh`=`n_fft`)
-      Number of data points to use for coherence and cross-spectra ffts
+    n_fft : int
+      The length of the FFT for computing spectra (must be <= n_bin).
+      Optional, default `n_fft` = `n_bin`
+    n_fft_coh : int
+      Number of data points to use for coherence and cross-spectra fft's.
+      Optional, default `n_fft_coh` = `n_fft`
     noise : float, list or numpy.ndarray
       Instrument's doppler noise in same units as velocity
     """
@@ -57,11 +59,12 @@ class ADVBinner(VelBinner):
         veldat : xr.DataArray
             A velocity data array. The last dimension is assumed
             to be time.
-        detrend : bool (default: True)
+        detrend : bool
             detrend the velocity data (True), or simply de-mean it
             (False), prior to computing stress. Note: the psd routines
             use detrend, so if you want to have the same amount of
             variance here as there use ``detrend=True``.
+            Default = True
 
         Returns
         -------
@@ -109,14 +112,14 @@ class ADVBinner(VelBinner):
           Frequency units of the returned spectra in either Hz or rad/s 
           (`f` or :math:`\\omega`)
         fs : float (optional)
-          The sample rate (default: from the binner).
+          The sample rate. Default = `binner.fs`
         window : string or array
           Specify the window function.
          Options: 1, None, 'hann', 'hamm'
         n_bin : int (optional)
-          The bin-size (default: from the binner).
+          The bin-size. Default = `binner.n_bin`
         n_fft_coh : int (optional)
-          The fft size (default: n_fft_coh from the binner).
+          The fft size. Default = `binner.n_fft_coh`
 
         Returns
         -------
@@ -170,9 +173,10 @@ class ADVBinner(VelBinner):
           The power spectral density
         U_mag : xarray.DataArray (...,time)
           The bin-averaged horizontal velocity [m/s] (from dataset shortcut)
-        freq_range : iterable(2) (default: [6.28, 12.57])
+        freq_range : iterable(2)
           The range over which to integrate/average the spectrum, in units 
-          of the psd frequency vector (Hz or rad/s)
+          of the psd frequency vector (Hz or rad/s). 
+          Default = [6.28, 12.57] rad/s
 
         Returns
         -------
@@ -235,10 +239,11 @@ class ADVBinner(VelBinner):
           The bin-averaged horizontal velocity (from dataset shortcut)
         fs : float
           The sample rate of `vel_raw` [Hz]
-        freq_range : iterable(2) (default: [2., 4.])
+        freq_range : iterable(2)
           The frequency range over which to compute the SF [Hz]
           (i.e. the frequency range within which the isotropic 
-          turbulence cascade falls)
+          turbulence cascade falls).
+          Default = [2., 4.] Hz
 
         Returns
         -------
@@ -329,9 +334,10 @@ class ADVBinner(VelBinner):
           The bin-averaged adv dataset (calc'd from 'calc_turbulence' or
           'do_avg'). The spectra (psd) and basic turbulence statistics 
           ('tke_vec' and 'stress_vec') must already be computed.
-        freq_range : iterable(2) (default: [6.28, 12.57])
+        freq_range : iterable(2)
           The range over which to integrate/average the spectrum, in units 
-          of the psd frequency vector (Hz or rad/s)
+          of the psd frequency vector (Hz or rad/s).
+          Default = [6.28, 12.57] rad/s
 
         Notes
         -----
@@ -420,9 +426,9 @@ def turbulence_statistics(ds_raw, n_bin, fs, n_fft=None, freq_units='rad/s', win
     ds_raw : xarray.Dataset
       The raw adv datset to `bin`, average and compute
       turbulence statistics of.
-    freq_units : string (default: rad/s)
+    freq_units : string
       Frequency units of the returned spectra in either Hz or rad/s 
-      (`f` or :math:`\\omega`)
+      (`f` or :math:`\\omega`). Default is 'rad/s'
     window : string or array
       The window to use for calculating spectra.
 

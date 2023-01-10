@@ -32,8 +32,9 @@ def rotate2(ds, out_frame='earth', inplace=True):
       The dolfyn dataset (ADV or ADCP) to rotate.
     out_frame : string {'beam', 'inst', 'earth', 'principal'}
       The coordinate system to rotate the data into.
-    inplace : bool (default: True)
+    inplace : bool
       When True ``ds`` is modified. When False a copy is returned.
+      Default = True
 
     Returns
     -------
@@ -128,9 +129,9 @@ def calc_principal_heading(vel, tidal_mode=True):
     ----------
     vel : np.ndarray (2,...,Nt), or (3,...,Nt)
       The 2D or 3D velocity array (3rd-dim is ignored in this calculation)
-    tidal_mode : bool (default: True)
+    tidal_mode : bool
       If true, range is set from 0 to +/-180 degrees. If false, range is 0 to 
-      360 degrees
+      360 degrees. Default = True
 
     Returns
     -------
@@ -179,12 +180,13 @@ def set_declination(ds, declin, inplace=True):
     Parameters
     ----------
     ds : xarray.Dataset or :class:`dolfyn.velocity.Velocity`
-       The input dataset or velocity class
+      The input dataset or velocity class
     declination : float
-       The value of the magnetic declination in degrees (positive
-       values specify that Magnetic North is clockwise from True North)
-    inplace : bool (default: True)
-        When True ``ds`` is modified. When False a copy is returned.
+      The value of the magnetic declination in degrees (positive
+      values specify that Magnetic North is clockwise from True North)
+    inplace : bool
+      When True ``ds`` is modified. When False a copy is returned.
+      Default = True
 
     Returns
     -------
@@ -267,11 +269,12 @@ def set_inst2head_rotmat(ds, rotmat, inplace=True):
     Parameters
     ----------
     ds : xarray.Dataset
-        The data set to assign inst2head_rotmat
+      The data set to assign inst2head_rotmat
     rotmat : float
-        3x3 rotation matrix
-    inplace : bool (default: True)
-        When True ``ds`` is modified. When False a copy is returned.
+      3x3 rotation matrix
+    inplace : bool
+      When True ``ds`` is modified. When False a copy is returned.
+      Default = True
 
     Returns
     -------

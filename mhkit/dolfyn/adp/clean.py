@@ -60,12 +60,13 @@ def find_surface(ds, thresh=10, nfilt=None):
     ----------
     ds : xarray.Dataset
       The full adcp dataset
-    thresh : int (default: 10)
-      Specifies the threshold used in detecting the surface.
+    thresh : int
+      Specifies the threshold used in detecting the surface. Default = 10
       (The amount that amplitude must increase by near the surface for it to
       be considered a surface hit)
-    nfilt : int (default: None)
-      Specifies the width of the median filter applied, must be odd
+    nfilt : int
+      Specifies the width of the median filter applied, must be odd.
+      Default is None
 
     Returns
     -------
@@ -114,8 +115,8 @@ def find_surface_from_P(ds, salinity=35):
     ----------
     ds : xarray.Dataset
       The full adcp dataset
-    salinity: numeric (default: 35)
-      Water salinity in psu
+    salinity: numeric
+      Water salinity in psu. Default = 35
 
     Returns
     -------
@@ -169,11 +170,11 @@ def nan_beyond_surface(ds, val=np.nan, inplace=False):
     ----------
     ds : xarray.Dataset
       The adcp dataset to clean
-    val : nan or numeric (default: np.nan)
-      Specifies the value to set the bad values to
-    inplace : bool (default: False)
+    val : nan or numeric
+      Specifies the value to set the bad values to. Default is `numpy.nan`
+    inplace : bool
       When True the existing data object is modified. When False
-      a copy is returned.
+      a copy is returned. Default = False
 
     Returns
     -------
@@ -238,11 +239,12 @@ def correlation_filter(ds, thresh=50, inplace=False):
     ----------
     ds : xarray.Dataset
       The adcp dataset to clean.
-    thresh : numeric (default: 50)
-      The maximum value of correlation to screen, in counts or %
-    inplace : bool (default: False)
+    thresh : numeric
+      The maximum value of correlation to screen, in counts or %.
+      Default = 50
+    inplace : bool
       When True the existing data object is modified. When False
-      a copy is returned.
+      a copy is returned. Default = False
 
     Returns
     -------
@@ -295,9 +297,9 @@ def medfilt_orient(ds, nfilt=7):
     ----------
     ds : xarray.Dataset
       The adcp dataset to clean
-    nfilt : numeric (default: 7)
-      The length of the median-filtering kernel
-      *nfilt* must be odd.
+    nfilt : numeric
+      The length of the median-filtering kernel. Must be odd.
+      Default = 7
 
     Return
     ------
@@ -339,10 +341,10 @@ def val_exceeds_thresh(var, thresh=5, val=np.nan):
     ----------
     var : xarray.DataArray
       Variable to clean
-    thresh : numeric (default: 5)
-      The maximum value of velocity to screen
-    val : nan or numeric (default: np.nan)
-      Specifies the value to set the bad values to
+    thresh : numeric
+      The maximum value of velocity to screen. Default = 5
+    val : nan or numeric
+      Specifies the value to set the bad values to. Default is `numpy.nan`
 
     Returns
     -------
@@ -368,10 +370,10 @@ def fillgaps_time(var, method='cubic', maxgap=None):
     ----------
     var : xarray.DataArray
       The variable to clean
-    method : string (default: 'cubic')
-      Interpolation method to use
-    maxgap : numeric (default: None)
-      Maximum gap of missing data to interpolate across
+    method : string
+      Interpolation method to use. Default is 'cubic'
+    maxgap : numeric
+      Maximum gap of missing data to interpolate across. Default is None
 
     Returns
     -------
@@ -398,10 +400,10 @@ def fillgaps_depth(var, method='cubic', maxgap=None):
     ----------
     var : xarray.DataArray
       The variable to clean
-    method : string (default: 'cubic')
-      Interpolation method to use
-    maxgap : numeric (default: None)
-      Maximum gap of missing data to interpolate across
+    method : string
+      Interpolation method to use. Default is 'cubic'
+    maxgap : numeric
+      Maximum gap of missing data to interpolate across. Default is None
 
     Returns
     -------

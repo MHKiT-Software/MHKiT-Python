@@ -16,11 +16,12 @@ def _inst2earth(adcpo, reverse=False, force=False):
     ----------
     adcpo : xarray.Dataset
       The adcp dataset containing the data.
-    reverse : bool (default: False)
+    reverse : bool
       If True, this function performs the inverse rotation (earth->inst).
-    force : bool (default: False)
+      Default = False
+    force : bool
       When true do not check which coordinate system the data is in
-      prior to performing this rotation.
+      prior to performing this rotation. Default = False
 
     Notes
     -----
@@ -72,12 +73,13 @@ def _calc_beam_orientmat(theta=20, convex=True, degrees=True):
 
     Parameters
     ----------
-    theta : int (default: 20)
-      Angle of the heads (usually 20 or 30 degrees)
-    convex : bool (default: True)
-      Flag for convex or concave head configuration.
-    degrees : bool (default: True) 
-      Flag which specifies whether theta is in degrees or radians
+    theta : int
+      Angle of the heads (usually 20 or 30 degrees). Default = 20
+    convex : bool
+      Flag for convex or concave head configuration. Default = True
+    degrees : bool
+      Flag which specifies whether theta is in degrees or radians.
+      Default = True
     """
 
     if degrees:

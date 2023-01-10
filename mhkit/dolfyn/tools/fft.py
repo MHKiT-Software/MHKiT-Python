@@ -13,8 +13,9 @@ def fft_frequency(nfft, fs, full=False):
       The sampling frequency (e.g. samples/sec)
     nfft : int
       The number of samples in a window.
-    full : bool (default: False)
+    full : bool
       Whether to return half frequencies (positive), or the full frequencies.
+      Default = False
 
     Returns
     -------

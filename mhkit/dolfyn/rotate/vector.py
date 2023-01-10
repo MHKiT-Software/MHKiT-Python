@@ -34,14 +34,15 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
     ----------
     advo : xarray.Dataset
       The adv dataset containing the data.
-    reverse : bool (default: False)
+    reverse : bool
       If True, this function performs the inverse rotation (earth->inst).
-    rotate_vars : iterable (default: None, list in advo.rotate_vars)
+      Default = False
+    rotate_vars : iterable
       The list of variables to rotate. By default this is taken from
       advo.rotate_vars.
-    force : bool (default: False)
+    force : bool
       Do not check which frame the data is in prior to performing 
-      this rotation.
+      this rotation. Default = False
     """
 
     if reverse:  # earth->inst
@@ -161,9 +162,9 @@ def _earth2principal(advo, reverse=False):
     ----------
     advo : xarray.Dataset
       The adv dataset containing the data.
-    reverse : bool (default: False)
+    reverse : bool
       If True, this function performs the inverse rotation
-      (principal->earth).
+      (principal->earth). Default = False
     """
 
     # This is in degrees CW from North

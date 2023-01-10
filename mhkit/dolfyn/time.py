@@ -151,8 +151,8 @@ def date2str(dt, format_str=None):
     dt : datetime.datetime
       Single or list of datetime object(s)
     format_str : string
-      Timestamp string formatting, default: '%Y-%m-%d %H:%M:%S.%f'. 
-      See datetime.strftime documentation for timestamp string formatting
+      Timestamp string formatting. Default is '%Y-%m-%d %H:%M:%S.%f'
+      See datetime.strftime documentation for timestamp string formatting.
 
     Returns
     -------

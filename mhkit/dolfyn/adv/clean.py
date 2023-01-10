@@ -24,10 +24,10 @@ def clean_fill(u, mask, npt=12, method='cubic', maxgap=6):
     npt : int
       The number of points on either side of the bad values that 
       interpolation occurs over
-    method : string (default: 'cubic')
-      Interpolation scheme to use (linear, cubic, pchip, etc)
-    maxgap : int (default: 6)
-      Max number of consective nan's to interpolate across
+    method : string
+      Interpolation method to use (linear, cubic, pchip, etc). Default is 'cubic'
+    maxgap : numeric
+      Maximum gap of missing data to interpolate across. Default is None
 
     Returns
     -------
@@ -195,12 +195,12 @@ def spike_thresh(u, thresh=10):
     ----------
     u : xarray.DataArray
       The timeseries data to clean.
-    thresh : int (default: 10)
-       Magnitude of velocity spike, must be positive.
+    thresh : int
+       Magnitude of velocity spike, must be positive. Default = 10
 
     Returns
     -------
-    mask : |np.ndarray|
+    mask : numpy.ndarray
       Logical vector with spikes labeled as 'True'
     """
 
@@ -219,12 +219,12 @@ def range_limit(u, range=[-5, 5]):
     ----------
     u : xarray.DataArray
       The timeseries data to clean.
-    range : list (default: [-5, 5])
-       Min and max magnitudes beyond which are masked
+    range : list
+       Min and max magnitudes beyond which are masked. Default is [-5, 5]
 
     Returns
     -------
-    mask : |np.ndarray|
+    mask : numpy.ndarray
       Logical vector with spikes labeled as 'True'
     """
 
@@ -284,12 +284,12 @@ def GN2002(u, npt=5000):
     ----------
     u : xarray.DataArray
       The velocity array (1D or 3D) to clean.
-    npt : int (default: 5000)
-      The number of points over which to perform the method.
+    npt : int
+      The number of points over which to perform the method. Default = 5000
 
     Returns
     -------
-    mask : |np.ndarray|
+    mask : numpy.ndarray
       Logical vector with spikes labeled as 'True'
     """
 
