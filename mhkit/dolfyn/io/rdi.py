@@ -807,13 +807,6 @@ class _RDIReader():
             cfg['serialnum'] = fd.read_ui32(1)
             cfg['beam_angle'] = fd.read_ui8(1)
             self._nbyte += 6
-        # # Documented in latest PDDecoder 10/12/22 but must be instrument specific
-        # if cfg['prog_ver'] >= 56:
-        #     fd.seek(1, 1)
-        #     pings_per_ensemble = fd.read_ui16(1)
-        #     exact_freq = fd.read_ui8(3)
-        #     #cfg['exact_freq'] = int("".join(str(x) for x in exact_freq))
-        #     self._nbyte += 6
 
         self.configsize = self.f.tell() - cfgstart
         if self._debug_level >= 0:

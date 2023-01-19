@@ -25,7 +25,6 @@ def _get_filetype(fname):
     with open(fname, 'rb') as rdr:
         bytes = rdr.read(40)
     code = bytes[:2].hex()
-    #print("{} - {}".format(fname.rsplit('/')[-1], bytes))
     if code in ['7f79', '7f7f']:
         return 'RDI'
     elif code in ['a50a']:
