@@ -1,7 +1,9 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 from rex import MultiYearWaveX, WaveX
 import sys
+from time import sleep
+
 
 
 def region_selection(lat_lon):
@@ -12,7 +14,7 @@ def region_selection(lat_lon):
     Parameters
     ----------
     lat_lon : list or tuple
-        Latitude and longitude coordinates as flaots or intigers
+        Latitude and longitude coordinates as flaots or integers
     
     Returns
     -------
@@ -45,7 +47,7 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
     
         """ 
         Returns data from the WPTO wave hindcast hosted on AWS at the specified latitude and longitude point(s), 
-        or the closest available pont(s).
+        or the closest available point(s).
         Visit https://registry.opendata.aws/wpto-pds-us-wave/ for more information about the dataset and available 
         locations and years. 
 
@@ -97,7 +99,7 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
         assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
         assert isinstance(data_type, str), 'data_type must be a string'
         assert isinstance(years,list), 'years must be a list'
-        assert isinstance(tree,(str,type(None))), 'tree must be a sring'
+        assert isinstance(tree,(str,type(None))), 'tree must be a string'
         assert isinstance(unscale,bool), 'unscale must be bool type'
         assert isinstance(str_decode,bool), 'str_decode must be bool type'
         assert isinstance(hsds,bool), 'hsds must be bool type'
@@ -157,7 +159,7 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
     
     """ 
     Returns directional spectra data from the WPTO wave hindcast hosted on AWS at the specified latitude and longitude point(s), 
-    or the closest available pont(s).
+    or the closest available point(s).
     Visit https://registry.opendata.aws/wpto-pds-us-wave/ for more information about the dataset and available 
     locations and years. 
 
@@ -216,13 +218,69 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
     waveKwargs = {'tree':tree,'unscale':unscale,'str_decode':str_decode, 'hsds':hsds}
         
     with WaveX(wave_path, **waveKwargs) as rex_waves:
-        # get data
-        data_raw = rex_waves.get_lat_lon_df(parameter,lat_lon)
-        # get metadata
-        col = data_raw.columns[:]
-        meta = rex_waves.meta.loc[col,:]
-        meta = meta.reset_index(drop=True) 
+        # Get graphical identifier
+        gid = rex_waves.lat_lon_gid(lat_lon)  
+        
+        # Setup index and columns
+        if isinstance(gid, (int, np.integer)):
+            columns = [gid]
+        else:
+            columns = gid   
+        time_index = rex_waves.time_index
+        frequency = rex_waves['frequency']
+        direction = rex_waves['direction']
+        index = pd.MultiIndex.from_product(
+            [time_index, frequency, direction],
+            names=['time_index', 'frequency', 'direction']
+        )                    
 
-    data = data_raw.to_xarray()
+        # Create bins for multiple smaller API dataset requests
+        N=6
+        length = len(rex_waves)        
+        quotient=length//N
+        remainder=length%N    
+        bins = [i*quotient for i in range(N+1) ]
+        bins[-1]+= remainder        
+        index_bins = (np.array(bins)*len(frequency)*len(direction)).tolist()
+        
+        # Request multiple datasets and add to dictionary
+        datas={}
+        for i in range(len(bins)-1):
+            idx=index[index_bins[i]:index_bins[i+1]] 
 
-    return data, meta    
+            # Request with exponential back off wait time
+            sleep_time = 2
+            num_retries = 4
+            for x in range(0, num_retries):  
+                try:
+                    data_array = rex_waves[parameter, bins[i]:bins[i+1], :, :, gid]
+                    str_error = None
+
+                except Exception as e:
+                    str_error = str(e)
+
+                if str_error:
+                    sleep(sleep_time)
+                    sleep_time *= 2  
+                else:
+                    break
+        
+            ax1 = np.product(data_array.shape[:3])
+            ax2 = data_array.shape[-1] if len(data_array.shape) == 4 else 1
+            data_array = data_array.reshape(ax1, ax2)        
+            
+            df = pd.DataFrame(data_array, columns=columns, index=idx)
+            df.name = parameter
+            datas[i]=df
+
+        # Append each request into an xarray
+        data_raw=datas[0]
+        for i in list(datas.keys())[1:]:
+            data_raw =  pd.concat([data_raw,datas[i]])        
+        data = data_raw.to_xarray()
+
+        # Get metadata
+        meta = rex_waves.meta.loc[columns,:]
+        meta = meta.reset_index(drop=True)  
+
+    return data, meta
