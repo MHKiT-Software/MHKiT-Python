@@ -11,6 +11,8 @@
   - pitch ('time',)
   - roll ('time',)
   - temp ('time',)
+  - pressure ('time',)
+  - pressure_std ('time',)
   - amp ('beam', 'range', 'time')
   - corr ('beam', 'range', 'time')
   ... and others (see `<obj>.variables`)
