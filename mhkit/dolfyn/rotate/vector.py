@@ -32,20 +32,19 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
 
     Parameters
     ----------
-    advo : The adv object containing the data.
-
-    reverse : bool (default: False)
-           If True, this function performs the inverse rotation
-           (earth->inst).
-
-    rotate_vars : list
+    advo : xarray.Dataset
+      The adv dataset containing the data.
+    reverse : bool
+      If True, this function performs the inverse rotation (earth->inst).
+      Default = False
+    rotate_vars : iterable
       The list of variables to rotate. By default this is taken from
-      advo.props['rotate_vars'].
-
-    force : Do not check which frame the data is in prior to
-      performing this rotation.
-
+      advo.rotate_vars.
+    force : bool
+      Do not check which frame the data is in prior to performing 
+      this rotation. Default = False
     """
+
     if reverse:  # earth->inst
         # The transpose of the rotation matrix gives the inverse
         # rotation, so we simply reverse the order of the einsum:
@@ -161,12 +160,13 @@ def _earth2principal(advo, reverse=False):
 
     Parameters
     ----------
-    advo : The adv object containing the data.
-    reverse : bool (default: False)
-           If True, this function performs the inverse rotation
-           (principal->earth).
-
+    advo : xarray.Dataset
+      The adv dataset containing the data.
+    reverse : bool
+      If True, this function performs the inverse rotation
+      (principal->earth). Default = False
     """
+
     # This is in degrees CW from North
     ang = np.deg2rad(90 - advo.principal_heading)
     # convert this to radians CCW from east (which is expected by

@@ -1,6 +1,7 @@
 import struct
 import os.path as path
 import numpy as np
+from logging import getLogger
 import warnings
 from .. import time
 from .base import _abspath
@@ -94,6 +95,7 @@ def _calc_time(year, month, day, hour, minute, second, usec, zero_is_bad=True):
 
 
 def _create_index(infile, outfile, N_ens, debug):
+    logging = getLogger()
     print("Indexing {}...".format(infile), end='')
     fin = open(_abspath(infile), 'rb')
     fout = open(_abspath(outfile), 'wb')
@@ -136,9 +138,9 @@ def _create_index(infile, outfile, N_ens, debug):
 
             if debug and N[idk] < 5:
                 # hex: [18, 15, 1C, 17] = [vel_b5, vel, echo, bt]
-                print('%10d: %02X, %d, %02X, %d, %d, %d, %d\n' %
-                      (pos, dat[0], dat[1], dat[2], dat[4],
-                       N[idk], ens[idk], last_ens[idk]))
+                logging.info('%10d: %02X, %d, %02X, %d, %d, %d, %d\n' %
+                             (pos, dat[0], dat[1], dat[2], dat[4],
+                              N[idk], ens[idk], last_ens[idk]))
         else:
             fin.seek(dat[4], 1)
     fin.close()

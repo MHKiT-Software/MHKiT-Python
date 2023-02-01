@@ -15,10 +15,16 @@ class clean_testcase(unittest.TestCase):
         td_imu = tv.dat_imu.copy(deep=True)
 
         mask = avm.clean.GN2002(td.vel, npt=20)
-        td['vel'] = avm.clean.clean_fill(td.vel, mask, method='cubic')
+        td['vel'] = avm.clean.clean_fill(
+            td.vel, mask, method='cubic', maxgap=6)
+        td['vel_clean_1D'] = avm.clean.fill_nan_ensemble_mean(
+            td.vel[0], mask[0], fs=1, window=45)
+        td['vel_clean_2D'] = avm.clean.fill_nan_ensemble_mean(
+            td.vel, mask, fs=1, window=45)
 
         mask = avm.clean.GN2002(td_imu.vel, npt=20)
-        td_imu['vel'] = avm.clean.clean_fill(td_imu.vel, mask, method='cubic')
+        td_imu['vel'] = avm.clean.clean_fill(
+            td_imu.vel, mask, method='cubic', maxgap=6)
 
         if make_data:
             save(td, 'vector_data01_GN.nc')
@@ -32,7 +38,8 @@ class clean_testcase(unittest.TestCase):
         td = tv.dat_imu.copy(deep=True)
 
         mask = avm.clean.spike_thresh(td.vel, thresh=10)
-        td['vel'] = avm.clean.clean_fill(td.vel, mask, method='cubic')
+        td['vel'] = avm.clean.clean_fill(
+            td.vel, mask, method='cubic', maxgap=6)
 
         if make_data:
             save(td, 'vector_data01_sclean.nc')
@@ -44,7 +51,8 @@ class clean_testcase(unittest.TestCase):
         td = tv.dat_imu.copy(deep=True)
 
         mask = avm.clean.range_limit(td.vel)
-        td['vel'] = avm.clean.clean_fill(td.vel, mask, method='cubic')
+        td['vel'] = avm.clean.clean_fill(
+            td.vel, mask, method='cubic', maxgap=6)
 
         if make_data:
             save(td, 'vector_data01_rclean.nc')

@@ -23,7 +23,8 @@ def _find(arr):
 
 
 def detrend_array(arr, axis=-1, in_place=False):
-    """Remove a linear trend from arr.
+    """
+    Remove a linear trend from arr.
 
     Parameters
     ----------
@@ -40,6 +41,7 @@ def detrend_array(arr, axis=-1, in_place=False):
     This works much faster than mpl.mlab.detrend for multi-dimensional
     arrays, and is also faster than linalg.lstsq methods.
     """
+
     arr = np.asarray(arr)
     if not in_place:
         arr = arr.copy()
@@ -55,7 +57,8 @@ def detrend_array(arr, axis=-1, in_place=False):
 
 
 def group(bl, min_length=0):
-    """Find continuous segments in a boolean array.
+    """
+    Find continuous segments in a boolean array.
 
     Parameters
     ----------
@@ -75,8 +78,8 @@ def group(bl, min_length=0):
     -----
     This function has funny behavior for single points.  It will
     return the same two indices for the beginning and end.
-
     """
+
     if not any(bl):
         return np.empty(0)
     vl = np.diff(bl.astype('int'))
@@ -86,7 +89,7 @@ def group(bl, min_length=0):
         if len(ups) == 0:
             ups = np.array([0])
         else:
-            ups = np.concatenate((np.arange([0]), [len(ups)]))
+            ups = np.concatenate((np.array([0]), [len(ups)]))
     if bl[-1]:
         if len(dns) == 0:
             dns = np.array([len(bl)])
@@ -125,8 +128,8 @@ def slice1d_along_axis(arr_shape, axis=0):
     >> out=np.empty(replace(arr.shape,0,1))
     >> for slc in slice1d_along_axis(arr.shape,axis=0):
     >>     out[slc]=my_1d_function(arr[slc])
-
     """
+
     nd = len(arr_shape)
     if axis < 0:
         axis += nd
@@ -161,9 +164,9 @@ def convert_degrees(deg, tidal_mode=True):
     ----------
     deg: float or array-like
       Number or array in 'degrees CCW from East' or 'degrees CW from North'
-    tidal_mode : bool (default: True)
+    tidal_mode : bool
       If true, range is set from 0 to +/-180 degrees. If false, range is 0 to 
-      360 degrees
+      360 degrees. Default = True
 
     Returns
     -------
@@ -175,16 +178,17 @@ def convert_degrees(deg, tidal_mode=True):
     -----
     The same algorithm is used to convert back and forth between 'CCW from E' 
     and 'CW from N'
-
     """
+
     out = -(deg - 90) % 360
     if tidal_mode:
         out[out > 180] -= 360
     return out
 
 
-def _fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
-    """Linearly fill NaN value in an array.
+def fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
+    """
+    Linearly fill NaN value in an array.
 
     Parameters
     ----------
@@ -207,13 +211,12 @@ def _fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
     This function interpolates assuming spacing/timestep between
     successive points is constant. If the spacing is not constant, use
     _interpgaps.
-
     """
 
     # If this is a multi-dimensional array, operate along axis dim.
     if a.ndim > 1:
         for inds in slice1d_along_axis(a.shape, dim):
-            _fillgaps(a[inds], maxgap, 0, extrapFlg)
+            fillgaps(a[inds], maxgap, 0, extrapFlg)
         return
 
     a = np.asarray(a)
@@ -251,7 +254,7 @@ def _fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
     return a
 
 
-def _interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
+def interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
     """
     Fill gaps (NaN values) in ``a`` by linear interpolation along
     dimension ``dim`` with the point spacing specified in ``t``.
@@ -272,14 +275,13 @@ def _interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
 
     See Also
     --------
-    mhkit.dolfyn.tools.misc._fillgaps : Linearly interpolates in array-index space.
-
+    mhkit.dolfyn.tools.misc.fillgaps : Linearly interpolates in array-index space.
     """
 
     # If this is a multi-dimensional array, operate along dim dim.
     if a.ndim > 1:
         for inds in slice1d_along_axis(a.shape, dim):
-            _interpgaps(a[inds], t, maxgap, 0, extrapFlg)
+            interpgaps(a[inds], t, maxgap, 0, extrapFlg)
         return
 
     gd = _find(~np.isnan(a))
@@ -305,7 +307,7 @@ def _interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
     return a
 
 
-def _medfiltnan(a, kernel, thresh=0):
+def medfiltnan(a, kernel, thresh=0):
     """
     Do a running median filter of the data. Regions where more than 
     ``thresh`` fraction of the points are NaN are set to NaN.
@@ -330,8 +332,8 @@ def _medfiltnan(a, kernel, thresh=0):
     See Also
     --------
     scipy.signal.medfilt2d
-
     """
+
     flag_1D = False
     if a.ndim == 1:
         a = a[None, :]

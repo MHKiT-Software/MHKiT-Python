@@ -1,5 +1,5 @@
 from . import test_read_adv as tv
-from .base import load_netcdf as load, save_netcdf as save, rfnm
+from mhkit.tests.dolfyn.base import load_netcdf as load, save_netcdf as save, rfnm
 from mhkit.dolfyn import rotate2
 import mhkit.dolfyn.adv.api as avm
 from xarray.testing import assert_allclose
