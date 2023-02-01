@@ -2,6 +2,7 @@
 """
 import numpy as np
 import warnings
+from ..velocity import VelBinner
 from ..tools.misc import group, slice1d_along_axis
 warnings.filterwarnings('ignore', category=np.RankWarning)
 
@@ -9,7 +10,7 @@ sin = np.sin
 cos = np.cos
 
 
-def clean_fill(u, mask, npt=12, method='cubic', max_gap=6):
+def clean_fill(u, mask, npt=12, method='cubic', maxgap=6):
     """
     Interpolate over mask values in timeseries data using the specified method
 
@@ -21,12 +22,12 @@ def clean_fill(u, mask, npt=12, method='cubic', max_gap=6):
       Logical tensor of elements to "nan" out (from `spikeThresh`, `rangeLimit`,
       or `GN2002`) and replace
     npt : int
-      The number of points on either side of the bad values that
+      The number of points on either side of the bad values that 
       interpolation occurs over
     method : string
-      Interpolation scheme to use (linear, cubic, pchip, etc)
-    max_gap : int
-      Max number of consective nan's to interpolate across
+      Interpolation method to use (linear, cubic, pchip, etc). Default is 'cubic'
+    maxgap : numeric
+      Maximum gap of missing data to interpolate across. Default is None
 
     Returns
     -------
@@ -36,10 +37,7 @@ def clean_fill(u, mask, npt=12, method='cubic', max_gap=6):
     See Also
     --------
     xarray.DataArray.interpolate_na()
-
     """
-    if max_gap:
-        max_gap = u.time.diff('time')[0].values * max_gap
 
     # Apply mask
     u.values[..., mask] = np.nan
@@ -47,14 +45,14 @@ def clean_fill(u, mask, npt=12, method='cubic', max_gap=6):
     # Remove bad data for 2D+ and 1D timeseries variables
     if 'dir' in u.dims:
         for i in range(u.shape[0]):
-            u[i] = _interp_nan(u[i], npt, method, max_gap)
+            u[i] = _interp_nan(u[i], npt, method, maxgap)
     else:
-        u = _interp_nan(u, npt, method, max_gap)
+        u = _interp_nan(u, npt, method, maxgap)
 
     return u
 
 
-def _interp_nan(da, npt, method, max_gap):
+def _interp_nan(da, npt, method, maxgap):
     """
     Interpolate over the points in `bad` that are True.
 
@@ -65,8 +63,17 @@ def _interp_nan(da, npt, method, max_gap):
     npt : int
       The number of points on either side of the gap that the fit
       occurs over
+    method : string
+      Interpolation scheme to use (linear, cubic, pchip, etc)
+    maxgap : int
+      Max number of consective nan's to interpolate across
 
+    Returns
+    -------
+    da : xarray.DataArray
+      The dataArray with nan's filled in
     """
+
     searching = True
     bds = da.isnull().values
     ntail = 0
@@ -97,14 +104,86 @@ def _interp_nan(da, npt, method, max_gap):
             if (ntail == npt or pos == len(da)):
                 # This is the block we are interpolating over
                 i_int = i[start:pos]
-                da[i_int] = da[i_int].interpolate_na(dim='time',
+                da[i_int] = da[i_int].interpolate_na(dim=da.dims[-1],
                                                      method=method,
                                                      use_coordinate=True,
-                                                     max_gap=max_gap)
+                                                     limit=maxgap)
                 # Reset
                 searching = True
                 ntail = 0
     return da
+
+
+def fill_nan_ensemble_mean(u, mask, fs, window):
+    """
+    Fill missing values with the ensemble mean.
+
+    Parameters
+    ----------
+    u : xarray.DataArray (..., time)
+      The dataArray to clean. Can be 1D or 2D.
+    mask : bool
+      Logical tensor of elements to "nan" out (from `spikeThresh`, `rangeLimit`,
+      or `GN2002`) and replace
+    fs : int
+      Instrument sampling frequency
+    window : int
+      Size of window in seconds used to calculate ensemble means
+
+    Returns
+    -------
+    da : xarray.DataArray
+      The dataArray with nan's filled in
+
+    Notes
+    -----
+    Gaps larger than the ensemble size will not get filled in.
+    """
+
+    u = u.where(~mask)
+    bnr = VelBinner(n_bin=window*fs, fs=fs)
+
+    if len(u.shape) == 1:
+        var = u.values[None, :]
+    else:
+        var = u.values
+
+    vel = np.empty(var.shape)
+    vel_reshaped = bnr.reshape(var)
+    vel_mean = np.nanmean(vel_reshaped, axis=-1)
+
+    # If there are extra datapoints trimmed off after the last ensemble,
+    # take them into account by filling in another ensemble with means
+    diff = vel.shape[-1] - vel_reshaped.size // vel.shape[0]
+    # diff = number of extra points
+    extra_nans = vel_reshaped.shape[-1] - diff
+    if diff:
+        vel = np.empty((var.shape[0], var.shape[-1]+extra_nans))
+        extra = var[:, -diff:]
+        empty = np.empty((vel.shape[0], vel_reshaped.shape[-1]-diff))*np.nan
+        extra = np.concatenate((extra, empty), axis=-1)
+        vel_reshaped = np.concatenate(
+            (vel_reshaped, extra[:, None, :]), axis=1)
+        extra_mean = np.nanmean(extra, axis=-1)
+        vel_mean = np.concatenate((vel_mean, extra_mean[:, None]), axis=-1)
+
+    # Create a matrix the same size as the reshaped array, and mask out the
+    # non-missing values. Then add the two matrices together.
+    vel_mean_matrix = np.tile(vel_mean[..., None], (1, 1, bnr.n_bin))
+    vel_missing = np.isnan(vel_reshaped)
+    vel_mask = np.ma.masked_array(vel_mean_matrix, ~vel_missing).filled(np.nan)
+    vel_filled = np.where(np.isnan(vel_reshaped), vel_mask,
+                          vel_reshaped + np.nan_to_num(vel_mask))
+    # "Unshape" the data
+    for i in range(var.shape[0]):
+        vel[i] = np.ravel(vel_filled[i], 'C')
+
+    if diff:  # Trim off the extra means
+        u.values = np.squeeze(vel[:, :-extra_nans])
+    else:
+        u.values = np.squeeze(vel)
+
+    return u
 
 
 def spike_thresh(u, thresh=10):
@@ -117,14 +196,14 @@ def spike_thresh(u, thresh=10):
     u : xarray.DataArray
       The timeseries data to clean.
     thresh : int
-       Magnitude of velocity spike, must be positive.
+       Magnitude of velocity spike, must be positive. Default = 10
 
     Returns
     -------
     mask : numpy.ndarray
       Logical vector with spikes labeled as 'True'
-
     """
+
     du = np.diff(u.values, prepend=0)
     mask = (du > thresh) + (du < -thresh)
 
@@ -133,7 +212,7 @@ def spike_thresh(u, thresh=10):
 
 def range_limit(u, range=[-5, 5]):
     """
-    Returns a logical vector that is True where the values of `u` are
+    Returns a logical vector that is True where the values of `u` are 
     outside of `range`.
 
     Parameters
@@ -141,14 +220,14 @@ def range_limit(u, range=[-5, 5]):
     u : xarray.DataArray
       The timeseries data to clean.
     range : list
-       Min and max magnitudes beyond which are masked
+       Min and max magnitudes beyond which are masked. Default is [-5, 5]
 
     Returns
     -------
     mask : numpy.ndarray
       Logical vector with spikes labeled as 'True'
-
     """
+
     return ~((range[0] < u.values) & (u.values < range[1]))
 
 
@@ -206,14 +285,14 @@ def GN2002(u, npt=5000):
     u : xarray.DataArray
       The velocity array (1D or 3D) to clean.
     npt : int
-      The number of points over which to perform the method.
+      The number of points over which to perform the method. Default = 5000
 
     Returns
     -------
     mask : numpy.ndarray
       Logical vector with spikes labeled as 'True'
-
     """
+
     if not isinstance(u, np.ndarray):
         return GN2002(u.values, npt=npt)
 
@@ -228,7 +307,7 @@ def GN2002(u, npt=5000):
     # Find large bad segments (>npt/10):
     # group returns a vector of slice objects.
     bad_segs = group(np.isnan(u), min_length=int(npt//10))
-    if bad_segs.size > 0:
+    if bad_segs.size > 2:
         # Break them up into separate regions:
         sp = 0
         ep = len(u)

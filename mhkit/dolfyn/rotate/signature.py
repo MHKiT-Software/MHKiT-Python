@@ -13,19 +13,17 @@ def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
 
     Parameters
     ----------
-    adcpo : The adv object containing the data.
-
-    reverse : bool (default: False)
-           If True, this function performs the inverse rotation
-           (earth->inst).
-
-    rotate_vars : list
+    adcpo : xarray.Dataset
+      The adcp dataset containing the data.
+    reverse : bool
+      If True, this function performs the inverse rotation (earth->inst).
+      Default = False
+    rotate_vars : iterable
       The list of variables to rotate. By default this is taken from
-      adcpo.props['rotate_vars'].
-
-    force : Do not check which frame the data is in prior to
-      performing this rotation.
-
+      adcpo.rotate_vars.
+    force : bool
+      Do not check which frame the data is in prior to performing 
+      this rotation. Default = False
     """
 
     if reverse:
@@ -100,6 +98,7 @@ def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
         n = dat.shape[0]
         # Nortek documents sign change for upside-down instruments
         if down:
+            # This is equivalent to adding 180 degrees to roll axis in _calc_omat()
             sign = np.array([1, -1, -1, -1], ndmin=dat.ndim).T
             signIMU = np.array([1, -1, -1], ndmin=dat.ndim).T
             if not reverse:
