@@ -111,7 +111,7 @@ class TestWPTOhindcast(unittest.TestCase):
                 dir_multiyear.time_index[99]
             )
         )
-        dir_multiyear = dir_multiyear.rename_vars({87:'87',58:'58'})
+        dir_multiyear = dir_multiyear.rename({87:'87',58:'58'})
 
         assert_frame_equal(self.ml,wave_multiloc)
         assert_frame_equal(self.ml_meta,meta)

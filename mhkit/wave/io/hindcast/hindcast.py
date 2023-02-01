@@ -5,7 +5,6 @@ import sys
 from time import sleep
 
 
-
 def region_selection(lat_lon):
     '''
     Returns the name of the predefined region in which the given coordinates reside.
@@ -278,6 +277,7 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
         for i in list(datas.keys())[1:]:
             data_raw =  pd.concat([data_raw,datas[i]])        
         data = data_raw.to_xarray()
+        data['time_index'] = pd.to_datetime(data.time_index)
 
         # Get metadata
         meta = rex_waves.meta.loc[columns,:]
