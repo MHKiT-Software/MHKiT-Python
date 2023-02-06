@@ -212,7 +212,7 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
         Start date in YYYY-MM-DD, e.g. '2012-04-01'
     end_date: string 
         End date in YYYY-MM-DD, e.g. '2012-04-30'
-    xarray : bool
+    xarray: bool
         If true, return data will be xarray Dataset rather than 
         a dictionary of pandas DataFrames. Default value is false.
     data_type: string
@@ -340,7 +340,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None, parameters=None,
     parameters: string or list of stings
         Parameters to return. If None will return all varaibles except
         2D-variables. Default None.
-    xarray : bool
+    xarray: bool
         If true, return data will be xarray Dataset rather than 
         a dictionary of pandas DataFrames. Default value is false.
     all_2D_variables: boolean

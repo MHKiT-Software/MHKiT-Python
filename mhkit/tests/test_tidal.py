@@ -25,6 +25,12 @@ class TestIO(unittest.TestCase):
         data, metadata = tidal.io.noaa.read_noaa_json(file_name)
         self.assertTrue(np.all(data.columns == ['s','d','b']) )
         self.assertEqual(data.shape, (18890, 3))
+        
+    def test_load_noaa_data_xr(self):
+        file_name = join(datadir, 's08010.json')
+        data, metadata = tidal.io.noaa.read_noaa_json(file_name,xarray=True)
+        self.assertTrue(np.all(list(data.keys()) == ['s','d','b']) )
+        self.assertEqual(data.d.shape, (18890,))
 
     def test_request_noaa_data(self):
         data, metadata = tidal.io.noaa.request_noaa_data(station='s08010', parameter='currents',

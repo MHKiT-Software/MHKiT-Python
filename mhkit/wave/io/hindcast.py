@@ -90,10 +90,10 @@ def request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
 
         Returns
         ---------
-        data: DataFrame 
+        data: Pandas DataFrame or xarray Dataset
             Data indexed by datetime with columns named for parameter and cooresponding metadata index 
-        meta: DataFrame 
-            Location metadata for the requested data location   
+        meta: Pandas DataFrame or xarray Dataset
+            Location metadata for the requested data location. Not returned if xarray=True.  
         """
         
         assert isinstance(parameter, (str, list)), 'parameter must be of type string or list'

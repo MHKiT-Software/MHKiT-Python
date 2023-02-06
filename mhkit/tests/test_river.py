@@ -315,7 +315,8 @@ class TestIO(unittest.TestCase):
                             parameter='00060',
                             start_date='2009-08-01',
                             end_date='2009-08-10',
-                            data_type='Instantaneous')
+                            data_type='Instantaneous',
+                            xarray=True)
         self.assertEqual(list(data.keys()), ['Discharge, cubic feet per second'])
         # Every 15 minutes or 4 times per hour
         self.assertEqual(data['Discharge, cubic feet per second'].shape, (10*24*4, ))

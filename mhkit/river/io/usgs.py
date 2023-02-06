@@ -74,15 +74,15 @@ def read_usgs_file(file_name, xarray=False):
 
     Parameters
     ----------
-    file_name : str
+    file_name: str
         Name of USGS JSON data file
-    xarray : bool
+    xarray: bool
         If true, return data will be xarray Dataset rather than pandas DataFrame.
         Default value is false.
         
     Returns
     -------
-    data : pandas DataFrame 
+    data: pandas DataFrame or xarray Dataset
         Data indexed by datetime with columns named according to the parameter's 
         variable description
     """
@@ -129,7 +129,7 @@ def request_usgs_data(station, parameter, start_date, end_date,
         
     Returns
     -------
-    data : pandas DataFrame 
+    data : pandas DataFrame or xarray Dataset
         Data indexed by datetime with columns named according to the parameter's 
         variable description
     """

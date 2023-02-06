@@ -8,7 +8,7 @@ from datetime import datetime
 import csv
 import requests
 import zlib
-from utils import _xarray_dict
+from mhkit.utils import _xarray_dict
 
 
 
@@ -34,20 +34,22 @@ def read_file(file_name, xarray=False, missing_values=['MM',9999,999,99]):
 
     xarray: bool
             If true, returns xarray dataset instead of pandas DataFrame (metadata will 
-            not be returned if true as it will be part of the dataset)
+            not be returned if true as it will be part of the dataset). 
+            Default = False
                 
     missing_value: list of values
         List of values that denote missing data    
     
     Returns
     ---------
-    data: pandas DataFrame 
+    data: pandas DataFrame or xarray Dataset
         Data indexed by datetime with columns named according to header row 
         
     metadata: dict or None
         Dictionary with {column name: units} key value pairs when the NDBC file  
         contains unit information, otherwise None is returned
-        (If xarray is true, then metadata will simply be a part of the data)
+        (If xarray is true, then metadata will simply be a part of the data). 
+        Not returned if xarray=True
     """
     assert isinstance(file_name, str), 'file_name must be of type str'
     assert isinstance(xarray, bool), 'xarray must be of type bool'
@@ -267,7 +269,7 @@ def request_data(parameter, filenames, proxy=None, xarray=False):
         (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})  
 
     xarray: bool
-        If true returns xarray instead of pandas DataFrame
+        If true returns xarray instead of pandas DataFrame. Default = False
         
     Returns
     -------

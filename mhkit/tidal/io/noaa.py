@@ -39,7 +39,7 @@ def request_noaa_data(station, parameter, start_date, end_date,
         
     Returns
     -------
-    data : pandas DataFrame 
+    data : pandas DataFrame or xarray Dataset
         Data indexed by datetime with columns named according to the parameter's 
         variable description
 
@@ -176,21 +176,23 @@ def read_noaa_json(filename, xarray=False):
     '''
     Returns site DataFrame and metadata from a json saved from the 
     request_noaa_data
+    
     Parameters
     ----------
-    filename: string
+    filename : string
         filename with path of json file to load
     xarray: bool
         If true, returns xarray dataset instead 
         of pandas DataFrame (metadata will not be
         returned if true as it will be part of the
         dataset)
+    
     Returns
     -------
-    data: DataFrame
+    data : Pandas DataFrame or xarray Dataset
         Timeseries Site data of direction and speed 
-    metadata: dictionary
-        Site metadata
+    metadata : dictionary
+        Site metadata. Not returned if xarray=True.
     '''
     with open(filename) as outfile: 
         jsonData=json.load(outfile)

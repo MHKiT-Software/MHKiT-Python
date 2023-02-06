@@ -3,7 +3,7 @@ from scipy.io import loadmat
 from os.path import isfile
 import pandas as pd
 import xarray as xr
-from utils import _xarray_dict
+from mhkit.utils import _xarray_dict
 import numpy as np
 import csv
 import re 
@@ -15,22 +15,19 @@ def read_table(swan_file, xarray=False):
     
     Parameters
     ----------
-    swan_file: str
+    swan_file : str
         filename to import
-    xarray: bool (optional)
+    xarray : bool (optional)
             If true, returns xarray dataset instead of pandas DataFrame (metadata will 
             not be returned if true as it will be part of the dataset)
             Default = False
         
     Returns
     -------
-    swan_data: DataFrame
+    swan_data : DataFrame
         Dataframe of swan output
-    metaDict: Dictionary
-        Dictionary of metaData  
-
-    If xarray, metaDict will be part of swan_data
-    and only one object will be returned
+    metaDict : Dictionary
+        Dictionary of metaData. Not returned if xarray=True.
     '''
     assert isinstance(swan_file, str), 'swan_file must be of type str'
     assert isfile(swan_file)==True, f'File not found: {swan_file}'
@@ -98,7 +95,7 @@ def read_block(swan_file, xarray=False):
     data: Dictionary
         Dictionary of DataFrame of swan output variables  
     metaDict: Dictionary
-        Dictionary of metaData dependent on file type    
+        Dictionary of metaData dependent on file type. Not returned if xarray=True    
     '''
     assert isinstance(swan_file, str), 'swan_file must be of type str'
     assert isfile(swan_file)==True, f'File not found: {swan_file}'
@@ -120,7 +117,7 @@ def read_block(swan_file, xarray=False):
     else:
         return dataDict
     
-def _read_block_txt(swan_file, xarray):
+def _read_block_txt(swan_file, xarray=False):
     '''
     Reads in SWAN block output with headers and creates a dictionary 
     of DataFrames for each SWAN output variable in the output file.
@@ -130,14 +127,15 @@ def _read_block_txt(swan_file, xarray):
     swan_file: str
         swan block file to import (must be written with headers)
     xarray: bool
-        If true, returns xarray dataset instead of pandas DataFrame
+        If true, returns xarray dataset instead of pandas DataFrame. 
+        Default = False.
         
     Returns
     -------
     dataDict: Dictionary
         Dictionary of DataFrame of swan output variables
     metaDict: Dictionary
-        Dictionary of metaData dependent on file type    
+        Dictionary of metaData dependent on file type. Not returned if xarray=True  
     '''
     assert isinstance(swan_file, str), 'swan_file must be of type str'
     assert isfile(swan_file)==True, f'File not found: {swan_file}'
@@ -227,7 +225,7 @@ def _read_block_txt(swan_file, xarray):
     metaData = metaData.set_index('vars').T.to_dict()           
     return dataDict, metaData              
     
-def _read_block_mat(swan_file, xarray):
+def _read_block_mat(swan_file, xarray=False):
     '''
     Reads in SWAN matlab output and creates a dictionary of DataFrames
     for each swan output variable.
@@ -237,7 +235,7 @@ def _read_block_mat(swan_file, xarray):
     swan_file: str
         filename to import
     xarray: bool
-        If true, returns xarray dataset instead of pandas DataFrame
+        If true, returns xarray dataset instead of pandas DataFrame. Default = False
         
     Returns
     -------
