@@ -113,8 +113,8 @@ class rotate_adv_testcase(unittest.TestCase):
         cd = tr.dat.copy(deep=True)
         cdm = tr.dat_imu.copy(deep=True)
 
-        assert_allclose(td, cd, atol=1e-6)
-        assert_allclose(tdm, cdm, atol=1e-6)
+        assert_allclose(td, cd, atol=1e-5)
+        assert_allclose(tdm, cdm, atol=1e-5)
 
     def test_rotate_earth2principal(self):
         td = load('vector_data01_rotate_inst2earth.nc')

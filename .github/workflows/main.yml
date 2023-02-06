@@ -2,12 +2,17 @@ name: Py 3.7 3.8, 3.9 | Windows Mac Linux
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
+      - Develop
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
+      - Develop
 
 jobs:
-  build:
+  conda-build:
+    name: conda-${{ matrix.os }}/${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -16,45 +21,147 @@ jobs:
         python-version: [3.7, 3.8, 3.9]
 
     steps:
-    - uses: conda-incubator/setup-miniconda@v2
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-        
-    - name: Set up Git repository
-      uses: actions/checkout@v2
-      
-    - name: Update and install packages
-      run: |
-        python -m pip install --upgrade pip wheel
-        pip install h5pyd --upgrade
-        pip install nose
-        pip install pytest
-        pip install coveralls
-        pip install .
-        
-    - name: Run nose
-      shell: bash -l {0}
-      run: |          
-        nosetests -v --traverse-namespace --with-coverage --cover-package=mhkit mhkit
+      - uses: actions/checkout@v2
 
-    - name: Upload coverage data to coveralls.io
-      run: coveralls --service=github
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
-        COVERALLS_PARALLEL: true
+      - name: Setup Conda
+        uses: s-weigand/setup-conda@v1
+        with:
+          activate-conda: false
+          conda-channels: conda-forge
+
+      - name: Python ${{ matrix.python-version }}
+        shell: bash -l {0}
+        run: |
+          conda create --name TEST python=${{ matrix.python-version }} numpy cython pip pytest hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
+          source activate TEST
+          export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH" # so setup.py finds nc-config
+          pip install -e . --no-deps --force-reinstall
+
+      - name: Tests
+        shell: bash -l {0}
+        run: |
+          source activate TEST
+          python -m pip install --upgrade pip wheel
+          pip install coverage
+          pip install pytest
+          pip install coveralls
+          pip install .
+
+      - name: Run pytest
+        shell: bash -l {0}
+        run: |
+          source activate TEST
+          coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/ -m pytest -c .github/workflows/pytest.ini
+
+      - name: Upload coverage data to coveralls.io
+        shell: bash -l {0}
+        run: |
+          source activate TEST
+          coveralls --service=github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
+          COVERALLS_PARALLEL: true
+
+  pip-build:
+    name: pip-${{ matrix.os }}/${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
+        python-version: [3.8, 3.9]
+
+    steps:
+      - uses: conda-incubator/setup-miniconda@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up Git repository
+        uses: actions/checkout@v2
+
+      - name: Update and install packages
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install coverage
+          pip install pytest
+          pip install coveralls
+          pip install .
+
+      - name: Run pytest
+        run: |
+          coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/  -m pytest -c .github/workflows/pytest.ini
+
+      - name: Upload coverage data to coveralls.io
+        run: coveralls --service=github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
+          COVERALLS_PARALLEL: true
+
+  hindcast-calls:
+    name: hindcast-${{ matrix.os }}/${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        os: ["windows-latest", "macos-latest"]
+        python-version: [3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Conda
+        uses: s-weigand/setup-conda@v1
+        with:
+          activate-conda: false
+          conda-channels: conda-forge
+
+      - name: Python ${{ matrix.python-version }}
+        shell: bash -l {0}
+        run: |
+          conda create --name TEST python=${{ matrix.python-version }} numpy cython pip pytest hdf5 libnetcdf cftime netcdf4 coverage --strict-channel-priority
+          source activate TEST
+          export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH" # so setup.py finds nc-config
+          pip install -e . --no-deps --force-reinstall
+
+      - name: Install MHKiT
+        shell: bash -l {0}
+        run: |
+          source activate TEST
+          python -m pip install --upgrade pip wheel
+          pip install coveralls
+          pip install .
+
+      - name: Run pytest
+        shell: bash -l {0}
+        run: |
+          source activate TEST
+          coverage run --rcfile=.github/workflows/.coveragehindcastrc -m  pytest -c  .github/workflows/pytest-hindcast.ini
+
+      - name: Upload coverage data to coveralls.io
+        shell: bash -l {0}
+        run: |
+          source activate TEST
+          coveralls --service=github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
+          COVERALLS_PARALLEL: true
+
   coveralls:
     name: Indicate completion to coveralls.io
-    needs: build
+    needs: [conda-build, pip-build, hindcast-calls]
     runs-on: ubuntu-latest
     container: python:3-slim
     steps:
-    - name: Finished
-      run: |
-        pip3 install --upgrade coveralls
-        coveralls --finish
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Finished
+        run: |
+          pip3 install --upgrade coveralls
+          coveralls --finish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

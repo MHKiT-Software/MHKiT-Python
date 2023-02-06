@@ -1,6 +1,6 @@
+from mhkit.tests.dolfyn import base as tb
 from mhkit.dolfyn.rotate.api import set_inst2head_rotmat
 from mhkit.dolfyn.io.api import read_example as read
-from . import base as tb
 import numpy as np
 import unittest
 
@@ -21,7 +21,7 @@ class io_adv_testcase(unittest.TestCase):
         td = tb.drop_config(read('vector_data01.VEC', nens=nens))
         tdm = tb.drop_config(read('vector_data_imu01.VEC', userdata=False,
                                   nens=nens))
-        tdb = tb.drop_config(read('burst_mode01.VEC', nens=nens))
+        tdb = tb.drop_config(read('vector_burst_mode01.VEC', nens=nens))
         tdm2 = tb.drop_config(read('vector_data_imu01.VEC',
                                    userdata=tb.exdt(
                                        'vector_data_imu01.userdata.json'),

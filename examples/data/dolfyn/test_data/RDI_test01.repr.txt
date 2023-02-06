@@ -1,0 +1,18 @@
+<ADCP data object>:  TRDI Workhorse
+  . 10.50 seconds (started: Feb 10, 2011 18:00)
+  . beam-frame
+  . (22 pings @ 2.0Hz)
+  Variables:
+  - time ('time',)
+  - vel ('dir', 'range', 'time')
+  - range ('range',)
+  - orientmat ('earth', 'inst', 'time')
+  - heading ('time',)
+  - pitch ('time',)
+  - roll ('time',)
+  - temp ('time',)
+  - pressure ('time',)
+  - pressure_std ('time',)
+  - amp ('beam', 'range', 'time')
+  - corr ('beam', 'range', 'time')
+  ... and others (see `<obj>.variables`)
