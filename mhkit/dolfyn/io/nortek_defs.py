@@ -3,7 +3,8 @@ nan = np.nan
 
 
 class _VarAtts():
-    """A data variable attributes class.
+    """
+    A data variable attributes class.
 
     Parameters
     ----------
@@ -13,14 +14,14 @@ class _VarAtts():
         end. To specify a point to place it, place 'n' in that
         location.
     dtype : (type, optional)
-        The data type of the array to create (default: float32).
+        The data type of the array to create. Default: float32
     group : (string, optional)
-        The data group to which this variable should be a part
-        (default: 'main').
+        The data group to which this variable should be a part.
+        Default: 'main'
     view_type : (type, optional)
         Specify a numpy view to cast the array into.
     default_val : (numeric, optional)
-        The value to initialize with (default: use an empty array).
+        The value to initialize with. Default: use an empty array.
     offset : (numeric, optional)
         The offset, 'b', by which to adjust the data when converting to
         scientific units.
@@ -33,7 +34,6 @@ class _VarAtts():
         The units of this variable.
     dim_names : (list, optional)
         A list of names for each dimension of the array.
-
     """
 
     def __init__(self, dims=[], dtype=None, group='main',
