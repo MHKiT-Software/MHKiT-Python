@@ -44,3 +44,4 @@ The GitHub platform has the Issues feature that is used to track ideas, feedback
 4. If the Issue is a bug, use the **Bug report** template and click **Get started**, otherwise click on the **Open a blank issue** link
 5. Provide a **Title** and **description** for the issue. Be sure the title is relevant to the issue and that the description is clear and provided with sufficient detail.
 6. When you're finished, click **Submit new issue**. The developers will follow-up once the issue is addressed.
+
