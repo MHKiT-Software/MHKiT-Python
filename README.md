@@ -34,3 +34,13 @@ MHKiT-Python is copyright through the National Renewable Energy Laboratory,
 Pacific Northwest National Laboratory, and Sandia National Laboratories. 
 The software is distributed under the Revised BSD License.
 See [copyright and license](LICENSE.md) for more information.
+
+Issues
+------------------------
+The GitHub platform has the Issues feature that is used to track ideas, feedback, tasks, and/or bugs. To submit an Issue, follow the steps below. More information about GitHub Issues can be found [here](https://docs.github.com/en/issues/tracking-your-work-with-issues/about-issues)
+1. Navigate to the [MHKiT-Python main page](https://github.com/MHKiT-Software/MHKiT-Python)
+2. 2.Under the repository name (upper left), click **Issues**
+3. Click **New Issue**
+4. If the Issue is a bug, use the **Bug report** template and click **Get started**, otherwise click on the **Open a blank issue** link
+5. Provide a **Title** and **description** for the issue. Be sure the title is relevant to the issue and that the description is clear and provided with sufficient detail.
+6. When you're finished, click **Submit new issue**. The developers will follow-up once the issue is addressed.
