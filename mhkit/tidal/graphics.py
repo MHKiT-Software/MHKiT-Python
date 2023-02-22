@@ -83,8 +83,15 @@ def _initialize_polar(ax=None, metadata=None, flood=None, ebb=None):
     return ax
 
 
-def plot_rose(directions, velocities, width_dir, width_vel, metadata=None,
-              flood=None, ebb=None):
+def plot_rose(
+    directions, 
+    velocities, 
+    width_dir, 
+    width_vel, 
+    metadata=None,
+    flood=None, 
+    ebb=None
+    ):
     """
     Creates a polar histogram. Direction angles from binned histogram must 
     be specified such that 0  degrees is north.
@@ -173,9 +180,15 @@ def plot_rose(directions, velocities, width_dir, width_vel, metadata=None,
     return ax
 
 
-def plot_joint_probability_distribution(directions, velocities, width_dir, 
-                                        width_vel, metadata=None,
-                                        flood=None, ebb=None):
+def plot_joint_probability_distribution(
+    directions,
+    velocities,
+    width_dir,
+    width_vel,
+    metadata=None,
+    flood=None,
+    ebb=None
+    ):
     """
     Creates a polar histogram. Direction angles from binned histogram must 
     be specified such that 0 is north.
@@ -316,8 +329,14 @@ def plot_current_timeseries(directions, velocities, principal_direction,
     return ax
 
 
-def tidal_phase_probability(directions, velocities, flood, ebb, 
-    bin_size=0.1, ax=None):
+def tidal_phase_probability(
+    directions,
+    velocities,
+    flood,
+    ebb, 
+    bin_size=0.1,
+    ax=None
+    ):
     '''
     Discretizes the tidal series speed by bin size and returns a plot
     of the probability for each bin in the flood or ebb tidal phase.
@@ -354,17 +373,17 @@ def tidal_phase_probability(directions, velocities, flood, ebb,
     assert isinstance(ebb, (int, float)), \
         'ebb must be of type int or float'        
     assert isinstance(bin_size, (int, float)), \
-        'bin_size must be of type int or float' 
+        'bin_size must be of type int or float'
     assert flood >=0 and flood <=360,\
         'flood must be between 0 and 360 degrees'
     assert ebb >=0 and ebb <=360,\
-        'ebb must be between 0 and 360 degrees'   
+        'ebb must be between 0 and 360 degrees'
     assert bin_size >=0 ,\
-        'bin_size must be greater than 0'           
-        
+        'bin_size must be greater than 0'
+
     if ax==None:
         fig, ax = plt.subplots(figsize=(12, 8))
-        
+
     isEbb = _flood_or_ebb(directions, flood, ebb)
 
     decimals = round(bin_size/0.1)
@@ -395,12 +414,18 @@ def tidal_phase_probability(directions, velocities, flood, ebb,
     plt.ylim(0,1.0)
     plt.legend()
     plt.grid(linestyle=':')
-    
-    return ax
-    
 
-def tidal_phase_exceedance(directions, velocities, flood, ebb, 
-    bin_size=0.1, ax=None):
+    return ax
+
+
+def tidal_phase_exceedance(
+    directions,
+    velocities,
+    flood,
+    ebb,
+    bin_size=0.1,
+    ax=None
+    ):
     '''
     Returns a stacked area plot of the exceedance probability for the 
     flood and ebb tidal phases.
