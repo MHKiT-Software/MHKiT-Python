@@ -32,20 +32,17 @@ def _xy_plot(x, y, fmt='.', label=None, xlabel=None, ylabel=None, title=None,
         
     ax.plot(x, y, fmt, label=label, markersize=7)
     
-    ax.grid(b=True, which='both')
+    ax.grid()
     
-    if label:
-        ax.legend()
-    if xlabel:
-        ax.set_xlabel(xlabel)
-    if ylabel:
-        ax.set_ylabel(ylabel)
-    if title:
-        ax.set_title(title)
+    if label: ax.legend()
+    if xlabel: ax.set_xlabel(xlabel)
+    if ylabel: ax.set_ylabel(ylabel)
+    if title: ax.set_title(title)
     
     plt.tight_layout()
     
     return ax
+
 
 def plot_flow_duration_curve(D, F, label=None, ax=None):
     """
@@ -81,6 +78,7 @@ def plot_flow_duration_curve(D, F, label=None, ax=None):
 
     return ax
 
+
 def plot_velocity_duration_curve(V, F, label=None, ax=None):
     """
     Plots velocity vs exceedance probability as a Velocity Duration Curve (VDC) 
@@ -113,6 +111,7 @@ def plot_velocity_duration_curve(V, F, label=None, ax=None):
              ylabel='Exceedance Probability', ax=ax)
 
     return ax
+
 
 def plot_power_duration_curve(P, F, label=None, ax=None):
     """
@@ -147,6 +146,7 @@ def plot_power_duration_curve(P, F, label=None, ax=None):
 
     return ax
     
+
 def plot_discharge_timeseries(Q, label=None, ax=None):
     """
     Plots discharge time-series
@@ -168,10 +168,18 @@ def plot_discharge_timeseries(Q, label=None, ax=None):
     ax : matplotlib pyplot axes     
     
     """
-    ax = _xy_plot(Q.index, Q, fmt='-', label=label, xlabel='Time', 
-             ylabel='Discharge [$m^3/s$]', ax=ax)
+    ax = _xy_plot(
+        Q.index, 
+        Q, 
+        fmt='-', 
+        label=label, 
+        xlabel='Time', 
+        ylabel='Discharge [$m^3/s$]', 
+        ax=ax
+    )
     
     return ax
+
 
 def plot_discharge_vs_velocity(D, V, polynomial_coeff=None, label=None, ax=None):
     """

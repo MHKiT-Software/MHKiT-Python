@@ -59,7 +59,8 @@ def exceedance_probability(D):
     F = F.to_frame('F') # for matlab
     
     return F
-    
+
+
 def polynomial_fit(x, y, n):
     """
     Returns a polynomial fit for y given x of order n
@@ -179,6 +180,7 @@ def velocity_to_power(V, polynomial_coefficients, cut_in, cut_out):
     P = P.to_frame('P') # for matlab
     
     return P
+
 
 def energy_produced(P, seconds):
     """
