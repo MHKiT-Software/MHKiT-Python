@@ -36,8 +36,8 @@ def request_noaa_data(station, parameter, start_date, end_date,
     data : pandas DataFrame 
         Data indexed by datetime with columns named according to the parameter's 
         variable description
-
     """
+
     # Parse start and end dates
     year0, month0, day0 = int(start_date[0:4]), int(start_date[4:6]), int(start_date[6:8])
     year1, month1, day1 = int(  end_date[0:4]), int(  end_date[4:6]), int(  end_date[6:8])
@@ -72,7 +72,7 @@ def request_noaa_data(station, parameter, start_date, end_date,
         print('Data request URL: ', data_url+api_query)
         # Get response
         response = requests.get(url=data_url+api_query,proxies=proxy)
-        # Connvert to DataFrame and save in Dictionary
+        # Convert to DataFrame and save in Dictionary
         dataFrames[date_list[i]], metadata = _xml_to_dataframe(response)
         # Future TODO: Add option to request data as json
         #dataFrames[date_list[i]], metadata = _json_to_dataframe (response)
@@ -188,4 +188,3 @@ def read_noaa_json(filename):
     # Convert from epoch to date time
     data.index = pd.to_datetime(data.index,unit='ms')
     return data, metadata
-
