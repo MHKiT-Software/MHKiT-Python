@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - master
-      - Develop
+      - develop
   pull_request:
     branches:
       - master
-      - Develop
+      - develop
 
 jobs:
   conda-build:

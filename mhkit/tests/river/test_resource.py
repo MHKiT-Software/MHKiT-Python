@@ -33,12 +33,14 @@ class TestResource(unittest.TestCase):
     def tearDownClass(self):
         pass
     
+
     def test_Froude_number(self):
         v = 2
         h = 5
         Fr = river.resource.Froude_number(v, h)
         self.assertAlmostEqual(Fr, 0.286, places=3)
     
+
     def test_exceedance_probability(self):
         # Create arbitrary discharge between 0 and 8(N=9)
         Q = pd.Series(np.arange(9))
@@ -48,6 +50,7 @@ class TestResource(unittest.TestCase):
         f = river.resource.exceedance_probability(Q)
         self.assertEqual(f.min().values , 10. )
         self.assertEqual(f.max().values , 90. )
+
 
     def test_polynomial_fit(self):
         # Calculate a first order polynomial on an x=y line
@@ -69,6 +72,7 @@ class TestResource(unittest.TestCase):
         V = river.resource.discharge_to_velocity(Q, p)
         self.assertAlmostEqual(np.sum(10*Q - V['V']), 0.00, places=2 )
         
+
     def test_velocity_to_power(self):
         # Calculate a first order polynomial on an DV_Curve x=y line 10 times greater than the Q values
         p, r2 = river.resource.polynomial_fit(np.arange(9), 10*np.arange(9),1)
@@ -118,6 +122,7 @@ class TestResource(unittest.TestCase):
         
         self.assertTrue(isfile(filename))
         
+
     def test_plot_power_duration_curve(self):
         filename = abspath(join(plotdir, 'river_plot_power_duration_curve.png'))
         if isfile(filename):
@@ -131,6 +136,7 @@ class TestResource(unittest.TestCase):
         
         self.assertTrue(isfile(filename))
         
+
     def test_plot_velocity_duration_curve(self):
         filename = abspath(join(plotdir, 'river_plot_velocity_duration_curve.png'))
         if isfile(filename):
@@ -144,10 +150,10 @@ class TestResource(unittest.TestCase):
         
         self.assertTrue(isfile(filename))
     
+
     def test_plot_discharge_timeseries(self):
         filename = abspath(join(plotdir, 'river_plot_discharge_timeseries.png'))
-        if isfile(filename):
-            os.remove(filename)
+        if isfile(filename): os.remove(filename)
         
         plt.figure()
         river.graphics.plot_discharge_timeseries(self.data['Q'])
@@ -156,6 +162,7 @@ class TestResource(unittest.TestCase):
         
         self.assertTrue(isfile(filename))
         
+
     def test_plot_discharge_vs_velocity(self):
         filename = abspath(join(plotdir, 'river_plot_discharge_vs_velocity.png'))
         if isfile(filename):
@@ -168,6 +175,7 @@ class TestResource(unittest.TestCase):
         
         self.assertTrue(isfile(filename))
     
+
     def test_plot_velocity_vs_power(self):
         filename = abspath(join(plotdir, 'river_plot_velocity_vs_power.png'))
         if isfile(filename):
