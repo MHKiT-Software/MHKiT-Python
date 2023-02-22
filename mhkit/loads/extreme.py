@@ -749,7 +749,7 @@ def return_year_value(ppf, return_year, short_term_period_hr):
         The value corresponding to the return period from the distribution.
     """
     assert callable(ppf)
-    assert isinstance(return_year, int)
+    assert isinstance(return_year, (float, int))
     assert isinstance(short_term_period_hr, (float, int))
 
     p = 1 / (return_year * 365.25 * 24 / short_term_period_hr)
