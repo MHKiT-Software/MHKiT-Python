@@ -315,6 +315,7 @@ def plot_current_timeseries(directions, velocities, principal_direction,
                   xlabel='Time', ylabel='Velocity [$m/s$]', ax=ax)
     return ax
 
+
 def tidal_phase_probability(directions, velocities, flood, ebb, 
     bin_size=0.1, ax=None):
     '''
@@ -397,7 +398,6 @@ def tidal_phase_probability(directions, velocities, flood, ebb,
     
     return ax
     
-
 
 def tidal_phase_exceedance(directions, velocities, flood, ebb, 
     bin_size=0.1, ax=None):
