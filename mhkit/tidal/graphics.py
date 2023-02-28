@@ -112,9 +112,13 @@ def plot_rose(directions, velocities, width_dir, width_vel, metadata=None,
         Water current rose plot
     """
     assert isinstance(velocities,(np.ndarray, pd.Series)), \
-        'velocities  must be of type np.ndarry or pd.Series'    
+        'velocities  must be of type np.ndarry or pd.Series'
+    if isinstance(velocities, np.ndarray):
+        velocities=pd.Series(velocities)
     assert isinstance(directions,(np.ndarray, pd.Series)), \
         'directions  must be of type np.ndarry or pd.Series'
+    if isinstance(directions, np.ndarray):
+        directions=pd.Series(directions)
     assert len(velocities) == len(directions),  \
         'velocities and directions  must have the same length'
     assert all(velocities.values >= 0),\
@@ -203,9 +207,13 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
        Joint probability distribution  
     """
     assert isinstance(velocities,(np.ndarray, pd.Series)), \
-        'velocities  must be of type np.ndarry or pd.Series'    
+        'velocities  must be of type np.ndarry or pd.Series'
+    if isinstance(velocities, np.ndarray):
+        velocities=pd.Series(velocities)
     assert isinstance(directions,(np.ndarray, pd.Series)), \
         'directions  must be of type np.ndarry or pd.Series'
+    if isinstance(directions, np.ndarray):
+        directions=pd.Series(directions)
     assert len(velocities) == len(directions),  \
         'velocities and directions  must have the same length'
     assert all(velocities.values >= 0),\
@@ -292,9 +300,13 @@ def plot_current_timeseries(directions, velocities, principal_direction,
         Time-series plot of current-speed velocity
     '''
     assert isinstance(velocities,(np.ndarray, pd.Series)), \
-        'velocities  must be of type np.ndarry or pd.Series'    
+        'velocities  must be of type np.ndarry or pd.Series'
+    if isinstance(velocities, np.ndarray):
+        velocities=pd.Series(velocities)
     assert isinstance(directions,(np.ndarray, pd.Series)), \
         'directions  must be of type np.ndarry or pd.Series'
+    if isinstance(directions, np.ndarray):
+        directions=pd.Series(directions)
     assert len(velocities) == len(directions),  \
         'velocities and directions  must have the same length'
     assert all(velocities.values >= 0),\
@@ -339,9 +351,13 @@ def tidal_phase_probability(directions, velocities, flood, ebb,
     ax: figure  
     '''
     assert isinstance(velocities,(np.ndarray, pd.Series)), \
-        'velocities  must be of type np.ndarry or pd.Series'    
+        'velocities  must be of type np.ndarry or pd.Series'
+    if isinstance(velocities, np.ndarray):
+        velocities=pd.Series(velocities)
     assert isinstance(directions,(np.ndarray, pd.Series)), \
         'directions  must be of type np.ndarry or pd.Series'
+    if isinstance(directions, np.ndarray):
+        directions=pd.Series(directions)
     assert len(velocities) == len(directions),  \
         'velocities and directions  must have the same length'
     assert all(velocities.values >= 0),\
@@ -423,9 +439,13 @@ def tidal_phase_exceedance(directions, velocities, flood, ebb,
     ax: figure    
     '''    
     assert isinstance(velocities,(np.ndarray, pd.Series)), \
-        'velocities  must be of type np.ndarry or pd.Series'    
+        'velocities  must be of type np.ndarry or pd.Series'
+    if isinstance(velocities, np.ndarray):
+        velocities=pd.Series(velocities)
     assert isinstance(directions,(np.ndarray, pd.Series)), \
         'directions  must be of type np.ndarry or pd.Series'
+    if isinstance(directions, np.ndarray):
+        directions=pd.Series(directions)
     assert len(velocities) == len(directions),  \
         'velocities and directions  must have the same length'
     assert all(velocities.values >= 0),\
