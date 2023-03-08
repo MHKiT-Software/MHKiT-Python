@@ -18,14 +18,14 @@ def epoch2dt64(ep_time):
     Parameters
     ----------
     ep_time : xarray.DataArray
-        Time coordinate data-array or single time element
+      Time coordinate data-array or single time element
 
     Returns
     -------
     time : numpy.datetime64
-        The converted datetime64 array
-
+      The converted datetime64 array
     """
+
     # assumes t0=1970-01-01 00:00:00
     out = np.array(ep_time.astype('int')).astype('datetime64[s]')
     out = out + ((ep_time % 1) * 1e9).astype('timedelta64[ns]')
@@ -40,14 +40,14 @@ def dt642epoch(dt64):
     Parameters
     ----------
     dt64 : numpy.datetime64
-        Single or array of datetime64 object(s)
+      Single or array of datetime64 object(s)
 
     Returns
     -------
     time : float
-        Epoch time (seconds since 1/1/1970 00:00:00)
-
+      Epoch time (seconds since 1/1/1970 00:00:00)
     """
+
     return dt64.astype('datetime64[ns]').astype('float') / 1e9
 
 
@@ -58,14 +58,14 @@ def date2dt64(dt):
     Parameters
     ----------
     time : datetime.datetime
-        The converted datetime object
+      The converted datetime object
 
     Returns
     -------
     dt64 : numpy.datetime64
-        Single or array of datetime64 object(s)
-
+      Single or array of datetime64 object(s)
     """
+
     return np.array(dt).astype('datetime64[ns]')
 
 
@@ -76,14 +76,14 @@ def dt642date(dt64):
     Parameters
     ----------
     dt64 : numpy.datetime64
-        Single or array of datetime64 object(s)
+      Single or array of datetime64 object(s)
 
     Returns
     -------
     time : datetime.datetime
-        The converted datetime object
-
+      The converted datetime object
     """
+
     return epoch2date(dt642epoch(dt64))
 
 
@@ -95,24 +95,24 @@ def epoch2date(ep_time, offset_hr=0, to_str=False):
     Parameters
     ----------
     ep_time : xarray.DataArray
-        Time coordinate data-array or single time element
+      Time coordinate data-array or single time element
     offset_hr : int
-        Number of hours to offset time by (e.g. UTC -7 hours = PDT)
+      Number of hours to offset time by (e.g. UTC -7 hours = PDT)
     to_str : logical
-        Converts datetime object to a readable string
+      Converts datetime object to a readable string
 
     Returns
     -------
     time : datetime.datetime
-        The converted datetime object or list(strings) 
+      The converted datetime object or list(strings) 
 
     Notes
     -----
     The specific time instance is set during deployment, usually sync'd to the
     deployment computer. The time seen by |dlfn| is in the timezone of the 
     deployment computer, which is unknown to |dlfn|.
-
     """
+
     try:
         ep_time = ep_time.values
     except AttributeError:
@@ -149,17 +149,17 @@ def date2str(dt, format_str=None):
     Parameters
     ----------
     dt : datetime.datetime
-        Single or list of datetime object(s)
+      Single or list of datetime object(s)
     format_str : string
-        Timestamp string formatting, default: '%Y-%m-%d %H:%M:%S.%f'. 
-        See datetime.strftime documentation for timestamp string formatting
+      Timestamp string formatting. Default is '%Y-%m-%d %H:%M:%S.%f'
+      See datetime.strftime documentation for timestamp string formatting.
 
     Returns
     -------
     time : string
-        Converted timestamps
-
+      Converted timestamps
     """
+
     if format_str is None:
         format_str = '%Y-%m-%d %H:%M:%S.%f'
 
@@ -176,14 +176,14 @@ def date2epoch(dt):
     Parameters
     ----------
     dt : datetime.datetime
-        Single or list of datetime object(s)
+      Single or list of datetime object(s)
 
     Returns
     -------
     time : float
-        Datetime converted to epoch time (seconds since 1/1/1970 00:00:00)
-
+      Datetime converted to epoch time (seconds since 1/1/1970 00:00:00)
     """
+
     if not isinstance(dt, list):
         dt = [dt]
 
@@ -197,14 +197,14 @@ def date2matlab(dt):
     Parameters
     ----------
     dt : datetime.datetime
-        List of datetime objects
+      List of datetime objects
 
     Returns
     -------
     time : float
-        List of timestamps in MATLAB datnum format
-
+      List of timestamps in MATLAB datnum format
     """
+
     time = list()
     for i in range(len(dt)):
         mdn = dt[i] + timedelta(days=366)
@@ -223,14 +223,14 @@ def matlab2date(matlab_dn):
     Parameters
     ----------
     matlab_dn : float
-        List of timestamps in MATLAB datnum format
+      List of timestamps in MATLAB datnum format
 
     Returns
     -------
     dt : datetime.datetime
-        List of datetime objects
-
+      List of datetime objects
     """
+
     time = list()
     for i in range(len(matlab_dn)):
         day = datetime.fromordinal(int(matlab_dn[i]))
@@ -246,10 +246,12 @@ def matlab2date(matlab_dn):
 
 
 def _fill_time_gaps(epoch, sample_rate_hz):
-    """Fill gaps (NaN values) in the timeseries by simple linear
+    """
+    Fill gaps (NaN values) in the timeseries by simple linear
     interpolation.  The ends are extrapolated by stepping
     forward/backward by 1/sample_rate_hz.
     """
+
     # epoch is seconds since 1970
     dt = 1. / sample_rate_hz
     epoch = fillgaps(epoch)

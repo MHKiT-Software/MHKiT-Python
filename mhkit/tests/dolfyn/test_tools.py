@@ -1,7 +1,7 @@
 import mhkit.dolfyn.tools.misc as tools
 from numpy.testing import assert_equal, assert_allclose
-import unittest
 import numpy as np
+import unittest
 
 
 class tools_testcase(unittest.TestCase):
@@ -14,8 +14,8 @@ class tools_testcase(unittest.TestCase):
     def tearDownClass(self):
         pass
 
-    def test_detrend(self):
-        d = tools.detrend(self.array)
+    def test_detrend_array(self):
+        d = tools.detrend_array(self.array)
         assert_allclose(d, np.zeros(10), atol=1e-10)
 
     def test_group(self):

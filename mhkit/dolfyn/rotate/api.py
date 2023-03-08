@@ -23,7 +23,8 @@ rot_module_dict = {
 
 
 def rotate2(ds, out_frame='earth', inplace=True):
-    """Rotate a dataset to a new coordinate system.
+    """
+    Rotate a dataset to a new coordinate system.
 
     Parameters
     ----------
@@ -31,8 +32,9 @@ def rotate2(ds, out_frame='earth', inplace=True):
       The dolfyn dataset (ADV or ADCP) to rotate.
     out_frame : string {'beam', 'inst', 'earth', 'principal'}
       The coordinate system to rotate the data into.
-    inplace : bool (default: True)
-        When True ``ds`` is modified. When False a copy is returned.
+    inplace : bool
+      When True ``ds`` is modified. When False a copy is returned.
+      Default = True
 
     Returns
     -------
@@ -53,8 +55,8 @@ def rotate2(ds, out_frame='earth', inplace=True):
 
       where here we are using the depth-averaged velocity to calculate
       the principal direction.
-
     """
+
     # Create and return deep copy if not writing "in place"
     if not inplace:
         ds = ds.copy(deep=True)
@@ -120,13 +122,16 @@ def rotate2(ds, out_frame='earth', inplace=True):
 
 
 def calc_principal_heading(vel, tidal_mode=True):
-    """Compute the principal angle of the horizontal velocity.
+    """
+    Compute the principal angle of the horizontal velocity.
 
     Parameters
     ----------
     vel : np.ndarray (2,...,Nt), or (3,...,Nt)
       The 2D or 3D velocity array (3rd-dim is ignored in this calculation)
-    tidal_mode : bool (default: True)
+    tidal_mode : bool
+      If true, range is set from 0 to +/-180 degrees. If false, range is 0 to 
+      360 degrees. Default = True
 
     Returns
     -------
@@ -148,8 +153,8 @@ def calc_principal_heading(vel, tidal_mode=True):
 
     Otherwise, this function simply computes the average direction
     using a vector method.
-
     """
+
     dt = vel[0] + vel[1] * 1j
     if tidal_mode:
         # Flip all vectors that are below the x-axis
@@ -169,17 +174,19 @@ def calc_principal_heading(vel, tidal_mode=True):
 
 
 def set_declination(ds, declin, inplace=True):
-    """Set the magnetic declination
+    """
+    Set the magnetic declination
 
     Parameters
     ----------
     ds : xarray.Dataset or :class:`dolfyn.velocity.Velocity`
+      The input dataset or velocity class
     declination : float
-       The value of the magnetic declination in degrees (positive
-       values specify that Magnetic North is clockwise from True North)
-
-    inplace : bool (default: True)
-        When True ``ds`` is modified. When False a copy is returned.
+      The value of the magnetic declination in degrees (positive
+      values specify that Magnetic North is clockwise from True North)
+    inplace : bool
+      When True ``ds`` is modified. When False a copy is returned.
+      Default = True
 
     Returns
     -------
@@ -212,8 +219,8 @@ def set_declination(ds, declin, inplace=True):
       data object in the principal coordinate system, then calling
       dat.rotate2('earth') will yield a data object in the new
       'True' earth coordinate system)
-
     """
+
     # Create and return deep copy if not writing "in place"
     if not inplace:
         ds = ds.copy(deep=True)
@@ -262,11 +269,12 @@ def set_inst2head_rotmat(ds, rotmat, inplace=True):
     Parameters
     ----------
     ds : xarray.Dataset
-        The data set to assign inst2head_rotmat
+      The data set to assign inst2head_rotmat
     rotmat : float
-        3x3 rotation matrix
-    inplace : bool (default: True)
-        When True ``ds`` is modified. When False a copy is returned.
+      3x3 rotation matrix
+    inplace : bool
+      When True ``ds`` is modified. When False a copy is returned.
+      Default = True
 
     Returns
     -------
@@ -281,8 +289,8 @@ def set_inst2head_rotmat(ds, rotmat, inplace=True):
     rotated back to the coordinate system in which it was input. This
     way the inst2head_rotmat gets applied correctly (in inst
     coordinate system).
-
     """
+
     # Create and return deep copy if not writing "in place"
     if not inplace:
         ds = ds.copy(deep=True)
