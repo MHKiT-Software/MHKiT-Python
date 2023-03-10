@@ -25,7 +25,6 @@ class analysis_testcase(unittest.TestCase):
         short['U'] = self.tdat.velds.U
         short['U_mag'] = self.tdat.velds.U_mag
         short['U_dir'] = self.tdat.velds.U_dir
-        short['U_dir_N'] = self.dat.velds.U_dir
         short["upup_"] = self.tdat.velds.upup_
         short["vpvp_"] = self.tdat.velds.vpvp_
         short["wpwp_"] = self.tdat.velds.wpwp_

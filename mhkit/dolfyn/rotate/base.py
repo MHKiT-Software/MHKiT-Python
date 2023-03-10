@@ -1,4 +1,5 @@
 import numpy as np
+import xarray as xr
 from numpy.linalg import det, inv
 from scipy.spatial.transform import Rotation as R
 
@@ -65,11 +66,16 @@ def _set_coords(ds, ref_frame, forced=False):
     if forced:
         ref_frame += '-forced'
 
-    # update 'orient' and 'orientIMU' dimensions
+    # Update 'dir' and 'dirIMU' dimensions
+    attrs = ds['dir'].attrs
+    attrs.update({'ref_frame': ref_frame})
+
     ds['dir'] = orient[ref_frame]
+    ds['dir'].attrs = attrs
     if hasattr(ds, 'dirIMU'):
         ds['dirIMU'] = orientIMU[ref_frame]
-    ds['dir'].attrs['ref_frame'] = ref_frame
+        ds['dirIMU'].attrs = attrs
+
     ds.attrs['coord_sys'] = ref_frame
 
     # These are essentially one extra line to scroll through
@@ -298,6 +304,8 @@ def quaternion2orient(quaternions):
     # quaternions in inst2earth reference frame, need to rotate to earth2inst
     omat.values = np.rollaxis(omat.values, 1)
 
-    xyz = ['X', 'Y', 'Z']
-    enu = ['E', 'N', 'U']
-    return omat.assign_coords({'earth': enu, 'inst': xyz, 'time': quaternions.time})
+    earth = xr.DataArray(['E', 'N', 'U'], dims=['earth'], name='earth', attrs={
+        'units': '1', 'long_name': 'Earth Reference Frame', 'coverage_content_type': 'coordinate'})
+    inst = xr.DataArray(['X', 'Y', 'Z'], dims=['inst'], name='inst', attrs={
+        'units': '1', 'long_name': 'Instrument Reference Frame', 'coverage_content_type': 'coordinate'})
+    return omat.assign_coords({'earth': earth, 'inst': inst, 'time': quaternions.time})

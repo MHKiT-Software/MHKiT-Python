@@ -43,27 +43,29 @@ class TimeBinner:
         if n_fft_coh is None:
             self.n_fft_coh = int(self.n_fft)
         elif n_fft_coh > n_bin:
-            self.n_fft_coh = int(n_bin // 6)
+            self.n_fft_coh = int(n_bin)
             warnings.warn("n_fft_coh must be smaller than or equal to n_bin, "
-                          "setting n_fft_coh = n_bin/6")
+                          "setting n_fft_coh = n_bin")
 
     def _outshape(self, inshape, n_pad=0, n_bin=None):
-        """Returns `outshape` (the 'reshape'd shape) for an `inshape` array.
+        """
+        Returns `outshape` (the 'reshape'd shape) for an `inshape` array.
         """
         n_bin = int(self._parse_nbin(n_bin))
         return list(inshape[:-1]) + [int(inshape[-1] // n_bin), int(n_bin + n_pad)]
 
     def _outshape_fft(self, inshape, n_fft=None, n_bin=None):
-        """Returns `outshape` (the fft 'reshape'd shape) for an `inshape` array.
+        """
+        Returns `outshape` (the fft 'reshape'd shape) for an `inshape` array.
         """
         n_fft = self._parse_nfft(n_fft)
         n_bin = self._parse_nbin(n_bin)
         return list(inshape[:-1]) + [int(inshape[-1] // n_bin), int(n_fft // 2)]
 
     def _parse_fs(self, fs=None):
-        if fs is not None:
-            return fs
-        return self.fs
+        if fs is None:
+            return self.fs
+        return fs
 
     def _parse_nbin(self, n_bin=None):
         if n_bin is None:
@@ -73,11 +75,19 @@ class TimeBinner:
     def _parse_nfft(self, n_fft=None):
         if n_fft is None:
             return self.n_fft
+        if n_fft > self.n_bin:
+            n_fft = self.n_bin
+            warnings.warn(
+                "n_fft must be smaller than n_bin, setting n_fft = n_bin")
         return n_fft
 
     def _parse_nfft_coh(self, n_fft_coh=None):
         if n_fft_coh is None:
             return self.n_fft_coh
+        if n_fft_coh > self.n_bin:
+            n_fft_coh = int(self.n_bin)
+            warnings.warn("n_fft_coh must be smaller than or equal to n_bin, "
+                          "setting n_fft_coh = n_bin")
         return n_fft_coh
 
     def _check_ds(self, raw_ds, out_ds):
@@ -136,7 +146,8 @@ class TimeBinner:
         return out_ds
 
     def _new_coords(self, array):
-        """Function for setting up a new xarray.DataArray regardless of how 
+        """
+        Function for setting up a new xarray.DataArray regardless of how 
         many dimensions the input data-array has
         """
         dims = array.dims

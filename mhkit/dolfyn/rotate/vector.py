@@ -1,4 +1,5 @@
 import numpy as np
+import xarray as xr
 import warnings
 from . import base as rotb
 
@@ -23,6 +24,30 @@ def _beam2inst(dat, reverse=False, force=False):
     _beam2inst.__doc_ = rotb._beam2inst.__doc__
 
     return dat
+
+
+def _rotate_inst2head(advo, reverse=False):
+    if not _check_inst2head_rotmat(advo):
+        # This object doesn't have a head2inst_rotmat, so we do nothing.
+        return advo
+    if reverse:  # head->inst
+        advo['vel'].values = np.dot(advo['inst2head_rotmat'].T, advo['vel'])
+    else:  # inst->head
+        advo['vel'].values = np.dot(advo['inst2head_rotmat'], advo['vel'])
+
+    return advo
+
+
+def _check_inst2head_rotmat(advo):
+    if advo.get('inst2head_rotmat', None) is None:
+        # This is the default value, and we do nothing.
+        return False
+    if not advo.inst2head_rotmat_was_set:
+        raise Exception("The inst2head rotation matrix exists in props, "
+                        "but it was not set using `set_inst2head_rotmat.")
+    if not rotb._check_rotmat_det(advo.inst2head_rotmat.values):
+        raise ValueError("Invalid inst2head_rotmat (determinant != 1).")
+    return True
 
 
 def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
@@ -73,17 +98,17 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
                 cs_now)
 
     if hasattr(advo, 'orientmat'):
-        omat = advo['orientmat'].values
+        omat = advo['orientmat']
     else:
         if 'vector' in advo.inst_model.lower():
             orientation_down = advo['orientation_down']
 
-        omat = _calc_omat(advo['heading'].values, advo['pitch'].values,
-                          advo['roll'].values, orientation_down)
+        omat = _calc_omat(advo['time'], advo['heading'], advo['pitch'],
+                          advo['roll'], orientation_down)
 
     # Take the transpose of the orientation to get the inst->earth rotation
     # matrix.
-    rmat = np.rollaxis(omat, 1)
+    rmat = np.rollaxis(omat.data, 1)
 
     _dcheck = rotb._check_rotmat_det(rmat)
     if not _dcheck.all():
@@ -101,50 +126,6 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
     advo = rotb._set_coords(advo, cs_new)
 
     return advo
-
-
-def _calc_omat(hh, pp, rr, orientation_down=None):
-    rr = rr.copy()
-    pp = pp.copy()
-    hh = hh.copy()
-    if np.isnan(rr[-1]) and np.isnan(pp[-1]) and np.isnan(hh[-1]):
-        # The end of the data may not have valid orientations
-        lastgd = np.nonzero(~np.isnan(rr + pp + hh))[0][-1]
-        rr[lastgd:] = rr[lastgd]
-        pp[lastgd:] = pp[lastgd]
-        hh[lastgd:] = hh[lastgd]
-    if orientation_down is not None:
-        # For Nortek Vector ADVs: 'down' configuration means the head was
-        # pointing 'up', where the 'up' orientation corresponds to the
-        # communication cable being up.  Check the Nortek coordinate
-        # transform matlab script for more info.
-        rr[orientation_down.astype(bool)] += 180
-
-    return _euler2orient(hh, pp, rr)
-
-
-def _rotate_inst2head(advo, reverse=False):
-    if not _check_inst2head_rotmat(advo):
-        # This object doesn't have a head2inst_rotmat, so we do nothing.
-        return advo
-    if reverse:  # head->inst
-        advo['vel'].values = np.dot(advo['inst2head_rotmat'].T, advo['vel'])
-    else:  # inst->head
-        advo['vel'].values = np.dot(advo['inst2head_rotmat'], advo['vel'])
-
-    return advo
-
-
-def _check_inst2head_rotmat(advo):
-    if advo.get('inst2head_rotmat', None) is None:
-        # This is the default value, and we do nothing.
-        return False
-    if not advo.inst2head_rotmat_was_set:
-        raise Exception("The inst2head rotation matrix exists in props, "
-                        "but it was not set using `set_inst2head_rotmat.")
-    if not rotb._check_rotmat_det(advo.inst2head_rotmat.values):
-        raise ValueError("Invalid inst2head_rotmat (determinant != 1).")
-    return True
 
 
 def _earth2principal(advo, reverse=False):
@@ -207,7 +188,27 @@ def _earth2principal(advo, reverse=False):
     return advo
 
 
-def _euler2orient(heading, pitch, roll, units='degrees'):
+def _calc_omat(time, hh, pp, rr, orientation_down=None):
+    rr = rr.data.copy()
+    pp = pp.data.copy()
+    hh = hh.data.copy()
+    if np.isnan(rr[-1]) and np.isnan(pp[-1]) and np.isnan(hh[-1]):
+        # The end of the data may not have valid orientations
+        lastgd = np.nonzero(~np.isnan(rr + pp + hh))[0][-1]
+        rr[lastgd:] = rr[lastgd]
+        pp[lastgd:] = pp[lastgd]
+        hh[lastgd:] = hh[lastgd]
+    if orientation_down is not None:
+        # For Nortek Vector ADVs: 'down' configuration means the head was
+        # pointing 'up', where the 'up' orientation corresponds to the
+        # communication cable being up.  Check the Nortek coordinate
+        # transform matlab script for more info.
+        rr[orientation_down.astype(bool)] += 180
+
+    return _euler2orient(time, hh, pp, rr)
+
+
+def _euler2orient(time, heading, pitch, roll, units='degrees'):
     # For Nortek data only.
     # The heading, pitch, roll used here are from the Nortek binary files.
 
@@ -247,4 +248,14 @@ def _euler2orient(heading, pitch, roll, units='degrees'):
     omat[1, 2, :] = sr * cp
     omat[2, 2, :] = cp * cr
 
-    return omat
+    earth = xr.DataArray(['E', 'N', 'U'], dims=['earth'], name='earth', attrs={
+        'units': '1', 'long_name': 'Earth Reference Frame', 'coverage_content_type': 'coordinate'})
+    inst = xr.DataArray(['X', 'Y', 'Z'], dims=['inst'], name='inst', attrs={
+        'units': '1', 'long_name': 'Instrument Reference Frame', 'coverage_content_type': 'coordinate'})
+    return xr.DataArray(omat,
+                        coords={'earth': earth,
+                                'inst': inst,
+                                'time': time},
+                        dims=['earth', 'inst', 'time'],
+                        attrs={'units': '1',
+                               'long_name': 'Orientation Matrix'})

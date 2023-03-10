@@ -28,19 +28,23 @@ class analysis_testcase(unittest.TestCase):
         pass
 
     def test_do_func(self):
-        adat_vec = self.adv_tool.bin_average(self.adv1)
-        adat_vec = self.adv_tool.bin_variance(self.adv1, out_ds=adat_vec)
+        ds_vec = self.adv_tool.bin_average(self.adv1)
+        ds_vec = self.adv_tool.bin_variance(self.adv1, out_ds=ds_vec)
 
-        adat_sig = self.adp_tool.bin_average(self.adp)
-        adat_sig = self.adp_tool.bin_variance(self.adp, out_ds=adat_sig)
+        # test non-integer bin sizes
+        mean_test = self.adv_tool.mean(self.adv1['vel'].values, n_bin=ds_vec.fs*1.01)
+
+        ds_sig = self.adp_tool.bin_average(self.adp)
+        ds_sig = self.adp_tool.bin_variance(self.adp, out_ds=ds_sig)
 
         if make_data:
-            save(adat_vec, 'vector_data01_avg.nc')
-            save(adat_sig, 'BenchFile01_avg.nc')
+            save(ds_vec, 'vector_data01_avg.nc')
+            save(ds_sig, 'BenchFile01_avg.nc')
             return
 
-        assert_allclose(adat_vec, load('vector_data01_avg.nc'), atol=1e-6)
-        assert_allclose(adat_sig, load('BenchFile01_avg.nc'), atol=1e-6)
+        assert np.sum(mean_test-ds_vec.vel.values) == 0, "Mean test failed"
+        assert_allclose(ds_vec, load('vector_data01_avg.nc'), atol=1e-6)
+        assert_allclose(ds_sig, load('BenchFile01_avg.nc'), atol=1e-6)
 
     def test_calc_func(self):
         c = self.adv_tool
@@ -59,7 +63,7 @@ class analysis_testcase(unittest.TestCase):
 
         # Test ADCP single vector spectra, cross-spectra to test radians code
         test_ds_adp['psd_b5'] = c2.power_spectral_density(
-            self.adp.vel_b5.isel(range_b5=5), freq_units='Hz', window='hamm')
+            self.adp.vel_b5.isel(range_b5=5), freq_units='rad', window='hamm')
         test_ds_adp['tke_b5'] = c2.turbulent_kinetic_energy(self.adp.vel_b5)
 
         if make_data:

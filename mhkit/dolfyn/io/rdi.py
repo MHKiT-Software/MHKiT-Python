@@ -42,7 +42,6 @@ def read_rdi(filename, userdata=None, nens=None, debug_level=-1,
     ds : xarray.Dataset
       An xarray dataset from the binary instrument data
     """
-
     # Start debugger logging
     if debug_level >= 0:
         for handler in logging.root.handlers[:]:
@@ -71,35 +70,41 @@ def read_rdi(filename, userdata=None, nens=None, debug_level=-1,
         for nm in userdata:
             dat['attrs'][nm] = userdata[nm]
 
-        if 'time_gps' in dat['coords']:
-            # GPS data not necessarily sampling at the same rate as ADCP DAQ.
-            dat = _remove_gps_duplicates(dat)
-
-        # Create xarray dataset from upper level dictionary
-        # print('Time in dat', dat['coords']['time'])
+        # Pass one if only one ds returned
         if not np.isfinite(dat['coords']['time'][0]):
             continue
+
+        # GPS data not necessarily sampling at the same rate as ADCP DAQ.
+        if 'time_gps' in dat['coords']:
+            dat = _remove_gps_duplicates(dat)
+
+        # Convert time coords to dt64
+        t_coords = [t for t in dat['coords'] if 'time' in t]
+        for ky in t_coords:
+            dat['coords'][ky] = tmlib.epoch2dt64(dat['coords'][ky])
+
+        # Convert time vars to dt64
+        t_data = [t for t in dat['data_vars'] if 'time' in t]
+        for ky in t_data:
+            dat['data_vars'][ky] = tmlib.epoch2dt64(dat['data_vars'][ky])
+
+        # Create xarray dataset from upper level dictionary
         ds = _create_dataset(dat)
         ds = _set_coords(ds, ref_frame=ds.coord_sys)
 
-        if 'hdwtime_gps' in ds:
-            ds.hdwtime_gps.encoding['units'] = 'seconds since 1970-01-01 00:00:00'
-
         # Create orientation matrices
         if 'beam2inst_orientmat' not in ds:
-            ds['beam2inst_orientmat'] = xr.DataArray(_calc_beam_orientmat(
-                ds.beam_angle,
-                ds.beam_pattern == 'convex'),
+            ds['beam2inst_orientmat'] = xr.DataArray(
+                _calc_beam_orientmat(ds.beam_angle,
+                                     ds.beam_pattern == 'convex'),
                 coords={'x': [1, 2, 3, 4],
                         'x*': [1, 2, 3, 4]},
-                dims=['x', 'x*'])
+                dims=['x', 'x*'],
+                attrs={'units': '1',
+                       'long_name': 'Rotation Matrix'})
 
         if 'orientmat' not in ds:
-            ds['orientmat'] = xr.DataArray(_calc_orientmat(ds),
-                                           coords={'earth': ['E', 'N', 'U'],
-                                                   'inst': ['X', 'Y', 'Z'],
-                                                   'time': ds['time']},
-                                           dims=['earth', 'inst', 'time'])
+            ds['orientmat'] = _calc_orientmat(ds)
 
         # Check magnetic declination if provided via software and/or userdata
         _set_rdi_declination(ds, filename, inplace=True)
@@ -110,17 +115,6 @@ def read_rdi(filename, userdata=None, nens=None, debug_level=-1,
         else:  # (not ENR or ENS) or WinRiver files
             ds.attrs['vel_gps_corrected'] = 0
 
-        # Convert time coords to dt64
-        t_coords = [t for t in ds.coords if 'time' in t]
-        for ky in t_coords:
-            dt = tmlib.epoch2dt64(ds[ky])
-            ds = ds.assign_coords({ky: dt})
-
-        # Convert time vars to dt64
-        t_data = [t for t in ds.data_vars if 'time' in t]
-        for ky in t_data:
-            dt = tmlib.epoch2dt64(ds[ky])
-            ds[ky].data = dt
         dss += [ds]
 
     if len(dss) == 2:
@@ -395,7 +389,8 @@ class _RDIReader():
 
     def init_data(self,):
         outd = {'data_vars': {}, 'coords': {},
-                'attrs': {}, 'units': {}, 'sys': {}}
+                'attrs': {}, 'units': {}, 'long_name': {},
+                'standard_name': {}, 'sys': {}}
         outd['attrs']['inst_make'] = 'TRDI'
         outd['attrs']['inst_type'] = 'ADCP'
         outd['attrs']['rotate_vars'] = ['vel', ]
@@ -403,7 +398,8 @@ class _RDIReader():
         outd['attrs']['has_imu'] = 0
         if self._bb:
             outdbb = {'data_vars': {}, 'coords': {},
-                      'attrs': {}, 'units': {}, 'sys': {}}
+                      'attrs': {}, 'units': {}, 'long_name': {},
+                      'standard_name': {}, 'sys': {}}
             outdbb['attrs']['inst_make'] = 'TRDI'
             outdbb['attrs']['inst_type'] = 'ADCP'
             outdbb['attrs']['rotate_vars'] = ['vel', ]

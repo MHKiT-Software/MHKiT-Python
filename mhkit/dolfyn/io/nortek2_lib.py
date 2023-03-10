@@ -187,7 +187,8 @@ def _check_index(idx, infile, fix_hw_ens=False):
 
 
 def _boolarray_firstensemble_ping(index):
-    """Return a boolean of the index that indicates only the first ping in 
+    """
+    Return a boolean of the index that indicates only the first ping in 
     each ensemble.
     """
     dens = np.ones(index['ens'].shape, dtype='bool')
@@ -196,7 +197,8 @@ def _boolarray_firstensemble_ping(index):
 
 
 def get_index(infile, reload=False, debug=False):
-    """This function reads ad2cp.index files
+    """
+    This function reads ad2cp.index files
 
     Parameters
     ----------
@@ -211,8 +213,8 @@ def get_index(infile, reload=False, debug=False):
     -------
     out: tuple
       Tuple containing info held within index file
-
     """
+
     index_file = infile + '.index'
     if not path.isfile(index_file) or reload:
         _create_index(infile, index_file, 2 ** 32, debug)
@@ -231,7 +233,8 @@ def get_index(infile, reload=False, debug=False):
 
 
 def crop_ensembles(infile, outfile, range):
-    """This function is for cropping certain pings out of an AD2CP
+    """
+    This function is for cropping certain pings out of an AD2CP
     file to create a new AD2CP file. It properly grabs the header from
     infile.
 
@@ -246,8 +249,8 @@ def crop_ensembles(infile, outfile, range):
       Path for new, cropped ad2cp file (with .ad2cp file extension)
     range: list
       2 element list of start and end ensemble (or time index)
-
     """
+
     idx = get_index(infile)
     with open(_abspath(infile), 'rb') as fin:
         with open(_abspath(outfile), 'wb') as fout:
@@ -483,4 +486,5 @@ def _calc_config(index):
         config[id]['_beams_cy'] = _beams_cy[0]
         config[id]['type'] = type
         config[id].pop('cy', None)
+
     return config

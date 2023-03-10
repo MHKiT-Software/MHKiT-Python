@@ -48,6 +48,16 @@ class bin_reader():
             self.cs = checksum_size
         self.debug_level = debug_level
 
+    # def checksum(self,):
+    #     """
+    #     The next byte(s) are the expected checksum.  Perform the checksum.
+    #     """
+    #     if self.cs:
+    #         cs = self.read(1, self.cs._frmt)
+    #         self.cs(cs, True)
+    #     else:
+    #         raise Exception('CheckSum not requested for this file')
+
     def tell(self,):
         return self.f.tell()
 

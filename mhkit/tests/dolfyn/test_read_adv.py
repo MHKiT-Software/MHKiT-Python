@@ -12,7 +12,7 @@ assert_allclose = tb.assert_allclose
 dat = load('vector_data01')
 dat_imu = load('vector_data_imu01')
 dat_imu_json = load('vector_data_imu01-json')
-dat_burst = load('burst_mode01')
+dat_burst = load('vector_burst_mode01')
 
 
 class io_adv_testcase(unittest.TestCase):
@@ -35,7 +35,7 @@ class io_adv_testcase(unittest.TestCase):
         if make_data:
             save(td, 'vector_data01.nc')
             save(tdm, 'vector_data_imu01.nc')
-            save(tdb, 'burst_mode01.nc')
+            save(tdb, 'vector_burst_mode01.nc')
             save(tdm2, 'vector_data_imu01-json.nc')
             return
 
