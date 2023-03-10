@@ -44,7 +44,8 @@ def _slice_circular_capture_area(diameter, hub_height, Doppler_cell_size):
     A_edge = np.arange(r_min, r_max+cs, cs)  
     A_rng = A_edge[:-1] + cs/2 # Center of each slice
 
-    # y runs from the bottom edge of the lower centerline slice to the top edge of the lowest slice
+    # y runs from the bottom edge of the lower centerline slice to 
+    # the top edge of the lowest slice
     # Will need to figure out y if the hub height isn't centered
     y = abs(A_edge - np.mean(A_edge))
     y[np.where(abs(y)>(d/2))] = d/2
@@ -78,8 +79,15 @@ def _slice_circular_capture_area(diameter, hub_height, Doppler_cell_size):
     return xr.DataArray(As_slc, coords={'range': A_rng})
 
 
-def power_curve(velocity, power, diameter, hub_height, Doppler_cell_size, sampling_frequency, window_avg_time=600):
+def power_curve(velocity, 
+                power, 
+                diameter, 
+                hub_height, 
+                Doppler_cell_size, 
+                sampling_frequency, 
+                window_avg_time=600):
     """_summary_
+    IEC 9.3
 
     Args:
         velocity (_type_): _description_
@@ -169,6 +177,7 @@ def _average_velocity_bins(U, U_hub, bin_size):
 
 def mean_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_time=600):
     """_summary_
+    IEC 9.4
 
     Args:
         velocity (_type_): _description_
@@ -200,13 +209,26 @@ def mean_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_
 
 
 def rms_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_time=600):
-   
+    """_summary_
+    IEC 9.5
+
+    Args:
+        velocity (_type_): _description_
+        hub_height (_type_): _description_
+        sampling_frequency (_type_): _description_
+        window_avg_time (int, optional): _description_. Defaults to 600.
+
+    Returns:
+        _type_: _description_
+    """
+
     # Fetch streamwise data
     #U = ds_streamwise['vel'].sel(dir='streamwise')
     U = velocity
 
-    ## Detrend tidal velocity - returns (range, ensemble-time, ensemble)
     bnr = dolfyn.VelBinner(n_bin=window_avg_time*sampling_frequency, fs=sampling_frequency)
+
+    ## Detrend tidal velocity - returns (range, ensemble-time, ensemble)
     U_detrend = bnr.detrend(abs(U).values) # vs demean
     # Unravel detrended array from (range, ensemble-time, ensemble) into (range, time)
     new_time_size = U['time'].size//bnr.n_bin * bnr.n_bin
@@ -227,6 +249,7 @@ def rms_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
 
 def std_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_time=600):
     """_summary_
+    IEC 9.5
 
     Args:
         velocity (_type_): _description_
@@ -256,12 +279,18 @@ def std_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
     return out.to_pandas()
 
 
-def efficiency(average_power, average_velocity, velocity, water_density, capture_area, hub_height, sampling_frequency, window_avg_time=600):
+def efficiency(power, 
+               velocity, 
+               water_density, 
+               capture_area, 
+               hub_height, 
+               sampling_frequency, 
+               window_avg_time=600):
     """_summary_
+    IEC 9.7
 
     Args:
-        average_power (_type_): _description_
-        average_velocity (_type_): _description_
+        power (_type_): _description_
         velocity (_type_): _description_
         water_density (_type_): _description_
         capture_area (_type_): _description_
@@ -281,10 +310,14 @@ def efficiency(average_power, average_velocity, velocity, water_density, capture
     bnr = dolfyn.VelBinner(n_bin=window_avg_time*sampling_frequency, fs=sampling_frequency)
     # Hub-height velocity
     mean_hub_vel = xr.DataArray(bnr.mean(U.sel(range=hub_height, method='nearest').values), 
-                                coords={'time': average_velocity['time'].values})
+                                coords={'time': bnr.mean(U['time'].values)})
     # Water density
+    # TODO water density if a single value
     rho = xr.DataArray(bnr.mean(water_density.values), 
-                       coords={'time': average_velocity['time'].values})
+                       coords={'time': bnr.mean(U['time'].values)})
+    # Power
+    P_average = xr.DataArray(bnr.mean(power.values), 
+                            coords={'time': bnr.mean(power['time'].values)})
 
     # Group and average
     rho_vel = _average_velocity_bins(rho, mean_hub_vel, bin_size=0.1)
@@ -292,7 +325,9 @@ def efficiency(average_power, average_velocity, velocity, water_density, capture
 
     # Theoretical power resource
     P_resource = 1/2 * rho_vel * capture_area * vel**3
+
     # Efficiency
-    out = average_power / P_resource.to_pandas()
+    # TODO will need to interpolate average_power time to P_resource
+    out = P_average / P_resource.to_pandas()
 
     return out

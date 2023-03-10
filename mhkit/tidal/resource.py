@@ -82,13 +82,13 @@ def principal_flow_directions(directions, width_dir):
 
     Returns
     -------
-    #TODO how does one know which is ebb and which is flood?
-    Not sure you can know this without water level data.
+    principal directions: tuple(float,float)
+        Principal directions 1 and 2 in degrees
 
-    ebb: float
-        Principal ebb direction in degrees 
-    flood: float
-        Principal flood direction in degrees
+    Notes
+    -----
+    One must determine which principal direction is flood and which is 
+    ebb based on knowledge of the measurement site.
     '''
 
     if isinstance(directions, np.ndarray):

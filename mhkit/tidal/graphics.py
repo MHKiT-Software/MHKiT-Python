@@ -83,8 +83,8 @@ def _initialize_polar(ax=None, metadata=None, flood=None, ebb=None):
     return ax
 
 
-def plot_rose(directions, velocities, width_dir, width_vel, metadata=None,
-              flood=None, ebb=None):
+def plot_rose(directions, velocities, width_dir, width_vel, 
+              ax=None, metadata=None, flood=None, ebb=None):
     """
     Creates a polar histogram. Direction angles from binned histogram must 
     be specified such that 0  degrees is north.
@@ -152,7 +152,7 @@ def plot_rose(directions, velocities, width_dir, width_vel, metadata=None,
     # Create the angles 
     thetas = np.arange(0,2*np.pi, 2*np.pi/dir_bins)
     # Initialize the polar polt
-    ax = _initialize_polar(metadata=metadata, flood=flood, ebb=ebb)
+    ax = _initialize_polar(ax=ax, metadata=metadata, flood=flood, ebb=ebb)
     # Set bar color based on wind speed
     colors = plt.cm.viridis(np.linspace(0, 1.0, vel_bins))
     # Set the current speed bin label names
@@ -178,7 +178,7 @@ def plot_rose(directions, velocities, width_dir, width_vel, metadata=None,
 
 
 def plot_joint_probability_distribution(directions, velocities, width_dir, 
-                                        width_vel, metadata=None,
+                                        width_vel, ax=None, metadata=None,
                                         flood=None, ebb=None):
     """
     Creates a polar histogram. Direction angles from binned histogram must 
@@ -242,7 +242,7 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
     # Calculate the 2D histogram
     H, dir_edges, vel_edges = _histogram(directions, velocities, width_dir, width_vel)
     # Initialize the polar polt
-    ax = _initialize_polar(metadata=metadata, flood=flood, ebb=ebb)
+    ax = _initialize_polar(ax=ax, metadata=metadata, flood=flood, ebb=ebb)
     # Set the current speed bin label names
     labels = [ f'{i:.1f}-{j:.1f}' for i,j in zip(vel_edges[:-1],vel_edges[1:])]
     # Set vel & dir bins to middle of bin except at ends
