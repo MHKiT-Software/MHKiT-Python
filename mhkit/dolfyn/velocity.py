@@ -824,19 +824,20 @@ class VelBinner(TimeBinner):
         else:
             time = self.mean(veldat.time.values)
             time_str = 'time'
-        fs = self._parse_fs(fs)
+        fs_in = self._parse_fs(fs)
         n_fft = self._parse_nfft(n_fft)
         veldat = veldat.values
 
         # Create frequency vector, also checks whether using f or omega
         if 'rad' in freq_units:
-            fs = 2*np.pi*fs
+            fs = 2*np.pi*fs_in
             freq_units = 'rad s-1'
             units = 'm2 s-1 rad-1'
         else:
+            fs = fs_in
             freq_units = 'Hz'
             units = 'm2 s-2 Hz-1'
-        freq = xr.DataArray(self._fft_freq(units=freq_units),
+        freq = xr.DataArray(self._fft_freq(fs=fs_in, units=freq_units, n_fft=n_fft),
                             dims=['freq'],
                             name='freq',
                             attrs={'units': freq_units,
@@ -848,8 +849,8 @@ class VelBinner(TimeBinner):
         if len(veldat.shape) == 2:
             assert veldat.shape[0] == 3, "Function can only handle 1D or 3D arrays." \
                 " If ADCP data, please select a specific depth bin."
-            out = np.empty(self._outshape_fft(
-                veldat[:3].shape), dtype=np.float32)
+            out = np.empty(self._outshape_fft(veldat[:3].shape, n_fft=n_fft, n_bin=n_bin), 
+                           dtype=np.float32)
             for idx in range(3):
                 out[idx] = self._psd_base(veldat[idx],
                                          fs=fs,

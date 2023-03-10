@@ -94,7 +94,7 @@ class analysis_testcase(unittest.TestCase):
         tdat['stress_detrend'] = bnr.reynolds_stress(dat.vel)
         tdat['stress_demean'] = bnr.reynolds_stress(dat.vel, detrend=False)
         tdat['csd'] = bnr.cross_spectral_density(
-            dat.vel, freq_units='rad', window='hamm')
+            dat.vel, freq_units='rad', window='hamm', n_fft_coh=10)
         tdat['LT83'] = bnr.dissipation_rate_LT83(tdat.psd, tdat.velds.U_mag)
         tdat['SF'] = bnr.dissipation_rate_SF(dat.vel[0], tdat.velds.U_mag)
         tdat['TE01'] = bnr.dissipation_rate_TE01(dat, tdat)

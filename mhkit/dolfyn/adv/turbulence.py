@@ -130,25 +130,26 @@ class ADVBinner(VelBinner):
           different cross-spectra: 'uv', 'uw', 'vw'.
         """
 
-        fs = self._parse_fs(fs)
+        fs_in = self._parse_fs(fs)
         n_fft = self._parse_nfft_coh(n_fft_coh)
         time = self.mean(veldat.time.values)
         veldat = veldat.values
 
-        out = np.empty(self._outshape_fft(veldat[:3].shape, n_fft=n_fft),
+        out = np.empty(self._outshape_fft(veldat[:3].shape, n_fft=n_fft, n_bin=n_bin),
                        dtype='complex')
 
         # Create frequency vector, also checks whether using f or omega
         if 'rad' in freq_units:
-            fs = 2*np.pi*fs
+            fs = 2*np.pi*fs_in
             freq_units = 'rad s-1'
             units = 'm2 s-1 rad-1'
         else:
+            fs = fs_in
             freq_units = 'Hz'
             units = 'm2 s-2 Hz-1'
-        coh_freq = xr.DataArray(self._fft_freq(units=freq_units, coh=True),
-                                dims=['freq'],
-                                name='freq',
+        coh_freq = xr.DataArray(self._fft_freq(fs=fs_in, units=freq_units, n_fft=n_fft, coh=True),
+                                dims=['coh_freq'],
+                                name='coh_freq',
                                 attrs={'units': freq_units,
                                       'long_name': 'FFT Frequency Vector',
                                       'coverage_content_type': 'coordinate'}
@@ -157,20 +158,21 @@ class ADVBinner(VelBinner):
         for ip, ipair in enumerate(self._cross_pairs):
             out[ip] = self._csd_base(veldat[ipair[0]],
                                      veldat[ipair[1]],
+                                     fs=fs,
+                                     window=window,
                                      n_bin=n_bin,
-                                     n_fft=n_fft,
-                                     window=window)
+                                     n_fft=n_fft)
 
         csd = xr.DataArray(out.astype('complex64'),
                            coords={'C': self.C,
                                    'time': time,
-                                   'freq': coh_freq},
-                           dims=['C', 'time', 'freq'],
+                                   'coh_freq': coh_freq},
+                           dims=['C', 'time', 'coh_freq'],
                            attrs={'units': units, 
                                   'n_fft_coh': n_fft,
                                   'long_name': 'Cross Spectral Density',
                                   'standard_name': 'cross_spectral_density_of_sea_water_velocity'})
-        csd['freq'].attrs['units'] = freq_units
+        csd['coh_freq'].attrs['units'] = freq_units
 
         return csd
 
