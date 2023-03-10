@@ -276,8 +276,9 @@ def request_wpto_directional_spectrum(lat_lon, year, tree=None,
         # Append each request into an xarray
         data_raw=datas[0]
         for i in list(datas.keys())[1:]:
-            data_raw =  pd.concat([data_raw,datas[i]])        
-        data = data_raw.to_xarray()
+            data_raw =  pd.concat([data_raw,datas[i]])                
+        data = data_raw.to_xarray().to_array().drop('variable').squeeze()
+        data['time_index'] = pd.to_datetime(data.time_index)
 
         # Get metadata
         meta = rex_waves.meta.loc[columns,:]
