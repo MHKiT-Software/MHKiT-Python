@@ -29,49 +29,141 @@ class TestWPTOhindcast(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-
-        self.my_swh = pd.read_csv(join(datadir,'hindcast/multi_year_hindcast.csv'),index_col = 'time_index',
-        names = ['time_index','significant_wave_height_0'],header = 0,
-        dtype = {'significant_wave_height_0':'float32'})
+        self.my_swh = pd.read_csv(
+            join(datadir,'hindcast/multi_year_hindcast.csv'),
+            index_col = 'time_index',
+            names = ['time_index','significant_wave_height_0'],
+            header = 0,
+            dtype = {'significant_wave_height_0':'float32'}
+        )
         self.my_swh.index = pd.to_datetime(self.my_swh.index)
 
-        self.ml = pd.read_csv(join(datadir,'hindcast/single_year_hindcast_multiloc.csv'),index_col = 'time_index',
-        names = ['time_index','mean_absolute_period_0','mean_absolute_period_1'],
-        header = 0, dtype = {'mean_absolute_period_0':'float32',
-        'mean_absolute_period_1':'float32'})
+        self.ml = pd.read_csv(
+            join(datadir,'hindcast/single_year_hindcast_multiloc.csv'),
+            index_col = 'time_index',
+            names = [
+                'time_index',
+                'mean_absolute_period_0',
+                'mean_absolute_period_1'
+            ],
+            header = 0,
+            dtype = {
+                'mean_absolute_period_0':'float32',
+                'mean_absolute_period_1':'float32'
+            }
+        )
         self.ml.index = pd.to_datetime(self.ml.index)
 
-        self.mp = pd.read_csv(join(datadir,'hindcast/multiparm.csv'),index_col = 'time_index',
-        names = ['time_index','energy_period_0','mean_zero-crossing_period_0'],
-        header = 0, dtype = {'energy_period_0':'float32',
-        'mean_zero-crossing_period_0':'float32'})
+        self.mp = pd.read_csv(
+            join(datadir,'hindcast/multiparm.csv'),
+            index_col = 'time_index',
+            names = [
+                'time_index',
+                'energy_period_0',
+                'mean_zero-crossing_period_0'
+            ],
+            header = 0,
+            dtype = {
+                'energy_period_0':'float32',
+                'mean_zero-crossing_period_0':'float32'
+            }
+        )
         self.mp.index = pd.to_datetime(self.mp.index)
 
-        self.ml_meta = pd.read_csv(join(datadir,'hindcast/multiloc_meta.csv'),index_col = 0,
-        names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
-        ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
-        ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
+        self.ml_meta = pd.read_csv(
+            join(datadir,'hindcast/multiloc_meta.csv'),
+            index_col = 0,
+            names = [
+                None,
+                'water_depth',
+                'latitude',
+                'longitude',
+                'distance_to_shore',
+                'timezone',
+                'jurisdiction'
+            ],
+            header = 0,
+            dtype = {
+                'water_depth':'float32',
+                'latitude':'float32',
+                'longitude':'float32',
+                'distance_to_shore':'float32',
+                'timezone':'int16'
+            }
+        )
 
-        self.my_meta = pd.read_csv(join(datadir,'hindcast/multi_year_meta.csv'),index_col = 0,
-        names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
-        ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
-        ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
+        self.my_meta = pd.read_csv(
+            join(datadir,'hindcast/multi_year_meta.csv'),
+            index_col = 0,
+            names = [
+                None,
+                'water_depth',
+                'latitude',
+                'longitude',
+                'distance_to_shore',
+                'timezone',
+                'jurisdiction'
+            ],
+            header = 0,
+            dtype = {
+                'water_depth':'float32',
+                'latitude':'float32',
+                'longitude':'float32',
+                'distance_to_shore':'float32',
+                'timezone':'int16'
+            }
+        )
 
-        self.mp_meta = pd.read_csv(join(datadir,'hindcast/multiparm_meta.csv'),index_col = 0,
-        names = [None,'water_depth','latitude','longitude','distance_to_shore','timezone'
-        ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
-        ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
+        self.mp_meta = pd.read_csv(
+            join(datadir,'hindcast/multiparm_meta.csv'),
+            index_col = 0,
+            names = [
+                None,
+                'water_depth',
+                'latitude',
+                'longitude',
+                'distance_to_shore',
+                'timezone',
+                'jurisdiction'
+            ],
+            header = 0,
+            dtype = {
+                'water_depth':'float32',
+                'latitude':'float32',
+                'longitude':'float32',
+                'distance_to_shore':'float32',
+                'timezone':'int16'
+            }
+        )
 
-        my_dir = pd.read_csv(join(datadir,'hindcast/multi_year_dir.csv'),header = 0,
-        dtype={'87':'float32','58':'float32'})
+        my_dir = pd.read_csv(
+            join(datadir,'hindcast/multi_year_dir.csv'),
+            header = 0,
+            dtype={'87':'float32','58':'float32'}
+        )
         my_dir['time_index'] = pd.to_datetime(my_dir['time_index'])
         my_dir = my_dir.set_index(['time_index','frequency','direction'])
         self.my_dir = my_dir.to_xarray()
 
-        self.my_dir_meta = pd.read_csv(join(datadir,'hindcast/multi_year_dir_meta.csv'),
-        names = ['water_depth','latitude','longitude','distance_to_shore','timezone'
-        ,'jurisdiction'],header = 0, dtype = {'water_depth':'float32','latitude':'float32'
-        ,'longitude':'float32','distance_to_shore':'float32','timezone':'int16'})
+        self.my_dir_meta = pd.read_csv(
+            join(datadir,'hindcast/multi_year_dir_meta.csv'),
+            names = [
+                'water_depth',
+                'latitude',
+                'longitude',
+                'distance_to_shore',
+                'timezone',
+                'jurisdiction'
+            ],
+            header = 0,
+            dtype = {
+                'water_depth':'float32',
+                'latitude':'float32',
+                'longitude':'float32',
+                'distance_to_shore':'float32',
+                'timezone':'int16'
+            }
+        )
 
     @classmethod
     def tearDownClass(self):
