@@ -102,7 +102,8 @@ class TestWPTOhindcast(unittest.TestCase):
                 'longitude',
                 'distance_to_shore',
                 'timezone',
-                'jurisdiction'
+                'jurisdiction',
+                'gid'
             ],
             header = 0,
             dtype = {
@@ -110,7 +111,8 @@ class TestWPTOhindcast(unittest.TestCase):
                 'latitude':'float32',
                 'longitude':'float32',
                 'distance_to_shore':'float32',
-                'timezone':'int16'
+                'timezone':'int16',
+                'gid':'int'
             }
         )
 
@@ -153,7 +155,8 @@ class TestWPTOhindcast(unittest.TestCase):
                 'longitude',
                 'distance_to_shore',
                 'timezone',
-                'jurisdiction'
+                'jurisdiction',
+                'gid'
             ],
             header = 0,
             dtype = {
@@ -161,7 +164,8 @@ class TestWPTOhindcast(unittest.TestCase):
                 'latitude':'float32',
                 'longitude':'float32',
                 'distance_to_shore':'float32',
-                'timezone':'int16'
+                'timezone':'int16',
+                'gid':'int'
             }
         )
 
