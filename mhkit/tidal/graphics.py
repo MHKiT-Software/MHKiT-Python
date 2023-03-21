@@ -120,28 +120,28 @@ def plot_rose(directions, velocities, width_dir, width_vel,
     if isinstance(directions, np.ndarray):
         directions=pd.Series(directions)
     assert len(velocities) == len(directions),  \
-        'velocities and directions  must have the same length'
-    assert all(velocities.values >= 0),\
+        'velocities and directions must have the same length'
+    assert all(np.nan_to_num(velocities.values) >= 0), \
         'All velocities must be positive'
-    assert all(directions.values >= 0) and all(directions.values <= 360),\
+    assert all(np.nan_to_num(directions.values) >= 0) and all(np.nan_to_num(directions.values) <= 360), \
         'directions must be between 0 and 360 degrees'
     assert isinstance(flood, (int, float, type(None))), \
         'flood must be of type int or float'
     assert isinstance(ebb, (int, float, type(None))), \
         'ebb must be of type int or float' 
     if flood: 
-        assert flood >=0 and flood <=360,\
+        assert flood >=0 and flood <=360, \
             'flood must be between 0 and 360 degrees'
     if ebb:
-        assert ebb >=0 and ebb <=360,\
+        assert ebb >=0 and ebb <=360, \
             'ebb must be between 0 and 360 degrees'   
     assert isinstance(width_dir, (int, float)), \
         'width_dir must be of type int or float' 
     assert isinstance(width_vel, (int, float)), \
         'width_vel must be of type int or float'     
-    assert width_dir >=0 ,\
+    assert width_dir >=0, \
         'width_dir must be greater than 0' 
-    assert width_vel >=0 ,\
+    assert width_vel >=0, \
         'width_vel must be greater than 0'    
     
     # Calculate the 2D histogram
@@ -204,7 +204,7 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
     Returns
     -------
     ax: figure
-       Joint probability distribution  
+        Joint probability distribution  
     """
     assert isinstance(velocities,(np.ndarray, pd.Series)), \
         'velocities  must be of type np.ndarry or pd.Series'
@@ -214,18 +214,18 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
         'directions  must be of type np.ndarry or pd.Series'
     if isinstance(directions, np.ndarray):
         directions=pd.Series(directions)
-    assert len(velocities) == len(directions),  \
+    assert len(velocities) == len(directions), \
         'velocities and directions  must have the same length'
-    assert all(velocities.values >= 0),\
+    assert all(np.nan_to_num(velocities.values) >= 0), \
         'All velocities must be positive'
-    assert all(directions.values >= 0) and all(directions.values <= 360),\
+    assert all(np.nan_to_num(directions.values) >= 0) and all(np.nan_to_num(directions.values) <= 360), \
         'directions must be between 0 and 360 degrees'
     assert isinstance(flood, (int, float, type(None))), \
         'flood must be of type int or float'
     assert isinstance(ebb, (int, float, type(None))), \
         'ebb must be of type int or float' 
     if flood: 
-        assert flood >=0 and flood <=360,\
+        assert flood >=0 and flood <=360, \
             'flood must be between 0 and 360 degrees'
     if ebb:
         assert ebb >=0 and ebb <=360,\
@@ -234,9 +234,9 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
         'width_dir must be of type int or float' 
     assert isinstance(width_vel, (int, float)), \
         'width_vel must be of type int or float'     
-    assert width_dir >=0 ,\
+    assert width_dir >=0, \
         'width_dir must be greater than 0' 
-    assert width_vel >=0 ,\
+    assert width_vel >=0, \
         'width_vel must be greater than 0'   
     
     # Calculate the 2D histogram
@@ -307,15 +307,15 @@ def plot_current_timeseries(directions, velocities, principal_direction,
         'directions  must be of type np.ndarry or pd.Series'
     if isinstance(directions, np.ndarray):
         directions=pd.Series(directions)
-    assert len(velocities) == len(directions),  \
-        'velocities and directions  must have the same length'
-    assert all(velocities.values >= 0),\
+    assert len(velocities) == len(directions), \
+        'velocities and directions must have the same length'
+    assert all(np.nan_to_num(velocities.values) >= 0), \
         'All velocities must be positive'
-    assert all(directions.values >= 0) and all(directions.values <= 360),\
+    assert all(np.nan_to_num(directions.values) >= 0) and all(np.nan_to_num(directions.values) <= 360), \
         'directions must be between 0 and 360 degrees'
     assert isinstance(principal_direction, (int, float)), \
         'principal_direction must be of type int or float' 
-    assert principal_direction >=0 and principal_direction <=360,\
+    assert principal_direction >=0 and principal_direction <=360, \
         'principal_direction must be between 0 and 360 degrees'
         
     # Rotate coordinate system by supplied principal_direction
@@ -358,11 +358,11 @@ def tidal_phase_probability(directions, velocities, flood, ebb,
         'directions  must be of type np.ndarry or pd.Series'
     if isinstance(directions, np.ndarray):
         directions=pd.Series(directions)
-    assert len(velocities) == len(directions),  \
-        'velocities and directions  must have the same length'
-    assert all(velocities.values >= 0),\
+    assert len(velocities) == len(directions), \
+        'velocities and directions must have the same length'
+    assert all(np.nan_to_num(velocities.values) >= 0), \
         'All velocities must be positive'
-    assert all(directions.values >= 0) and all(directions.values <= 360),\
+    assert all(np.nan_to_num(directions.values) >= 0) and all(np.nan_to_num(directions.values) <= 360), \
         'directions must be between 0 and 360 degrees'
     assert isinstance(flood, (int, float)), \
         'flood must be of type int or float'
@@ -370,11 +370,11 @@ def tidal_phase_probability(directions, velocities, flood, ebb,
         'ebb must be of type int or float'        
     assert isinstance(bin_size, (int, float)), \
         'bin_size must be of type int or float' 
-    assert flood >=0 and flood <=360,\
+    assert flood >=0 and flood <=360, \
         'flood must be between 0 and 360 degrees'
-    assert ebb >=0 and ebb <=360,\
+    assert ebb >=0 and ebb <=360, \
         'ebb must be between 0 and 360 degrees'   
-    assert bin_size >=0 ,\
+    assert bin_size >=0, \
         'bin_size must be greater than 0'           
         
     if ax==None:
@@ -446,11 +446,11 @@ def tidal_phase_exceedance(directions, velocities, flood, ebb,
         'directions  must be of type np.ndarry or pd.Series'
     if isinstance(directions, np.ndarray):
         directions=pd.Series(directions)
-    assert len(velocities) == len(directions),  \
+    assert len(velocities) == len(directions), \
         'velocities and directions  must have the same length'
-    assert all(velocities.values >= 0),\
+    assert all(np.nan_to_num(velocities.values) >= 0),\
         'All velocities must be positive'
-    assert all(directions.values >= 0) and all(directions.values <= 360),\
+    assert all(np.nan_to_num(directions.values) >= 0) and all(np.nan_to_num(directions.values) <= 360), \
         'directions must be between 0 and 360 degrees'
     assert isinstance(flood, (int, float)), \
         'flood must be of type int or float'
@@ -458,11 +458,11 @@ def tidal_phase_exceedance(directions, velocities, flood, ebb,
         'ebb must be of type int or float'        
     assert isinstance(bin_size, (int, float)), \
         'bin_size must be of type int or float' 
-    assert flood >=0 and flood <=360,\
+    assert flood >=0 and flood <=360, \
         'flood must be between 0 and 360 degrees'
-    assert ebb >=0 and ebb <=360,\
+    assert ebb >=0 and ebb <=360, \
         'ebb must be between 0 and 360 degrees' 
-    assert bin_size >=0 ,\
+    assert bin_size >=0, \
         'bin_size must be greater than 0'         
         
     if ax==None:
