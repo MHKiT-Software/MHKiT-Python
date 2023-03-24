@@ -601,7 +601,7 @@ def plot_compendium(Hs, Tp, Dp, buoy_title=None, ax=None):
     pHs.set_ylim(0,8)
     pHs.tick_params(axis='y', which='major', labelsize=12, right='off')
     pHs.set_ylabel('Hs [m]', fontsize=18)
-    pHs.grid(b=True, which='major', color='b', linestyle='--')
+    pHs.grid(color='b', linestyle='--')
 
     pHs2 = pHs.twinx()
     pHs2.set_ylim(0,25)
@@ -611,13 +611,13 @@ def plot_compendium(Hs, Tp, Dp, buoy_title=None, ax=None):
     # Peak Period, Tp
     pTp.set_ylim(0,28)
     pTp.set_ylabel('Tp [s]', fontsize=18)
-    pTp.grid(b=True, which='major', color='b', linestyle='--')
+    pTp.grid(color='b', linestyle='--')
 
 
     # Direction, Dp
     pDp.set_ylim(0,360)
     pDp.set_ylabel('Dp [deg]', fontsize=18)
-    pDp.grid(b=True, which='major', color='b', linestyle='--')
+    pDp.grid(color='b', linestyle='--')
     pDp.set_xlabel('Day', fontsize=18)
 
     # Set x-axis tick interval to every 5 days
@@ -736,7 +736,7 @@ def plot_boxplot(Hs, buoy_title=None):
     bp.tick_params(axis='x', which='major', labelsize=12, top='off')
 
     # Plot horizontal gridlines onto top subplot
-    bp.grid(axis='x', which='major', color='b', linestyle='-', alpha=0.25)
+    bp.grid(axis='x', color='b', linestyle='-', alpha=0.25)
 
     # Remove tickmarks from bottom subplot
     bp2.axes.get_xaxis().set_visible(False)
