@@ -2,6 +2,7 @@ from . import test_read_adp as tr, test_read_adv as tv
 from mhkit.tests.dolfyn.base import load_netcdf as load, save_netcdf as save, assert_allclose
 from mhkit.dolfyn import VelBinner, read_example
 import mhkit.dolfyn.adv.api as avm
+import mhkit.dolfyn.adp.api as apm
 from xarray.testing import assert_identical
 import unittest
 import pytest
@@ -105,3 +106,34 @@ class analysis_testcase(unittest.TestCase):
             return
 
         assert_allclose(tdat, load('vector_data01_bin.nc'), atol=1e-6)
+
+
+    def test_adcp_turbulence(make_data=False):
+        dat = tr.dat_sig_i.copy(deep=True)
+        bnr = apm.ADPBinner(n_bin=20.0, fs=dat.fs, diff_style='centered')
+        tdat = bnr.bin_average(dat)
+        tdat['dudz'] = bnr.dudz(tdat.vel)
+        tdat['dvdz'] = bnr.dvdz(tdat.vel)
+        tdat['dwdz'] = bnr.dwdz(tdat.vel)
+        tdat['tau2'] = bnr.shear_squared(tdat.vel)
+        tdat['psd'] = bnr.power_spectral_density(dat['vel'].isel(
+            dir=2, range=len(dat.range)//2), freq_units='Hz')
+        tdat['noise'] = bnr.doppler_noise_level(tdat['psd'], pct_fN=0.8)
+        tdat['stress_vec4'] = bnr.reynolds_stress_4beam(
+            dat, noise=tdat['noise'], orientation='up', beam_angle=25)
+        tdat['tke_vec5'], tdat['stress_vec5'] = bnr.stress_tensor_5beam(
+            dat, noise=tdat['noise'], orientation='up', beam_angle=25, tke_only=False)
+        tdat['tke'] = bnr.total_turbulent_kinetic_energy(
+            dat, noise=tdat['noise'], orientation='up', beam_angle=25)
+        tdat['dissipation_rate_LT83'] = bnr.dissipation_rate_LT83(
+            tdat['psd'], tdat.velds.U_mag.isel(range=len(dat.range)//2), freq_range=[0.2, 0.4])
+        tdat['dissipation_rate_SF'], tdat['noise_SF'], tdat['D_SF'] = bnr.dissipation_rate_SF(
+            dat.vel.isel(dir=2), r_range=[1, 5])
+        tdat['friction_vel'] = bnr.friction_velocity(
+            tdat, upwp_=tdat['stress_vec5'].sel(tau='upwp_'), z_inds=slice(1, 5), H=50)
+
+        if make_data:
+            save(tdat, 'Sig1000_IMU_bin.nc')
+            return
+
+        assert_allclose(tdat, load('Sig1000_IMU_bin.nc'), atol=1e-6)
