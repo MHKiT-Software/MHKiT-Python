@@ -177,7 +177,7 @@ def find_surface_from_P(ds, salinity=35):
                'positive': 'down'})
 
 
-def nan_beyond_surface(ds, val=np.nan, inplace=False):
+def nan_beyond_surface(ds, val=np.nan, beam_angle=None, inplace=False):
     """
     Mask the values of 3D data (vel, amp, corr, echo) that are beyond the surface.
 
@@ -187,6 +187,8 @@ def nan_beyond_surface(ds, val=np.nan, inplace=False):
       The adcp dataset to clean
     val : nan or numeric
       Specifies the value to set the bad values to. Default is `numpy.nan`
+    beam_angle : int
+      ADCP beam inclination angle. Default = dataset.attrs['beam_angle']
     inplace : bool
       When True the existing data object is modified. When False
       a copy is returned. Default = False
@@ -209,13 +211,12 @@ def nan_beyond_surface(ds, val=np.nan, inplace=False):
     # Get all variables with 'range' coordinate
     var = [h for h in ds.keys() if any(s for s in ds[h].dims if 'range' in s)]
 
-    if 'nortek' in _make_model(ds):
-        beam_angle = 25 * (np.pi/180)
-    else:  # TRDI
-        try:
+    if beam_angle is None:
+        if hasattr(ds, 'beam_angle'):
             beam_angle = ds.beam_angle * (np.pi/180)
-        except:
-            beam_angle = 20 * (np.pi/180)
+        else:
+            raise Exception("'beam_angle` not found in dataset attributes. "\
+                            "Please supply the ADCP's beam angle.")
 
     # Surface interference distance calculated from distance of transducers to surface
     if hasattr(ds, 'h_deploy'):
