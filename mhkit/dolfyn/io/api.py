@@ -169,11 +169,6 @@ def save(ds, filename,
 
     filename = _check_file_ext(filename, 'nc')
 
-    # Dropping the detailed configuration stats because netcdf can't save it
-    for key in list(ds.attrs.keys()):
-        if 'config' in key:
-            ds.attrs.pop(key)
-
     # Handling complex values for netCDF4
     ds.attrs['complex_vars'] = []
     for var in ds.data_vars:
@@ -184,10 +179,9 @@ def save(ds, filename,
             ds = ds.drop_vars(var)
             ds.attrs['complex_vars'].append(var)
 
-    # For variables that get rewritten to float64
-    for v in ds.data_vars:
-        ds[v].encoding = {}
-        ds[v] = ds[v].astype('float32')
+        # For variables that get rewritten to float64
+        elif ds[var].dtype == np.float64:
+            ds[var] = ds[var].astype('float32')
 
     if compression:
         enc = dict()

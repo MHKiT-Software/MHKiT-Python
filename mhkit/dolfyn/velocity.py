@@ -28,7 +28,8 @@ class Velocity():
     # Major components of the dolfyn-API
 
     def rotate2(self, out_frame='earth', inplace=True):
-        """Rotate the dataset to a new coordinate system.
+        """
+        Rotate the dataset to a new coordinate system.
 
         Parameters
         ----------
@@ -63,7 +64,8 @@ class Velocity():
         return rotate2(self.ds, out_frame, inplace)
 
     def set_declination(self, declin, inplace=True):
-        """Set the magnetic declination
+        """
+        Set the magnetic declination
 
         Parameters
         ----------
@@ -264,7 +266,8 @@ class Velocity():
     # A bunch of DOLfYN specific properties
     @property
     def u(self,):
-        """The first velocity component.
+        """
+        The first velocity component.
 
         This is simply a shortcut to self['vel'][0]. Therefore,
         depending on the coordinate system of the data object
@@ -279,7 +282,8 @@ class Velocity():
 
     @property
     def v(self,):
-        """The second velocity component.
+        """
+        The second velocity component.
 
         This is simply a shortcut to self['vel'][1]. Therefore,
         depending on the coordinate system of the data object
@@ -294,7 +298,8 @@ class Velocity():
 
     @property
     def w(self,):
-        """The third velocity component.
+        """
+        The third velocity component.
 
         This is simply a shortcut to self['vel'][2]. Therefore,
         depending on the coordinate system of the data object
@@ -309,8 +314,8 @@ class Velocity():
 
     @property
     def U(self,):
-        """Horizontal velocity as a complex quantity
-        """
+        """Horizontal velocity as a complex quantity"""
+
         return xr.DataArray(
             (self.u + self.v * 1j).astype('complex64'),
             attrs={'units': 'm s-1',
@@ -318,8 +323,8 @@ class Velocity():
     
     @property
     def U_mag(self,):
-        """Horizontal velocity magnitude
-        """
+        """Horizontal velocity magnitude"""
+
         return xr.DataArray(
             np.abs(self.U).astype('float32'),
             attrs={'units': 'm s-1',
@@ -328,16 +333,21 @@ class Velocity():
 
     @property
     def U_dir(self,):
-        """Angle of horizontal velocity vector, degrees counterclockwise from
-        X/East/streamwise. Direction is 'to', as opposed to 'from'.
+        """
+        Angle of horizontal velocity vector. Direction is 'to', 
+        as opposed to 'from'. This function calculates angle as 
+        "degrees CCW from X/East/streamwise" and then converts it to 
+        "degrees CW from X/North/streamwise".
         """
         def convert_to_CW(angle):
             if self.ds.coord_sys == 'earth':
-                # Convert "deg CCW from East" to "deg CW from North"
+                # Convert "deg CCW from East" to "deg CW from North" [0, 360]
                 angle = convert_degrees(angle, tidal_mode=False)
                 relative_to = self.ds.dir[1].values
             else:
-                angle *= -1  # switch to clockwise
+                # Switch to clockwise and from [-180, 180] to [0, 360]
+                angle *= -1
+                angle[angle < 0] += 360
                 relative_to = self.ds.dir[0].values
             return angle, relative_to
 
@@ -348,14 +358,14 @@ class Velocity():
             angle.astype('float32'),
             dims=self.U.dims,
             coords=self.U.coords,
-            attrs={'units': 'degree',
+            attrs={'units': 'degrees_CW_from_' + str(rel),
                    'long_name': 'Water Direction',
-                   'standard_name': 'sea_water_to_direction',
-                   'degrees_CW_relative_to': rel})
+                   'standard_name': 'sea_water_to_direction'})
 
     @property
     def E_coh(self,):
-        """Coherent turbulent energy
+        """
+        Coherent turbulent energy
 
         Niel Kelley's 'coherent turbulence energy', which is the RMS
         of the Reynold's stresses.
@@ -374,7 +384,8 @@ class Velocity():
 
     @property
     def I_tke(self, thresh=0):
-        """Turbulent kinetic energy intensity.
+        """
+        Turbulent kinetic energy intensity.
 
         Ratio of sqrt(tke) to horizontal velocity magnitude.
         """
@@ -390,7 +401,8 @@ class Velocity():
 
     @property
     def I(self, thresh=0):
-        """Turbulence intensity.
+        """
+        Turbulence intensity.
 
         Ratio of standard deviation of horizontal velocity
         to horizontal velocity magnitude.
@@ -418,38 +430,38 @@ class Velocity():
 
     @property
     def upvp_(self,):
-        """u'v'bar Reynolds stress
-        """
+        """u'v'bar Reynolds stress"""
+
         return self.ds['stress_vec'].sel(tau="upvp_").drop('tau')
 
     @property
     def upwp_(self,):
-        """u'w'bar Reynolds stress
-        """
+        """u'w'bar Reynolds stress"""
+
         return self.ds['stress_vec'].sel(tau="upwp_").drop('tau')
 
     @property
     def vpwp_(self,):
-        """v'w'bar Reynolds stress
-        """
+        """v'w'bar Reynolds stress"""
+
         return self.ds['stress_vec'].sel(tau="vpwp_").drop('tau')
 
     @property
     def upup_(self,):
-        """u'u'bar component of the tke
-        """
+        """u'u'bar component of the tke"""
+
         return self.ds['tke_vec'].sel(tke="upup_").drop('tke')
 
     @property
     def vpvp_(self,):
-        """v'v'bar component of the tke
-        """
+        """v'v'bar component of the tke"""
+
         return self.ds['tke_vec'].sel(tke="vpvp_").drop('tke')
 
     @property
     def wpwp_(self,):
-        """w'w'bar component of the tke
-        """
+        """w'w'bar component of the tke"""
+
         return self.ds['tke_vec'].sel(tke="wpwp_").drop('tke')
 
 

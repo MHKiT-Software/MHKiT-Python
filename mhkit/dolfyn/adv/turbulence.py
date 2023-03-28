@@ -52,7 +52,8 @@ class ADVBinner(VelBinner):
 
     def reynolds_stress(self, veldat, detrend=True):
         """
-        Calculate Reynolds stresses (cross-covariances of u,v,w in m^2/s^2)
+        Calculate the specific Reynolds stresses 
+        (cross-covariances of u,v,w in m^2/s^2)
 
         Parameters
         ----------
@@ -175,6 +176,70 @@ class ADVBinner(VelBinner):
         csd['coh_freq'].attrs['units'] = freq_units
 
         return csd
+
+    def doppler_noise_level(self, psd, pct_fN=0.8):
+        """Calculate bias due to Doppler noise using the noise floor
+        of the velocity spectra.
+
+        Parameters
+        ----------
+        psd : xarray.DataArray (dir, time, f)
+          The ADV power spectral density of velocity (auto-spectra)
+        pct_fN : float
+          Percent of Nyquist frequency to calculate characeristic frequency
+
+        Returns
+        -------
+        doppler_noise (xarray.DataArray): 
+          Doppler noise level in units of m/s
+
+        Notes
+        -----
+        Approximates bias from
+
+        .. :math: \\sigma^{2}_{noise} = N x f_{c}
+
+        where :math: `\\sigma_{noise}` is the bias due to Doppler noise,
+        `N` is the constant variance or spectral density, and `f_{c}`
+        is the characteristic frequency.
+
+        The characteristic frequency is then found as 
+
+        .. :math: f_{c} = pct_fN * (f_{s}/2)
+
+        where `f_{s}/2` is the Nyquist frequency.
+
+
+        Richard, Jean-Baptiste, et al. "Method for identification of Doppler noise 
+        levels in turbulent flow measurements dedicated to tidal energy." International 
+        Journal of Marine Energy 3 (2013): 52-64.
+
+        Thiébaut, Maxime, et al. "Investigating the flow dynamics and turbulence at a 
+        tidal-stream energy site in a highly energetic estuary." Renewable Energy 195 
+        (2022): 252-262.
+        """
+        
+        # Characteristic frequency set to 80% of Nyquist frequency
+        fN = self.fs/2
+        fc = pct_fN * fN
+
+        # Get units right
+        if psd.freq.units == "Hz":
+            f_range = slice(fc, fN)
+        else:
+            f_range = slice(2*np.pi*fc, 2*np.pi*fN)
+
+        # Noise floor
+        N2 = psd.sel(freq=f_range) * psd.freq.sel(freq=f_range)
+        noise_level = np.sqrt(N2.mean(dim='freq'))
+
+        return xr.DataArray(
+            noise_level.values.astype('float32'),
+            dims=['dir', 'time'],
+            attrs={'units': 'm/s',
+                   'long_name': 'Doppler Noise Level',
+                   'description': 'Doppler noise level calculated '
+                   'from PSD white noise'})
 
     def dissipation_rate_LT83(self, psd, U_mag, freq_range=[6.28, 12.57]):
         """

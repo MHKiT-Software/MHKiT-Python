@@ -43,11 +43,7 @@ def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
     else:  # orientation = 'up' or 'AHRS'
         down = False
 
-    if rotate_vars is None:
-        if 'rotate_vars' in adcpo.attrs:
-            rotate_vars = adcpo.rotate_vars
-        else:
-            rotate_vars = ['vel']
+    rotate_vars = rotb._check_rotate_vars(adcpo, rotate_vars)
 
     cs = adcpo.coord_sys.lower()
     if not force:

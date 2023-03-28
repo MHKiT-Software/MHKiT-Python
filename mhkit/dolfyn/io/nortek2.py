@@ -1,9 +1,9 @@
 import numpy as np
-import xarray as xr
 from struct import unpack, calcsize
 import warnings
 from pathlib import Path
 import logging
+import json
 
 from . import nortek2_defs as defs
 from . import nortek2_lib as lib
@@ -102,6 +102,11 @@ def read_signature(filename, userdata=True, nens=None, rebuild_index=False,
 
     if declin is not None:
         set_declination(ds, declin, inplace=True)
+
+    # Convert config dictionary to json string
+    for key in list(ds.attrs.keys()):
+        if 'config' in key:
+            ds.attrs[key] = json.dumps(ds.attrs[key])
 
     # Close handler
     if debug:
@@ -572,8 +577,11 @@ def _reduce(data):
     else:
         da['has_imu'] = 0
 
-    da['fs'] = da['filehead_config']['BURST'].pop('SR')
-    tmat = da['filehead_config'].pop('XFBURST')
+    da['fs'] = da['filehead_config']['BURST']['SR']
+    theta = da['filehead_config']['BEAMCFGLIST'][0]
+    if 'THETA=' in theta:
+        da['beam_angle'] = int(theta[13:15])
+    tmat = da['filehead_config']['XFBURST']
     tm = np.zeros((tmat['ROWS'], tmat['COLS']), dtype=np.float32)
     for irow in range(tmat['ROWS']):
         for icol in range(tmat['COLS']):

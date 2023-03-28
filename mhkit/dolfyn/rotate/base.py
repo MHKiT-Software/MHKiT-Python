@@ -2,6 +2,7 @@ import numpy as np
 import xarray as xr
 from numpy.linalg import det, inv
 from scipy.spatial.transform import Rotation as R
+import warnings
 
 
 def _make_model(ds):
@@ -25,6 +26,18 @@ def _check_rotmat_det(rotmat, thresh=1e-3):
     if rotmat.ndim > 2:
         rotmat = np.transpose(rotmat)
     return np.abs(det(rotmat) - 1) < thresh
+
+
+def _check_rotate_vars(ds, rotate_vars):
+    if rotate_vars is None:
+        if 'rotate_vars' in ds.attrs:
+            rotate_vars = ds.rotate_vars
+        else:
+            warnings.warn("    'rotate_vars' attribute not found."
+                          "Rotating `vel`.")
+            rotate_vars = ['vel']
+
+    return rotate_vars
 
 
 def _set_coords(ds, ref_frame, forced=False):
@@ -309,3 +322,32 @@ def quaternion2orient(quaternions):
     inst = xr.DataArray(['X', 'Y', 'Z'], dims=['inst'], name='inst', attrs={
         'units': '1', 'long_name': 'Instrument Reference Frame', 'coverage_content_type': 'coordinate'})
     return omat.assign_coords({'earth': earth, 'inst': inst, 'time': quaternions.time})
+
+
+def calc_tilt(pitch, roll):
+    """
+    Calculate "tilt", the vertical inclination, from pitch and roll.
+
+    Parameters
+    ----------
+    roll : numpy.ndarray or xarray.DataArray
+      Instrument roll
+    pitch : numpy.ndarray or xarray.DataArray
+      Instrument pitch
+      
+    Returns
+    -------
+    tilt : numpy.ndarray
+      Vertical inclination of the instrument
+    """
+
+    if type(pitch).__module__ == 'xarray':
+        pitch = pitch.values
+    if type(roll).__module__ == 'xarray':
+        roll = roll.values
+
+    tilt = np.arctan(
+        np.sqrt(np.tan(np.deg2rad(roll)) ** 2 + np.tan(np.deg2rad(pitch)) ** 2)
+    )
+
+    return np.rad2deg(tilt)
