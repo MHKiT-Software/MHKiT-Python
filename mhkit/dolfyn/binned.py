@@ -197,6 +197,8 @@ class TimeBinner:
         """
 
         n_bin = self._parse_nbin(n_bin)
+        if arr.shape[-1] < n_bin:
+            raise Exception('n_bin is larger than length of input array')
         npd0 = int(n_pad // 2)
         npd1 = int((n_pad + 1) // 2)
         shp = self._outshape(arr.shape, n_pad=0, n_bin=n_bin)
@@ -212,6 +214,11 @@ class TimeBinner:
         else:
             inds = (np.arange(np.prod(shp[-2:])) * n_bin // int(n_bin)
                     ).astype(int)
+            # If there are too many indices, drop one bin
+            if inds[-1] >= arr.shape[-1]:
+                inds = inds[:-int(n_bin)]
+                shp[-2] -= 1
+                out = out[..., 1:, :]
             n_bin = int(n_bin)
             out[..., npd0:n_bin + npd0] = (arr[..., inds]
                                            ).reshape(shp, order='C')
