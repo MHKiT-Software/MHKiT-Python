@@ -99,6 +99,8 @@ def plot_rose(directions, velocities, width_dir, width_vel,
         Width of directional bins for histogram in degrees
     width_vel: float 
         Width of velocity bins for histogram in m/s
+    ax: float
+        Polar plot axes to add polar histogram
     metadata: dictonary
         If provided needs keys ['name', 'lat', 'lon'] for plot title
         and information box on plot
@@ -162,8 +164,8 @@ def plot_rose(directions, velocities, width_dir, width_vel,
     r_offset = np.zeros(dir_bins)
     for vel_bin in range(vel_bins):
         # Plot fist set of bars in all directions
-        ax = plt.bar(thetas, H[:,vel_bin], width=(2*np.pi/dir_bins), 
-                     bottom=r_offset, color=colors[vel_bin], label=labels[vel_bin])
+        ax.bar(thetas, H[:,vel_bin], width=(2*np.pi/dir_bins), 
+               bottom=r_offset, color=colors[vel_bin], label=labels[vel_bin])
         # Increase the radius offset in all directions
         r_offset = r_offset + H[:,vel_bin]
     # Add the a legend for current speed bins 
@@ -194,6 +196,8 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
         Width of directional bins for histogram in degrees
     width_vel: float 
         Width of velocity bins for histogram in m/s
+    ax: float
+        Polar plot axes to add polar histogram
     metadata: dictonary
         If provided needs keys ['name', 'Lat', 'Lon'] for plot title
         and information box on plot
@@ -254,23 +258,24 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
     dir_bins[-1] = dir_edges[-1]
     vel_bins[-1] = vel_edges[-1]
     # Interpolate the bins back to specific data points
-    z = _interpn( (dir_bins, vel_bins  ) ,
-                  H , np.vstack([directions,velocities]).T , method = "splinef2d",
+    z = _interpn((dir_bins, vel_bins),
+                  H , np.vstack([directions,velocities]).T, method = "splinef2d",
                   bounds_error = False )
     # Plot the most probable data last 
-    idx=z.argsort()
+    idx = z.argsort()
     # Convert to radians and order points by probability
-    theta,r,z = directions.values[idx]*np.pi/180. , velocities.values[idx], z[idx]
+    theta,r,z = directions.values[idx]*np.pi/180, velocities.values[idx], z[idx]
     # Create scatter plot colored by probability density    
-    sx=ax.scatter(theta, r, c=z, s=5, edgecolor=None)
+    sx = ax.scatter(theta, r, c=z, s=5, edgecolor=None)
     # Create colorbar
-    plt.colorbar(sx, label='Joint Probability [%]')
+    plt.colorbar(sx, ax=ax, label='Joint Probability [%]')
+
     # Get the r-ticks (polar y-ticks)
-    yticks = plt.yticks()
-    # Format y-ticks with  units for clarity 
-    yticks =  [f'{y:.1f} $m/s$' for y in yticks[0]]
-    # Set the y-ticks
-    ax.set_yticklabels(yticks)
+    yticks = ax.get_yticks()
+    # Set y-ticks labels
+    ax.set_yticks(yticks) # to avoid matplotlib warning
+    ax.set_yticklabels([f'{y:.1f} $m/s$' for y in yticks])
+
     return ax
 
 
