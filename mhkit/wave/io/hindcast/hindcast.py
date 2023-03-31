@@ -1,7 +1,7 @@
 import sys
+import pandas as pd
 from time import sleep
 import numpy as np
-import pandas as pd
 from rex import MultiYearWaveX, WaveX
 
 
@@ -121,7 +121,6 @@ def request_wpto_point_data(
     meta: DataFrame 
         Location metadata for the requested data location   
     """
-    
     assert isinstance(parameter, (str, list)), 'parameter must be of type string or list'
     assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
     assert isinstance(data_type, str), 'data_type must be a string'
@@ -134,25 +133,25 @@ def request_wpto_point_data(
     if 'directional_wave_spectrum' in parameter:
         sys.exit('This function does not support directional_wave_spectrum output')
 
-    # check for multiple region selection
+    # Check for multiple region selection
     if isinstance(lat_lon[0], float):
         region = region_selection(lat_lon)
     else:
-        reglist = []
+        region_list = []
         for loc in lat_lon:
-            reglist.append(region_selection(loc))
-        if reglist.count(reglist[0]) == len(lat_lon):
-            region = reglist[0]
+            region_list.append(region_selection(loc))
+        if region_list.count(region_list[0]) == len(lat_lon):
+            region = region_list[0]
         else:
             sys.exit('Coordinates must be within the same region!')
 
     if data_type == '3-hour':
-        wave_path = f'/nrel/US_wave/'+region+'/'+region+'_wave_*.h5'
+        wave_path = f'/nrel/US_wave/{region}/{region}_wave_*.h5'
     elif data_type == '1-hour':
-        wave_path = f'/nrel/US_wave/virtual_buoy/'+region+'/'+region+'_virtual_buoy_*.h5'
+        wave_path = f'/nrel/US_wave/virtual_buoy/{region}/{region}_virtual_buoy_*.h5'
     else:
-        print(f'ERROR: invalid data_type')
-        pass
+        print('ERROR: invalid data_type')
+
     wave_kwargs = {
         'tree':tree,
         'unscale':unscale,
@@ -164,26 +163,29 @@ def request_wpto_point_data(
 
     with MultiYearWaveX(wave_path, **wave_kwargs) as rex_waves:
         if isinstance(parameter, list):
-            for p in parameter:
-                temp_data = rex_waves.get_lat_lon_df(p,lat_lon)
-                col = temp_data.columns[:]
-                for i,c in zip(range(len(col)),col):
-                    temp = f'{p}_{i}'
-                    temp_data = temp_data.rename(columns={c:temp})
+            for param in parameter:
+                temp_data = rex_waves.get_lat_lon_df(param,lat_lon)
+                cols = temp_data.columns[:]
+                for i,col in zip(range(len(cols)),cols):
+                    temp = f'{param}_{i}'
+                    temp_data = temp_data.rename(columns={col:temp})
 
                 data_list.append(temp_data)
             data= pd.concat(data_list, axis=1)
 
         else:
             data = rex_waves.get_lat_lon_df(parameter,lat_lon)
-            col = data.columns[:]
+            cols = data.columns[:]
 
-            for i,c in zip(range(len(col)),col):
+            for i,col in zip(range(len(cols)),cols):
                 temp = f'{parameter}_{i}'
-                data = data.rename(columns={c:temp})
+                data = data.rename(columns={col:temp})
 
-        meta = rex_waves.meta.loc[col,:]
-        meta = meta.reset_index(drop=True)    
+        meta = rex_waves.meta.loc[cols,:]
+        meta = meta.reset_index(drop=True)
+        # Get graphical identifier
+        gid = rex_waves.lat_lon_gid(lat_lon)
+        meta['gid'] = gid
     return data, meta
 
 
@@ -307,12 +309,12 @@ def request_wpto_directional_spectrum(
             # Request with exponential back off wait time
             sleep_time = 2
             num_retries = 4
-            for x in range(0, num_retries):  
+            for _ in range(num_retries):
                 try:
                     data_array = rex_waves[parameter, bins[i]:bins[i+1], :, :, gid]
                     str_error = None
-                except Exception as e:
-                    str_error = str(e)
+                except Exception as err:
+                    str_error = str(err)
 
                 if str_error:
                     sleep(sleep_time)
