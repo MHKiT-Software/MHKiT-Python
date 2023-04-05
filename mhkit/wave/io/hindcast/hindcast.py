@@ -1,6 +1,6 @@
 import sys
-import pandas as pd
 from time import sleep
+import pandas as pd
 import numpy as np
 from rex import MultiYearWaveX, WaveX
 
@@ -21,11 +21,13 @@ def region_selection(lat_lon):
     region : string
         Name of predefined region for given coordinates
     '''
-    assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
-    assert isinstance(lat_lon[0], (float,int)), 'lat_lon  values must be of type float or int'
-    assert isinstance(lat_lon[1], (float,int)), 'lat_lon  values must be of type float or int'
+    if not isinstance(lat_lon, (list, tuple)):
+        raise TypeError('lat_lon must be of type list or tuple')
 
-    r_dict = {
+    if not all(isinstance(coord, (float, int)) for coord in lat_lon):
+        raise TypeError('lat_lon values must be of type float or int')
+
+    regions = {
         'Hawaii':{
             'lat':[15.0,27.000002],
             'lon':[-164.0,-151.0]
@@ -40,17 +42,18 @@ def region_selection(lat_lon):
         },
     }
 
-    region_search = lambda x: all(
-        ( True if r_dict[x][dk][0] <= d <= r_dict[x][dk][1] else False
-            for dk, d in {'lat':lat_lon[0],'lon':lat_lon[1]}.items()
+    def region_search(lat_lon, region, regions):
+        return all(
+            regions[region][dk][0] <= d <= regions[region][dk][1]
+            for dk, d in {'lat': lat_lon[0], 'lon': lat_lon[1]}.items()
         )
-    )
-    region = [key for key in r_dict if region_search(key)]
 
-    if len(region)==0:
-        print('ERROR: coordinates out of bounds')
-    else:
-        return region[0]
+    region = [region for region in regions if region_search(lat_lon, region, regions)]
+
+    if not region:
+        raise ValueError('ERROR: coordinates out of bounds')
+
+    return region[0]
 
 
 def request_wpto_point_data(
