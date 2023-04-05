@@ -205,7 +205,7 @@ def request_wpto_directional_spectrum(
     on AWS at the specified latitude and longitude point(s),
     or the closest available point(s). The data is returned as an
     xarray Dataset with keys indexed by a graphical identifier (gid).
-    `gids` are integers which represent a lat, long on which data is
+    `gid`s are integers which represent a lat, long on which data is
     stored. Requesting an array of `lat_lons` will return a dataset 
     with multiple `gids` representing the data closest to each requested 
     `lat`, `lon`.
