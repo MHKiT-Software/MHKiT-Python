@@ -22,7 +22,7 @@ class io_testcase(unittest.TestCase):
         assert os.path.exists(rfnm('test_save.nc'))
         assert os.path.exists(rfnm('test_save.mat'))
 
-    def test_matlab_io(self, make_data=False):
+    def test_matlab_io(self):
         nens = 100
         td_vec = read('vector_data_imu01.VEC', nens=nens)
         td_rdi_bt = read('RDI_withBT.000', nens=nens)
@@ -48,7 +48,7 @@ class io_testcase(unittest.TestCase):
         assert_allclose(td_rdi_bt, mat_rdi_bt, atol=1e-6)
         assert_allclose(td_vm, mat_vm, atol=1e-6)
 
-    def test_debugging(make_data=False):
+    def test_debugging(self):
         def read_txt(fname, loc):
             with open(loc(fname), 'r') as f:
                 string = f.read()

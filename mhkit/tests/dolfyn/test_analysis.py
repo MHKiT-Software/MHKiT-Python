@@ -100,15 +100,18 @@ class analysis_testcase(unittest.TestCase):
         tdat['SF'] = bnr.dissipation_rate_SF(dat.vel[0], tdat.velds.U_mag)
         tdat['TE01'] = bnr.dissipation_rate_TE01(dat, tdat)
         tdat['L'] = bnr.integral_length_scales(acov, tdat.velds.U_mag)
+        slope_check = bnr.check_turbulence_cascade_slope(
+            tdat['psd'][-1].mean('time'), freq_range=[10, 100])
 
         if make_data:
             save(tdat, 'vector_data01_bin.nc')
             return
 
+        assert np.round(slope_check[0].values, 4), 0.1713
         assert_allclose(tdat, load('vector_data01_bin.nc'), atol=1e-6)
 
 
-    def test_adcp_turbulence(make_data=False):
+    def test_adcp_turbulence(self):
         dat = tr.dat_sig_i.copy(deep=True)
         bnr = apm.ADPBinner(n_bin=20.0, fs=dat.fs, diff_style='centered')
         tdat = bnr.bin_average(dat)
@@ -125,15 +128,20 @@ class analysis_testcase(unittest.TestCase):
             dat, noise=tdat['noise'], orientation='up', beam_angle=25, tke_only=False)
         tdat['tke'] = bnr.total_turbulent_kinetic_energy(
             dat, noise=tdat['noise'], orientation='up', beam_angle=25)
+        # This is "negative" for this code check
+        tdat['wpwp'] = bnr.turbulent_kinetic_energy(dat['vel_b5'], noise=tdat['noise'])
         tdat['dissipation_rate_LT83'] = bnr.dissipation_rate_LT83(
             tdat['psd'], tdat.velds.U_mag.isel(range=len(dat.range)//2), freq_range=[0.2, 0.4])
         tdat['dissipation_rate_SF'], tdat['noise_SF'], tdat['D_SF'] = bnr.dissipation_rate_SF(
             dat.vel.isel(dir=2), r_range=[1, 5])
         tdat['friction_vel'] = bnr.friction_velocity(
             tdat, upwp_=tdat['stress_vec5'].sel(tau='upwp_'), z_inds=slice(1, 5), H=50)
+        slope_check = bnr.check_turbulence_cascade_slope(
+            tdat['psd'].mean('time'), freq_range=[0.4, 4])
 
         if make_data:
             save(tdat, 'Sig1000_IMU_bin.nc')
             return
 
+        assert np.round(slope_check[0].values, 4), -1.0682
         assert_allclose(tdat, load('Sig1000_IMU_bin.nc'), atol=1e-6)
