@@ -1067,6 +1067,9 @@ class _RDIReader():
                            'speed_made_good_gps',
                            'dir_made_good_gps',
                            'flags_gps',
+                           'pitch_gps',
+                           'roll_gps',
+                           'heading_gps',
                            ]
         # UTC date time
         utim = fd.read_ui8(4)
@@ -1103,7 +1106,11 @@ class _RDIReader():
         time_adcp = tmlib.timedelta(
             milliseconds=(int(fd.read_ui32(1) / 10)))
 
-        fd.seek(16, 1)
+        ens.pitch_gps[k] = fd.read_ui16(1) * 180 / 2 ** 15
+        ens.roll_gps[k] = fd.read_ui16(1) * 180 / 2 ** 15
+        ens.heading_gps[k] = fd.read_ui16(1) * 180 / 2 ** 15
+
+        fd.seek(10, 1)
         self._nbyte = 2 + 76
 
         if self._debug_level >= 0:

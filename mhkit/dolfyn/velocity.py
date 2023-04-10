@@ -518,7 +518,7 @@ class VelBinner(TimeBinner):
                             'coverage_content_type': 'coordinate'})
 
 
-    def bin_average(self, raw_ds, out_ds=None, names=None, noise=[0, 0, 0]):
+    def bin_average(self, raw_ds, out_ds=None, names=None):
         """
         Bin the dataset and calculate the ensemble averages of each 
         variable.
@@ -532,8 +532,6 @@ class VelBinner(TimeBinner):
         names : list of strings
            The names of variables to be averaged.  If `names` is None,
            all data in `raw_ds` will be binned.
-        noise : list or numpy.ndarray
-          instrument's doppler noise in same units as velocity
 
         Returns
         -------
@@ -581,9 +579,7 @@ class VelBinner(TimeBinner):
                 except:  # variables not needing averaging
                     pass
             # Add standard deviation
-            std = (np.nanstd(self.reshape(raw_ds.velds.U_mag.values),
-                             axis=-1,
-                             dtype=np.float64) - (noise[0] + noise[1])/2)
+            std = self.standard_deviation(raw_ds.velds.U_mag.values)
             out_ds['U_std'] = xr.DataArray(
                 std.astype('float32'),
                 dims=raw_ds.vel.dims[1:],
@@ -720,7 +716,7 @@ class VelBinner(TimeBinner):
 
         return da
 
-    def turbulent_kinetic_energy(self, veldat, noise=[0, 0, 0], detrend=True):
+    def turbulent_kinetic_energy(self, veldat, noise=None, detrend=True):
         """
         Calculate the turbulent kinetic energy (TKE) (variances 
         of u,v,w).
@@ -728,71 +724,80 @@ class VelBinner(TimeBinner):
         Parameters
         ----------
         veldat : xarray.DataArray
-            Velocity data array from ADV or single beam from ADCP. 
-            The last dimension is assumed to be time.
-        noise : float
-            a three-element vector of the noise levels of the
-            velocity data for ach component of velocity.
-        detrend : bool
-            detrend the velocity data (True), or simply de-mean it
-            (False), prior to computing tke. Note: the psd routines
-            use detrend, so if you want to have the same amount of
-            variance here as there use ``detrend=True``. 
-            Default = False
-
+          Velocity data array from ADV or single beam from ADCP. 
+          The last dimension is assumed to be time.
+        noise : float or array-like
+          A vector of the noise levels of the velocity data with 
+          the same first dimension as the velocity vector.
+        detrend : bool (default: False)
+          Detrend the velocity data (True), or simply de-mean it
+          (False), prior to computing tke. Note: the psd routines
+          use detrend, so if you want to have the same amount of
+          variance here as there use ``detrend=True``.
+          
         Returns
         -------
-        ds : xarray.DataArray
-            dataArray containing u'u'_, v'v'_ and w'w'_
+        tke_vec : xarray.DataArray
+          dataArray containing u'u'_, v'v'_ and w'w'_
         """
 
-        if 'dir' in veldat.dims:
-            # will error for ADCP 4-beam, but not for single beam
+        if 'xarray' in type(veldat).__module__:
             vel = veldat.values
-        else:  # for single beam input
-            vel = veldat.values
+        if 'xarray' in type(noise).__module__:
+            noise = noise.values
 
+        if len(np.shape(vel)) > 2:
+            raise Exception("This function is only valid for calculating TKE using "
+                            "velocity from an ADV or a single ADCP beam.")
+
+        # Calc TKE
         if detrend:
-            vel = self.detrend(vel)
+            out = np.nanmean(self.detrend(vel)**2, axis=-1)
         else:
-            vel = self.demean(vel)
-
-        if 'time_b5' in veldat.dims:
-            time = self.mean(veldat.time_b5.values)
-        else:
-            time = self.mean(veldat.time.values)
-
-        out = np.nanmean(vel**2, -1,
-                         dtype=np.float64,
-                         ).astype('float32')
-
-        out[0] -= noise[0] ** 2
-        out[1] -= noise[1] ** 2
-        out[2] -= noise[2] ** 2
-
-        da = xr.DataArray(out.astype('float32'),
-                          dims=veldat.dims,
-                          attrs={'units': 'm2 s-2',
-                                 'long_name': 'TKE Vector',
-                                 'standard_name': 'specific_turbulent_kinetic_energy_of_sea_water'})
+            out = np.nanmean(self.demean(vel)**2, axis=-1)
 
         if 'dir' in veldat.dims:
-            da = da.rename({'dir': 'tke'})
-            da = da.assign_coords({'tke': self.tke,
-                                   'time': time})
+            # Subtract noise
+            if noise is not None:
+                if np.shape(noise)[0] != 3:
+                    raise Exception(
+                        'Noise should have same first dimension as velocity')
+                out[0] -= noise[0] ** 2
+                out[1] -= noise[1] ** 2
+                out[2] -= noise[2] ** 2
+            # Set coords
+            dims = ['tke', 'time']
+            coords = {'tke': self.tke,
+                      'time': self.mean(veldat.time.values)}
         else:
-            if 'time_b5' in veldat.dims:
-                da = da.assign_coords({'time_b5': time})
-            else:
-                da = da.assign_coords({'time': time})
+            # Subtract noise
+            if noise is not None:
+                if np.shape(noise) > np.shape(vel):
+                    raise Exception(
+                        'Noise should have same or fewer dimensions as velocity')
+                out -= noise ** 2
+            # Set coords
+            dims = veldat.dims
+            coords = {}
+            for nm in veldat.dims:
+                if 'time' in nm:
+                    coords[nm] = self.mean(veldat[nm].values)
+                else:
+                    coords[nm] = veldat[nm].values
 
-        return da
+        return xr.DataArray(
+            out.astype('float32'),
+            dims=dims,
+            coords=coords,
+            attrs={'units': 'm2 s-2',
+                   'long_name': 'TKE Vector',
+                   'standard_name': 'specific_turbulent_kinetic_energy_of_sea_water'})
 
     def power_spectral_density(self, veldat,
                                freq_units='rad/s',
                                fs=None,
                                window='hann',
-                               noise=[0, 0, 0],
+                               noise=None,
                                n_bin=None, n_fft=None, n_pad=None,
                                step=None):
         """
@@ -810,15 +815,16 @@ class VelBinner(TimeBinner):
         window : string or array
           Specify the window function.
           Options: 1, None, 'hann', 'hamm'
-        noise : list(3 floats) (optional)
-          Noise level of each component's velocity measurement.
-          Default = 0
+        noise : float or array-like
+          A vector of the noise levels of the velocity data with 
+          the same first dimension as the velocity vector.
+          Default = 0.
         n_bin : int (optional)
-          The bin-size Default: from the binner).
+          The bin-size. Default: from the binner.
         n_fft : int (optional)
-          The fft size Default: from the binner).
+          The fft size. Default: from the binner.
         n_pad : int (optional)
-          The number of values to pad with zero Default: 0)
+          The number of values to pad with zero. Default = 0.
         step : int (optional)
           Controls amount of overlap in fft. Default: the step size is
           chosen to maximize data use, minimize nens, and have a
@@ -830,15 +836,12 @@ class VelBinner(TimeBinner):
           The spectra in the 'u', 'v', and 'w' directions.
         """
 
-        if 'time_b5' in veldat.dims:
-            time = self.mean(veldat.time_b5.values)
-            time_str = 'time_b5'
-        else:
-            time = self.mean(veldat.time.values)
-            time_str = 'time'
         fs_in = self._parse_fs(fs)
         n_fft = self._parse_nfft(n_fft)
-        veldat = veldat.values
+        if 'xarray' in type(veldat).__module__:
+            vel = veldat.values
+        if 'xarray' in type(noise).__module__:
+            noise = noise.values
 
         # Create frequency vector, also checks whether using f or omega
         if 'rad' in freq_units:
@@ -858,33 +861,46 @@ class VelBinner(TimeBinner):
                             ).astype('float32')
 
         # Spectra, if input is full velocity or a single array
-        if len(veldat.shape) == 2:
-            assert veldat.shape[0] == 3, "Function can only handle 1D or 3D arrays." \
+        if len(vel.shape) == 2:
+            assert vel.shape[0] == 3, "Function can only handle 1D or 3D arrays." \
                 " If ADCP data, please select a specific depth bin."
-            out = np.empty(self._outshape_fft(veldat[:3].shape, n_fft=n_fft, n_bin=n_bin), 
+            if (noise is not None) and (np.shape(noise)[0] != 3):
+                raise Exception(
+                    'Noise should have same first dimension as velocity')
+            else:
+                noise = np.array([0, 0, 0])
+            out = np.empty(self._outshape_fft(vel[:3].shape, n_fft=n_fft, n_bin=n_bin),
                            dtype=np.float32)
             for idx in range(3):
-                out[idx] = self._psd_base(veldat[idx],
-                                         fs=fs,
-                                         noise=noise[idx],
-                                         window=window,
-                                         n_bin=n_bin,
-                                         n_pad=n_pad,
-                                         n_fft=n_fft,
-                                         step=step)
-            coords = {'S': self.S, time_str: time, 'freq': freq}
-            dims = ['S', time_str, 'freq']
+                out[idx] = self._psd_base(vel[idx],
+                                          fs=fs,
+                                          noise=noise[idx],
+                                          window=window,
+                                          n_bin=n_bin,
+                                          n_pad=n_pad,
+                                          n_fft=n_fft,
+                                          step=step)
+            coords = {'S': self.S,
+                      'time': self.mean(veldat['time'].values),
+                      'freq': freq}
+            dims = ['S', 'time', 'freq']
         else:
-            out = self._psd_base(veldat,
+            if (noise is not None) and (len(np.shape(noise)) > 1):
+                raise Exception(
+                    'Noise should have same first dimension as velocity')
+            else:
+                noise = np.array(0)
+            out = self._psd_base(vel,
                                  fs=fs,
-                                 noise=noise[0],
+                                 noise=noise,
                                  window=window,
                                  n_bin=n_bin,
                                  n_pad=n_pad,
                                  n_fft=n_fft,
                                  step=step)
-            coords = {time_str: time, 'freq': freq}
-            dims = [time_str, 'freq']
+            coords = {veldat.dims[-1]: self.mean(veldat[veldat.dims[-1]].values),
+                      'freq': freq}
+            dims = [veldat.dims[-1], 'freq']
 
         return xr.DataArray(
             out.astype('float32'),

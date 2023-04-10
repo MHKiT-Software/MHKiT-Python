@@ -341,9 +341,9 @@ def calc_tilt(pitch, roll):
       Vertical inclination of the instrument
     """
 
-    if type(pitch).__module__ == 'xarray':
+    if 'xarray' in type(pitch).__module__:
         pitch = pitch.values
-    if type(roll).__module__ == 'xarray':
+    if 'xarray' in type(roll).__module__:
         roll = roll.values
 
     tilt = np.arctan(

@@ -135,6 +135,9 @@ class ADVBinner(VelBinner):
         n_fft = self._parse_nfft_coh(n_fft_coh)
         time = self.mean(veldat.time.values)
         veldat = veldat.values
+        if len(np.shape(veldat)) != 2:
+            raise Exception("This function is only valid for calculating TKE using "
+                            "the 3D velocity vector from an ADV.")
 
         out = np.empty(self._outshape_fft(veldat[:3].shape, n_fft=n_fft, n_bin=n_bin),
                        dtype='complex')
@@ -240,6 +243,67 @@ class ADVBinner(VelBinner):
                    'long_name': 'Doppler Noise Level',
                    'description': 'Doppler noise level calculated '
                    'from PSD white noise'})
+
+    def check_turbulence_cascade_slope(self, psd, freq_range=[6.28, 12.57]):
+        """
+        This function calculates the slope of the PSD, the power spectra 
+        of velocity, within the given frequency range. The purpose of this
+        function is to check that the region of the PSD containing the 
+        isotropic turbulence cascade decreases at a rate of :math:`f^{-5/3}`.
+
+        Parameters
+        ----------
+        psd : xarray.DataArray ([time,] freq)
+          The power spectral density (1D or 2D)
+        freq_range : iterable(2) (default: [6.28, 12.57])
+          The range over which the isotropic turbulence cascade occurs, in 
+          units of the psd frequency vector (Hz or rad/s)
+
+        Returns
+        -------
+        (m, b): tuple (slope, y-intercept)
+          A tuple containing the coefficients of the log-adjusted linear 
+          regression between PSD and frequency 
+
+        Notes
+        -----
+        Calculates slope based on the `standard` formula for dissipation:
+
+        .. math:: S(k) = \\alpha \\epsilon^{2/3} k^{-5/3} + N
+
+        The slope of the isotropic turbulence cascade, which should be 
+        equal to :math:`k^{-5/3}` or :math:`f^{-5/3}`, where k and f are 
+        the wavenumber and frequency vectors, is estimated using linear 
+        regression with a log transformation:
+
+        .. math:: log10(y) = m*log10(x) + b
+
+        Which is equivalent to
+
+        .. math:: y = 10^{b} x^{m}
+        
+        Where :math:`y` is S(k) or S(f), :math:`x` is k or f, :math:`m` 
+        is the slope (ideally -5/3), and :math:`10^{b}` is the intercept of 
+        y at x^m=1.
+        """
+
+        idx = np.where((freq_range[0] < psd.freq) & (psd.freq < freq_range[1]))
+        idx = idx[0]
+
+        x = np.log10(psd['freq'].isel(freq=idx))
+        y = np.log10(psd.isel(freq=idx))
+
+        y_bar = y.mean('freq')
+        x_bar = x.mean('freq')
+
+        # using the formula to calculate the slope and intercept
+        n = np.sum((x - x_bar) * (y - y_bar), axis=0)
+        d = np.sum((x - x_bar)**2, axis=0)
+
+        m = n/d
+        b = y_bar - m*x_bar
+
+        return m, b
 
     def dissipation_rate_LT83(self, psd, U_mag, freq_range=[6.28, 12.57]):
         """

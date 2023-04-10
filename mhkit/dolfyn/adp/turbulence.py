@@ -13,7 +13,8 @@ def _diffz_first(dat, z):
 
 
 def _diffz_centered(dat, z):
-    """Newton's Method centered difference.
+    """
+    Newton's Method centered difference.
     Want top - bottom here: (u_x+1 - u_x-1)/dx
     Can use 2*np.diff b/c depth bin size never changes
     """
@@ -21,7 +22,8 @@ def _diffz_centered(dat, z):
 
 
 def _diffz_centered_extended(dat, z):
-    """Extended centered difference method.
+    """
+    Extended centered difference method.
     Top - bottom centered difference with endpoints determined
     with a first difference. Ensures the output array is the 
     same size as the input array.
@@ -35,7 +37,8 @@ def _diffz_centered_extended(dat, z):
 class ADPBinner(VelBinner):
     def __init__(self, n_bin, fs, n_fft=None, n_fft_coh=None,
                  noise=None, orientation='up', diff_style='centered_extended'):
-        """A class for calculating turbulence statistics from ADCP data
+        """
+        A class for calculating turbulence statistics from ADCP data
 
         Parameters
         ----------
@@ -77,7 +80,8 @@ class ADPBinner(VelBinner):
             return out, vel.range
 
     def dudz(self, vel, orientation=None):
-        """The shear in the first velocity component.
+        """
+        The shear in the first velocity component.
 
         Parameters
         ----------
@@ -109,7 +113,8 @@ class ADPBinner(VelBinner):
                             )
 
     def dvdz(self, vel):
-        """The shear in the second velocity component.
+        """
+        The shear in the second velocity component.
 
         Parameters
         ----------
@@ -133,7 +138,8 @@ class ADPBinner(VelBinner):
                             )
 
     def dwdz(self, vel):
-        """The shear in the third velocity component.
+        """
+        The shear in the third velocity component.
 
         Parameters
         ----------
@@ -255,7 +261,6 @@ class ADPBinner(VelBinner):
     def _stress_func_warnings(self, ds, beam_angle, noise, tilt_thresh):
         """List of error and warnings to run through for ADCP stress calculations.
         """
-
         # Error 1. Beam Angle
         b_angle = getattr(ds, 'beam_angle', beam_angle)
         if b_angle is None:
@@ -263,14 +268,16 @@ class ADPBinner(VelBinner):
                 "    Beam angle not found in dataset and no beam angle supplied.")
 
         # Warning 1. Memo
-        warnings.warn("    The 4-beam stress equations assume the instrument's "
+        warnings.warn("    The beam-variance algorithms assume the instrument's "
                       "(XYZ) coordinate system is aligned with the principal "
                       "flow directions.")
 
         # Warning 2. Check tilt
-        if any(abs(calc_tilt(ds['pitch'], ds['roll']))) < tilt_thresh:
-            warnings.warn(f"    Instrument tilt is greater than {tilt_thresh} degrees."
-                          "Stress axes won't be well aligned with flow.")
+        tilt_mask = calc_tilt(ds['pitch'], ds['roll']) > tilt_thresh
+        if sum(tilt_mask):
+            pct_above_thresh = round(sum(tilt_mask) / len(tilt_mask) * 100, 2)
+            warnings.warn(f"    {pct_above_thresh} % of measurements have a tilt "
+                          f"greater than {tilt_thresh} degrees.")
 
         # Warning 3. Noise level of instrument is important considering 50 % of variance
         # in ADCP data can be noise
@@ -286,7 +293,7 @@ class ADPBinner(VelBinner):
             ds.velds.rotate2('beam')
 
         return b_angle, noise
-
+    
     def _check_orientation(self, ds, orientation, beam5=False):
         """
         Get the beam order for the beam-stress rotation algorithm
@@ -316,7 +323,7 @@ class ADPBinner(VelBinner):
                     "Please provide instrument orientation ['up' or 'down']")
 
         # For Nortek Signatures
-        elif 'Signature' in ds.inst_model:
+        elif ('Signature' in ds.inst_model) or ('AD2CP' in ds.inst_model):
             phi2 = np.deg2rad(self.mean(ds['roll'].values))
             phi3 = -np.deg2rad(self.mean(ds['pitch'].values))
             if 'down' in orientation.lower():
@@ -356,7 +363,8 @@ class ADPBinner(VelBinner):
         return bp2_
 
     def reynolds_stress_4beam(self, ds, noise=None, orientation=None, beam_angle=None):
-        """Calculate the stresses from the covariance of along-beam 
+        """
+        Calculate the stresses from the covariance of along-beam 
         velocity measurements
 
         Parameters
@@ -412,7 +420,8 @@ class ADPBinner(VelBinner):
                    'standard_name': 'specific_reynolds_stress_of_sea_water'})
 
     def stress_tensor_5beam(self, ds, noise=None, orientation=None, beam_angle=None, tke_only=False):
-        """Calculate the stresses from the covariance of along-beam 
+        """
+        Calculate the stresses from the covariance of along-beam 
         velocity measurements
 
         Parameters
@@ -446,7 +455,7 @@ class ADPBinner(VelBinner):
         in pitch and roll. u'v'_ cannot be directly calculated by a 5-beam ADCP,
         so it is approximated by the covariance of `u` and `v`. The uncertainty
         introduced by using this approximation is small if deviations from pitch
-        and roll are small (<5-10 degrees).
+        and roll are small (< 10 degrees).
 
         Dewey, R., and S. Stringer. "Reynolds stresses and turbulent kinetic
         energy estimates from various ADCP beam configurations: Theory." J. of
@@ -462,7 +471,7 @@ class ADPBinner(VelBinner):
 
         # Run through warnings
         b_angle, noise = self._stress_func_warnings(
-            ds, beam_angle, noise, tilt_thresh=5)
+            ds, beam_angle, noise, tilt_thresh=10)
 
         # Fetch beam order
         beam_order, phi2, phi3 = self._check_orientation(
@@ -535,7 +544,8 @@ class ADPBinner(VelBinner):
                                        noise=None, 
                                        orientation=None, 
                                        beam_angle=None):
-        """Calculate magnitude of turbulent kinetic energy from 5-beam ADCP. 
+        """
+        Calculate magnitude of turbulent kinetic energy from 5-beam ADCP. 
 
         Parameters
         ----------
@@ -575,8 +585,70 @@ class ADPBinner(VelBinner):
 
         return tke.astype('float32')
 
+    def check_turbulence_cascade_slope(self, psd, freq_range=[0.2, 0.4]):
+        """
+        This function calculates the slope of the PSD, the power spectra 
+        of velocity, within the given frequency range. The purpose of this
+        function is to check that the region of the PSD containing the 
+        isotropic turbulence cascade decreases at a rate of :math:`f^{-5/3}`.
+
+        Parameters
+        ----------
+        psd : xarray.DataArray ([[range,] time,] freq)
+          The power spectral density (1D, 2D or 3D)
+        freq_range : iterable(2) (default: [6.28, 12.57])
+          The range over which the isotropic turbulence cascade occurs, in 
+          units of the psd frequency vector (Hz or rad/s)
+
+        Returns
+        -------
+        (m, b): tuple (slope, y-intercept)
+          A tuple containing the coefficients of the log-adjusted linear 
+          regression between PSD and frequency
+
+        Notes
+        -----
+        Calculates slope based on the `standard` formula for dissipation:
+
+        .. math:: S(k) = \\alpha \\epsilon^{2/3} k^{-5/3} + N
+
+        The slope of the isotropic turbulence cascade, which should be 
+        equal to :math:`k^{-5/3}` or :math:`f^{-5/3}`, where k and f are 
+        the wavenumber and frequency vectors, is estimated using linear 
+        regression with a log transformation:
+
+        .. math:: log10(y) = m*log10(x) + b
+
+        Which is equivalent to
+
+        .. math:: y = 10^{b} x^{m}
+
+        Where :math:`y` is S(k) or S(f), :math:`x` is k or f, :math:`m` 
+        is the slope (ideally -5/3), and :math:`10^{b}` is the intercept of 
+        y at x^m=1.
+        """
+
+        idx = np.where((freq_range[0] < psd.freq) & (psd.freq < freq_range[1]))
+        idx = idx[0]
+
+        x = np.log10(psd['freq'].isel(freq=idx))
+        y = np.log10(psd.isel(freq=idx))
+
+        y_bar = y.mean('freq')
+        x_bar = x.mean('freq')
+
+        # using the formula to calculate the slope and intercept
+        n = np.sum((x - x_bar) * (y - y_bar), axis=0)
+        d = np.sum((x - x_bar)**2, axis=0)
+
+        m = n/d
+        b = y_bar - m*x_bar
+
+        return m, b
+
     def dissipation_rate_LT83(self, psd, U_mag, freq_range=[0.2, 0.4]):
-        """Calculate the TKE dissipation rate from the velocity spectra.
+        """
+        Calculate the TKE dissipation rate from the velocity spectra.
 
         Parameters
         ----------
@@ -646,7 +718,8 @@ class ADPBinner(VelBinner):
                    })
 
     def dissipation_rate_SF(self, vel_raw, r_range=[1, 5]):
-        """Calculate TKE dissipation rate from ADCP along-beam velocity using the
+        """
+        Calculate TKE dissipation rate from ADCP along-beam velocity using the
         "structure function" (SF) method.
 
         Parameters
@@ -781,7 +854,8 @@ class ADPBinner(VelBinner):
         return epsilon, noise, SF
 
     def friction_velocity(self, ds_avg, upwp_, z_inds=slice(1, 5), H=None):
-        """Approximate friction velocity from shear stress using a 
+        """
+        Approximate friction velocity from shear stress using a 
         logarithmic profile.
 
         Parameters
