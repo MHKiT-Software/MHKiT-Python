@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import xarray as xr
+import warnings
 
 from mhkit import dolfyn
 from mhkit.river.performance import (circular, ducted, rectangular, 
@@ -13,12 +14,14 @@ def _slice_circular_capture_area(diameter, hub_height, doppler_cell_size):
     across the face of the capture area
 
     Args:
-        diameter (_type_): _description_
-        hub_height (_type_): _description_
-        doppler_cell_size (_type_): _description_
+        diameter (numeric): Diameter of the capture area.
+        hub_height (numeric): Altitude above the seabed. Assumes ADCP depth 
+        bins are referenced to the seafloor.
+        doppler_cell_size (numeric): ADCP depth bin size.
 
     Returns:
-        _type_: _description_
+        xarray.DataArray: Capture area sliced into horizontal slices of 
+        height `doppler_cell_size`, centered on `hub height`.
     """
 
     def area_of_circle_segment(radius, angle):
@@ -85,13 +88,15 @@ def _slice_rectangular_capture_area(height, width, hub_height, doppler_cell_size
     across the face of the capture area
 
     Args:
-        height (_type_): _description_
-        width (_type_): _description_
-        hub_height (_type_): _description_
-        doppler_cell_size (_type_): _description_
+        height (numeric): Height of the capture area.
+        width (numeric): Width of the capture area.
+        hub_height (numeric): Altitude above the seabed. Assumes ADCP depth 
+        bins are referenced to the seafloor.
+        doppler_cell_size (numeric): ADCP depth bin size.
 
     Returns:
-        _type_: _description_
+        xarray.DataArray: Capture area sliced into horizontal slices of 
+        height `doppler_cell_size`, centered on `hub height`.
     """
     # Capture area - from mhkit.river.performance
     d_equiv, A_cap = rectangular(h=height, w=width)  # m^2
@@ -112,39 +117,61 @@ def _slice_rectangular_capture_area(height, width, hub_height, doppler_cell_size
     return xr.DataArray(As_slc, coords={'range': A_rng})
 
 
-def power_curve(velocity, 
-                power,
-                hub_height, 
+def power_curve(power, 
+                velocity,
+                hub_height,
                 doppler_cell_size, 
                 sampling_frequency, 
                 window_avg_time=600,
-                turbine_profile='circular'):
+                turbine_profile='circular',
+                diameter=None,
+                height=None,
+                width=None):
     """_summary_
     IEC 9.3
 
     Args:
-        velocity (_type_): _description_
-        power (_type_): _description_
-        hub_height (_type_): _description_
-        doppler_cell_size (_type_): _description_
-        sampling_frequency (_type_): _description_
-        window_avg_time (int, optional): _description_. Defaults to 600.
-        turbine_profile (str, optional): _description_. Defaults to 'circular'.
+        power (pandas.Series or xarray.DataArray (time)): Device power 
+        output timeseries.
+        velocity (pandas.Series or xarray.DataArray ([range,] time)): 
+        Streamwise sea water velocity or sea water speed.
+        hub_height (numeric): Altitude above the seabed. Assumes ADCP depth 
+        bins are referenced to the seafloor.
+        doppler_cell_size (numeric): ADCP depth bin size.
+        sampling_frequency (numeric): ADCP sampling frequency in Hz.
+        window_avg_time (int, optional): Time averaging window in seconds. 
+        Defaults to 600.
+        turbine_profile ('circular' or 'rectangular'): Shape of swept area
+        of the turbine. Defaults to 'circular'.
+
+        diameter (numeric): Required for turbine_profile='circular'. 
+        Defaults to None.
+        height (numeric): Required for turbine_profile='rectangular'. 
+        Defaults to None.
+        width (numeric): Required for turbine_profile='rectangular'. 
+        Defaults to None.
 
     Returns:
-        _type_: _description_
+        pandas.DataFrame: _description_
     """
     # assert velocity is 2D xarray or pandas and has dims range, time
     dtype = type(velocity)
 
     if turbine_profile=='rectangular':
+        if height is None:
+            raise Exception("`height` cannot be None for input `turbine_profile` = 'rectangular'.")
+        if width is None:
+            raise Exception("`width` cannot be None for input `turbine_profile` = 'rectangular'.")
         A_slc = _slice_rectangular_capture_area(height, width, hub_height, doppler_cell_size)
-    else:
+    elif turbine_profile=='circular':
+        if diameter is None:
+            raise Exception("`diameter` cannot be None for input `turbine_profile` = 'circular'.")
         A_slc = _slice_circular_capture_area(diameter, hub_height, doppler_cell_size)
 
     # Fetch streamwise data
     #U = ds_streamwise['vel'].sel(dir='streamwise')
     U = abs(velocity)
+    time = U['time'].values
     # Interpolate power to velocity timestamps
     P = power.interp(time=U['time'], method='linear')
 
@@ -156,10 +183,11 @@ def power_curve(velocity,
 
     # Time-average velocity at hub-height
     bnr = dolfyn.VelBinner(n_bin=window_avg_time*sampling_frequency, fs=sampling_frequency)
+    # Hub-height velocity mean
     mean_hub_vel = bnr.mean(U.sel(range=hub_height, method='nearest').values)
+    U_hub_bar = xr.DataArray(mean_hub_vel, coords={'time': bnr.mean(time)})
     
-    # Power weighted velocity mean
-    time = U_hat['time'].values
+    # Power-weighted hub-height velocity mean
     U_hat_bar = xr.DataArray((bnr.mean(U_hat.values ** 3)) ** (-1/3), 
                               coords={'time': bnr.mean(time)})
     
@@ -169,6 +197,8 @@ def power_curve(velocity,
 
     # Then reorganize into 0.1 m velocity bins and average
     U_bins = np.arange(0, mean_hub_vel.max() + 0.1, 0.1)
+    U_hub_vel = U_hub_bar.assign_coords({"time": mean_hub_vel}).rename({"time": "speed"})
+    U_hub_mean = U_hub_vel.groupby_bins("speed", U_bins).mean()
     U_hat_vel = U_hat_bar.assign_coords({"time": mean_hub_vel}).rename({"time": "speed"})
     U_hat_mean = U_hat_vel.groupby_bins("speed", U_bins).mean()
     
@@ -178,7 +208,8 @@ def power_curve(velocity,
     P_bar_max = P_bar_vel.groupby_bins("speed", U_bins).max()
     P_bar_min = P_bar_vel.groupby_bins("speed", U_bins).min()
 
-    out = pd.DataFrame((U_hat_mean.to_series(), 
+    out = pd.DataFrame((U_hub_mean.to_series(),
+                        U_hat_mean.to_series(), 
                         P_bar_mean.to_series(), 
                         P_bar_std.to_series(),
                         P_bar_max.to_series(),
@@ -196,12 +227,12 @@ def _average_velocity_bins(U, U_hub, bin_size):
     velocity and average
 
     Args:
-        U (_type_): _description_
-        U_hub (_type_): _description_
-        bin_size (_type_): _description_
+        U (xarray.DataArray): Sea water velocity.
+        U_hub (xarray.DataArray): Sea water velocity at hub height.
+        bin_size (numeric): Velocity averaging window size in m/s.
 
     Returns:
-        _type_: _description_
+        xarray.DataArray: _description_
     """
 
     # Reorganize into velocity bins and average
@@ -219,13 +250,16 @@ def mean_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_
     IEC 9.4
 
     Args:
-        velocity (_type_): _description_
-        hub_height (_type_): _description_
-        sampling_frequency (_type_): _description_
-        window_avg_time (int, optional): _description_. Defaults to 600.
+        velocity (pandas.Series or xarray.DataArray ([range,] time)): 
+        Streamwise sea water velocity or sea water speed.
+        hub_height (numeric): Altitude above the seabed. Assumes ADCP depth 
+        bins are referenced to the seafloor.
+        sampling_frequency (numeric): ADCP sampling frequency in Hz.
+        window_avg_time (int, optional): Time averaging window in seconds. 
+        Defaults to 600.
 
     Returns:
-        _type_: _description_
+        pandas.DataFrame: _description_
     """
 
     # Fetch streamwise data
@@ -252,10 +286,14 @@ def rms_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
     IEC 9.5
 
     Args:
-        velocity (_type_): _description_
-        hub_height (_type_): _description_
-        sampling_frequency (_type_): _description_
-        window_avg_time (int, optional): _description_. Defaults to 600.
+        velocity (pandas.Series or xarray.DataArray ([range,] time)): 
+        Streamwise sea water velocity or sea water speed.
+        hub_height (numeric): Altitude above the seabed. Assumes ADCP depth 
+        bins are referenced to the seafloor.
+        sampling_frequency (numeric): ADCP sampling frequency in Hz.
+        window_avg_time (int, optional): Time averaging window in seconds. 
+        Defaults to 600.
+
 
     Returns:
         _type_: _description_
@@ -292,10 +330,13 @@ def std_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
     IEC 9.5
 
     Args:
-        velocity (_type_): _description_
-        hub_height (_type_): _description_
-        sampling_frequency (_type_): _description_
-        window_avg_time (int, optional): _description_. Defaults to 600.
+        velocity (pandas.Series or xarray.DataArray ([range,] time)): 
+        Streamwise sea water velocity or sea water speed.
+        hub_height (numeric): Altitude above the seabed. Assumes ADCP depth 
+        bins are referenced to the seafloor.
+        sampling_frequency (numeric): ADCP sampling frequency in Hz.
+        window_avg_time (int, optional): Time averaging window in seconds. 
+        Defaults to 600.
 
     Returns:
         _type_: _description_
@@ -318,31 +359,35 @@ def std_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
     return out.to_pandas()
 
 
-def efficiency(power, 
-               velocity, 
-               water_density, 
-               capture_area, 
-               hub_height, 
-               sampling_frequency, 
-               window_avg_time=600):
+def device_efficiency(power, 
+                      velocity, 
+                      water_density, 
+                      capture_area, 
+                      hub_height, 
+                      sampling_frequency, 
+                      window_avg_time=600):
     """_summary_
     IEC 9.7
 
     Args:
-        power (_type_): _description_
-        velocity (_type_): _description_
-        water_density (_type_): _description_
-        capture_area (_type_): _description_
-        hub_height (_type_): _description_
-        sampling_frequency (_type_): _description_
-        window_avg_time (int, optional): _description_. Defaults to 600.
+        power (pandas.Series or xarray.DataArray (time)): Device power 
+        output timeseries in Watts.
+        velocity (pandas.Series or xarray.DataArray ([range,] time)): 
+        Streamwise sea water velocity or sea water speed in m/s.
+        water_density (float, pandas.Series or xarray.DataArray): Sea 
+        water density in kg/m^3.
+        capture_area (numeric): Swept area of marine energy device.
+        hub_height (numeric): Altitude above the seabed. Assumes ADCP depth 
+        bins are referenced to the seafloor.
+        sampling_frequency (numeric): ADCP sampling frequency in Hz.
+        window_avg_time (int, optional): Time averaging window in seconds. 
+        Defaults to 600.
 
     Returns:
         _type_: _description_
     """
 
     # Fetch streamwise data
-    #U = ds_streamwise['vel'].sel(dir='streamwise')
     U = velocity
 
     # Create binner
@@ -361,9 +406,14 @@ def efficiency(power,
         rho_vel = water_density
     
     # Power
-    # assuming power is a pandas series
     # Interpolate to velocity timeseries
-    power = power.to_xarray().interp(time=U.time)
+    if 'xarray' in type(power).__module__:
+        power = power.interp(time=U.time)
+    elif 'pandas' in type(power).__module__ and isinstance(power.index, pd.DatetimeIndex):
+        power = power.to_xarray().interp(time=U.time)
+    else:
+        warnings.warn("Assuming `power` timestamps match `velocity` timestamps")
+
     # Bin average power
     P_avg = xr.DataArray(bnr.mean(power.values), 
                          coords={'time': bnr.mean(power['time'].values)})
@@ -373,9 +423,6 @@ def efficiency(power,
     P_resource = 1/2 * rho_vel * capture_area * vel_hub**3
 
     # Efficiency
-    # TODO will need to interpolate average_power time to P_resource
     out = P_vel / P_resource
-
-    #power_coefficient(power=P_vel, inflow_speed=vel_hub, capture_area=capture_area, rho=rho_vel)
 
     return out.to_pandas()
