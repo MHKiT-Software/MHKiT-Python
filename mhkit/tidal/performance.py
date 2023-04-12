@@ -10,7 +10,8 @@ from mhkit.river.performance import (circular, ducted, rectangular,
 
 
 def _slice_circular_capture_area(diameter, hub_height, doppler_cell_size):
-    """Slices a circle (capture area) based on ADCP depth bins mapped 
+    """
+    Slices a circle (capture area) based on ADCP depth bins mapped 
     across the face of the capture area
 
     Args:
@@ -35,8 +36,6 @@ def _slice_circular_capture_area(diameter, hub_height, doppler_cell_size):
         return np.sqrt(r**2 - y**2)
 
     # Capture area - from mhkit.river.performance
-    # d = 5  # m
-    # hub_height = 4.2
     d = diameter
     cs = doppler_cell_size
 
@@ -84,7 +83,8 @@ def _slice_circular_capture_area(diameter, hub_height, doppler_cell_size):
 
 
 def _slice_rectangular_capture_area(height, width, hub_height, doppler_cell_size):
-    """Slices a rectangular (capture area) based on ADCP depth bins mapped 
+    """
+    Slices a rectangular (capture area) based on ADCP depth bins mapped 
     across the face of the capture area
 
     Args:
@@ -127,8 +127,9 @@ def power_curve(power,
                 diameter=None,
                 height=None,
                 width=None):
-    """_summary_
-    IEC 9.3
+    """
+    Calculate power curve and power statistics for a marine energy device 
+    based on IEC/TS 62600-200 section 9.3.
 
     Args:
         power (pandas.Series or xarray.DataArray (time)): Device power 
@@ -152,7 +153,8 @@ def power_curve(power,
         Defaults to None.
 
     Returns:
-        pandas.DataFrame: _description_
+        pandas.DataFrame: Power-weighted velocity, mean power, power std dev,
+         max and min power vs hub-height velocity.
     """
     # assert velocity is 2D xarray or pandas and has dims range, time
     dtype = type(velocity)
@@ -214,9 +216,9 @@ def power_curve(power,
                         P_bar_std.to_series(),
                         P_bar_max.to_series(),
                         P_bar_min.to_series(),                        
-                        ))
-    out.columns = ['U_mean_power_weighted','P_mean','P_std','P_max','P_min']
-    out.index.name = 'U_mean'
+                        )).T
+    out.columns = ['U_mean','U_mean_power_weighted','P_mean','P_std','P_max','P_min']
+    out.index.name = 'U_bins'
 
     return out
 
@@ -224,7 +226,7 @@ def power_curve(power,
 def _average_velocity_bins(U, U_hub, bin_size):
     """
     Group time-ensembles into velocity bins based on hub-height 
-    velocity and average
+    velocity and average.
 
     Args:
         U (xarray.DataArray): Sea water velocity.
@@ -236,7 +238,7 @@ def _average_velocity_bins(U, U_hub, bin_size):
     """
 
     # Reorganize into velocity bins and average
-    U_bins = np.arange(0, U.max() + bin_size, bin_size)
+    U_bins = np.arange(0, np.nanmax(U_hub) + bin_size, bin_size)
 
     # Group time-ensembles into velocity bins based on hub-height velocity and average
     out = U.assign_coords({"time": U_hub}).rename({"time": "speed"})
@@ -246,8 +248,10 @@ def _average_velocity_bins(U, U_hub, bin_size):
 
 
 def mean_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_time=600):
-    """_summary_
-    IEC 9.4
+    """
+    Calculates profiles of the velocity means based on IEC/TS 62600-200 
+    section 9.4. A mean is calculated for each `window_avg_time` and 
+    bin-averaged based on ensemble velocity.
 
     Args:
         velocity (pandas.Series or xarray.DataArray ([range,] time)): 
@@ -259,7 +263,8 @@ def mean_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_
         Defaults to 600.
 
     Returns:
-        pandas.DataFrame: _description_
+        pandas.DataFrame: Average velocity profiles based on ensemble mean
+        velocity.
     """
 
     # Fetch streamwise data
@@ -269,9 +274,9 @@ def mean_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_
     # Create binner
     bnr = dolfyn.VelBinner(n_bin=window_avg_time*sampling_frequency, fs=sampling_frequency)
     # Take velocity at hub height
-    mean_hub_vel = U_bar.sel(range=hub_height, method='nearest').values
+    mean_hub_vel = bnr.mean(U.sel(range=hub_height, method='nearest').values)
     # Average data into 5-10 minute ensembles
-    U_bar = xr.DataArray(bnr.mean(abs(U).values), 
+    U_bar = xr.DataArray(bnr.mean(abs(U).values),
                          coords={'range': U.range,
                                  'time': bnr.mean(U['time'].values)})
 
@@ -282,8 +287,10 @@ def mean_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_
 
 
 def rms_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_time=600):
-    """_summary_
-    IEC 9.5
+    """
+    Calculates profiles of the root-mean-square (RMS) of velocity based on 
+    IEC/TS 62600-200 section 9.5. A RMS is calculated for each `window_avg_time` 
+    and bin-averaged based on ensemble velocity.
 
     Args:
         velocity (pandas.Series or xarray.DataArray ([range,] time)): 
@@ -294,9 +301,9 @@ def rms_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
         window_avg_time (int, optional): Time averaging window in seconds. 
         Defaults to 600.
 
-
     Returns:
-        _type_: _description_
+        pandas.DataFrame: Root-mean-square velocity profiles based on RMS of
+        raw velocity.
     """
 
     # Fetch streamwise data
@@ -305,19 +312,18 @@ def rms_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
 
     # Create binner
     bnr = dolfyn.VelBinner(n_bin=window_avg_time*sampling_frequency, fs=sampling_frequency)
-
-    ## Detrend tidal velocity - returns (range, ensemble-time, ensemble)
-    U_detrend = bnr.detrend(abs(U).values) # vs demean
-    # Unravel detrended array from (range, ensemble-time, ensemble) into (range, time)
-    new_time_size = U['time'].size//bnr.n_bin * bnr.n_bin
-    U_rms = np.empty((U['range'].size, new_time_size))
-    for i in range(U['range'].size):
-        U_rms[i] = np.ravel(U_detrend[i], 'C')
-    # Ignoring datapoints at end of array that get chopped off from reshaping
-    U_rms = xr.DataArray(U_rms, coords={'range': U.range, 'time':U.time[:new_time_size]})
-
     # Take velocity at hub height from velocity profile
-    mean_hub_vel = U.sel(range=hub_height, method='nearest').values[:new_time_size]
+    mean_hub_vel = bnr.mean(U.sel(range=hub_height, method='nearest').values)
+
+    # Reshape tidal velocity - returns (range, ensemble-time, ensemble elements)
+    U_reshaped = bnr.reshape(abs(U).values)
+    # Take root-mean-square
+    U_rms = np.sqrt(np.nanmean(U_reshaped**2, axis=-1))
+
+    # Ignoring datapoints at end of array that get chopped off from reshaping
+    U_rms = xr.DataArray(U_rms, 
+                         coords={'range': U.range, 
+                                 'time':bnr.mean(U['time'].values)})
 
     # Then reorganize into 0.5 m/s velocity bins and average
     out = _average_velocity_bins(U_rms, mean_hub_vel, bin_size=0.5)
@@ -326,8 +332,10 @@ def rms_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
 
 
 def std_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_time=600):
-    """_summary_
-    IEC 9.5
+    """
+    Calculates profiles of the standard deviation of velocity based on 
+    IEC/TS 62600-200 section 9.5. A standard deviation is calculated for 
+    each `window_avg_time` and bin-averaged based on ensemble velocity.
 
     Args:
         velocity (pandas.Series or xarray.DataArray ([range,] time)): 
@@ -339,7 +347,8 @@ def std_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
         Defaults to 600.
 
     Returns:
-        _type_: _description_
+        pandas.DataFrame: Standard deviation of velocity profiles based on
+        ensemble standard deviation.
     """
 
     # Fetch streamwise data
@@ -351,7 +360,9 @@ def std_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
     # Take velocity at hub height from velocity profile
     mean_hub_vel = bnr.mean(U.sel(range=hub_height, method='nearest').values)
     # Standard deviation
-    U_std = np.nanstd(bnr.reshape(U.values))
+    U_std = xr.DataArray(bnr.standard_deviation(U.values),
+                         coords={'range': U.range,
+                                 'time':bnr.mean(U['time'].values)})
 
     # Then reorganize into 0.5 m/s velocity bins and average
     out = _average_velocity_bins(U_std, mean_hub_vel, bin_size=0.5)
@@ -366,8 +377,9 @@ def device_efficiency(power,
                       hub_height, 
                       sampling_frequency, 
                       window_avg_time=600):
-    """_summary_
-    IEC 9.7
+    """
+    Calculates marine energy device efficiency based on IEC/TS 62600-200
+    Section 9.7.
 
     Args:
         power (pandas.Series or xarray.DataArray (time)): Device power 
@@ -384,7 +396,7 @@ def device_efficiency(power,
         Defaults to 600.
 
     Returns:
-        _type_: _description_
+        pandas.Series: Device efficiency (power coefficient) in percent.
     """
 
     # Fetch streamwise data
