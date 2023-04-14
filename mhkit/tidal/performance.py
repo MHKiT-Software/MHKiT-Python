@@ -156,7 +156,9 @@ def power_curve(power,
         pandas.DataFrame: Power-weighted velocity, mean power, power std dev,
          max and min power vs hub-height velocity.
     """
-    # assert velocity is 2D xarray or pandas and has dims range, time
+
+    # Assert velocity is 2D xarray or pandas and has dims range, time
+    # Power should have a timestamp coordinate/index
     dtype = type(velocity)
 
     if turbine_profile=='rectangular':
@@ -170,8 +172,7 @@ def power_curve(power,
             raise Exception("`diameter` cannot be None for input `turbine_profile` = 'circular'.")
         A_slc = _slice_circular_capture_area(diameter, hub_height, doppler_cell_size)
 
-    # Fetch streamwise data
-    #U = ds_streamwise['vel'].sel(dir='streamwise')
+    # Streamwise data
     U = abs(velocity)
     time = U['time'].values
     # Interpolate power to velocity timestamps
@@ -229,12 +230,12 @@ def _average_velocity_bins(U, U_hub, bin_size):
     velocity and average.
 
     Args:
-        U (xarray.DataArray): Sea water velocity.
+        U (xarray.DataArray): Input variable to group by velocity.
         U_hub (xarray.DataArray): Sea water velocity at hub height.
         bin_size (numeric): Velocity averaging window size in m/s.
 
     Returns:
-        xarray.DataArray: _description_
+        xarray.DataArray: Data grouped into velocity bins
     """
 
     # Reorganize into velocity bins and average
@@ -267,8 +268,7 @@ def mean_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_
         velocity.
     """
 
-    # Fetch streamwise data
-    #U = ds_streamwise['vel'].sel(dir='streamwise')
+    # Streamwise data
     U = velocity
 
     # Create binner
@@ -306,8 +306,7 @@ def rms_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
         raw velocity.
     """
 
-    # Fetch streamwise data
-    #U = ds_streamwise['vel'].sel(dir='streamwise')
+    # Streamwise data
     U = velocity
 
     # Create binner
@@ -320,7 +319,6 @@ def rms_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
     # Take root-mean-square
     U_rms = np.sqrt(np.nanmean(U_reshaped**2, axis=-1))
 
-    # Ignoring datapoints at end of array that get chopped off from reshaping
     U_rms = xr.DataArray(U_rms, 
                          coords={'range': U.range, 
                                  'time':bnr.mean(U['time'].values)})
@@ -351,8 +349,7 @@ def std_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
         ensemble standard deviation.
     """
 
-    # Fetch streamwise data
-    #U = ds_streamwise['vel'].sel(dir='streamwise')
+    # Streamwise data
     U = velocity
 
     # Create binner
@@ -399,8 +396,20 @@ def device_efficiency(power,
         pandas.Series: Device efficiency (power coefficient) in percent.
     """
 
-    # Fetch streamwise data
+    # Assert velocity is 2D xarray or pandas and has dims range, time
+    # Power should have a timestamp coordinate/index
+
+    # Streamwise data
     U = velocity
+
+    # Power
+    # Interpolate to velocity timeseries
+    if 'xarray' in type(power).__module__:
+        power = power.interp(time=U.time)
+    elif 'pandas' in type(power).__module__ and isinstance(power.index, pd.DatetimeIndex):
+        power = power.to_xarray().interp(time=U.time)
+    else:
+        warnings.warn("Assuming `power` timestamps match `velocity` timestamps")
 
     # Create binner
     bnr = dolfyn.VelBinner(n_bin=window_avg_time*sampling_frequency, fs=sampling_frequency)
@@ -416,15 +425,6 @@ def device_efficiency(power,
         rho_vel = _average_velocity_bins(rho_avg, mean_hub_vel, bin_size=0.1)
     else:
         rho_vel = water_density
-    
-    # Power
-    # Interpolate to velocity timeseries
-    if 'xarray' in type(power).__module__:
-        power = power.interp(time=U.time)
-    elif 'pandas' in type(power).__module__ and isinstance(power.index, pd.DatetimeIndex):
-        power = power.to_xarray().interp(time=U.time)
-    else:
-        warnings.warn("Assuming `power` timestamps match `velocity` timestamps")
 
     # Bin average power
     P_avg = xr.DataArray(bnr.mean(power.values), 
