@@ -181,13 +181,17 @@ class TestWDRT(unittest.TestCase):
         assert_frame_equal(self.mler_ts, mler_ts, atol=0.0001)
 
     def test_return_year_value(self):
+        return_years = [50, 50.0]
+        short_term_periods = [1, 1.0]
         dist = stats.norm
-        return_year = 50
-        short_term_period = 1
 
-        val = loads.extreme.return_year_value(dist.ppf, return_year, short_term_period)
-        want = 4.5839339
-        self.assertAlmostEqual(want, val, 5)
+        for y in return_years:
+            for stp in short_term_periods:
+                with self.subTest(year=y, short_term=stp):
+                    val = loads.extreme.return_year_value(
+                        dist.ppf, y, stp)
+                    want = 4.5839339
+                    self.assertAlmostEqual(want, val, 5)
 
     def test_longterm_extreme(self):
         ste_1 = stats.norm

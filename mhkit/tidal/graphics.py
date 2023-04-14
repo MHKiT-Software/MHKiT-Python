@@ -83,8 +83,16 @@ def _initialize_polar(ax=None, metadata=None, flood=None, ebb=None):
     return ax
 
 
-def plot_rose(directions, velocities, width_dir, width_vel, 
-              ax=None, metadata=None, flood=None, ebb=None):
+def plot_rose(
+    directions, 
+    velocities, 
+    width_dir, 
+    width_vel, 
+    ax=None, 
+    metadata=None, 
+    flood=None, 
+    ebb=None
+    ):
     """
     Creates a polar histogram. Direction angles from binned histogram must 
     be specified such that 0  degrees is north.
@@ -179,9 +187,16 @@ def plot_rose(directions, velocities, width_dir, width_vel,
     return ax
 
 
-def plot_joint_probability_distribution(directions, velocities, width_dir, 
-                                        width_vel, ax=None, metadata=None,
-                                        flood=None, ebb=None):
+def plot_joint_probability_distribution(
+    directions, 
+    velocities, 
+    width_dir, 
+    width_vel, 
+    ax=None, 
+    metadata=None,
+    flood=None, 
+    ebb=None
+    ):
     """
     Creates a polar histogram. Direction angles from binned histogram must 
     be specified such that 0 is north.
@@ -279,8 +294,13 @@ def plot_joint_probability_distribution(directions, velocities, width_dir,
     return ax
 
 
-def plot_current_timeseries(directions, velocities, principal_direction,
-                            label=None, ax=None):
+def plot_current_timeseries(
+    directions,
+    velocities, 
+    principal_direction,
+    label=None, 
+    ax=None
+    ):
     '''
     Returns a plot of velocity from an array of direction and speed
     data in the direction of the supplied principal_direction.
@@ -297,7 +317,7 @@ def plot_current_timeseries(directions, velocities, principal_direction,
         Label to use in the legend
     ax : matplotlib axes object
         Axes for plotting.  If None, then a new figure with a single 
-        axes is used.  
+        axes is used.
 
     Returns
     -------
@@ -332,8 +352,15 @@ def plot_current_timeseries(directions, velocities, principal_direction,
                   xlabel='Time', ylabel='Velocity [$m/s$]', ax=ax)
     return ax
 
-def tidal_phase_probability(directions, velocities, flood, ebb, 
-    bin_size=0.1, ax=None):
+
+def tidal_phase_probability(
+    directions,
+    velocities,
+    flood,
+    ebb, 
+    bin_size=0.1,
+    ax=None
+    ):
     '''
     Discretizes the tidal series speed by bin size and returns a plot
     of the probability for each bin in the flood or ebb tidal phase.
@@ -350,7 +377,10 @@ def tidal_phase_probability(directions, velocities, flood, ebb,
         Principal component of flow in the ebb direction [degrees]
     bin_size: float
         Speed bin size. Optional. Deaful = 0.1 m/s
-        
+    ax : matplotlib axes object
+        Axes for plotting.  If None, then a new figure with a single 
+        axes is used.
+
     Returns
     -------
     ax: figure  
@@ -384,7 +414,7 @@ def tidal_phase_probability(directions, velocities, flood, ebb,
         
     if ax==None:
         fig, ax = plt.subplots(figsize=(12, 8))
-        
+
     isEbb = _flood_or_ebb(directions, flood, ebb)
 
     decimals = round(bin_size/0.1)
@@ -415,13 +445,18 @@ def tidal_phase_probability(directions, velocities, flood, ebb,
     plt.ylim(0,1.0)
     plt.legend()
     plt.grid(linestyle=':')
-    
+
     return ax
-    
 
 
-def tidal_phase_exceedance(directions, velocities, flood, ebb, 
-    bin_size=0.1, ax=None):
+def tidal_phase_exceedance(
+    directions,
+    velocities,
+    flood,
+    ebb,
+    bin_size=0.1,
+    ax=None
+    ):
     '''
     Returns a stacked area plot of the exceedance probability for the 
     flood and ebb tidal phases.
@@ -438,7 +473,10 @@ def tidal_phase_exceedance(directions, velocities, flood, ebb,
         Principal component of flow in the ebb direction [degrees] 
     bin_size: float
         Speed bin size. Optional. Deaful = 0.1 m/s        
-        
+    ax : matplotlib axes object
+        Axes for plotting.  If None, then a new figure with a single 
+        axes is used.
+
     Returns
     -------
     ax: figure    
