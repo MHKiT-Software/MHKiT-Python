@@ -27,6 +27,7 @@ Dependencies:
 import sys
 from time import sleep
 import pandas as pd
+import xarray as xr
 import numpy as np
 from rex import MultiYearWaveX, WaveX
 
@@ -90,7 +91,8 @@ def request_wpto_point_data(
     tree=None,
     unscale=True,
     str_decode=True,
-    hsds=True
+    hsds=True,
+    as_xarray=False,
     ):
     """
     Returns data from the WPTO wave hindcast hosted on AWS at the
@@ -141,6 +143,8 @@ def request_wpto_point_data(
         Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
         behind HSDS. Setting to False will indicate to look for files on 
         local machine, not AWS. Default = True
+    as_xarray: bool (optional)
+        Boolean flag to return data as an xarray Dataset. Default = False    
 
     Returns
     ---------
@@ -193,28 +197,46 @@ def request_wpto_point_data(
     with MultiYearWaveX(wave_path, **wave_kwargs) as rex_waves:
         if isinstance(parameter, list):
             for param in parameter:
-                temp_data = rex_waves.get_lat_lon_df(param,lat_lon)
+                temp_data = rex_waves.get_lat_lon_df(param, lat_lon)
+                gid = rex_waves.lat_lon_gid(lat_lon)
                 cols = temp_data.columns[:]
-                for i,col in zip(range(len(cols)),cols):
-                    temp = f'{param}_{i}'
-                    temp_data = temp_data.rename(columns={col:temp})
+                for i, col in zip(range(len(cols)), cols):
+                    temp = f'{param}_{gid}'
+                    temp_data = temp_data.rename(columns={col: temp})
 
                 data_list.append(temp_data)
-            data= pd.concat(data_list, axis=1)
+            data = pd.concat(data_list, axis=1)
 
         else:
-            data = rex_waves.get_lat_lon_df(parameter,lat_lon)
+            data = rex_waves.get_lat_lon_df(parameter, lat_lon)
             cols = data.columns[:]
 
-            for i,col in zip(range(len(cols)),cols):
+            for i, col in zip(range(len(cols)), cols):
                 temp = f'{parameter}_{i}'
-                data = data.rename(columns={col:temp})
+                data = data.rename(columns={col: temp})
 
-        meta = rex_waves.meta.loc[cols,:]
+        meta = rex_waves.meta.loc[cols, :]
         meta = meta.reset_index(drop=True)
-        # Get graphical identifier
         gid = rex_waves.lat_lon_gid(lat_lon)
         meta['gid'] = gid
+
+        if as_xarray:
+            data = data.to_xarray()
+            data['time_index'] = pd.to_datetime(data.time_index)
+
+            if isinstance(parameter, list):
+                param_coords = [f'{param}_{gid}' for param in parameter]
+                data.coords['parameter'] = xr.DataArray(param_coords, dims='parameter')
+
+            data.coords['year'] = xr.DataArray(years, dims='year')
+
+            meta_ds = meta.to_xarray()
+            data = xr.merge([data, meta_ds])
+
+            # Remove the 'index' coordinate
+            data = data.drop_vars('index')
+
+
     return data, meta
 
 
@@ -371,4 +393,25 @@ def request_wpto_directional_spectrum(
         meta = rex_waves.meta.loc[columns,:]
         meta = meta.reset_index(drop=True)
         meta['gid'] = gid
+
+        # Get the data variable using the key (which is the gid value)
+        data_var = data[str(gid)]
+
+        # New dimensions and coordinates
+        dims = ['time_index', 'frequency', 'direction', 'gid']
+        coords = {
+            'time_index': data['time_index'],
+            'frequency': data['frequency'],
+            'direction': data['direction'],
+            'gid': [gid]  
+        }
+
+        # Create the new dataset
+        data = xr.Dataset(
+            {
+                'spectral_density': (dims, data_var.expand_dims({'gid': len(gid)}))
+            },
+            coords=coords
+        )
+
     return data, meta
