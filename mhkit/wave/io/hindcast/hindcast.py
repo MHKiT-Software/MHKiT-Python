@@ -385,8 +385,8 @@ def request_wpto_directional_spectrum(
         data_raw=datas[0]
         for i in list(datas.keys())[1:]:
             data_raw =  pd.concat([data_raw,datas[i]])
+
         data = data_raw.to_xarray()
-        # data = data_raw.to_xarray().to_array().drop('variable').squeeze()
         data['time_index'] = pd.to_datetime(data.time_index)
 
         # Get metadata
@@ -394,24 +394,43 @@ def request_wpto_directional_spectrum(
         meta = meta.reset_index(drop=True)
         meta['gid'] = gid
 
-        # Get the data variable using the key (which is the gid value)
-        data_var = data[str(gid)]
+        # Convert gid to integer or list of integers
+        if isinstance(gid, list):
+            data_var = [data[g] for g in gid]
+        else:
+            data_var = [data[gid]]
 
-        # New dimensions and coordinates
-        dims = ['time_index', 'frequency', 'direction', 'gid']
-        coords = {
-            'time_index': data['time_index'],
-            'frequency': data['frequency'],
-            'direction': data['direction'],
-            'gid': [gid]  
-        }
+        # Concatenate the DataArray objects
+        data_var_concat = xr.concat(data_var, dim='gid')
+
+        # Remove the 'time_index' dimension and coordinate from the concatenated DataArray
+        data_var_concat = data_var_concat.drop_vars('time_index')
+        data_var_concat = data_var_concat.drop_sel(time_index=data_var_concat.time_index)
+
+        # import ipdb; ipdb.set_trace()
+        # Create a new DataArray with the correct dimensions and coordinates
+        gid_list = [int(g) for g in gid] if isinstance(gid, list) else [int(gid)]
+        spectral_density = xr.DataArray(
+            data_var_concat.data.reshape(-1, len(frequency), len(direction), len(gid_list)),
+            dims=['time_index', 'frequency', 'direction', 'gid'],
+            coords={
+                'time_index': data['time_index'],
+                'frequency': data['frequency'],
+                'direction': data['direction'],
+                'gid': gid_list
+            }
+        )
 
         # Create the new dataset
         data = xr.Dataset(
             {
-                'spectral_density': (dims, data_var.expand_dims({'gid': len(gid)}))
+                'spectral_density': spectral_density
             },
-            coords=coords
+            coords={
+                'time_index': data['time_index'],
+                'frequency': data['frequency'],
+                'direction': data['direction'],
+                'gid': gid_list
+            }
         )
-
     return data, meta
