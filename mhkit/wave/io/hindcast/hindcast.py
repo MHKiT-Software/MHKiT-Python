@@ -307,9 +307,7 @@ def request_wpto_directional_spectrum(
     if isinstance(lat_lon[0], float):
         region = region_selection(lat_lon)
     else:
-        reglist = []
-        for loc in lat_lon:
-            reglist.append(region_selection(loc))
+        reglist = [region_selection(loc) for loc in lat_lon]
         if reglist.count(reglist[0]) == len(lat_lon):
             region = reglist[0]
         else:
@@ -331,10 +329,7 @@ def request_wpto_directional_spectrum(
         gid = rex_waves.lat_lon_gid(lat_lon)
 
         # Setup index and columns
-        if isinstance(gid, (int, np.integer)):
-            columns = [gid]
-        else:
-            columns = gid
+        columns = [gid] if isinstance(gid, (int, np.integer)) else gid
         time_index = rex_waves.time_index
         frequency = rex_waves['frequency']
         direction = rex_waves['direction']
@@ -343,11 +338,11 @@ def request_wpto_directional_spectrum(
             names=['time_index', 'frequency', 'direction']
         )
 
+
         # Create bins for multiple smaller API dataset requests
         N=6
         length = len(rex_waves)
-        quotient=length//N
-        remainder=length%N
+        quotient, remainder = divmod(length, N)
         bins = [i*quotient for i in range(N+1) ]
         bins[-1]+= remainder
         index_bins = (np.array(bins)*len(frequency)*len(direction)).tolist()
@@ -375,17 +370,13 @@ def request_wpto_directional_spectrum(
 
             ax1 = np.product(data_array.shape[:3])
             ax2 = data_array.shape[-1] if len(data_array.shape) == 4 else 1
-            data_array = data_array.reshape(ax1, ax2)
+            datas[i] = pd.DataFrame(
+                data_array.reshape(ax1, ax2),
+                columns=columns,
+                index=idx
+            )
 
-            df = pd.DataFrame(data_array, columns=columns, index=idx)
-            df.name = parameter
-            datas[i]=df
-
-        # Append each request into an xarray
-        data_raw=datas[0]
-        for i in list(datas.keys())[1:]:
-            data_raw =  pd.concat([data_raw,datas[i]])
-
+        data_raw = pd.concat(datas.values())
         data = data_raw.to_xarray()
         data['time_index'] = pd.to_datetime(data.time_index)
 
@@ -395,21 +386,15 @@ def request_wpto_directional_spectrum(
         meta['gid'] = gid
 
         # Convert gid to integer or list of integers
-        if isinstance(gid, list):
-            data_var = [data[g] for g in gid]
-        else:
-            data_var = [data[gid]]
+        # gid_list = [int(g) for g in gid] if isinstance(gid, list) else [int(gid)]
+        # gid_list = [int(g) for g in gid] if isinstance(gid, list) else [int(gid)]
+        gid_list = [int(g) for g in gid] if isinstance(gid, (list, np.ndarray)) else [int(gid)]
 
-        # Concatenate the DataArray objects
-        data_var_concat = xr.concat(data_var, dim='gid')
+        data_var_concat = xr.concat([data[g] for g in gid_list], dim='gid')
 
-        # Remove the 'time_index' dimension and coordinate from the concatenated DataArray
-        data_var_concat = data_var_concat.drop_vars('time_index')
-        data_var_concat = data_var_concat.drop_sel(time_index=data_var_concat.time_index)
 
-        # import ipdb; ipdb.set_trace()
+
         # Create a new DataArray with the correct dimensions and coordinates
-        gid_list = [int(g) for g in gid] if isinstance(gid, list) else [int(gid)]
         spectral_density = xr.DataArray(
             data_var_concat.data.reshape(-1, len(frequency), len(direction), len(gid_list)),
             dims=['time_index', 'frequency', 'direction', 'gid'],
