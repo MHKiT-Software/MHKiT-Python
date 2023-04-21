@@ -26,7 +26,7 @@ class bin_reader():
     def __enter__(self,):
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self,):
         self.close()
 
     def __init__(self, fname, endian='<', checksum_size=None, debug_level=0):
@@ -42,21 +42,20 @@ class bin_reader():
         self.f.seek(0, 0)
         self.close = self.f.close
         if checksum_size:
-            pass
-            #self.cs = checksum(self, 0, checksum_size)
+            self.cs = self.checksum(0, checksum_size)
         else:
             self.cs = checksum_size
         self.debug_level = debug_level
 
-    # def checksum(self,):
-    #     """
-    #     The next byte(s) are the expected checksum.  Perform the checksum.
-    #     """
-    #     if self.cs:
-    #         cs = self.read(1, self.cs._frmt)
-    #         self.cs(cs, True)
-    #     else:
-    #         raise Exception('CheckSum not requested for this file')
+    def checksum(self,):
+        """
+        The next byte(s) are the expected checksum.  Perform the checksum.
+        """
+        if self.cs:
+            cs = self.read(1, self.cs._frmt)
+            self.cs(cs, True)
+        else:
+            raise Exception('CheckSum not requested for this file')
 
     def tell(self,):
         return self.f.tell()

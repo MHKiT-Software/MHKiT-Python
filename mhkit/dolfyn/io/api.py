@@ -234,11 +234,6 @@ def load(filename):
             ds = ds.drop_vars([var+'_real', var+'_imag'])
     ds.attrs.pop('complex_vars')
 
-    # Return units attribute for time
-    for variable in ds.variables.values():
-        if np.issubdtype(variable.data.dtype, np.datetime64):
-            variable.attrs["units"] = "seconds since 1970-01-01 00:00:00"
-
     return ds
 
 
