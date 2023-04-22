@@ -168,45 +168,45 @@ class TestWPTOhindcast(unittest.TestCase):
                 'gid':'int64'
             })
 
-    # def test_multi_year(self):
-    #     '''
-    #     Test multiple years on a single data_type, lat_lon, and parameter
-    #     '''
-    #     data_type = '3-hour'
-    #     years = [1990,1992]
-    #     lat_lon = (44.624076,-124.280097)
-    #     parameters = 'significant_wave_height'
+    def test_multi_year(self):
+        '''
+        Test multiple years on a single data_type, lat_lon, and parameter
+        '''
+        data_type = '3-hour'
+        years = [1990,1992]
+        lat_lon = (44.624076,-124.280097)
+        parameters = 'significant_wave_height'
 
-    #     wave_multiyear, meta = (wave.io.hindcast.hindcast
-    #         .request_wpto_point_data(
-    #             data_type,
-    #             parameters,
-    #             lat_lon,
-    #             years
-    #         )
-    #     )
-    #     assert_frame_equal(self.my_swh, wave_multiyear)
-    #     assert_frame_equal(self.my_meta, meta)
+        wave_multiyear, meta = (wave.io.hindcast.hindcast
+            .request_wpto_point_data(
+                data_type,
+                parameters,
+                lat_lon,
+                years
+            )
+        )
+        assert_frame_equal(self.my_swh, wave_multiyear)
+        assert_frame_equal(self.my_meta, meta)
 
 
-    # def test_multi_parm(self):
-    #     '''
-    #     Test multiple parameters on a single data_type, year, and lat_lon
-    #     '''
-    #     data_type = '1-hour'
-    #     years = [1996]
-    #     lat_lon = (44.624076,-124.280097)
-    #     parameters = ['energy_period','mean_zero-crossing_period']
-    #     wave_multiparm, meta= (wave.io.hindcast.hindcast
-    #         .request_wpto_point_data(
-    #             data_type,
-    #             parameters,
-    #             lat_lon,
-    #             years
-    #         )
-    #     )
-    #     assert_frame_equal(self.mp,wave_multiparm)
-    #     assert_frame_equal(self.mp_meta,meta)
+    def test_multi_parm(self):
+        '''
+        Test multiple parameters on a single data_type, year, and lat_lon
+        '''
+        data_type = '1-hour'
+        years = [1996]
+        lat_lon = (44.624076,-124.280097)
+        parameters = ['energy_period','mean_zero-crossing_period']
+        wave_multiparm, meta= (wave.io.hindcast.hindcast
+            .request_wpto_point_data(
+                data_type,
+                parameters,
+                lat_lon,
+                years
+            )
+        )
+        assert_frame_equal(self.mp,wave_multiparm)
+        assert_frame_equal(self.mp_meta,meta)
 
 
     def test_multi_loc(self):
@@ -233,13 +233,9 @@ class TestWPTOhindcast(unittest.TestCase):
                 dir_multiyear.time_index[99]
             )
         )
-        # dir_multiyear = dir_multiyear.rename({87:'87',58:'58'})
-        import ipdb; ipdb.set_trace();
         
         assert_frame_equal(self.ml, wave_multiloc)
         assert_frame_equal(self.ml_meta, meta)
-        # xrt.assert_allclose(self.my_dir, dir_multiyear)
-        # assert_frame_equal(self.my_dir_meta, meta_dir)
         xrt.assert_allclose(self.multi_year_dir_spectra, dir_multiyear)
         assert_frame_equal(self.multi_year_dir_spectra_meta, meta_dir)
 
