@@ -168,25 +168,25 @@ class TestWPTOhindcast(unittest.TestCase):
                 'gid':'int64'
             })
 
-    # def test_multi_year(self):
-    #     '''
-    #     Test multiple years on a single data_type, lat_lon, and parameter
-    #     '''
-    #     data_type = '3-hour'
-    #     years = [1990,1992]
-    #     lat_lon = (44.624076,-124.280097)
-    #     parameters = 'significant_wave_height'
+    def test_multi_year(self):
+        '''
+        Test multiple years on a single data_type, lat_lon, and parameter
+        '''
+        data_type = '3-hour'
+        years = [1990,1992]
+        lat_lon = (44.624076,-124.280097)
+        parameters = 'significant_wave_height'
 
-    #     wave_multiyear, meta = (wave.io.hindcast.hindcast
-    #         .request_wpto_point_data(
-    #             data_type,
-    #             parameters,
-    #             lat_lon,
-    #             years
-    #         )
-    #     )
-    #     assert_frame_equal(self.my_swh, wave_multiyear)
-    #     assert_frame_equal(self.my_meta, meta)
+        wave_multiyear, meta = (wave.io.hindcast.hindcast
+            .request_wpto_point_data(
+                data_type,
+                parameters,
+                lat_lon,
+                years
+            )
+        )
+        assert_frame_equal(self.my_swh, wave_multiyear)
+        assert_frame_equal(self.my_meta, meta)
 
 
     def test_multi_parm(self):
@@ -205,40 +205,39 @@ class TestWPTOhindcast(unittest.TestCase):
                 years
             )
         )
-        import ipdb; ipdb.set_trace()
         assert_frame_equal(self.mp,wave_multiparm)
         assert_frame_equal(self.mp_meta,meta)
 
 
-    # def test_multi_loc(self):
-    #     '''
-    #     Test mutiple locations on point data and directional spectrum at a
-    #     single data_type, year, and parameter.
-    #     '''
-    #     data_type = '3-hour'
-    #     years = [1995]
-    #     lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137))
-    #     parameters = 'mean_absolute_period'
-    #     wave_multiloc, meta=wave.io.hindcast.hindcast.request_wpto_point_data(
-    #         data_type,
-    #         parameters,
-    #         lat_lon,
-    #         years
-    #     )
-    #     dir_multiyear, meta_dir = (wave.io.hindcast.hindcast
-    #         .request_wpto_directional_spectrum(lat_lon,year=str(years[0]))
-    #     )
-    #     dir_multiyear = dir_multiyear.sel(
-    #         time_index=slice(
-    #             dir_multiyear.time_index[0],
-    #             dir_multiyear.time_index[99]
-    #         )
-    #     )
+    def test_multi_loc(self):
+        '''
+        Test mutiple locations on point data and directional spectrum at a
+        single data_type, year, and parameter.
+        '''
+        data_type = '3-hour'
+        years = [1995]
+        lat_lon = ((44.624076,-124.280097),(43.489171,-125.152137))
+        parameters = 'mean_absolute_period'
+        wave_multiloc, meta=wave.io.hindcast.hindcast.request_wpto_point_data(
+            data_type,
+            parameters,
+            lat_lon,
+            years
+        )
+        dir_multiyear, meta_dir = (wave.io.hindcast.hindcast
+            .request_wpto_directional_spectrum(lat_lon,year=str(years[0]))
+        )
+        dir_multiyear = dir_multiyear.sel(
+            time_index=slice(
+                dir_multiyear.time_index[0],
+                dir_multiyear.time_index[99]
+            )
+        )
         
-    #     assert_frame_equal(self.ml, wave_multiloc)
-    #     assert_frame_equal(self.ml_meta, meta)
-    #     xrt.assert_allclose(self.multi_year_dir_spectra, dir_multiyear)
-    #     assert_frame_equal(self.multi_year_dir_spectra_meta, meta_dir)
+        assert_frame_equal(self.ml, wave_multiloc)
+        assert_frame_equal(self.ml_meta, meta)
+        xrt.assert_allclose(self.multi_year_dir_spectra, dir_multiyear)
+        assert_frame_equal(self.multi_year_dir_spectra_meta, meta_dir)
 
 if __name__ == '__main__':
     unittest.main()
