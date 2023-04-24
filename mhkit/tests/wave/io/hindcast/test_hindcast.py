@@ -182,10 +182,12 @@ class TestWPTOhindcast(unittest.TestCase):
                 data_type,
                 parameters,
                 lat_lon,
-                years
+                years,
+                as_xarray=True
             )
         )
-        assert_frame_equal(self.my_swh, wave_multiyear)
+        wave_multiyear_df = wave_multiyear.to_dataframe()
+        assert_frame_equal(self.my_swh, wave_multiyear_df)
         assert_frame_equal(self.my_meta, meta)
 
 
