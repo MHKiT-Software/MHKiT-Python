@@ -236,7 +236,6 @@ def request_wpto_point_data(
             # Remove the 'index' coordinate
             data = data.drop_vars('index')
 
-
     return data, meta
 
 

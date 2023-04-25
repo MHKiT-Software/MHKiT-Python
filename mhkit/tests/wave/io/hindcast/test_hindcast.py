@@ -186,7 +186,12 @@ class TestWPTOhindcast(unittest.TestCase):
                 as_xarray=True
             )
         )
-        wave_multiyear_df = wave_multiyear.to_dataframe()
+        wave_multiyear_df = (
+            wave_multiyear['significant_wave_height_0']
+            .to_dataframe()
+            .tz_localize('UTC')
+            )
+
         assert_frame_equal(self.my_swh, wave_multiyear_df)
         assert_frame_equal(self.my_meta, meta)
 
