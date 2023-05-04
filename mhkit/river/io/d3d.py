@@ -183,17 +183,18 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
         v= np.ma.getdata(var[time_index,:], False)
         
     #waterdepth 
-    cords_to_layers= {'FlowElem_xcc FlowElem_ycc':{'name':'laydim', 
-                                    'coords':data.variables['LayCoord_cc'][:]},
-                       'FlowLink_xu FlowLink_yu': {'name':'wdim', 
-                                'coords':data.variables['LayCoord_w'][:]}}
+    cords_to_layers= {'mesh2d_face_x mesh2d_face_y mesh2d_layer_sigma':
+                      {'name':'laydim', # needs to be updated 
+                                    'coords':data.variables['mesh2d_layer_sigma'][:]},
+                       'FlowLink_xu FlowLink_yu': {'name':'wdim', #needs to be updated 
+                                'coords':data.variables['mesh2d_interface_sigma'][:]}}
     layer_dim =  str(data.variables[variable].coordinates)
     
     
     cord_sys= cords_to_layers[layer_dim]['coords']
     layer_percentages= np.ma.getdata(cord_sys, False) #accumulative
-    bottom_depth=np.ma.getdata(data.variables['waterdepth'][time_index, :], False)
-    waterlevel= np.ma.getdata(data.variables['s1'][time_index, :], False)
+    bottom_depth=np.ma.getdata(data.variables['mesh2d_waterdepth'][time_index, :], False)
+    waterlevel= np.ma.getdata(data.variables['mesh2d_s1'][time_index, :], False)
     if layer_dim == 'FlowLink_xu FlowLink_yu':
         #interpolate 
         coords = str(data.variables['waterdepth'].coordinates).split()
@@ -464,10 +465,10 @@ def get_all_data_points(data, variable, time_index=-1):
     assert abs(time_index) <= max_time_index, (f'time_index must be less than'
                                       +'the max time index {max_time_index}')
 
-    cords_to_layers= {'FlowElem_xcc FlowElem_ycc':{'name':'laydim', 
-                                    'coords':data.variables['LayCoord_cc'][:]},
+    cords_to_layers= {'mesh2d_face_x mesh2d_face_y mesh2d_layer_sigma':{'name':'laydim', 
+                                    'coords':data.variables["mesh2d_layer_sigma"][:]},
                        'FlowLink_xu FlowLink_yu': {'name':'wdim', 
-                                'coords':data.variables['LayCoord_w'][:]}}
+                                'coords':data.variables["mesh2d_interface_sigma"][:]}}
 
     layer_dim =  str(data.variables[variable].coordinates)
     
