@@ -52,36 +52,30 @@ def request_noaa_data(station, parameter, start_date, end_date,
         begin + datetime.timedelta(days=i * delta) for i in range(interval + 1)]
     date_list[-1] = end
 
-    # Intialize dictionary to hold responses
-    dataFrames = {}
-    # Iterate over date_list (30 day intervals)
-    for i in range(len(date_list)-1):
-        start_date = date_list[i]
-        end_date = date_list[i+1]
-        data_url = 'https://tidesandcurrents.noaa.gov/api/datagetter?'
-        api_query = 'begin_date='+start_date + \
-                    '&end_date='+end_date + \
-                    '&station='+station + \
-                    '&product='+parameter + \
-                    '&units=metric&' +  \
-                    'time_zone=gmt&' +\
-                    'application=web_services&' + \
-                    'format=xml'
-        print('Data request URL: ', data_url+api_query)
+    # Iterate over date_list (30 day intervals) and fetch data
+    data_frames = []
+    for i in range(len(date_list) - 1):
+        start_date = date_list[i].strftime('%Y%m%d')
+        end_date = date_list[i + 1].strftime('%Y%m%d')
+
+        api_query = f"begin_date={start_date}&end_date={end_date}&station={station}&product={parameter}&units=metric&time_zone=gmt&application=web_services&format=xml"
+        data_url = f"https://tidesandcurrents.noaa.gov/api/datagetter?{api_query}"
+
+        print('Data request URL: ', data_url)
+
         # Get response
-        response = requests.get(url=data_url+api_query, proxies=proxy)
-        # Connvert to DataFrame and save in Dictionary
-        dataFrames[date_list[i]], metadata = _xml_to_dataframe(response)
-        # Future TODO: Add option to request data as json
-        # dataFrames[date_list[i]], metadata = _json_to_dataframe (response)
-    # Get first DataFrame
-    data = dataFrames[date_list[0]]
-    # Append all remaining DataFrames
-    if len(dataFrames) > 1:
-        for i in range(1, len(dataFrames)):
-            data = data.append(dataFrames[date_list[i]])
+        response = requests.get(url=data_url, proxies=proxy)
+
+        # Convert to DataFrame and save in data_frames list
+        df, metadata = _xml_to_dataframe(response)
+        data_frames.append(df)
+
+    # Concatenate all DataFrames
+    data = pd.concat(data_frames, ignore_index=False)
+
     # Remove duplicated date values
-    data = data[~data.index.duplicated()]
+    data = data.loc[~data.index.duplicated()]
+
     # Write json if specified
     if write_json is not None:
         with open(write_json, 'w') as outfile:
@@ -93,7 +87,6 @@ def request_noaa_data(station, parameter, start_date, end_date,
             pyData['metadata'] = metadata
             # Wrtie the pyData to a json file
             json.dump(pyData, outfile)
-    # import ipdb; ipdb.set_trace()
     return data, metadata
 
 
