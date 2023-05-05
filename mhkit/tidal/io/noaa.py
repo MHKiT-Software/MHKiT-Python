@@ -42,20 +42,16 @@ def request_noaa_data(station, parameter, start_date, end_date,
     # Convert start and end dates to datetime objects
     begin = datetime.datetime.strptime(start_date, '%Y%m%d').date()
     end = datetime.datetime.strptime(end_date, '%Y%m%d').date()
-    # Convert to datetime
-    begin = datetime.date(year0, month0, day0)
-    end = datetime.date(year1, month1, day1)
+
     # Determine the number of 30 day intervals
     delta = 30
     interval = math.ceil(((end - begin).days)/delta)
-    # Intialize date list
-    date_list = []
-    # Create 30 day intervals
-    for i in range(interval + 1):
-        date_list.append(
-            (begin+i*datetime.timedelta(days=delta)).strftime('%Y%m%d'))
-    # Replace last entry in date list with end time
-    date_list[-1] = end_date
+
+    # Create date ranges with 30 day intervals
+    date_list = [
+        begin + datetime.timedelta(days=i * delta) for i in range(interval + 1)]
+    date_list[-1] = end
+
     # Intialize dictionary to hold responses
     dataFrames = {}
     # Iterate over date_list (30 day intervals)
