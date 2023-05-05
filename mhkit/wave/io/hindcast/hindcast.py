@@ -55,17 +55,17 @@ def region_selection(lat_lon):
         raise TypeError('lat_lon values must be of type float or int')
 
     regions = {
-        'Hawaii':{
-            'lat':[15.0,27.000002],
-            'lon':[-164.0,-151.0]
+        'Hawaii': {
+            'lat': [15.0, 27.000002],
+            'lon': [-164.0, -151.0]
         },
-        'West_Coast':{
-            'lat':[30.0906, 48.8641],
-            'lon':[-130.072, -116.899]
+        'West_Coast': {
+            'lat': [30.0906, 48.8641],
+            'lon': [-130.072, -116.899]
         },
-        'Atlantic':{
-            'lat':[24.382, 44.8247],
-            'lon':[-81.552, -65.721]
+        'Atlantic': {
+            'lat': [24.382, 44.8247],
+            'lon': [-81.552, -65.721]
         },
     }
 
@@ -75,7 +75,8 @@ def region_selection(lat_lon):
             for dk, d in {'lat': lat_lon[0], 'lon': lat_lon[1]}.items()
         )
 
-    region = [region for region in regions if region_search(lat_lon, region, regions)]
+    region = [region for region in regions if region_search(
+        lat_lon, region, regions)]
 
     if not region:
         raise ValueError('ERROR: coordinates out of bounds')
@@ -92,8 +93,9 @@ def request_wpto_point_data(
     unscale=True,
     str_decode=True,
     hsds=True,
+    path=None,
     as_xarray=False,
-    ):
+):
     """
     Returns data from the WPTO wave hindcast hosted on AWS at the
     specified latitude and longitude point(s), or the closest
@@ -143,6 +145,9 @@ def request_wpto_point_data(
         Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
         behind HSDS. Setting to False will indicate to look for files on 
         local machine, not AWS. Default = True
+    path : string (optional)
+        Optionally override with a custom .h5 filepath. Useful when setting
+        `hsds=False`.        
     as_xarray: bool (optional)
         Boolean flag to return data as an xarray Dataset. Default = False    
 
@@ -154,14 +159,17 @@ def request_wpto_point_data(
     meta: DataFrame 
         Location metadata for the requested data location   
     """
-    assert isinstance(parameter, (str, list)), 'parameter must be of type string or list'
-    assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
+    assert isinstance(parameter, (str, list)
+                      ), 'parameter must be of type string or list'
+    assert isinstance(lat_lon, (list, tuple)
+                      ), 'lat_lon must be of type list or tuple'
     assert isinstance(data_type, str), 'data_type must be a string'
-    assert isinstance(years,list), 'years must be a list'
-    assert isinstance(tree,(str,type(None))), 'tree must be a string'
-    assert isinstance(unscale,bool), 'unscale must be bool type'
-    assert isinstance(str_decode,bool), 'str_decode must be bool type'
-    assert isinstance(hsds,bool), 'hsds must be bool type'
+    assert isinstance(years, list), 'years must be a list'
+    assert isinstance(tree, (str, type(None))), 'tree must be a string'
+    assert isinstance(unscale, bool), 'unscale must be bool type'
+    assert isinstance(str_decode, bool), 'str_decode must be bool type'
+    assert isinstance(hsds, bool), 'hsds must be bool type'
+    assert isinstance(path, (str, type(None))), 'path must be a string'
 
     if 'directional_wave_spectrum' in parameter:
         sys.exit('This function does not support directional_wave_spectrum output')
@@ -178,7 +186,9 @@ def request_wpto_point_data(
         else:
             sys.exit('Coordinates must be within the same region!')
 
-    if data_type == '3-hour':
+    if path:
+        wave_path = path
+    elif data_type == '3-hour':
         wave_path = f'/nrel/US_wave/{region}/{region}_wave_*.h5'
     elif data_type == '1-hour':
         wave_path = f'/nrel/US_wave/virtual_buoy/{region}/{region}_virtual_buoy_*.h5'
@@ -186,11 +196,11 @@ def request_wpto_point_data(
         print('ERROR: invalid data_type')
 
     wave_kwargs = {
-        'tree':tree,
-        'unscale':unscale,
-        'str_decode':str_decode,
-        'hsds':hsds,
-        'years':years
+        'tree': tree,
+        'unscale': unscale,
+        'str_decode': str_decode,
+        'hsds': hsds,
+        'years': years
     }
     data_list = []
 
@@ -226,7 +236,8 @@ def request_wpto_point_data(
 
             if isinstance(parameter, list):
                 param_coords = [f'{param}_{gid}' for param in parameter]
-                data.coords['parameter'] = xr.DataArray(param_coords, dims='parameter')
+                data.coords['parameter'] = xr.DataArray(
+                    param_coords, dims='parameter')
 
             data.coords['year'] = xr.DataArray(years, dims='year')
 
@@ -245,8 +256,9 @@ def request_wpto_directional_spectrum(
     tree=None,
     unscale=True,
     str_decode=True,
-    hsds=True
-    ):
+    hsds=True,
+    path=None,
+):
     """
     Returns directional spectra data from the WPTO wave hindcast hosted
     on AWS at the specified latitude and longitude point(s),
@@ -286,6 +298,9 @@ def request_wpto_directional_spectrum(
         Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
         behind HSDS. Setting to False will indicate to look for files on
         local machine, not AWS. Default = True
+    path : string (optional)
+        Optionally override with a custom .h5 filepath. Useful when setting
+        `hsds=False`        
 
     Returns
     ---------
@@ -295,12 +310,13 @@ def request_wpto_directional_spectrum(
     meta: DataFrame
         Location metadata for the requested data location
     """
-    assert isinstance(lat_lon, (list,tuple)), 'lat_lon must be of type list or tuple'
-    assert isinstance(year,str), 'years must be a string'
-    assert isinstance(tree,(str,type(None))), 'tree must be a sring'
-    assert isinstance(unscale,bool), 'unscale must be bool type'
-    assert isinstance(str_decode,bool), 'str_decode must be bool type'
-    assert isinstance(hsds,bool), 'hsds must be bool type'
+    assert isinstance(lat_lon, (list, tuple)
+                      ), 'lat_lon must be of type list or tuple'
+    assert isinstance(year, str), 'years must be a string'
+    assert isinstance(tree, (str, type(None))), 'tree must be a sring'
+    assert isinstance(unscale, bool), 'unscale must be bool type'
+    assert isinstance(str_decode, bool), 'str_decode must be bool type'
+    assert isinstance(hsds, bool), 'hsds must be bool type'
 
     # check for multiple region selection
     if isinstance(lat_lon[0], float):
@@ -312,15 +328,15 @@ def request_wpto_directional_spectrum(
         else:
             sys.exit('Coordinates must be within the same region!')
 
-    wave_path = (
+    wave_path = path or (
         f'/nrel/US_wave/virtual_buoy/{region}/{region}_virtual_buoy_{year}.h5'
     )
     parameter = 'directional_wave_spectrum'
     wave_kwargs = {
-        'tree':tree,
-        'unscale':unscale,
-        'str_decode':str_decode,
-        'hsds':hsds
+        'tree': tree,
+        'unscale': unscale,
+        'str_decode': str_decode,
+        'hsds': hsds
     }
 
     with WaveX(wave_path, **wave_kwargs) as rex_waves:
@@ -337,26 +353,26 @@ def request_wpto_directional_spectrum(
             names=['time_index', 'frequency', 'direction']
         )
 
-
         # Create bins for multiple smaller API dataset requests
-        N=6
+        N = 6
         length = len(rex_waves)
         quotient, remainder = divmod(length, N)
-        bins = [i*quotient for i in range(N+1) ]
-        bins[-1]+= remainder
+        bins = [i*quotient for i in range(N+1)]
+        bins[-1] += remainder
         index_bins = (np.array(bins)*len(frequency)*len(direction)).tolist()
 
         # Request multiple datasets and add to dictionary
-        datas={}
+        datas = {}
         for i in range(len(bins)-1):
-            idx=index[index_bins[i]:index_bins[i+1]]
+            idx = index[index_bins[i]:index_bins[i+1]]
 
             # Request with exponential back off wait time
             sleep_time = 2
             num_retries = 4
             for _ in range(num_retries):
                 try:
-                    data_array = rex_waves[parameter, bins[i]:bins[i+1], :, :, gid]
+                    data_array = rex_waves[parameter,
+                                           bins[i]:bins[i+1], :, :, gid]
                     str_error = None
                 except Exception as err:
                     str_error = str(err)
@@ -380,22 +396,22 @@ def request_wpto_directional_spectrum(
         data['time_index'] = pd.to_datetime(data.time_index)
 
         # Get metadata
-        meta = rex_waves.meta.loc[columns,:]
+        meta = rex_waves.meta.loc[columns, :]
         meta = meta.reset_index(drop=True)
         meta['gid'] = gid
 
         # Convert gid to integer or list of integers
         # gid_list = [int(g) for g in gid] if isinstance(gid, list) else [int(gid)]
         # gid_list = [int(g) for g in gid] if isinstance(gid, list) else [int(gid)]
-        gid_list = [int(g) for g in gid] if isinstance(gid, (list, np.ndarray)) else [int(gid)]
+        gid_list = [int(g) for g in gid] if isinstance(
+            gid, (list, np.ndarray)) else [int(gid)]
 
         data_var_concat = xr.concat([data[g] for g in gid_list], dim='gid')
 
-
-
         # Create a new DataArray with the correct dimensions and coordinates
         spectral_density = xr.DataArray(
-            data_var_concat.data.reshape(-1, len(frequency), len(direction), len(gid_list)),
+            data_var_concat.data.reshape(-1, len(frequency),
+                                         len(direction), len(gid_list)),
             dims=['time_index', 'frequency', 'direction', 'gid'],
             coords={
                 'time_index': data['time_index'],
