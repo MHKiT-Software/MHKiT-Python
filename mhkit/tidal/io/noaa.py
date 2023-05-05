@@ -136,6 +136,9 @@ def _xml_to_dataframe(response):
     Returns a dataframe from an xml response
     '''
     root = ET.fromstring(response.text)
+    metadata = None
+    data = None
+
     for child in root:
         # Save meta data dictionary
         if child.tag == 'metadata':
@@ -146,16 +149,16 @@ def _xml_to_dataframe(response):
             print('***ERROR: Response returned error')
             return None
 
-    # Create a list of DataFrames using list comprehension
-    dataframes = [pd.DataFrame(obs.attrib, index=[0]) for obs in data]
+    if data is None:
+        print('***ERROR: No observations found')
+        return None
 
-    # Concatenate all the DataFrames in the list
-    df = pd.concat(dataframes, ignore_index=True)
+    # Create a list of DataFrames then Concatenate
+    df = pd.concat([pd.DataFrame(obs.attrib, index=[0])
+                   for obs in data], ignore_index=True)
 
     # Convert time to datetime
     df['t'] = pd.to_datetime(df.t)
-
-    # Set as index
     df = df.set_index('t')
     df.drop_duplicates(inplace=True)
 
