@@ -1,9 +1,9 @@
 import xml.etree.ElementTree as ET
+import datetime
+import json
+import math
 import pandas as pd
 import requests
-import json
-import datetime
-import math
 
 
 def request_noaa_data(station, parameter, start_date, end_date,
@@ -39,11 +39,9 @@ def request_noaa_data(station, parameter, start_date, end_date,
         variable description
 
     """
-    # Parse start and end dates
-    year0, month0, day0 = int(start_date[0:4]), int(
-        start_date[4:6]), int(start_date[6:8])
-    year1, month1, day1 = int(end_date[0:4]), int(
-        end_date[4:6]), int(end_date[6:8])
+    # Convert start and end dates to datetime objects
+    begin = datetime.datetime.strptime(start_date, '%Y%m%d').date()
+    end = datetime.datetime.strptime(end_date, '%Y%m%d').date()
     # Convert to datetime
     begin = datetime.date(year0, month0, day0)
     end = datetime.date(year1, month1, day1)
