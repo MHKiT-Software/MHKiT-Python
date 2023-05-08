@@ -1051,6 +1051,11 @@ def get_buoy_metadata(station_number: str):
     # Extract the title (remove the trailing image and whitespace)
     title = title_element.get_text(strip=True).split('\n')[0]
 
+    # Check if the title element exists
+    if title == 'Station not found':
+        raise ValueError(
+            f"Invalid or nonexistent station number: {station_number}")
+
     # Save buoy name to a dictionary
     data = {}
     data['buoy'] = title
