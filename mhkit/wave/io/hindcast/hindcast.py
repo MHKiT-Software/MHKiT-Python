@@ -171,7 +171,7 @@ def request_wpto_point_data(
     assert isinstance(str_decode, bool), 'str_decode must be bool type'
     assert isinstance(hsds, bool), 'hsds must be bool type'
     assert isinstance(path, (str, type(None))), 'path must be a string'
-assert is instance(as_xarray, bool), 'as_xarray must be bool type'
+    assert is instance(as_xarray, bool), 'as_xarray must be bool type'
 
     if 'directional_wave_spectrum' in parameter:
         sys.exit('This function does not support directional_wave_spectrum output')
