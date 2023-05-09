@@ -16,8 +16,8 @@ def _slice_circular_capture_area(diameter, hub_height, doppler_cell_size):
 
     Args:
         diameter (numeric): Diameter of the capture area.
-        hub_height (numeric): Altitude above the seabed. Assumes ADCP depth 
-        bins are referenced to the seafloor.
+        hub_height (numeric): Turbine hub height altitude above the seabed. 
+        Assumes ADCP depth bins are referenced to the seafloor.
         doppler_cell_size (numeric): ADCP depth bin size.
 
     Returns:
@@ -76,9 +76,6 @@ def _slice_circular_capture_area(diameter, hub_height, doppler_cell_size):
     else:
         As_slc = abs(As_slc)
 
-    # Make sure the circle was sliced correctly
-    assert(round(A_cap,6)==round(As_slc.sum(),6))
-
     return xr.DataArray(As_slc, coords={'range': A_rng})
 
 
@@ -90,8 +87,8 @@ def _slice_rectangular_capture_area(height, width, hub_height, doppler_cell_size
     Args:
         height (numeric): Height of the capture area.
         width (numeric): Width of the capture area.
-        hub_height (numeric): Altitude above the seabed. Assumes ADCP depth 
-        bins are referenced to the seafloor.
+        hub_height (numeric): Turbine hub height altitude above the seabed. 
+        Assumes ADCP depth bins are referenced to the seafloor.
         doppler_cell_size (numeric): ADCP depth bin size.
 
     Returns:
@@ -111,11 +108,15 @@ def _slice_rectangular_capture_area(height, width, hub_height, doppler_cell_size
 
     As_slc = np.ones(len(A_rng))*width*cs
 
-    # Make sure the rectangle was sliced correctly
-    assert(round(A_cap,6)==round(As_slc.sum(),6))
-
     return xr.DataArray(As_slc, coords={'range': A_rng})
 
+
+def _check_dtype(var, var_name):
+    if isinstance(var, pd.Series):
+        var = var.to_xarray()
+    elif not isinstance(var, xr.DataArray):
+        raise Exception(var_name.capitalize() + ' must be of type xr.DataArray or pd.Series')
+    return var
 
 def power_curve(power, 
                 velocity,
@@ -136,8 +137,8 @@ def power_curve(power,
         output timeseries.
         velocity (pandas.Series or xarray.DataArray ([range,] time)): 
         Streamwise sea water velocity or sea water speed.
-        hub_height (numeric): Altitude above the seabed. Assumes ADCP depth 
-        bins are referenced to the seafloor.
+        hub_height (numeric): Turbine hub height altitude above the seabed. 
+        Assumes ADCP depth bins are referenced to the seafloor.
         doppler_cell_size (numeric): ADCP depth bin size.
         sampling_frequency (numeric): ADCP sampling frequency in Hz.
         window_avg_time (int, optional): Time averaging window in seconds. 
@@ -157,9 +158,12 @@ def power_curve(power,
          max and min power vs hub-height velocity.
     """
 
-    # Assert velocity is 2D xarray or pandas and has dims range, time
+    # Velocity should be a 2D xarray or pandas array and have dims (range, time)
     # Power should have a timestamp coordinate/index
-    dtype = type(velocity)
+    power = _check_dtype(power, 'power')
+    velocity = _check_dtype(velocity, 'velocity')
+    assert len(velocity.shape)==2, \
+        "Velocity should be 2 dimensional have dimensions of 'time' (temporal) and 'range' (spatial)."
 
     if turbine_profile=='rectangular':
         if height is None:
@@ -171,6 +175,8 @@ def power_curve(power,
         if diameter is None:
             raise Exception("`diameter` cannot be None for input `turbine_profile` = 'circular'.")
         A_slc = _slice_circular_capture_area(diameter, hub_height, doppler_cell_size)
+    else:
+        raise Exception("`turbine_profile` must be one of 'circular' or 'rectangular'.")
 
     # Streamwise data
     U = abs(velocity)
@@ -182,7 +188,7 @@ def power_curve(power,
     # Interpolate U range to capture area slices, then cube and multiply by area
     U_hat = U.interp(range=A_slc['range'], method='linear')**3 * A_slc
     # Average the velocity across the capture area and divide out area
-    U_hat = (U_hat.mean('range') / A_slc.sum()) ** (-1/3)
+    U_hat = (U_hat.sum('range') / A_slc.sum()) ** (-1/3)
 
     # Time-average velocity at hub-height
     bnr = dolfyn.VelBinner(n_bin=window_avg_time*sampling_frequency, fs=sampling_frequency)
@@ -218,7 +224,7 @@ def power_curve(power,
                         P_bar_max.to_series(),
                         P_bar_min.to_series(),                        
                         )).T
-    out.columns = ['U_mean','U_mean_power_weighted','P_mean','P_std','P_max','P_min']
+    out.columns = ['U_avg','U_avg_power_weighted','P_avg','P_std','P_max','P_min']
     out.index.name = 'U_bins'
 
     return out
@@ -257,8 +263,8 @@ def mean_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_
     Args:
         velocity (pandas.Series or xarray.DataArray ([range,] time)): 
         Streamwise sea water velocity or sea water speed.
-        hub_height (numeric): Altitude above the seabed. Assumes ADCP depth 
-        bins are referenced to the seafloor.
+        hub_height (numeric): Turbine hub height altitude above the seabed. 
+        Assumes ADCP depth bins are referenced to the seafloor.
         sampling_frequency (numeric): ADCP sampling frequency in Hz.
         window_avg_time (int, optional): Time averaging window in seconds. 
         Defaults to 600.
@@ -267,6 +273,10 @@ def mean_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_
         pandas.DataFrame: Average velocity profiles based on ensemble mean
         velocity.
     """
+
+    velocity = _check_dtype(velocity, 'velocity')
+    assert len(velocity.shape)==2, \
+        "Velocity should be 2 dimensional have dimensions of 'time' (temporal) and 'range' (spatial)."
 
     # Streamwise data
     U = velocity
@@ -295,8 +305,8 @@ def rms_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
     Args:
         velocity (pandas.Series or xarray.DataArray ([range,] time)): 
         Streamwise sea water velocity or sea water speed.
-        hub_height (numeric): Altitude above the seabed. Assumes ADCP depth 
-        bins are referenced to the seafloor.
+        hub_height (numeric): Turbine hub height altitude above the seabed. 
+        Assumes ADCP depth bins are referenced to the seafloor.
         sampling_frequency (numeric): ADCP sampling frequency in Hz.
         window_avg_time (int, optional): Time averaging window in seconds. 
         Defaults to 600.
@@ -305,6 +315,10 @@ def rms_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
         pandas.DataFrame: Root-mean-square velocity profiles based on RMS of
         raw velocity.
     """
+
+    velocity = _check_dtype(velocity, 'velocity')
+    assert len(velocity.shape)==2, \
+        "Velocity should be 2 dimensional have dimensions of 'time' (temporal) and 'range' (spatial)."
 
     # Streamwise data
     U = velocity
@@ -338,8 +352,8 @@ def std_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
     Args:
         velocity (pandas.Series or xarray.DataArray ([range,] time)): 
         Streamwise sea water velocity or sea water speed.
-        hub_height (numeric): Altitude above the seabed. Assumes ADCP depth 
-        bins are referenced to the seafloor.
+        hub_height (numeric): Turbine hub height altitude above the seabed. 
+        Assumes ADCP depth bins are referenced to the seafloor.
         sampling_frequency (numeric): ADCP sampling frequency in Hz.
         window_avg_time (int, optional): Time averaging window in seconds. 
         Defaults to 600.
@@ -348,6 +362,10 @@ def std_velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_t
         pandas.DataFrame: Standard deviation of velocity profiles based on
         ensemble standard deviation.
     """
+
+    velocity = _check_dtype(velocity, 'velocity')
+    assert len(velocity.shape)==2, \
+        "Velocity should be 2 dimensional have dimensions of 'time' (temporal) and 'range' (spatial)."
 
     # Streamwise data
     U = velocity
@@ -386,8 +404,8 @@ def device_efficiency(power,
         water_density (float, pandas.Series or xarray.DataArray): Sea 
         water density in kg/m^3.
         capture_area (numeric): Swept area of marine energy device.
-        hub_height (numeric): Altitude above the seabed. Assumes ADCP depth 
-        bins are referenced to the seafloor.
+        hub_height (numeric): Turbine hub height altitude above the seabed. 
+        Assumes ADCP depth bins are referenced to the seafloor.
         sampling_frequency (numeric): ADCP sampling frequency in Hz.
         window_avg_time (int, optional): Time averaging window in seconds. 
         Defaults to 600.
@@ -396,8 +414,12 @@ def device_efficiency(power,
         pandas.Series: Device efficiency (power coefficient) in percent.
     """
 
-    # Assert velocity is 2D xarray or pandas and has dims range, time
+    # Velocity should be a 2D xarray or pandas array and have dims (range, time)
     # Power should have a timestamp coordinate/index
+    power = _check_dtype(power, 'power')
+    velocity = _check_dtype(velocity, 'velocity')
+    assert len(velocity.shape)==2, \
+        "Velocity should be 2 dimensional have dimensions of 'time' (temporal) and 'range' (spatial)."
 
     # Streamwise data
     U = velocity
