@@ -61,7 +61,6 @@ def request_noaa_data(station, parameter, start_date, end_date,
     data : pandas DataFrame 
         Data indexed by datetime with columns named according to the parameter's 
         variable description
-
     """
     # Convert start and end dates to datetime objects
     begin = datetime.datetime.strptime(start_date, '%Y%m%d').date()
