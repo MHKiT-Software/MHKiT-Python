@@ -21,6 +21,7 @@ Dependencies:
 - sys
 - time.sleep
 - pandas
+- xarray
 - numpy
 - rex.MultiYearWaveX, rex.WaveX
 """
@@ -41,7 +42,7 @@ def region_selection(lat_lon):
     Parameters
     ----------
     lat_lon : list or tuple
-        Latitude and longitude coordinates as flaots or integers
+        Latitude and longitude coordinates as floats or integers
 
     Returns
     -------
@@ -170,6 +171,7 @@ def request_wpto_point_data(
     assert isinstance(str_decode, bool), 'str_decode must be bool type'
     assert isinstance(hsds, bool), 'hsds must be bool type'
     assert isinstance(path, (str, type(None))), 'path must be a string'
+    assert isinstance(as_xarray, bool), 'as_xarray must be bool type'
 
     if 'directional_wave_spectrum' in parameter:
         sys.exit('This function does not support directional_wave_spectrum output')
