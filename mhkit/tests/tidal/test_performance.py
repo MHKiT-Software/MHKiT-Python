@@ -18,12 +18,10 @@ class TestResource(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        filename1 = join(datadir, 'adcp.enu.b1.20200815.nc')
-        filename2 = join(datadir, 'adcp.principal.a1.20200815.nc') 
-        self.ds_avg = load(filename1)
-        self.ds = load(filename2)
+        filename = join(datadir, 'adcp.principal.a1.20200815.nc') 
+        self.ds = load(filename)
         # Emulate power data
-        self.power = self.ds_avg['U_mag'][10]**3 * 1e5
+        self.power = abs(self.ds['vel'][0,10]**3 * 1e5)
 
     @classmethod
     def tearDownClass(self):
@@ -70,21 +68,24 @@ class TestResource(unittest.TestCase):
         assert_allclose(df93_rect.values[-3], test_rect, atol=1e-5)
 
     def test_velocity_profiles(self):
-        df94 = performance.mean_velocity_profiles(
+        df94 = performance.velocity_profiles(
             velocity=self.ds['vel'].sel(dir='streamwise'), 
             hub_height=4.2,
             sampling_frequency=1, 
-            window_avg_time=600)
-        df95a = performance.rms_velocity_profiles(
+            window_avg_time=600,
+            function='mean')
+        df95a = performance.velocity_profiles(
             velocity=self.ds['vel'].sel(dir='streamwise'), 
             hub_height=4.2,
             sampling_frequency=1,
-            window_avg_time=600)
-        df95b = performance.std_velocity_profiles(
+            window_avg_time=600,
+            function='rms')
+        df95b = performance.velocity_profiles(
             velocity=self.ds['vel'].sel(dir='streamwise'), 
             hub_height=4.2, 
             sampling_frequency=1, 
-            window_avg_time=600)
+            window_avg_time=600,
+            function='std')
         
         test_df94 = np.array([0.32782955, 0.69326691, 1.00948623])
         test_df95a = np.array([0.3329345 , 0.69936798, 1.01762123])
