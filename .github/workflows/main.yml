@@ -19,6 +19,8 @@ jobs:
       matrix:
         os: ["windows-latest", "ubuntu-latest", "macos-latest"]
         python-version: [3.7, 3.8, 3.9]
+    env:
+      PYTHON_VER: ${{ matrix.python-version }}
 
     steps:
       - uses: actions/checkout@v2
@@ -32,7 +34,7 @@ jobs:
       - name: Python ${{ matrix.python-version }}
         shell: bash -l {0}
         run: |
-          conda create --name TEST python=${{ matrix.python-version }} numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
+          conda create --name TEST python=${PYTHON_VER} numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
           source activate TEST
           export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH" # so setup.py finds nc-config
           pip install -e . --no-deps --force-reinstall
