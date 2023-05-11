@@ -123,18 +123,12 @@ jobs:
           export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH" # so setup.py finds nc-config
           pip install -e . --no-deps --force-reinstall
 
-      - name: Install MHKiT
+      - name: Install MHKiT and run pytest
         shell: bash -l {0}
         run: |
           source activate TEST
           python -m pip install --upgrade pip wheel
-          pip install coveralls
-          pip install .
-
-      - name: Run pytest
-        shell: bash -l {0}
-        run: |
-          source activate TEST
+          pip install coveralls .
           coverage run --rcfile=.github/workflows/.coveragehindcastrc -m  pytest -c  .github/workflows/pytest-hindcast.ini
 
       - name: Upload coverage data to coveralls.io
