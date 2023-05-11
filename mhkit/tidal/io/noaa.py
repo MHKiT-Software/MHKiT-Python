@@ -22,12 +22,14 @@ read_noaa_json(filename):
     Reads a JSON file containing NOAA data saved from the request_noaa_data function and returns a DataFrame with 
     timeseries site data and metadata.
 """
+import os
 import xml.etree.ElementTree as ET
 import datetime
 import json
 import math
 import pandas as pd
 import requests
+import hashlib
 
 
 def request_noaa_data(station, parameter, start_date, end_date,
@@ -36,7 +38,7 @@ def request_noaa_data(station, parameter, start_date, end_date,
     Loads NOAA current data directly from https://tidesandcurrents.noaa.gov/api/ using a 
     get request into a pandas DataFrame. NOAA sets max of 31 days between start and end date.
     See https://co-ops.nos.noaa.gov/api/ for options. All times are reported as GMT and metric
-    units are returned for data.
+    units are returned for data. Uses cached data if available.
 
     The request URL prints to the screen.
 
@@ -62,6 +64,23 @@ def request_noaa_data(station, parameter, start_date, end_date,
         Data indexed by datetime with columns named according to the parameter's 
         variable description
     """
+    # Define the path to the cache directory
+    cache_dir = os.path.expanduser("~/mhkit-api-cache")
+
+    # Create a unique filename based on the function parameters
+    hash_params = f"{station}_{parameter}_{start_date}_{end_date}"
+    cache_filename = hashlib.md5(
+        hash_params.encode('utf-8')).hexdigest() + ".json"
+    cache_filepath = os.path.join(cache_dir, cache_filename)
+
+    # If a cached file exists, load and return the data from the file
+    if os.path.isfile(cache_filepath):
+        with open(cache_filepath, "r") as f:
+            jsonData = json.load(f)
+        data = pd.DataFrame.from_dict(jsonData)
+        metadata = jsonData['metadata']
+        return data, metadata
+
     # Convert start and end dates to datetime objects
     begin = datetime.datetime.strptime(start_date, '%Y%m%d').date()
     end = datetime.datetime.strptime(end_date, '%Y%m%d').date()
@@ -98,6 +117,14 @@ def request_noaa_data(station, parameter, start_date, end_date,
 
     # Remove duplicated date values
     data = data.loc[~data.index.duplicated()]
+
+  # After making the API request and processing the response, write the response to a cache file
+    if not os.path.isdir(cache_dir):
+        os.makedirs(cache_dir)
+    with open(cache_filepath, "w") as outfile:
+        pyData = data.to_json()
+        pyData['metadata'] = metadata
+        json.dump(pyData, outfile)
 
     # Write json if specified
     if write_json is not None:
