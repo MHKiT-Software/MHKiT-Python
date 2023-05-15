@@ -70,6 +70,10 @@ def request_noaa_data(station, parameter, start_date, end_date,
     # Define the path to the cache directory
     cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit")
 
+    # Make cache directory if it doesn't exist
+    if not os.path.isdir(cache_dir):
+        os.makedirs(cache_dir)
+
     # Create a unique filename based on the function parameters
     hash_params = f"{station}_{parameter}_{start_date}_{end_date}"
     cache_filename = hashlib.md5(
@@ -82,8 +86,6 @@ def request_noaa_data(station, parameter, start_date, end_date,
         print(f"Cleared cache for {cache_filepath}")
 
     # If a cached file exists, load and return the data from the file
-    if not os.path.isdir(cache_dir):
-        os.makedirs(cache_dir)
     if os.path.isfile(cache_filepath):
         with open(cache_filepath, "r") as f:
             jsonData = json.load(f)
@@ -93,7 +95,7 @@ def request_noaa_data(station, parameter, start_date, end_date,
         # Convert the rest to DataFrame
         data = pd.DataFrame(
             jsonData['data'],
-            index=jsonData['index'],
+            index=pd.to_datetime(jsonData['index']),
             columns=jsonData['columns']
         )
 
@@ -127,8 +129,16 @@ def request_noaa_data(station, parameter, start_date, end_date,
         print('Data request URL: ', data_url)
 
         # Get response
-        response = requests.get(url=data_url, proxies=proxy)
-
+        # Handle potential request errors
+        try:
+            response = requests.get(url=data_url, proxies=proxy)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            print(f"HTTP error occurred: {err}")
+            continue
+        except requests.exceptions.RequestException as err:
+            print(f"Error occurred: {err}")
+            continue
         # Convert to DataFrame and save in data_frames list
         df, metadata = _xml_to_dataframe(response)
         data_frames.append(df)
@@ -152,9 +162,9 @@ def request_noaa_data(station, parameter, start_date, end_date,
         pyData['index'] = [dt.strftime('%Y-%m-%d %H:%M:%S')
                            for dt in pyData['index']]
         json.dump(pyData, outfile)
-        if write_json is not None:
-            with open(write_json, 'w') as outfile:
-                json.dump(pyData, outfile)
+
+        if write_json:
+            shutil.copy(cache_filepath, write_json)
 
     return data, metadata
 
