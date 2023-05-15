@@ -30,10 +30,11 @@ import math
 import pandas as pd
 import requests
 import hashlib
+import shutil
 
 
 def request_noaa_data(station, parameter, start_date, end_date,
-                      proxy=None, write_json=None):
+                      proxy=None, write_json=None, clear_cache=False):
     """
     Loads NOAA current data directly from https://tidesandcurrents.noaa.gov/api/ using a 
     get request into a pandas DataFrame. NOAA sets max of 31 days between start and end date.
@@ -57,6 +58,8 @@ def request_noaa_data(station, parameter, start_date, end_date,
          for example {"http": 'localhost:8080'}
     write_json : str or None
         Name of json file to write data
+    clear_cache : bool
+        If True, the cache for this specific request will be cleared.        
 
     Returns
     -------
@@ -65,7 +68,7 @@ def request_noaa_data(station, parameter, start_date, end_date,
         variable description
     """
     # Define the path to the cache directory
-    cache_dir = os.path.expanduser("~/mhkit-api-cache")
+    cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit")
 
     # Create a unique filename based on the function parameters
     hash_params = f"{station}_{parameter}_{start_date}_{end_date}"
@@ -73,12 +76,30 @@ def request_noaa_data(station, parameter, start_date, end_date,
         hash_params.encode('utf-8')).hexdigest() + ".json"
     cache_filepath = os.path.join(cache_dir, cache_filename)
 
+    # If clear_cache is True, remove the cache file for this request
+    if clear_cache and os.path.isfile(cache_filepath):
+        os.remove(cache_filepath)
+        print(f"Cleared cache for {cache_filepath}")
+
     # If a cached file exists, load and return the data from the file
+    if not os.path.isdir(cache_dir):
+        os.makedirs(cache_dir)
     if os.path.isfile(cache_filepath):
         with open(cache_filepath, "r") as f:
             jsonData = json.load(f)
-        data = pd.DataFrame.from_dict(jsonData)
-        metadata = jsonData['metadata']
+
+        # Extract metadata
+        metadata = jsonData.pop('metadata', None)
+        # Convert the rest to DataFrame
+        data = pd.DataFrame(
+            jsonData['data'],
+            index=jsonData['index'],
+            columns=jsonData['columns']
+        )
+
+        if write_json:
+            shutil.copy(cache_filepath, write_json)
+
         return data, metadata
 
     # Convert start and end dates to datetime objects
@@ -118,25 +139,23 @@ def request_noaa_data(station, parameter, start_date, end_date,
     # Remove duplicated date values
     data = data.loc[~data.index.duplicated()]
 
-  # After making the API request and processing the response, write the response to a cache file
+    # After making the API request and processing the response, write the
+    #  response to a cache file
     if not os.path.isdir(cache_dir):
         os.makedirs(cache_dir)
     with open(cache_filepath, "w") as outfile:
-        pyData = data.to_json()
+        # Convert DataFrame to python dict
+        pyData = data.to_dict(orient='split')
+        # Add metadata to pyData
         pyData['metadata'] = metadata
+        # Write the pyData to a json file
+        pyData['index'] = [dt.strftime('%Y-%m-%d %H:%M:%S')
+                           for dt in pyData['index']]
         json.dump(pyData, outfile)
+        if write_json is not None:
+            with open(write_json, 'w') as outfile:
+                json.dump(pyData, outfile)
 
-    # Write json if specified
-    if write_json is not None:
-        with open(write_json, 'w') as outfile:
-            # Convert DataFrame to json
-            jsonData = data.to_json()
-            # Convert to python object data
-            pyData = json.loads(jsonData)
-            # Add metadata to pyData
-            pyData['metadata'] = metadata
-            # Wrtie the pyData to a json file
-            json.dump(pyData, outfile)
     return data, metadata
 
 

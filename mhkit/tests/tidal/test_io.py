@@ -14,6 +14,7 @@ These tests include:
 """
 from os.path import abspath, dirname, join, normpath, relpath
 import unittest
+import time
 import os
 import json
 
@@ -74,7 +75,7 @@ class TestIO(unittest.TestCase):
         and can be loaded back into a dictionary.
         """
         test_json_file = 'test_noaa_data.json'
-        data, metadata = tidal.io.noaa.request_noaa_data(
+        _, _ = tidal.io.noaa.request_noaa_data(
             station='s08010',
             parameter='currents',
             start_date='20180101',
@@ -90,9 +91,9 @@ class TestIO(unittest.TestCase):
         os.remove(test_json_file)  # Clean up the test JSON file
 
         self.assertIn('metadata', loaded_data)
-        self.assertIn('s', loaded_data)
-        self.assertIn('d', loaded_data)
-        self.assertIn('b', loaded_data)
+        self.assertIn('s', loaded_data['columns'])
+        self.assertIn('d', loaded_data['columns'])
+        self.assertIn('b', loaded_data['columns'])
 
     def test_request_noaa_data_invalid_dates(self):
         """
