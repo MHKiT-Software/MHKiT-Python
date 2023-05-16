@@ -29,8 +29,8 @@ import json
 import math
 import pandas as pd
 import requests
-import hashlib
 import shutil
+from mhkit.utils.cache_utils import handle_caching
 
 
 def request_noaa_data(station, parameter, start_date, end_date,
@@ -68,41 +68,18 @@ def request_noaa_data(station, parameter, start_date, end_date,
         variable description
     """
     # Define the path to the cache directory
-    cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit")
-
-    # Make cache directory if it doesn't exist
-    if not os.path.isdir(cache_dir):
-        os.makedirs(cache_dir)
+    cache_dir = os.path.join(os.path.expanduser("~"),
+                             ".cache", "mhkit", "noaa")
 
     # Create a unique filename based on the function parameters
     hash_params = f"{station}_{parameter}_{start_date}_{end_date}"
-    cache_filename = hashlib.md5(
-        hash_params.encode('utf-8')).hexdigest() + ".json"
-    cache_filepath = os.path.join(cache_dir, cache_filename)
 
-    # If clear_cache is True, remove the cache file for this request
-    if clear_cache and os.path.isfile(cache_filepath):
-        os.remove(cache_filepath)
-        print(f"Cleared cache for {cache_filepath}")
+    # Use handle_caching to manage cache
+    cached_data, cached_metadata, cache_filepath = handle_caching(
+        hash_params, cache_dir, write_json=write_json, clear_cache=clear_cache)
 
-    # If a cached file exists, load and return the data from the file
-    if os.path.isfile(cache_filepath):
-        with open(cache_filepath, "r") as f:
-            jsonData = json.load(f)
-
-        # Extract metadata
-        metadata = jsonData.pop('metadata', None)
-        # Convert the rest to DataFrame
-        data = pd.DataFrame(
-            jsonData['data'],
-            index=pd.to_datetime(jsonData['index']),
-            columns=jsonData['columns']
-        )
-
-        if write_json:
-            shutil.copy(cache_filepath, write_json)
-
-        return data, metadata
+    if cached_data is not None:
+        return cached_data, cached_metadata
 
     # Convert start and end dates to datetime objects
     begin = datetime.datetime.strptime(start_date, '%Y%m%d').date()
@@ -151,20 +128,11 @@ def request_noaa_data(station, parameter, start_date, end_date,
 
     # After making the API request and processing the response, write the
     #  response to a cache file
-    if not os.path.isdir(cache_dir):
-        os.makedirs(cache_dir)
-    with open(cache_filepath, "w") as outfile:
-        # Convert DataFrame to python dict
-        pyData = data.to_dict(orient='split')
-        # Add metadata to pyData
-        pyData['metadata'] = metadata
-        # Write the pyData to a json file
-        pyData['index'] = [dt.strftime('%Y-%m-%d %H:%M:%S')
-                           for dt in pyData['index']]
-        json.dump(pyData, outfile)
+    handle_caching(hash_params, cache_dir, data=data,
+                   metadata=metadata, clear_cache=clear_cache)
 
-        if write_json:
-            shutil.copy(cache_filepath, write_json)
+    if write_json:
+        shutil.copy(cache_filepath, write_json)
 
     return data, metadata
 

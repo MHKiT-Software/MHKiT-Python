@@ -2,7 +2,6 @@ import os
 import pandas as pd
 import json
 import requests
-import hashlib
 import shutil
 from mhkit.utils.cache_utils import handle_caching
 
@@ -98,7 +97,8 @@ def request_usgs_data(
         'Daily', 'Instantaneous'], 'data_type must be Daily or Instantaneous'
 
     # Define the path to the cache directory
-    cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit/usgs")
+    cache_dir = os.path.join(os.path.expanduser("~"),
+                             ".cache", "mhkit", "usgs")
 
     # Create a unique filename based on the function parameters
     hash_params = f"{station}_{parameter}_{start_date}_{end_date}_{data_type}"
@@ -132,7 +132,7 @@ def request_usgs_data(
 
     # After making the API request and processing the response, write the
     #  response to a cache file
-    handle_caching(hash_params, cache_dir, data, clear_cache)
+    handle_caching(hash_params, cache_dir, data=data, clear_cache=clear_cache)
 
     if write_json:
         shutil.copy(cache_filepath, write_json)
