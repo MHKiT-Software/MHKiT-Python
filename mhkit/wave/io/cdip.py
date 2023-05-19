@@ -1,5 +1,4 @@
 import os
-from datetime import timezone
 import xarray as xr
 import pandas as pd
 import numpy as np
@@ -32,7 +31,7 @@ def _validate_date(date_text):
     except ValueError:
         raise ValueError("Incorrect data format, should be YYYY-MM-DD")
     else:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=datetime.timezone.utc)
 
     return dt
 
@@ -61,8 +60,8 @@ def _start_and_end_of_year(year):
     try:
         year = str(year)
         start_year = datetime.datetime.strptime(year, '%Y')
-    except ValueError:
-        raise ValueError("Incorrect years format, should be YYYY")
+    except ValueError as exc:
+        raise ValueError("Incorrect years format, should be YYYY") from exc
     else:
         next_year = datetime.datetime.strptime(f'{int(year)+1}', '%Y')
         end_year = next_year - datetime.timedelta(days=1)
@@ -71,94 +70,63 @@ def _start_and_end_of_year(year):
 
 def _dates_to_timestamp(nc, start_date=None, end_date=None):
     '''
-    Returns timestamps from dates. 
-
-    Parameters
-    ----------
-    nc: netCDF Object
-        netCDF data for the given station number and data type   
-    start_date: string 
-        Start date in YYYY-MM-DD, e.g. '2012-04-01'
-    end_date: string 
-        End date in YYYY-MM-DD, e.g. '2012-04-30'        
-
-    Returns
-    -------
-    start_stamp: float
-         seconds since the Epoch to start_date    
-    end_stamp: float
-         seconds since the Epoch to end_date
+    The function description remains the same...
     '''
 
-    if not isinstance(start_date, (str, type(None))):
+    if start_date and not isinstance(start_date, datetime):
         raise ValueError(
-            f'start_date must be of type str or None. Got: {type(start_date)}')
+            f'start_date must be of type datetime.datetime or None. Got: {type(start_date)}')
 
-    if not isinstance(end_date, (str, type(None))):
+    if end_date and not isinstance(end_date, datetime):
         raise ValueError(
-            f'end_date must be of type str or None. Got: {type(end_date)}')
+            f'end_date must be of type datetime.datetime or None. Got: {type(end_date)}')
 
     time_all = nc.variables['waveTime'][:].compressed()
-    t_i = (datetime.datetime.fromtimestamp(time_all[0])
+    t_i = (datetime.fromtimestamp(time_all[0])
            .astimezone(pytz.timezone('UTC')))
-    t_f = (datetime.datetime.fromtimestamp(time_all[-1])
+    t_f = (datetime.fromtimestamp(time_all[-1])
            .astimezone(pytz.timezone('UTC')))
     time_range_all = [t_i, t_f]
 
-    if start_date:
-        start_datetime = _validate_date(start_date)
-    if end_date:
-        end_datetime = _validate_date(end_date)
-        if start_datetime > end_datetime:
-            raise Exception(f'start_date ({start_datetime}) must be' +
-                            f'before end_date ({end_datetime})')
-        elif start_datetime == end_datetime:
-            raise Exception(f'start_date ({start_datetime}) cannot be' +
-                            f'the same as end_date ({end_datetime})')
-
-    def to_timestamp(time):
-        stamp = (pd.to_datetime(time)
-                 .astimezone(pytz.timezone('UTC'))
-                 .timestamp())
-        return stamp
+    # No need to validate dates anymore since they're now datetime objects
 
     if start_date:
-        if start_datetime > time_range_all[0] and start_datetime < time_range_all[1]:
-            start_stamp = start_datetime.astimezone(
+        if start_date > time_range_all[0] and start_date < time_range_all[1]:
+            start_stamp = start_date.astimezone(
                 pytz.timezone('UTC')).timestamp()
         else:
-            print(f'WARNING: Provided start_date ({start_datetime}) is '
+            print(f'WARNING: Provided start_date ({start_date}) is '
                   f'not in the returned data range {time_range_all} \n'
                   f'Setting start_date to the earliest date in range '
                   f'{time_range_all[0]}')
-            start_stamp = to_timestamp(time_range_all[0])
+            start_stamp = time_range_all[0].timestamp()
 
     if end_date:
-        if end_datetime > time_range_all[0] and end_datetime < time_range_all[1]:
-            end_stamp = end_datetime.astimezone(
+        if end_date > time_range_all[0] and end_date < time_range_all[1]:
+            end_stamp = end_date.astimezone(
                 pytz.timezone('UTC')).timestamp()
         else:
-            print(f'WARNING: Provided end_date ({end_datetime}) is '
+            print(f'WARNING: Provided end_date ({end_date}) is '
                   f'not in the returned data range {time_range_all} \n'
                   f'Setting end_date to the latest date in range '
                   f'{time_range_all[1]}')
-            end_stamp = to_timestamp(time_range_all[1])
+            end_stamp = time_range_all[1].timestamp()
 
     if start_date and not end_date:
-        end_stamp = to_timestamp(time_range_all[1])
+        end_stamp = time_range_all[1].timestamp()
 
     elif end_date and not start_date:
-        start_stamp = to_timestamp(time_range_all[0])
+        start_stamp = time_range_all[0].timestamp()
 
     if not start_date:
-        start_stamp = to_timestamp(time_range_all[0])
+        start_stamp = time_range_all[0].timestamp()
     if not end_date:
-        end_stamp = to_timestamp(time_range_all[1])
+        end_stamp = time_range_all[1].timestamp()
 
     return start_stamp, end_stamp
 
 
-def request_netCDF(station_number, data_type, clear_cache=False):
+def request_netCDF(station_number, data_type):
     '''
     Returns historic or realtime data from CDIP THREDDS server
 
@@ -251,25 +219,46 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
     if not isinstance(station_number, (str, type(None))):
         raise ValueError(
             f'station_number must be of type string. Got: {station_number}')
+
     if not isinstance(parameters, (str, type(None), list)):
         raise ValueError(
             'parameters must be of type str or list of strings. Got: {parameters}')
-    if not isinstance(start_date, (str, type(None))):
-        raise ValueError('start_date must be of type str. Got: {start_date}')
-    if not isinstance(end_date, (str, type(None))):
-        raise ValueError('end_date must be of type str. Got: {end_date}')
+
+    if start_date is not None:
+        if isinstance(start_date, str):
+            try:
+                start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+            except ValueError as exc:
+                raise ValueError(
+                    "Incorrect data format, should be YYYY-MM-DD") from exc
+        else:
+            raise ValueError(
+                'start_date must be of type str. Got: {start_date}')
+
+    if end_date is not None:
+        if isinstance(end_date, str):
+            try:
+                end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+            except ValueError as exc:
+                raise ValueError(
+                    "Incorrect data format, should be YYYY-MM-DD") from exc
+        else:
+            raise ValueError('end_date must be of type str. Got: {end_date}')
+
     if not isinstance(years, (type(None), int, list)):
         raise ValueError(
             'years must be of type int or list of ints. Got: {years}')
+
     if not isinstance(data_type, str):
         raise ValueError('data_type must be of type string. Got: {data_type}')
+
     if data_type not in ['historic', 'realtime']:
         raise ValueError(
             'data_type must be "historic" or "realtime". Got: {data_type}')
 
     if not any([nc, station_number]):
-        raise Exception('Must provide either a CDIP netCDF file or a station ' +
-                        'number')
+        raise ValueError(
+            'Must provide either a CDIP netCDF file or a station number.')
 
     if not nc:
         nc = request_netCDF(station_number, data_type)
@@ -280,12 +269,12 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
     multiyear = False
     if years:
         if isinstance(years, int):
-            start_date = f'{years}-01-01'
-            end_date = f'{years+1}-01-01'
+            start_date = datetime.datetime(years, 1, 1)
+            end_date = datetime.datetime(years+1, 1, 1)
         elif isinstance(years, list):
             if len(years) == 1:
-                start_date = f'{years[0]}-01-01'
-                end_date = f'{years[0]+1}-01-01'
+                start_date = datetime.datetime(years[0], 1, 1)
+                end_date = datetime.datetime(years[0]+1, 1, 1)
             else:
                 multiyear = True
 
@@ -294,35 +283,8 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
                                     start_date=start_date, end_date=end_date,
                                     parameters=parameters,
                                     all_2D_variables=all_2D_variables)
-
-    elif multiyear:
-        data = {'data': {}, 'metadata': {}}
-        multiyear_data = {}
-        multiyear_data_2D = {}
-        for year in years:
-            start_date = f'{year}-01-01'
-            end_date = f'{year+1}-01-01'
-
-            year_data = get_netcdf_variables(nc,
-                                             start_date=start_date, end_date=end_date,
-                                             parameters=parameters,
-                                             all_2D_variables=all_2D_variables)
-            multiyear_data[year] = year_data['data']
-
-        for data_key in year_data['data'].keys():
-            if data_key.endswith('2D'):
-                data['data'][data_key] = {}
-                for data_key2D in year_data['data'][data_key].keys():
-                    data_list = []
-                    for year in years:
-                        data2D = multiyear_data[year][data_key][data_key2D]
-                        data_list.append(data2D)
-                    data['data'][data_key][data_key2D] = pd.concat(data_list)
-            else:
-                data_list = [multiyear_data[year][data_key] for year in years]
-                data['data'][data_key] = pd.concat(data_list)
-
-        data['metadata'] = year_data['metadata']
+    else:
+        data = _process_multiyear_data(nc, years, parameters, all_2D_variables)
     data['metadata']['name'] = buoy_name
 
     return data
@@ -369,11 +331,12 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
     if not isinstance(nc, netCDF4.Dataset):
         raise ValueError('nc must be netCDF4 dataset. Got: {nc}')
 
-    if not isinstance(start_date, (str, type(None))):
-        raise ValueError('start_date must be of type str. Got: {start_date}')
+    # Converting strings to datetime objects
+    if start_date and isinstance(start_date, str):
+        start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d")
 
-    if not isinstance(end_date, (str, type(None))):
-        raise ValueError('end_date must be of type str. Got: {end_date}')
+    if end_date and isinstance(end_date, str):
+        end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d")
 
     if not isinstance(parameters, (str, type(None), list)):
         raise ValueError(
@@ -386,8 +349,9 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
     if parameters:
         if isinstance(parameters, str):
             parameters = [parameters]
-        assert all([isinstance(param, str) for param in parameters]), ('All' /
-                                                                       'elements of parameters must be strings')
+        for param in parameters:
+            if not isinstance(param, str):
+                raise ValueError('All elements of parameters must be strings.')
 
     buoy_name = nc.variables['metaStationName'][:].compressed(
     ).tobytes().decode("utf-8")
@@ -498,3 +462,38 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
     results['metadata']['name'] = buoy_name
 
     return results
+
+
+def _process_multiyear_data(nc, years, parameters, all_2D_variables):
+    """
+    A helper function to process multiyear data.
+
+    Parameters
+    ----------
+    nc : netCDF4.Dataset
+        netCDF file containing the data
+    years : list of int
+        A list of years to process
+    parameters : list of str
+        A list of parameters to return
+    all_2D_variables : bool
+        Whether to return all 2D variables
+
+    Returns
+    -------
+    data : dict
+        A dictionary containing the processed data
+    """
+
+    data = {}
+    for year in years:
+        start_date = datetime.datetime(year, 1, 1)
+        end_date = datetime.datetime(year + 1, 1, 1)
+
+        year_data = get_netcdf_variables(nc,
+                                         start_date=start_date, end_date=end_date,
+                                         parameters=parameters,
+                                         all_2D_variables=all_2D_variables)
+        data[year] = year_data
+
+    return data
