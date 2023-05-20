@@ -1,9 +1,14 @@
-import os
-import pandas as pd
-import json
-import requests
+import urllib.request
 import hashlib
+import json
+import os
 import shutil
+import pandas as pd
+import xarray as xr
+import netCDF4
+import requests
+import copy
+import pickle
 
 
 def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=None,
@@ -59,3 +64,30 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
         return data, metadata, cache_filepath
 
     return None, None, cache_filepath
+
+
+def cache_cdip(hash_params, cache_dir, data=None):
+    # Create a unique identifier for this function call
+    hash_id = hashlib.md5(hash_params.encode()).hexdigest()
+
+    # Create cache directory if it doesn't exist
+    os.makedirs(cache_dir, exist_ok=True)
+
+    # Create a path to the cache file for this function call
+    cache_file = os.path.join(cache_dir, f"{hash_id}.pkl")
+
+    if data is not None:
+        # If data is provided, store it in the cache
+        with open(cache_file, 'wb') as f:
+            pickle.dump(data, f)
+        return data, None, None
+
+    elif os.path.isfile(cache_file):
+        # If data is not provided and the cache file exists, load the data from the cache
+        with open(cache_file, 'rb') as f:
+            data = pickle.load(f)
+        return data, None, None
+
+    else:
+        # If data is not provided and the cache file doesn't exist, return None
+        return None, None, None

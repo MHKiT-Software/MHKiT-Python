@@ -5,7 +5,7 @@ import numpy as np
 import datetime
 import netCDF4
 import pytz
-from mhkit.utils.cache_utils import handle_caching
+from mhkit.utils.cache_utils import handle_caching, cache_cdip
 
 
 def _validate_date(date_text):
@@ -265,6 +265,10 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
     if not nc:
         nc = request_netCDF(station_number, data_type)
 
+    # Define the path to the cache directory
+    cache_dir = os.path.join(os.path.expanduser("~"),
+                             ".cache", "mhkit", "cdip")
+
     buoy_name = nc.variables['metaStationName'][:].compressed(
     ).tobytes().decode("utf-8")
 
@@ -281,10 +285,16 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
                 multiyear = True
 
     if not multiyear:
-        data = get_netcdf_variables(nc,
-                                    start_date=start_date, end_date=end_date,
-                                    parameters=parameters,
-                                    all_2D_variables=all_2D_variables)
+        # Check the cache first
+        hash_params = f'{station_number}-{parameters}-{start_date}-{end_date}'
+        data = cache_cdip(hash_params, cache_dir)
+        if data is None:
+            data = get_netcdf_variables(nc,
+                                        start_date=start_date, end_date=end_date,
+                                        parameters=parameters,
+                                        all_2D_variables=all_2D_variables)
+            cache_cdip(hash_params, cache_dir, data=data)
+
     else:
         data = {'data': {}, 'metadata': {}}
         multiyear_data = {}
@@ -292,10 +302,17 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
             start_date = datetime.datetime(year, 1, 1, tzinfo=pytz.UTC)
             end_date = datetime.datetime(year+1, 1, 1, tzinfo=pytz.UTC)
 
-            year_data = get_netcdf_variables(nc,
-                                             start_date=start_date, end_date=end_date,
-                                             parameters=parameters,
-                                             all_2D_variables=all_2D_variables)
+            # Check the cache for each individual year
+            hash_params = f'{station_number}-{parameters}-{start_date}-{end_date}'
+            year_data = cache_cdip(hash_params, cache_dir)
+            year_data = year_data[0]
+            if year_data == (None, None, None):
+                year_data = get_netcdf_variables(nc,
+                                                 start_date=start_date, end_date=end_date,
+                                                 parameters=parameters,
+                                                 all_2D_variables=all_2D_variables)
+                # Cache the individual year's data
+                cache_cdip(hash_params, cache_dir, data=year_data)
             multiyear_data[year] = year_data['data']
 
         for data_key in year_data['data'].keys():
