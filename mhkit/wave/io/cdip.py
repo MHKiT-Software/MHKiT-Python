@@ -73,27 +73,26 @@ def _dates_to_timestamp(nc, start_date=None, end_date=None):
     The function description remains the same...
     '''
 
-    if start_date and not isinstance(start_date, datetime):
+    if start_date and not isinstance(start_date, datetime.datetime):
         raise ValueError(
             f'start_date must be of type datetime.datetime or None. Got: {type(start_date)}')
 
-    if end_date and not isinstance(end_date, datetime):
+    if end_date and not isinstance(end_date, datetime.datetime):
         raise ValueError(
             f'end_date must be of type datetime.datetime or None. Got: {type(end_date)}')
 
     time_all = nc.variables['waveTime'][:].compressed()
-    t_i = (datetime.fromtimestamp(time_all[0])
+    t_i = (datetime.datetime.fromtimestamp(time_all[0])
            .astimezone(pytz.timezone('UTC')))
-    t_f = (datetime.fromtimestamp(time_all[-1])
+    t_f = (datetime.datetime.fromtimestamp(time_all[-1])
            .astimezone(pytz.timezone('UTC')))
     time_range_all = [t_i, t_f]
 
-    # No need to validate dates anymore since they're now datetime objects
-
     if start_date:
+        # start_date = pytz.UTC.localize(start_date)
+        start_date = start_date.astimezone(pytz.UTC)
         if start_date > time_range_all[0] and start_date < time_range_all[1]:
-            start_stamp = start_date.astimezone(
-                pytz.timezone('UTC')).timestamp()
+            start_stamp = start_date.timestamp()
         else:
             print(f'WARNING: Provided start_date ({start_date}) is '
                   f'not in the returned data range {time_range_all} \n'
@@ -102,9 +101,10 @@ def _dates_to_timestamp(nc, start_date=None, end_date=None):
             start_stamp = time_range_all[0].timestamp()
 
     if end_date:
+        # end_date = pytz.UTC.localize(end_date)
+        end_date = end_date.astimezone(pytz.UTC)
         if end_date > time_range_all[0] and end_date < time_range_all[1]:
-            end_stamp = end_date.astimezone(
-                pytz.timezone('UTC')).timestamp()
+            end_stamp = end_date.timestamp()
         else:
             print(f'WARNING: Provided end_date ({end_date}) is '
                   f'not in the returned data range {time_range_all} \n'
@@ -227,7 +227,8 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
     if start_date is not None:
         if isinstance(start_date, str):
             try:
-                start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+                start_date = datetime.datetime.strptime(
+                    start_date, "%Y-%m-%d", tzinfo=pytz.UTC)
             except ValueError as exc:
                 raise ValueError(
                     "Incorrect data format, should be YYYY-MM-DD") from exc
@@ -238,7 +239,8 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
     if end_date is not None:
         if isinstance(end_date, str):
             try:
-                end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+                end_date = datetime.datetime.strptime(
+                    end_date, "%Y-%m-%d", tzinfo=pytz.UTC)
             except ValueError as exc:
                 raise ValueError(
                     "Incorrect data format, should be YYYY-MM-DD") from exc
@@ -269,12 +271,12 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
     multiyear = False
     if years:
         if isinstance(years, int):
-            start_date = datetime.datetime(years, 1, 1)
-            end_date = datetime.datetime(years+1, 1, 1)
+            start_date = datetime.datetime(years, 1, 1, tzinfo=pytz.UTC)
+            end_date = datetime.datetime(years+1, 1, 1, tzinfo=pytz.UTC)
         elif isinstance(years, list):
             if len(years) == 1:
-                start_date = datetime.datetime(years[0], 1, 1)
-                end_date = datetime.datetime(years[0]+1, 1, 1)
+                start_date = datetime.datetime(years[0], 1, 1, tzinfo=pytz.UTC)
+                end_date = datetime.datetime(years[0]+1, 1, 1, tzinfo=pytz.UTC)
             else:
                 multiyear = True
 
@@ -284,8 +286,33 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
                                     parameters=parameters,
                                     all_2D_variables=all_2D_variables)
     else:
-        data = _process_multiyear_data(nc, years, parameters, all_2D_variables)
-    data['metadata']['name'] = buoy_name
+        data = {'data': {}, 'metadata': {}}
+        multiyear_data = {}
+        for year in years:
+            start_date = datetime.datetime(year, 1, 1, tzinfo=pytz.UTC)
+            end_date = datetime.datetime(year+1, 1, 1, tzinfo=pytz.UTC)
+
+            year_data = get_netcdf_variables(nc,
+                                             start_date=start_date, end_date=end_date,
+                                             parameters=parameters,
+                                             all_2D_variables=all_2D_variables)
+            multiyear_data[year] = year_data['data']
+
+        for data_key in year_data['data'].keys():
+            if data_key.endswith('2D'):
+                data['data'][data_key] = {}
+                for data_key2D in year_data['data'][data_key].keys():
+                    data_list = []
+                    for year in years:
+                        data2D = multiyear_data[year][data_key][data_key2D]
+                        data_list.append(data2D)
+                    data['data'][data_key][data_key2D] = pd.concat(data_list)
+            else:
+                data_list = [multiyear_data[year][data_key] for year in years]
+                data['data'][data_key] = pd.concat(data_list)
+
+    if buoy_name:
+        data.setdefault('metadata', {})['name'] = buoy_name
 
     return data
 
@@ -331,7 +358,6 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
     if not isinstance(nc, netCDF4.Dataset):
         raise ValueError('nc must be netCDF4 dataset. Got: {nc}')
 
-    # Converting strings to datetime objects
     if start_date and isinstance(start_date, str):
         start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d")
 
@@ -355,87 +381,72 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
 
     buoy_name = nc.variables['metaStationName'][:].compressed(
     ).tobytes().decode("utf-8")
-    allVariables = [var for var in nc.variables]
 
-    include_2D_variables = False
+    allVariables = [var for var in nc.variables]
+    allVariableSet = set(allVariables)
+
     twoDimensionalVars = ['waveEnergyDensity', 'waveMeanDirection',
                           'waveA1Value', 'waveB1Value', 'waveA2Value',
                           'waveB2Value', 'waveCheckFactor', 'waveSpread',
                           'waveM2Value', 'waveN2Value']
+    twoDimensionalVarsSet = set(twoDimensionalVars)
 
     if parameters:
         params = set(parameters)
-        include_params = params.intersection(set(allVariables))
+        include_params = params & allVariableSet
         if params != include_params:
-            not_found = params.difference(include_params)
+            not_found = params - include_params
             print(f'WARNING: {not_found} was not found in data.\n'
                   f'Possible parameters are:\n {allVariables}')
 
-        include_params_2D = include_params.intersection(
-            set(twoDimensionalVars))
-        include_params = include_params.difference(include_params_2D)
+        include_params_2D = include_params & twoDimensionalVarsSet
+        include_params -= include_params_2D
 
-        if include_params_2D:
-            include_2D_variables = True
+        include_2D_variables = bool(include_params_2D)
+        if include_2D_variables:
             include_params.add('waveFrequency')
-            include_2D_vars = sorted(include_params_2D)
 
-        include_vars = sorted(include_params)
+        include_vars = include_params
 
-    else:
-        include_vars = allVariables
+    else:  # when parameters is None
+        include_vars = allVariableSet - twoDimensionalVarsSet
 
-        for var in twoDimensionalVars:
-            include_vars.remove(var)
+    start_stamp, end_stamp = _dates_to_timestamp(
+        nc, start_date=start_date, end_date=end_date)
 
-        if all_2D_variables:
-            include_2D_variables = True
-            include_2D_vars = twoDimensionalVars
-
-    start_stamp, end_stamp = _dates_to_timestamp(nc, start_date=start_date,
-                                                 end_date=end_date)
-
-    variables_by_type = {}
     prefixs = ['wave', 'sst', 'gps', 'dwr', 'meta']
-    remainingVariables = set(include_vars)
-    for prefix in prefixs:
-        variables_by_type[prefix] = [var for var in include_vars
-                                     if var.startswith(prefix)]
-        remainingVariables -= set(variables_by_type[prefix])
-        if not variables_by_type[prefix]:
-            del variables_by_type[prefix]
+    variables_by_type = {prefix: [
+        var for var in include_vars if var.startswith(prefix)] for prefix in prefixs}
+    variables_by_type = {prefix: vars for prefix,
+                         vars in variables_by_type.items() if vars}
 
     results = {'data': {}, 'metadata': {}}
     for prefix in variables_by_type:
-        var_results = {}
         time_variables = {}
         metadata = {}
 
         if prefix != 'meta':
             prefixTime = nc.variables[f'{prefix}Time'][:]
 
-            masked_time = np.ma.masked_outside(prefixTime, start_stamp,
-                                               end_stamp)
+            masked_time = np.ma.masked_outside(
+                prefixTime, start_stamp, end_stamp)
             mask = masked_time.mask
             var_time = masked_time.compressed()
             N_time = masked_time.size
-        else:
-            N_time = np.nan
 
-        for var in variables_by_type[prefix]:
-            variable = np.ma.filled(nc.variables[var])
-            if variable.size == N_time:
-                variable = np.ma.masked_array(variable, mask).astype(float)
-                time_variables[var] = variable.compressed()
-            else:
-                metadata[var] = nc.variables[var][:].compressed()
+            for var in variables_by_type[prefix]:
+                variable = np.ma.filled(nc.variables[var])
+                if variable.size == N_time:
+                    variable = np.ma.masked_array(variable, mask).astype(float)
+                    time_variables[var] = variable.compressed()
+                else:
+                    metadata[var] = nc.variables[var][:].compressed()
 
-        time_slice = pd.to_datetime(var_time, unit='s')
-        data = pd.DataFrame(time_variables, index=time_slice)
-
-        if prefix != 'meta':
+            time_slice = pd.to_datetime(var_time, unit='s')
+            data = pd.DataFrame(time_variables, index=time_slice)
             results['data'][prefix] = data
             results['data'][prefix].name = buoy_name
+
         results['metadata'][prefix] = metadata
 
         if (prefix == 'wave') and (include_2D_variables):
@@ -451,12 +462,12 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
                 mask = np.array([False] * N_time)
 
             mask2D = np.tile(mask, (len(columns), 1)).T
-            for var in include_2D_vars:
+            for var in include_params_2D:
                 variable2D = nc.variables[var][:].data
                 variable2D = np.ma.masked_array(variable2D, mask2D)
                 variable2D = variable2D.compressed().reshape(N_time, N_frequency)
-                variable = pd.DataFrame(variable2D, index=time_slice,
-                                        columns=columns)
+                variable = pd.DataFrame(
+                    variable2D, index=time_slice, columns=columns)
                 vars2D[var] = variable
             results['data']['wave2D'] = vars2D
     results['metadata']['name'] = buoy_name
