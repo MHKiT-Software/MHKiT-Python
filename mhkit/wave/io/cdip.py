@@ -89,7 +89,6 @@ def _dates_to_timestamp(nc, start_date=None, end_date=None):
     time_range_all = [t_i, t_f]
 
     if start_date:
-        # start_date = pytz.UTC.localize(start_date)
         start_date = start_date.astimezone(pytz.UTC)
         if start_date > time_range_all[0] and start_date < time_range_all[1]:
             start_stamp = start_date.timestamp()
@@ -101,7 +100,6 @@ def _dates_to_timestamp(nc, start_date=None, end_date=None):
             start_stamp = time_range_all[0].timestamp()
 
     if end_date:
-        # end_date = pytz.UTC.localize(end_date)
         end_date = end_date.astimezone(pytz.UTC)
         if end_date > time_range_all[0] and end_date < time_range_all[1]:
             end_stamp = end_date.timestamp()
@@ -288,7 +286,8 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
         # Check the cache first
         hash_params = f'{station_number}-{parameters}-{start_date}-{end_date}'
         data = cache_cdip(hash_params, cache_dir)
-        if data is None:
+        data = data[0]
+        if data == (None, None, None):
             data = get_netcdf_variables(nc,
                                         start_date=start_date, end_date=end_date,
                                         parameters=parameters,
@@ -329,7 +328,11 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
                 data['data'][data_key] = pd.concat(data_list)
 
     if buoy_name:
-        data.setdefault('metadata', {})['name'] = buoy_name
+        try:
+            data.setdefault('metadata', {})['name'] = buoy_name
+        except:
+            import ipdb
+            ipdb.set_trace()
 
     return data
 
@@ -408,24 +411,33 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
                           'waveM2Value', 'waveN2Value']
     twoDimensionalVarsSet = set(twoDimensionalVars)
 
+    # If parameters are provided, convert them into a set
     if parameters:
         params = set(parameters)
-        include_params = params & allVariableSet
-        if params != include_params:
-            not_found = params - include_params
-            print(f'WARNING: {not_found} was not found in data.\n'
-                  f'Possible parameters are:\n {allVariables}')
+    else:
+        params = set()
 
-        include_params_2D = include_params & twoDimensionalVarsSet
-        include_params -= include_params_2D
+    # If all_2D_variables is True, add all 2D variables to params
+    if all_2D_variables:
+        params.update(twoDimensionalVarsSet)
 
-        include_2D_variables = bool(include_params_2D)
-        if include_2D_variables:
-            include_params.add('waveFrequency')
+    include_params = params & allVariableSet
+    if params != include_params:
+        not_found = params - include_params
+        print(f'WARNING: {not_found} was not found in data.\n'
+              f'Possible parameters are:\n {allVariables}')
 
-        include_vars = include_params
+    include_params_2D = include_params & twoDimensionalVarsSet
+    include_params -= include_params_2D
 
-    else:  # when parameters is None
+    include_2D_variables = bool(include_params_2D)
+    if include_2D_variables:
+        include_params.add('waveFrequency')
+
+    include_vars = include_params
+
+    # when parameters is None and all_2D_variables is False
+    if not parameters and not all_2D_variables:
         include_vars = allVariableSet - twoDimensionalVarsSet
 
     start_stamp, end_stamp = _dates_to_timestamp(

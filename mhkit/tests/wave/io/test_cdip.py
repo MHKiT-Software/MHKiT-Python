@@ -4,6 +4,7 @@ from datetime import datetime
 import mhkit.wave as wave
 import unittest
 import netCDF4
+import pytz
 import os
 
 
@@ -62,34 +63,36 @@ class TestIOcdip(unittest.TestCase):
 
     def test_dates_to_timestamp(self):
 
-        start_date = '1996-10-02'
-        end_date = '1996-10-20'
+        start_date = datetime(1996, 10, 2, tzinfo=pytz.UTC)
+        end_date = datetime(1996, 10, 20, tzinfo=pytz.UTC)
 
         start_stamp, end_stamp = wave.io.cdip._dates_to_timestamp(self.test_nc,
                                                                   start_date=start_date, end_date=end_date)
 
-        start_dt = datetime.utcfromtimestamp(start_stamp)
-        end_dt = datetime.utcfromtimestamp(end_stamp)
+        start_dt = datetime.utcfromtimestamp(
+            start_stamp).replace(tzinfo=pytz.UTC)
+        end_dt = datetime.utcfromtimestamp(
+            end_stamp).replace(tzinfo=pytz.UTC)
 
-        self.assertTrue(start_dt.strftime('%Y-%m-%d') == start_date)
-        self.assertTrue(end_dt.strftime('%Y-%m-%d') == end_date)
+        self.assertEqual(start_dt, start_date)
+        self.assertEqual(end_dt, end_date)
 
     def test_get_netcdf_variables_all2Dvars(self):
         data = wave.io.cdip.get_netcdf_variables(self.test_nc,
                                                  all_2D_variables=True)
         returned_keys = [key for key in data['data']['wave2D'].keys()]
-        self.assertTrue(returned_keys == self.vars2D)
+        self.assertTrue(set(returned_keys) == set(self.vars2D))
 
     def test_get_netcdf_variables_params(self):
         parameters = ['waveHs', 'waveTp', 'notParam', 'waveMeanDirection']
         data = wave.io.cdip.get_netcdf_variables(self.test_nc,
                                                  parameters=parameters)
 
-        returned_keys_1D = [key for key in data['data']['wave'].keys()]
+        returned_keys_1D = set([key for key in data['data']['wave'].keys()])
         returned_keys_2D = [key for key in data['data']['wave2D'].keys()]
         returned_keys_metadata = [key for key in data['metadata']['wave']]
 
-        self.assertTrue(returned_keys_1D == ['waveHs', 'waveTp'])
+        self.assertTrue(returned_keys_1D == set(['waveHs', 'waveTp']))
         self.assertTrue(returned_keys_2D == ['waveMeanDirection'])
         self.assertTrue(returned_keys_metadata == ['waveFrequency'])
 
