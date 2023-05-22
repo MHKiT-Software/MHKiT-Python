@@ -1,7 +1,6 @@
-from setuptools import setup, find_packages
-from distutils.core import Extension
 import os
 import re
+from setuptools import setup, find_packages
 
 DISTNAME = 'mhkit'
 PACKAGES = find_packages()
@@ -31,7 +30,7 @@ DEPENDENCIES = ['pandas>=1.0.0, <=1.5.0',
                 'h5py>=3.6.0',
                 'h5pyd >=0.7.0, <=0.10.3',
                 'netCDF4<=1.5.8',
-                'xarray<=2022.9.0',
+                'xarray',
                 'statsmodels',
                 'pytz',
                 'bottleneck',
