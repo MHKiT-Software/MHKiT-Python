@@ -152,6 +152,7 @@ class TestIOcdip(unittest.TestCase):
         plt.close()
 
         self.assertTrue(isfile(filename))
+        os.remove(filename)
 
     def test_plot_compendium(self):
         filename = abspath(join(testdir, 'wave_plot_boxplot.png'))
@@ -172,6 +173,7 @@ class TestIOcdip(unittest.TestCase):
         plt.close()
 
         self.assertTrue(isfile(filename))
+        os.remove(filename)
 
 
 if __name__ == '__main__':
