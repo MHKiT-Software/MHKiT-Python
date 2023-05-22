@@ -30,6 +30,10 @@ from time import sleep
 import pandas as pd
 import xarray as xr
 import numpy as np
+import pickle
+import os
+import hashlib
+import json
 from rex import MultiYearWaveX, WaveX
 
 
@@ -173,83 +177,110 @@ def request_wpto_point_data(
     assert isinstance(path, (str, type(None))), 'path must be a string'
     assert isinstance(as_xarray, bool), 'as_xarray must be bool type'
 
-    if 'directional_wave_spectrum' in parameter:
-        sys.exit('This function does not support directional_wave_spectrum output')
+    # Define the path to the cache directory
+    cache_dir = os.path.join(os.path.expanduser("~"),
+                             ".cache", "mhkit", "hindcast")
 
-    # Check for multiple region selection
-    if isinstance(lat_lon[0], float):
-        region = region_selection(lat_lon)
+    # Construct a string representation of the function parameters
+    hash_params = f"{data_type}_{parameter}_{lat_lon}_{years}_{tree}_{unscale}_{str_decode}_{hsds}_{path}_{as_xarray}"
+
+    # Create a unique identifier for this function call
+    hash_id = hashlib.md5(hash_params.encode()).hexdigest()
+
+    # Create cache directory if it doesn't exist
+    os.makedirs(cache_dir, exist_ok=True)
+
+    # Create a path to the cache file for this function call
+    cache_file = os.path.join(cache_dir, f"{hash_id}.pkl")
+
+    if os.path.isfile(cache_file):
+        # If the cache file exists, load the data from the cache
+        with open(cache_file, 'rb') as f:
+            data, meta = pickle.load(f)
+        return data, meta
+
     else:
-        region_list = []
-        for loc in lat_lon:
-            region_list.append(region_selection(loc))
-        if region_list.count(region_list[0]) == len(lat_lon):
-            region = region_list[0]
+        if 'directional_wave_spectrum' in parameter:
+            sys.exit(
+                'This function does not support directional_wave_spectrum output')
+
+        # Check for multiple region selection
+        if isinstance(lat_lon[0], float):
+            region = region_selection(lat_lon)
         else:
-            sys.exit('Coordinates must be within the same region!')
+            region_list = []
+            for loc in lat_lon:
+                region_list.append(region_selection(loc))
+            if region_list.count(region_list[0]) == len(lat_lon):
+                region = region_list[0]
+            else:
+                sys.exit('Coordinates must be within the same region!')
 
-    if path:
-        wave_path = path
-    elif data_type == '3-hour':
-        wave_path = f'/nrel/US_wave/{region}/{region}_wave_*.h5'
-    elif data_type == '1-hour':
-        wave_path = f'/nrel/US_wave/virtual_buoy/{region}/{region}_virtual_buoy_*.h5'
-    else:
-        print('ERROR: invalid data_type')
-
-    wave_kwargs = {
-        'tree': tree,
-        'unscale': unscale,
-        'str_decode': str_decode,
-        'hsds': hsds,
-        'years': years
-    }
-    data_list = []
-
-    with MultiYearWaveX(wave_path, **wave_kwargs) as rex_waves:
-        if isinstance(parameter, list):
-            for param in parameter:
-                temp_data = rex_waves.get_lat_lon_df(param, lat_lon)
-                gid = rex_waves.lat_lon_gid(lat_lon)
-                cols = temp_data.columns[:]
-                for i, col in zip(range(len(cols)), cols):
-                    temp = f'{param}_{gid}'
-                    temp_data = temp_data.rename(columns={col: temp})
-
-                data_list.append(temp_data)
-            data = pd.concat(data_list, axis=1)
-
+        if path:
+            wave_path = path
+        elif data_type == '3-hour':
+            wave_path = f'/nrel/US_wave/{region}/{region}_wave_*.h5'
+        elif data_type == '1-hour':
+            wave_path = f'/nrel/US_wave/virtual_buoy/{region}/{region}_virtual_buoy_*.h5'
         else:
-            data = rex_waves.get_lat_lon_df(parameter, lat_lon)
-            cols = data.columns[:]
+            print('ERROR: invalid data_type')
 
-            for i, col in zip(range(len(cols)), cols):
-                temp = f'{parameter}_{i}'
-                data = data.rename(columns={col: temp})
+        wave_kwargs = {
+            'tree': tree,
+            'unscale': unscale,
+            'str_decode': str_decode,
+            'hsds': hsds,
+            'years': years
+        }
+        data_list = []
 
-        meta = rex_waves.meta.loc[cols, :]
-        meta = meta.reset_index(drop=True)
-        gid = rex_waves.lat_lon_gid(lat_lon)
-        meta['gid'] = gid
-
-        if as_xarray:
-            data = data.to_xarray()
-            data['time_index'] = pd.to_datetime(data.time_index)
-
+        with MultiYearWaveX(wave_path, **wave_kwargs) as rex_waves:
             if isinstance(parameter, list):
-                param_coords = [f'{param}_{gid}' for param in parameter]
-                data.coords['parameter'] = xr.DataArray(
-                    param_coords, dims='parameter')
+                for param in parameter:
+                    temp_data = rex_waves.get_lat_lon_df(param, lat_lon)
+                    gid = rex_waves.lat_lon_gid(lat_lon)
+                    cols = temp_data.columns[:]
+                    for i, col in zip(range(len(cols)), cols):
+                        temp = f'{param}_{gid}'
+                        temp_data = temp_data.rename(columns={col: temp})
 
-            data.coords['year'] = xr.DataArray(years, dims='year')
+                    data_list.append(temp_data)
+                data = pd.concat(data_list, axis=1)
 
-            meta_ds = meta.to_xarray()
-            data = xr.merge([data, meta_ds])
+            else:
+                data = rex_waves.get_lat_lon_df(parameter, lat_lon)
+                cols = data.columns[:]
 
-            # Remove the 'index' coordinate
-            data = data.drop_vars('index')
+                for i, col in zip(range(len(cols)), cols):
+                    temp = f'{parameter}_{i}'
+                    data = data.rename(columns={col: temp})
 
-    return data, meta
+            meta = rex_waves.meta.loc[cols, :]
+            meta = meta.reset_index(drop=True)
+            gid = rex_waves.lat_lon_gid(lat_lon)
+            meta['gid'] = gid
+
+            if as_xarray:
+                data = data.to_xarray()
+                data['time_index'] = pd.to_datetime(data.time_index)
+
+                if isinstance(parameter, list):
+                    param_coords = [f'{param}_{gid}' for param in parameter]
+                    data.coords['parameter'] = xr.DataArray(
+                        param_coords, dims='parameter')
+
+                data.coords['year'] = xr.DataArray(years, dims='year')
+
+                meta_ds = meta.to_xarray()
+                data = xr.merge([data, meta_ds])
+
+                # Remove the 'index' coordinate
+                data = data.drop_vars('index')
+
+        with open(cache_file, 'wb') as f:
+            pickle.dump((data, meta), f)
+
+        return data, meta
 
 
 def request_wpto_directional_spectrum(
@@ -341,98 +372,131 @@ def request_wpto_directional_spectrum(
         'hsds': hsds
     }
 
-    with WaveX(wave_path, **wave_kwargs) as rex_waves:
-        # Get graphical identifier
-        gid = rex_waves.lat_lon_gid(lat_lon)
+    # Define the path to the cache directory
+    cache_dir = os.path.join(os.path.expanduser("~"),
+                             ".cache", "mhkit", "hindcast")
 
-        # Setup index and columns
-        columns = [gid] if isinstance(gid, (int, np.integer)) else gid
-        time_index = rex_waves.time_index
-        frequency = rex_waves['frequency']
-        direction = rex_waves['direction']
-        index = pd.MultiIndex.from_product(
-            [time_index, frequency, direction],
-            names=['time_index', 'frequency', 'direction']
-        )
+    # Construct a string representation of the function parameters
+    hash_params = f"{lat_lon}_{year}_{tree}_{unscale}_{str_decode}_{hsds}_{path}"
 
-        # Create bins for multiple smaller API dataset requests
-        N = 6
-        length = len(rex_waves)
-        quotient, remainder = divmod(length, N)
-        bins = [i*quotient for i in range(N+1)]
-        bins[-1] += remainder
-        index_bins = (np.array(bins)*len(frequency)*len(direction)).tolist()
+    # Create a unique identifier for this function call
+    hash_id = hashlib.md5(hash_params.encode()).hexdigest()
 
-        # Request multiple datasets and add to dictionary
-        datas = {}
-        for i in range(len(bins)-1):
-            idx = index[index_bins[i]:index_bins[i+1]]
+    # Create cache directory if it doesn't exist
+    os.makedirs(cache_dir, exist_ok=True)
 
-            # Request with exponential back off wait time
-            sleep_time = 2
-            num_retries = 4
-            for _ in range(num_retries):
-                try:
-                    data_array = rex_waves[parameter,
-                                           bins[i]:bins[i+1], :, :, gid]
-                    str_error = None
-                except Exception as err:
-                    str_error = str(err)
+    # Create a path to the cache file for this function call
+    cache_file = os.path.join(cache_dir, f"{hash_id}.nc")
 
-                if str_error:
-                    sleep(sleep_time)
-                    sleep_time *= 2
-                else:
-                    break
+    # If the file exists, load it from cache and return it
+    if os.path.exists(cache_file):
+        data = xr.open_dataset(cache_file)
+        meta = json.loads(data.attrs.get('metadata', '{}'))
+        meta = pd.DataFrame(meta)
+        del data.attrs['metadata']  # remove the metadata attribute
+        return data, meta
 
-            ax1 = np.product(data_array.shape[:3])
-            ax2 = data_array.shape[-1] if len(data_array.shape) == 4 else 1
-            datas[i] = pd.DataFrame(
-                data_array.reshape(ax1, ax2),
-                columns=columns,
-                index=idx
+    else:
+        with WaveX(wave_path, **wave_kwargs) as rex_waves:
+            # Get graphical identifier
+            gid = rex_waves.lat_lon_gid(lat_lon)
+
+            # Setup index and columns
+            columns = [gid] if isinstance(gid, (int, np.integer)) else gid
+            time_index = rex_waves.time_index
+            frequency = rex_waves['frequency']
+            direction = rex_waves['direction']
+            index = pd.MultiIndex.from_product(
+                [time_index, frequency, direction],
+                names=['time_index', 'frequency', 'direction']
             )
 
-        data_raw = pd.concat(datas.values())
-        data = data_raw.to_xarray()
-        data['time_index'] = pd.to_datetime(data.time_index)
+            # Create bins for multiple smaller API dataset requests
+            N = 6
+            length = len(rex_waves)
+            quotient, remainder = divmod(length, N)
+            bins = [i*quotient for i in range(N+1)]
+            bins[-1] += remainder
+            index_bins = (np.array(bins)*len(frequency)
+                          * len(direction)).tolist()
 
-        # Get metadata
-        meta = rex_waves.meta.loc[columns, :]
-        meta = meta.reset_index(drop=True)
-        meta['gid'] = gid
+            # Request multiple datasets and add to dictionary
+            datas = {}
+            for i in range(len(bins)-1):
+                idx = index[index_bins[i]:index_bins[i+1]]
 
-        # Convert gid to integer or list of integers
-        # gid_list = [int(g) for g in gid] if isinstance(gid, list) else [int(gid)]
-        # gid_list = [int(g) for g in gid] if isinstance(gid, list) else [int(gid)]
-        gid_list = [int(g) for g in gid] if isinstance(
-            gid, (list, np.ndarray)) else [int(gid)]
+                # Request with exponential back off wait time
+                sleep_time = 2
+                num_retries = 4
+                for _ in range(num_retries):
+                    try:
+                        data_array = rex_waves[parameter,
+                                               bins[i]:bins[i+1], :, :, gid]
+                        str_error = None
+                    except Exception as err:
+                        str_error = str(err)
 
-        data_var_concat = xr.concat([data[g] for g in gid_list], dim='gid')
+                    if str_error:
+                        sleep(sleep_time)
+                        sleep_time *= 2
+                    else:
+                        break
 
-        # Create a new DataArray with the correct dimensions and coordinates
-        spectral_density = xr.DataArray(
-            data_var_concat.data.reshape(-1, len(frequency),
-                                         len(direction), len(gid_list)),
-            dims=['time_index', 'frequency', 'direction', 'gid'],
-            coords={
-                'time_index': data['time_index'],
-                'frequency': data['frequency'],
-                'direction': data['direction'],
-                'gid': gid_list
-            }
-        )
+                ax1 = np.product(data_array.shape[:3])
+                ax2 = data_array.shape[-1] if len(data_array.shape) == 4 else 1
+                datas[i] = pd.DataFrame(
+                    data_array.reshape(ax1, ax2),
+                    columns=columns,
+                    index=idx
+                )
 
-        # Create the new dataset
-        data = xr.Dataset(
-            {
-                'spectral_density': spectral_density
-            },
-            coords={
-                'time_index': data['time_index'],
-                'frequency': data['frequency'],
-                'direction': data['direction'],
-                'gid': gid_list
-            }
-        )
-    return data, meta
+            data_raw = pd.concat(datas.values())
+            data = data_raw.to_xarray()
+            data['time_index'] = pd.to_datetime(data.time_index)
+
+            # Get metadata
+            meta = rex_waves.meta.loc[columns, :]
+            meta = meta.reset_index(drop=True)
+            meta['gid'] = gid
+
+            # Convert gid to integer or list of integers
+            gid_list = [int(g) for g in gid] if isinstance(
+                gid, (list, np.ndarray)) else [int(gid)]
+
+            data_var_concat = xr.concat([data[g] for g in gid_list], dim='gid')
+
+            # Create a new DataArray with the correct dimensions and coordinates
+            spectral_density = xr.DataArray(
+                data_var_concat.data.reshape(-1, len(frequency),
+                                             len(direction), len(gid_list)),
+                dims=['time_index', 'frequency', 'direction', 'gid'],
+                coords={
+                    'time_index': data['time_index'],
+                    'frequency': data['frequency'],
+                    'direction': data['direction'],
+                    'gid': gid_list
+                }
+            )
+
+            # Create the new dataset
+            data = xr.Dataset(
+                {
+                    'spectral_density': spectral_density
+                },
+                coords={
+                    'time_index': data['time_index'],
+                    'frequency': data['frequency'],
+                    'direction': data['direction'],
+                    'gid': gid_list
+                }
+            )
+
+        # import ipdb
+        # ipdb.set_trace()
+        # Cache the data.
+        metadata_json = json.dumps(meta.to_dict())
+        data.attrs['metadata'] = metadata_json
+        data.to_netcdf(cache_file)
+        del data.attrs['metadata']  # remove the metadata attribute
+
+        return data, meta
