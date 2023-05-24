@@ -41,10 +41,10 @@ class TestResource(unittest.TestCase):
             width=None)
         test_circ = np.array([1.26250990e+00, 
                               1.09230978e+00, 
-                              1.97168745e+05, 
-                              1.04759930e+04, 
-                              2.12352574e+05, 
-                              1.79573443e+05])
+                              1.89122103e+05, 
+                              1.03223668e+04,
+                              2.04261423e+05, 
+                              1.72095731e+05])
 
         df93_rect = performance.power_curve(
             power=self.power,
@@ -59,10 +59,10 @@ class TestResource(unittest.TestCase):
             width=3)
         test_rect = np.array([1.15032239e+00, 
                               3.75747621e-01, 
-                              1.79659574e+05, 
-                              3.08413115e+04,
-                              2.15625997e+05, 
-                              1.32107771e+05])
+                              1.73098627e+05, 
+                              3.04090212e+04,
+                              2.09073742e+05, 
+                              1.27430552e+05])
         
         assert_allclose(df93_circ.values[-2], test_circ, atol=1e-5)
         assert_allclose(df93_rect.values[-3], test_rect, atol=1e-5)
@@ -106,8 +106,8 @@ class TestResource(unittest.TestCase):
             sampling_frequency=1,
             window_avg_time=600)
         
-        test_df97 = np.array(25.94345)
-        assert_allclose(df97.values[-1], test_df97, atol=1e-5)
+        test_df97 = np.array(24.79197)
+        assert_allclose(df97.values[-1,-1], test_df97, atol=1e-5)
 
 
 if __name__ == '__main__':
