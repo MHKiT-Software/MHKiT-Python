@@ -11,7 +11,7 @@
     <a href=https://pepy.tech/project/mhkit>
         <img src="https://pepy.tech/badge/mhkit">
     </a>
-    <a href=https://doi.org/10.5281/zenodo.392468>
+    <a href=https://doi.org/10.5281/zenodo.3924683>
         <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.3924683.svg">
     </a>
 </p>
