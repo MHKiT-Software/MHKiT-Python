@@ -95,12 +95,10 @@ def _slice_rectangular_capture_area(height, width, hub_height, doppler_cell_size
         xarray.DataArray: Capture area sliced into horizontal slices of 
         height `doppler_cell_size`, centered on `hub height`.
     """
-    # Capture area - from mhkit.river.performance
-    d_equiv, A_cap = rectangular(h=height, w=width)  # m^2
-    cs = doppler_cell_size
 
     # Need to chop up capture area into slices based on bin size
     # For a rectangle it's pretty simple
+    cs = doppler_cell_size
     r_min = hub_height - height/2
     r_max = hub_height + height/2
     A_edge = np.arange(r_min, r_max+cs, cs)
@@ -137,7 +135,7 @@ def power_curve(power,
         power (pandas.Series or xarray.DataArray (time)): Device power 
         output timeseries.
         velocity (pandas.Series or xarray.DataArray ([range,] time)): 
-        Streamwise sea water velocity or sea water speed.
+        1D or 2D streamwise sea water velocity or sea water speed.
         hub_height (numeric): Turbine hub height altitude above the seabed. 
         Assumes ADCP depth bins are referenced to the seafloor.
         doppler_cell_size (numeric): ADCP depth bin size.
@@ -283,21 +281,14 @@ def _apply_function(function, bnr, U):
 
 def velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_time=600, function='mean'):
     """
-    Calculates profiles of the velocity means based on IEC/TS 62600-200 
-    section 9.4. A mean is calculated for each `window_avg_time` and 
-    bin-averaged based on ensemble velocity.
-
-    Calculates profiles of the root-mean-square (RMS) of velocity based on 
-    IEC/TS 62600-200 section 9.5. A RMS is calculated for each `window_avg_time` 
-    and bin-averaged based on ensemble velocity.
-
-    Calculates profiles of the standard deviation of velocity based on 
-    IEC/TS 62600-200 section 9.5. A standard deviation is calculated for 
-    each `window_avg_time` and bin-averaged based on ensemble velocity.
+    Calculates profiles of the mean, root-mean-square (RMS), and standard 
+    deviation (std) of velocity based on IEC/TS 62600-200 section 9.4 and 9.5.
+    A mean, RMS, or std, specified by `function` is calculated for each 
+    `window_avg_time` and bin-averaged based on ensemble velocity.
 
     Args:
         velocity (pandas.Series or xarray.DataArray ([range,] time)): 
-        Streamwise sea water velocity or sea water speed.
+        1D or 2D streamwise sea water velocity or sea water speed.
         hub_height (numeric): Turbine hub height altitude above the seabed. 
         Assumes ADCP depth bins are referenced to the seafloor.
         sampling_frequency (numeric): ADCP sampling frequency in Hz.
@@ -346,7 +337,7 @@ def device_efficiency(power,
         power (pandas.Series or xarray.DataArray (time)): Device power 
         output timeseries in Watts.
         velocity (pandas.Series or xarray.DataArray ([range,] time)): 
-        Streamwise sea water velocity or sea water speed in m/s.
+        1D or 2D streamwise sea water velocity or sea water speed in m/s.
         water_density (float, pandas.Series or xarray.DataArray): Sea 
         water density in kg/m^3.
         capture_area (numeric): Swept area of marine energy device.
