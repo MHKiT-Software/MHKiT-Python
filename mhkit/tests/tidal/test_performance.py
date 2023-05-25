@@ -71,18 +71,21 @@ class TestResource(unittest.TestCase):
         df94 = performance.velocity_profiles(
             velocity=self.ds['vel'].sel(dir='streamwise'), 
             hub_height=4.2,
+            water_depth=10,
             sampling_frequency=1, 
             window_avg_time=600,
             function='mean')
         df95a = performance.velocity_profiles(
             velocity=self.ds['vel'].sel(dir='streamwise'), 
             hub_height=4.2,
+            water_depth=10,
             sampling_frequency=1,
             window_avg_time=600,
             function='rms')
         df95b = performance.velocity_profiles(
             velocity=self.ds['vel'].sel(dir='streamwise'), 
             hub_height=4.2, 
+            water_depth=10,
             sampling_frequency=1, 
             window_avg_time=600,
             function='std')
@@ -91,9 +94,9 @@ class TestResource(unittest.TestCase):
         test_df95a = np.array([0.3329345 , 0.69936798, 1.01762123])
         test_df95b = np.array([0.05635571, 0.08671777, 0.12735139])
 
-        assert_allclose(df94.values[0], test_df94, atol=1e-5)
-        assert_allclose(df95a.values[0], test_df95a, atol=1e-5)
-        assert_allclose(df95b.values[0], test_df95b, atol=1e-5)
+        assert_allclose(df94.values[1], test_df94, atol=1e-5)
+        assert_allclose(df95a.values[1], test_df95a, atol=1e-5)
+        assert_allclose(df95b.values[1], test_df95b, atol=1e-5)
         
 
     def test_power_efficiency(self):

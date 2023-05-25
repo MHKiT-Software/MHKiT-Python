@@ -162,7 +162,7 @@ def power_curve(power,
     power = _check_dtype(power, 'power')
     velocity = _check_dtype(velocity, 'velocity')
     assert len(velocity.shape)==2, \
-        "Velocity should be 2 dimensional have dimensions of 'time' (temporal) and 'range' (spatial)."
+        "Velocity should be 2 dimensional and have dimensions of 'time' (temporal) and 'range' (spatial)."
 
     if turbine_profile=='rectangular':
         if height is None:
@@ -279,7 +279,13 @@ def _apply_function(function, bnr, U):
         raise Exception(f"Unknown function {function}. Should be one of 'mean', 'rms', or 'std'")
 
 
-def velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_time=600, function='mean'):
+def velocity_profiles(velocity, 
+                      hub_height, 
+                      water_depth,
+                      sampling_frequency, 
+                      window_avg_time=600, 
+                      function='mean',
+                      ):
     """
     Calculates profiles of the mean, root-mean-square (RMS), and standard 
     deviation (std) of velocity based on IEC/TS 62600-200 section 9.4 and 9.5.
@@ -291,6 +297,8 @@ def velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_time=
         1D or 2D streamwise sea water velocity or sea water speed.
         hub_height (numeric): Turbine hub height altitude above the seabed. 
         Assumes ADCP depth bins are referenced to the seafloor.
+        water_depth (numeric): Water depth to seafloor, in same units as
+        velocity `range` coordinate.
         sampling_frequency (numeric): ADCP sampling frequency in Hz.
         window_avg_time (int, optional): Time averaging window in seconds. 
         Defaults to 600.
@@ -303,7 +311,7 @@ def velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_time=
 
     velocity = _check_dtype(velocity, 'velocity')
     assert len(velocity.shape)==2, \
-        "Velocity should be 2 dimensional have dimensions of 'time' (temporal) and 'range' (spatial)."
+        "Velocity should be 2 dimensional and have dimensions of 'time' (temporal) and 'range' (spatial)."
 
     # Streamwise data
     U = velocity
@@ -317,9 +325,24 @@ def velocity_profiles(velocity, hub_height, sampling_frequency, window_avg_time=
     U_out = _apply_function(function, bnr, U)
 
     # Then reorganize into 0.5 m/s velocity bins and average
-    out = _average_velocity_bins(U_out, mean_hub_vel, bin_size=0.5)
+    profiles = _average_velocity_bins(U_out, mean_hub_vel, bin_size=0.5)
 
-    return out.to_pandas()
+    ## Extend top and bottom of profiles to the seafloor and sea surface
+    # Clip off extra depth bins with nans
+    rdx = profiles.isel(speed_bins=0).notnull().sum().values
+    profiles = profiles.isel(range=slice(None, rdx+1))
+    # Set seafloor velocity to 0 m/s
+    out_data = np.insert(profiles.data, 0, 0, axis=0)
+    # Set max range to the user-provided water depth
+    new_range = np.insert(profiles['range'].data[:-1],0,0)
+    new_range = np.append(new_range, water_depth)
+    # Create a profiles with new range
+    iec_profiles = xr.DataArray(out_data, coords={'range': new_range,
+                                                  'speed_bins': profiles['speed_bins']})
+    # Forward fill to surface
+    iec_profiles = iec_profiles.ffill('range', limit=None)
+
+    return iec_profiles.to_pandas()
 
 
 def device_efficiency(power, 
@@ -356,7 +379,7 @@ def device_efficiency(power,
     power = _check_dtype(power, 'power')
     velocity = _check_dtype(velocity, 'velocity')
     assert len(velocity.shape)==2, \
-        "Velocity should be 2 dimensional have dimensions of 'time' (temporal) and 'range' (spatial)."
+        "Velocity should be 2 dimensional and have dimensions of 'time' (temporal) and 'range' (spatial)."
 
     # Streamwise data
     U = abs(velocity)
