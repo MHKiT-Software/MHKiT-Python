@@ -331,8 +331,9 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
         try:
             data.setdefault('metadata', {})['name'] = buoy_name
         except:
-            import ipdb
-            ipdb.set_trace()
+            pass
+            # import ipdb
+            # ipdb.set_trace()
 
     return data
 
