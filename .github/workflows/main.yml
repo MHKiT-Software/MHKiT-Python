@@ -57,6 +57,7 @@ jobs:
 
   conda-build:
     name: conda-${{ matrix.os }}/${{ matrix.python-version }}
+    needs: [prepare-cache]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -116,6 +117,7 @@ jobs:
 
   pip-build:
     name: pip-${{ matrix.os }}/${{ matrix.python-version }}
+    needs: [prepare-cache]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -160,6 +162,7 @@ jobs:
 
   hindcast-calls:
     name: hindcast-${{ matrix.os }}/${{ matrix.python-version }}
+    needs: [prepare-cache]
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 1
