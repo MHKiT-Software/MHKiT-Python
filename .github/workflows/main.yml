@@ -42,6 +42,7 @@ jobs:
       - name: Prepare data
         run: |
           # pytest tests/test_specific_file.py::TestClass::test_function
+          source activate TEST
           pytest mhkit/tests/river/io/test_io.py
           pytest mhkit/tests/tidal/io/test_io.py
           pytest mhkit/tests/wave/io/test_cdip.py
