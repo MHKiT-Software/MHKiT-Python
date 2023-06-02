@@ -9,55 +9,50 @@ on:
     branches:
       - master
       - develop
+jobs:
+  prepare-cache:
+    runs-on: ubuntu-latest
+    env:
+      PYTHON_VER: 3.9
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      jobs:
-        prepare-cache:
-          runs-on: ubuntu-latest
-          env:
-            PYTHON_VER: 3.9
-          steps:
-            - name: Checkout code
-              uses: actions/checkout@v2
-      
-            - name: Setup Conda
-              uses: s-weigand/setup-conda@v1
-              with:
-                activate-conda: false
-                conda-channels: conda-forge
-      
-            - name: Python setup
-              shell: bash -l {0}
-              run: |
-                conda create --name TEST python=${{ env.PYTHON_VER }} numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
-                source activate TEST
-                export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH" # so setup.py finds nc-config
-                pip install -e . --no-deps --force-reinstall
-      
-            - name: Install dependencies
-              shell: bash -l {0}
-              run: |
-                source activate TEST
-                python -m pip install --upgrade pip wheel
-                pip install coverage pytest coveralls .
-      
-            - name: Prepare data
-              run: |
-                # pytest tests/test_specific_file.py::TestClass::test_function
-                pytest mhkit/tests/river/io/test_io.py
-                pytest mhkit/tests/tidal/io/test_io.py
-                pytest mhkit/tests/wave/io/test_cdip.py
-                pytest mhkit/tests/wave/io/hindcast/test_hindcast.py
+      - name: Setup Conda
+        uses: s-weigand/setup-conda@v1
+        with:
+          activate-conda: false
+          conda-channels: conda-forge
 
+      - name: Python setup
+        shell: bash -l {0}
+        run: |
+          conda create --name TEST python=${{ env.PYTHON_VER }} numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
+          source activate TEST
+          export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH" # so setup.py finds nc-config
+          pip install -e . --no-deps --force-reinstall
 
-      
-            - name: Cache data
-              uses: actions/cache@v2
-              id: cache-data
-              with:
-                path: ~/mhkit
-                key: data-key-${{ hashFiles('**/*.py') }}
-      
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+          source activate TEST
+          python -m pip install --upgrade pip wheel
+          pip install coverage pytest coveralls .
 
+      - name: Prepare data
+        run: |
+          # pytest tests/test_specific_file.py::TestClass::test_function
+          pytest mhkit/tests/river/io/test_io.py
+          pytest mhkit/tests/tidal/io/test_io.py
+          pytest mhkit/tests/wave/io/test_cdip.py
+          pytest mhkit/tests/wave/io/hindcast/test_hindcast.py
+
+      - name: Cache data
+        uses: actions/cache@v2
+        id: cache-data
+        with:
+          path: ~/mhkit
+          key: data-key-${{ hashFiles('**/*.py') }}
 
   conda-build:
     name: conda-${{ matrix.os }}/${{ matrix.python-version }}
@@ -118,7 +113,6 @@ on:
           COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
           COVERALLS_PARALLEL: true
 
-
   pip-build:
     name: pip-${{ matrix.os }}/${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
@@ -162,7 +156,7 @@ on:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
           COVERALLS_PARALLEL: true
-        
+
   hindcast-calls:
     name: hindcast-${{ matrix.os }}/${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
