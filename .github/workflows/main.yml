@@ -43,8 +43,8 @@ jobs:
         run: |
           # pytest tests/test_specific_file.py::TestClass::test_function
           source activate TEST
-          pytest mhkit/tests/river/io/test_io.py
-          pytest mhkit/tests/tidal/io/test_io.py
+          pytest mhkit/tests/river/test_io.py
+          pytest mhkit/tests/tidal/test_io.py
           pytest mhkit/tests/wave/io/test_cdip.py
           pytest mhkit/tests/wave/io/hindcast/test_hindcast.py
 
