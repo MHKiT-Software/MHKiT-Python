@@ -304,7 +304,7 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
             # Check the cache for each individual year
             hash_params = f'{station_number}-{parameters}-{start_date}-{end_date}'
             year_data = cache_cdip(hash_params, cache_dir)
-            year_data = year_data[0]
+
             if year_data == (None, None, None):
                 year_data = get_netcdf_variables(nc,
                                                  start_date=start_date, end_date=end_date,
@@ -312,6 +312,8 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
                                                  all_2D_variables=all_2D_variables)
                 # Cache the individual year's data
                 cache_cdip(hash_params, cache_dir, data=year_data)
+            else:
+                year_data = year_data[0]
             multiyear_data[year] = year_data['data']
 
         for data_key in year_data['data'].keys():
