@@ -33,12 +33,12 @@ class TestPerformance(unittest.TestCase):
     def test_circular(self):
         eq, ca = river.performance.circular(self.diameter) 
         self.assertEqual(eq, self.diameter)
-        self.assertEqual(ca, 4*np.pi*self.diameter**2.)
+        self.assertEqual(ca, 0.25*np.pi*self.diameter**2.)
 
     def test_ducted(self):
         eq, ca =river.performance.ducted(self.diameter) 
         self.assertEqual(eq, self.diameter)
-        self.assertEqual(ca, 4*np.pi*self.diameter**2.)
+        self.assertEqual(ca, 0.25*np.pi*self.diameter**2.)
     
     def test_rectangular(self):
         eq, ca = river.performance.rectangular(self.height, self.width)
