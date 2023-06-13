@@ -132,7 +132,6 @@ vec_data = {
                     default_val=nan,
                     units='m s-1',
                     long_name='Water Velocity',
-                    standard_name='velocity_from_acoustic_doppler_velocity_sensor_in_sea_water',
                     ),
     'amp': _VarAtts(dims=[3],
                     dtype=np.uint8,
@@ -146,7 +145,6 @@ vec_data = {
                      group='data_vars',
                      units='%',
                      long_name='Acoustic Signal Correlation',
-                     standard_name='beam_consistency_indicator_from_acoustic_doppler_velocity_sensor_in_sea_water',
                      ),
 }
 
@@ -166,7 +164,6 @@ vec_sysdata = {
                      factor=0.1,
                      units='V',
                      long_name='Battery Voltage',
-                     standard_name='battery_voltage',
                      ),
     'c_sound': _VarAtts(dims=[],
                         dtype=np.float32,
@@ -264,7 +261,6 @@ awac_profile = {
                      factor=0.1,
                      units='V',
                      long_name='Battery Voltage',
-                     standard_name='battery_voltage',
                      ),
     'c_sound': _VarAtts(dims=[],
                         dtype=np.float32,
@@ -333,15 +329,12 @@ awac_profile = {
                     factor=0.001,
                     units='m s-1',
                     long_name='Water Velocity',
-                    standard_name='velocity_from_multibeam_acoustic_doppler_velocity_profiler_in_sea_water',
-
                     ),
     'amp': _VarAtts(dims=[3, 'nbins', 'n'],
                     dtype=np.uint8,
                     group='data_vars',
                     units='counts',
                     long_name='Acoustic Signal Amplitude',
-                    standard_name='signal_intensity_from_multibeam_acoustic_doppler_velocity_profiler_in_sea_water',
-
+                    standard_name='signal_intensity_from_multibeam_acoustic_doppler_velocity_sensor_in_sea_water',
                     ),
 }

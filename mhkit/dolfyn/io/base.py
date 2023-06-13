@@ -166,8 +166,7 @@ def _create_dataset(data):
                                            'time'+tg: time},
                                    dims=['q', 'time'+tg],
                                    attrs={'units': data['units']['quaternions'],
-                                          'long_name': data['long_name']['quaternions'],
-                                          'standard_name': data['standard_name']['quaternions']})
+                                          'long_name': data['long_name']['quaternions']})
         else:
             # Assign each variable to a dataArray
             ds[key] = xr.DataArray(data['data_vars'][key])

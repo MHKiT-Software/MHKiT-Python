@@ -101,9 +101,12 @@ def find_surface(ds, thresh=10, nfilt=None):
         dfilt[dfilt == 0] = np.NaN
         d = dfilt
 
-    ds['depth'] = xr.DataArray(d, dims=['time'], attrs={
-                               'units': 'm'}).astype('float32')
-
+    ds['depth'] = xr.DataArray(d.astype('float32'),
+                               dims=['time'],
+                               attrs={'units': 'm',
+                                      'long_name': 'Depth',
+                                      'standard_name': 'depth',
+                                      'positive': 'down'})
 
 def find_surface_from_P(ds, salinity=35):
     """

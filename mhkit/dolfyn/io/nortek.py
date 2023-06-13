@@ -827,22 +827,19 @@ class _NortekReader():
         """Read ADV microstrain sensor (IMU) data
         """
         def update_defs(dat, mag=False, orientmat=False):
-            imu_data = {'accel': ['m s-2', 'Acceleration', 'platform_acceleration'],
-                        'angrt': ['rad s-1', 'Angular Velocity', 'platform_angular_velocity'],
-                        'mag': ['gauss', 'Compass', 'magnetic_field_vector'],
-                        'orientmat': ['1', 'Orientation Matrix', '']}
+            imu_data = {'accel': ['m s-2', 'Acceleration'],
+                        'angrt': ['rad s-1', 'Angular Velocity'],
+                        'mag': ['gauss', 'Compass'],
+                        'orientmat': ['1', 'Orientation Matrix']}
             for ky in imu_data:
                 dat['units'].update({ky: imu_data[ky][0]})
                 dat['long_name'].update({ky: imu_data[ky][1]})
-                dat['standard_name'].update({ky: imu_data[ky][2]})
             if not mag:
                 dat['units'].pop('mag')
                 dat['long_name'].pop('mag')
-                dat['standard_name'].pop('mag')
             if not orientmat:
                 dat['units'].pop('orientmat')
                 dat['long_name'].pop('orientmat')
-                dat['standard_name'].pop('orientmat')
 
         # 0x71 = 113
         if self.c == 0:

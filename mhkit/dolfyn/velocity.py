@@ -379,8 +379,7 @@ class Velocity():
             coords={'time': self.ds['stress_vec'].time},
             dims=['time'],
             attrs={'units': self.ds['stress_vec'].units,
-                   'long_name': 'Coherent Turbulence Energy',
-                   'standard_name': 'coherent_turbulence_energy_of_sea_water'})
+                   'long_name': 'Coherent Turbulence Energy'})
 
     @property
     def I_tke(self, thresh=0):
@@ -414,8 +413,7 @@ class Velocity():
             coords=self.U_mag.coords,
             dims=self.U_mag.dims,
             attrs={'units': '% [0,1]',
-                   'long_name': 'Turbulence Intensity',
-                   'standard_name': 'turbulence_intensity_of_sea_water'})
+                   'long_name': 'Turbulence Intensity'})
 
     @property
     def tke(self,):
@@ -584,8 +582,7 @@ class VelBinner(TimeBinner):
                 std.astype('float32'),
                 dims=raw_ds.vel.dims[1:],
                 attrs={'units': 'm s-1',
-                       'long_name': 'Water Velocity Standard Deviation',
-                       'standard_name': 'sea_water_velocity_standard_deviation'})
+                       'long_name': 'Water Velocity Standard Deviation'})
 
         return out_ds
 
@@ -908,5 +905,4 @@ class VelBinner(TimeBinner):
             dims=dims,
             attrs={'units': units,
                    'n_fft': n_fft,
-                   'long_name': 'Power Spectral Density',
-                   'standard_name': 'power_spectral_density_of_sea_water_velocity'})
+                   'long_name': 'Power Spectral Density'})

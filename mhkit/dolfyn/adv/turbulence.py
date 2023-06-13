@@ -91,8 +91,7 @@ class ADVBinner(VelBinner):
         da = xr.DataArray(out.astype('float32'), 
                           dims=veldat.dims, 
                           attrs={'units': 'm2 s-2',
-                                 'long_name': 'Reynolds Stress Vector',
-                                 'standard_name': 'specific_reynolds_stress_of_sea_water'})
+                                 'long_name': 'Specific Reynolds Stress Vector'})
         da = da.rename({'dir': 'tau'})
         da = da.assign_coords({'tau': self.tau, 'time': time})
         
@@ -174,8 +173,7 @@ class ADVBinner(VelBinner):
                            dims=['C', 'time', 'coh_freq'],
                            attrs={'units': units, 
                                   'n_fft_coh': n_fft,
-                                  'long_name': 'Cross Spectral Density',
-                                  'standard_name': 'cross_spectral_density_of_sea_water_velocity'})
+                                  'long_name': 'Cross Spectral Density'})
         csd['coh_freq'].attrs['units'] = freq_units
 
         return csd
