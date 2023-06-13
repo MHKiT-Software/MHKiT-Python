@@ -64,7 +64,7 @@ def _moordyn_input(input_file, ds):
             linetypes['units'] = units[1:]
             ds.attrs['LINE_TYPES'] = linetypes
         
-        # TODO: get line type property sets
+        # TODO: get rod type property sets
         if line.count('---') > 0 and (line.upper().count('ROD DICTIONARY') > 0 or line.upper().count('ROD TYPES') > 0):
             line = next(f) # skip this header line, plus channel names and units lines
             # line = next(f)
