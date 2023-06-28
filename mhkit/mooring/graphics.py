@@ -3,9 +3,10 @@ import xarray as xr
 from matplotlib.animation import FuncAnimation
 
 
-def animate3d(dsani,xlim=None,ylim=None,zlim=None,interval=10,repeat=False,
+def animate_3d(dsani,xlim=None,ylim=None,zlim=None,interval=10,repeat=False,
               xlabel=None,ylabel=None,zlabel=None,title=None):
-    """Graphics function that animates the x,y,z node positions of a mooring line over time in 3D.
+    """
+    Graphics function that animates the x,y,z node positions of a mooring line over time in 3D.
 
     Parameters
     ----------
@@ -34,17 +35,23 @@ def animate3d(dsani,xlim=None,ylim=None,zlim=None,interval=10,repeat=False,
     -------
     matplotlib.animation.FuncAnimation
         Animation object
+    
+    Raises
+    ------
+    TypeError
+        Checks for correct input types for dsani, xlim, ylim, zlim, interval, repeat, xlabel, 
+        ylabel, zlabel, and title
     """
-    assert isinstance(dsani, xr.Dataset), 'dsani must be of type xr.Dataset'
-    assert isinstance(xlim, (list,type(None))), 'xlim must of be of type list'
-    assert isinstance(ylim, (list,type(None))), 'ylim must of be of type list'
-    assert isinstance(zlim, (list,type(None))), 'zlim must of be of type list'
-    assert isinstance(interval, int), 'interval must of be of type int'
-    assert isinstance(repeat, bool), 'repeat must of be of type bool'
-    assert isinstance(xlabel, (str,type(None))), 'xlabel must of be of type str'
-    assert isinstance(ylabel, (str,type(None))), 'ylabel must of be of type str'
-    assert isinstance(zlabel, (str,type(None))), 'zlabel must of be of type str'
-    assert isinstance(title, (str,type(None))), 'title must of be of type list'
+    if not isinstance(dsani, xr.Dataset): raise TypeError('dsani must be of type xr.Dataset')
+    if not isinstance(xlim, (list,type(None))): raise TypeError('xlim must of be of type list')
+    if not isinstance(ylim, (list,type(None))): raise TypeError('ylim must of be of type list')
+    if not isinstance(zlim, (list,type(None))): raise TypeError('zlim must of be of type list')
+    if not isinstance(interval, int): raise TypeError('interval must of be of type int')
+    if not isinstance(repeat, bool): raise TypeError('repeat must of be of type bool')
+    if not isinstance(xlabel, (str,type(None))): raise TypeError('xlabel must of be of type str')
+    if not isinstance(ylabel, (str,type(None))): raise TypeError('ylabel must of be of type str')
+    if not isinstance(zlabel, (str,type(None))): raise TypeError('zlabel must of be of type str')
+    if not isinstance(title, (str,type(None))): raise TypeError('title must of be of type list')
     
     current_idx = list(dsani.dims.mapping.keys())[0]
     dsani = dsani.rename({current_idx: 'time'})
@@ -84,9 +91,10 @@ def animate3d(dsani,xlim=None,ylim=None,zlim=None,interval=10,repeat=False,
     return ani
 
 
-def animate2d(dsani,xaxis='x',yaxis='z',xlim=None,ylim=None,interval=10,repeat=False,
+def animate_2d(dsani,xaxis='x',yaxis='z',xlim=None,ylim=None,interval=10,repeat=False,
               xlabel=None,ylabel=None,title=None):
-    """Graphics function that creates a 2D animation of the node positions of a mooring line over time.
+    """
+    Graphics function that creates a 2D animation of the node positions of a mooring line over time.
 
     Parameters
     ----------
@@ -115,17 +123,24 @@ def animate2d(dsani,xaxis='x',yaxis='z',xlim=None,ylim=None,interval=10,repeat=F
     -------
     matplotlib.animation.FuncAnimation
         Animation object
+    
+    Raises
+    ------
+    TypeError
+        Checks for correct input types for dsani, xaxis, yaxis, xlim, ylim, interval, repeat, 
+        xlabel, ylabel, and title
     """
-    assert isinstance(dsani, xr.Dataset), 'dsani must be of type xr.Dataset'
-    assert isinstance(xaxis, str), 'xaxis must of be of type str'
-    assert isinstance(yaxis, str), 'yaxis must of be of type str'
-    assert isinstance(xlim, (list,type(None))), 'xlim must of be of type list'
-    assert isinstance(ylim, (list,type(None))), 'ylim must of be of type list'
-    assert isinstance(interval, int), 'interval must of be of type int'
-    assert isinstance(repeat, bool), 'repeat must of be of type bool'
-    assert isinstance(xlabel, (str,type(None))), 'xlabel must of be of type str'
-    assert isinstance(ylabel, (str,type(None))), 'ylabel must of be of type str'
-    assert isinstance(title, (str,type(None))), 'title must of be of type list'
+    if not isinstance(dsani, xr.Dataset): raise TypeError('dsani must be of type xr.Dataset')
+    if not isinstance(xaxis, str): raise TypeError('xaxis must of be of type str')
+    if not isinstance(yaxis, str): raise TypeError('yaxis must of be of type str')
+    if not isinstance(xlim, (list,type(None))): raise TypeError('xlim must of be of type list')
+    if not isinstance(ylim, (list,type(None))): raise TypeError('ylim must of be of type list')
+    if not isinstance(interval, int): raise TypeError('interval must of be of type int')
+    if not isinstance(repeat, bool): raise TypeError('repeat must of be of type bool')
+    if not isinstance(xlabel, (str,type(None))): raise TypeError('xlabel must of be of type str')
+    if not isinstance(ylabel, (str,type(None))): raise TypeError('ylabel must of be of type str')
+    if not isinstance(title, (str,type(None))): raise TypeError('title must of be of type list')
+
     current_idx = list(dsani.dims.mapping.keys())[0]
     dsani = dsani.rename({current_idx: 'time'})
 

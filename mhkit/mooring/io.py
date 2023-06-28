@@ -2,7 +2,8 @@ import pandas as pd
 
 
 def moordyn(filepath, input_file=None):
-    """Reads in MoorDyn OUT files such as "FAST.MD.out" and "FAST.MD.Line1.out" and stores inside
+    """
+    Reads in MoorDyn OUT files such as "FAST.MD.out" and "FAST.MD.Line1.out" and stores inside
     xarray. Also allows for parsing and storage of MoorDyn input file as attributes inside the xarray.
 
     Parameters
@@ -16,9 +17,15 @@ def moordyn(filepath, input_file=None):
     -------
     xr.Dataset
         Dataset containing parsed MoorDyn OUT file
+    
+    Raises
+    ------
+    TypeError
+        Checks for correct input types for filepath and input_file
     """
-    assert isinstance(filepath, str), 'filepath must be of type str'
-    if input_file: assert isinstance(input_file, str), 'inputfile must be of type str'
+    if not isinstance(filepath, str): raise TypeError('filepath must be of type str')
+    if input_file: 
+        if not isinstance(input_file, str): raise TypeError('input_file must be of type str')
     
     data = pd.read_csv(filepath, header=0, skiprows=[1], sep=' ', skipinitialspace=True, index_col=0)
     data = data.dropna(axis=1)
@@ -31,7 +38,8 @@ def moordyn(filepath, input_file=None):
 
 
 def _moordyn_input(input_file, ds):
-    """Internal function used to parse MoorDyn input file and write attributes
+    """
+    Internal function used to parse MoorDyn input file and write attributes.
 
     Parameters
     ----------
