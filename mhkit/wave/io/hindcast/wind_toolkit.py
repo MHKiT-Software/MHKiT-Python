@@ -63,7 +63,7 @@ def region_selection(lat_lon, preferred_region=''):
 def get_region_data(region):
     # Define the path to the cache directory
     cache_dir = os.path.join(os.path.expanduser("~"),
-                             ".cache", "region_data")
+                             ".cache", "mhkit", "hindcast")
 
     # Create a unique identifier for this function call
     hash_id = hashlib.md5(region.encode()).hexdigest()
