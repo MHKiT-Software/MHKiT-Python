@@ -52,14 +52,14 @@ jobs:
       #   uses: actions/cache@v2
       #   id: cache-data
       #   with:
-      #     path: ~/mhkit
+      #     path: ~/.cache/mhkit
       #     key: data-key-${{ hashFiles('**/*.py') }}
 
       - name: Cache data
         uses: actions/cache@v2
         id: cache-data
         with:
-          path: ~/mhkit
+          path: ~/.cache/mhkit
           key: static-data-key
 
   conda-build:
@@ -101,7 +101,7 @@ jobs:
       - name: Restore cached data
         uses: actions/cache@v2
         with:
-          path: ~/mhkit
+          path: ~/.cache/mhkit
           # key: data-key-${{ hashFiles('**/*.py') }}
           key: static-data-key
           restore-keys: |
@@ -147,7 +147,7 @@ jobs:
       - name: Restore cached data
         uses: actions/cache@v2
         with:
-          path: ~/mhkit
+          path: ~/.cache/mhkit
           # key: data-key-${{ hashFiles('**/*.py') }}
           key: static-data-key
           restore-keys: |
@@ -200,7 +200,7 @@ jobs:
       - name: Restore cached data
         uses: actions/cache@v2
         with:
-          path: ~/mhkit
+          path: ~/.cache/mhkit
           # key: data-key-${{ hashFiles('**/*.py') }}
           key: static-data-key
           restore-keys: |
