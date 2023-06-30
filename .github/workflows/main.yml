@@ -47,13 +47,7 @@ jobs:
           pytest mhkit/tests/tidal/test_io.py
           pytest mhkit/tests/wave/io/test_cdip.py
           pytest mhkit/tests/wave/io/hindcast/test_hindcast.py
-
-      # - name: Cache data
-      #   uses: actions/cache@v2
-      #   id: cache-data
-      #   with:
-      #     path: ~/.cache/mhkit
-      #     key: data-key-${{ hashFiles('**/*.py') }}
+          pytest mhkit/tests/wave/io/hindcast/test_wind_toolkit.py
 
       - name: Cache data
         uses: actions/cache@v2
