@@ -286,13 +286,15 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
         # Check the cache first
         hash_params = f'{station_number}-{parameters}-{start_date}-{end_date}'
         data = cache_cdip(hash_params, cache_dir)
-        data = data[0]
+
         if data == (None, None, None):
             data = get_netcdf_variables(nc,
                                         start_date=start_date, end_date=end_date,
                                         parameters=parameters,
                                         all_2D_variables=all_2D_variables)
             cache_cdip(hash_params, cache_dir, data=data)
+        else:
+            data = data[0]
 
     else:
         data = {'data': {}, 'metadata': {}}
@@ -334,8 +336,6 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
             data.setdefault('metadata', {})['name'] = buoy_name
         except:
             pass
-            # import ipdb
-            # ipdb.set_trace()
 
     return data
 
