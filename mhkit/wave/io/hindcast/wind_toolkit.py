@@ -1,4 +1,10 @@
+import os
+import sys
+import hashlib
+import pickle
 import pandas as pd
+import xarray as xr
+
 from rex import MultiYearWindX
 import matplotlib.pyplot as plt
 
@@ -54,6 +60,40 @@ def region_selection(lat_lon, preferred_region=''):
     else:
         return region[0]
 
+def get_region_data(region):
+    # Define the path to the cache directory
+    cache_dir = os.path.join(os.path.expanduser("~"),
+                             ".cache", "mhkit", "hindcast")
+
+    # Create a unique identifier for this function call
+    hash_id = hashlib.md5(region.encode()).hexdigest()
+
+    # Create cache directory if it doesn't exist
+    os.makedirs(cache_dir, exist_ok=True)
+
+    # Create a path to the cache file for this function call
+    cache_file = os.path.join(cache_dir, f"{hash_id}.pkl")
+
+    if os.path.isfile(cache_file):
+        # If the cache file exists, load the data from the cache
+        with open(cache_file, 'rb') as f:
+            lats, lons = pickle.load(f)
+        return lats, lons
+    else:
+        wind_path = '/nrel/wtk/'+region.lower()+'/'+region+'_*.h5'
+        windKwargs = {'tree':None, 'unscale':True, 'str_decode':True, 'hsds':True,
+            'years':[2019]}
+    
+        # Get the latitude and longitude list from the region in rex
+        rex_wind = MultiYearWindX(wind_path, **windKwargs)
+        lats = rex_wind.lat_lon[:,0]
+        lons = rex_wind.lat_lon[:,1]
+        
+        # Save data to cache
+        with open(cache_file, 'wb') as f:
+            pickle.dump((lats, lons), f)
+        
+        return lats, lons
 
 def plot_region(region,lat_lon=None,ax=None):
     '''
@@ -78,15 +118,17 @@ def plot_region(region,lat_lon=None,ax=None):
     assert isinstance(region, str), 'region must be of type string'
     assert region in ['Offshore_CA','Hawaii','Mid_Atlantic','NW_Pacific'], f'{region} not in list of supported regions'
     
-    wind_path = '/nrel/wtk/'+region.lower()+'/'+region+'_*.h5'
-    windKwargs = {'tree':None, 'unscale':True, 'str_decode':True, 'hsds':True,
-        'years':[2019]}
+    # wind_path = '/nrel/wtk/'+region.lower()+'/'+region+'_*.h5'
+    # windKwargs = {'tree':None, 'unscale':True, 'str_decode':True, 'hsds':True,
+    #     'years':[2019]}
     
-    # Get the latitude and longitude list from the region in rex
-    rex_wind = MultiYearWindX(wind_path, **windKwargs)
-    lats = rex_wind.lat_lon[:,0]
-    lons = rex_wind.lat_lon[:,1]
-    
+    # # Get the latitude and longitude list from the region in rex
+    # rex_wind = MultiYearWindX(wind_path, **windKwargs)
+    # lats = rex_wind.lat_lon[:,0]
+    # lons = rex_wind.lat_lon[:,1]
+
+    lats, lons = get_region_data(region)
+
     # Plot the latitude longitude pairs
     if ax is None:
         fig, ax = plt.subplots()
@@ -221,48 +263,76 @@ def request_wtk_point_data(time_interval, parameter, lat_lon, years, preferred_r
     assert isinstance(str_decode,bool), 'str_decode must be bool type'
     assert isinstance(hsds,bool), 'hsds must be bool type'
 
-    # check for multiple region selection
-    if isinstance(lat_lon[0], float):
-        region = region_selection(lat_lon, preferred_region)
+    # Define the path to the cache directory
+    cache_dir = os.path.join(os.path.expanduser("~"),
+                             ".cache", "mhkit", "hindcast")
+
+    # Construct a string representation of the function parameters
+    hash_params = f"{time_interval}_{parameter}_{lat_lon}_{years}_{preferred_region}_{tree}_{unscale}_{str_decode}_{hsds}"
+
+    # Create a unique identifier for this function call
+    hash_id = hashlib.md5(hash_params.encode()).hexdigest()
+
+    # Create cache directory if it doesn't exist
+    os.makedirs(cache_dir, exist_ok=True)
+
+    # Create a path to the cache file for this function call
+    cache_file = os.path.join(cache_dir, f"{hash_id}.pkl")
+
+    if os.path.isfile(cache_file):
+        # If the cache file exists, load the data from the cache
+        with open(cache_file, 'rb') as f:
+            data, meta = pickle.load(f)
+        return data, meta
+
     else:
-        reglist = []
-        for loc in lat_lon:
-            reglist.append(region_selection(loc))
-        if reglist.count(reglist[0]) == len(lat_lon):
-            region = reglist[0]
+        # check for multiple region selection
+        if isinstance(lat_lon[0], float):
+            region = region_selection(lat_lon, preferred_region)
         else:
-            raise TypeError('Coordinates must be within the same region!')
-    
-    if time_interval == '1-hour':
-        wind_path = f'/nrel/wtk/'+region.lower()+'/'+region+'_*.h5'
-    elif time_interval == '5-minute':
-        wind_path = f'/nrel/wtk/'+region.lower()+'-5min/'+region+'_*.h5'
-    else:
-        raise TypeError(f"Invalid time_interval '{time_interval}', must be '1-hour' or '5-minute'")
-    windKwargs = {'tree':tree,'unscale':unscale,'str_decode':str_decode, 'hsds':hsds,
-        'years':years}
-    data_list = []
-    
-    with MultiYearWindX(wind_path, **windKwargs) as rex_wind:
-        if isinstance(parameter, list):
-            for p in parameter:
-                temp_data = rex_wind.get_lat_lon_df(p,lat_lon)
-                col = temp_data.columns[:]
+            reglist = []
+            for loc in lat_lon:
+                reglist.append(region_selection(loc))
+            if reglist.count(reglist[0]) == len(lat_lon):
+                region = reglist[0]
+            else:
+                raise TypeError('Coordinates must be within the same region!')
+        
+        if time_interval == '1-hour':
+            wind_path = f'/nrel/wtk/'+region.lower()+'/'+region+'_*.h5'
+        elif time_interval == '5-minute':
+            wind_path = f'/nrel/wtk/'+region.lower()+'-5min/'+region+'_*.h5'
+        else:
+            raise TypeError(f"Invalid time_interval '{time_interval}', must be '1-hour' or '5-minute'")
+        windKwargs = {'tree':tree,'unscale':unscale,'str_decode':str_decode, 'hsds':hsds,
+            'years':years}
+        data_list = []
+        
+        with MultiYearWindX(wind_path, **windKwargs) as rex_wind:
+            if isinstance(parameter, list):
+                for p in parameter:
+                    temp_data = rex_wind.get_lat_lon_df(p,lat_lon)
+                    col = temp_data.columns[:]
+                    for i,c in zip(range(len(col)),col):
+                        temp = f'{p}_{i}'
+                        temp_data = temp_data.rename(columns={c:temp})
+
+                    data_list.append(temp_data)
+                data= pd.concat(data_list, axis=1)
+                
+            else:
+                data = rex_wind.get_lat_lon_df(parameter,lat_lon)
+                col = data.columns[:]
+
                 for i,c in zip(range(len(col)),col):
-                    temp = f'{p}_{i}'
-                    temp_data = temp_data.rename(columns={c:temp})
+                    temp = f'{parameter}_{i}'
+                    data = data.rename(columns={c:temp})
 
-                data_list.append(temp_data)
-            data= pd.concat(data_list, axis=1)
-            
-        else:
-            data = rex_wind.get_lat_lon_df(parameter,lat_lon)
-            col = data.columns[:]
+            meta = rex_wind.meta.loc[col,:]
+            meta = meta.reset_index(drop=True)    
 
-            for i,c in zip(range(len(col)),col):
-                temp = f'{parameter}_{i}'
-                data = data.rename(columns={c:temp})
-
-        meta = rex_wind.meta.loc[col,:]
-        meta = meta.reset_index(drop=True)    
-    return data, meta
+        with open(cache_file, 'wb') as f:
+            pickle.dump((data, meta), f)
+       
+        return data, meta
+        
