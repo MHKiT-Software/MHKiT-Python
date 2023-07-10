@@ -49,12 +49,18 @@ jobs:
           pytest mhkit/tests/wave/io/hindcast/test_hindcast.py
           pytest mhkit/tests/wave/io/hindcast/test_wind_toolkit.py
 
-      - name: Cache data
-        uses: actions/cache@v2
-        id: cache-data
+      # - name: Cache data
+      #   uses: actions/cache@v2
+      #   id: cache-data
+      #   with:
+      #     path: ~/.cache/mhkit
+      #     key: static-data-key
+
+      - name: Upload data as artifact
+        uses: actions/upload-artifact@v2
         with:
+          name: data
           path: ~/.cache/mhkit
-          key: static-data-key
 
   conda-build:
     name: conda-${{ matrix.os }}/${{ matrix.python-version }}
@@ -92,14 +98,18 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install coverage pytest coveralls .
 
-      - name: Restore cached data
-        uses: actions/cache@v2
+      # - name: Restore cached data
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: ~/.cache/mhkit
+      #     key: static-data-key
+      #     restore-keys: |
+      #       data-key-
+      - name: Download data from artifact
+        uses: actions/download-artifact@v2
         with:
+          name: data
           path: ~/.cache/mhkit
-          # key: data-key-${{ hashFiles('**/*.py') }}
-          key: static-data-key
-          restore-keys: |
-            data-key-
 
       - name: Run pytest
         shell: bash -l {0}
@@ -138,14 +148,19 @@ jobs:
       - name: Set up Git repository
         uses: actions/checkout@v2
 
-      - name: Restore cached data
-        uses: actions/cache@v2
+      # - name: Restore cached data
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: ~/.cache/mhkit
+      #     key: static-data-key
+      #     restore-keys: |
+      #       data-key-
+
+      - name: Download data from artifact
+        uses: actions/download-artifact@v2
         with:
+          name: data
           path: ~/.cache/mhkit
-          # key: data-key-${{ hashFiles('**/*.py') }}
-          key: static-data-key
-          restore-keys: |
-            data-key-
 
       - name: Update and install packages
         run: |
@@ -192,14 +207,18 @@ jobs:
           export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH" # so setup.py finds nc-config
           pip install -e . --no-deps --force-reinstall
 
-      - name: Restore cached data
-        uses: actions/cache@v2
+      # - name: Restore cached data
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: ~/.cache/mhkit
+      #     key: static-data-key
+      #     restore-keys: |
+      #       data-key-
+      - name: Download data from artifact
+        uses: actions/download-artifact@v2
         with:
+          name: data
           path: ~/.cache/mhkit
-          # key: data-key-${{ hashFiles('**/*.py') }}
-          key: static-data-key
-          restore-keys: |
-            data-key-
 
       - name: Install MHKiT and run pytest
         shell: bash -l {0}
