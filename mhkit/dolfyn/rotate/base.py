@@ -51,7 +51,7 @@ def _set_coords(ds, ref_frame, forced=False):
 
     XYZ = ['X', 'Y', 'Z']
     ENU = ['E', 'N', 'U']
-    beam = list(range(1, ds['vel'].shape[0]+1))
+    beam = ds.beam.values
     principal = ['streamwise', 'x-stream', 'vert']
 
     # check make/model

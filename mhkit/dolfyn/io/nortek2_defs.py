@@ -3,9 +3,8 @@ from copy import copy
 from struct import Struct
 from . import nortek2_lib as lib
 
-dt32 = 'float32'
-dt64 = 'float64'
 
+dt32 = 'float32'
 grav = 9.81
 # The starting value for the checksum:
 cs0 = int('0xb58c', 0)
@@ -207,15 +206,14 @@ _burst_hdr = [
      'degree_C', 'Pressure Sensor Temperature'),
     ('batt', 'H', [], _LinFunc(0.1, dtype=dt32),
      'V', 'Battery Voltage', 'battery_voltage'),
-    ('mag', 'h', [3], _LinFunc(0.1, dtype=dt32),
-     'uT', 'Compass', 'magnetic_field_vector'),
+    ('mag', 'h', [3], _LinFunc(0.1, dtype=dt32), 'uT', 'Compass'),
     ('accel', 'h', [3], _LinFunc(1. / 16384 * grav, dtype=dt32),
-     'm s-2', 'Acceleration', 'platform_acceleration'),
+     'm s-2', 'Acceleration'),
     ('ambig_vel', 'h', [], _LinFunc(0.001, dtype=dt32), 'm s-1'),
     ('data_desc', 'H', [], None),
     ('xmit_energy', 'H', [], None, 'dB', 'Sound Pressure Level of Acoustic Signal'),
     ('vel_scale', 'b', [], None),
-    ('power_level_dB', 'b', [], _LinFunc(dtype=dt32), '1', 'Power Level'),
+    ('power_level_dB', 'b', [], _LinFunc(dtype=dt32), 'dB', 'Power Level'),
     ('temp_mag', 'h', [], None),  # uncalibrated
     ('temp_clock', 'h', [], _LinFunc(0.01, dtype=dt32),
      'degree_C', 'Internal Clock Temperature'),
@@ -255,7 +253,7 @@ _bt_hdr = [
     ('unused', 'B', [], None),
     ('batt', 'H', [], _LinFunc(0.1, dtype=dt32),
      'V', 'Battery Voltage', 'battery_voltage'),
-    ('mag', 'h', [3], None, 'gauss', 'Compass Vector'),
+    ('mag', 'h', [3], None, 'uT', 'Compass'),
     ('accel', 'h', [3], _LinFunc(1. / 16384 * grav, dtype=dt32),
      'm s-2', 'Acceleration', ''),
     ('ambig_vel', 'I', [], _LinFunc(0.001, dtype=dt32), 'm s-1'),
@@ -270,6 +268,7 @@ _bt_hdr = [
     ('status', 'I', [], None, '1', 'Status Code'),
     ('_ensemble', 'I', [], None),
 ]
+
 
 _ahrs_def = [
     ('orientmat', 'f', [3, 3], None, '1', 'Orientation Matrix'),
@@ -301,7 +300,8 @@ def _calc_echo_struct(config, nc):
                                  'alt_raw', 'p_gd', 'std']]):
         raise Exception("Echosounder ping contains invalid data?")
     if flags['echo']:
-        dd += [('echo', 'H', [nc], _LinFunc(0.01, dtype=dt32), 'dB', 'Echo Sounder Acoustic Signal Backscatter')]
+        dd += [('echo', 'H', [nc], _LinFunc(0.01, dtype=dt32), 'dB', 
+                'Echo Sounder Acoustic Signal Backscatter', 'acoustic_target_strength_in_sea_water')]
     if flags['ahrs']:
         dd += _ahrs_def
     return _DataDef(dd)

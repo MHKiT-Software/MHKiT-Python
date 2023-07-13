@@ -45,7 +45,7 @@ def read_nortek(filename, userdata=True, debug=False, do_checksum=False,
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
         filepath = Path(filename)
-        logfile = filepath.with_suffix('.log')
+        logfile = filepath.with_suffix('.dolfyn.log')
         logging.basicConfig(filename=str(logfile),
                             filemode='w',
                             level=logging.NOTSET,
@@ -615,7 +615,8 @@ class _NortekReader():
                     self.data[va.group][nm] = va._empty_array(**shape_args)
                     self.data['units'][nm] = va.units
                     self.data['long_name'][nm] = va.long_name
-                    self.data['standard_name'][nm] = va.standard_name
+                    if va.standard_name:
+                        self.data['standard_name'][nm] = va.standard_name
 
     def read_vec_data(self,):
         # ID: 0x10 = 16

@@ -58,14 +58,14 @@ class ADVBinner(VelBinner):
         Parameters
         ----------
         veldat : xr.DataArray
-            A velocity data array. The last dimension is assumed
-            to be time.
+          A velocity data array. The last dimension is assumed
+          to be time.
         detrend : bool
-            detrend the velocity data (True), or simply de-mean it
-            (False), prior to computing stress. Note: the psd routines
-            use detrend, so if you want to have the same amount of
-            variance here as there use ``detrend=True``.
-            Default = True
+          Detrend the velocity data (True), or simply de-mean it
+          (False), prior to computing stress. Note: the psd routines
+          use detrend, so if you want to have the same amount of
+          variance here as there use ``detrend=True``.
+          Default = True
 
         Returns
         -------
@@ -154,8 +154,8 @@ class ADVBinner(VelBinner):
                                 dims=['coh_freq'],
                                 name='coh_freq',
                                 attrs={'units': freq_units,
-                                      'long_name': 'FFT Frequency Vector',
-                                      'coverage_content_type': 'coordinate'}
+                                       'long_name': 'FFT Frequency Vector',
+                                       'coverage_content_type': 'coordinate'}
                                 ).astype('float32')
 
         for ip, ipair in enumerate(self._cross_pairs):
@@ -240,7 +240,7 @@ class ADVBinner(VelBinner):
             attrs={'units': 'm/s',
                    'long_name': 'Doppler Noise Level',
                    'description': 'Doppler noise level calculated '
-                   'from PSD white noise'})
+                                  'from PSD white noise'})
 
     def check_turbulence_cascade_slope(self, psd, freq_range=[6.28, 12.57]):
         """
@@ -365,12 +365,13 @@ class ADVBinner(VelBinner):
                freq.isel(freq=idx)**(5/3) / a).mean(axis=-1)**(3/2) / U
 
         return xr.DataArray(
-          out.astype('float32'),
-          attrs={'units': 'm2 s-3',
-                  'long_name': 'TKE Dissipation Rate',
-                  'standard_name': 'specific_turbulent_kinetic_energy_dissipation_in_sea_water',
-                  'description': 'TKE dissipation rate calculated using the method from Lumley and Terray, 1983',
-                  })
+            out.astype('float32'),
+            attrs={'units': 'm2 s-3',
+                   'long_name': 'TKE Dissipation Rate',
+                   'standard_name': 'specific_turbulent_kinetic_energy_dissipation_in_sea_water',
+                   'description': 'TKE dissipation rate calculated using '
+                                  'the method from Lumley and Terray, 1983',
+                   })
 
     def dissipation_rate_SF(self, vel_raw, U_mag, fs=None, freq_range=[2., 4.]):
         """
@@ -418,14 +419,15 @@ class ADVBinner(VelBinner):
             out[slc[:-1]] = (cv2m / 2.1) ** (3 / 2)
 
         return xr.DataArray(
-          out.astype('float32'),
-          coords=U_mag.coords,
-          dims=U_mag.dims,
-          attrs={'units': 'm2 s-3',
-                  'long_name': 'TKE Dissipation Rate',
-                  'standard_name': 'specific_turbulent_kinetic_energy_dissipation_in_sea_water',
-                  'description': 'TKE dissipation rate calculated using the "structure function" method',
-                  })
+            out.astype('float32'),
+            coords=U_mag.coords,
+            dims=U_mag.dims,
+            attrs={'units': 'm2 s-3',
+                   'long_name': 'TKE Dissipation Rate',
+                   'standard_name': 'specific_turbulent_kinetic_energy_dissipation_in_sea_water',
+                   'description': 'TKE dissipation rate calculated using the '
+                                  '"structure function" method',
+                   })
 
     def _up_angle(self, U_complex):
         """
@@ -524,14 +526,15 @@ class ADVBinner(VelBinner):
         out *= 0.5
 
         return xr.DataArray(
-          out.astype('float32'),
-          coords={'time': dat_avg.psd.time},
-          dims='time',
-          attrs={'units': 'm2 s-3',
-                  'long_name': 'TKE Dissipation Rate',
-                  'standard_name': 'specific_turbulent_kinetic_energy_dissipation_in_sea_water',
-                  'description': 'TKE dissipation rate calculated using the method from Trowbridge and Elgar, 2001'
-                  })
+            out.astype('float32'),
+            coords={'time': dat_avg.psd.time},
+            dims='time',
+            attrs={'units': 'm2 s-3',
+                   'long_name': 'TKE Dissipation Rate',
+                   'standard_name': 'specific_turbulent_kinetic_energy_dissipation_in_sea_water',
+                   'description': 'TKE dissipation rate calculated using the '
+                                  'method from Trowbridge and Elgar, 2001'
+                   })
 
     def integral_length_scales(self, a_cov, U_mag, fs=None):
         """

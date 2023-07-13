@@ -9,31 +9,31 @@ class _VarAtts():
     Parameters
     ----------
     dims : (list, optional)
-        The dimensions of the array other than the 'time'
-        dimension. By default the time dimension is appended to the
-        end. To specify a point to place it, place 'n' in that
-        location.
+      The dimensions of the array other than the 'time'
+      dimension. By default the time dimension is appended to the
+      end. To specify a point to place it, place 'n' in that
+      location.
     dtype : (type, optional)
-        The data type of the array to create. Default: float32
+      The data type of the array to create (default: float32).
     group : (string, optional)
-        The data group to which this variable should be a part.
-        Default: 'main'
+      The data group to which this variable should be a part
+      (default: 'main').
     view_type : (type, optional)
-        Specify a numpy view to cast the array into.
+      Specify a numpy view to cast the array into.
     default_val : (numeric, optional)
-        The value to initialize with. Default: use an empty array.
+      The value to initialize with (default: use an empty array).
     offset : (numeric, optional)
-        The offset, 'b', by which to adjust the data when converting to
-        scientific units.
+      The offset, 'b', by which to adjust the data when converting to
+      scientific units.
     factor : (numeric, optional)
-        The factor, 'm', by which to adjust the data when converting to
-        scientific units.
+      The factor, 'm', by which to adjust the data when converting to
+      scientific units.
     title_name : (string, optional)
-        The name of the variable.
+      The name of the variable.
     units : (string, optional)
-        The units of this variable.
+      The units of this variable.
     dim_names : (list, optional)
-        A list of names for each dimension of the array.
+      A list of names for each dimension of the array.
     """
 
     def __init__(self, dims=[], dtype=None, group='data_vars',
@@ -79,12 +79,13 @@ class _VarAtts():
         return out
 
     def sci_func(self, data):
-        """Scale the data to scientific units.
+        """
+        Scale the data to scientific units.
 
         Parameters
         ----------
         data : :class:`<numpy.ndarray>`
-            The data to scale.
+          The data to scale.
 
         Returns
         -------
@@ -92,6 +93,7 @@ class _VarAtts():
           If this funciton modifies the data in place it returns None,
           otherwise it returns the new data object.
         """
+
         if self.offset != 0:
             data += self.offset
         if self.factor != 1:
@@ -136,9 +138,9 @@ vec_data = {
     'amp': _VarAtts(dims=[3],
                     dtype=np.uint8,
                     group='data_vars',
-                    units='counts',
+                    units='1',
                     long_name='Acoustic Signal Amplitude',
-                    standard_name='signal_intensity_from_acoustic_doppler_velocity_sensor_in_sea_water',
+                    standard_name='signal_intensity_from_multibeam_acoustic_doppler_velocity_sensor_in_sea_water'
                     ),
     'corr': _VarAtts(dims=[3],
                      dtype=np.uint8,
@@ -333,7 +335,7 @@ awac_profile = {
     'amp': _VarAtts(dims=[3, 'nbins', 'n'],
                     dtype=np.uint8,
                     group='data_vars',
-                    units='counts',
+                    units='1',
                     long_name='Acoustic Signal Amplitude',
                     standard_name='signal_intensity_from_multibeam_acoustic_doppler_velocity_sensor_in_sea_water',
                     ),

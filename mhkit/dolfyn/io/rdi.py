@@ -47,7 +47,7 @@ def read_rdi(filename, userdata=None, nens=None, debug_level=-1,
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
         filepath = Path(filename)
-        logfile = filepath.with_suffix('.log')
+        logfile = filepath.with_suffix('.dolfyn.log')
         logging.basicConfig(filename=str(logfile),
                             filemode='w',
                             level=logging.NOTSET,
@@ -97,9 +97,9 @@ def read_rdi(filename, userdata=None, nens=None, debug_level=-1,
             ds['beam2inst_orientmat'] = xr.DataArray(
                 _calc_beam_orientmat(ds.beam_angle,
                                      ds.beam_pattern == 'convex'),
-                coords={'x': [1, 2, 3, 4],
-                        'x*': [1, 2, 3, 4]},
-                dims=['x', 'x*'],
+                coords={'x1': [1, 2, 3, 4],
+                        'x2': [1, 2, 3, 4]},
+                dims=['x1', 'x2'],
                 attrs={'units': '1',
                        'long_name': 'Rotation Matrix'})
 

@@ -36,10 +36,10 @@ adcp_type = {4: 'Broadband',
              }
 
 data_defs = {'number': ([], 'data_vars', 'uint32', '1', 'Ensemble Number', 'number_of_observations'),
-             'rtc': ([7], 'sys', 'uint16', '1', '', ''),
+             'rtc': ([7], 'sys', 'uint16', '1', 'Real Time Clock', ''),
              'builtin_test_fail': ([], 'data_vars', 'bool', '1', 'Built-In Test Failures', ''),
              'c_sound': ([], 'data_vars', 'float32', 'm s-1', 'Speed of Sound', 'speed_of_sound_in_sea_water'),
-             'depth': ([], 'data_vars', 'float32', 'm', 'Depth', 'depth_below_platform'),
+             'depth': ([], 'data_vars', 'float32', 'm', 'Depth', 'depth'),
              'pitch': ([], 'data_vars', 'float32', 'degree', 'Pitch', 'platform_pitch'),
              'roll': ([], 'data_vars', 'float32', 'degree', 'Roll', 'platform_roll'),
              'heading': ([], 'data_vars', 'float32', 'degree', 'Heading', 'platform_orientation'),
@@ -50,7 +50,7 @@ data_defs = {'number': ([], 'data_vars', 'uint32', '1', 'Ensemble Number', 'numb
              'pitch_std': ([], 'data_vars', 'float32', 'degree', 'Pitch Standard Deviation', ''),
              'roll_std': ([], 'data_vars', 'float32', 'degree', 'Roll Standard Deviation', ''),
              'adc': ([8], 'sys', 'uint8', '1', 'Analog-Digital Converter Output', ''),
-             'error_status': ([], 'attrs', 'float32', '1', '', ''),
+             'error_status': ([], 'attrs', 'float32', '1', 'Error Status', ''),
              'pressure': ([], 'data_vars', 'float32', 'dbar', 'Pressure', 'sea_water_pressure'),
              'pressure_std': ([], 'data_vars', 'float32', 'dbar', 'Pressure Standard Deviation', ''),
              'vel': (['nc', 4], 'data_vars', 'float32', 'm s-1', 'Water Velocity', ''),
@@ -60,7 +60,7 @@ data_defs = {'number': ([], 'data_vars', 'uint32', '1', 'Ensemble Number', 'numb
                       'beam_consistency_indicator_from_multibeam_acoustic_doppler_velocity_profiler_in_sea_water'),
              'prcnt_gd': (['nc', 4], 'data_vars', 'uint8', '%', 'Percent Good',
                           'proportion_of_acceptable_signal_returns_from_acoustic_instrument_in_sea_water'),
-             'status': (['nc', 4], 'data_vars', 'float32', '1', '', ''),
+             'status': (['nc', 4], 'data_vars', 'float32', '1', 'Status', ''),
              'dist_bt': ([4], 'data_vars', 'float32', 'm', 'Bottom Track Measured Depth', ''),
              'vel_bt': ([4], 'data_vars', 'float32', 'm s-1', 'Platform Velocity from Bottom Track', ''),
              'corr_bt': ([4], 'data_vars', 'uint8', '1', 'Bottom Track Acoustic Signal Correlation', ''),
@@ -68,13 +68,13 @@ data_defs = {'number': ([], 'data_vars', 'uint32', '1', 'Ensemble Number', 'numb
              'prcnt_gd_bt': ([4], 'data_vars', 'uint8', '%', 'Bottom Track Percent Good', ''),
              'time': ([], 'coords', 'float64', 'seconds since 1970-01-01 00:00:00', 'Time', 'time'),
              'alt_dist': ([], 'data_vars', 'float32', 'm', 'Altimeter Range', 'altimeter_range'),
-             'alt_rssi': ([], 'data_vars', 'uint8', '1', 'Altimeter Recieved Signal Strength Indicator', ''),
-             'alt_eval': ([], 'data_vars', 'uint8', '1', 'Altimeter Evaluation Amplitude', ''),
+             'alt_rssi': ([], 'data_vars', 'uint8', 'dB', 'Altimeter Recieved Signal Strength Indicator', ''),
+             'alt_eval': ([], 'data_vars', 'uint8', 'dB', 'Altimeter Evaluation Amplitude', ''),
              'alt_status': ([], 'data_vars', 'uint8', 'bit', 'Altimeter Status', ''),
              'time_gps': ([], 'coords', 'float64', 'seconds since 1970-01-01 00:00:00', 'GPS Time', 'time'),
              'clock_offset_UTC_gps': ([], 'data_vars', 'float64', 's', 'Instrument Clock Offset from UTC', ''),
-             'latitude_gps': ([], 'data_vars', 'float32', 'deg N', 'Latitude', 'latitude'),
-             'longitude_gps': ([], 'data_vars', 'float32', 'deg E', 'Longitude', 'longitude'),
+             'latitude_gps': ([], 'data_vars', 'float32', 'degrees_north', 'Latitude', 'latitude'),
+             'longitude_gps': ([], 'data_vars', 'float32', 'degrees_east', 'Longitude', 'longitude'),
              'avg_speed_gps': ([], 'data_vars', 'float32', 'm s-1', 'Average Platform Speed', 'platform_speed_wrt_ground'),
              'avg_dir_gps': ([], 'data_vars', 'float32', 'degree', 'Average Platform Direction', 'platform_course'),
              'speed_made_good_gps': ([], 'data_vars', 'float32', 'm s-1', 'Platform Speed Made Good', 'platform_speed_wrt_ground'),
@@ -98,7 +98,7 @@ data_defs = {'number': ([], 'data_vars', 'uint32', '1', 'Ensemble Number', 'numb
                         'signal_intensity_from_multibeam_acoustic_doppler_velocity_sensor_in_sea_water'),
              'prcnt_gd_sl': (['nc', 4], 'data_vars', 'uint8', '%', 'Surface Layer Percent Good',
                              'proportion_of_acceptable_signal_returns_from_acoustic_instrument_in_sea_water'),
-             'status_sl': (['nc', 4], 'data_vars', 'float32', '1', '', ''),
+             'status_sl': (['nc', 4], 'data_vars', 'float32', '1', 'Surface Layer Status', ''),
              }
 
 
@@ -146,7 +146,8 @@ def _idata(dat, nm, sz):
     dat[group][nm] = arr
     dat['units'][nm] = units
     dat['long_name'][nm] = long_name
-    dat['standard_name'][nm] = standard_name
+    if standard_name:
+        dat['standard_name'][nm] = standard_name
     return dat
 
 
