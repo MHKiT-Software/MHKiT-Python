@@ -14,7 +14,7 @@ class TestMooring(unittest.TestCase):
     def test_moordyn_out(self):
         fpath = join(datadir, 'Test.MD.out')
         inputpath = join(datadir, "TestInput.MD.dat")
-        ds = mooring.io.moordyn(fpath, input_file=inputpath)
+        ds = mooring.io.read_moordyn(fpath, input_file=inputpath)
         isinstance(ds, xr.Dataset)
 
     def test_lay_length(self):
