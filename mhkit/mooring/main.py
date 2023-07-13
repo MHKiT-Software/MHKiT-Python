@@ -39,6 +39,10 @@ def lay_length(dataset, depth, tolerance=0.25):
     nodes_y = [y for y in chans if 'y' in y]
     nodes_z = [z for z in chans if 'z' in z]
 
+    # check if the dataset contains the necessary 'x', 'y', 'z' nodes
+    if not nodes_x or not nodes_y or not nodes_z:
+        raise ValueError('The dataset must contain x, y, and z node data')
+
     if len(nodes_z) < 3:
         raise ValueError(
             'This function requires at least 3 nodes to calculate lay length')
