@@ -7,16 +7,16 @@ def lay_length(ds, depth, tolerance=0.25):
 
     Parameters
     ----------
-    ds : xr.Dataset
+    ds: xr.Dataset
         Dataset containing x,y,z nodes (ie Node1px, Node1py, Node1pz)
-    depth : float
+    depth: float
         Depth of seabed (m)
-    tolerance : float, optional
+    tolerance: float, optional
         Tolerance to detect first lift point from seabed, by default 0.25 meters
 
     Returns
     -------
-    xr.Dataset
+    line_lay_length: xr.Dataset
         Array containing the laylength at each time step
 
     Raises
