@@ -46,6 +46,7 @@ def lay_length(dataset, depth, tolerance=0.25):
     if len(nodes_z) < 3:
         raise ValueError(
             'This function requires at least 3 nodes to calculate lay length')
+
     # find name of first z point where tolerance is exceeded
     laypoint = dataset[nodes_z].where(dataset[nodes_z] > depth+abs(tolerance))
     laypoint = laypoint.to_dataframe().dropna(axis=1).columns[0]
