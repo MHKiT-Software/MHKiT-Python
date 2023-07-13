@@ -28,16 +28,16 @@ class TestMooring(unittest.TestCase):
         fpath = join(datadir, 'line1_test.nc')
         ds = xr.open_dataset(fpath)
         dsani = ds.sel(Time=slice(0, 10))
-        ani = mooring.graphics.animate_3d(dsani, interval=10, repeat=True,
-                                          xlabel='X-axis', ylabel='Y-axis', zlabel='Depth [m]', title='Mooring Line Example')
+        ani = mooring.graphics.animate(dsani, dimension='3d', interval=10, repeat=True,
+                                       xlabel='X-axis', ylabel='Y-axis', zlabel='Depth [m]', title='Mooring Line Example')
         isinstance(ani, FuncAnimation)
 
     def test_animate_2d(self):
         fpath = join(datadir, 'line1_test.nc')
         ds = xr.open_dataset(fpath)
         dsani = ds.sel(Time=slice(0, 10))
-        ani2d = mooring.graphics.animate_2d(dsani, xaxis='x', yaxis='z', repeat=True,
-                                            xlabel='X-axis', ylabel='Depth [m]', title='Mooring Line Example')
+        ani2d = mooring.graphics.animate(dsani, dimension='2d', xaxis='x', yaxis='z', repeat=True,
+                                         xlabel='X-axis', ylabel='Depth [m]', title='Mooring Line Example')
         isinstance(ani2d, FuncAnimation)
 
 
