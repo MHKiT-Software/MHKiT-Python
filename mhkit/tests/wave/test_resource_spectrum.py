@@ -55,6 +55,17 @@ class TestResourceSpectrum(unittest.TestCase):
         self.assertLess(errorHm0, 0.01)
         self.assertLess(errorTp0, 0.01)
 
+    def test_pierson_moskowitz_spectrum_zero_freq(self):
+        df = 0.1
+        f_zero = np.arange(0, 1, df)
+        f_nonzero = np.arange(df, 1, df)
+
+        S_zero = wave.resource.pierson_moskowitz_spectrum(f_zero, self.Tp, self.Hs)
+        S_nonzero = wave.resource.pierson_moskowitz_spectrum(f_nonzero, self.Tp, self.Hs)
+
+        self.assertEqual(S_zero.values.squeeze()[0], 0.0)
+        self.assertGreater(S_nonzero.values.squeeze()[0], 0.0)
+
     def test_jonswap_spectrum(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
         Hm0 = wave.resource.significant_wave_height(S).iloc[0,0]
@@ -65,6 +76,17 @@ class TestResourceSpectrum(unittest.TestCase):
 
         self.assertLess(errorHm0, 0.01)
         self.assertLess(errorTp0, 0.01)
+
+    def test_jonswap_spectrum_zero_freq(self):
+        df = 0.1
+        f_zero = np.arange(0, 1, df)
+        f_nonzero = np.arange(df, 1, df)
+
+        S_zero = wave.resource.jonswap_spectrum(f_zero, self.Tp, self.Hs)
+        S_nonzero = wave.resource.jonswap_spectrum(f_nonzero, self.Tp, self.Hs)
+
+        self.assertEqual(S_zero.values.squeeze()[0], 0.0)
+        self.assertGreater(S_nonzero.values.squeeze()[0], 0.0)
 
     def test_surface_elevation_phases_np_and_pd(self):
         S0 = wave.resource.jonswap_spectrum(self.f,self.Tp,self.Hs)

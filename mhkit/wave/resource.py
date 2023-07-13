@@ -90,7 +90,17 @@ def pierson_moskowitz_spectrum(f, Tp, Hs):
     f.sort()
     B_PM = (5/4)*(1/Tp)**4
     A_PM = B_PM*(Hs/2)**2
-    Sf  = A_PM*f**(-5)*np.exp(-B_PM*f**(-4))
+
+    # Avoid a divide by zero if the 0 frequency is provided
+    # The zero frequency should always have 0 amplitude, otherwise
+    # we end up with a mean offset when computing the surface elevation.
+    Sf = np.zeros(f.size)
+    if f[0] == 0.0:
+        inds = range(1, f.size)
+    else:
+        inds = range(0, f.size)
+    
+    Sf[inds]  = A_PM*f[inds]**(-5)*np.exp(-B_PM*f[inds]**(-4))
 
     col_name = 'Pierson-Moskowitz ('+str(Tp)+'s)'
     S = pd.DataFrame(Sf, index=f, columns=[col_name])
@@ -132,7 +142,17 @@ def jonswap_spectrum(f, Tp, Hs, gamma=None):
     f.sort()
     B_PM = (5/4)*(1/Tp)**4
     A_PM = B_PM*(Hs/2)**2
-    S_f  = A_PM*f**(-5)*np.exp(-B_PM*f**(-4))
+
+    # Avoid a divide by zero if the 0 frequency is provided
+    # The zero frequency should always have 0 amplitude, otherwise
+    # we end up with a mean offset when computing the surface elevation.
+    S_f = np.zeros(f.size)
+    if f[0] == 0.0:
+        inds = range(1, f.size)
+    else:
+        inds = range(0, f.size)
+
+    S_f[inds]  = A_PM*f[inds]**(-5)*np.exp(-B_PM*f[inds]**(-4))
 
     if not gamma:
         TpsqrtHs = Tp/np.sqrt(Hs);
