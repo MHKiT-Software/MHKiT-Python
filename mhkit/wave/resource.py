@@ -182,7 +182,7 @@ def jonswap_spectrum(f, Tp, Hs, gamma=None):
     return S
 
 ### Metrics
-def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None):
+def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None, method='ifft'):
     """
     Calculates wave elevation time-series from spectrum
 
@@ -198,6 +198,13 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
     phases: numpy array or pandas DataFrame (optional)
         Explicit phases for frequency components (overrides seed)
         for example, phases = np.random.rand(len(S)) * 2 * np.pi
+    method: str (optional)
+        Method used to calculate the surface elevation. 'ifft'
+        (Inverse Fast Fourier Transform) used by default if the
+        given frequency_bins==None.
+        'sum_of_sines' explicitly sums each frequency component
+        and used by default if frequency_bins are provided.
+        The 'ifft' method is significantly faster.
 
     Returns
     ---------
@@ -214,6 +221,7 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
             "frequency_bins must be of type None, np.ndarray, or pd,DataFrame")
     assert isinstance(phases, (type(None), np.ndarray, pd.DataFrame)), (
             'phases must be of type None, np.ndarray, or pd,DataFrame')
+    assert isinstance(method, str)
 
     if frequency_bins is not None:
         assert frequency_bins.squeeze().shape == (S.squeeze().shape[0],),(
@@ -221,6 +229,13 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
     if phases is not None:
         assert phases.squeeze().shape == S.squeeze().shape,(
             'shape of phases must match shape of S')
+        
+    if method is not None:
+        assert method == 'ifft' or method == 'sum_of_sines',(
+            f"unknown method {method}, options are 'ifft' or 'sum_of_sines'")
+        
+    if method == 'ifft':
+        assert S.index.values[0] == 0, ('ifft method must have zero frequency defined')        
 
     f = pd.Series(S.index)
     f.index = f
@@ -229,10 +244,12 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
         assert np.allclose(f.diff()[1:], delta_f)
     elif isinstance(frequency_bins, np.ndarray):
         delta_f = pd.Series(frequency_bins, index=S.index)
+        method = 'sum_of_sines'
     elif isinstance(frequency_bins, pd.DataFrame):
         assert len(frequency_bins.columns) == 1, ('frequency_bins must only'
                 'contain 1 column')
         delta_f = frequency_bins.squeeze()
+        method = 'sum_of_sines'
 
     if phases is None:
         np.random.seed(seed)
@@ -251,17 +268,28 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
     A = A.multiply(delta_f, axis=0)
     A = np.sqrt(A)
 
-    # Product of omega and time
-    B = np.outer(time_index, omega)
-    B = B.reshape((len(time_index), len(omega)))
-    B = pd.DataFrame(B, index=time_index, columns=omega.index)
+    if method == 'ifft':
+        A_cmplx = A * (np.cos(phase) + 1j*np.sin(phase))
 
-    # wave elevation
-    eta = pd.DataFrame(columns=S.columns, index=time_index)
-    for mcol in eta.columns:
-        C = np.cos(B+phase[mcol])
-        C = pd.DataFrame(C, index=time_index, columns=omega.index)
-        eta[mcol] = (C*A[mcol]).sum(axis=1)
+        def func(v):
+            eta = np.fft.irfft(0.5 * v.values.squeeze() * time_index.size, time_index.size)
+            return pd.Series(data=eta, index=time_index)
+        
+        eta = A_cmplx.apply(func)
+
+    elif method == 'sum_of_sines':
+        # Product of omega and time
+        B = np.outer(time_index, omega)
+        B = B.reshape((len(time_index), len(omega)))
+        B = pd.DataFrame(B, index=time_index, columns=omega.index)
+
+        # wave elevation
+        eta = pd.DataFrame(columns=S.columns, index=time_index)
+        for mcol in eta.columns:
+            C = np.cos(B+phase[mcol])
+            C = pd.DataFrame(C, index=time_index, columns=omega.index)
+            eta[mcol] = (C*A[mcol]).sum(axis=1)
+    
     return eta
 
 
