@@ -35,24 +35,24 @@ def lay_length(ds, depth, tolerance=0.25):
 
     # get channel names
     chans = list(ds.keys())
-    nodes_X = [x for x in chans if 'x' in x]
-    nodes_Y = [x for x in chans if 'y' in x]
-    nodes_Z = [x for x in chans if 'z' in x]
+    nodes_x = [x for x in chans if 'x' in x]
+    nodes_y = [y for y in chans if 'y' in y]
+    nodes_z = [z for z in chans if 'z' in z]
 
-    if len(nodes_Z) < 3:
+    if len(nodes_z) < 3:
         raise ValueError(
             'This function requires at least 3 nodes to calculate laylength')
     # find name of first z point where tolerance is exceeded
-    laypoint = ds[nodes_Z].where(ds[nodes_Z] > depth+abs(tolerance))
+    laypoint = ds[nodes_z].where(ds[nodes_z] > depth+abs(tolerance))
     laypoint = laypoint.to_dataframe().dropna(axis=1).columns[0]
     # get previous z-point
-    lay_indx = nodes_Z.index(laypoint) - 1
-    lay_z = nodes_Z[lay_indx]
+    lay_indx = nodes_z.index(laypoint) - 1
+    lay_z = nodes_z[lay_indx]
     # get corresponding x-point and y-point node names
     lay_x = lay_z[:-1] + 'x'
     lay_y = lay_z[:-1] + 'y'
-    lay_0x = nodes_X[0]
-    lay_0y = nodes_Y[0]
+    lay_0x = nodes_x[0]
+    lay_0y = nodes_y[0]
     # find distance between initial point and lay point
     laylength_x = ds[lay_x] - ds[lay_0x]
     laylength_y = ds[lay_y] - ds[lay_0y]
