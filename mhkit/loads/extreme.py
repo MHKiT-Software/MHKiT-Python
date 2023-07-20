@@ -3,6 +3,7 @@ import pandas as pd
 from scipy import stats
 from scipy import optimize
 from mhkit.wave.resource import frequency_moment
+import mhkit.qc.upcrossing  as upcrossing
 
 
 def global_peaks(t, data):
@@ -29,24 +30,23 @@ def global_peaks(t, data):
     assert isinstance(t, np.ndarray), 't must be of type np.ndarray'
     assert isinstance(data, np.ndarray), 'data must be of type np.ndarray'
 
-    # eliminate zeros
-    zeroMask = (data == 0)
-    data[zeroMask] = 0.5 * np.min(np.abs(data))
-    # zero up-crossings
-    diff = np.diff(np.sign(data))
-    zeroUpCrossings_mask = (diff == 2) | (diff == 1)
-    zeroUpCrossings_index = np.where(zeroUpCrossings_mask)[0]
-    zeroUpCrossings_index = np.append(zeroUpCrossings_index, len(data) - 1)
-    # global peaks
-    npeaks = len(zeroUpCrossings_index)
-    peaks = np.array([])
-    t_peaks = np.array([])
-    for i in range(npeaks - 1):
-        peak_index = np.argmax(
-            data[zeroUpCrossings_index[i]:zeroUpCrossings_index[i + 1]])
-        t_peaks = np.append(t_peaks, t[zeroUpCrossings_index[i] + peak_index])
-        peaks = np.append(peaks, data[zeroUpCrossings_index[i] + peak_index])
-    return t_peaks, peaks
+    # Find zero up-crossings
+    inds = upcrossing.upcrossing(t, data)
+
+    # We also include the final point in the dataset
+    inds = np.append(inds, len(data)-1)
+
+    # As we want to return both the time and peak
+    # values, look for the index at the peak.
+    # The call to argmax gives us the index within the
+    # upcrossing period. Therefore to get the index in the
+    # original array we need to add on the index that
+    # starts the zero crossing period, ind1.
+    func = lambda ind1, ind2: np.argmax(data[ind1:ind2]) + ind1
+
+    peak_inds = np.array(upcrossing.custom(t, data, func, inds), dtype=int)
+    
+    return t[peak_inds], data[peak_inds]
 
 
 def number_of_short_term_peaks(n, t, t_st):
