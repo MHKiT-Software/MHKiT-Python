@@ -1,6 +1,8 @@
 import numpy as np
+import xarray as xr
 from numpy.linalg import det, inv
 from scipy.spatial.transform import Rotation as R
+import warnings
 
 
 def _make_model(ds):
@@ -26,6 +28,18 @@ def _check_rotmat_det(rotmat, thresh=1e-3):
     return np.abs(det(rotmat) - 1) < thresh
 
 
+def _check_rotate_vars(ds, rotate_vars):
+    if rotate_vars is None:
+        if 'rotate_vars' in ds.attrs:
+            rotate_vars = ds.rotate_vars
+        else:
+            warnings.warn("    'rotate_vars' attribute not found."
+                          "Rotating `vel`.")
+            rotate_vars = ['vel']
+
+    return rotate_vars
+
+
 def _set_coords(ds, ref_frame, forced=False):
     """
     Checks the current reference frame and adjusts xarray coords/dims 
@@ -37,7 +51,7 @@ def _set_coords(ds, ref_frame, forced=False):
 
     XYZ = ['X', 'Y', 'Z']
     ENU = ['E', 'N', 'U']
-    beam = list(range(1, ds['vel'].shape[0]+1))
+    beam = ds.beam.values
     principal = ['streamwise', 'x-stream', 'vert']
 
     # check make/model
@@ -65,11 +79,16 @@ def _set_coords(ds, ref_frame, forced=False):
     if forced:
         ref_frame += '-forced'
 
-    # update 'orient' and 'orientIMU' dimensions
+    # Update 'dir' and 'dirIMU' dimensions
+    attrs = ds['dir'].attrs
+    attrs.update({'ref_frame': ref_frame})
+
     ds['dir'] = orient[ref_frame]
+    ds['dir'].attrs = attrs
     if hasattr(ds, 'dirIMU'):
         ds['dirIMU'] = orientIMU[ref_frame]
-    ds['dir'].attrs['ref_frame'] = ref_frame
+        ds['dirIMU'].attrs = attrs
+
     ds.attrs['coord_sys'] = ref_frame
 
     # These are essentially one extra line to scroll through
@@ -298,6 +317,37 @@ def quaternion2orient(quaternions):
     # quaternions in inst2earth reference frame, need to rotate to earth2inst
     omat.values = np.rollaxis(omat.values, 1)
 
-    xyz = ['X', 'Y', 'Z']
-    enu = ['E', 'N', 'U']
-    return omat.assign_coords({'earth': enu, 'inst': xyz, 'time': quaternions.time})
+    earth = xr.DataArray(['E', 'N', 'U'], dims=['earth'], name='earth', attrs={
+        'units': '1', 'long_name': 'Earth Reference Frame', 'coverage_content_type': 'coordinate'})
+    inst = xr.DataArray(['X', 'Y', 'Z'], dims=['inst'], name='inst', attrs={
+        'units': '1', 'long_name': 'Instrument Reference Frame', 'coverage_content_type': 'coordinate'})
+    return omat.assign_coords({'earth': earth, 'inst': inst, 'time': quaternions.time})
+
+
+def calc_tilt(pitch, roll):
+    """
+    Calculate "tilt", the vertical inclination, from pitch and roll.
+
+    Parameters
+    ----------
+    roll : numpy.ndarray or xarray.DataArray
+      Instrument roll
+    pitch : numpy.ndarray or xarray.DataArray
+      Instrument pitch
+      
+    Returns
+    -------
+    tilt : numpy.ndarray
+      Vertical inclination of the instrument
+    """
+
+    if 'xarray' in type(pitch).__module__:
+        pitch = pitch.values
+    if 'xarray' in type(roll).__module__:
+        roll = roll.values
+
+    tilt = np.arctan(
+        np.sqrt(np.tan(np.deg2rad(roll)) ** 2 + np.tan(np.deg2rad(pitch)) ** 2)
+    )
+
+    return np.rad2deg(tilt)

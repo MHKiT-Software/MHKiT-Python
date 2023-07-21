@@ -3,7 +3,7 @@ import xarray as xr
 from mhkit.dolfyn.adv.motion import correct_motion
 
 from . import test_read_adv as tv
-from mhkit.tests.dolfyn.base import load_netcdf as load, save_netcdf as save, assert_allclose, drop_config
+from mhkit.tests.dolfyn.base import load_netcdf as load, save_netcdf as save, assert_allclose
 from mhkit.dolfyn.adv import api
 from mhkit.dolfyn.io.api import read_example as read
 import unittest
@@ -39,8 +39,7 @@ class mc_testcase(unittest.TestCase):
         tdmE = api.correct_motion(tdmE)
 
         # ensure trailing nans are removed from AHRS data
-        ahrs = drop_config(read(
-            'vector_data_imu01.VEC', userdata=True))
+        ahrs = read('vector_data_imu01.VEC', userdata=True)
         for var in ['accel', 'angrt', 'mag']:
             assert not ahrs[var].isnull().any(
             ), "nan's in {} variable".format(var)

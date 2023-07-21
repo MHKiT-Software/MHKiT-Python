@@ -4,12 +4,13 @@ from .binned import TimeBinner
 from .time import dt642epoch, dt642date
 from .rotate.api import rotate2, set_declination, set_inst2head_rotmat
 from .io.api import save
-from .tools.misc import slice1d_along_axis
+from .tools.misc import slice1d_along_axis, convert_degrees
 
 
 @xr.register_dataset_accessor('velds')  # 'vel dataset'
 class Velocity():
-    """All ADCP and ADV xarray datasets wrap this base class.
+    """
+    All ADCP and ADV xarray datasets wrap this base class.
 
     The turbulence-related attributes defined within this class 
     assume that the  ``'tke_vec'`` and ``'stress_vec'`` data entries are 
@@ -27,7 +28,8 @@ class Velocity():
     # Major components of the dolfyn-API
 
     def rotate2(self, out_frame='earth', inplace=True):
-        """Rotate the dataset to a new coordinate system.
+        """
+        Rotate the dataset to a new coordinate system.
 
         Parameters
         ----------
@@ -62,7 +64,8 @@ class Velocity():
         return rotate2(self.ds, out_frame, inplace)
 
     def set_declination(self, declin, inplace=True):
-        """Set the magnetic declination
+        """
+        Set the magnetic declination
 
         Parameters
         ----------
@@ -117,10 +120,10 @@ class Velocity():
         Parameters
         ----------
         rotmat : float
-            3x3 rotation matrix
+          3x3 rotation matrix
         inplace : bool
-            When True the existing data object is rotated. When False
-            a copy is returned that is rotated. Default = True
+          When True the existing data object is rotated. When False
+          a copy is returned that is rotated. Default = True
 
         Returns
         -------
@@ -147,7 +150,8 @@ class Velocity():
         ----------
         filename : str
             Filename and/or path with the '.nc' extension
-        **kwargs : these are passed directly to :func:`xarray.Dataset.to_netcdf`.
+        **kwargs : dict
+          These are passed directly to :func:`xarray.Dataset.to_netcdf`.
 
         Notes
         -----
@@ -222,8 +226,7 @@ class Velocity():
         show_vars = ['time*', 'vel*', 'range', 'range_echo',
                      'orientmat', 'heading', 'pitch', 'roll',
                      'temp', 'press*', 'amp*', 'corr*',
-                     'accel', 'angrt', 'mag',
-                     'echo',
+                     'accel', 'angrt', 'mag', 'echo',
                      ]
         n = 0
         for v in show_vars:
@@ -264,7 +267,8 @@ class Velocity():
     # A bunch of DOLfYN specific properties
     @property
     def u(self,):
-        """The first velocity component.
+        """
+        The first velocity component.
 
         This is simply a shortcut to self['vel'][0]. Therefore,
         depending on the coordinate system of the data object
@@ -275,11 +279,12 @@ class Velocity():
         - earth:     east
         - principal: streamwise
         """
-        return self.ds['vel'][0]
+        return self.ds['vel'][0].drop('dir')
 
     @property
     def v(self,):
-        """The second velocity component.
+        """
+        The second velocity component.
 
         This is simply a shortcut to self['vel'][1]. Therefore,
         depending on the coordinate system of the data object
@@ -290,11 +295,12 @@ class Velocity():
         - earth:     north
         - principal: cross-stream
         """
-        return self.ds['vel'][1]
+        return self.ds['vel'][1].drop('dir')
 
     @property
     def w(self,):
-        """The third velocity component.
+        """
+        The third velocity component.
 
         This is simply a shortcut to self['vel'][2]. Therefore,
         depending on the coordinate system of the data object
@@ -305,43 +311,62 @@ class Velocity():
         - earth:     up
         - principal: up
         """
-        return self.ds['vel'][2]
+        return self.ds['vel'][2].drop('dir')
 
     @property
     def U(self,):
-        """Horizontal velocity as a complex quantity
-        """
-        return xr.DataArray(
-            (self.u + self.v * 1j),
-            attrs={'units': 'm/s',
-                   'description': 'horizontal velocity (complex)'})
+        """Horizontal velocity as a complex quantity"""
 
+        return xr.DataArray(
+            (self.u + self.v * 1j).astype('complex64'),
+            attrs={'units': 'm s-1',
+                   'long_name': 'Horizontal Water Velocity'})
+    
     @property
     def U_mag(self,):
-        """Horizontal velocity magnitude
-        """
+        """Horizontal velocity magnitude"""
+
         return xr.DataArray(
             np.abs(self.U).astype('float32'),
-            attrs={'units': 'm/s',
-                   'description': 'horizontal velocity magnitude'})
+            attrs={'units': 'm s-1',
+                   'long_name': 'Water Speed',
+                   'standard_name': 'sea_water_speed'})
 
     @property
     def U_dir(self,):
-        """Angle of horizontal velocity vector, degrees counterclockwise from
-        X/East/streamwise. Direction is 'to', as opposed to 'from'.
         """
-        # Convert from radians to degrees
-        angle = np.angle(self.U)*(180/np.pi)
+        Angle of horizontal velocity vector. Direction is 'to', 
+        as opposed to 'from'. This function calculates angle as 
+        "degrees CCW from X/East/streamwise" and then converts it to 
+        "degrees CW from X/North/streamwise".
+        """
+        def convert_to_CW(angle):
+            if self.ds.coord_sys == 'earth':
+                # Convert "deg CCW from East" to "deg CW from North" [0, 360]
+                angle = convert_degrees(angle, tidal_mode=False)
+                relative_to = self.ds.dir[1].values
+            else:
+                # Switch to clockwise and from [-180, 180] to [0, 360]
+                angle *= -1
+                angle[angle < 0] += 360
+                relative_to = self.ds.dir[0].values
+            return angle, relative_to
 
-        return xr.DataArray(angle.astype('float32'),
-                            dims=self.U.dims,
-                            coords=self.U.coords,
-                            attrs={'units': 'deg',
-                                   'description': 'horizontal velocity flow direction, CCW from X/East/streamwise'})
+        # Convert from radians to degrees
+        angle, rel = convert_to_CW(np.angle(self.U)*(180/np.pi))
+
+        return xr.DataArray(
+            angle.astype('float32'),
+            dims=self.U.dims,
+            coords=self.U.coords,
+            attrs={'units': 'degrees_CW_from_' + str(rel),
+                   'long_name': 'Water Direction',
+                   'standard_name': 'sea_water_to_direction'})
 
     @property
     def E_coh(self,):
-        """Coherent turbulent energy
+        """
+        Coherent turbulent energy
 
         Niel Kelley's 'coherent turbulence energy', which is the RMS
         of the Reynold's stresses.
@@ -350,37 +375,45 @@ class Velocity():
         """
         E_coh = (self.upwp_**2 + self.upvp_**2 + self.vpwp_**2) ** (0.5)
 
-        return xr.DataArray(E_coh.astype('float32'),
-                            coords={'time': self.ds['stress_vec'].time},
-                            dims=['time'],
-                            attrs={'units': self.ds['stress_vec'].units})
+        return xr.DataArray(
+            E_coh.astype('float32'),
+            coords={'time': self.ds['stress_vec'].time},
+            dims=['time'],
+            attrs={'units': self.ds['stress_vec'].units,
+                   'long_name': 'Coherent Turbulence Energy'})
 
     @property
     def I_tke(self, thresh=0):
-        """Turbulent kinetic energy intensity.
+        """
+        Turbulent kinetic energy intensity.
 
         Ratio of sqrt(tke) to horizontal velocity magnitude.
         """
         I_tke = np.ma.masked_where(self.U_mag < thresh,
                                    np.sqrt(2 * self.tke) / self.U_mag)
-        return xr.DataArray(I_tke.data.astype('float32'),
-                            coords=self.U_mag.coords,
-                            dims=self.U_mag.dims,
-                            attrs={'units': '% [0,1]'})
+        return xr.DataArray(
+            I_tke.data.astype('float32'),
+            coords=self.U_mag.coords,
+            dims=self.U_mag.dims,
+            attrs={'units': '% [0,1]',
+                   'long_name': 'TKE Intensity'})
 
     @property
     def I(self, thresh=0):
-        """Turbulence intensity.
+        """
+        Turbulence intensity.
 
         Ratio of standard deviation of horizontal velocity
         to horizontal velocity magnitude.
         """
         I = np.ma.masked_where(self.U_mag < thresh,
                                self.ds['U_std'] / self.U_mag)
-        return xr.DataArray(I.data.astype('float32'),
-                            coords=self.U_mag.coords,
-                            dims=self.U_mag.dims,
-                            attrs={'units': '% [0,1]'})
+        return xr.DataArray(
+            I.data.astype('float32'),
+            coords=self.U_mag.coords,
+            dims=self.U_mag.dims,
+            attrs={'units': '% [0,1]',
+                   'long_name': 'Turbulence Intensity'})
 
     @property
     def tke(self,):
@@ -389,43 +422,45 @@ class Velocity():
         tke = self.ds['tke_vec'].sum('tke') / 2
         tke.name = 'TKE'
         tke.attrs['units'] = self.ds['tke_vec'].units
+        tke.attrs['long_name'] = 'TKE'
+        tke.attrs['standard_name'] = 'specific_turbulent_kinetic_energy_of_sea_water'
         return tke
 
     @property
     def upvp_(self,):
-        """u'v'bar Reynolds stress
-        """
-        return self.ds['stress_vec'].sel(tau="upvp_")
+        """u'v'bar Reynolds stress"""
+
+        return self.ds['stress_vec'].sel(tau="upvp_").drop('tau')
 
     @property
     def upwp_(self,):
-        """u'w'bar Reynolds stress
-        """
-        return self.ds['stress_vec'].sel(tau="upwp_")
+        """u'w'bar Reynolds stress"""
+
+        return self.ds['stress_vec'].sel(tau="upwp_").drop('tau')
 
     @property
     def vpwp_(self,):
-        """v'w'bar Reynolds stress
-        """
-        return self.ds['stress_vec'].sel(tau="vpwp_")
+        """v'w'bar Reynolds stress"""
+
+        return self.ds['stress_vec'].sel(tau="vpwp_").drop('tau')
 
     @property
     def upup_(self,):
-        """u'u'bar component of the tke
-        """
-        return self.ds['tke_vec'].sel(tke="upup_")
+        """u'u'bar component of the tke"""
+
+        return self.ds['tke_vec'].sel(tke="upup_").drop('tke')
 
     @property
     def vpvp_(self,):
-        """v'v'bar component of the tke
-        """
-        return self.ds['tke_vec'].sel(tke="vpvp_")
+        """v'v'bar component of the tke"""
+
+        return self.ds['tke_vec'].sel(tke="vpvp_").drop('tke')
 
     @property
     def wpwp_(self,):
-        """w'w'bar component of the tke
-        """
-        return self.ds['tke_vec'].sel(tke="wpwp_")
+        """w'w'bar component of the tke"""
+
+        return self.ds['tke_vec'].sel(tke="wpwp_").drop('tke')
 
 
 class VelBinner(TimeBinner):
@@ -452,7 +487,36 @@ class VelBinner(TimeBinner):
     # This defines how cross-spectra and stresses are computed.
     _cross_pairs = [(0, 1), (0, 2), (1, 2)]
 
-    def bin_average(self, raw_ds, out_ds=None, names=None, noise=[0, 0, 0]):
+    tke = xr.DataArray(["upup_", "vpvp_", "wpwp_"],
+                       dims=['tke'],
+                       name='tke',
+                       attrs={'units': '1',
+                              'long_name': 'Turbulent Kinetic Energy Vector Components',
+                              'coverage_content_type': 'coordinate'})
+
+    tau = xr.DataArray(["upvp_", "upwp_", "vpwp_"],
+                       dims=['tau'],
+                       name='tau',
+                       attrs={'units': '1',
+                              'long_name': 'Reynolds Stress Vector Components',
+                              'coverage_content_type': 'coordinate'})
+
+    S = xr.DataArray(['Sxx', 'Syy', 'Szz'],
+                     dims=['S'],
+                     name='S',
+                     attrs={'units': '1',
+                            'long_name': 'Power Spectral Density Vector Components',
+                            'coverage_content_type': 'coordinate'})
+
+    C = xr.DataArray(['Cxy', 'Cxz', 'Cyz'],
+                     dims=['C'],
+                     name='C',
+                     attrs={'units': '1',
+                            'long_name': 'Cross-Spectral Density Vector Components',
+                            'coverage_content_type': 'coordinate'})
+
+
+    def bin_average(self, raw_ds, out_ds=None, names=None):
         """
         Bin the dataset and calculate the ensemble averages of each 
         variable.
@@ -466,8 +530,6 @@ class VelBinner(TimeBinner):
         names : list of strings
            The names of variables to be averaged.  If `names` is None,
            all data in `raw_ds` will be binned.
-        noise : list or numpy.ndarray
-          instrument's doppler noise in same units as velocity
 
         Returns
         -------
@@ -515,14 +577,12 @@ class VelBinner(TimeBinner):
                 except:  # variables not needing averaging
                     pass
             # Add standard deviation
-            std = (np.nanstd(self.reshape(raw_ds.velds.U_mag.values),
-                             axis=-1,
-                             dtype=np.float64) - (noise[0] + noise[1])/2)
+            std = self.standard_deviation(raw_ds.velds.U_mag.values)
             out_ds['U_std'] = xr.DataArray(
                 std.astype('float32'),
                 dims=raw_ds.vel.dims[1:],
-                attrs={'units': 'm/s',
-                       'description': 'horizontal velocity std dev'})
+                attrs={'units': 'm s-1',
+                       'long_name': 'Water Velocity Standard Deviation'})
 
         return out_ds
 
@@ -653,7 +713,7 @@ class VelBinner(TimeBinner):
 
         return da
 
-    def turbulent_kinetic_energy(self, veldat, noise=[0, 0, 0], detrend=True):
+    def turbulent_kinetic_energy(self, veldat, noise=None, detrend=True):
         """
         Calculate the turbulent kinetic energy (TKE) (variances 
         of u,v,w).
@@ -661,69 +721,80 @@ class VelBinner(TimeBinner):
         Parameters
         ----------
         veldat : xarray.DataArray
-            Velocity data array from ADV or single beam from ADCP. 
-            The last dimension is assumed to be time.
-        noise : float
-            a three-element vector of the noise levels of the
-            velocity data for ach component of velocity.
-        detrend : bool
-            detrend the velocity data (True), or simply de-mean it
-            (False), prior to computing tke. Note: the psd routines
-            use detrend, so if you want to have the same amount of
-            variance here as there use ``detrend=True``. 
-            Default = False
-
+          Velocity data array from ADV or single beam from ADCP. 
+          The last dimension is assumed to be time.
+        noise : float or array-like
+          A vector of the noise levels of the velocity data with 
+          the same first dimension as the velocity vector.
+        detrend : bool (default: False)
+          Detrend the velocity data (True), or simply de-mean it
+          (False), prior to computing tke. Note: the psd routines
+          use detrend, so if you want to have the same amount of
+          variance here as there use ``detrend=True``.
+          
         Returns
         -------
-        ds : xarray.DataArray
-            dataArray containing u'u'_, v'v'_ and w'w'_
+        tke_vec : xarray.DataArray
+          dataArray containing u'u'_, v'v'_ and w'w'_
         """
 
-        if 'dir' in veldat.dims:
-            # will error for ADCP 4-beam, but not for single beam
+        if 'xarray' in type(veldat).__module__:
             vel = veldat.values
-        else:  # for single beam input
-            vel = veldat.values
+        if 'xarray' in type(noise).__module__:
+            noise = noise.values
 
+        if len(np.shape(vel)) > 2:
+            raise Exception("This function is only valid for calculating TKE using "
+                            "velocity from an ADV or a single ADCP beam.")
+
+        # Calc TKE
         if detrend:
-            vel = self.detrend(vel)
+            out = np.nanmean(self.detrend(vel)**2, axis=-1)
         else:
-            vel = self.demean(vel)
-
-        if 'time_b5' in veldat.dims:
-            time = self.mean(veldat.time_b5.values)
-        else:
-            time = self.mean(veldat.time.values)
-
-        out = np.nanmean(vel**2, -1,
-                         dtype=np.float64,
-                         ).astype('float32')
-
-        out[0] -= noise[0] ** 2
-        out[1] -= noise[1] ** 2
-        out[2] -= noise[2] ** 2
-
-        da = xr.DataArray(out.astype('float32'),
-                          dims=veldat.dims,
-                          attrs={'units': 'm^2/^2'})
+            out = np.nanmean(self.demean(vel)**2, axis=-1)
 
         if 'dir' in veldat.dims:
-            da = da.rename({'dir': 'tke'})
-            da = da.assign_coords({'tke': ["upup_", "vpvp_", "wpwp_"],
-                                   'time': time})
+            # Subtract noise
+            if noise is not None:
+                if np.shape(noise)[0] != 3:
+                    raise Exception(
+                        'Noise should have same first dimension as velocity')
+                out[0] -= noise[0] ** 2
+                out[1] -= noise[1] ** 2
+                out[2] -= noise[2] ** 2
+            # Set coords
+            dims = ['tke', 'time']
+            coords = {'tke': self.tke,
+                      'time': self.mean(veldat.time.values)}
         else:
-            if 'time_b5' in veldat.dims:
-                da = da.assign_coords({'time_b5': time})
-            else:
-                da = da.assign_coords({'time': time})
+            # Subtract noise
+            if noise is not None:
+                if np.shape(noise) > np.shape(vel):
+                    raise Exception(
+                        'Noise should have same or fewer dimensions as velocity')
+                out -= noise ** 2
+            # Set coords
+            dims = veldat.dims
+            coords = {}
+            for nm in veldat.dims:
+                if 'time' in nm:
+                    coords[nm] = self.mean(veldat[nm].values)
+                else:
+                    coords[nm] = veldat[nm].values
 
-        return da
+        return xr.DataArray(
+            out.astype('float32'),
+            dims=dims,
+            coords=coords,
+            attrs={'units': 'm2 s-2',
+                   'long_name': 'TKE Vector',
+                   'standard_name': 'specific_turbulent_kinetic_energy_of_sea_water'})
 
     def power_spectral_density(self, veldat,
                                freq_units='rad/s',
                                fs=None,
                                window='hann',
-                               noise=[0, 0, 0],
+                               noise=None,
                                n_bin=None, n_fft=None, n_pad=None,
                                step=None):
         """
@@ -741,15 +812,16 @@ class VelBinner(TimeBinner):
         window : string or array
           Specify the window function.
           Options: 1, None, 'hann', 'hamm'
-        noise : list(3 floats) (optional)
-          Noise level of each component's velocity measurement.
-          Default = 0
+        noise : float or array-like
+          A vector of the noise levels of the velocity data with 
+          the same first dimension as the velocity vector.
+          Default = 0.
         n_bin : int (optional)
-          The bin-size Default: from the binner).
+          The bin-size. Default: from the binner.
         n_fft : int (optional)
-          The fft size Default: from the binner).
+          The fft size. Default: from the binner.
         n_pad : int (optional)
-          The number of values to pad with zero Default: 0)
+          The number of values to pad with zero. Default = 0.
         step : int (optional)
           Controls amount of overlap in fft. Default: the step size is
           chosen to maximize data use, minimize nens, and have a
@@ -761,49 +833,76 @@ class VelBinner(TimeBinner):
           The spectra in the 'u', 'v', and 'w' directions.
         """
 
-        if 'time_b5' in veldat.dims:
-            time = self.mean(veldat.time_b5.values)
-            time_str = 'time_b5'
-        else:
-            time = self.mean(veldat.time.values)
-            time_str = 'time'
-        fs = self._parse_fs(fs)
+        fs_in = self._parse_fs(fs)
         n_fft = self._parse_nfft(n_fft)
-        veldat = veldat.values
+        if 'xarray' in type(veldat).__module__:
+            vel = veldat.values
+        if 'xarray' in type(noise).__module__:
+            noise = noise.values
 
         # Create frequency vector, also checks whether using f or omega
-        freq = self._fft_freq(units=freq_units)
         if 'rad' in freq_units:
-            fs = 2*np.pi*fs
-            freq_units = 'rad/s'
-            units = 'm^2/s/rad'
+            fs = 2*np.pi*fs_in
+            freq_units = 'rad s-1'
+            units = 'm2 s-1 rad-1'
         else:
+            fs = fs_in
             freq_units = 'Hz'
-            units = 'm^2/s^2/Hz'
+            units = 'm2 s-2 Hz-1'
+        freq = xr.DataArray(self._fft_freq(fs=fs_in, units=freq_units, n_fft=n_fft),
+                            dims=['freq'],
+                            name='freq',
+                            attrs={'units': freq_units,
+                                   'long_name': 'FFT Frequency Vector',
+                                   'coverage_content_type': 'coordinate'}
+                            ).astype('float32')
 
         # Spectra, if input is full velocity or a single array
-        if len(veldat.shape) == 2:
-            assert veldat.shape[0] == 3, "Function can only handle 1D or 3D arrays." \
+        if len(vel.shape) == 2:
+            assert vel.shape[0] == 3, "Function can only handle 1D or 3D arrays." \
                 " If ADCP data, please select a specific depth bin."
-
-            out = np.empty(self._outshape_fft(veldat[:3].shape),
+            if (noise is not None) and (np.shape(noise)[0] != 3):
+                raise Exception(
+                    'Noise should have same first dimension as velocity')
+            else:
+                noise = np.array([0, 0, 0])
+            out = np.empty(self._outshape_fft(vel[:3].shape, n_fft=n_fft, n_bin=n_bin),
                            dtype=np.float32)
             for idx in range(3):
-                out[idx] = self._psd_base(veldat[idx], fs=fs, noise=noise[idx],
-                                          window=window, n_bin=n_bin,
-                                          n_pad=n_pad, n_fft=n_fft, step=step)
-            coords = {'S': ['Sxx', 'Syy', 'Szz'], time_str: time, 'freq': freq}
-            dims = ['S', time_str, 'freq']
+                out[idx] = self._psd_base(vel[idx],
+                                          fs=fs,
+                                          noise=noise[idx],
+                                          window=window,
+                                          n_bin=n_bin,
+                                          n_pad=n_pad,
+                                          n_fft=n_fft,
+                                          step=step)
+            coords = {'S': self.S,
+                      'time': self.mean(veldat['time'].values),
+                      'freq': freq}
+            dims = ['S', 'time', 'freq']
         else:
-            out = self._psd_base(veldat, fs=fs, noise=noise[0], window=window,
-                                 n_bin=n_bin, n_pad=n_pad, n_fft=n_fft, step=step)
-            coords = {time_str: time, 'freq': freq}
-            dims = [time_str, 'freq']
+            if (noise is not None) and (len(np.shape(noise)) > 1):
+                raise Exception(
+                    'Noise should have same first dimension as velocity')
+            else:
+                noise = np.array(0)
+            out = self._psd_base(vel,
+                                 fs=fs,
+                                 noise=noise,
+                                 window=window,
+                                 n_bin=n_bin,
+                                 n_pad=n_pad,
+                                 n_fft=n_fft,
+                                 step=step)
+            coords = {veldat.dims[-1]: self.mean(veldat[veldat.dims[-1]].values),
+                      'freq': freq}
+            dims = [veldat.dims[-1], 'freq']
 
-        psd = xr.DataArray(out.astype('float32'),
-                           coords=coords,
-                           dims=dims,
-                           attrs={'units': units, 'n_fft': n_fft})
-        psd['freq'].attrs['units'] = freq_units
-
-        return psd
+        return xr.DataArray(
+            out.astype('float32'),
+            coords=coords,
+            dims=dims,
+            attrs={'units': units,
+                   'n_fft': n_fft,
+                   'long_name': 'Power Spectral Density'})

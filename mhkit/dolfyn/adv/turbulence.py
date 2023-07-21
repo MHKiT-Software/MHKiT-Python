@@ -52,19 +52,20 @@ class ADVBinner(VelBinner):
 
     def reynolds_stress(self, veldat, detrend=True):
         """
-        Calculate Reynolds stresses (cross-covariances of u,v,w in m^2/s^2)
+        Calculate the specific Reynolds stresses 
+        (cross-covariances of u,v,w in m^2/s^2)
 
         Parameters
         ----------
         veldat : xr.DataArray
-            A velocity data array. The last dimension is assumed
-            to be time.
+          A velocity data array. The last dimension is assumed
+          to be time.
         detrend : bool
-            detrend the velocity data (True), or simply de-mean it
-            (False), prior to computing stress. Note: the psd routines
-            use detrend, so if you want to have the same amount of
-            variance here as there use ``detrend=True``.
-            Default = True
+          Detrend the velocity data (True), or simply de-mean it
+          (False), prior to computing stress. Note: the psd routines
+          use detrend, so if you want to have the same amount of
+          variance here as there use ``detrend=True``.
+          Default = True
 
         Returns
         -------
@@ -87,12 +88,13 @@ class ADVBinner(VelBinner):
                                   -1, dtype=np.float64
                                   ).astype(np.float32)
 
-        da = xr.DataArray(out.astype('float32'),
-                          dims=veldat.dims,
-                          attrs={'units': 'm^2/^2'})
+        da = xr.DataArray(out.astype('float32'), 
+                          dims=veldat.dims, 
+                          attrs={'units': 'm2 s-2',
+                                 'long_name': 'Specific Reynolds Stress Vector'})
         da = da.rename({'dir': 'tau'})
-        da = da.assign_coords({'tau': ["upvp_", "upwp_", "vpwp_"],
-                               'time': time})
+        da = da.assign_coords({'tau': self.tau, 'time': time})
+        
         return da
 
     def cross_spectral_density(self, veldat,
@@ -106,7 +108,7 @@ class ADVBinner(VelBinner):
 
         Parameters
         ----------
-        veldat   : xarray.DataArray
+        veldat : xarray.DataArray
           The raw 3D velocity data.
         freq_units : string
           Frequency units of the returned spectra in either Hz or rad/s 
@@ -128,40 +130,178 @@ class ADVBinner(VelBinner):
           different cross-spectra: 'uv', 'uw', 'vw'.
         """
 
-        fs = self._parse_fs(fs)
+        fs_in = self._parse_fs(fs)
         n_fft = self._parse_nfft_coh(n_fft_coh)
         time = self.mean(veldat.time.values)
         veldat = veldat.values
+        if len(np.shape(veldat)) != 2:
+            raise Exception("This function is only valid for calculating TKE using "
+                            "the 3D velocity vector from an ADV.")
 
-        out = np.empty(self._outshape_fft(veldat[:3].shape, n_fft=n_fft),
+        out = np.empty(self._outshape_fft(veldat[:3].shape, n_fft=n_fft, n_bin=n_bin),
                        dtype='complex')
 
         # Create frequency vector, also checks whether using f or omega
-        coh_freq = self._fft_freq(units=freq_units, coh=True)
         if 'rad' in freq_units:
-            fs = 2*np.pi*fs
-            freq_units = 'rad/s'
-            units = 'm^2/s/rad'
+            fs = 2*np.pi*fs_in
+            freq_units = 'rad s-1'
+            units = 'm2 s-1 rad-1'
         else:
+            fs = fs_in
             freq_units = 'Hz'
-            units = 'm^2/s^2/Hz'
+            units = 'm2 s-2 Hz-1'
+        coh_freq = xr.DataArray(self._fft_freq(fs=fs_in, units=freq_units, n_fft=n_fft, coh=True),
+                                dims=['coh_freq'],
+                                name='coh_freq',
+                                attrs={'units': freq_units,
+                                       'long_name': 'FFT Frequency Vector',
+                                       'coverage_content_type': 'coordinate'}
+                                ).astype('float32')
 
         for ip, ipair in enumerate(self._cross_pairs):
             out[ip] = self._csd_base(veldat[ipair[0]],
                                      veldat[ipair[1]],
+                                     fs=fs,
+                                     window=window,
                                      n_bin=n_bin,
-                                     n_fft=n_fft,
-                                     window=window)
+                                     n_fft=n_fft)
 
-        csd = xr.DataArray(out,
-                           coords={'C': ['Cxy', 'Cxz', 'Cyz'],
+        csd = xr.DataArray(out.astype('complex64'),
+                           coords={'C': self.C,
                                    'time': time,
-                                   'freq': coh_freq},
-                           dims=['C', 'time', 'freq'],
-                           attrs={'units': units, 'n_fft_coh': n_fft})
-        csd['freq'].attrs['units'] = freq_units
+                                   'coh_freq': coh_freq},
+                           dims=['C', 'time', 'coh_freq'],
+                           attrs={'units': units, 
+                                  'n_fft_coh': n_fft,
+                                  'long_name': 'Cross Spectral Density'})
+        csd['coh_freq'].attrs['units'] = freq_units
 
         return csd
+
+    def doppler_noise_level(self, psd, pct_fN=0.8):
+        """Calculate bias due to Doppler noise using the noise floor
+        of the velocity spectra.
+
+        Parameters
+        ----------
+        psd : xarray.DataArray (dir, time, f)
+          The ADV power spectral density of velocity (auto-spectra)
+        pct_fN : float
+          Percent of Nyquist frequency to calculate characeristic frequency
+
+        Returns
+        -------
+        doppler_noise (xarray.DataArray): 
+          Doppler noise level in units of m/s
+
+        Notes
+        -----
+        Approximates bias from
+
+        .. :math: \\sigma^{2}_{noise} = N x f_{c}
+
+        where :math: `\\sigma_{noise}` is the bias due to Doppler noise,
+        `N` is the constant variance or spectral density, and `f_{c}`
+        is the characteristic frequency.
+
+        The characteristic frequency is then found as 
+
+        .. :math: f_{c} = pct_fN * (f_{s}/2)
+
+        where `f_{s}/2` is the Nyquist frequency.
+
+
+        Richard, Jean-Baptiste, et al. "Method for identification of Doppler noise 
+        levels in turbulent flow measurements dedicated to tidal energy." International 
+        Journal of Marine Energy 3 (2013): 52-64.
+
+        Thiébaut, Maxime, et al. "Investigating the flow dynamics and turbulence at a 
+        tidal-stream energy site in a highly energetic estuary." Renewable Energy 195 
+        (2022): 252-262.
+        """
+        
+        # Characteristic frequency set to 80% of Nyquist frequency
+        fN = self.fs/2
+        fc = pct_fN * fN
+
+        # Get units right
+        if psd.freq.units == "Hz":
+            f_range = slice(fc, fN)
+        else:
+            f_range = slice(2*np.pi*fc, 2*np.pi*fN)
+
+        # Noise floor
+        N2 = psd.sel(freq=f_range) * psd.freq.sel(freq=f_range)
+        noise_level = np.sqrt(N2.mean(dim='freq'))
+
+        return xr.DataArray(
+            noise_level.values.astype('float32'),
+            dims=['dir', 'time'],
+            attrs={'units': 'm/s',
+                   'long_name': 'Doppler Noise Level',
+                   'description': 'Doppler noise level calculated '
+                                  'from PSD white noise'})
+
+    def check_turbulence_cascade_slope(self, psd, freq_range=[6.28, 12.57]):
+        """
+        This function calculates the slope of the PSD, the power spectra 
+        of velocity, within the given frequency range. The purpose of this
+        function is to check that the region of the PSD containing the 
+        isotropic turbulence cascade decreases at a rate of :math:`f^{-5/3}`.
+
+        Parameters
+        ----------
+        psd : xarray.DataArray ([time,] freq)
+          The power spectral density (1D or 2D)
+        freq_range : iterable(2) (default: [6.28, 12.57])
+          The range over which the isotropic turbulence cascade occurs, in 
+          units of the psd frequency vector (Hz or rad/s)
+
+        Returns
+        -------
+        (m, b): tuple (slope, y-intercept)
+          A tuple containing the coefficients of the log-adjusted linear 
+          regression between PSD and frequency 
+
+        Notes
+        -----
+        Calculates slope based on the `standard` formula for dissipation:
+
+        .. math:: S(k) = \\alpha \\epsilon^{2/3} k^{-5/3} + N
+
+        The slope of the isotropic turbulence cascade, which should be 
+        equal to :math:`k^{-5/3}` or :math:`f^{-5/3}`, where k and f are 
+        the wavenumber and frequency vectors, is estimated using linear 
+        regression with a log transformation:
+
+        .. math:: log10(y) = m*log10(x) + b
+
+        Which is equivalent to
+
+        .. math:: y = 10^{b} x^{m}
+        
+        Where :math:`y` is S(k) or S(f), :math:`x` is k or f, :math:`m` 
+        is the slope (ideally -5/3), and :math:`10^{b}` is the intercept of 
+        y at x^m=1.
+        """
+
+        idx = np.where((freq_range[0] < psd.freq) & (psd.freq < freq_range[1]))
+        idx = idx[0]
+
+        x = np.log10(psd['freq'].isel(freq=idx))
+        y = np.log10(psd.isel(freq=idx))
+
+        y_bar = y.mean('freq')
+        x_bar = x.mean('freq')
+
+        # using the formula to calculate the slope and intercept
+        n = np.sum((x - x_bar) * (y - y_bar), axis=0)
+        d = np.sum((x - x_bar)**2, axis=0)
+
+        m = n/d
+        b = y_bar - m*x_bar
+
+        return m, b
 
     def dissipation_rate_LT83(self, psd, U_mag, freq_range=[6.28, 12.57]):
         """
@@ -207,8 +347,11 @@ class ADVBinner(VelBinner):
         by a random wave field". JPO, 1983, vol13, pp2000-2007.
         """
 
-        freq = psd.freq
+        # Ensure time has been averaged
+        if len(psd.time)!=len(U_mag.time):
+            raise Exception("`U_mag` should be from ensembled-averaged dataset")
 
+        freq = psd.freq
         idx = np.where((freq_range[0] < freq) & (freq < freq_range[1]))
         idx = idx[0]
 
@@ -221,10 +364,14 @@ class ADVBinner(VelBinner):
         out = (psd.isel(freq=idx) *
                freq.isel(freq=idx)**(5/3) / a).mean(axis=-1)**(3/2) / U
 
-        out = xr.DataArray(out.astype('float32'),
-                           attrs={'units': 'm^2/s^3',
-                                  'method': 'LT83'})
-        return out
+        return xr.DataArray(
+            out.astype('float32'),
+            attrs={'units': 'm2 s-3',
+                   'long_name': 'TKE Dissipation Rate',
+                   'standard_name': 'specific_turbulent_kinetic_energy_dissipation_in_sea_water',
+                   'description': 'TKE dissipation rate calculated using '
+                                  'the method from Lumley and Terray, 1983',
+                   })
 
     def dissipation_rate_SF(self, vel_raw, U_mag, fs=None, freq_range=[2., 4.]):
         """
@@ -271,11 +418,16 @@ class ADVBinner(VelBinner):
             cv2m = np.median(cv2[np.logical_not(np.isnan(cv2))])
             out[slc[:-1]] = (cv2m / 2.1) ** (3 / 2)
 
-        return xr.DataArray(out.astype('float32'),
-                            coords=U_mag.coords,
-                            dims=U_mag.dims,
-                            attrs={'units': 'm^2/s^3',
-                                   'method': 'structure function'})
+        return xr.DataArray(
+            out.astype('float32'),
+            coords=U_mag.coords,
+            dims=U_mag.dims,
+            attrs={'units': 'm2 s-3',
+                   'long_name': 'TKE Dissipation Rate',
+                   'standard_name': 'specific_turbulent_kinetic_energy_dissipation_in_sea_water',
+                   'description': 'TKE dissipation rate calculated using the '
+                                  '"structure function" method',
+                   })
 
     def _up_angle(self, U_complex):
         """
@@ -373,11 +525,16 @@ class ADVBinner(VelBinner):
         # Average the two estimates
         out *= 0.5
 
-        return xr.DataArray(out.astype('float32'),
-                            coords={'time': dat_avg.psd.time},
-                            dims='time',
-                            attrs={'units': 'm^2/s^3',
-                                   'method': 'TE01'})
+        return xr.DataArray(
+            out.astype('float32'),
+            coords={'time': dat_avg.psd.time},
+            dims='time',
+            attrs={'units': 'm2 s-3',
+                   'long_name': 'TKE Dissipation Rate',
+                   'standard_name': 'specific_turbulent_kinetic_energy_dissipation_in_sea_water',
+                   'description': 'TKE dissipation rate calculated using the '
+                                  'method from Trowbridge and Elgar, 2001'
+                   })
 
     def integral_length_scales(self, a_cov, U_mag, fs=None):
         """
@@ -411,9 +568,12 @@ class ADVBinner(VelBinner):
         scale = np.argmin((acov/acov[..., :1]) > (1/np.e), axis=-1)
         L_int = U_mag.values / fs * scale
 
-        return xr.DataArray(L_int.astype('float32'),
-                            coords={'dir': a_cov.dir, 'time': a_cov.time},
-                            attrs={'units': 'm'})
+        return xr.DataArray(
+            L_int.astype('float32'),
+            coords={'dir': a_cov.dir, 'time': a_cov.time},
+            attrs={'units': 'm',
+                   'long_name': 'Integral Length Scale',
+                   'standard_name': 'turbulent_mixing_length_of_sea_water'})
 
 
 def turbulence_statistics(ds_raw, n_bin, fs, n_fft=None, freq_units='rad/s', window='hann'):

@@ -1,4 +1,5 @@
 import numpy as np
+import xarray as xr
 import warnings
 from . import base as rotb
 
@@ -25,104 +26,6 @@ def _beam2inst(dat, reverse=False, force=False):
     return dat
 
 
-def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
-    """
-    Rotate data in an ADV object to the earth from the instrument
-    frame (or vice-versa).
-
-    Parameters
-    ----------
-    advo : xarray.Dataset
-      The adv dataset containing the data.
-    reverse : bool
-      If True, this function performs the inverse rotation (earth->inst).
-      Default = False
-    rotate_vars : iterable
-      The list of variables to rotate. By default this is taken from
-      advo.rotate_vars.
-    force : bool
-      Do not check which frame the data is in prior to performing 
-      this rotation. Default = False
-    """
-
-    if reverse:  # earth->inst
-        # The transpose of the rotation matrix gives the inverse
-        # rotation, so we simply reverse the order of the einsum:
-        sumstr = 'jik,j...k->i...k'
-        cs_now = 'earth'
-        cs_new = 'inst'
-    else:  # inst->earth
-        sumstr = 'ijk,j...k->i...k'
-        cs_now = 'inst'
-        cs_new = 'earth'
-
-    if rotate_vars is None:
-        if 'rotate_vars' in advo.attrs:
-            rotate_vars = advo.rotate_vars
-        else:
-            rotate_vars = ['vel']
-
-    cs = advo.coord_sys.lower()
-    if not force:
-        if cs == cs_new:
-            print("Data is already in the '%s' coordinate system" % cs_new)
-            return
-        elif cs != cs_now:
-            raise ValueError(
-                "Data must be in the '%s' frame when using this function" %
-                cs_now)
-
-    if hasattr(advo, 'orientmat'):
-        omat = advo['orientmat'].values
-    else:
-        if 'vector' in advo.inst_model.lower():
-            orientation_down = advo['orientation_down']
-
-        omat = _calc_omat(advo['heading'].values, advo['pitch'].values,
-                          advo['roll'].values, orientation_down)
-
-    # Take the transpose of the orientation to get the inst->earth rotation
-    # matrix.
-    rmat = np.rollaxis(omat, 1)
-
-    _dcheck = rotb._check_rotmat_det(rmat)
-    if not _dcheck.all():
-        warnings.warn("Invalid orientation matrix (determinant != 1) at indices: {}. "
-                      "If rotated, data at these indices will be erroneous."
-                      .format(np.nonzero(~_dcheck)[0]), UserWarning)
-
-    for nm in rotate_vars:
-        n = advo[nm].shape[0]
-        if n != 3:
-            raise Exception("The entry {} is not a vector, it cannot "
-                            "be rotated.".format(nm))
-        advo[nm].values = np.einsum(sumstr, rmat, advo[nm])
-
-    advo = rotb._set_coords(advo, cs_new)
-
-    return advo
-
-
-def _calc_omat(hh, pp, rr, orientation_down=None):
-    rr = rr.copy()
-    pp = pp.copy()
-    hh = hh.copy()
-    if np.isnan(rr[-1]) and np.isnan(pp[-1]) and np.isnan(hh[-1]):
-        # The end of the data may not have valid orientations
-        lastgd = np.nonzero(~np.isnan(rr + pp + hh))[0][-1]
-        rr[lastgd:] = rr[lastgd]
-        pp[lastgd:] = pp[lastgd]
-        hh[lastgd:] = hh[lastgd]
-    if orientation_down is not None:
-        # For Nortek Vector ADVs: 'down' configuration means the head was
-        # pointing 'up', where the 'up' orientation corresponds to the
-        # communication cable being up.  Check the Nortek coordinate
-        # transform matlab script for more info.
-        rr[orientation_down.astype(bool)] += 180
-
-    return _euler2orient(hh, pp, rr)
-
-
 def _rotate_inst2head(advo, reverse=False):
     if not _check_inst2head_rotmat(advo):
         # This object doesn't have a head2inst_rotmat, so we do nothing.
@@ -147,7 +50,81 @@ def _check_inst2head_rotmat(advo):
     return True
 
 
-def _earth2principal(advo, reverse=False):
+def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
+    """
+    Rotate data in an ADV object to the earth from the instrument
+    frame (or vice-versa).
+
+    Parameters
+    ----------
+    advo : xarray.Dataset
+      The adv dataset containing the data.
+    reverse : bool
+      If True, this function performs the inverse rotation (earth->inst).
+      Default = False
+    rotate_vars : iterable
+      The list of variables to rotate. By default this is taken from
+      advo.attrs['rotate_vars'].
+    force : bool
+      Do not check which frame the data is in prior to performing 
+      this rotation. Default = False
+    """
+
+    if reverse:  # earth->inst
+        # The transpose of the rotation matrix gives the inverse
+        # rotation, so we simply reverse the order of the einsum:
+        sumstr = 'jik,j...k->i...k'
+        cs_now = 'earth'
+        cs_new = 'inst'
+    else:  # inst->earth
+        sumstr = 'ijk,j...k->i...k'
+        cs_now = 'inst'
+        cs_new = 'earth'
+
+    rotate_vars = rotb._check_rotate_vars(advo, rotate_vars)
+
+    cs = advo.coord_sys.lower()
+    if not force:
+        if cs == cs_new:
+            print("Data is already in the '%s' coordinate system" % cs_new)
+            return
+        elif cs != cs_now:
+            raise ValueError(
+                "Data must be in the '%s' frame when using this function" %
+                cs_now)
+
+    if hasattr(advo, 'orientmat'):
+        omat = advo['orientmat']
+    else:
+        if 'vector' in advo.inst_model.lower():
+            orientation_down = advo['orientation_down']
+
+        omat = _calc_omat(advo['time'], advo['heading'], advo['pitch'],
+                          advo['roll'], orientation_down)
+
+    # Take the transpose of the orientation to get the inst->earth rotation
+    # matrix.
+    rmat = np.rollaxis(omat.data, 1)
+
+    _dcheck = rotb._check_rotmat_det(rmat)
+    if not _dcheck.all():
+        warnings.warn("Invalid orientation matrix (determinant != 1) at indices: {}. "
+                      "If rotated, data at these indices will be erroneous."
+                      .format(np.nonzero(~_dcheck)[0]), UserWarning)
+
+    for nm in rotate_vars:
+        n = advo[nm].shape[0]
+        if n != 3:
+            raise Exception("The entry {} is not a vector, it cannot "
+                            "be rotated.".format(nm))
+        advo[nm].values = np.einsum(sumstr, rmat, advo[nm])
+
+    advo = rotb._set_coords(advo, cs_new)
+
+    return advo
+
+
+def _earth2principal(advo, reverse=False, rotate_vars=None):
     """
     Rotate data in an ADV dataset to/from principal axes. Principal
     heading must be within the dataset.
@@ -180,6 +157,8 @@ def _earth2principal(advo, reverse=False):
         cs_now = 'earth'
         cs_new = 'principal'
 
+    rotate_vars = rotb._check_rotate_vars(advo, rotate_vars)
+
     cs = advo.coord_sys.lower()
     if cs == cs_new:
         print('Data is already in the %s coordinate system' % cs_new)
@@ -196,7 +175,7 @@ def _earth2principal(advo, reverse=False):
                        [0, 0, 1]], dtype=np.float32)
 
     # Perform the rotation:
-    for nm in advo.rotate_vars:
+    for nm in rotate_vars:
         dat = advo[nm].values
         dat[:2] = np.einsum('ij,j...->i...', rotmat[:2, :2], dat[:2])
         advo[nm].values = dat.copy()
@@ -207,7 +186,27 @@ def _earth2principal(advo, reverse=False):
     return advo
 
 
-def _euler2orient(heading, pitch, roll, units='degrees'):
+def _calc_omat(time, hh, pp, rr, orientation_down=None):
+    rr = rr.data.copy()
+    pp = pp.data.copy()
+    hh = hh.data.copy()
+    if np.isnan(rr[-1]) and np.isnan(pp[-1]) and np.isnan(hh[-1]):
+        # The end of the data may not have valid orientations
+        lastgd = np.nonzero(~np.isnan(rr + pp + hh))[0][-1]
+        rr[lastgd:] = rr[lastgd]
+        pp[lastgd:] = pp[lastgd]
+        hh[lastgd:] = hh[lastgd]
+    if orientation_down is not None:
+        # For Nortek Vector ADVs: 'down' configuration means the head was
+        # pointing 'up', where the 'up' orientation corresponds to the
+        # communication cable being up.  Check the Nortek coordinate
+        # transform matlab script for more info.
+        rr[orientation_down.astype(bool)] += 180
+
+    return _euler2orient(time, hh, pp, rr)
+
+
+def _euler2orient(time, heading, pitch, roll, units='degrees'):
     # For Nortek data only.
     # The heading, pitch, roll used here are from the Nortek binary files.
 
@@ -247,4 +246,14 @@ def _euler2orient(heading, pitch, roll, units='degrees'):
     omat[1, 2, :] = sr * cp
     omat[2, 2, :] = cp * cr
 
-    return omat
+    earth = xr.DataArray(['E', 'N', 'U'], dims=['earth'], name='earth', attrs={
+        'units': '1', 'long_name': 'Earth Reference Frame', 'coverage_content_type': 'coordinate'})
+    inst = xr.DataArray(['X', 'Y', 'Z'], dims=['inst'], name='inst', attrs={
+        'units': '1', 'long_name': 'Instrument Reference Frame', 'coverage_content_type': 'coordinate'})
+    return xr.DataArray(omat,
+                        coords={'earth': earth,
+                                'inst': inst,
+                                'time': time},
+                        dims=['earth', 'inst', 'time'],
+                        attrs={'units': '1',
+                               'long_name': 'Orientation Matrix'})

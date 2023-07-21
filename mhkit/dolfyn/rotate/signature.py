@@ -1,4 +1,4 @@
-from .vector import _earth2principal, _euler2orient as euler2orient
+from .vector import _earth2principal, _euler2orient
 from .base import _beam2inst
 from . import base as rotb
 import numpy as np
@@ -43,11 +43,7 @@ def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
     else:  # orientation = 'up' or 'AHRS'
         down = False
 
-    if rotate_vars is None:
-        if 'rotate_vars' in adcpo.attrs:
-            rotate_vars = adcpo.rotate_vars
-        else:
-            rotate_vars = ['vel']
+    rotate_vars = rotb._check_rotate_vars(adcpo, rotate_vars)
 
     cs = adcpo.coord_sys.lower()
     if not force:
@@ -60,14 +56,14 @@ def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
                 cs_now)
 
     if 'orientmat' in adcpo:
-        rmat = adcpo['orientmat'].values
+        omat = adcpo['orientmat']
     else:
-        rmat = euler2orient(adcpo['heading'].values, adcpo['pitch'].values,
-                            adcpo['roll'].values)
+        omat = _euler2orient(adcpo['time'], adcpo['heading'].values, adcpo['pitch'].values,
+                             adcpo['roll'].values)
 
     # Take the transpose of the orientation to get the inst->earth rotation
     # matrix.
-    rmat = np.rollaxis(rmat, 1)
+    rmat = np.rollaxis(omat.data, 1)
 
     _dcheck = rotb._check_rotmat_det(rmat)
     if not _dcheck.all():
