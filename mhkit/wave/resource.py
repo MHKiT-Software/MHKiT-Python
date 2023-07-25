@@ -195,6 +195,8 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
         for example, time = np.arange(0,100,0.01)
     seed: int (optional)
         Random seed
+    frequency_bins: numpy array or pandas DataFrame (optional)
+        Bin widths for frequency of S. Required for unevenly sized bins
     phases: numpy array or pandas DataFrame (optional)
         Explicit phases for frequency components (overrides seed)
         for example, phases = np.random.rand(len(S)) * 2 * np.pi
