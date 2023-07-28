@@ -79,6 +79,8 @@ def request_noaa_data(station, parameter, start_date, end_date,
         hash_params, cache_dir, write_json=write_json, clear_cache=clear_cache)
 
     if cached_data is not None:
+        if write_json:
+            shutil.copy(cache_filepath, write_json)
         return cached_data, cached_metadata
 
     # Convert start and end dates to datetime objects
