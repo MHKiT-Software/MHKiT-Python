@@ -32,3 +32,6 @@ $ cat .gitignore
 # Exemptions
 !**/examples/data/wave/*.mat
 !**/tests/data/wave/*.mat
+
+# Files created during tests
+mhkit/tests/wave/plots/
