@@ -165,3 +165,53 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     DEL = DELs.sum() ** (1/m)
 
     return DEL
+
+def cumulative_rainflow_spectrum(data_signal, m, bin_num=100, data_length=600):
+    '''
+    Calculates the cumulative rainflow spectrum for power production for each load quantity.
+    Summing all the individual rain flow cycle counts of each file in the power production
+    capture matrix, based on IEC TS 62600-3:2020 ED1. 4-point rainflow counting algorithm from
+    fatpack module is based on the following resources:
+
+    - `C. Amzallag et. al. Standardization of the rainflow counting method for
+      fatigue analysis. International Journal of Fatigue, 16 (1994) 287-293`
+    - `ISO 12110-2, Metallic materials - Fatigue testing - Variable amplitude
+      fatigue testing.`
+    - `G. Marsh et. al. Review and application of Rainflow residue processing
+      techniques for accurate fatigue damage estimation. International Journal
+      of Fatigue, 82 (2016) 757-765`
+
+
+    Parameters:
+    -----------
+    data_signal : 2d array
+        Data signals being analyzed
+    bin_num : int
+        Number of bins for rainflow counting method (minimum=100)
+
+    Returns
+    --------
+    ranges : float
+        Characteristic value for the ranges
+    counts: integer
+        Counts for the range
+    '''
+
+    try:
+        data_signal = np.array(data_signal)
+    except:
+        'data_signal must be of type np.ndarray'
+    assert isinstance(bin_num, (float, int)), 'bin_num must be of type float or int'
+
+    # how many files?
+    nfiles = np.shape(data_signal)[0]
+    rangelst = []
+    for i in range(nfiles):
+        rangelst.append(fatpack.find_rainflow_ranges(data_signal[i,:], k=256))
+
+    rainflow_ranges = np.flatten(np.array(rangelst))
+
+    # Range count and bin
+    counts, ranges = fatpack.find_range_count(rainflow_ranges, bin_num)
+
+    return ranges,counts
