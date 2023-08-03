@@ -27,6 +27,32 @@ def _beam2inst(dat, reverse=False, force=False):
 
 
 def _rotate_inst2head(advo, reverse=False):
+    """
+    Rotates the velocity vector from the instrument frame to the ADV probe (head) frame or 
+    vice versa.
+
+    This function uses the rotation matrix 'inst2head_rotmat' to rotate the velocity vector 'vel' 
+    from the instrument frame to the head frame ('inst->head') or from the head frame to the 
+    instrument frame ('head->inst').
+
+    Parameters
+    ----------
+    advo: dict
+      A dictionary-like object that includes the rotation matrix 'inst2head_rotmat' 
+      and the velocity vector 'vel' to be rotated.
+
+    reverse: bool, optional
+      A boolean value indicating the direction of the rotation. 
+      If False (default), the function rotates 'vel' from the instrument frame to the head frame. 
+      If True, the function rotates 'vel' from the head frame to the instrument frame.
+
+    Returns
+    -------
+    advo: dict
+      The input dictionary-like object with the rotated velocity vector. 
+      If 'inst2head_rotmat' doesn't exist in 'advo', the function returns the input 'advo' unmodified.
+    """
+
     if not _check_inst2head_rotmat(advo):
         # This object doesn't have a head2inst_rotmat, so we do nothing.
         return advo
@@ -39,6 +65,21 @@ def _rotate_inst2head(advo, reverse=False):
 
 
 def _check_inst2head_rotmat(advo):
+    """
+    Verify that the 'inst2head_rotmat' exists, was set using 'set_inst2head_rotmat', and
+    the determinant of the rotation matrix is unity.
+
+    Parameters
+    ----------
+    advo: dict
+      A dictionary-like object that should include the rotation matrix 'inst2head_rotmat'.
+
+    Returns
+    -------
+    bool
+      Returns True if 'inst2head_rotmat' exists, was set correctly, and is valid (False if not).
+    """
+
     if advo.get('inst2head_rotmat', None) is None:
         # This is the default value, and we do nothing.
         return False
@@ -187,6 +228,32 @@ def _earth2principal(advo, reverse=False, rotate_vars=None):
 
 
 def _calc_omat(time, hh, pp, rr, orientation_down=None):
+    """
+    Calculates the dolfyn-defined orientation matrix from Euler angles.
+
+    Parameters
+    ----------
+    time: array-like
+      Time points corresponding to the Euler angles.
+
+    hh: array-like
+      Heading Euler angle in degrees.
+
+    pp: array-like
+      Pitch Euler angle in degrees.
+
+    rr: array-like
+      Roll Euler angle in degrees.
+
+    orientation_down: array-like or bool, optional
+      Set to true if instrument is facing downwards
+
+    Returns
+    -------
+    omat: array-like
+      The calculated orientation matrix.
+    """
+
     rr = rr.data.copy()
     pp = pp.data.copy()
     hh = hh.data.copy()

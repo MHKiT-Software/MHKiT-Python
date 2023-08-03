@@ -220,6 +220,11 @@ class ADVBinner(VelBinner):
         (2022): 252-262.
         """
         
+        if not isinstance(psd, xr.DataArray):
+            raise TypeError("`psd` must be an instance of `xarray.DataArray`.")
+        if not isinstance(pct_fN, float) or not 0 <= pct_fN <= 1:
+            raise ValueError("`pct_fN` must be a float within the range [0, 1].")
+
         # Characteristic frequency set to 80% of Nyquist frequency
         fN = self.fs/2
         fc = pct_fN * fN
@@ -285,6 +290,11 @@ class ADVBinner(VelBinner):
         y at x^m=1.
         """
 
+        if not isinstance(psd, xr.DataArray):
+            raise TypeError("`psd` must be an instance of `xarray.DataArray`.")
+        if not hasattr(freq_range, '__iter__') or len(freq_range) != 2: 
+            raise ValueError("`freq_range` must be an iterable of length 2.")
+        
         idx = np.where((freq_range[0] < psd.freq) & (psd.freq < freq_range[1]))
         idx = idx[0]
 

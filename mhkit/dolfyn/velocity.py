@@ -744,7 +744,7 @@ class VelBinner(TimeBinner):
             noise = noise.values
 
         if len(np.shape(vel)) > 2:
-            raise Exception("This function is only valid for calculating TKE using "
+            raise ValueError("This function is only valid for calculating TKE using "
                             "velocity from an ADV or a single ADCP beam.")
 
         # Calc TKE

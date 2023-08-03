@@ -69,6 +69,26 @@ class ADPBinner(VelBinner):
         self.orientation = orientation
 
     def _diff_func(self, vel, u):
+        """ Applies the chosen style of numerical differentiation to velocity data.
+
+        This method calculates the derivative of the velocity data 'vel' with respect to the 'range' 
+        using the differentiation style specified in 'self.diff_style'. The styles can be 'first' 
+        for first difference, 'centered' for centered difference, and 'centered_extended' for 
+        centered difference with first and last points extended using a first difference.
+
+        Parameters
+        ----------
+        vel : xarray.DataArray
+          Velocity data with dimensions 'range' and 'time'.
+        u : str or int
+          Velocity component
+
+        Returns
+        -------
+        out : numpy.ndarray
+            The calculated derivative of the velocity data.
+        """
+
         if self.diff_style == 'first':
             out = _diffz_first(vel[u].values, vel['range'].values)
             return out, vel.range[1:]
@@ -89,6 +109,11 @@ class ADPBinner(VelBinner):
           ADCP raw velocity
         orientation : str, default=ADPBinner.orientation
           Direction ADCP is facing ('up' or 'down')
+
+        Returns
+        -------
+        dudz: xarray.DataArray
+          Vertical shear in the X-direction
 
         Notes
         -----
@@ -120,6 +145,11 @@ class ADPBinner(VelBinner):
         vel : xarray.DataArray
           ADCP raw velocity
 
+        Returns
+        -------
+        dvdz: xarray.DataArray
+          Vertical shear in the Y-direction
+
         Notes
         -----
         The derivative direction is along the profiler's 'z'
@@ -144,6 +174,11 @@ class ADPBinner(VelBinner):
         vel : xarray.DataArray
           ADCP raw velocity
 
+        Returns
+        -------
+        dwdz: xarray.DataArray
+          Vertical shear in the Z-direction
+
         Notes
         -----
         The derivative direction is along the profiler's 'z'
@@ -167,6 +202,11 @@ class ADPBinner(VelBinner):
         ----------
         vel : xarray.DataArray
           ADCP raw velocity
+
+        Returns
+        -------
+        out: xarray.DataArray
+          Shear squared in 1/s^2
 
         Notes
         -----
@@ -255,8 +295,35 @@ class ADPBinner(VelBinner):
                    'from PSD white noise'})
 
     def _stress_func_warnings(self, ds, beam_angle, noise, tilt_thresh):
-        """List of error and warnings to run through for ADCP stress calculations.
         """
+        Performs a series of checks and raises warnings for ADCP stress calculations.
+
+        This method checks several conditions relevant for ADCP stress calculations and raises 
+        warnings if these conditions are not met. It checks if the beam angle is defined, 
+        if the instrument's coordinate system is aligned with the principal flow directions, 
+        if the tilt is above a threshold, if the noise level is specified, and if the data 
+        set is in the 'beam' coordinate system.
+
+        Parameters
+        ----------
+        ds : xarray.Dataset
+          Raw dataset in beam coordinates
+        beam_angle : int, default=ds.attrs['beam_angle']
+          ADCP beam angle in units of degrees
+        noise : int or xarray.DataArray (time)
+          Doppler noise level in units of m/s
+        tilt_thresh: numeric
+          Angle threshold beyond which violates a small angle assumption
+
+        Returns
+        -------
+        b_angle : float
+          If 'beam_angle' was None, it tries to find it in 'ds'.
+
+        noise : float
+          If 'noise' was None, it is set to 0.
+        """
+
         # Error 1. Beam Angle
         b_angle = getattr(ds, 'beam_angle', beam_angle)
         if b_angle is None:
@@ -292,7 +359,8 @@ class ADPBinner(VelBinner):
     
     def _check_orientation(self, ds, orientation, beam5=False):
         """
-        Get the beam order for the beam-stress rotation algorithm
+        Determines the beam order for the beam-stress rotation algorithm based on 
+        the instrument orientation.
 
         Note: Stacey defines the beams for down-looking Workhorse ADCPs.
               According to the workhorse coordinate transformation
@@ -301,6 +369,29 @@ class ADPBinner(VelBinner):
                                y-axis points from beam 4 to 3.
         Nortek Signature x-axis points from beam 3 to 1
                          y-axis points from beam 2 to 4
+
+        Parameters
+        ----------
+        ds : xarray.Dataset
+          An xarray Dataset containing the ADCP data.
+        orientation : str
+          The orientation of the instrument, either 'up' or 'down'. 
+          If None, the orientation will be retrieved from the dataset or the 
+          instance's default orientation.
+
+        beam5 : bool, default=False
+          A flag indicating whether a fifth beam is present. 
+          If True, the number 4 will be appended to the beam order.
+
+        Returns
+        -------
+        beams : list of int
+          A list of integers representing the order of the beams.
+        phi2 : float, optional
+          The mean of the roll values in radians. Only returned if 'beam5' is True.
+        phi3 : float, optional
+          The mean of the pitch values in radians, negated for Nortek instruments. 
+          Only returned if 'beam5' is True.
         """
 
         if orientation is None:

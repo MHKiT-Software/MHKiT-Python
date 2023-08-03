@@ -331,14 +331,14 @@ def calc_tilt(pitch, roll):
     Parameters
     ----------
     roll : numpy.ndarray or xarray.DataArray
-      Instrument roll
+      Instrument roll in degrees
     pitch : numpy.ndarray or xarray.DataArray
-      Instrument pitch
+      Instrument pitch in degrees
       
     Returns
     -------
     tilt : numpy.ndarray
-      Vertical inclination of the instrument
+      Vertical inclination of the instrument in degrees
     """
 
     if 'xarray' in type(pitch).__module__:

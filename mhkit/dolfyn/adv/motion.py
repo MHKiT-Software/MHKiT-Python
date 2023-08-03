@@ -8,6 +8,15 @@ from ..rotate import vector as rot
 from ..rotate.api import _make_model, rotate2
 
 
+class MissingDataError(ValueError):
+    pass
+
+class DataAlreadyProcessedError(Exception):
+    pass
+
+class MissingRequiredDataError(Exception):
+    pass
+
 def _get_body2imu(make_model):
     if make_model == 'nortek vector':
         # In inches it is: (0.25, 0.25, 5.9)
@@ -400,16 +409,16 @@ def correct_motion(ds,
 
     # Check that no nan's exist
     if ds['accel'].isnull().sum():
-        raise Exception("There should be no missing data in `accel` variable")
+        raise MissingDataError("There should be no missing data in `accel` variable")
     if ds['angrt'].isnull().sum():
-        raise Exception("There should be no missing data in `angrt` variable")
+        raise MissingDataError("There should be no missing data in `angrt` variable")
 
     if hasattr(ds, 'velrot') or ds.attrs.get('motion corrected', False):
-        raise Exception('The data appears to already have been '
+        raise DataAlreadyProcessedError('The data appears to already have been '
                         'motion corrected.')
 
     if not hasattr(ds, 'has_imu') or ('accel' not in ds):
-        raise Exception('The instrument does not appear to have an IMU.')
+        raise MissingRequiredDataError('The instrument does not appear to have an IMU.')
 
     if ds.coord_sys != 'inst':
         rotate2(ds, 'inst', inplace=True)
