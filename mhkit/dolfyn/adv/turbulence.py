@@ -179,7 +179,8 @@ class ADVBinner(VelBinner):
         return csd
 
     def doppler_noise_level(self, psd, pct_fN=0.8):
-        """Calculate bias due to Doppler noise using the noise floor
+        """
+        Calculate bias due to Doppler noise using the noise floor
         of the velocity spectra.
 
         Parameters

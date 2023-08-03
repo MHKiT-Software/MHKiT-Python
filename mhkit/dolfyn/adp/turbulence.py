@@ -13,8 +13,7 @@ def _diffz_first(dat, z):
 
 
 def _diffz_centered(dat, z):
-    """
-    Newton's Method centered difference.
+    """Newton's Method centered difference.
     Want top - bottom here: (u_x+1 - u_x-1)/dx
     Can use 2*np.diff b/c depth bin size never changes
     """
@@ -22,8 +21,7 @@ def _diffz_centered(dat, z):
 
 
 def _diffz_centered_extended(dat, z):
-    """
-    Extended centered difference method.
+    """Extended centered difference method.
     Top - bottom centered difference with endpoints determined
     with a first difference. Ensures the output array is the 
     same size as the input array.
@@ -319,7 +317,6 @@ class ADPBinner(VelBinner):
         -------
         b_angle : float
           If 'beam_angle' was None, it tries to find it in 'ds'.
-
         noise : float
           If 'noise' was None, it is set to 0.
         """
@@ -373,12 +370,11 @@ class ADPBinner(VelBinner):
         Parameters
         ----------
         ds : xarray.Dataset
-          An xarray Dataset containing the ADCP data.
+          Raw dataset in beam coordinates
         orientation : str
           The orientation of the instrument, either 'up' or 'down'. 
           If None, the orientation will be retrieved from the dataset or the 
           instance's default orientation.
-
         beam5 : bool, default=False
           A flag indicating whether a fifth beam is present. 
           If True, the number 4 will be appended to the beam order.
@@ -386,7 +382,7 @@ class ADPBinner(VelBinner):
         Returns
         -------
         beams : list of int
-          A list of integers representing the order of the beams.
+          Beam order.
         phi2 : float, optional
           The mean of the roll values in radians. Only returned if 'beam5' is True.
         phi3 : float, optional
@@ -428,8 +424,30 @@ class ADPBinner(VelBinner):
             return beams
 
     def _beam_variance(self, ds, time, noise, beam_order, n_beams):
-        """Calculate along-beam velocity variance and subtract noise
         """
+        Calculates the variance of the along-beam velocities and then subtracts 
+        noise from the result.
+
+        Parameters
+        ----------
+        ds : xarray.Dataset
+          Raw dataset in beam coordinates
+        time : xarray.DataArray
+          Ensemble-averaged time coordinate
+        noise : int or xarray.DataArray (time)
+          Doppler noise level in units of m/s
+        beam_order : list of int
+          Beam order in pairs, per manufacturer and orientation
+        n_beams : int
+          Number of beams
+
+        Returns
+        -------
+        bp2_ : xarray.DataArray
+          Enxemble-averaged along-beam velocity variance, 
+          written "beam-velocity prime squared bar" in units of m^2/s^2
+        """
+
         # Concatenate 5th beam velocity if need be
         if n_beams == 4:
             beam_vel = ds['vel'].values
@@ -481,6 +499,7 @@ class ADPBinner(VelBinner):
         of Reynolds stress profiles in unstratified tidal flow." Journal of 
         Geophysical Research: Oceans 104.C5 (1999): 10933-10949.
         """
+
         # Run through warnings
         b_angle, noise = self._stress_func_warnings(
             ds, beam_angle, noise, tilt_thresh=5)
@@ -551,6 +570,7 @@ class ADPBinner(VelBinner):
         five-beam acoustic Doppler current profilers." Journal of Atmospheric 
         and Oceanic Technology 34.6 (2017): 1267-1284.
         """
+
         # Check that beam 5 velocity exists
         if 'vel_b5' not in ds.data_vars:
             raise Exception("Must have 5th beam data to use this function.")
