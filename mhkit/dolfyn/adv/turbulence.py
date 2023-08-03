@@ -72,6 +72,9 @@ class ADVBinner(VelBinner):
         out : xarray.DataArray
         """
 
+        if not isinstance(veldat, xr.DataArray):
+            raise TypeError("`veldat` must be an instance of `xarray.DataArray`.")
+
         time = self.mean(veldat.time.values)
         vel = veldat.values
 
@@ -129,6 +132,11 @@ class ADVBinner(VelBinner):
           The first-dimension of the cross-spectrum is the three
           different cross-spectra: 'uv', 'uw', 'vw'.
         """
+
+        if not isinstance(veldat, xr.DataArray):
+            raise TypeError("`veldat` must be an instance of `xarray.DataArray`.")
+        if ('rad' not in freq_units) and ('Hz' not in freq_units):
+            raise ValueError("`freq_units` should be one of 'Hz' or 'rad/s'")
 
         fs_in = self._parse_fs(fs)
         n_fft = self._parse_nfft_coh(n_fft_coh)
@@ -358,9 +366,14 @@ class ADVBinner(VelBinner):
         by a random wave field". JPO, 1983, vol13, pp2000-2007.
         """
 
-        # Ensure time has been averaged
+        if not isinstance(psd, xr.DataArray):
+            raise TypeError("`psd` must be an instance of `xarray.DataArray`.")
+        if len(U_mag.shape) != 1:
+            raise Exception('U_mag should be 1-dimensional (time)')
         if len(psd.time)!=len(U_mag.time):
             raise Exception("`U_mag` should be from ensembled-averaged dataset")
+        if not hasattr(freq_range, '__iter__') or len(freq_range) != 2: 
+            raise ValueError("`freq_range` must be an iterable of length 2.")
 
         freq = psd.freq
         idx = np.where((freq_range[0] < freq) & (freq < freq_range[1]))
@@ -390,9 +403,8 @@ class ADVBinner(VelBinner):
 
         Parameters
         ----------
-        vel_raw : xarray.DataArray
-          The raw velocity data (with dimension time) upon 
-          which to perform the SF technique. 
+        vel_raw : xarray.DataArray (time)
+          The raw velocity data upon which to perform the SF technique. 
         U_mag : xarray.DataArray
           The bin-averaged horizontal velocity (from dataset shortcut)
         fs : float
@@ -408,6 +420,13 @@ class ADVBinner(VelBinner):
         epsilon : xarray.DataArray
           dataArray of the dissipation rate
         """
+
+        if not isinstance(vel_raw, xr.DataArray):
+            raise TypeError("`vel_raw` must be an instance of `xarray.DataArray`.")
+        if len(vel_raw.time)==len(U_mag.time):
+            raise Exception("`U_mag` should be from ensembled-averaged dataset")
+        if not hasattr(freq_range, '__iter__') or len(freq_range) != 2: 
+            raise ValueError("`freq_range` must be an iterable of length 2.")
 
         veldat = vel_raw.values
         if len(veldat.shape) > 1:
@@ -508,6 +527,13 @@ class ADVBinner(VelBinner):
         the Surf Zone". JPO, 2001, vol31, pp2403-2417.
         """
 
+        if not isinstance(dat_raw, xr.Dataset):
+            raise TypeError("`dat_raw` must be an instance of `xarray.Dataset`.")
+        if not isinstance(dat_avg, xr.Dataset):
+            raise TypeError("`dat_avg` must be an instance of `xarray.Dataset`.")
+        if not hasattr(freq_range, '__iter__') or len(freq_range) != 2: 
+            raise ValueError("`freq_range` must be an iterable of length 2.")
+
         # Assign local names
         U_mag = dat_avg.velds.U_mag.values
         I_tke = dat_avg.velds.I_tke.values
@@ -557,7 +583,7 @@ class ADVBinner(VelBinner):
           The auto-covariance array (i.e. computed using `autocovariance`).
         U_mag : xarray.DataArray
           The bin-averaged horizontal velocity (from dataset shortcut)
-        fs : float
+        fs : numeric
           The raw sample rate
 
         Returns
@@ -572,6 +598,11 @@ class ADVBinner(VelBinner):
 
         If T_int is not reached, L_int will default to '0'.
         """
+
+        if not isinstance(a_cov, xr.DataArray):
+            raise TypeError("`a_cov` must be an instance of `xarray.DataArray`.")
+        if len(a_cov.time)!=len(U_mag.time):
+            raise Exception("`U_mag` should be from ensembled-averaged dataset")
 
         acov = a_cov.values
         fs = self._parse_fs(fs)

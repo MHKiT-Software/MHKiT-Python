@@ -839,7 +839,9 @@ class VelBinner(TimeBinner):
             vel = veldat.values
         if 'xarray' in type(noise).__module__:
             noise = noise.values
-
+        if ('rad' not in freq_units) and ('Hz' not in freq_units):
+            raise ValueError("`freq_units` should be one of 'Hz' or 'rad/s'")
+        
         # Create frequency vector, also checks whether using f or omega
         if 'rad' in freq_units:
             fs = 2*np.pi*fs_in

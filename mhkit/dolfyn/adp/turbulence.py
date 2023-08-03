@@ -7,25 +7,73 @@ from ..rotate.base import calc_tilt
 
 
 def _diffz_first(dat, z):
-    """Newton's Method first difference.
     """
+    Newton's Method first difference.
+
+    Parameters
+    ----------
+    dat : array-like
+      1 dimensional vector to be differentiated
+    z : array-like
+      Vertical dimension to differentiate across
+    
+    Returns
+    -------
+    out : array-like
+      Numerically-derived derivative of `dat`
+    """
+
     return np.diff(dat, axis=0) / (np.diff(z)[:, None])
 
 
 def _diffz_centered(dat, z):
-    """Newton's Method centered difference.
+    """
+    Newton's Method centered difference.
+
+    Parameters
+    ----------
+    dat : array-like
+      1 dimensional vector to be differentiated
+    z : array-like
+      Vertical dimension to differentiate across
+    
+    Returns
+    -------
+    out : array-like
+      Numerically-derived derivative of `dat`
+
+    Notes
+    -----
     Want top - bottom here: (u_x+1 - u_x-1)/dx
     Can use 2*np.diff b/c depth bin size never changes
     """
+
     return (dat[2:]-dat[:-2]) / (2*np.diff(z)[1:, None])
 
 
 def _diffz_centered_extended(dat, z):
-    """Extended centered difference method.
+    """
+    Extended centered difference method.
+
+    Parameters
+    ----------
+    dat : array-like
+      1 dimensional vector to be differentiated
+    z : array-like
+      Vertical dimension to differentiate across
+    
+    Returns
+    -------
+    out : array-like
+      Numerically-derived derivative of `dat`
+
+    Notes
+    -----
     Top - bottom centered difference with endpoints determined
     with a first difference. Ensures the output array is the 
     same size as the input array.
     """
+
     out = np.concatenate((_diffz_first(dat[:2], z[:2]),
                           _diffz_centered(dat, z),
                           _diffz_first(dat[-2:], z[-2:])))
@@ -41,25 +89,25 @@ class ADPBinner(VelBinner):
         Parameters
         ----------
         n_bin : int
-            Number of data points to include in a 'bin' (ensemble), not the
-            number of bins
+          Number of data points to include in a 'bin' (ensemble), not the
+          number of bins
         fs : int
-            Instrument sampling frequency in Hz
+          Instrument sampling frequency in Hz
         n_fft : int
-            Number of data points to use for fft (`n_fft`<=`n_bin`).
-            Default: `n_fft`=`n_bin`
+          Number of data points to use for fft (`n_fft`<=`n_bin`).
+          Default: `n_fft`=`n_bin`
         n_fft_coh : int
-            Number of data points to use for coherence and cross-spectra ffts
-            Default: `n_fft_coh`=`n_fft`
+          Number of data points to use for coherence and cross-spectra ffts
+          Default: `n_fft_coh`=`n_fft`
         noise : float, list or numpy.ndarray
-            Instrument's doppler noise in same units as velocity
+          Instrument's doppler noise in same units as velocity
         orientation : str, default='up'
-            Instrument's orientation, either 'up' or 'down'
+          Instrument's orientation, either 'up' or 'down'
         diff_style : str, default='centered_extended'
-            Style of numerical differentiation using Newton's Method. 
-            Either 'first' (first difference), 'centered' (centered difference),
-            or 'centered_extended' (centered difference with first and last points
-             extended using a first difference).
+          Style of numerical differentiation using Newton's Method. 
+          Either 'first' (first difference), 'centered' (centered difference),
+          or 'centered_extended' (centered difference with first and last points
+          extended using a first difference).
         """
 
         VelBinner.__init__(self, n_bin, fs, n_fft, n_fft_coh, noise)
@@ -267,6 +315,10 @@ class ADPBinner(VelBinner):
         (2022): 252-262.
         """
 
+        if not isinstance(psd, xr.DataArray):
+            raise TypeError("`psd` must be an instance of `xarray.DataArray`.")
+        if not isinstance(pct_fN, float) or not 0 <= pct_fN <= 1:
+            raise ValueError("`pct_fN` must be a float within the range [0, 1].")
         if len(psd.shape) != 2:
             raise Exception('PSD should be 2-dimensional (time, frequency)')
 
@@ -533,7 +585,7 @@ class ADPBinner(VelBinner):
         ----------
         ds : xarray.Dataset
           Raw dataset in beam coordinates
-        noise : int or xarray.DataArray, default=0 (time)
+        noise : int or xarray.DataArray with dim 'time', default=0
           Doppler noise level in units of m/s
         orientation : str, default=ds.attrs['orientation']
           Direction ADCP is facing ('up' or 'down')
@@ -731,6 +783,11 @@ class ADPBinner(VelBinner):
         y at x^m=1.
         """
 
+        if not isinstance(psd, xr.DataArray):
+            raise TypeError("`psd` must be an instance of `xarray.DataArray`.")
+        if not hasattr(freq_range, '__iter__') or len(freq_range) != 2: 
+            raise ValueError("`freq_range` must be an iterable of length 2.")
+        
         idx = np.where((freq_range[0] < psd.freq) & (psd.freq < freq_range[1]))
         idx = idx[0]
 
@@ -796,7 +853,9 @@ class ADPBinner(VelBinner):
             raise Exception('PSD should be 2-dimensional (time, frequency)')
         if len(U_mag.shape) != 1:
             raise Exception('U_mag should be 1-dimensional (time)')
-
+        if not hasattr(freq_range, '__iter__') or len(freq_range) != 2: 
+            raise ValueError("`freq_range` must be an iterable of length 2.")
+        
         freq = psd.freq
         idx = np.where((freq_range[0] < freq) & (freq < freq_range[1]))
         idx = idx[0]
@@ -872,6 +931,11 @@ class ADPBinner(VelBinner):
         turbulent dissipation in the marine environment"
         GRL, 2006, 33, L21608.
         """
+
+        if not isinstance(vel_raw, xr.DataArray):
+            raise TypeError("`vel_raw` must be an instance of `xarray.DataArray`.")
+        if not hasattr(r_range, '__iter__') or len(r_range) != 2: 
+            raise ValueError("`r_range` must be an iterable of length 2.")
 
         if len(vel_raw.shape) != 2:
             raise Exception(
@@ -972,7 +1036,7 @@ class ADPBinner(VelBinner):
           Ex `ds_avg['stress_vec'].sel(tau='upwp_')`
         z_inds : slice(int,int)
           Depth indices to use for profile. Default = slice(1, 5)
-        H : int (default=`ds_avg.depth`)
+        H : numeric (default=`ds_avg.depth`)
           Total water depth
 
         Returns
@@ -981,6 +1045,13 @@ class ADPBinner(VelBinner):
           Friction velocity
         """
 
+        if not isinstance(ds_avg, xr.Dataset):
+            raise TypeError("`ds_avg` must be an instance of `xarray.Dataset`.")
+        if not isinstance(upwp_, xr.DataArray):
+            raise TypeError("`upwp_` must be an instance of `xarray.DataArray`.")
+        if not isinstance(z_inds, slice):
+            raise TypeError("`z_inds` must be an instance of `slice(int,int)`.")
+        
         if not H:
             H = ds_avg.depth.values
         z = ds_avg['range'].values
