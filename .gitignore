@@ -9,6 +9,7 @@ $ cat .gitignore
 *.swp
 *.tws
 *~
+*.png
 
 # Directories
 **/__pycache__/
