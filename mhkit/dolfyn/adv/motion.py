@@ -8,6 +8,15 @@ from ..rotate import vector as rot
 from ..rotate.api import _make_model, rotate2
 
 
+class MissingDataError(ValueError):
+    pass
+
+class DataAlreadyProcessedError(Exception):
+    pass
+
+class MissingRequiredDataError(Exception):
+    pass
+
 def _get_body2imu(make_model):
     if make_model == 'nortek vector':
         # In inches it is: (0.25, 0.25, 5.9)
@@ -133,6 +142,13 @@ class CalcMotion():
             for idx in range(3):
                 acc[idx] = ss.filtfilt(flt[0], flt[1], acc[idx], axis=-1)
 
+            # Fill nan with zeros - happens for some filter frequencies
+            if np.isnan(acc).any():
+                warnings.warn(
+                    "Error filtering acceleration data. "
+                    "Please decrease `accel_filtfreq`.")
+                acc = np.nan_to_num(acc)
+
     def calc_velacc(self, ):
         """
         Calculates the translational velocity from the high-pass
@@ -166,6 +182,13 @@ class CalcMotion():
                 dat[idx] = dat[idx] - \
                     ss.filtfilt(filt[0], filt[1], dat[idx], axis=-1)
 
+            # Fill nan with zeros - happens for some filter frequencies
+            if np.isnan(dat).any():
+                warnings.warn("Error filtering acceleration data. "
+                              "Please decrease `vel_filtfreq`. "
+                              "(default is 1/3 `accel_filtfreq`)")
+                dat = np.nan_to_num(dat)
+
         if n:
             # remove reshape
             velacc_shaped = np.empty(self.angrt.shape)
@@ -186,8 +209,8 @@ class CalcMotion():
 
     def calc_velrot(self, vec, to_earth=None):
         """
-        Calculate the induced velocity due to rotations of the instrument
-        about the IMU center.
+        Calculate the induced velocity due to rotations of the 
+        instrument about the IMU center.
 
         Parameters
         ----------
@@ -320,7 +343,6 @@ def correct_motion(ds,
       back into XYZ/earth coordinates. This correction seems to be
       lower than the noise levels of the ADV, so the default is to not
       use it (False).
-      Optional, default = False
 
     Returns
     -------
@@ -385,12 +407,18 @@ def correct_motion(ds,
     # Ensure acting on new dataset
     ds = ds.copy(deep=True)
 
+    # Check that no nan's exist
+    if ds['accel'].isnull().sum():
+        raise MissingDataError("There should be no missing data in `accel` variable")
+    if ds['angrt'].isnull().sum():
+        raise MissingDataError("There should be no missing data in `angrt` variable")
+
     if hasattr(ds, 'velrot') or ds.attrs.get('motion corrected', False):
-        raise Exception('The data appears to already have been '
+        raise DataAlreadyProcessedError('The data appears to already have been '
                         'motion corrected.')
 
     if not hasattr(ds, 'has_imu') or ('accel' not in ds):
-        raise Exception('The instrument does not appear to have an IMU.')
+        raise MissingRequiredDataError('The instrument does not appear to have an IMU.')
 
     if ds.coord_sys != 'inst':
         rotate2(ds, 'inst', inplace=True)
@@ -407,11 +435,17 @@ def correct_motion(ds,
 
     ##########
     # Calculate the translational velocity (from the accel):
-    ds['velacc'] = xr.DataArray(calcobj.calc_velacc(), dims=[
-                                'dirIMU', 'time']).astype('float32')
+    ds['velacc'] = xr.DataArray(calcobj.calc_velacc(),
+                                dims=['dirIMU', 'time'],
+                                attrs={'units': 'm s-1',
+                                       'long_name': 'Velocity from IMU Accelerometer'}
+                                ).astype('float32')
     # Copy acclow to the adv-object.
-    ds['acclow'] = xr.DataArray(
-        calcobj.acclow, dims=['dirIMU', 'time']).astype('float32')
+    ds['acclow'] = xr.DataArray(calcobj.acclow,
+                                dims=['dirIMU', 'time'],
+                                attrs={'units': 'm s-2',
+                                       'long_name': 'Low-Frequency Acceleration from IMU'}
+                                ).astype('float32')
 
     ##########
     # Calculate rotational velocity (from angrt):
@@ -436,8 +470,11 @@ def correct_motion(ds,
                                                  velrot)))
         # 5) Rotate back to body-coord.
         velrot = np.dot(rmat.T, velrot)
-    ds['velrot'] = xr.DataArray(
-        velrot, dims=['dirIMU', 'time']).astype('float32')
+    ds['velrot'] = xr.DataArray(velrot,
+                                dims=['dirIMU', 'time'],
+                                attrs={'units': 'm s-1',
+                                       'long_name': 'Velocity from IMU Gyroscope'}
+                                ).astype('float32')
 
     ##########
     # Rotate the data into the correct coordinate system.
@@ -467,8 +504,8 @@ def correct_motion(ds,
 
     ##########
     # Copy vel -> velraw prior to motion correction:
-    ds['vel_raw'] = xr.DataArray(ds.vel.copy(
-        deep=True), dims=ds.vel.dims).astype('float32')
+    ds['vel_raw'] = ds.vel.copy(deep=True)
+
     # Add it to rotate_vars:
     ds.attrs['rotate_vars'].append('vel_raw')
 
@@ -481,8 +518,7 @@ def correct_motion(ds,
 
     # use xarray to keep dimensions consistent
     velmot = ds['velrot'] + ds['velacc']
-    velmot = velmot.values
-    ds['vel'][:3] += velmot
+    ds['vel'].values += velmot.values
 
     ds.attrs['motion corrected'] = 1
     ds.attrs['motion accel_filtfreq Hz'] = calcobj.accel_filtfreq
