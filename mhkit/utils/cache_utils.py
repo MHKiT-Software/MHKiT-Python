@@ -1,14 +1,9 @@
-import urllib.request
 import hashlib
 import json
 import os
 import shutil
-import pandas as pd
-import xarray as xr
-import netCDF4
-import requests
-import copy
 import pickle
+import pandas as pd
 
 
 def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=None,

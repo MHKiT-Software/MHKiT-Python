@@ -177,27 +177,35 @@ def request_wpto_point_data(
     assert isinstance(path, (str, type(None))), 'path must be a string'
     assert isinstance(as_xarray, bool), 'as_xarray must be bool type'
 
-    # Define the path to the cache directory
-    cache_dir = os.path.join(os.path.expanduser("~"),
-                             ".cache", "mhkit", "hindcast")
-
     # Construct a string representation of the function parameters
     hash_params = f"{data_type}_{parameter}_{lat_lon}_{years}_{tree}_{unscale}_{str_decode}_{hsds}_{path}_{as_xarray}"
 
-    # Create a unique identifier for this function call
-    hash_id = hashlib.md5(hash_params.encode()).hexdigest()
-
-    # Create cache directory if it doesn't exist
-    os.makedirs(cache_dir, exist_ok=True)
-
-    # Create a path to the cache file for this function call
-    cache_file = os.path.join(cache_dir, f"{hash_id}.pkl")
-
-    if os.path.isfile(cache_file):
-        # If the cache file exists, load the data from the cache
-        with open(cache_file, 'rb') as f:
-            data, meta = pickle.load(f)
+    # Attempt to load data from cache
+    data, meta = load_from_cache2(hash_params)
+    if data is not None:
         return data, meta
+
+    # # Define the path to the cache directory
+    # cache_dir = os.path.join(os.path.expanduser("~"),
+    #                          ".cache", "mhkit", "hindcast")
+
+    # # Construct a string representation of the function parameters
+    # hash_params = f"{data_type}_{parameter}_{lat_lon}_{years}_{tree}_{unscale}_{str_decode}_{hsds}_{path}_{as_xarray}"
+
+    # # Create a unique identifier for this function call
+    # hash_id = hashlib.md5(hash_params.encode()).hexdigest()
+
+    # # Create cache directory if it doesn't exist
+    # os.makedirs(cache_dir, exist_ok=True)
+
+    # # Create a path to the cache file for this function call
+    # cache_file = os.path.join(cache_dir, f"{hash_id}.pkl")
+
+    # if os.path.isfile(cache_file):
+    #     # If the cache file exists, load the data from the cache
+    #     with open(cache_file, 'rb') as f:
+    #         data, meta = pickle.load(f)
+    #     return data, meta
 
     else:
         if 'directional_wave_spectrum' in parameter:
@@ -277,8 +285,9 @@ def request_wpto_point_data(
                 # Remove the 'index' coordinate
                 data = data.drop_vars('index')
 
-        with open(cache_file, 'wb') as f:
-            pickle.dump((data, meta), f)
+        # with open(cache_file, 'wb') as f:
+        #     pickle.dump((data, meta), f)
+        save_to_cache(hash_params, data, meta)
 
         return data, meta
 
@@ -360,6 +369,26 @@ def request_wpto_directional_spectrum(
             region = reglist[0]
         else:
             sys.exit('Coordinates must be within the same region!')
+
+    # Construct a string representation of the function parameters
+    hash_params = f"{lat_lon}_{year}_{tree}_{unscale}_{str_decode}_{hsds}_{path}"
+
+    # Attempt to load data from cache
+    cached_data = load_from_cache(hash_params)
+    if cached_data is not None:
+        return cached_data
+
+    # # Define the path to the cache directory
+    # cache_dir = os.path.join(os.path.expanduser("~"),
+    #                          ".cache", "mhkit", "hindcast")
+
+    # # Construct a string representation of the function parameters
+    # hash_params = f"{lat_lon}_{year}_{tree}_{unscale}_{str_decode}_{hsds}_{path}"
+
+    # # Attempt to load data from cache
+    # cached_data = load_from_cache(hash_params, cache_dir)
+    # if cached_data is not None:
+    #     return cached_data
 
     wave_path = path or (
         f'/nrel/US_wave/virtual_buoy/{region}/{region}_virtual_buoy_{year}.h5'
@@ -491,12 +520,80 @@ def request_wpto_directional_spectrum(
                 }
             )
 
-        # import ipdb
-        # ipdb.set_trace()
         # Cache the data.
         metadata_json = json.dumps(meta.to_dict())
         data.attrs['metadata'] = metadata_json
+        cache_file = get_cache_file(hash_params)
         data.to_netcdf(cache_file)
         del data.attrs['metadata']  # remove the metadata attribute
 
+        # # Cache the data.
+        # metadata_json = json.dumps(meta.to_dict())
+        # data.attrs['metadata'] = metadata_json
+        # data.to_netcdf(cache_file)
+        # del data.attrs['metadata']  # remove the metadata attribute
+
         return data, meta
+
+
+def get_cache_dir():
+    """
+    Returns the path to the cache directory.
+    """
+    return os.path.join(os.path.expanduser("~"), ".cache", "mhkit", "hindcast")
+
+
+def get_cache_file(hash_params):
+    """
+    Returns the path to the cache file corresponding to the given parameters.
+    """
+    cache_dir = get_cache_dir()
+    hash_id = hashlib.md5(hash_params.encode()).hexdigest()
+    return os.path.join(cache_dir, f"{hash_id}.nc")
+
+
+def get_cache_file2(hash_params):
+    """
+    Returns the path to the cache file corresponding to the given parameters.
+    """
+    cache_dir = get_cache_dir()
+    hash_id = hashlib.md5(hash_params.encode()).hexdigest()
+    return os.path.join(cache_dir, f"{hash_id}.pkl")
+
+
+def load_from_cache(hash_params):
+    """
+    Attempts to load data from cache. If the cache file does not exist,
+    returns None. If the cache file exists, returns the loaded data.
+    """
+    cache_file = get_cache_file(hash_params)
+    if os.path.exists(cache_file):
+        data = xr.open_dataset(cache_file)
+        meta = json.loads(data.attrs.get('metadata', '{}'))
+        meta = pd.DataFrame(meta)
+        del data.attrs['metadata']  # remove the metadata attribute
+        return data, meta
+    return None, None
+
+
+def load_from_cache2(hash_params):
+    """
+    Attempts to load data from cache. If the cache file does not exist,
+    returns None. If the cache file exists, returns the loaded data.
+    """
+    cache_file = get_cache_file(hash_params)
+    if os.path.isfile(cache_file):
+        # If the cache file exists, load the data from the cache
+        with open(cache_file, 'rb') as f:
+            data, meta = pickle.load(f)
+        return data, meta
+    return None, None
+
+
+def save_to_cache(hash_params, data, meta):
+    """
+    Save data to a cache file corresponding to the given parameters.
+    """
+    cache_file = get_cache_file(hash_params)
+    with open(cache_file, 'wb') as f:
+        pickle.dump((data, meta), f)
