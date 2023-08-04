@@ -1,9 +1,10 @@
 import numpy as np
+import xarray as xr
 from .vector import _earth2principal
-from .base import _beam2inst, _set_coords
+from .base import _beam2inst, _set_coords, _check_rotate_vars
 
 
-def _inst2earth(adcpo, reverse=False, force=False):
+def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
     """
     Rotate velocities from the instrument to earth coordinates.
 
@@ -38,16 +39,18 @@ def _inst2earth(adcpo, reverse=False, force=False):
                          "coordinate system.".format(csin))
 
     if 'orientmat' in adcpo:
-        rmat = adcpo['orientmat'].values
+        omat = adcpo['orientmat']
     else:
-        rmat = _calc_orientmat(adcpo)
+        omat = _calc_orientmat(adcpo)
+
+    rotate_vars = _check_rotate_vars(adcpo, rotate_vars)
 
     # rollaxis gives transpose of orientation matrix.
     # The 'rotation matrix' is the transpose of the 'orientation matrix'
     # NOTE: the double 'rollaxis' within this function, and here, has
     # minimal computational impact because np.rollaxis returns a
     # view (not a new array)
-    rotmat = np.rollaxis(rmat, 1)
+    rotmat = np.rollaxis(omat.data, 1)
     if reverse:
         cs_new = 'inst'
         sumstr = 'jik,j...k->i...k'
@@ -56,7 +59,7 @@ def _inst2earth(adcpo, reverse=False, force=False):
         sumstr = 'ijk,j...k->i...k'
 
     # Only operate on the first 3-components, b/c the 4th is err_vel
-    for nm in adcpo.rotate_vars:
+    for nm in rotate_vars:
         dat = adcpo[nm].values
         dat[:3] = np.einsum(sumstr, rotmat, dat[:3])
         adcpo[nm].values = dat.copy()
@@ -160,4 +163,14 @@ def _calc_orientmat(adcpo):
     # The 'orientation matrix' is the transpose of the 'rotation matrix'.
     omat = np.rollaxis(rotmat, 1)
 
-    return omat
+    earth = xr.DataArray(['E', 'N', 'U'], dims=['earth'], name='earth', attrs={
+        'units': '1', 'long_name': 'Earth Reference Frame', 'coverage_content_type': 'coordinate'})
+    inst = xr.DataArray(['X', 'Y', 'Z'], dims=['inst'], name='inst', attrs={
+        'units': '1', 'long_name': 'Instrument Reference Frame', 'coverage_content_type': 'coordinate'})
+    return xr.DataArray(omat,
+                        coords={'earth': earth,
+                                'inst': inst,
+                                'time': adcpo.time},
+                        dims=['earth', 'inst', 'time'],
+                        attrs={'units': '1',
+                               'long_name': 'Orientation Matrix'})

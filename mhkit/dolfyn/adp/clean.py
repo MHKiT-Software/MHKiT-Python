@@ -101,9 +101,12 @@ def find_surface(ds, thresh=10, nfilt=None):
         dfilt[dfilt == 0] = np.NaN
         d = dfilt
 
-    ds['depth'] = xr.DataArray(d, dims=['time'], attrs={
-                               'units': 'm'}).astype('float32')
-
+    ds['depth'] = xr.DataArray(d.astype('float32'),
+                               dims=['time'],
+                               attrs={'units': 'm',
+                                      'long_name': 'Depth',
+                                      'standard_name': 'depth',
+                                      'positive': 'down'})
 
 def find_surface_from_P(ds, salinity=35):
     """
@@ -128,41 +131,56 @@ def find_surface_from_P(ds, salinity=35):
     Requires that the instrument's pressure sensor was calibrated/zeroed
     before deployment to remove atmospheric pressure.
 
-    Calculates seawater density at normal atmospheric pressure according
-    to the UNESCO 1981 equation of state. Does not include hydrostatic pressure.
+    Calculates seawater density using a linear approximation of the sea
+    water equation of state:
+
+    .. math:: \\rho - \\rho_0 = -\\alpha (T-T_0) + \\beta (S-S_0) + \\kappa P
+
+    Where :math:`\\rho` is water density, :math:`T` is water temperature,
+    :math:`P` is water pressure, :math:`S` is practical salinity, 
+    :math:`\\alpha` is the thermal expansion coefficient, :math:`\\beta` is 
+    the haline contraction coefficient, and :math:`\\kappa` is adiabatic 
+    compressibility.
     """
 
     # Density calcation
-    T = ds.temp.values
-    S = salinity
-    # standard mean ocean water
-    rho_smow = 999.842594 + 6.793953e-2*T - 9.095290e-3*T**2 + \
-        1.001685e-4*T**3 - 1.120083e-6*T**4 + 6.536332e-9*T**5
-    # at water surface
-    B1 = 8.2449e-1 - 4.0899e-3*T + 7.6438e-5*T**2 - 8.2467e-7*T**3 + 5.3875e-9*T**4
-    C1 = -5.7246e-3 + 1.0227e-4*T - 1.6546e-6*T**2
-    d0 = 4.8314e-4
-    rho_atm0 = rho_smow + B1*S + C1*S**1.5 + d0*S**2
+    P = ds.pressure.values
+    T = ds.temp.values  # temperature, degC
+    S = salinity  # practical salinity
+    rho0 = 1027  # kg/m^3
+    T0 = 10  # degC
+    S0 = 35  # psu assumed equivalent to ppt
+    a = 0.15  # thermal expansion coefficient, kg/m^3/degC
+    b = 0.78  # haline contraction coefficient, kg/m^3/ppt
+    k = 4.5e-3  # adiabatic compressibility, kg/m^3/dbar
+    rho = rho0 - a*(T-T0) + b*(S-S0) + k*P
 
     # Depth = pressure (conversion from dbar to MPa) / water weight
-    d = (ds.pressure*10000)/(9.81*rho_atm0)
+    d = (ds.pressure*10000)/(9.81*rho)
 
     if hasattr(ds, 'h_deploy'):
         d += ds.h_deploy
-        description = "Water depth to seafloor"
+        description = "Depth to Seafloor"
     else:
-        description = "Water depth to ADCP"
+        description = "Depth to Instrument"
 
     ds['water_density'] = xr.DataArray(
-        rho_atm0.astype('float32'),
+        rho.astype('float32'),
         dims=['time'],
-        attrs={'units': 'kg/m^3',
-               'description': 'Water density according to UNESCO 1981 equation of state'})
-    ds['depth'] = xr.DataArray(d.astype('float32'), dims=['time'], attrs={
-                               'units': 'm', 'description': description})
+        attrs={'units': 'kg m-3',
+               'long_name': 'Water Density',
+               'standard_name': 'sea_water_density',
+               'description': 'Water density from linear approximation of sea water equation of state'})
+    ds['depth'] = xr.DataArray(
+        d.astype('float32'),
+        dims=['time'],
+        attrs={'units': 'm',
+               'long_name': description,
+               'standard_name': 'depth',
+               'positive': 'down'})
 
 
-def nan_beyond_surface(ds, val=np.nan, inplace=False):
+def nan_beyond_surface(ds, val=np.nan, beam_angle=None, inplace=False):
     """
     Mask the values of 3D data (vel, amp, corr, echo) that are beyond the surface.
 
@@ -172,6 +190,8 @@ def nan_beyond_surface(ds, val=np.nan, inplace=False):
       The adcp dataset to clean
     val : nan or numeric
       Specifies the value to set the bad values to. Default is `numpy.nan`
+    beam_angle : int
+      ADCP beam inclination angle. Default = dataset.attrs['beam_angle']
     inplace : bool
       When True the existing data object is modified. When False
       a copy is returned. Default = False
@@ -194,13 +214,12 @@ def nan_beyond_surface(ds, val=np.nan, inplace=False):
     # Get all variables with 'range' coordinate
     var = [h for h in ds.keys() if any(s for s in ds[h].dims if 'range' in s)]
 
-    if 'nortek' in _make_model(ds):
-        beam_angle = 25 * (np.pi/180)
-    else:  # TRDI
-        try:
-            beam_angle = ds.beam_angle
-        except:
-            beam_angle = 20 * (np.pi/180)
+    if beam_angle is None:
+        if hasattr(ds, 'beam_angle'):
+            beam_angle = ds.beam_angle * (np.pi/180)
+        else:
+            raise Exception("'beam_angle` not found in dataset attributes. "\
+                            "Please supply the ADCP's beam angle.")
 
     # Surface interference distance calculated from distance of transducers to surface
     if hasattr(ds, 'h_deploy'):
