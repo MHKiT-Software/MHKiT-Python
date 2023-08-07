@@ -10,7 +10,8 @@ def _abspath(fname):
 
 
 def _get_filetype(fname):
-    """Detects whether the file is a Nortek, Signature (Nortek), or RDI
+    """
+    Detects whether the file is a Nortek, Signature (Nortek), or RDI
     file by reading the first few bytes of the file.
 
     Returns
@@ -53,10 +54,10 @@ def _find_userdata(filename, userdata=True):
 
 
 def _read_userdata(fname):
-    """Reads a userdata.json file and returns the data it contains as a
+    """
+    Reads a userdata.json file and returns the data it contains as a
     dictionary.
     """
-
     with open(fname) as data_file:
         data = json.load(data_file)
     for nm in ['body2head_rotmat', 'body2head_vec']:
@@ -78,10 +79,10 @@ def _read_userdata(fname):
 
 
 def _handle_nan(data):
-    """Finds trailing nan's that cause issues in running the rotation 
+    """
+    Finds trailing nan's that cause issues in running the rotation 
     algorithms and deletes them.
     """
-
     nan = np.zeros(data['coords']['time'].shape, dtype=bool)
     l = data['coords']['time'].size
 
@@ -116,30 +117,46 @@ def _create_dataset(data):
     readers.
     Direction 'dir' coordinates are set in `set_coords`
     """
-
     ds = xr.Dataset()
-    inst = ['X', 'Y', 'Z']
-    earth = ['E', 'N', 'U']
-    beam = list(range(1, data['data_vars']['vel'].shape[0]+1))
-    tag = ['_b5', '_echo', '_bt', '_gps', '_ast', '_sl']
+    tag = ['_avg', '_b5', '_echo', '_bt', '_gps', '_ast', '_sl']
+
+    FoR = {}
+    try:
+        beams = data['attrs']['n_beams']
+    except:
+        beams = data['attrs']['n_beams_avg']
+    n_beams = max(min(beams, 4), 3)
+    beams = np.arange(1, n_beams+1, dtype=np.int32)
+    FoR['beam'] = xr.DataArray(beams, dims=['beam'], name='beam', attrs={
+                               'units': '1', 'long_name': 'Beam Reference Frame'})
+    FoR['dir'] = xr.DataArray(beams, dims=['dir'], name='dir', attrs={
+                              'units': '1', 'long_name': 'Reference Frame'})
 
     for key in data['data_vars']:
         # orientation matrices
         if 'mat' in key:
             if 'inst' in key:  # beam2inst & inst2head orientation matrices
                 ds[key] = xr.DataArray(data['data_vars'][key],
-                                       coords={'x': beam,
-                                               'x*': beam},
-                                       dims=['x', 'x*'])
-            else:  # earth2inst orientation matrix
+                                       coords={'x1': beams, 'x2': beams},
+                                       dims=['x1', 'x2'],
+                                       attrs={'units': '1',
+                                              'long_name': 'Rotation Matrix'})
+            elif 'orientmat' in key:  # earth2inst orientation matrix
                 if any(val in key for val in tag):
                     tg = '_' + key.rsplit('_')[-1]
                 else:
                     tg = ''
+                earth = xr.DataArray(['E', 'N', 'U'], dims=['earth'], name='earth', attrs={
+                    'units': '1', 'long_name': 'Earth Reference Frame'})
+                inst = xr.DataArray(['X', 'Y', 'Z'], dims=['inst'], name='inst', attrs={
+                    'units': '1', 'long_name': 'Instrument Reference Frame'})
                 time = data['coords']['time'+tg]
-                coords = {'earth': earth, 'inst': inst, 'time'+tg: time}
-                dims = ['earth', 'inst', 'time'+tg]
-                ds[key] = xr.DataArray(data['data_vars'][key], coords, dims)
+                ds[key] = xr.DataArray(data['data_vars'][key],
+                                       coords={'earth': earth,
+                                               'inst': inst, 'time'+tg: time},
+                                       dims=['earth', 'inst', 'time'+tg],
+                                       attrs={'units': data['units']['orientmat'],
+                                              'long_name': data['long_name']['orientmat']})
 
         # quaternion units never change
         elif 'quaternions' in key:
@@ -147,23 +164,31 @@ def _create_dataset(data):
                 tg = '_' + key.rsplit('_')[-1]
             else:
                 tg = ''
+            q = xr.DataArray(['w', 'x', 'y', 'z'], dims=['q'], name='q', attrs={
+                             'units': '1', 'long_name': 'Quaternion Vector Components'})
+            time = data['coords']['time'+tg]
             ds[key] = xr.DataArray(data['data_vars'][key],
-                                   coords={'q': ['w', 'x', 'y', 'z'],
-                                           'time'+tg: data['coords']['time'+tg]},
-                                   dims=['q', 'time'+tg])
+                                   coords={'q': q,
+                                           'time'+tg: time},
+                                   dims=['q', 'time'+tg],
+                                   attrs={'units': data['units']['quaternions'],
+                                          'long_name': data['long_name']['quaternions']})
         else:
+            # Assign each variable to a dataArray
             ds[key] = xr.DataArray(data['data_vars'][key])
-            if key in data['units']:   # not all variables have units
-                ds[key].attrs['units'] = data['units'][key]
-            try:  # make sure ones with tags get units
-                tg = '_' + key.rsplit('_')[-1]
-                if any(val in key for val in tag):
-                    ds[key].attrs['units'] = data['units'][key[:-len(tg)]]
-            except:
-                pass
+            # Assign metadata to each dataArray
+            for md in ['units', 'long_name', 'standard_name']:
+                if key in data[md]:
+                    ds[key].attrs[md] = data[md][key]
+                try:  # make sure ones with tags get units
+                    tg = '_' + key.rsplit('_')[-1]
+                    if any(val in key for val in tag):
+                        ds[key].attrs[md] = data[md][key[:-len(tg)]]
+                except:
+                    pass
 
+            # Fill in dimensions and coordinates for each dataArray
             shp = data['data_vars'][key].shape
-            vshp = data['data_vars']['vel'].shape
             l = len(shp)
             if l == 1:  # 1D variables
                 if any(val in key for val in tag):
@@ -181,7 +206,7 @@ def _create_dataset(data):
                     ds[key] = ds[key].assign_coords({'range_echo': data['coords']['range_echo'],
                                                      'time_echo': data['coords']['time_echo']})
                 # ADV/ADCP instrument vector data, bottom tracking
-                elif shp[0] == vshp[0] and not any(val in key for val in tag[:2]):
+                elif shp[0] == n_beams and not any(val in key for val in tag[:3]):
                     if 'bt' in key and 'time_bt' in data['coords']:
                         tg = '_bt'
                     else:
@@ -192,20 +217,23 @@ def _create_dataset(data):
                         dim0 = 'dir'
                     ds[key] = ds[key].rename({'dim_0': dim0,
                                               'dim_1': 'time'+tg})
-                    ds[key] = ds[key].assign_coords({dim0: beam,
+                    ds[key] = ds[key].assign_coords({dim0: FoR[dim0],
                                                      'time'+tg: data['coords']['time'+tg]})
                 # ADCP IMU data
-                elif shp[0] == vshp[0]-1:
+                elif shp[0] == 3:
                     if not any(val in key for val in tag):
                         tg = ''
                     else:
                         tg = [val for val in tag if val in key]
                         tg = tg[0]
-
+                    dirIMU = xr.DataArray([1, 2, 3], dims=['dirIMU'], name='dirIMU', attrs={
+                        'units': '1', 'long_name': 'Reference Frame'})
                     ds[key] = ds[key].rename({'dim_0': 'dirIMU',
                                               'dim_1': 'time'+tg})
-                    ds[key] = ds[key].assign_coords({'dirIMU': [1, 2, 3],
+                    ds[key] = ds[key].assign_coords({'dirIMU': dirIMU,
                                                      'time'+tg: data['coords']['time'+tg]})
+
+                ds[key].attrs['coverage_content_type'] = 'physicalMeasurement'
 
             elif l == 3:  # 3D variables
                 if 'vel' in key:
@@ -213,13 +241,17 @@ def _create_dataset(data):
                 else:  # amp, corr, prcnt_gd, status
                     dim0 = 'beam'
 
-                if not any(val in key for val in tag):
+                if not any(val in key for val in tag) or ('_avg' in key):
+                    if '_avg' in key:
+                        tg = '_avg'
+                    else:
+                        tg = ''
                     ds[key] = ds[key].rename({'dim_0': dim0,
-                                              'dim_1': 'range',
-                                              'dim_2': 'time'})
-                    ds[key] = ds[key].assign_coords({dim0: beam,
-                                                     'range': data['coords']['range'],
-                                                     'time': data['coords']['time']})
+                                              'dim_1': 'range'+tg,
+                                              'dim_2': 'time'+tg})
+                    ds[key] = ds[key].assign_coords({dim0: FoR[dim0],
+                                                     'range'+tg: data['coords']['range'+tg],
+                                                     'time'+tg: data['coords']['time'+tg]})
                 elif 'b5' in key:
                     # xarray can't handle coords of length 1
                     ds[key] = ds[key][0]
@@ -237,11 +269,23 @@ def _create_dataset(data):
                     ds = ds.drop_vars(key)
                     warnings.warn(f'Variable not included in dataset: {key}')
 
-    # coordinate units
+                ds[key].attrs['coverage_content_type'] = 'physicalMeasurement'
+
+    # coordinate attributes
+    for ky in ds.dims:
+        ds[ky].attrs['coverage_content_type'] = 'coordinate'
     r_list = [r for r in ds.coords if 'range' in r]
     for ky in r_list:
         ds[ky].attrs['units'] = 'm'
+        ds[ky].attrs['long_name'] = 'Profile Range'
+        ds[ky].attrs['description'] = 'Distance to the center of each depth bin'
+    time_list = [t for t in ds.coords if 'time' in t]
+    for ky in time_list:
+        ds[ky].attrs['units'] = 'seconds since 1970-01-01 00:00:00'
+        ds[ky].attrs['long_name'] = 'Time'
+        ds[ky].attrs['standard_name'] = 'time'
 
+    # dataset metadata
     ds.attrs = data['attrs']
 
     return ds

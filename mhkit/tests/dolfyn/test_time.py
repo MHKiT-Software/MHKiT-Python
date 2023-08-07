@@ -24,7 +24,7 @@ class time_testcase(unittest.TestCase):
 
         # Validated based on data in ad2cp.index file
         assert_equal(time.dt642date(dat_sig.time[0])[0],
-                     datetime(2017, 7, 24, 17, 0, 0, 63499))
+                     datetime(2017, 7, 24, 17, 0, 0, 63500))
         # This should always be true
         assert_equal(time.epoch2date([0])[0], datetime(1970, 1, 1, 0, 0))
 

@@ -23,6 +23,47 @@ def _check_file_ext(path, ext):
     return path + '.' + ext
 
 
+def _decode_cf(dataset: xr.Dataset) -> xr.Dataset:
+    """
+    Wrapper around `xarray.decode_cf()` which handles additional edge cases.
+
+    This helps ensure that the dataset is formatted and encoded correctly after it has
+    been constructed or modified. Handles edge cases for units and data type encodings
+    on datetime variables.
+
+    Args:
+        dataset (xr.Dataset): The dataset to decode.
+
+    Returns:
+        xr.Dataset: The decoded dataset.
+    """
+
+    # We have to make sure that time variables do not have units set as attrs, and
+    # instead have units set on the encoding or else xarray will crash when trying
+    # to save: https://github.com/pydata/xarray/issues/3739
+    for variable in dataset.variables.values():
+        if (
+            np.issubdtype(variable.data.dtype, np.datetime64)
+            and "units" in variable.attrs
+        ):
+            units = variable.attrs["units"]
+            del variable.attrs["units"]
+            variable.encoding["units"] = units
+
+        # If the _FillValue is already encoded, remove it since it can't be overwritten per xarray
+        if "_FillValue" in variable.encoding:
+            del variable.encoding["_FillValue"]
+
+    # Leaving the "dtype" entry in the encoding for datetime64 variables causes a crash
+    # when saving the dataset. Not fixed by: https://github.com/pydata/xarray/pull/4684
+    ds: xr.Dataset = xr.decode_cf(dataset)
+    for variable in ds.variables.values():
+        if variable.data.dtype.type == np.datetime64:
+            if "dtype" in variable.encoding:
+                del variable.encoding["dtype"]
+    return ds
+
+
 def read(fname, userdata=True, nens=None, **kwargs):
     """
     Read a binary Nortek (e.g., .VEC, .wpr, .ad2cp, etc.) or RDI
@@ -118,6 +159,8 @@ def save(ds, filename,
     -----
     Drops 'config' lines.
 
+    Rewrites variable encoding dict
+
     More detailed compression options can be specified by specifying
     'encoding' in kwargs. The values in encoding will take precedence
     over whatever is set according to the compression option above.
@@ -125,11 +168,6 @@ def save(ds, filename,
     """
 
     filename = _check_file_ext(filename, 'nc')
-
-    # Dropping the detailed configuration stats because netcdf can't save it
-    for key in list(ds.attrs.keys()):
-        if 'config' in key:
-            ds.attrs.pop(key)
 
     # Handling complex values for netCDF4
     ds.attrs['complex_vars'] = []
@@ -141,6 +179,10 @@ def save(ds, filename,
             ds = ds.drop_vars(var)
             ds.attrs['complex_vars'].append(var)
 
+        # For variables that get rewritten to float64
+        elif ds[var].dtype == np.float64:
+            ds[var] = ds[var].astype('float32')
+
     if compression:
         enc = dict()
         for ky in ds.variables:
@@ -150,6 +192,9 @@ def save(ds, filename,
             enc.update(kwargs['encoding'])
         else:
             kwargs['encoding'] = enc
+
+    # Fix encoding on datetime64 variables.
+    ds = _decode_cf(ds)
 
     ds.to_netcdf(filename, format=format, engine=engine, **kwargs)
 
@@ -199,7 +244,7 @@ def save_mat(ds, filename, datenum=True):
     Parameters
     ----------
     ds : xarray.Dataset
-      Data to save
+      Dataset to save
     filename : str
       Filename and/or path with the '.mat' extension
     datenum : bool
@@ -216,6 +261,14 @@ def save_mat(ds, filename, datenum=True):
     scipy.io.savemat()
     """
 
+    def copy_attrs(matfile, ds, key):
+        if hasattr(ds[key], 'units'):
+            matfile['units'][key] = ds[key].units
+        if hasattr(ds[key], 'long_name'):
+            matfile['long_name'][key] = ds[key].long_name
+        if hasattr(ds[key], 'standard_name'):
+            matfile['standard_name'][key] = ds[key].standard_name
+
     filename = _check_file_ext(filename, 'mat')
 
     # Convert time to datenum
@@ -231,7 +284,7 @@ def save_mat(ds, filename, datenum=True):
 
     for ky in t_coords:
         dt = func(dt642date(ds[ky]))
-        ds = ds.assign_coords({ky: dt})
+        ds = ds.assign_coords({ky: (ky, dt, ds[ky].attrs)})
     for ky in t_data:
         dt = func(dt642date(ds[ky]))
         ds[ky].data = dt
@@ -240,13 +293,14 @@ def save_mat(ds, filename, datenum=True):
     ds.attrs['time_data_vars'] = t_data
 
     # Save xarray structure with more descriptive structure names
-    matfile = {'vars': {}, 'coords': {}, 'config': {}, 'units': {}}
-    for key in ds.data_vars:
-        matfile['vars'][key] = ds[key].values
-        if hasattr(ds[key], 'units'):
-            matfile['units'][key] = ds[key].units
-    for key in ds.coords:
-        matfile['coords'][key] = ds[key].values
+    matfile = {'vars': {}, 'coords': {}, 'config': {},
+               'units': {}, 'long_name': {}, 'standard_name': {}}
+    for ky in ds.data_vars:
+        matfile['vars'][ky] = ds[ky].values
+        copy_attrs(matfile, ds, ky)
+    for ky in ds.coords:
+        matfile['coords'][ky] = ds[ky].values
+        copy_attrs(matfile, ds, ky)
     matfile['config'] = ds.attrs
 
     sio.savemat(filename, matfile)
@@ -281,7 +335,8 @@ def load_mat(filename, datenum=True):
 
     data = sio.loadmat(filename, struct_as_record=False, squeeze_me=True)
 
-    ds_dict = {'vars': {}, 'coords': {}, 'config': {}, 'units': {}}
+    ds_dict = {'vars': {}, 'coords': {}, 'config': {},
+               'units': {}, 'long_name': {}, 'standard_name': {}}
     for nm in ds_dict:
         key_list = data[nm]._fieldnames
         for ky in key_list:
