@@ -1,8 +1,8 @@
 import os
-import pandas as pd
 import json
 import requests
 import shutil
+import pandas as pd
 from mhkit.utils.cache_utils import handle_caching
 
 
@@ -11,7 +11,6 @@ def _read_usgs_json(text):
     data = pd.DataFrame()
     for i in range(len(text['value']['timeSeries'])):
         try:
-            # text['value']['timeSeries'][i]['sourceInfo']['siteName']
             site_name = text['value']['timeSeries'][i]['variable']['variableDescription']
             site_data = pd.DataFrame(
                 text['value']['timeSeries'][i]['values'][0]['value'])
@@ -25,7 +24,7 @@ def _read_usgs_json(text):
         except:
             pass
 
-    return data  # we could also extract metadata and return that here
+    return data
 
 
 def read_usgs_file(file_name):
