@@ -8,6 +8,49 @@ import pandas as pd
 
 def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=None,
                    clear_cache=False):
+    """
+    Handles caching of data to avoid redundant network requests or
+    computations.
+
+    The function checks if a cache file exists for the given parameters.
+    If it does, the function will load data from the cache file, unless
+    the `clear_cache` parameter is set to `True`, in which case the
+    cache file is cleared. If the cache file does not exist and the
+    `data` parameter is not `None`, the function will store the
+    provided data in a cache file.    
+
+    Parameters
+    ----------
+    hash_params : str
+        The parameters to be hashed and used as the filename for the cache file.
+    cache_dir : str
+        The directory where the cache files are stored.
+    data : pandas DataFrame or None
+        The data to be stored in the cache file. If `None`, the function
+        will attempt to load data from the cache file.
+    metadata : dict or None
+        Metadata associated with the data. This will be stored in the 
+        cache file along with the data.
+    write_json : str or None
+        If specified, the cache file will be copied to a file with this name.
+    clear_cache : bool
+        If `True`, the cache file for the given parameters will be cleared.
+
+    Returns
+    -------
+    data : pandas DataFrame or None
+        The data loaded from the cache file. If data was provided as a
+        parameter, the same data will be returned. If the cache file
+        does not exist and no data was provided, `None` will be returned.
+    metadata : dict or None
+        The metadata loaded from the cache file. If metadata was provided
+        as a parameter, the same metadata will be returned. If the cache
+        file does not exist and no metadata was provided, `None` will be
+        returned.
+    cache_filepath : str
+        The path to the cache file.
+    """
+
     # Make cache directory if it doesn't exist
     if not os.path.isdir(cache_dir):
         os.makedirs(cache_dir)
