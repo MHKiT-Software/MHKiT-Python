@@ -75,21 +75,27 @@ def principal_flow_directions(directions, width_dir):
 
     Parameters
     ----------
-    directions: pd.Series or numpy array
-        Directions in degrees with 0 degrees specified as true north
+    directions: pandas.Series or numpy.ndarray
+        Flow direction in degrees CW from North, from 0 to 360
     width_dir: float 
         Width of directional bins for histogram in degrees
 
     Returns
     -------
-    ebb: float
-        Principal ebb direction in degrees
-    flood: float
-        Principal flood direction in degrees
+    principal directions: tuple(float,float)
+        Principal directions 1 and 2 in degrees
+
+    Notes
+    -----
+    One must determine which principal direction is flood and which is 
+    ebb based on knowledge of the measurement site.
     '''
 
-    if isinstance(directions,np.ndarray) ==1:
-        directions=pd.Series(directions) 
+    if isinstance(directions, np.ndarray):
+        directions=pd.Series(directions)
+    assert(all(directions>=0) and all(directions<=360),
+           'flood must be between 0 and 360 degrees')
+
     # Number of directional bins 
     N_dir=int(360/width_dir)
     # Compute directional histogram
@@ -104,7 +110,7 @@ def principal_flow_directions(directions, width_dir):
         H0to180    = H1[0:N_dir//2] 
         H180to360  = H1[N_dir//2+1:]
         H0to180[-1]   += H1[N_dir//2]/2
-        H180to180[0]  += H1[N_dir//2]/2
+        H180to360[0]  += H1[N_dir//2]/2
         #Add the two
         H180 = H0to180 + H180to360
     else:
@@ -138,7 +144,8 @@ def principal_flow_directions(directions, width_dir):
     Hd2 = Hd2 * 100 # [%]
     # Principal Directions average of the 2 bins
     PrincipalDirection1 = 0.5 * (dir1_edges[Hd1.argmax()]+ dir1_edges[Hd1.argmax()+1])
-    PrincipalDirection2 = 0.5 * (dir2_edges[Hd2.argmax()]+ dir2_edges[Hd2.argmax()+1])+180.
+    PrincipalDirection2 = 0.5 * (dir2_edges[Hd2.argmax()]+ dir2_edges[Hd2.argmax()+1])+180.0
+
     return PrincipalDirection1, PrincipalDirection2 
     
 
