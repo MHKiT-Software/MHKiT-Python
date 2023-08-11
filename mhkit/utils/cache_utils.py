@@ -105,6 +105,41 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
 
 
 def cache_cdip(hash_params, cache_dir, data=None):
+    """
+    Handles caching of data to avoid redundant network requests or
+    computations.
+
+    The function generates a unique identifier based on the `hash_params`
+    argument. If the `data` argument is not `None`, the function will
+    store the data in a cache file. If `data` is `None` and a cache file
+    exists for the given parameters, the function will load data from
+    the cache file. If `data` is `None` and no cache file exists, the
+    function will return `None`.
+
+    Parameters
+    ----------
+    hash_params : str
+        The parameters to be hashed and used as the filename for the
+        cache file.
+    cache_dir : str
+        The directory where the cache files are stored.
+    data : pandas DataFrame or None
+        The data to be stored in the cache file. If `None`, the
+        function will attempt to load data from the cache file.
+
+    Returns
+    -------
+    data : pandas DataFrame or None
+        The data loaded from the cache file. If data was provided
+        as a parameter, the same data will be returned. If the cache
+        file does not exist and no data was provided, `None` will be
+        returned.
+    metadata : None
+        This function does not handle metadata, so `None` is always returned.
+    cache_filepath : None
+        This function does not return the cache file path, so `None` is always returned.
+    """
+
     # Create a unique identifier for this function call
     hash_id = hashlib.md5(hash_params.encode()).hexdigest()
 
