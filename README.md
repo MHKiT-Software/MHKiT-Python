@@ -1,11 +1,20 @@
 ![](figures/logo.png) MHKiT-Python
 =====================================
 
-[![Py 3.8,3.9 | Windows Mac Linux](https://github.com/MHKiT-Software/MHKiT-Python/actions/workflows/main.yml/badge.svg)](https://github.com/MHKiT-Software/MHKiT-Python/actions/workflows/main.yml)
-[![Coverage Status](https://coveralls.io/repos/github/MHKiT-Software/MHKiT-Python/badge.svg?branch=master)](https://coveralls.io/github/MHKiT-Software/MHKiT-Python?branch=master)
-[![Downloads](https://pepy.tech/badge/mhkit)](https://pepy.tech/project/mhkit)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3924683.svg)](https://doi.org/10.5281/zenodo.3924683)
-
+<p align="left">
+    <a href=https://github.com/MHKiT-Software/MHKiT-Python/actions/workflows/main.yml>
+        <img src="https://github.com/MHKiT-Software/MHKiT-Python/actions/workflows/main.yml/badge.svg">
+    </a>
+    <a href=https://coveralls.io/github/MHKiT-Software/MHKiT-Python?branch=master>
+        <img src="https://coveralls.io/repos/github/MHKiT-Software/MHKiT-Python/badge.svg?branch=master">
+    </a>
+    <a href=https://pepy.tech/project/mhkit>
+        <img src="https://pepy.tech/badge/mhkit">
+    </a>
+    <a href=https://doi.org/10.5281/zenodo.3924683>
+        <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.3924683.svg">
+    </a>
+</p>
 
 MHKiT-Python is a Python package designed for marine renewable energy applications to assist in 
 data processing and visualization.  The software package include functionality for:
