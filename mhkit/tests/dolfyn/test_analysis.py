@@ -2,6 +2,7 @@ from . import test_read_adp as tr, test_read_adv as tv
 from mhkit.tests.dolfyn.base import load_netcdf as load, save_netcdf as save, assert_allclose
 from mhkit.dolfyn import VelBinner, read_example
 import mhkit.dolfyn.adv.api as avm
+import mhkit.dolfyn.adp.api as apm
 from xarray.testing import assert_identical
 import unittest
 import pytest
@@ -28,19 +29,23 @@ class analysis_testcase(unittest.TestCase):
         pass
 
     def test_do_func(self):
-        adat_vec = self.adv_tool.bin_average(self.adv1)
-        adat_vec = self.adv_tool.bin_variance(self.adv1, out_ds=adat_vec)
+        ds_vec = self.adv_tool.bin_average(self.adv1)
+        ds_vec = self.adv_tool.bin_variance(self.adv1, out_ds=ds_vec)
 
-        adat_sig = self.adp_tool.bin_average(self.adp)
-        adat_sig = self.adp_tool.bin_variance(self.adp, out_ds=adat_sig)
+        # test non-integer bin sizes
+        mean_test = self.adv_tool.mean(self.adv1['vel'].values, n_bin=ds_vec.fs*1.01)
+
+        ds_sig = self.adp_tool.bin_average(self.adp)
+        ds_sig = self.adp_tool.bin_variance(self.adp, out_ds=ds_sig)
 
         if make_data:
-            save(adat_vec, 'vector_data01_avg.nc')
-            save(adat_sig, 'BenchFile01_avg.nc')
+            save(ds_vec, 'vector_data01_avg.nc')
+            save(ds_sig, 'BenchFile01_avg.nc')
             return
 
-        assert_allclose(adat_vec, load('vector_data01_avg.nc'), atol=1e-6)
-        assert_allclose(adat_sig, load('BenchFile01_avg.nc'), atol=1e-6)
+        assert np.sum(mean_test-ds_vec.vel.values) == 0, "Mean test failed"
+        assert_allclose(ds_vec, load('vector_data01_avg.nc'), atol=1e-6)
+        assert_allclose(ds_sig, load('BenchFile01_avg.nc'), atol=1e-6)
 
     def test_calc_func(self):
         c = self.adv_tool
@@ -59,7 +64,7 @@ class analysis_testcase(unittest.TestCase):
 
         # Test ADCP single vector spectra, cross-spectra to test radians code
         test_ds_adp['psd_b5'] = c2.power_spectral_density(
-            self.adp.vel_b5.isel(range_b5=5), freq_units='Hz', window='hamm')
+            self.adp.vel_b5.isel(range_b5=5), freq_units='rad', window='hamm')
         test_ds_adp['tke_b5'] = c2.turbulent_kinetic_energy(self.adp.vel_b5)
 
         if make_data:
@@ -90,14 +95,53 @@ class analysis_testcase(unittest.TestCase):
         tdat['stress_detrend'] = bnr.reynolds_stress(dat.vel)
         tdat['stress_demean'] = bnr.reynolds_stress(dat.vel, detrend=False)
         tdat['csd'] = bnr.cross_spectral_density(
-            dat.vel, freq_units='rad', window='hamm')
+            dat.vel, freq_units='rad', window='hamm', n_fft_coh=10)
         tdat['LT83'] = bnr.dissipation_rate_LT83(tdat.psd, tdat.velds.U_mag)
         tdat['SF'] = bnr.dissipation_rate_SF(dat.vel[0], tdat.velds.U_mag)
         tdat['TE01'] = bnr.dissipation_rate_TE01(dat, tdat)
         tdat['L'] = bnr.integral_length_scales(acov, tdat.velds.U_mag)
+        slope_check = bnr.check_turbulence_cascade_slope(
+            tdat['psd'][-1].mean('time'), freq_range=[10, 100])
 
         if make_data:
             save(tdat, 'vector_data01_bin.nc')
             return
 
+        assert np.round(slope_check[0].values, 4), 0.1713
         assert_allclose(tdat, load('vector_data01_bin.nc'), atol=1e-6)
+
+
+    def test_adcp_turbulence(self):
+        dat = tr.dat_sig_i.copy(deep=True)
+        bnr = apm.ADPBinner(n_bin=20.0, fs=dat.fs, diff_style='centered')
+        tdat = bnr.bin_average(dat)
+        tdat['dudz'] = bnr.dudz(tdat.vel)
+        tdat['dvdz'] = bnr.dvdz(tdat.vel)
+        tdat['dwdz'] = bnr.dwdz(tdat.vel)
+        tdat['tau2'] = bnr.shear_squared(tdat.vel)
+        tdat['psd'] = bnr.power_spectral_density(dat['vel'].isel(
+            dir=2, range=len(dat.range)//2), freq_units='Hz')
+        tdat['noise'] = bnr.doppler_noise_level(tdat['psd'], pct_fN=0.8)
+        tdat['stress_vec4'] = bnr.reynolds_stress_4beam(
+            dat, noise=tdat['noise'], orientation='up', beam_angle=25)
+        tdat['tke_vec5'], tdat['stress_vec5'] = bnr.stress_tensor_5beam(
+            dat, noise=tdat['noise'], orientation='up', beam_angle=25, tke_only=False)
+        tdat['tke'] = bnr.total_turbulent_kinetic_energy(
+            dat, noise=tdat['noise'], orientation='up', beam_angle=25)
+        # This is "negative" for this code check
+        tdat['wpwp'] = bnr.turbulent_kinetic_energy(dat['vel_b5'], noise=tdat['noise'])
+        tdat['dissipation_rate_LT83'] = bnr.dissipation_rate_LT83(
+            tdat['psd'], tdat.velds.U_mag.isel(range=len(dat.range)//2), freq_range=[0.2, 0.4])
+        tdat['dissipation_rate_SF'], tdat['noise_SF'], tdat['D_SF'] = bnr.dissipation_rate_SF(
+            dat.vel.isel(dir=2), r_range=[1, 5])
+        tdat['friction_vel'] = bnr.friction_velocity(
+            tdat, upwp_=tdat['stress_vec5'].sel(tau='upwp_'), z_inds=slice(1, 5), H=50)
+        slope_check = bnr.check_turbulence_cascade_slope(
+            tdat['psd'].mean('time'), freq_range=[0.4, 4])
+
+        if make_data:
+            save(tdat, 'Sig1000_IMU_bin.nc')
+            return
+
+        assert np.round(slope_check[0].values, 4), -1.0682
+        assert_allclose(tdat, load('Sig1000_IMU_bin.nc'), atol=1e-6)
