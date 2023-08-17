@@ -166,27 +166,26 @@ def cache_cdip(hash_params, cache_dir, data=None):
         return None, None, None
 
 
-def clear_cache(specific_dir=None, cache_dir=os.path.join(
-        os.path.expanduser("~"), ".cache", "mhkit")):
+def clear_cache(specific_dir=None):
     """
     Clears the cache.
 
     The function checks if a specific directory or the entire cache directory 
     exists. If it does, the function will remove the directory and recreate it.
-    If the directory does not exist, a message indicating the same is printed.
+    If the directory does not exist, a message indicating is printed.
 
     Parameters
     ----------
     specific_dir : str or None, optional
         Specific sub-directory to clear. If None, the entire cache is cleared. 
         Default is None.
-    cache_dir : str, optional
-        Path to the cache directory. Default is '.cache/mhkit'.
 
     Returns
     -------
     None
     """
+    cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit")
+
     folders = {"river": "river",
                "tidal": "tidal",
                "wave": "wave",
