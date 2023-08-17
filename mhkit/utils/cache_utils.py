@@ -164,3 +164,53 @@ def cache_cdip(hash_params, cache_dir, data=None):
     else:
         # If data is not provided and the cache file doesn't exist, return None
         return None, None, None
+
+
+def clear_cache(specific_dir=None, cache_dir=os.path.join(
+        os.path.expanduser("~"), ".cache", "mhkit")):
+    """
+    Clears the cache.
+
+    The function checks if a specific directory or the entire cache directory 
+    exists. If it does, the function will remove the directory and recreate it.
+    If the directory does not exist, a message indicating the same is printed.
+
+    Parameters
+    ----------
+    specific_dir : str or None, optional
+        Specific sub-directory to clear. If None, the entire cache is cleared. 
+        Default is None.
+    cache_dir : str, optional
+        Path to the cache directory. Default is '.cache/mhkit'.
+
+    Returns
+    -------
+    None
+    """
+    folders = {"river": "river",
+               "tidal": "tidal",
+               "wave": "wave",
+               "usgs": os.path.join('river', 'usgs'),
+               "noaa": os.path.join('tidal', 'noaa'),
+               "ndbc": os.path.join('wave', 'ndbc'),
+               "cdip": os.path.join('wave', 'cdip'),
+               "hindcast": os.path.join('wave', 'hindcast'),
+               }
+
+    # If specific_dir is provided and matches a key in the folders dictionary,
+    # use its corresponding value
+    if specific_dir and specific_dir in folders:
+        specific_dir = folders[specific_dir]
+
+    # Construct the path to the directory to be cleared
+    path_to_clear = os.path.join(
+        cache_dir, specific_dir) if specific_dir else cache_dir
+
+    # Check if the directory exists
+    if os.path.exists(path_to_clear):
+        # Clear the directory
+        shutil.rmtree(path_to_clear)
+        # Recreate the directory after deletion
+        os.makedirs(path_to_clear)
+    else:
+        print(f"The directory {path_to_clear} does not exist.")
