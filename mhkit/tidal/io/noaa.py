@@ -148,7 +148,6 @@ def _json_to_dataframe(response):
     '''
     text = json.loads(response.text)
     metadata = text['metadata']
-    # import ipdb; ipdb.set_trace()
     # Initialize DataFrame
     data = pd.DataFrame.from_records(
         text['data'][1], index=[text['data'][1]['t']])
