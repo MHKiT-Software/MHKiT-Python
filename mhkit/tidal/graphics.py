@@ -104,7 +104,6 @@ def _check_inputs(directions, velocities, flood, ebb):
         raise ValueError('All velocities must be positive')
     if all(np.nan_to_num(directions.values) < 0) and all(np.nan_to_num(directions.values) > 360):
         raise ValueError('directions must be between 0 and 360 degrees')
-
     if not isinstance(flood, (int, float, type(None))):
         raise TypeError('flood must be of type int or float')
     if not isinstance(ebb, (int, float, type(None))):
