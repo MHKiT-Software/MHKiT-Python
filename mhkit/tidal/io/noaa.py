@@ -76,7 +76,7 @@ def request_noaa_data(station, parameter, start_date, end_date,
 
     # Use handle_caching to manage cache
     cached_data, cached_metadata, cache_filepath = handle_caching(
-        hash_params, cache_dir, write_json=write_json, clear_cache=clear_cache)
+        hash_params, cache_dir, write_json=write_json, clear_cache_file=clear_cache)
 
     if cached_data is not None:
         if write_json:
@@ -131,7 +131,7 @@ def request_noaa_data(station, parameter, start_date, end_date,
     # After making the API request and processing the response, write the
     #  response to a cache file
     handle_caching(hash_params, cache_dir, data=data,
-                   metadata=metadata, clear_cache=clear_cache)
+                   metadata=metadata, clear_cache_file=clear_cache)
 
     if write_json:
         shutil.copy(cache_filepath, write_json)

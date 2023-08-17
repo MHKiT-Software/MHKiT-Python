@@ -5,7 +5,7 @@ import numpy as np
 import datetime
 import netCDF4
 import pytz
-from mhkit.utils.cache_utils import handle_caching, cache_cdip
+from mhkit.utils.cache_utils import handle_caching
 
 
 def _validate_date(date_text):
@@ -281,18 +281,17 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
                 end_date = datetime.datetime(years[0]+1, 1, 1, tzinfo=pytz.UTC)
             else:
                 multiyear = True
-
     if not multiyear:
         # Check the cache first
         hash_params = f'{station_number}-{parameters}-{start_date}-{end_date}'
-        data = cache_cdip(hash_params, cache_dir)
+        data = handle_caching(hash_params, cache_dir)
 
-        if data == (None, None, None):
+        if data[:2] == (None, None):
             data = get_netcdf_variables(nc,
                                         start_date=start_date, end_date=end_date,
                                         parameters=parameters,
                                         all_2D_variables=all_2D_variables)
-            cache_cdip(hash_params, cache_dir, data=data)
+            handle_caching(hash_params, cache_dir, data=data)
         else:
             data = data[0]
 
@@ -305,15 +304,14 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
 
             # Check the cache for each individual year
             hash_params = f'{station_number}-{parameters}-{start_date}-{end_date}'
-            year_data = cache_cdip(hash_params, cache_dir)
-
-            if year_data == (None, None, None):
+            year_data = handle_caching(hash_params, cache_dir)
+            if year_data[:2] == (None, None):
                 year_data = get_netcdf_variables(nc,
                                                  start_date=start_date, end_date=end_date,
                                                  parameters=parameters,
                                                  all_2D_variables=all_2D_variables)
                 # Cache the individual year's data
-                cache_cdip(hash_params, cache_dir, data=year_data)
+                handle_caching(hash_params, cache_dir, data=year_data)
             else:
                 year_data = year_data[0]
             multiyear_data[year] = year_data['data']

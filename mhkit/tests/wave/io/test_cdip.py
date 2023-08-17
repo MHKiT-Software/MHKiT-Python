@@ -1,4 +1,4 @@
-from os.path import abspath, dirname, join, isfile, normpath
+from os.path import abspath, dirname, join,  normpath
 import matplotlib.pylab as plt
 from datetime import datetime
 import mhkit.wave as wave
