@@ -186,6 +186,7 @@ def clear_cache(specific_dir=None):
     """
     cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit")
 
+    # Consider generating this from a system folder search
     folders = {"river": "river",
                "tidal": "tidal",
                "wave": "wave",
