@@ -102,6 +102,7 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
             pyData = data.to_dict(orient='split')
             # Add metadata to pyData
             pyData['metadata'] = metadata
+            # NOTE: The below assumes all cached data is time series data
             # Write the pyData to a json file
             pyData['index'] = [dt.strftime('%Y-%m-%d %H:%M:%S')
                                for dt in pyData['index']]

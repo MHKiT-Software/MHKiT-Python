@@ -1,11 +1,10 @@
 import os
-import xarray as xr
 import pandas as pd
 import numpy as np
 import datetime
 import netCDF4
 import pytz
-from mhkit.utils.cache_utils import handle_caching
+from mhkit.utils.cache import handle_caching
 
 
 def _validate_date(date_text):

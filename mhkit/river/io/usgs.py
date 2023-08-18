@@ -3,7 +3,7 @@ import json
 import requests
 import shutil
 import pandas as pd
-from mhkit.utils.cache_utils import handle_caching
+from mhkit.utils.cache import handle_caching
 
 
 def _read_usgs_json(text):

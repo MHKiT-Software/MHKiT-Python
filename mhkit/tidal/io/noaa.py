@@ -26,7 +26,7 @@ import math
 import pandas as pd
 import requests
 import shutil
-from mhkit.utils.cache_utils import handle_caching
+from mhkit.utils.cache import handle_caching
 
 
 def request_noaa_data(station, parameter, start_date, end_date,

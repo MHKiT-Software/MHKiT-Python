@@ -14,7 +14,6 @@ These tests include:
 """
 from os.path import abspath, dirname, join, normpath, relpath
 import unittest
-import time
 import os
 import json
 
