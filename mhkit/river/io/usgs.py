@@ -131,7 +131,8 @@ def request_usgs_data(
 
     # After making the API request and processing the response, write the
     #  response to a cache file
-    handle_caching(hash_params, cache_dir, data=data, clear_cache=clear_cache)
+    handle_caching(hash_params, cache_dir, data=data,
+                   clear_cache_file=clear_cache)
 
     if write_json:
         shutil.copy(cache_filepath, write_json)
