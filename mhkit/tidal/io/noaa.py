@@ -11,10 +11,6 @@ request_noaa_data(station, parameter, start_date, end_date, proxy=None, write_js
     Loads NOAA current data from the API into a pandas DataFrame, with optional support for proxy settings and 
     writing data to a JSON file.
 
-_json_to_dataframe(response):
-    Converts NOAA response data in JSON format into a pandas DataFrame and returns metadata. (Currently, this 
-    function does not return the full dataset requested.)
-
 _xml_to_dataframe(response):
     Converts NOAA response data in XML format into a pandas DataFrame and returns metadata.
 
@@ -136,33 +132,6 @@ def request_noaa_data(station, parameter, start_date, end_date,
     if write_json:
         shutil.copy(cache_filepath, write_json)
 
-    return data, metadata
-
-
-def _json_to_dataframe(response):
-    '''
-    Returns a dataframe  and metadata from a NOAA
-    response.
-    TODO: This function currently does not return the 
-      full dataset requested.
-    '''
-    text = json.loads(response.text)
-    metadata = text['metadata']
-    # Initialize DataFrame
-    data = pd.DataFrame.from_records(
-        text['data'][1], index=[text['data'][1]['t']])
-    # Append all times to DataFrame
-    for i in range(1, len(text['data'])):
-        data.append(pd.DataFrame.from_records(text['data'][i],
-                                              index=[text['data'][i]['t']]))
-    # Convert index to DataFram
-    data.index = pd.to_datetime(data.index)
-    # Remove 't' becuase it is the index
-    del data['t']
-    # List of columns which are string
-    cols = data.columns[data.dtypes.eq('object')]
-    # Convert columns to float
-    data[cols] = data[cols].apply(pd.to_numeric, errors='coerce')
     return data, metadata
 
 
