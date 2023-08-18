@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import re
 import shutil
 import pickle
 import pandas as pd
@@ -78,6 +79,20 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
             if 'metadata' in jsonData:
                 metadata = jsonData.pop('metadata', None)
 
+            # Check if index is datetime formatted
+            if all(re.match(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", str(dt)) for dt in jsonData['index']):
+                data = pd.DataFrame(
+                    jsonData['data'],
+                    index=pd.to_datetime(jsonData['index']),
+                    columns=jsonData['columns']
+                )
+            else:
+                data = pd.DataFrame(
+                    jsonData['data'],
+                    index=jsonData['index'],
+                    columns=jsonData['columns']
+                )
+
             # Convert the rest to DataFrame
             data = pd.DataFrame(
                 jsonData['data'],
@@ -102,10 +117,12 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
             pyData = data.to_dict(orient='split')
             # Add metadata to pyData
             pyData['metadata'] = metadata
-            # NOTE: The below assumes all cached data is time series data
-            # Write the pyData to a json file
-            pyData['index'] = [dt.strftime('%Y-%m-%d %H:%M:%S')
-                               for dt in pyData['index']]
+            # Check if index is datetime indexed
+            if isinstance(data.index, pd.DatetimeIndex):
+                pyData['index'] = [dt.strftime(
+                    '%Y-%m-%d %H:%M:%S') for dt in pyData['index']]
+            else:
+                pyData['index'] = list(data.index)
             with open(cache_filepath, "w") as outfile:
                 json.dump(pyData, outfile)
 
