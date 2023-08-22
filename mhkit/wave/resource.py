@@ -649,7 +649,7 @@ def energy_period_to_peak_period(Te, gamma):
     and Recommendations to the 23rd ITTC", Proceedings of the 23rd ITTC - Volume
     2, Table A4.
 
-    Parameters:
+    Parameters
     ----------
     Te: float or array
         Spectral energy period [s]

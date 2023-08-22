@@ -72,7 +72,7 @@ def environmental_contours(x1, x2, sea_state_duration, return_period,
     -------
     copulas: Dictionary
         Dictionary of x1 and x2 copula components for each copula method
-   """
+    """
     try:
         x1 = np.array(x1)
     except:

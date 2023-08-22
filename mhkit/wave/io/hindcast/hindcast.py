@@ -6,24 +6,24 @@ regions, request point data for various parameters, and request directional
 spectrum data.
 
 Functions:
-- region_selection(lat_lon): Returns the name of the predefined region for
-  given latitude and longitude coordinates.
-- request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
-  unscale=True, str_decode=True, hsds=True): Returns data from the WPTO wave
-  hindcast hosted on AWS at the specified latitude and longitude point(s) for
-  the requested data type, parameter, and years.
-- request_wpto_directional_spectrum(lat_lon, year, tree=None, unscale=True,
-  str_decode=True, hsds=True): Returns directional spectra data from the WPTO
-  wave hindcast hosted on AWS at the specified latitude and longitude point(s)
-  for the given year.
+    - region_selection(lat_lon): Returns the name of the predefined region for
+      given latitude and longitude coordinates.
+    - request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
+      unscale=True, str_decode=True, hsds=True): Returns data from the WPTO wave
+      hindcast hosted on AWS at the specified latitude and longitude point(s) for
+      the requested data type, parameter, and years.
+    - request_wpto_directional_spectrum(lat_lon, year, tree=None, unscale=True,
+      str_decode=True, hsds=True): Returns directional spectra data from the WPTO
+      wave hindcast hosted on AWS at the specified latitude and longitude point(s)
+      for the given year.
 
 Dependencies:
-- sys
-- time.sleep
-- pandas
-- xarray
-- numpy
-- rex.MultiYearWaveX, rex.WaveX
+    - sys
+    - time.sleep
+    - pandas
+    - xarray
+    - numpy
+    - rex.MultiYearWaveX, rex.WaveX
 """
 import sys
 from time import sleep
