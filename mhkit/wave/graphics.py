@@ -128,10 +128,37 @@ def plot_matrix(
 
 def plot_chakrabarti(H, lambda_w, D, ax=None):
     """
-    Plots, in the style of Chakrabart (2005), relative importance of viscous,
+    Plots, in the style of Chakrabarti (2005), relative importance of viscous,
     inertia, and diffraction phemonena
     Chakrabarti, Subrata. Handbook of Offshore Engineering (2-volume set).
     Elsevier, 2005.
+
+    Examples:
+
+    **Using floats**
+
+    >>> plt.figure()
+    >>> D = 5
+    >>> H = 8
+    >>> lambda_w = 200
+    >>> wave.graphics.plot_chakrabarti(H, lambda_w, D)
+
+    **Using numpy array**
+
+    >>> plt.figure()
+    >>> D = np.linspace(5,15,5)
+    >>> H = 8*np.ones_like(D)
+    >>> lambda_w = 200*np.ones_like(D)
+    >>> wave.graphics.plot_chakrabarti(H, lambda_w, D)
+
+    **Using pandas DataFrame**
+
+    >>> plt.figure()
+    >>> D = np.linspace(5,15,5)
+    >>> H = 8*np.ones_like(D)
+    >>> lambda_w = 200*np.ones_like(D)
+    >>> df = pd.DataFrame([H.flatten(),lambda_w.flatten(),D.flatten()], index=['H','lambda_w','D']).transpose()
+    >>> wave.graphics.plot_chakrabarti(df.H, df.lambda_w, df.D)
 
     Parameters
     ----------
@@ -147,29 +174,6 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     Returns
     -------
     ax : matplotlib pyplot axes
-
-    Examples
-    --------
-    **Using floats**
-    >>> plt.figure()
-    >>> D = 5
-    >>> H = 8
-    >>> lambda_w = 200
-    >>> wave.graphics.plot_chakrabarti(H, lambda_w, D)
-    **Using numpy array**
-    >>> plt.figure()
-    >>> D = np.linspace(5,15,5)
-    >>> H = 8*np.ones_like(D)
-    >>> lambda_w = 200*np.ones_like(D)
-    >>> wave.graphics.plot_chakrabarti(H, lambda_w, D)
-    **Using pandas DataFrame**
-    >>> plt.figure()
-    >>> D = np.linspace(5,15,5)
-    >>> H = 8*np.ones_like(D)
-    >>> lambda_w = 200*np.ones_like(D)
-    >>> df = pd.DataFrame([H.flatten(),lambda_w.flatten(),D.flatten()], \
-                              index=['H','lambda_w','D']).transpose()
-    >>> wave.graphics.plot_chakrabarti(df.H, df.lambda_w, df.D)
     """
     assert isinstance(H, (np.ndarray, float, int, np.int64,pd.Series)), \
            'H must be a real numeric type'
