@@ -309,6 +309,7 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     '''
     Plots an overlay of the x1 and x2 variables to the calculate
     environmental contours.
+    
     Parameters
     ----------
     x1: numpy array
@@ -335,6 +336,7 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
             Default None.
         markers: string
             string or list of strings to use as marker types
+            
     Returns
     -------
     ax : matplotlib pyplot axes

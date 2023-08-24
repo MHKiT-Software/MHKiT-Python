@@ -113,7 +113,7 @@ def request_wpto_point_data(
     data_type : string
         Data set type of interest
         Options: '3-hour' '1-hour'
-    parameter: string or list of strings
+    parameter : string or list of strings
         Dataset parameter to be downloaded
         3-hour dataset options: 'directionality_coefficient', 
             'energy_period', 'maximum_energy_direction'
@@ -127,7 +127,7 @@ def request_wpto_point_data(
             'significant_wave_height', 'spectral_width', 
             'water_depth', 'maximim_energy_direction',
             'mean_wave_direction', 'frequency_bin_edges'
-    lat_lon: tuple or list of tuples
+    lat_lon : tuple or list of tuples
         Latitude longitude pairs at which to extract data 
     years : list 
         Year(s) to be accessed. The years 1979-2010 available. 
@@ -149,7 +149,7 @@ def request_wpto_point_data(
     path : string (optional)
         Optionally override with a custom .h5 filepath. Useful when setting
         `hsds=False`.        
-    as_xarray: bool (optional)
+    as_xarray : bool (optional)
         Boolean flag to return data as an xarray Dataset. Default = False    
 
     Returns
