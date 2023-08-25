@@ -216,38 +216,40 @@ class TestWPTOhindcast(unittest.TestCase):
         assert_frame_equal(self.mp, wave_multiparm)
         assert_frame_equal(self.mp_meta, meta)
 
-    # def test_multi_loc(self):
-    #     '''
-    #     Test mutiple locations on point data and directional spectrum at a
-    #     single data_type, year, and parameter.
-    #     '''
-    #     data_type = '3-hour'
-    #     years = [1995]
-    #     lat_lon = ((44.624076, -124.280097), (43.489171, -125.152137))
-    #     parameters = 'mean_absolute_period'
-    #     wave_multiloc, meta = wave.io.hindcast.hindcast.request_wpto_point_data(
-    #         data_type,
-    #         parameters,
-    #         lat_lon,
-    #         years
-    #     )
-    #     dir_multiyear, meta_dir = (wave.io.hindcast.hindcast
-    #                                .request_wpto_directional_spectrum(lat_lon, year=str(years[0]))
-    #                                )
-    #     dir_multiyear = dir_multiyear.sel(
-    #         time_index=slice(
-    #             dir_multiyear.time_index[0],
-    #             dir_multiyear.time_index[99]
-    #         )
-    #     )
-    #     # Convert to effcient range index
-    #     meta_dir.index = pd.RangeIndex(start=0, stop=len(meta_dir.index))
+    def test_multi_loc(self):
+        '''
+        Test mutiple locations on point data and directional spectrum at a
+        single data_type, year, and parameter.
+        '''
+        data_type = '3-hour'
+        years = [1995]
+        lat_lon = ((44.624076, -124.280097), (43.489171, -125.152137))
+        parameters = 'mean_absolute_period'
+        wave_multiloc, meta = wave.io.hindcast.hindcast.request_wpto_point_data(
+            data_type,
+            parameters,
+            lat_lon,
+            years
+        )
+        dir_multiyear, meta_dir = (wave.io.hindcast.hindcast
+                                   .request_wpto_directional_spectrum(lat_lon, year=str(years[0]))
+                                   )
+        # import ipdb
+        # ipdb.set_trace()
+        dir_multiyear = dir_multiyear.sel(
+            time_index=slice(
+                dir_multiyear.time_index[0],
+                dir_multiyear.time_index[99]
+            )
+        )
+        # Convert to effcient range index
+        meta_dir.index = pd.RangeIndex(start=0, stop=len(meta_dir.index))
 
-    #     assert_frame_equal(self.ml, wave_multiloc)
-    #     assert_frame_equal(self.ml_meta, meta)
-    #     xrt.assert_allclose(self.multi_year_dir_spectra, dir_multiyear)
-    #     assert_frame_equal(self.multi_year_dir_spectra_meta,
-    #                        meta_dir, check_dtype=False)
+        assert_frame_equal(self.ml, wave_multiloc)
+        assert_frame_equal(self.ml_meta, meta)
+        xrt.assert_allclose(self.multi_year_dir_spectra, dir_multiyear)
+        assert_frame_equal(self.multi_year_dir_spectra_meta,
+                           meta_dir, check_dtype=False)
 
 
 if __name__ == '__main__':

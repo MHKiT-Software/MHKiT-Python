@@ -53,7 +53,7 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
     """
 
     # Check if 'cdip' is in cache_dir, then use .pkl instead of .json
-    file_extension = ".pkl" if "cdip" in cache_dir else ".json"
+    file_extension = ".pkl" if "cdip" or "hindcast" in cache_dir else ".json"
 
     # Make cache directory if it doesn't exist
     if not os.path.isdir(cache_dir):
@@ -102,7 +102,7 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
 
         elif file_extension == ".pkl":
             with open(cache_filepath, 'rb') as f:
-                data = pickle.load(f)
+                data, metadata = pickle.load(f)
 
         if write_json:
             shutil.copy(cache_filepath, write_json)
@@ -126,9 +126,12 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
             with open(cache_filepath, "w") as outfile:
                 json.dump(pyData, outfile)
 
+        # elif file_extension == ".pkl":
+        #     with open(cache_filepath, 'wb') as f:
+        #         pickle.dump(data, f)
         elif file_extension == ".pkl":
             with open(cache_filepath, 'wb') as f:
-                pickle.dump(data, f)
+                pickle.dump((data, metadata), f)
 
         if write_json:
             shutil.copy(cache_filepath, write_json)

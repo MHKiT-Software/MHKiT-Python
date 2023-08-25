@@ -35,6 +35,7 @@ import os
 import hashlib
 import json
 from rex import MultiYearWaveX, WaveX
+from mhkit.utils.cache import handle_caching
 
 
 def region_selection(lat_lon):
@@ -177,36 +178,14 @@ def request_wpto_point_data(
     assert isinstance(path, (str, type(None))), 'path must be a string'
     assert isinstance(as_xarray, bool), 'as_xarray must be bool type'
 
+    # Attempt to load data from cache
     # Construct a string representation of the function parameters
     hash_params = f"{data_type}_{parameter}_{lat_lon}_{years}_{tree}_{unscale}_{str_decode}_{hsds}_{path}_{as_xarray}"
+    cache_dir = get_cache_dir()
+    data, meta, _ = handle_caching(hash_params, cache_dir)
 
-    # Attempt to load data from cache
-    data, meta = load_from_cache2(hash_params)
     if data is not None:
         return data, meta
-
-    # # Define the path to the cache directory
-    # cache_dir = os.path.join(os.path.expanduser("~"),
-    #                          ".cache", "mhkit", "hindcast")
-
-    # # Construct a string representation of the function parameters
-    # hash_params = f"{data_type}_{parameter}_{lat_lon}_{years}_{tree}_{unscale}_{str_decode}_{hsds}_{path}_{as_xarray}"
-
-    # # Create a unique identifier for this function call
-    # hash_id = hashlib.md5(hash_params.encode()).hexdigest()
-
-    # # Create cache directory if it doesn't exist
-    # os.makedirs(cache_dir, exist_ok=True)
-
-    # # Create a path to the cache file for this function call
-    # cache_file = os.path.join(cache_dir, f"{hash_id}.pkl")
-
-    # if os.path.isfile(cache_file):
-    #     # If the cache file exists, load the data from the cache
-    #     with open(cache_file, 'rb') as f:
-    #         data, meta = pickle.load(f)
-    #     return data, meta
-
     else:
         if 'directional_wave_spectrum' in parameter:
             sys.exit(
@@ -285,9 +264,8 @@ def request_wpto_point_data(
                 # Remove the 'index' coordinate
                 data = data.drop_vars('index')
 
-        # with open(cache_file, 'wb') as f:
-        #     pickle.dump((data, meta), f)
-        save_to_cache(hash_params, data, meta)
+        # save_to_cache(hash_params, data, meta)
+        handle_caching(hash_params, cache_dir, data, meta)
 
         return data, meta
 
@@ -370,25 +348,13 @@ def request_wpto_directional_spectrum(
         else:
             sys.exit('Coordinates must be within the same region!')
 
-    # Construct a string representation of the function parameters
-    hash_params = f"{lat_lon}_{year}_{tree}_{unscale}_{str_decode}_{hsds}_{path}"
-
     # Attempt to load data from cache
-    cached_data = load_from_cache(hash_params)
-    if cached_data is not None:
-        return cached_data
+    hash_params = f"{lat_lon}_{year}_{tree}_{unscale}_{str_decode}_{hsds}_{path}"
+    cache_dir = get_cache_dir()
+    data, meta, _ = handle_caching(hash_params, cache_dir)
 
-    # # Define the path to the cache directory
-    # cache_dir = os.path.join(os.path.expanduser("~"),
-    #                          ".cache", "mhkit", "hindcast")
-
-    # # Construct a string representation of the function parameters
-    # hash_params = f"{lat_lon}_{year}_{tree}_{unscale}_{str_decode}_{hsds}_{path}"
-
-    # # Attempt to load data from cache
-    # cached_data = load_from_cache(hash_params, cache_dir)
-    # if cached_data is not None:
-    #     return cached_data
+    if data is not None:
+        return data, meta
 
     wave_path = path or (
         f'/nrel/US_wave/virtual_buoy/{region}/{region}_virtual_buoy_{year}.h5'
@@ -401,139 +367,103 @@ def request_wpto_directional_spectrum(
         'hsds': hsds
     }
 
-    # Define the path to the cache directory
-    cache_dir = os.path.join(os.path.expanduser("~"),
-                             ".cache", "mhkit", "hindcast")
+    with WaveX(wave_path, **wave_kwargs) as rex_waves:
+        # Get graphical identifier
+        gid = rex_waves.lat_lon_gid(lat_lon)
 
-    # Construct a string representation of the function parameters
-    hash_params = f"{lat_lon}_{year}_{tree}_{unscale}_{str_decode}_{hsds}_{path}"
+        # Setup index and columns
+        columns = [gid] if isinstance(gid, (int, np.integer)) else gid
+        time_index = rex_waves.time_index
+        frequency = rex_waves['frequency']
+        direction = rex_waves['direction']
+        index = pd.MultiIndex.from_product(
+            [time_index, frequency, direction],
+            names=['time_index', 'frequency', 'direction']
+        )
 
-    # Create a unique identifier for this function call
-    hash_id = hashlib.md5(hash_params.encode()).hexdigest()
+        # Create bins for multiple smaller API dataset requests
+        N = 6
+        length = len(rex_waves)
+        quotient, remainder = divmod(length, N)
+        bins = [i*quotient for i in range(N+1)]
+        bins[-1] += remainder
+        index_bins = (np.array(bins)*len(frequency)
+                      * len(direction)).tolist()
 
-    # Create cache directory if it doesn't exist
-    os.makedirs(cache_dir, exist_ok=True)
+        # Request multiple datasets and add to dictionary
+        datas = {}
+        for i in range(len(bins)-1):
+            idx = index[index_bins[i]:index_bins[i+1]]
 
-    # Create a path to the cache file for this function call
-    cache_file = os.path.join(cache_dir, f"{hash_id}.nc")
+            # Request with exponential back off wait time
+            sleep_time = 2
+            num_retries = 4
+            for _ in range(num_retries):
+                try:
+                    data_array = rex_waves[parameter,
+                                           bins[i]:bins[i+1], :, :, gid]
+                    str_error = None
+                except Exception as err:
+                    str_error = str(err)
 
-    # If the file exists, load it from cache and return it
-    if os.path.exists(cache_file):
-        data = xr.open_dataset(cache_file)
-        meta = json.loads(data.attrs.get('metadata', '{}'))
-        meta = pd.DataFrame(meta)
-        del data.attrs['metadata']  # remove the metadata attribute
-        return data, meta
+                if str_error:
+                    sleep(sleep_time)
+                    sleep_time *= 2
+                else:
+                    break
 
-    else:
-        with WaveX(wave_path, **wave_kwargs) as rex_waves:
-            # Get graphical identifier
-            gid = rex_waves.lat_lon_gid(lat_lon)
-
-            # Setup index and columns
-            columns = [gid] if isinstance(gid, (int, np.integer)) else gid
-            time_index = rex_waves.time_index
-            frequency = rex_waves['frequency']
-            direction = rex_waves['direction']
-            index = pd.MultiIndex.from_product(
-                [time_index, frequency, direction],
-                names=['time_index', 'frequency', 'direction']
+            ax1 = np.product(data_array.shape[:3])
+            ax2 = data_array.shape[-1] if len(data_array.shape) == 4 else 1
+            datas[i] = pd.DataFrame(
+                data_array.reshape(ax1, ax2),
+                columns=columns,
+                index=idx
             )
 
-            # Create bins for multiple smaller API dataset requests
-            N = 6
-            length = len(rex_waves)
-            quotient, remainder = divmod(length, N)
-            bins = [i*quotient for i in range(N+1)]
-            bins[-1] += remainder
-            index_bins = (np.array(bins)*len(frequency)
-                          * len(direction)).tolist()
+        data_raw = pd.concat(datas.values())
+        data = data_raw.to_xarray()
+        data['time_index'] = pd.to_datetime(data.time_index)
 
-            # Request multiple datasets and add to dictionary
-            datas = {}
-            for i in range(len(bins)-1):
-                idx = index[index_bins[i]:index_bins[i+1]]
+        # Get metadata
+        meta = rex_waves.meta.loc[columns, :]
+        meta = meta.reset_index(drop=True)
+        meta['gid'] = gid
 
-                # Request with exponential back off wait time
-                sleep_time = 2
-                num_retries = 4
-                for _ in range(num_retries):
-                    try:
-                        data_array = rex_waves[parameter,
-                                               bins[i]:bins[i+1], :, :, gid]
-                        str_error = None
-                    except Exception as err:
-                        str_error = str(err)
+        # Convert gid to integer or list of integers
+        gid_list = [int(g) for g in gid] if isinstance(
+            gid, (list, np.ndarray)) else [int(gid)]
 
-                    if str_error:
-                        sleep(sleep_time)
-                        sleep_time *= 2
-                    else:
-                        break
+        data_var_concat = xr.concat([data[g] for g in gid_list], dim='gid')
 
-                ax1 = np.product(data_array.shape[:3])
-                ax2 = data_array.shape[-1] if len(data_array.shape) == 4 else 1
-                datas[i] = pd.DataFrame(
-                    data_array.reshape(ax1, ax2),
-                    columns=columns,
-                    index=idx
-                )
+        # Create a new DataArray with the correct dimensions and coordinates
+        spectral_density = xr.DataArray(
+            data_var_concat.data.reshape(-1, len(frequency),
+                                         len(direction), len(gid_list)),
+            dims=['time_index', 'frequency', 'direction', 'gid'],
+            coords={
+                'time_index': data['time_index'],
+                'frequency': data['frequency'],
+                'direction': data['direction'],
+                'gid': gid_list
+            }
+        )
 
-            data_raw = pd.concat(datas.values())
-            data = data_raw.to_xarray()
-            data['time_index'] = pd.to_datetime(data.time_index)
+        # Create the new dataset
+        data = xr.Dataset(
+            {
+                'spectral_density': spectral_density
+            },
+            coords={
+                'time_index': data['time_index'],
+                'frequency': data['frequency'],
+                'direction': data['direction'],
+                'gid': gid_list
+            }
+        )
 
-            # Get metadata
-            meta = rex_waves.meta.loc[columns, :]
-            meta = meta.reset_index(drop=True)
-            meta['gid'] = gid
+    handle_caching(hash_params, cache_dir, data, meta)
 
-            # Convert gid to integer or list of integers
-            gid_list = [int(g) for g in gid] if isinstance(
-                gid, (list, np.ndarray)) else [int(gid)]
-
-            data_var_concat = xr.concat([data[g] for g in gid_list], dim='gid')
-
-            # Create a new DataArray with the correct dimensions and coordinates
-            spectral_density = xr.DataArray(
-                data_var_concat.data.reshape(-1, len(frequency),
-                                             len(direction), len(gid_list)),
-                dims=['time_index', 'frequency', 'direction', 'gid'],
-                coords={
-                    'time_index': data['time_index'],
-                    'frequency': data['frequency'],
-                    'direction': data['direction'],
-                    'gid': gid_list
-                }
-            )
-
-            # Create the new dataset
-            data = xr.Dataset(
-                {
-                    'spectral_density': spectral_density
-                },
-                coords={
-                    'time_index': data['time_index'],
-                    'frequency': data['frequency'],
-                    'direction': data['direction'],
-                    'gid': gid_list
-                }
-            )
-
-        # Cache the data.
-        metadata_json = json.dumps(meta.to_dict())
-        data.attrs['metadata'] = metadata_json
-        cache_file = get_cache_file(hash_params)
-        data.to_netcdf(cache_file)
-        del data.attrs['metadata']  # remove the metadata attribute
-
-        # # Cache the data.
-        # metadata_json = json.dumps(meta.to_dict())
-        # data.attrs['metadata'] = metadata_json
-        # data.to_netcdf(cache_file)
-        # del data.attrs['metadata']  # remove the metadata attribute
-
-        return data, meta
+    return data, meta
 
 
 def get_cache_dir():
@@ -541,59 +471,3 @@ def get_cache_dir():
     Returns the path to the cache directory.
     """
     return os.path.join(os.path.expanduser("~"), ".cache", "mhkit", "hindcast")
-
-
-def get_cache_file(hash_params):
-    """
-    Returns the path to the cache file corresponding to the given parameters.
-    """
-    cache_dir = get_cache_dir()
-    hash_id = hashlib.md5(hash_params.encode()).hexdigest()
-    return os.path.join(cache_dir, f"{hash_id}.nc")
-
-
-def get_cache_file2(hash_params):
-    """
-    Returns the path to the cache file corresponding to the given parameters.
-    """
-    cache_dir = get_cache_dir()
-    hash_id = hashlib.md5(hash_params.encode()).hexdigest()
-    return os.path.join(cache_dir, f"{hash_id}.pkl")
-
-
-def load_from_cache(hash_params):
-    """
-    Attempts to load data from cache. If the cache file does not exist,
-    returns None. If the cache file exists, returns the loaded data.
-    """
-    cache_file = get_cache_file(hash_params)
-    if os.path.exists(cache_file):
-        data = xr.open_dataset(cache_file)
-        meta = json.loads(data.attrs.get('metadata', '{}'))
-        meta = pd.DataFrame(meta)
-        del data.attrs['metadata']  # remove the metadata attribute
-        return data, meta
-    return None, None
-
-
-def load_from_cache2(hash_params):
-    """
-    Attempts to load data from cache. If the cache file does not exist,
-    returns None. If the cache file exists, returns the loaded data.
-    """
-    cache_file = get_cache_file(hash_params)
-    if os.path.isfile(cache_file):
-        # If the cache file exists, load the data from the cache
-        with open(cache_file, 'rb') as f:
-            data, meta = pickle.load(f)
-        return data, meta
-    return None, None
-
-
-def save_to_cache(hash_params, data, meta):
-    """
-    Save data to a cache file corresponding to the given parameters.
-    """
-    cache_file = get_cache_file(hash_params)
-    with open(cache_file, 'wb') as f:
-        pickle.dump((data, meta), f)
