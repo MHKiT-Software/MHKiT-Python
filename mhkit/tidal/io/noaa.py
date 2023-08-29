@@ -51,8 +51,8 @@ def request_noaa_data(station, parameter, start_date, end_date,
     end_date : str
         End date in the format yyyyMMdd 
     proxy : dict or None
-         To request data from behind a firewall, define a dictionary of proxy settings, 
-         for example {"http": 'localhost:8080'}
+        To request data from behind a firewall, define a dictionary of proxy settings, 
+        for example {"http": 'localhost:8080'}
     write_json : str or None
         Name of json file to write data
 
