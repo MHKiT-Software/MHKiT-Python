@@ -133,13 +133,13 @@ def available_data(parameter, buoy_number=None, proxy=None):
         'swr1':   'Spectral Wave Current Year Historical Data (r1)'
         'swr2':   'Spectral Wave Current Year Historical Data (r2)'
         'stdmet': 'Standard Meteorological Current Year Historical Data'
-        'cwind' :   'Continuous Winds Current Year Historical Data'
+        'cwind' : 'Continuous Winds Current Year Historical Data'
 
     buoy_number: string (optional)
-        Buoy Number.  5-character alpha-numeric station identifier
+        Buoy Number. 5-character alpha-numeric station identifier
 
     proxy: dict
-            Proxy dict passed to python requests,
+        Proxy dict passed to python requests,
         (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})
 
     Returns
