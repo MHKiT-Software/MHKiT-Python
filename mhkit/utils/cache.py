@@ -53,7 +53,8 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
     """
 
     # Check if 'cdip' is in cache_dir, then use .pkl instead of .json
-    file_extension = ".pkl" if "cdip" or "hindcast" in cache_dir else ".json"
+    file_extension = ".pkl" if "cdip" in cache_dir or "hindcast" in cache_dir else ".json"
+    print(f"Using {file_extension} for cache file in {cache_dir}")
 
     # Make cache directory if it doesn't exist
     if not os.path.isdir(cache_dir):
@@ -72,7 +73,7 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
     # If a cached file exists, load and return the data from the file
     if os.path.isfile(cache_filepath) and data is None:
         if file_extension == ".json":
-            with open(cache_filepath, "r") as f:
+            with open(cache_filepath, encoding='utf-8') as f:
                 jsonData = json.load(f)
 
             # Extract metadata if it exists
@@ -123,12 +124,9 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
                     '%Y-%m-%d %H:%M:%S') for dt in pyData['index']]
             else:
                 pyData['index'] = list(data.index)
-            with open(cache_filepath, "w") as outfile:
-                json.dump(pyData, outfile)
+            with open(cache_filepath, 'w', encoding='utf-8') as f:
+                json.dump(pyData, f)
 
-        # elif file_extension == ".pkl":
-        #     with open(cache_filepath, 'wb') as f:
-        #         pickle.dump(data, f)
         elif file_extension == ".pkl":
             with open(cache_filepath, 'wb') as f:
                 pickle.dump((data, metadata), f)

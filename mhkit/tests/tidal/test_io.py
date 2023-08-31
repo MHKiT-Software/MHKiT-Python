@@ -41,7 +41,7 @@ class TestIO(unittest.TestCase):
 
     def test_load_noaa_data(self):
         """
-        Test that the read_noaa_json function reads data from a 
+        Test that the read_noaa_json function reads data from a
         JSON file and returns a DataFrame and metadata with the
         correct shape and columns.
         """
@@ -53,7 +53,7 @@ class TestIO(unittest.TestCase):
     def test_request_noaa_data_basic(self):
         """
         Test the request_noaa_data function with basic input parameters
-        and verify that the returned DataFrame and metadata have the 
+        and verify that the returned DataFrame and metadata have the
         correct shape and columns.
         """
         data, metadata = tidal.io.noaa.request_noaa_data(
@@ -111,7 +111,7 @@ class TestIO(unittest.TestCase):
 
     def test_request_noaa_data_end_before_start(self):
         """
-        Test the request_noaa_data function with the end date before 
+        Test the request_noaa_data function with the end date before
         the start date and verify that it raises a ValueError.
         """
         with self.assertRaises(ValueError):
