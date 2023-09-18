@@ -29,6 +29,7 @@ import datetime
 import json
 import math
 import shutil
+from typing import Optional, Dict, Tuple, Union
 import pandas as pd
 import requests
 from mhkit.utils.cache import handle_caching
@@ -68,6 +69,29 @@ def request_noaa_data(station, parameter, start_date, end_date,
         Data indexed by datetime with columns named according to the parameter's 
         variable description
     """
+    # Type check inputs
+    if not isinstance(station, str):
+        raise TypeError(
+            f"Expected 'station' to be of type str, but got {type(station)}")
+    if not isinstance(parameter, str):
+        raise TypeError(
+            f"Expected 'parameter' to be of type str, but got {type(parameter)}")
+    if not isinstance(start_date, str):
+        raise TypeError(
+            f"Expected 'start_date' to be of type str, but got {type(start_date)}")
+    if not isinstance(end_date, str):
+        raise TypeError(
+            f"Expected 'end_date' to be of type str, but got {type(end_date)}")
+    if proxy and not isinstance(proxy, dict):
+        raise TypeError(
+            f"Expected 'proxy' to be of type dict or None, but got {type(proxy)}")
+    if write_json and not isinstance(write_json, str):
+        raise TypeError(
+            f"Expected 'write_json' to be of type str or None, but got {type(write_json)}")
+    if not isinstance(clear_cache, bool):
+        raise TypeError(
+            f"Expected 'clear_cache' to be of type bool, but got {type(clear_cache)}")
+
     # Define the path to the cache directory
     cache_dir = os.path.join(os.path.expanduser("~"),
                              ".cache", "mhkit", "noaa")
