@@ -28,19 +28,19 @@ import xml.etree.ElementTree as ET
 import datetime
 import json
 import math
+import shutil
 import pandas as pd
 import requests
-import shutil
 from mhkit.utils.cache import handle_caching
 
 
 def request_noaa_data(station, parameter, start_date, end_date,
                       proxy=None, write_json=None, clear_cache=False):
     """
-    Loads NOAA current data directly from https://tidesandcurrents.noaa.gov/api/ using a 
-    get request into a pandas DataFrame. NOAA sets max of 31 days between start and end date.
-    See https://co-ops.nos.noaa.gov/api/ for options. All times are reported as GMT and metric
-    units are returned for data. Uses cached data if available.
+    Loads NOAA current data directly from https://tidesandcurrents.noaa.gov/api/
+    into a pandas DataFrame. NOAA sets max of 31 days between start and end date.
+    See https://co-ops.nos.noaa.gov/api/ for options. All times are reported as
+    GMT and metric units are returned for data. Uses cached data if available.
 
     The request URL prints to the screen.
 
@@ -55,8 +55,8 @@ def request_noaa_data(station, parameter, start_date, end_date,
     end_date : str
         End date in the format yyyyMMdd 
     proxy : dict or None
-         To request data from behind a firewall, define a dictionary of proxy settings, 
-         for example {"http": 'localhost:8080'}
+         To request data from behind a firewall, define a dictionary of proxy
+         settings, for example {"http": 'localhost:8080'}
     write_json : str or None
         Name of json file to write data
     clear_cache : bool
