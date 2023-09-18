@@ -1,22 +1,27 @@
 """
 noaa.py
 
-This module provides functions to fetch, process, and read NOAA (National Oceanic and Atmospheric Administration) 
-current data directly from the NOAA Tides and Currents API (https://tidesandcurrents.noaa.gov/api/). It supports 
-loading data into a pandas DataFrame, handling data in XML and JSON formats, and writing data to a JSON file.
+This module provides functions to fetch, process, and read NOAA (National
+Oceanic and Atmospheric Administration) current data directly from the
+NOAA Tides and Currents API (https://tidesandcurrents.noaa.gov/api/). It
+supports loading data into a pandas DataFrame, handling data in XML and 
+JSON formats, and writing data to a JSON file.
 
 Functions:
 ----------
-request_noaa_data(station, parameter, start_date, end_date, proxy=None, write_json=None):
-    Loads NOAA current data from the API into a pandas DataFrame, with optional support for proxy settings and 
-    writing data to a JSON file.
+request_noaa_data(station, parameter, start_date, end_date, proxy=None, 
+  write_json=None):
+    Loads NOAA current data from the API into a pandas DataFrame, 
+    with optional support for proxy settings and writing data to a JSON
+    file.
 
 _xml_to_dataframe(response):
-    Converts NOAA response data in XML format into a pandas DataFrame and returns metadata.
+    Converts NOAA response data in XML format into a pandas DataFrame
+    and returns metadata.
 
 read_noaa_json(filename):
-    Reads a JSON file containing NOAA data saved from the request_noaa_data function and returns a DataFrame with 
-    timeseries site data and metadata.
+    Reads a JSON file containing NOAA data saved from the request_noaa_data
+    function and returns a DataFrame with timeseries site data and metadata.
 """
 import os
 import xml.etree.ElementTree as ET
@@ -104,7 +109,6 @@ def request_noaa_data(station, parameter, start_date, end_date,
         print('Data request URL: ', data_url)
 
         # Get response
-        # Handle potential request errors
         try:
             response = requests.get(url=data_url, proxies=proxy)
             response.raise_for_status()
