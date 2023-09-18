@@ -6,24 +6,24 @@ regions, request point data for various parameters, and request directional
 spectrum data.
 
 Functions:
-- region_selection(lat_lon): Returns the name of the predefined region for
-  given latitude and longitude coordinates.
-- request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
-  unscale=True, str_decode=True, hsds=True): Returns data from the WPTO wave
-  hindcast hosted on AWS at the specified latitude and longitude point(s) for
-  the requested data type, parameter, and years.
-- request_wpto_directional_spectrum(lat_lon, year, tree=None, unscale=True,
-  str_decode=True, hsds=True): Returns directional spectra data from the WPTO
-  wave hindcast hosted on AWS at the specified latitude and longitude point(s)
-  for the given year.
+    - region_selection(lat_lon): Returns the name of the predefined region for
+      given latitude and longitude coordinates.
+    - request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
+      unscale=True, str_decode=True, hsds=True): Returns data from the WPTO wave
+      hindcast hosted on AWS at the specified latitude and longitude point(s) for
+      the requested data type, parameter, and years.
+    - request_wpto_directional_spectrum(lat_lon, year, tree=None, unscale=True,
+      str_decode=True, hsds=True): Returns directional spectra data from the WPTO
+      wave hindcast hosted on AWS at the specified latitude and longitude point(s)
+      for the given year.
 
 Dependencies:
-- sys
-- time.sleep
-- pandas
-- xarray
-- numpy
-- rex.MultiYearWaveX, rex.WaveX
+    - sys
+    - time.sleep
+    - pandas
+    - xarray
+    - numpy
+    - rex.MultiYearWaveX, rex.WaveX
 """
 import sys
 from time import sleep
@@ -118,7 +118,7 @@ def request_wpto_point_data(
     data_type : string
         Data set type of interest
         Options: '3-hour' '1-hour'
-    parameter: string or list of strings
+    parameter : string or list of strings
         Dataset parameter to be downloaded
         3-hour dataset options: 'directionality_coefficient', 
             'energy_period', 'maximum_energy_direction'
@@ -132,7 +132,7 @@ def request_wpto_point_data(
             'significant_wave_height', 'spectral_width', 
             'water_depth', 'maximim_energy_direction',
             'mean_wave_direction', 'frequency_bin_edges'
-    lat_lon: tuple or list of tuples
+    lat_lon : tuple or list of tuples
         Latitude longitude pairs at which to extract data 
     years : list 
         Year(s) to be accessed. The years 1979-2010 available. 
@@ -154,7 +154,7 @@ def request_wpto_point_data(
     path : string (optional)
         Optionally override with a custom .h5 filepath. Useful when setting
         `hsds=False`.        
-    as_xarray: bool (optional)
+    as_xarray : bool (optional)
         Boolean flag to return data as an xarray Dataset. Default = False    
 
     Returns

@@ -198,7 +198,7 @@ def request_wtk_point_data(time_interval, parameter, lat_lon, years, preferred_r
     time_interval : string
         Data set type of interest
         Options: '1-hour' '5-minute'
-    parameter: string or list of strings
+    parameter : string or list of strings
         Dataset parameter to be downloaded. Other parameters may be available.
         This list is limited to those available at both 5-minute and 1-hour
         time intervals for all regions. 
@@ -218,7 +218,7 @@ def request_wtk_point_data(time_interval, parameter, lat_lon, years, preferred_r
             'windspeed_60m', 'windspeed_80m', 'windspeed_100m', 
             'windspeed_120m', 'windspeed_140m', 'windspeed_160m', 
             'windspeed_180m', 'windspeed_200m'
-    lat_lon: tuple or list of tuples
+    lat_lon : tuple or list of tuples
         Latitude longitude pairs at which to extract data. Use plot_region() or 
         region_selection() to see the corresponding region for a given location.
     years : list 
