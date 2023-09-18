@@ -1,4 +1,4 @@
-from os.path import abspath, dirname, join,  normpath
+from os.path import abspath, dirname, join, isfile, normpath
 import matplotlib.pylab as plt
 from datetime import datetime
 import mhkit.wave as wave
@@ -135,45 +135,45 @@ class TestIOcdip(unittest.TestCase):
             self.assertEqual(
                 wave2D.index[-1].floor('d').to_pydatetime(), expected_index_final)
 
-    # def test_plot_boxplot(self):
-    #     filename = abspath(join(testdir, 'wave_plot_boxplot.png'))
-    #     if isfile(filename):
-    #         os.remove(filename)
+    def test_plot_boxplot(self):
+        filename = abspath(join(testdir, 'wave_plot_boxplot.png'))
+        if isfile(filename):
+            os.remove(filename)
 
-    #     station_number = '067'
-    #     year = 2011
-    #     data = wave.io.cdip.request_parse_workflow(station_number=station_number, years=year,
-    #                                                parameters=['waveHs'],
-    #                                                all_2D_variables=False)
+        station_number = '067'
+        year = 2011
+        data = wave.io.cdip.request_parse_workflow(station_number=station_number, years=year,
+                                                   parameters=['waveHs'],
+                                                   all_2D_variables=False)
 
-    #     plt.figure()
-    #     wave.graphics.plot_boxplot(data['data']['wave']['waveHs'])
-    #     plt.savefig(filename, format='png')
-    #     plt.close()
+        plt.figure()
+        wave.graphics.plot_boxplot(data['data']['wave']['waveHs'])
+        plt.savefig(filename, format='png')
+        plt.close()
 
-    #     self.assertTrue(isfile(filename))
-    #     os.remove(filename)
+        self.assertTrue(isfile(filename))
+        os.remove(filename)
 
-    # def test_plot_compendium(self):
-    #     filename = abspath(join(testdir, 'wave_plot_boxplot.png'))
-    #     if isfile(filename):
-    #         os.remove(filename)
+    def test_plot_compendium(self):
+        filename = abspath(join(testdir, 'wave_plot_boxplot.png'))
+        if isfile(filename):
+            os.remove(filename)
 
-    #     station_number = '067'
-    #     year = 2011
-    #     data = wave.io.cdip.request_parse_workflow(station_number=station_number, years=year,
-    #                                                parameters=[
-    #                                                    'waveHs', 'waveTp', 'waveDp'],
-    #                                                all_2D_variables=False)
+        station_number = '067'
+        year = 2011
+        data = wave.io.cdip.request_parse_workflow(station_number=station_number, years=year,
+                                                   parameters=[
+                                                       'waveHs', 'waveTp', 'waveDp'],
+                                                   all_2D_variables=False)
 
-    #     plt.figure()
-    #     wave.graphics.plot_compendium(data['data']['wave']['waveHs'],
-    #                                   data['data']['wave']['waveTp'], data['data']['wave']['waveDp'])
-    #     plt.savefig(filename, format='png')
-    #     plt.close()
+        plt.figure()
+        wave.graphics.plot_compendium(data['data']['wave']['waveHs'],
+                                      data['data']['wave']['waveTp'], data['data']['wave']['waveDp'])
+        plt.savefig(filename, format='png')
+        plt.close()
 
-    #     self.assertTrue(isfile(filename))
-    #     os.remove(filename)
+        self.assertTrue(isfile(filename))
+        os.remove(filename)
 
 
 if __name__ == '__main__':

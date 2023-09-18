@@ -234,8 +234,7 @@ class TestWPTOhindcast(unittest.TestCase):
         dir_multiyear, meta_dir = (wave.io.hindcast.hindcast
                                    .request_wpto_directional_spectrum(lat_lon, year=str(years[0]))
                                    )
-        # import ipdb
-        # ipdb.set_trace()
+
         dir_multiyear = dir_multiyear.sel(
             time_index=slice(
                 dir_multiyear.time_index[0],

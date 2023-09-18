@@ -69,7 +69,23 @@ def _start_and_end_of_year(year):
 
 def _dates_to_timestamp(nc, start_date=None, end_date=None):
     '''
-    The function description remains the same...
+    Returns timestamps from dates. 
+
+    Parameters
+    ----------
+    nc: netCDF Object
+        netCDF data for the given station number and data type   
+    start_date: string 
+        Start date in YYYY-MM-DD, e.g. '2012-04-01'
+    end_date: string 
+        End date in YYYY-MM-DD, e.g. '2012-04-30'        
+
+    Returns
+    -------
+    start_stamp: float
+         seconds since the Epoch to start_date    
+    end_stamp: float
+         seconds since the Epoch to end_date
     '''
 
     if start_date and not isinstance(start_date, datetime.datetime):
@@ -343,7 +359,6 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
     Iterates over and extracts variables from CDIP bouy data. See
     the MHKiT CDiP example Jupyter notbook for information on available 
     parameters. 
-
 
     Parameters
     ----------
