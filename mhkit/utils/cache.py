@@ -53,8 +53,10 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
     """
 
     # Check if 'cdip' is in cache_dir, then use .pkl instead of .json
-    file_extension = ".pkl" if "cdip" in cache_dir or "hindcast" in cache_dir else ".json"
-    print(f"Using {file_extension} for cache file in {cache_dir}")
+    file_extension = (".pkl" if "cdip" in cache_dir or
+                      "hindcast" in cache_dir or
+                      "ndbc" in cache_dir
+                      else ".json")
 
     # Make cache directory if it doesn't exist
     if not os.path.isdir(cache_dir):

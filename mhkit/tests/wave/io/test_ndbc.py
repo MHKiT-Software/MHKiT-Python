@@ -20,18 +20,24 @@ class TestIOndbc(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        self.expected_columns_metRT = ['WDIR', 'WSPD', 'GST', 'WVHT', 'DPD',
-                                       'APD', 'MWD', 'PRES', 'ATMP', 'WTMP', 'DEWP', 'VIS', 'PTDY', 'TIDE']
-        self.expected_units_metRT = {'WDIR': 'degT', 'WSPD': 'm/s', 'GST': 'm/s',
-                                     'WVHT': 'm', 'DPD': 'sec', 'APD': 'sec', 'MWD': 'degT', 'PRES': 'hPa',
-                                     'ATMP': 'degC', 'WTMP': 'degC', 'DEWP': 'degC', 'VIS': 'nmi',
+        self.expected_columns_metRT = ['WDIR', 'WSPD', 'GST', 'WVHT',
+                                       'DPD', 'APD', 'MWD', 'PRES',
+                                       'ATMP', 'WTMP', 'DEWP', 'VIS',
+                                       'PTDY', 'TIDE']
+        self.expected_units_metRT = {'WDIR': 'degT', 'WSPD': 'm/s',
+                                     'GST': 'm/s', 'WVHT': 'm', 'DPD': 'sec',
+                                     'APD': 'sec', 'MWD': 'degT', 'PRES': 'hPa',
+                                     'ATMP': 'degC', 'WTMP': 'degC',
+                                     'DEWP': 'degC', 'VIS': 'nmi',
                                      'PTDY': 'hPa', 'TIDE': 'ft'}
 
         self.expected_columns_metH = ['WDIR', 'WSPD', 'GST', 'WVHT', 'DPD',
-                                      'APD', 'MWD', 'PRES', 'ATMP', 'WTMP', 'DEWP', 'VIS', 'TIDE']
+                                      'APD', 'MWD', 'PRES', 'ATMP', 'WTMP',
+                                      'DEWP', 'VIS', 'TIDE']
         self.expected_units_metH = {'WDIR': 'degT', 'WSPD': 'm/s', 'GST': 'm/s',
-                                    'WVHT': 'm', 'DPD': 'sec', 'APD': 'sec', 'MWD': 'deg', 'PRES': 'hPa',
-                                    'ATMP': 'degC', 'WTMP': 'degC', 'DEWP': 'degC', 'VIS': 'nmi',
+                                    'WVHT': 'm', 'DPD': 'sec', 'APD': 'sec',
+                                    'MWD': 'deg', 'PRES': 'hPa', 'ATMP': 'degC',
+                                    'WTMP': 'degC', 'DEWP': 'degC', 'VIS': 'nmi',
                                     'TIDE': 'ft'}
         self.filenames = ['46042w1996.txt.gz',
                           '46029w1997.txt.gz',
@@ -151,6 +157,7 @@ class TestIOndbc(unittest.TestCase):
         empty_file = '42008h1984.txt.gz'
         working_file = '46042h1996.txt.gz'
         filenames = pd.Series([empty_file, working_file])
+
         with contextlib.redirect_stdout(temp_stdout):
             ndbc_data = wave.io.ndbc.request_data('stdmet', filenames)
         self.assertEqual(1, len(ndbc_data))
