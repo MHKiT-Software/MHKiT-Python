@@ -7,8 +7,12 @@ import scipy.stats as stats
 import scipy.interpolate as interp
 import numpy as np
 
+import matplotlib
+mpl_version = tuple(map(int, matplotlib.__version__.split('.')))
 
 # Contours
+
+
 def environmental_contours(x1, x2, sea_state_duration, return_period,
                            method, **kwargs):
     """
@@ -1551,9 +1555,14 @@ def _bivariate_KDE(x1, x2, bw, fit, nb_steps, Ndata_bivariate_KDE, kwargs):
     x1_bivariate_KDE = []
     x2_bivariate_KDE = []
 
-    for i, seg in enumerate(vals.get_paths()):
-        x1_bivariate_KDE.append(seg.vertices[:, 1])
-        x2_bivariate_KDE.append(seg.vertices[:, 0])
+    if mpl_version < (3, 8):  # For versions before 3.8
+        segments = vals.allsegs[0]
+    else:
+        segments = [path.vertices for path in vals.get_paths()]
+
+    for seg in segments:
+        x1_bivariate_KDE.append(seg[:, 1])
+        x2_bivariate_KDE.append(seg[:, 0])
 
     x1_bivariate_KDE = np.transpose(np.asarray(x1_bivariate_KDE)[0])
     x2_bivariate_KDE = np.transpose(np.asarray(x2_bivariate_KDE)[0])
