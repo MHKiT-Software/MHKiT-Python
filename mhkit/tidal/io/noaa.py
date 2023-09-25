@@ -215,14 +215,22 @@ def read_noaa_json(filename):
     metadata: dictionary
         Site metadata
     '''
+
     with open(filename) as outfile:
-        jsonData = json.load(outfile)
-    # Get the metadata
-    metadata = jsonData['metadata']
-    # Remove metadata entry
-    del jsonData['metadata']
-    # Remainder is DataFrame
-    data = pd.DataFrame.from_dict(jsonData)
-    # Convert from epoch to date time
-    data.index = pd.to_datetime(data.index, unit='ms')
+        json_data = json.load(outfile)
+    try:  # original MHKiT format (deprecate in future)
+        # Get the metadata
+        metadata = json_data['metadata']
+        # Remove metadata entry
+        del json_data['metadata']
+        # Remainder is DataFrame
+        data = pd.DataFrame.from_dict(json_data)
+        # Convert from epoch to date time
+        data.index = pd.to_datetime(data.index, unit='ms')
+
+    except ValueError:  # using cache.py format
+        if 'metadata' in json_data:
+            metadata = json_data.pop('metadata', None)
+        data = pd.DataFrame(json_data['data'], index=pd.to_datetime(
+            json_data['index']), columns=json_data['columns'])
     return data, metadata
