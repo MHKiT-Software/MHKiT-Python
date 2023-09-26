@@ -200,10 +200,15 @@ def elevation_to_string(parameter, elevations):
 
     """
 
-    assert isinstance(parameter, str)
-    assert isinstance(elevations, (float, list))
-    assert parameter in ['windspeed',
-                         'winddirection', 'temperature', 'pressure']
+    if not isinstance(parameter, str):
+        raise TypeError(f'parameter must be a string, got {type(parameter)}')
+
+    if not isinstance(elevations, (float, list)):
+        raise TypeError(
+            f'elevations must be a float or list, got {type(elevations)}')
+
+    if parameter not in ['windspeed', 'winddirection', 'temperature', 'pressure']:
+        raise ValueError(f'Invalid parameter: {parameter}')
 
     parameter_list = []
     for e in elevations:
