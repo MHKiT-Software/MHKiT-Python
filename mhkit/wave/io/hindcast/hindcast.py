@@ -181,7 +181,7 @@ def request_wpto_point_data(
     # Attempt to load data from cache
     # Construct a string representation of the function parameters
     hash_params = f"{data_type}_{parameter}_{lat_lon}_{years}_{tree}_{unscale}_{str_decode}_{hsds}_{path}_{as_xarray}"
-    cache_dir = get_cache_dir()
+    cache_dir = _get_cache_dir()
     data, meta, _ = handle_caching(hash_params, cache_dir)
 
     if data is not None:
@@ -350,7 +350,7 @@ def request_wpto_directional_spectrum(
 
     # Attempt to load data from cache
     hash_params = f"{lat_lon}_{year}_{tree}_{unscale}_{str_decode}_{hsds}_{path}"
-    cache_dir = get_cache_dir()
+    cache_dir = _get_cache_dir()
     data, meta, _ = handle_caching(hash_params, cache_dir)
 
     if data is not None:
@@ -466,7 +466,7 @@ def request_wpto_directional_spectrum(
     return data, meta
 
 
-def get_cache_dir():
+def _get_cache_dir():
     """
     Returns the path to the cache directory.
     """
