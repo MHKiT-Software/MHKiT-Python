@@ -67,6 +67,36 @@ def region_selection(lat_lon, preferred_region=''):
 
 
 def get_region_data(region):
+    '''
+    Retrieves the latitude and longitude data points for the specified region 
+    from the cache if available; otherwise, fetches the data and caches it for 
+    subsequent calls.
+
+    The function forms a unique identifier from the `region` parameter and checks 
+    whether the corresponding data is available in the cache. If the data is found, 
+    it's loaded and returned. If not, the data is fetched, cached, and then returned.
+
+    Parameters
+    ----------
+    region : str
+        Name of the predefined region in the WIND Toolkit for which to
+        retrieve latitude and longitude data points. It is case-sensitive.
+        Examples: 'Offshore_CA','Hawaii','Mid_Atlantic','NW_Pacific'
+
+    Returns
+    -------
+    lats : numpy.ndarray
+        A 1D array containing the latitude coordinates of data points
+        in the specified region.
+
+    lons : numpy.ndarray
+        A 1D array containing the longitude coordinates of data points
+        in the specified region.
+
+    Example
+    -------
+    >>> lats, lons = get_region_data('Offshore_CA')
+    '''
     # Define the path to the cache directory
     cache_dir = os.path.join(os.path.expanduser("~"),
                              ".cache", "mhkit", "hindcast")
