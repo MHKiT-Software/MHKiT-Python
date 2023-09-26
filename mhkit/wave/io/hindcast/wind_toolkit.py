@@ -1,12 +1,11 @@
 import os
-import sys
 import hashlib
 import pickle
 import pandas as pd
-import xarray as xr
 
 from rex import MultiYearWindX
 import matplotlib.pyplot as plt
+from mhkit.utils.cache import handle_caching
 
 
 def region_selection(lat_lon, preferred_region=''):
@@ -215,7 +214,7 @@ def elevation_to_string(parameter, elevations):
 
 def request_wtk_point_data(time_interval, parameter, lat_lon, years,
                            preferred_region='', tree=None, unscale=True,
-                           str_decode=True, hsds=True):
+                           str_decode=True, hsds=True, clear_cache=False):
     """ 
     Returns data from the WIND Toolkit offshore wind hindcast hosted on
     AWS at the specified latitude and longitude point(s), or the closest
@@ -280,6 +279,9 @@ def request_wtk_point_data(time_interval, parameter, lat_lon, years,
         Boolean flag to use h5pyd to handle .h5 'files' hosted on AWS
         behind HSDS. Setting to False will indicate to look for files on 
         local machine, not AWS. Default = True
+    clear_cache : bool (optional)
+        Boolean flag to clear the cache related to this specific request.
+        Default is False.        
 
     Returns
     ---------
@@ -290,41 +292,40 @@ def request_wtk_point_data(time_interval, parameter, lat_lon, years,
         Location metadata for the requested data location   
     """
 
-    assert isinstance(parameter, (str, list)
-                      ), 'parameter must be of type string or list'
-    assert isinstance(lat_lon, (list, tuple)
-                      ), 'lat_lon must be of type list or tuple'
-    assert isinstance(time_interval, str), 'time_interval must be a string'
-    assert isinstance(years, list), 'years must be a list'
-    assert isinstance(preferred_region,
-                      str), 'preferred_region must be a string'
-    assert isinstance(tree, (str, type(None))), 'tree must be a string'
-    assert isinstance(unscale, bool), 'unscale must be bool type'
-    assert isinstance(str_decode, bool), 'str_decode must be bool type'
-    assert isinstance(hsds, bool), 'hsds must be bool type'
+    if not isinstance(parameter, (str, list)):
+        raise TypeError('parameter must be of type string or list')
+    if not isinstance(lat_lon, (list, tuple)):
+        raise TypeError('lat_lon must be of type list or tuple')
+    if not isinstance(time_interval, str):
+        raise TypeError('time_interval must be a string')
+    if not isinstance(years, list):
+        raise TypeError('years must be a list')
+    if not isinstance(preferred_region, str):
+        raise TypeError('preferred_region must be a string')
+    if not isinstance(tree, (str, type(None))):
+        raise TypeError('tree must be a string or None')
+    if not isinstance(unscale, bool):
+        raise TypeError('unscale must be bool type')
+    if not isinstance(str_decode, bool):
+        raise TypeError('str_decode must be bool type')
+    if not isinstance(hsds, bool):
+        raise TypeError('hsds must be bool type')
+    if not isinstance(clear_cache, bool):
+        raise TypeError('clear_cache must be of type bool')
 
     # Define the path to the cache directory
-    cache_dir = os.path.join(os.path.expanduser("~"),
-                             ".cache", "mhkit", "hindcast")
+    cache_dir = os.path.join(os.path.expanduser(
+        "~"), ".cache", "mhkit", "hindcast")
 
     # Construct a string representation of the function parameters
     hash_params = f"{time_interval}_{parameter}_{lat_lon}_{years}_{preferred_region}_{tree}_{unscale}_{str_decode}_{hsds}"
 
-    # Create a unique identifier for this function call
-    hash_id = hashlib.md5(hash_params.encode()).hexdigest()
+    # Use handle_caching to manage caching.
+    data, meta, _ = handle_caching(
+        hash_params, cache_dir, clear_cache_file=clear_cache)
 
-    # Create cache directory if it doesn't exist
-    os.makedirs(cache_dir, exist_ok=True)
-
-    # Create a path to the cache file for this function call
-    cache_file = os.path.join(cache_dir, f"{hash_id}.pkl")
-
-    if os.path.isfile(cache_file):
-        # If the cache file exists, load the data from the cache
-        with open(cache_file, 'rb') as f:
-            data, meta = pickle.load(f)
-        return data, meta
-
+    if data is not None and meta is not None:
+        return data, meta  # Return cached data and meta if available
     else:
         # check for multiple region selection
         if isinstance(lat_lon[0], float):
@@ -372,7 +373,7 @@ def request_wtk_point_data(time_interval, parameter, lat_lon, years,
             meta = rex_wind.meta.loc[col, :]
             meta = meta.reset_index(drop=True)
 
-        with open(cache_file, 'wb') as f:
-            pickle.dump((data, meta), f)
+        # Save the retrieved data and metadata to cache.
+        handle_caching(hash_params, cache_dir, data=data, metadata=meta)
 
         return data, meta
