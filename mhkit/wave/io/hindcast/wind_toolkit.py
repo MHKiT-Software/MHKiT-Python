@@ -213,19 +213,21 @@ def elevation_to_string(parameter, elevations):
     return parameter_list
 
 
-def request_wtk_point_data(time_interval, parameter, lat_lon, years, preferred_region='',
-                           tree=None, unscale=True, str_decode=True, hsds=True):
+def request_wtk_point_data(time_interval, parameter, lat_lon, years,
+                           preferred_region='', tree=None, unscale=True,
+                           str_decode=True, hsds=True):
     """ 
-    Returns data from the WIND Toolkit offshore wind hindcast hosted on AWS at the specified latitude and longitude point(s), 
-    or the closest available point(s).
-    Visit https://registry.opendata.aws/nrel-pds-wtk/ for more information about the dataset and available 
-    locations and years. 
+    Returns data from the WIND Toolkit offshore wind hindcast hosted on
+    AWS at the specified latitude and longitude point(s), or the closest
+    available point(s).Visit https://registry.opendata.aws/nrel-pds-wtk/ 
+    for more information about the dataset and available locations and years. 
 
     Calls with multiple parameters must have the same time interval. Calls 
     with multiple locations must use the same region (use the plot_region function). 
 
-    Note: To access the WIND Toolkit hindcast data, you will need to configure h5pyd for data access on HSDS. 
-    Please see the WTK_hindcast_example notebook for more information.  
+    Note: To access the WIND Toolkit hindcast data, you will need to
+    configure h5pyd for data access on HSDS. Please see the 
+    WTK_hindcast_example notebook for more information.  
 
     Parameters
     ----------
@@ -282,7 +284,8 @@ def request_wtk_point_data(time_interval, parameter, lat_lon, years, preferred_r
     Returns
     ---------
     data: DataFrame 
-        Data indexed by datetime with columns named for parameter and cooresponding metadata index 
+        Data indexed by datetime with columns named for parameter and
+        cooresponding metadata index 
     meta: DataFrame 
         Location metadata for the requested data location   
     """
