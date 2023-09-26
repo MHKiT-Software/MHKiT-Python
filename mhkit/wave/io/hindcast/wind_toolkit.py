@@ -150,7 +150,7 @@ def plot_region(region, lat_lon=None, ax=None):
 
     Returns
     ---------
-        ax : matplotlib pyplot axes
+    ax : matplotlib pyplot axes
     '''
     if not isinstance(region, str):
         raise TypeError('region must be of type string')
@@ -336,9 +336,9 @@ def request_wtk_point_data(time_interval, parameter, lat_lon, years, preferred_r
                 raise TypeError('Coordinates must be within the same region!')
 
         if time_interval == '1-hour':
-            wind_path = f'/nrel/wtk/'+region.lower()+'/'+region+'_*.h5'
+            wind_path = f'/nrel/wtk/{region.lower()}/{region}_*.h5'
         elif time_interval == '5-minute':
-            wind_path = f'/nrel/wtk/'+region.lower()+'-5min/'+region+'_*.h5'
+            wind_path = f'/nrel/wtk/{region.lower()}-5min/{region}_*.h5'
         else:
             raise TypeError(
                 f"Invalid time_interval '{time_interval}', must be '1-hour' or '5-minute'")
