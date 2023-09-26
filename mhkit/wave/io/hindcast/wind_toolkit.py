@@ -26,14 +26,25 @@ def region_selection(lat_lon, preferred_region=''):
     region : string
         Name of predefined region for given coordinates
     '''
-    assert isinstance(lat_lon, tuple), 'lat_lon must be of type list or tuple'
-    assert len(lat_lon) == 2, 'lat_lon must be of length 2'
-    assert isinstance(lat_lon[0], (float, int)
-                      ), 'lat_lon values must be of type float or int'
-    assert isinstance(lat_lon[1], (float, int)
-                      ), 'lat_lon values must be of type float or int'
-    assert isinstance(preferred_region,
-                      str), 'preferred_region must be of type string'
+    if not isinstance(lat_lon, tuple):
+        raise TypeError(
+            'lat_lon must be of type tuple, got {}'.format(type(lat_lon)))
+
+    if len(lat_lon) != 2:
+        raise ValueError(
+            'lat_lon must be of length 2, got length {}'.format(len(lat_lon)))
+
+    if not isinstance(lat_lon[0], (float, int)):
+        raise TypeError(
+            'lat_lon values must be floats or ints, got {}'.format(type(lat_lon[0])))
+
+    if not isinstance(lat_lon[1], (float, int)):
+        raise TypeError(
+            'lat_lon values must be floats or ints, got {}'.format(type(lat_lon[1])))
+
+    if not isinstance(preferred_region, str):
+        raise TypeError(
+            'preferred_region must be a string, got {}'.format(type(preferred_region)))
 
     # Note that this check is fast, but not robust because region are not
     # rectangular on a lat-lon grid
@@ -96,6 +107,8 @@ def get_region_data(region):
     -------
     >>> lats, lons = get_region_data('Offshore_CA')
     '''
+    if not isinstance(region, str):
+        raise TypeError('region must be of type string')
     # Define the path to the cache directory
     cache_dir = os.path.join(os.path.expanduser("~"),
                              ".cache", "mhkit", "hindcast")
