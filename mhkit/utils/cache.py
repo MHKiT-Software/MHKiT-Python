@@ -1,3 +1,43 @@
+"""
+This module provides functionality for managing cache files to optimize
+network requests and computations for handling data. The module focuses
+on enabling users to read from and write to cache files, as well as 
+perform cache clearing operations. Cache files are utilized to store data 
+temporarily, mitigating the need to re-fetch or recompute the same data multiple 
+times, which can be especially useful in network-dependent tasks.
+
+The module consists of two main functions:
+
+1. `handle_caching`:
+   This function manages the caching of data. It provides options to read from 
+   and write to cache files, depending on whether the data is already provided 
+   or if it needs to be fetched from the cache. If a cache file corresponding 
+   to the given parameters already exists, the function can either load data 
+   from it or clear it based on the parameters passed. It also offers the ability 
+   to store associated metadata along with the data and supports both JSON and 
+   pickle file formats for caching. This function returns the loaded data and 
+   metadata from the cache file, along with the cache file path.
+
+2. `clear_cache`:
+   This function enables the clearing of either specific sub-directories or the 
+   entire cache directory, depending on the parameter passed. It removes the 
+   specified directory and then recreates it to ensure future caching tasks can 
+   be executed without any issues. If the specified directory does not exist, 
+   the function prints an indicative message.
+
+Module Dependencies:
+--------------------
+    - hashlib: For creating unique filenames based on hashed parameters.
+    - json: For reading and writing JSON formatted cache files.
+    - os: For performing operating system dependent tasks like directory creation.
+    - re: For regular expression operations to match datetime formatted strings.
+    - shutil: For performing high-level file operations like copying and removal.
+    - pickle: For reading and writing pickle formatted cache files.
+    - pandas: For handling data in DataFrame format.
+
+Author: ssolson
+Date: 2023-09-26
+"""
 import hashlib
 import json
 import os
