@@ -25,15 +25,12 @@ Dependencies:
     - numpy
     - rex.MultiYearWaveX, rex.WaveX
 """
+import os
 import sys
 from time import sleep
 import pandas as pd
 import xarray as xr
 import numpy as np
-import pickle
-import os
-import hashlib
-import json
 from rex import MultiYearWaveX, WaveX
 from mhkit.utils.cache import handle_caching
 
