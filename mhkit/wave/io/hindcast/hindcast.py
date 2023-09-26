@@ -24,6 +24,10 @@ Dependencies:
     - xarray
     - numpy
     - rex.MultiYearWaveX, rex.WaveX
+
+Author: rpauly, aidanbharath, ssolson
+Date: 2021-01-26
+Updated: 2023-09-26
 """
 import os
 import sys
