@@ -81,23 +81,23 @@ def region_selection(lat_lon, preferred_region=''):
     '''
     if not isinstance(lat_lon, tuple):
         raise TypeError(
-            'lat_lon must be of type tuple, got {}'.format(type(lat_lon)))
+            f'lat_lon must be of type tuple, got {type(lat_lon).__name__}')
 
     if len(lat_lon) != 2:
         raise ValueError(
-            'lat_lon must be of length 2, got length {}'.format(len(lat_lon)))
+            f'lat_lon must be of length 2, got length {len(lat_lon)}')
 
     if not isinstance(lat_lon[0], (float, int)):
         raise TypeError(
-            'lat_lon values must be floats or ints, got {}'.format(type(lat_lon[0])))
+            f'lat_lon values must be floats or ints, got {type(lat_lon[0]).__name__}')
 
     if not isinstance(lat_lon[1], (float, int)):
         raise TypeError(
-            'lat_lon values must be floats or ints, got {}'.format(type(lat_lon[1])))
+            f'lat_lon values must be floats or ints, got {type(lat_lon[1]).__name__}')
 
     if not isinstance(preferred_region, str):
         raise TypeError(
-            'preferred_region must be a string, got {}'.format(type(preferred_region)))
+            f'preferred_region must be a string, got {type(preferred_region).__name__}')
 
     # Note that this check is fast, but not robust because region are not
     # rectangular on a lat-lon grid
