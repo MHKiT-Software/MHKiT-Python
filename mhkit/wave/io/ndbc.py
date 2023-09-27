@@ -169,7 +169,7 @@ def available_data(parameter, buoy_number=None, proxy=None, clear_cache=False):
                              ".cache", "mhkit", "ndbc")
 
     # Check the cache before making the request
-    data, metadata, cache_filepath = handle_caching(
+    data, _, _ = handle_caching(
         hash_params, cache_dir, clear_cache_file=clear_cache)
 
     if data is None:
@@ -177,14 +177,13 @@ def available_data(parameter, buoy_number=None, proxy=None, clear_cache=False):
 
         try:
             response = requests.get(ndbc_data, proxies=proxy, timeout=30)
-            # This will raise an HTTPError if the HTTP request returned an unsuccessful status code
             response.raise_for_status()
 
         except requests.exceptions.Timeout:
             print("The request timed out")
-            response = None  # Ensure response is defined even in case of an error
+            response = None
 
-        except requests.exceptions.RequestException as error:  # This will catch any type of RequestException
+        except requests.exceptions.RequestException as error:
             print(f"An error occurred: {error}")
             response = None
 
