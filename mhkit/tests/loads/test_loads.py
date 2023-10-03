@@ -222,8 +222,9 @@ class TestWDRT(unittest.TestCase):
         filename = "data_loads_hs.csv"
         data = np.loadtxt(os.path.join(datadir, filename), delimiter=",")
         years = 2.97
-        threshold = loads.extreme.automatic_peaks_threshold(data, years)
-        assert np.isclose(threshold, 0.99724)
+        pct, threshold = loads.extreme.automatic_hs_threshold(data, years)
+        assert np.isclose(pct, 0.9894099999999999)  # TODO
+        assert np.isclose(threshold, 1.027523048)  # TODO
 
 if __name__ == '__main__':
     unittest.main()

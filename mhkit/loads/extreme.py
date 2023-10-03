@@ -161,7 +161,7 @@ def peaks_distribution_weibull_tail_fit(x):
 def automatic_hs_threshold(
     peaks,
     sampling_rate,
-    initial_threshold_range = (0.990, 0.999, 0.001),
+    initial_threshold_range = (0.990, 0.995, 0.001),
     max_refinement=5
 ):
     """
@@ -227,9 +227,10 @@ def automatic_hs_threshold(
         acf = signal.correlate(x, x, mode="full")
         lag = signal.correlation_lags(len(x), len(x), mode="full")
         idx_zero = np.argmax(lag==0)
-        positive_lag = lag[(idx_zero+1):(idx_zero+nlags)]
-        acf_positive = acf[(idx_zero+1):(idx_zero+nlags)] / acf[idx_zero]
-        window_size = sampling_rate * positive_lag[np.argmax(acf_positive<0.5)]
+        positive_lag = lag[(idx_zero):(idx_zero+nlags+1)]
+        acf_positive = acf[(idx_zero):(idx_zero+nlags+1)] / acf[idx_zero]
+
+        window_size = sampling_rate * positive_lag[acf_positive<0.5][0]
         # window size in "observations" instead of "hours" between peaks.
         window = window_size / sampling_rate
         # keep only independent storm peaks
@@ -273,7 +274,8 @@ def automatic_hs_threshold(
             range_min = thresholds[max_i-1]
             range_max = thresholds[max_i+1]
 
-    return best_threshold
+    best_threshold_unit = stats.scoreatpercentile(peaks, 100*best_threshold)
+    return best_threshold, best_threshold_unit
 
 
 def peaks_distribution_peaks_over_threshold(x, threshold=None):
