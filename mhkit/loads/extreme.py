@@ -238,6 +238,9 @@ def automatic_hs_threshold(
             if (idx - idx_independent_storm_peaks[-1]) > window:
                 idx_independent_storm_peaks.append(idx)
                 independent_storm_peaks.append(peaks[idx])
+            elif peaks[idx] > independent_storm_peaks[-1]:
+                idx_independent_storm_peaks[-1] = idx
+                independent_storm_peaks[-1] = peaks[idx]
 
         return independent_storm_peaks
 

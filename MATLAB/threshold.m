@@ -1,4 +1,4 @@
-function [pct, best_thresh, positive_acf, acf, lag, nlags] =  threshold(Hs,samp_rate)
+function [pct, best_thresh] =  threshold(Hs,samp_rate)
 
     nlags = floor(14*24/samp_rate);
     [acf,lag] = xcorr(Hs - mean(Hs), nlags, 'coeff');
