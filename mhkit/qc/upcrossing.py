@@ -1,3 +1,52 @@
+"""
+Upcrossing Analysis Functions
+=============================
+This module contains a collection of functions that facilitate upcrossing 
+analyes.
+
+Key Functions:
+--------------
+- `upcrossing`: Finds the zero upcrossing points.
+  
+- `peaks`: Finds the peaks between zero crossings.
+  
+- `troughs`: Finds the troughs between zero crossings.
+  
+- `heights`: Calculates the height between zero crossings.
+  
+- `periods`: Calculates the period between zero crossings.
+  
+- `custom`: Fetches specified wind data parameters for given 
+  latitude-longitude points and years from the WIND Toolkit hindcast dataset. 
+  Supports caching for faster repeated data retrieval.
+  
+Dependencies:
+-------------
+- rex: Library to handle renewable energy datasets.
+- pandas: Data manipulation and analysis.
+- os, hashlib, pickle: Used for caching functionality.
+- matplotlib: Used for plotting.
+
+Notes:
+------
+- To access the WIND Toolkit hindcast data, users need to configure `h5pyd` 
+  for data access on HSDS (see the WTK_hindcast_example notebook for more details).
+
+- While some functions perform basic checks (e.g., verifying that latitude 
+  and longitude are within a predefined region), it's essential to understand 
+  the boundaries of each region and the available parameters and elevations in the dataset.
+  
+Author: 
+-------
+mbruggs
+akeeste
+
+Date:
+-----
+2023-10-10
+
+
+"""
 import numpy as np
 
 
@@ -15,7 +64,8 @@ def _apply(t, data, f, inds):
 
 
 def upcrossing(t, data):
-    """Find the zero upcrossing points.
+    """
+    Finds the zero upcrossing points.
 
     Parameters
     ----------
@@ -29,13 +79,19 @@ def upcrossing(t, data):
     inds: np.array
         Zero crossing indicies
     """
-    assert isinstance(t, np.ndarray), 't must be of type np.ndarray'
-    assert isinstance(t, np.ndarray), 'data must be of type np.ndarray'
-    assert len(data.shape) == 1, 'only 1D data supported, try calling squeeze()'
+    if not isinstance(t, np.ndarray):
+        raise TypeError('t must be of type np.ndarray')
+    
+    if not isinstance(t, np.ndarray):
+        'data must be of type np.ndarray'
+    
+    if len(data.shape) != 1:
+        raise ValueError('only 1D data supported, try calling squeeze()')
 
     # eliminate zeros
     zeroMask = (data == 0)
     data[zeroMask] = 0.5 * np.min(np.abs(data))
+    
     # zero up-crossings
     diff = np.diff(np.sign(data))
     zeroUpCrossings_mask = (diff == 2) | (diff == 1)
@@ -45,7 +101,8 @@ def upcrossing(t, data):
 
 
 def peaks(t, data, inds=None):
-    """Find the peaks between zero crossings.
+    """
+    Finds the peaks between zero crossings.
 
     Parameters
     ----------
@@ -65,14 +122,18 @@ def peaks(t, data, inds=None):
         Peak values of the time-series
 
     """
-    assert isinstance(t, np.ndarray), 't must be of type np.ndarray'
-    assert isinstance(data, np.ndarray), 'data must be of type np.ndarray'
+    if not isinstance(t, np.ndarray):
+        TypeError('t must be of type np.ndarray')
+        
+    if not isinstance(data, np.ndarray):
+        TypeError('data must be of type np.ndarray')
 
     return _apply(t, data, lambda ind1, ind2: np.max(data[ind1:ind2]), inds)
 
 
 def troughs(t, data, inds=None):
-    """Find the troughs between zero crossings.
+    """
+    Finds the troughs between zero crossings.
 
     Parameters
     ----------
@@ -99,7 +160,8 @@ def troughs(t, data, inds=None):
 
 
 def heights(t, data, inds=None):
-    """Find the heights between zero crossings.
+    """
+    Calculates the height between zero crossings.
 
     The height is defined as the max value - min value
     between the zero crossing points.
@@ -124,13 +186,15 @@ def heights(t, data, inds=None):
     assert isinstance(t, np.ndarray), 't must be of type np.ndarray'
     assert isinstance(data, np.ndarray), 'data must be of type np.ndarray'
 
-    def func(ind1, ind2): return np.max(
-        data[ind1:ind2]) - np.min(data[ind1:ind2])
+    def func(ind1, ind2): 
+        return np.max(data[ind1:ind2]) - np.min(data[ind1:ind2])
+    
     return _apply(t, data, func, inds)
 
 
 def periods(t, data, inds=None):
-    """Find the period between zero crossings.
+    """
+    Calculates the period between zero crossings.
 
     Parameters
     ----------
@@ -156,7 +220,8 @@ def periods(t, data, inds=None):
 
 
 def custom(t, data, func, inds=None):
-    """Apply custom function to the upcrossing analysis
+    """
+    Applies a custom function to the timeseries data between upcrossing points.
 
     Parameters
     ----------
