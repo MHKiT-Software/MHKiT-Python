@@ -23,7 +23,7 @@ jobs:
         uses: dorny/paths-filter@v2
         with:
           filters: |
-            wave_io_hindcast:  # Adjusted the filter name
+            wave_io_hindcast:
               - 'mhkit/tests/wave/io/hindcast/**'
 
   prepare-cache:
@@ -64,7 +64,7 @@ jobs:
           pytest mhkit/tests/wave/io/test_cdip.py
 
       - name: Prepare Hindcast data
-        if: needs.check-changes.outputs.wave_io_hindcast_changed == 'true'
+        if: (github.event.pull_request.base.ref == 'master' || needs.check-changes.outputs.wave_io_hindcast_changed == 'true')
         run: |
           # pytest tests/test_specific_file.py::TestClass::test_function
           source activate TEST
@@ -181,7 +181,8 @@ jobs:
   hindcast-calls:
     name: hindcast-${{ matrix.os }}/${{ matrix.python-version }}
     needs: [check-changes, prepare-cache]
-    if: needs.check-changes.outputs.wave_io_hindcast_changed == 'true'
+
+    if: (github.event.pull_request.base.ref == 'master' || needs.check-changes.outputs.wave_io_hindcast_changed == 'true')
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 1
