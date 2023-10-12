@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       wave_io_hindcast_changed: ${{ steps.changes.outputs.wave_io_hindcast }}
+      should-run-hindcast: ${{ steps.hindcast-logic.outputs.should-run-hindcast }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -25,6 +26,14 @@ jobs:
           filters: |
             wave_io_hindcast:
               - 'mhkit/tests/wave/io/hindcast/**'
+
+      - id: hindcast-logic
+        run: |
+          if [[ "${{ github.event.pull_request.base.ref }}" == "master" || "${{ steps.changes.outputs.wave_io_hindcast }}" == "true" ]]; then
+            echo "::set-output name=should-run-hindcast::true"
+          else
+            echo "::set-output name=should-run-hindcast::false"
+          fi
 
   prepare-cache:
     needs: [check-changes]
@@ -178,23 +187,10 @@ jobs:
           COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
           COVERALLS_PARALLEL: true
 
-  hindcast-logic:
-    runs-on: ubuntu-latest
-    outputs:
-      should-run-hindcast: ${{ steps.hindcast-logic.outputs.should-run-hindcast }}
-    steps:
-      - id: hindcast-logic
-        run: |
-          if [[ "${{ github.event.pull_request.base.ref }}" == "master" || "${{ needs.check-changes.outputs.wave_io_hindcast_changed }}" == "true" ]]; then
-            echo "::set-output name=should-run-hindcast::true"
-          else
-            echo "::set-output name=should-run-hindcast::false"
-          fi
-
   hindcast-calls:
     name: hindcast-${{ matrix.os }}/${{ matrix.python-version }}
     needs: [check-changes, prepare-cache]
-    if: (github.event.pull_request.base.ref == 'master' || needs.check-changes.outputs.wave_io_hindcast_changed == 'true')
+    if: (needs.check-changes.outputs.should-run-hindcast == 'true')
 
     runs-on: ${{ matrix.os }}
     strategy:
