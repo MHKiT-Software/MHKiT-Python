@@ -35,7 +35,8 @@ Dependencies:
 Notes:
 ------
 - To access the WIND Toolkit hindcast data, users need to configure `h5pyd` 
-  for data access on HSDS (see the WTK_hindcast_example notebook for more details).
+  for data access on HSDS (see the metocean_example or WPTO_hindcast_example
+  notebook for more details).
   
 - While some functions perform basic checks (e.g., verifying that latitude 
   and longitude are within a predefined region), it's essential to understand 
@@ -297,7 +298,7 @@ def request_wtk_point_data(time_interval, parameter, lat_lon, years,
 
     Note: To access the WIND Toolkit hindcast data, you will need to
     configure h5pyd for data access on HSDS. Please see the 
-    WTK_hindcast_example notebook for more information.  
+    metocean_example or WPTO_hindcast_example notebook for more information.  
 
     Parameters
     ----------
