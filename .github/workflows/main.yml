@@ -178,11 +178,24 @@ jobs:
           COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
           COVERALLS_PARALLEL: true
 
+  hindcast-logic:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run-hindcast: ${{ steps.hindcast-logic.outputs.should-run-hindcast }}
+    steps:
+      - id: hindcast-logic
+        run: |
+          if [[ "${{ github.event.pull_request.base.ref }}" == "master" || "${{ needs.check-changes.outputs.wave_io_hindcast_changed }}" == "true" ]]; then
+            echo "::set-output name=should-run-hindcast::true"
+          else
+            echo "::set-output name=should-run-hindcast::false"
+          fi
+
   hindcast-calls:
     name: hindcast-${{ matrix.os }}/${{ matrix.python-version }}
     needs: [check-changes, prepare-cache]
-
     if: (github.event.pull_request.base.ref == 'master' || needs.check-changes.outputs.wave_io_hindcast_changed == 'true')
+
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 1
@@ -235,6 +248,7 @@ jobs:
   coveralls:
     name: Indicate completion to coveralls.io
     needs: [conda-build, pip-build, hindcast-calls]
+    if: always() && (needs.hindcast-calls.result == 'success' || needs.hindcast-calls.result == 'skipped')
     runs-on: ubuntu-latest
     container: python:3-slim
     steps:
