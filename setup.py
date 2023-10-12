@@ -1,7 +1,6 @@
-from setuptools import setup, find_packages
-from distutils.core import Extension
 import os
 import re
+from setuptools import setup, find_packages
 
 DISTNAME = 'mhkit'
 PACKAGES = find_packages()

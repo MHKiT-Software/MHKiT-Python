@@ -24,8 +24,9 @@ import os
 testdir = dirname(abspath(__file__))
 plotdir = join(testdir, 'plots')
 isdir = os.path.isdir(plotdir)
-if not isdir: os.mkdir(plotdir)
-datadir = normpath(join(testdir,relpath('../../../examples/data/wave')))
+if not isdir:
+    os.mkdir(plotdir)
+datadir = normpath(join(testdir, relpath('../../../examples/data/wave')))
 
 
 class TestContours(unittest.TestCase):
@@ -33,25 +34,25 @@ class TestContours(unittest.TestCase):
     @classmethod
     def setUpClass(self):
 
-        f_name= 'Hm0_Te_46022.json'
-        self.Hm0Te = pd.read_json(join(datadir,f_name))
+        f_name = 'Hm0_Te_46022.json'
+        self.Hm0Te = pd.read_json(join(datadir, f_name))
 
-        file_loc=join(datadir, 'principal_component_analysis.pkl')
+        file_loc = join(datadir, 'principal_component_analysis.pkl')
         with open(file_loc, 'rb') as f:
             self.pca = pickle.load(f)
         f.close()
 
-        file_loc=join(datadir,'WDRT_caluculated_countours.json')
+        file_loc = join(datadir, 'WDRT_caluculated_countours.json')
         with open(file_loc) as f:
             self.wdrt_copulas = json.load(f)
         f.close()
 
-        ndbc_46050=pd.read_csv(join(datadir,'NDBC46050.csv'))
+        ndbc_46050 = pd.read_csv(join(datadir, 'NDBC46050.csv'))
         self.wdrt_Hm0 = ndbc_46050['Hm0']
         self.wdrt_Te = ndbc_46050['Te']
 
-        self.wdrt_dt=3600
-        self.wdrt_period= 50
+        self.wdrt_dt = 3600
+        self.wdrt_period = 50
 
     @classmethod
     def tearDownClass(self):
@@ -69,15 +70,15 @@ class TestContours(unittest.TestCase):
         period = 100
 
         copula = wave.contours.environmental_contours(Hm0,
-            Te, dt_ss, period, 'PCA')
+                                                      Te, dt_ss, period, 'PCA')
 
-        Hm0_contour=copula['PCA_x1']
-        Te_contour=copula['PCA_x2']
+        Hm0_contour = copula['PCA_x1']
+        Te_contour = copula['PCA_x2']
 
-        file_loc=join(datadir,'Hm0_Te_contours_46022.csv')
+        file_loc = join(datadir, 'Hm0_Te_contours_46022.csv')
         expected_contours = pd.read_csv(file_loc)
         assert_allclose(expected_contours.Hm0_contour.values,
-            Hm0_contour, rtol=1e-3)
+                        Hm0_contour, rtol=1e-3)
 
     def test__principal_component_analysis(self):
         Hm0Te = self.Hm0Te
@@ -86,7 +87,7 @@ class TestContours(unittest.TestCase):
         Hm0 = df.Hm0.values
         Te = df.Te.values
         PCA = (wave.contours
-            ._principal_component_analysis(Hm0,Te, bin_size=250))
+               ._principal_component_analysis(Hm0, Te, bin_size=250))
 
         assert_allclose(PCA['principal_axes'],
                         self.pca['principal_axes'])
@@ -98,10 +99,10 @@ class TestContours(unittest.TestCase):
         self.assertAlmostEqual(PCA['mu_fit'].intercept,
                                self.pca['mu_fit'].intercept)
         assert_allclose(PCA['sigma_fit']['x'],
-                             self.pca['sigma_fit']['x'])
+                        self.pca['sigma_fit']['x'])
 
     def test_plot_environmental_contour(self):
-        file_loc= join(plotdir, 'wave_plot_environmental_contour.png')
+        file_loc = join(plotdir, 'wave_plot_environmental_contour.png')
         filename = abspath(file_loc)
         if isfile(filename):
             os.remove(filename)
@@ -116,10 +117,10 @@ class TestContours(unittest.TestCase):
         time_R = 100
 
         copulas = wave.contours.environmental_contours(Hm0, Te, dt_ss,
-            time_R, 'PCA')
+                                                       time_R, 'PCA')
 
-        Hm0_contour=copulas['PCA_x1']
-        Te_contour=copulas['PCA_x2']
+        Hm0_contour = copulas['PCA_x1']
+        Te_contour = copulas['PCA_x2']
 
         dt_ss = (Hm0Te.index[2]-Hm0Te.index[1]).seconds
         time_R = 100
@@ -130,9 +131,9 @@ class TestContours(unittest.TestCase):
                                      Te_contour, Hm0_contour,
                                      data_label='NDBC 46022',
                                      contour_label='100-year Contour',
-                                     x_label = 'Te [s]',
-                                     y_label = 'Hm0 [m]')
-        )
+                                     x_label='Te [s]',
+                                     y_label='Hm0 [m]')
+         )
         plt.savefig(filename, format='png')
         plt.close()
 
@@ -140,7 +141,7 @@ class TestContours(unittest.TestCase):
 
     def test_plot_environmental_contour_multiyear(self):
         filename = abspath(join(plotdir,
-                       'wave_plot_environmental_contour_multiyear.png'))
+                                'wave_plot_environmental_contour_multiyear.png'))
         if isfile(filename):
             os.remove(filename)
 
@@ -154,11 +155,11 @@ class TestContours(unittest.TestCase):
 
         time_R = [100, 105, 110, 120, 150]
 
-        Hm0s=[]
-        Tes=[]
+        Hm0s = []
+        Tes = []
         for period in time_R:
             copulas = (wave.contours
-                       .environmental_contours(Hm0,Te,dt_ss,period,'PCA'))
+                       .environmental_contours(Hm0, Te, dt_ss, period, 'PCA'))
 
             Hm0s.append(copulas['PCA_x1'])
             Tes.append(copulas['PCA_x2'])
@@ -166,13 +167,13 @@ class TestContours(unittest.TestCase):
         contour_label = [f'{year}-year Contour' for year in time_R]
         plt.figure()
         (wave.graphics
-        .plot_environmental_contour(Te, Hm0,
-                                    Tes, Hm0s,
-                                    data_label='NDBC 46022',
-                                    contour_label=contour_label,
-                                    x_label = 'Te [s]',
-                                    y_label = 'Hm0 [m]')
-                                    )
+         .plot_environmental_contour(Te, Hm0,
+                                     Tes, Hm0s,
+                                     data_label='NDBC 46022',
+                                     contour_label=contour_label,
+                                     x_label='Te [s]',
+                                     y_label='Hm0 [m]')
+         )
         plt.savefig(filename, format='png')
         plt.close()
 
@@ -181,61 +182,62 @@ class TestContours(unittest.TestCase):
     def test_standard_copulas(self):
         copulas = (wave.contours
                    .environmental_contours(self.wdrt_Hm0, self.wdrt_Te,
-                           self.wdrt_dt, self.wdrt_period,
-                           method=['gaussian', 'gumbel', 'clayton'])
+                                           self.wdrt_dt, self.wdrt_period,
+                                           method=['gaussian', 'gumbel', 'clayton'])
                    )
 
         # WDRT slightly vaires Rosenblatt copula parameters from
         #    the other copula default  parameters
         rosen = (wave.contours
-                .environmental_contours(self.wdrt_Hm0, self.wdrt_Te,
-                self.wdrt_dt, self.wdrt_period, method=['rosenblatt'],
-                min_bin_count=50, initial_bin_max_val=0.5,
-                bin_val_size=0.25))
+                 .environmental_contours(self.wdrt_Hm0, self.wdrt_Te,
+                                         self.wdrt_dt, self.wdrt_period, method=[
+                                             'rosenblatt'],
+                                         min_bin_count=50, initial_bin_max_val=0.5,
+                                         bin_val_size=0.25))
         copulas['rosenblatt_x1'] = rosen['rosenblatt_x1']
         copulas['rosenblatt_x2'] = rosen['rosenblatt_x2']
 
-        methods=['gaussian', 'gumbel', 'clayton', 'rosenblatt']
-        close=[]
+        methods = ['gaussian', 'gumbel', 'clayton', 'rosenblatt']
+        close = []
         for method in methods:
             close.append(np.allclose(copulas[f'{method}_x1'],
-                self.wdrt_copulas[f'{method}_x1']))
+                                     self.wdrt_copulas[f'{method}_x1']))
             close.append(np.allclose(copulas[f'{method}_x2'],
-                self.wdrt_copulas[f'{method}_x2']))
+                                     self.wdrt_copulas[f'{method}_x2']))
         self.assertTrue(all(close))
 
     def test_nonparametric_copulas(self):
-        methods=['nonparametric_gaussian','nonparametric_clayton',
-            'nonparametric_gumbel']
+        methods = ['nonparametric_gaussian', 'nonparametric_clayton',
+                   'nonparametric_gumbel']
 
         np_copulas = wave.contours.environmental_contours(self.wdrt_Hm0,
-            self.wdrt_Te, self.wdrt_dt, self.wdrt_period, method=methods)
+                                                          self.wdrt_Te, self.wdrt_dt, self.wdrt_period, method=methods)
 
-        close=[]
+        close = []
         for method in methods:
             close.append(np.allclose(np_copulas[f'{method}_x1'],
-                self.wdrt_copulas[f'{method}_x1'], atol=0.13))
+                                     self.wdrt_copulas[f'{method}_x1'], atol=0.13))
             close.append(np.allclose(np_copulas[f'{method}_x2'],
-                self.wdrt_copulas[f'{method}_x2'], atol=0.13))
+                                     self.wdrt_copulas[f'{method}_x2'], atol=0.13))
         self.assertTrue(all(close))
 
     def test_kde_copulas(self):
         kde_copula = wave.contours.environmental_contours(self.wdrt_Hm0,
-            self.wdrt_Te, self.wdrt_dt, self.wdrt_period,
-            method=['bivariate_KDE'], bandwidth=[0.23, 0.23])
+                                                          self.wdrt_Te, self.wdrt_dt, self.wdrt_period,
+                                                          method=['bivariate_KDE'], bandwidth=[0.23, 0.23])
         log_kde_copula = (wave.contours
-            .environmental_contours(self.wdrt_Hm0, self.wdrt_Te,
-            self.wdrt_dt, self.wdrt_period, method=['bivariate_KDE_log'], bandwidth=[0.02, 0.11])
-            )
+                          .environmental_contours(self.wdrt_Hm0, self.wdrt_Te,
+                                                  self.wdrt_dt, self.wdrt_period, method=['bivariate_KDE_log'], bandwidth=[0.02, 0.11])
+                          )
 
-        close= [ np.allclose(kde_copula['bivariate_KDE_x1'],
-                     self.wdrt_copulas['bivariate_KDE_x1']),
+        close = [np.allclose(kde_copula['bivariate_KDE_x1'],
+                             self.wdrt_copulas['bivariate_KDE_x1']),
                  np.allclose(kde_copula['bivariate_KDE_x2'],
-                     self.wdrt_copulas['bivariate_KDE_x2']),
+                             self.wdrt_copulas['bivariate_KDE_x2']),
                  np.allclose(log_kde_copula['bivariate_KDE_log_x1'],
-                     self.wdrt_copulas['bivariate_KDE_log_x1']),
+                             self.wdrt_copulas['bivariate_KDE_log_x1']),
                  np.allclose(log_kde_copula['bivariate_KDE_log_x2'],
-                     self.wdrt_copulas['bivariate_KDE_log_x2'])]
+                             self.wdrt_copulas['bivariate_KDE_log_x2'])]
         self.assertTrue(all(close))
 
     def test_samples_contours(self):

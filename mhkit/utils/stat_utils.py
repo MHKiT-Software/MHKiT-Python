@@ -1,14 +1,10 @@
-from pecos.utils import index_to_datetime
-import matplotlib.pyplot as plt 
-import datetime as dt
+import matplotlib.pyplot as plt
 from mhkit import qc
-import pandas as pd 
-import numpy as np 
+import pandas as pd
+import numpy as np
 
 
-_matlab = False # Private variable indicating if mhkit is run through matlab
-
-def get_statistics(data,freq,period=600,vector_channels=[]):
+def get_statistics(data, freq, period=600, vector_channels=[]):
     """
     Calculate mean, max, min and stdev statistics of continuous data for a 
     given statistical window. Default length of statistical window (period) is
@@ -33,23 +29,27 @@ def get_statistics(data,freq,period=600,vector_channels=[]):
     """
     # Check data type
     assert isinstance(data, pd.DataFrame), 'data must be of type pd.DataFrame'
-    assert isinstance(freq, (float,int)), 'freq must be of type int or float'
-    assert isinstance(period, (float,int)), 'freq must be of type int or float'
+    assert isinstance(freq, (float, int)), 'freq must be of type int or float'
+    assert isinstance(period, (float, int)
+                      ), 'freq must be of type int or float'
     # catch if vector_channels is not an string array
-    if isinstance(vector_channels,str): vector_channels = [vector_channels]
-    assert isinstance(vector_channels, list), 'vector_channels must be a list of strings'
+    if isinstance(vector_channels, str):
+        vector_channels = [vector_channels]
+    assert isinstance(
+        vector_channels, list), 'vector_channels must be a list of strings'
 
     # Check timestamp using qc module
     data.index = data.index.round('1ms')
-    dataQC = qc.check_timestamp(data,1/freq)
+    dataQC = qc.check_timestamp(data, 1/freq)
     dataQC = dataQC['cleaned_data']
-    
+
     # Check to see if data length contains enough data points for statistical window
-    if len(dataQC)%(period*freq) > 0:
+    if len(dataQC) % (period*freq) > 0:
         remain = len(dataQC) % (period*freq)
         dataQC = dataQC.iloc[0:-int(remain)]
-        print('WARNING: there were not enough data points in the last statistical period. Last '+str(remain)+' points were removed.')
-    
+        print('WARNING: there were not enough data points in the last statistical period. Last ' +
+              str(remain)+' points were removed.')
+
     # Pre-allocate lists
     time = []
     means = []
@@ -62,30 +62,32 @@ def get_statistics(data,freq,period=600,vector_channels=[]):
     for i in range(int(len(dataQC)/(period*freq))):
         datachunk = dataQC.iloc[i*step:(i+1)*step]
         # Check whether there are any NaNs in datachunk
-        if datachunk.isnull().any().any(): 
+        if datachunk.isnull().any().any():
             print('NaNs found in statistical window...check timestamps!')
             input('Press <ENTER> to continue')
             continue
         else:
             # Get stats
-            time.append(datachunk.index.values[0]) # time vector
-            maxs.append(datachunk.max()) # maxes
-            mins.append(datachunk.min()) # mins
-            means.append(datachunk.mean()) # means
-            stdev.append(datachunk.std()) # standard deviation
+            time.append(datachunk.index.values[0])  # time vector
+            maxs.append(datachunk.max())  # maxes
+            mins.append(datachunk.min())  # mins
+            means.append(datachunk.mean())  # means
+            stdev.append(datachunk.std())  # standard deviation
             # calculate vector averages and std
             for v in vector_channels:
-                vector_avg, vector_std = vector_statistics(datachunk[v])            
-                means[i][v] = vector_avg # overwrite scalar average for channel
-                stdev[i][v] = vector_std # overwrite scalar std for channel
-        
-    # Convert to DataFrames and set index
-    means = pd.DataFrame(means,index=time)
-    maxs = pd.DataFrame(maxs,index=time)
-    mins = pd.DataFrame(mins,index=time)
-    stdevs = pd.DataFrame(stdev,index=time)
+                vector_avg, vector_std = vector_statistics(datachunk[v])
+                # overwrite scalar average for channel
+                means[i][v] = vector_avg
+                stdev[i][v] = vector_std  # overwrite scalar std for channel
 
-    return means,maxs,mins,stdevs
+    # Convert to DataFrames and set index
+    means = pd.DataFrame(means, index=time)
+    maxs = pd.DataFrame(maxs, index=time)
+    mins = pd.DataFrame(mins, index=time)
+    stdevs = pd.DataFrame(stdev, index=time)
+
+    return means, maxs, mins, stdevs
+
 
 def vector_statistics(data):
     """
@@ -96,7 +98,7 @@ def vector_statistics(data):
     ----------
     data : pandas Series, numpy array, list
         Vector channel to calculate statistics on [deg, 0-360]
-    
+
     Returns
     -------
     vector_avg : numpy array
@@ -104,26 +106,32 @@ def vector_statistics(data):
     vector_std : numpy array
         Vector standard deviation statistic
     """
-    try: data = np.array(data)
-    except: pass
+    try:
+        data = np.array(data)
+    except:
+        pass
     assert isinstance(data, np.ndarray), 'data must be of type np.ndarray'
-    
+
     # calculate mean
     Ux = sum(np.sin(data*np.pi/180))/len(data)
     Uy = sum(np.cos(data*np.pi/180))/len(data)
-    vector_avg = (90 - np.arctan2(Uy,Ux)*180/np.pi)
-    if vector_avg<0: vector_avg = vector_avg+360
-    elif vector_avg>360: vector_avg = vector_avg-360
-    # calculate standard deviation              
-    magsum = round((Ux**2 + Uy**2)*1e8)/1e8 # round to 8th decimal place to reduce roundoff error
+    vector_avg = (90 - np.arctan2(Uy, Ux)*180/np.pi)
+    if vector_avg < 0:
+        vector_avg = vector_avg+360
+    elif vector_avg > 360:
+        vector_avg = vector_avg-360
+    # calculate standard deviation
+    # round to 8th decimal place to reduce roundoff error
+    magsum = round((Ux**2 + Uy**2)*1e8)/1e8
     epsilon = (1-magsum)**0.5
-    if not np.isreal(epsilon): # check if epsilon is imaginary (error)
+    if not np.isreal(epsilon):  # check if epsilon is imaginary (error)
         vector_std = 0
         print('WARNING: epsilon contains imaginary value')
     else:
         vector_std = np.arcsin(epsilon)*(1+0.1547*epsilon**3)*180/np.pi
 
     return vector_avg, vector_std
+
 
 def unwrap_vector(data):
     """
@@ -133,7 +141,7 @@ def unwrap_vector(data):
     ------------
     data : pandas Series, numpy array, list
         Data points to be unwrapped [deg]
-    
+
     Returns
     ---------
     data : numpy array
@@ -156,70 +164,11 @@ def unwrap_vector(data):
         data = unwrap_vector(data)
     return data
 
-def matlab_to_datetime(matlab_datenum):
-    """
-    Convert MATLAB datenum format to Python datetime
 
-    Parameters
-    ------------
-    matlab_datenum : numpy array
-        MATLAB datenum to be converted
-
-    Returns
-    ---------
-    time : DateTimeIndex
-        Python datetime values
-    """
-    # Check data types
-    try:
-        matlab_datenum = np.array(matlab_datenum,ndmin=1)
-    except:
-        pass
-    assert isinstance(matlab_datenum, np.ndarray), 'data must be of type np.ndarray'
-
-    # Pre-allocate
-    time = []
-    # loop through dates and convert
-    for t in matlab_datenum:
-        day = dt.datetime.fromordinal(int(t))
-        dayfrac = dt.timedelta(days=t%1) - dt.timedelta(days = 366)
-        time.append(day + dayfrac)
-    
-    time = np.array(time)
-    time = pd.to_datetime(time)
-    return time
-
-def excel_to_datetime(excel_num):
-    """
-    Convert Excel datenum format to Python datetime
-
-    Parameters
-    ------------
-    excel_num : numpy array
-        Excel datenums to be converted
-
-    Returns
-    ---------
-    time : DateTimeIndex
-        Python datetime values
-    """
-    # Check data types
-    try:
-        excel_num = np.array(excel_num)
-    except:
-        pass
-    assert isinstance(excel_num, np.ndarray), 'data must be of type np.ndarray'
-
-    # Convert to datetime
-    time = pd.to_datetime('1899-12-30')+pd.to_timedelta(excel_num,'D')
-
-    return time                
-    
-    
-def magnitude_phase(x,y,z=None):
+def magnitude_phase(x, y, z=None):
     '''
     Retuns magnitude and phase in two or three dimensions. 
-    
+
     Parameters
     ----------
     x: array_like
@@ -228,7 +177,7 @@ def magnitude_phase(x,y,z=None):
         y-component
     z: array_like
         z-component defined positive up. (Optional) Default None.
-    
+
     Returns
     -------
     mag: float or array
@@ -239,29 +188,30 @@ def magnitude_phase(x,y,z=None):
         radians from z-axis defined as positive up. Optional: only 
         returned when z is passed.
     '''
-    x=np.array(x)
-    y=np.array(y)
+    x = np.array(x)
+    y = np.array(y)
 
-    threeD=False
+    threeD = False
     if not isinstance(z, type(None)):
-        z=np.array(z)
-        threeD=True
-        
-    assert isinstance(x, (float,int,np.ndarray))
-    assert isinstance(y, (float,int,np.ndarray))
-    assert isinstance(z, (type(None),float,int,np.ndarray))
-        
+        z = np.array(z)
+        threeD = True
+
+    assert isinstance(x, (float, int, np.ndarray))
+    assert isinstance(y, (float, int, np.ndarray))
+    assert isinstance(z, (type(None), float, int, np.ndarray))
+
     if threeD:
         mag = np.sqrt(x**2 + y**2 + z**2)
-        theta = np.arctan2(y,x)
-        phi = np.arctan2(np.sqrt(x**2+y**2),z)
+        theta = np.arctan2(y, x)
+        phi = np.arctan2(np.sqrt(x**2+y**2), z)
         return mag, theta, phi
     else:
         mag = np.sqrt(x**2 + y**2)
         theta = np.arctan2(y, x)
         return mag, theta
 
-def unorm(x, y ,z):
+
+def unorm(x, y, z):
     '''
     Calculates the root mean squared value given three arrays. 
 
@@ -278,22 +228,24 @@ def unorm(x, y ,z):
     -------
     unorm : array 
        The root mean squared of x, y, and z.
-       
+
     Example 
     -------
     If the inputs are [1,2,3], [4,5,6], and [7,8,9] the code take the 
     cordinationg value from each array and calculates the root mean squared. 
     The resulting output is [ 8.1240384,  9.64365076, 11.22497216].
     '''
-    
-    assert isinstance(x,(np.ndarray, np.float64, pd.Series)), 'x must be an array'
-    assert isinstance(y,(np.ndarray, np.float64, pd.Series)), 'y must be an array'
-    assert isinstance(z,(np.ndarray, np.float64, pd.Series)), 'z must be an array'
-    assert all([len(x) == len(y), len (y) ==len (z)]), ('lengths of arrays must'
-                                                        +' match')
 
-    xyz = np.array([x,y,z]) 
-    unorm = np.linalg.norm(xyz, axis= 0)
+    assert isinstance(x, (np.ndarray, np.float64, pd.Series)
+                      ), 'x must be an array'
+    assert isinstance(y, (np.ndarray, np.float64, pd.Series)
+                      ), 'y must be an array'
+    assert isinstance(z, (np.ndarray, np.float64, pd.Series)
+                      ), 'z must be an array'
+    assert all([len(x) == len(y), len(y) == len(z)]), ('lengths of arrays must'
+                                                       + ' match')
+
+    xyz = np.array([x, y, z])
+    unorm = np.linalg.norm(xyz, axis=0)
 
     return unorm
-    

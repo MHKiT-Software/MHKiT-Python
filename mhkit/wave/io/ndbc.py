@@ -1,3 +1,4 @@
+import os
 from collections import OrderedDict as _OrderedDict
 from collections import defaultdict as _defaultdict
 from io import BytesIO
@@ -11,6 +12,7 @@ import pandas.errors
 import xarray as xr
 
 from bs4 import BeautifulSoup
+from mhkit.utils.cache import handle_caching
 
 
 def read_file(file_name, missing_values=['MM', 9999, 999, 99]):
@@ -119,7 +121,7 @@ def read_file(file_name, missing_values=['MM', 9999, 999, 99]):
     return data, metadata
 
 
-def available_data(parameter, buoy_number=None, proxy=None):
+def available_data(parameter, buoy_number=None, proxy=None, clear_cache=False):
     '''
     For a given parameter this will return a DataFrame of years,
     station IDs and file names that contain that parameter data.
@@ -152,7 +154,7 @@ def available_data(parameter, buoy_number=None, proxy=None):
                                                               'specified the buoy number must be a string or list of strings')
     assert isinstance(proxy, (dict, type(None))
                       ), 'If specified proxy must be a dict'
-    supported = _supported_params(parameter)
+    _supported_params(parameter)
     if isinstance(buoy_number, str):
         assert len(buoy_number) == 5, ('Buoy must be 5-character'
                                        f'alpha-numeric station identifier got: {buoy_number}')
@@ -160,35 +162,57 @@ def available_data(parameter, buoy_number=None, proxy=None):
         for buoy in buoy_number:
             assert len(buoy) == 5, ('Each buoy must be a 5-character'
                                     f'alpha-numeric station identifier got: {buoy}')
-    ndbc_data = f'https://www.ndbc.noaa.gov/data/historical/{parameter}/'
-    if proxy == None:
-        response = requests.get(ndbc_data)
+
+    # Generate a unique hash_params based on the function parameters
+    hash_params = f"parameter:{parameter}_buoy_number:{buoy_number}_proxy:{proxy}"
+    cache_dir = os.path.join(os.path.expanduser("~"),
+                             ".cache", "mhkit", "ndbc")
+
+    # Check the cache before making the request
+    data, _, _ = handle_caching(
+        hash_params, cache_dir, clear_cache_file=clear_cache)
+
+    if data is None:
+        ndbc_data = f'https://www.ndbc.noaa.gov/data/historical/{parameter}/'
+
+        try:
+            response = requests.get(ndbc_data, proxies=proxy, timeout=30)
+            response.raise_for_status()
+
+        except requests.exceptions.Timeout:
+            print("The request timed out")
+            response = None
+
+        except requests.exceptions.RequestException as error:
+            print(f"An error occurred: {error}")
+            response = None
+
+        if response and response.status_code != 200:
+            msg = f"request.get({ndbc_data}) failed by returning code of {response.status_code}"
+            raise Exception(msg)
+
+        filenames = pd.read_html(response.text)[0].Name.dropna()
+        buoys = _parse_filenames(parameter, filenames)
+
+        available_data = buoys.copy(deep=True)
+
+        # Set year to numeric (makes year key non-unique)
+        available_data['year'] = available_data.year.str.strip('b')
+        available_data['year'] = pd.to_numeric(
+            available_data.year.str.strip('_old'))
+
+        if isinstance(buoy_number, str):
+            available_data = available_data[available_data.id == buoy_number]
+        elif isinstance(buoy_number, list):
+            available_data = available_data[available_data.id ==
+                                            buoy_number[0]]
+            for i in range(1, len(buoy_number)):
+                data = available_data[available_data.id == buoy_number[i]]
+                available_data = available_data.append(data)
+        # Cache the result
+        handle_caching(hash_params, cache_dir, data=available_data)
     else:
-        response = requests.get(ndbc_data, proxies=proxy)
-
-    status = response.status_code
-    if status != 200:
-        msg = f"request.get{ndbc_data} failed by returning code of {status}"
-        raise Exception(msg)
-
-    filenames = pd.read_html(response.text)[0].Name.dropna()
-    buoys = _parse_filenames(parameter, filenames)
-
-    available_data = buoys.copy(deep=True)
-
-    # Set year to numeric (makes year key non-unique)
-    available_data['year'] = available_data.year.str.strip('b')
-    available_data['year'] = pd.to_numeric(
-        available_data.year.str.strip('_old'))
-
-    if isinstance(buoy_number, str):
-        available_data = available_data[available_data.id == buoy_number]
-    elif isinstance(buoy_number, list):
-        available_data = available_data[available_data.id == buoy_number[0]]
-        for i in range(1, len(buoy_number)):
-            data = available_data[available_data.id == buoy_number[i]]
-            available_data = available_data.append(data)
-
+        available_data = data
     return available_data
 
 
@@ -243,7 +267,7 @@ def _parse_filenames(parameter, filenames):
     return buoys
 
 
-def request_data(parameter, filenames, proxy=None):
+def request_data(parameter, filenames, proxy=None, clear_cache=False):
     '''
     Requests data by filenames and returns a dictionary of DataFrames
     for each filename passed. If filenames for a single buoy are passed
@@ -278,16 +302,19 @@ def request_data(parameter, filenames, proxy=None):
     assert isinstance(filenames, (pd.Series, pd.DataFrame)), (
         'filenames must be of type pd.Series')
     assert isinstance(parameter, str), 'parameter must be a string'
-    assert isinstance(proxy, (dict, type(None))), ('If specified proxy'
-                                                   'must be a dict')
+    assert isinstance(proxy, (dict, type(None))), (
+        'If specified proxy must be a dict')
 
-    supported = _supported_params(parameter)
+    _supported_params(parameter)
     if isinstance(filenames, pd.DataFrame):
         filenames = pd.Series(filenames.squeeze())
     assert len(filenames) > 0, "At least 1 filename must be passed"
 
+    # Define the path to the cache directory
+    cache_dir = os.path.join(os.path.expanduser("~"),
+                             ".cache", "mhkit", "ndbc")
+
     buoy_data = _parse_filenames(parameter, filenames)
-    parameter_url = f'https://www.ndbc.noaa.gov/data/historical/{parameter}'
     ndbc_data = _defaultdict(dict)
 
     for buoy_id in buoy_data['id'].unique():
@@ -295,7 +322,15 @@ def request_data(parameter, filenames, proxy=None):
         years = buoy.year
         filenames = buoy.filename
         for year, filename in zip(years, filenames):
-            file_url = f'{parameter_url}/{filename}'
+            # Create a unique filename based on the function parameters for caching
+            hash_params = f"{buoy_id}_{parameter}_{year}_{filename}"
+            cached_data, _, _ = handle_caching(
+                hash_params, cache_dir, clear_cache_file=clear_cache)
+
+            if cached_data is not None:
+                ndbc_data[buoy_id][year] = cached_data
+                continue
+            file_url = f'https://www.ndbc.noaa.gov/data/historical/{parameter}/{filename}'
             if proxy == None:
                 response = requests.get(file_url)
             else:
@@ -323,7 +358,12 @@ def request_data(parameter, filenames, proxy=None):
             else:
                 ndbc_data[buoy_id][year] = df
 
-    if len(ndbc_data) == 1:
+                # Cache the data after processing it if it exists
+                if year in ndbc_data[buoy_id]:
+                    handle_caching(hash_params, cache_dir,
+                                   data=ndbc_data[buoy_id][year])
+
+    if buoy_id and len(ndbc_data) == 1:
         ndbc_data = ndbc_data[buoy_id]
 
     return ndbc_data
@@ -635,10 +675,7 @@ def parameter_units(parameter=''):
                  'PTIME': 'hhmm',
                  'WDIR': 'degT',
                  'WTIME': 'hhmm',
-                 'GST': 'm/s',
-                 'WVHT': 'm',
                  'DPD': 'sec',
-                 'APD': 'sec',
                  'MWD': 'degT',
                  'ATMP': 'degC',
                  'WTMP': 'degC',

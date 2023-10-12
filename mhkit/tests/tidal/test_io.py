@@ -41,7 +41,7 @@ class TestIO(unittest.TestCase):
 
     def test_load_noaa_data(self):
         """
-        Test that the read_noaa_json function reads data from a 
+        Test that the read_noaa_json function reads data from a
         JSON file and returns a DataFrame and metadata with the
         correct shape and columns.
         """
@@ -53,7 +53,7 @@ class TestIO(unittest.TestCase):
     def test_request_noaa_data_basic(self):
         """
         Test the request_noaa_data function with basic input parameters
-        and verify that the returned DataFrame and metadata have the 
+        and verify that the returned DataFrame and metadata have the
         correct shape and columns.
         """
         data, metadata = tidal.io.noaa.request_noaa_data(
@@ -74,7 +74,7 @@ class TestIO(unittest.TestCase):
         and can be loaded back into a dictionary.
         """
         test_json_file = 'test_noaa_data.json'
-        data, metadata = tidal.io.noaa.request_noaa_data(
+        _, _ = tidal.io.noaa.request_noaa_data(
             station='s08010',
             parameter='currents',
             start_date='20180101',
@@ -90,9 +90,9 @@ class TestIO(unittest.TestCase):
         os.remove(test_json_file)  # Clean up the test JSON file
 
         self.assertIn('metadata', loaded_data)
-        self.assertIn('s', loaded_data)
-        self.assertIn('d', loaded_data)
-        self.assertIn('b', loaded_data)
+        self.assertIn('s', loaded_data['columns'])
+        self.assertIn('d', loaded_data['columns'])
+        self.assertIn('b', loaded_data['columns'])
 
     def test_request_noaa_data_invalid_dates(self):
         """
@@ -111,7 +111,7 @@ class TestIO(unittest.TestCase):
 
     def test_request_noaa_data_end_before_start(self):
         """
-        Test the request_noaa_data function with the end date before 
+        Test the request_noaa_data function with the end date before
         the start date and verify that it raises a ValueError.
         """
         with self.assertRaises(ValueError):
