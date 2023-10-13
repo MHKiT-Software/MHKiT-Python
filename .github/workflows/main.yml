@@ -248,6 +248,7 @@ jobs:
     steps:
       - name: Log job results
         run: |
+          always() &&
           echo conda-build result: ${{ needs.conda-build.result }}
           echo pip-build result: ${{ needs.pip-build.result }}
           echo hindcast-calls result: ${{ needs.hindcast-calls.result }}
@@ -256,6 +257,7 @@ jobs:
     name: Indicate completion to coveralls.io
     needs: [conda-build, pip-build, hindcast-calls]
     if: |
+      always() &&
       needs.conda-build.result == 'success' &&
       needs.pip-build.result == 'success' &&
       (needs.hindcast-calls.result == 'success' || needs.hindcast-calls.result == 'skipped')
