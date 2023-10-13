@@ -241,18 +241,6 @@ jobs:
           COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
           COVERALLS_PARALLEL: true
 
-  log:
-    needs: [conda-build, pip-build, hindcast-calls]
-    runs-on: ubuntu-latest
-    container: python:3-slim
-    steps:
-      - name: Log job results
-        run: |
-          always() &&
-          echo conda-build result: ${{ needs.conda-build.result }}
-          echo pip-build result: ${{ needs.pip-build.result }}
-          echo hindcast-calls result: ${{ needs.hindcast-calls.result }}
-
   coveralls:
     name: Indicate completion to coveralls.io
     needs: [conda-build, pip-build, hindcast-calls]
