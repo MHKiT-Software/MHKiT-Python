@@ -10,7 +10,33 @@ on:
       - master
       - develop
 jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      wave_io_hindcast_changed: ${{ steps.changes.outputs.wave_io_hindcast }}
+      should-run-hindcast: ${{ steps.hindcast-logic.outputs.should-run-hindcast }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Check for changes in wave/io/hindcast
+        id: changes
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            wave_io_hindcast:
+              - 'mhkit/tests/wave/io/hindcast/**'
+
+      - id: hindcast-logic
+        run: |
+          if [[ "${{ github.event.pull_request.base.ref }}" == "master" || "${{ steps.changes.outputs.wave_io_hindcast }}" == "true" ]]; then
+            echo "::set-output name=should-run-hindcast::true"
+          else
+            echo "::set-output name=should-run-hindcast::false"
+          fi
+
   prepare-cache:
+    needs: [check-changes]
     runs-on: ubuntu-latest
     env:
       PYTHON_VER: 3.9
@@ -41,11 +67,16 @@ jobs:
 
       - name: Prepare data
         run: |
-          # pytest tests/test_specific_file.py::TestClass::test_function
           source activate TEST
           pytest mhkit/tests/river/test_io.py
           pytest mhkit/tests/tidal/test_io.py
           pytest mhkit/tests/wave/io/test_cdip.py
+
+      - name: Prepare Hindcast data
+        if: (needs.check-changes.outputs.should-run-hindcast == 'true')
+        run: |
+          # pytest tests/test_specific_file.py::TestClass::test_function
+          source activate TEST
           pytest mhkit/tests/wave/io/hindcast/test_hindcast.py
           pytest mhkit/tests/wave/io/hindcast/test_wind_toolkit.py
 
@@ -158,7 +189,9 @@ jobs:
 
   hindcast-calls:
     name: hindcast-${{ matrix.os }}/${{ matrix.python-version }}
-    needs: [prepare-cache]
+    needs: [check-changes, prepare-cache]
+    if: (needs.check-changes.outputs.should-run-hindcast == 'true')
+
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 1
@@ -211,6 +244,11 @@ jobs:
   coveralls:
     name: Indicate completion to coveralls.io
     needs: [conda-build, pip-build, hindcast-calls]
+    if: |
+      always() &&
+      needs.conda-build.result == 'success' &&
+      needs.pip-build.result == 'success' &&
+      (needs.hindcast-calls.result == 'success' || needs.hindcast-calls.result == 'skipped')
     runs-on: ubuntu-latest
     container: python:3-slim
     steps:
