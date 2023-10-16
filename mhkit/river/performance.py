@@ -20,7 +20,7 @@ def circular(diameter):
     assert isinstance(diameter, (int,float)), 'diameter must be of type int or float'
     
     equivalent_diameter = diameter
-    projected_capture_area = 4.*np.pi*(equivalent_diameter**2.) 
+    projected_capture_area = (1/4)*np.pi*(equivalent_diameter**2) 
     
     return equivalent_diameter, projected_capture_area
 
@@ -44,7 +44,7 @@ def ducted(duct_diameter):
     assert isinstance(duct_diameter, (int,float)), 'duct_diameter must be of type int or float'
     
     equivalent_diameter = duct_diameter
-    projected_capture_area = 4.*np.pi*(equivalent_diameter**2.) 
+    projected_capture_area = (1/4)*np.pi*(equivalent_diameter**2) 
 
     return equivalent_diameter, projected_capture_area
 

@@ -109,8 +109,8 @@ def epoch2date(ep_time, offset_hr=0, to_str=False):
     Notes
     -----
     The specific time instance is set during deployment, usually sync'd to the
-    deployment computer. The time seen by |dlfn| is in the timezone of the 
-    deployment computer, which is unknown to |dlfn|.
+    deployment computer. The time seen by DOLfYN is in the timezone of the 
+    deployment computer, which is unknown to DOLfYN.
     """
 
     try:

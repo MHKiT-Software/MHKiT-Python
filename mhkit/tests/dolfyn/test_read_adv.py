@@ -12,20 +12,18 @@ assert_allclose = tb.assert_allclose
 dat = load('vector_data01')
 dat_imu = load('vector_data_imu01')
 dat_imu_json = load('vector_data_imu01-json')
-dat_burst = load('burst_mode01')
+dat_burst = load('vector_burst_mode01')
 
 
 class io_adv_testcase(unittest.TestCase):
     def test_io_adv(self):
         nens = 100
-        td = tb.drop_config(read('vector_data01.VEC', nens=nens))
-        tdm = tb.drop_config(read('vector_data_imu01.VEC', userdata=False,
-                                  nens=nens))
-        tdb = tb.drop_config(read('vector_burst_mode01.VEC', nens=nens))
-        tdm2 = tb.drop_config(read('vector_data_imu01.VEC',
-                                   userdata=tb.exdt(
-                                       'vector_data_imu01.userdata.json'),
-                                   nens=nens))
+        td = read('vector_data01.VEC', nens=nens)
+        tdm = read('vector_data_imu01.VEC', userdata=False, nens=nens)
+        tdb = read('vector_burst_mode01.VEC', nens=nens)
+        tdm2 = read('vector_data_imu01.VEC',
+                    userdata=tb.exdt('vector_data_imu01.userdata.json'),
+                    nens=nens)
 
         # These values are not correct for this data but I'm adding them for
         # test purposes only.
@@ -35,7 +33,7 @@ class io_adv_testcase(unittest.TestCase):
         if make_data:
             save(td, 'vector_data01.nc')
             save(tdm, 'vector_data_imu01.nc')
-            save(tdb, 'burst_mode01.nc')
+            save(tdb, 'vector_burst_mode01.nc')
             save(tdm2, 'vector_data_imu01-json.nc')
             return
 
