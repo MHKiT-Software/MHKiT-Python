@@ -180,7 +180,9 @@ jobs:
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             brew install tcl-tk
           elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            choco install active-tcl -y
+            curl -L -O https://downloads.activestate.com/ActiveTcl/releases/8.6.10.0/ActiveTcl-8.6.10.0-MSWin32-x86_64-403863.exe
+            ./ActiveTcl-8.6.10.0-MSWin32-x86_64-403863.exe /quiet InstallDir=C:\Tcl
+            echo "C:\Tcl\bin" >> $GITHUB_PATH
           fi
 
       - name: Update and install packages
