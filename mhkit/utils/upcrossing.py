@@ -2,7 +2,7 @@
 Upcrossing Analysis Functions
 =============================
 This module contains a collection of functions that facilitate upcrossing 
-analyes.
+analyses.
 
 Key Functions:
 --------------

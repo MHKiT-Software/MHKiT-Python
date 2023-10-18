@@ -3,7 +3,7 @@ import pandas as pd
 from scipy import stats
 from scipy import optimize
 from mhkit.wave.resource import frequency_moment
-import mhkit.qc.upcrossing  as upcrossing
+import mhkit.utils.upcrossing  as upcrossing
 
 
 def global_peaks(t, data):
