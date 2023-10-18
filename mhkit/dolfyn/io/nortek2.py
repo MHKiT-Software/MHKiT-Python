@@ -1,9 +1,9 @@
 import numpy as np
-import xarray as xr
 from struct import unpack, calcsize
 import warnings
 from pathlib import Path
 import logging
+import json
 
 from . import nortek2_defs as defs
 from . import nortek2_lib as lib
@@ -45,7 +45,7 @@ def read_signature(filename, userdata=True, nens=None, rebuild_index=False,
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
         filepath = Path(filename)
-        logfile = filepath.with_suffix('.log')
+        logfile = filepath.with_suffix('.dolfyn.log')
         logging.basicConfig(filename=str(logfile),
                             filemode='w',
                             level=logging.NOTSET,
@@ -83,7 +83,7 @@ def read_signature(filename, userdata=True, nens=None, rebuild_index=False,
                           "extrapolating them. To identify which values were filled later, "
                           "look for 0 values in 'status{}'".format(ky, tag))
             tdat = _fill_time_gaps(tdat, sample_rate_hz=out['attrs']['fs'])
-        coords[ky] = epoch2dt64(tdat).astype('datetime64[us]')
+        coords[ky] = epoch2dt64(tdat).astype('datetime64[ns]')
 
     declin = None
     for nm in userdata:
@@ -97,14 +97,16 @@ def read_signature(filename, userdata=True, nens=None, rebuild_index=False,
     ds = _set_coords(ds, ref_frame=ds.coord_sys)
 
     if 'orientmat' not in ds:
-        omat = _euler2orient(ds['heading'], ds['pitch'], ds['roll'])
-        ds['orientmat'] = xr.DataArray(omat,
-                                       coords={'earth': ['E', 'N', 'U'],
-                                               'inst': ['X', 'Y', 'Z'],
-                                               'time': ds['time']},
-                                       dims=['earth', 'inst', 'time'])
+        ds['orientmat'] = _euler2orient(
+            ds['time'], ds['heading'], ds['pitch'], ds['roll'])
+
     if declin is not None:
         set_declination(ds, declin, inplace=True)
+
+    # Convert config dictionary to json string
+    for key in list(ds.attrs.keys()):
+        if 'config' in key:
+            ds.attrs[key] = json.dumps(ds.attrs[key])
 
     # Close handler
     if debug:
@@ -119,6 +121,7 @@ class _Ad2cpReader():
     def __init__(self, fname, endian=None, bufsize=None, rebuild_index=False,
                  debug=False):
         self.fname = fname
+        self.debug = debug
         self._check_nortek(endian)
         self.f.seek(0, 2)  # Seek to end
         self._eof = self.f.tell()
@@ -229,6 +232,8 @@ class _Ad2cpReader():
             outdat[ky] = self._burst_readers[ky].init_data(n)
             outdat[ky]['ensemble'] = ens
             outdat[ky]['units'] = self._burst_readers[ky].data_units()
+            outdat[ky]['long_name'] = self._burst_readers[ky].data_longnames()
+            outdat[ky]['standard_name'] = self._burst_readers[ky].data_stdnames()
         return outdat
 
     def _read_hdr(self, do_cs=False):
@@ -268,7 +273,7 @@ class _Ad2cpReader():
             except IOError:
                 return outdat
             id = hdr['id']
-            if id in [21, 23, 24, 28]:  # vel, bt, vel_b5, echo
+            if id in [21, 22, 23, 24, 28]:  # vel, bt, vel_b5, echo
                 self._read_burst(id, outdat[id], c)
             elif id in [26]:  # alt_raw (altimeter burst)
                 rdr = self._burst_readers[26]
@@ -309,8 +314,8 @@ class _Ad2cpReader():
                 outdat[id]['ensemble'][c26] = c
                 c26 += 1
 
-            elif id in [22, 27, 29, 30, 31, 35, 36]:  # avg record, bt record,
-                # DVL, alt record, avg alt_raw record, raw echo, raw echo transmit
+            elif id in [27, 29, 30, 31, 35, 36]:  # bt record, DVL,
+                # alt record, avg alt_raw record, raw echo, raw echo transmit
                 if self.debug:
                     logging.debug(
                         "Skipped ID: 0x{:02X} ({:02d})\n".format(id, id))
@@ -382,19 +387,22 @@ class _Ad2cpReader():
 
 
 def _reorg(dat):
-    """This function grabs the data from the dictionary of data types
+    """
+    This function grabs the data from the dictionary of data types
     (organized by ID), and combines them into a single dictionary.
     """
+
     outdat = {'data_vars': {}, 'coords': {}, 'attrs': {},
-              'units': {}, 'sys': {}, 'altraw': {}}
+              'units': {}, 'long_name': {}, 'standard_name': {},
+              'sys': {}, 'altraw': {}}
     cfg = outdat['attrs']
     cfh = cfg['filehead_config'] = dat['filehead_config']
     cfg['inst_model'] = (cfh['ID'].split(',')[0][5:-1])
     cfg['inst_make'] = 'Nortek'
     cfg['inst_type'] = 'ADCP'
-    cfg['rotate_vars'] = ['vel', ]
 
-    for id, tag in [(21, ''), (23, '_bt'), (24, '_b5'), (26, '_ast'), (28, '_echo')]:
+    for id, tag in [(21, ''), (22, '_avg'), (23, '_bt'), 
+                    (24, '_b5'), (26, '_ast'), (28, '_echo')]:
         if id in [24, 26]:
             collapse_exclude = [0]
         else:
@@ -403,6 +411,11 @@ def _reorg(dat):
             continue
         dnow = dat[id]
         outdat['units'].update(dnow['units'])
+        outdat['long_name'].update(dnow['long_name'])
+        for ky in dnow['units']:
+            if not dnow['standard_name'][ky]:
+                dnow['standard_name'].pop(ky)
+        outdat['standard_name'].update(dnow['standard_name'])
         cfg['burst_config' + tag] = lib._headconfig_int2dict(
             lib._collapse(dnow['config'], exclude=collapse_exclude,
                           name='config'))
@@ -437,6 +450,8 @@ def _reorg(dat):
             if 'ensemble' in ky:
                 outdat['data_vars'][ky + tag] += 1
                 outdat['units'][ky + tag] = '#'
+                outdat['long_name'][ky + tag] = 'Ensemble Number'
+                outdat['standard_name'][ky + tag] = 'number_of_observations'
 
         for ky in ['vel', 'amp', 'corr', 'prcnt_gd', 'echo', 'dist',
                    'orientmat', 'angrt', 'quaternions', 'ast_pressure',
@@ -511,9 +526,15 @@ def _reorg(dat):
     [outdat['data_vars'].pop(var) for var in status0_vars]
 
     # Set coordinate system
+    if 21 not in dat:
+        cfg['rotate_vars'] = []
+        cy = cfg['coord_sys_axes_avg']
+    else:
+        cfg['rotate_vars'] = ['vel', ]
+        cy = cfg['coord_sys_axes']
     outdat['attrs']['coord_sys'] = {'XYZ': 'inst',
                                     'ENU': 'earth',
-                                    'beam': 'beam'}[cfg['coord_sys_axes']]
+                                    'beam': 'beam'}[cy]
 
     # Copy appropriate vars to rotate_vars
     for ky in ['accel', 'angrt', 'mag']:
@@ -522,6 +543,8 @@ def _reorg(dat):
                 outdat['attrs']['rotate_vars'].append(dky)
     if 'vel_bt' in outdat['data_vars']:
         outdat['attrs']['rotate_vars'].append('vel_bt')
+    if 'vel_avg' in outdat['data_vars']:
+        outdat['attrs']['rotate_vars'].append('vel_avg')
 
     return outdat
 
@@ -532,6 +555,7 @@ def _reduce(data):
     --- from different data structures within the same ensemble --- by
     averaging.
     """
+    
     dv = data['data_vars']
     dc = data['coords']
     da = data['attrs']
@@ -545,9 +569,21 @@ def _reduce(data):
     for ky in ['heading', 'pitch', 'roll']:
         lib._reduce_by_average_angle(dv, ky, ky + '_b5')
 
-    dc['range'] = ((np.arange(dv['vel'].shape[1])+1) *
-                   da['cell_size'] +
-                   da['blank_dist'])
+    if 'vel' in dv:
+        dc['range'] = ((np.arange(dv['vel'].shape[1])+1) *
+                    da['cell_size'] +
+                    da['blank_dist'])
+        da['fs'] = da['filehead_config']['BURST']['SR']
+        tmat = da['filehead_config']['XFBURST']
+    if 'vel_avg' in dv:
+        dc['range_avg'] = ((np.arange(dv['vel_avg'].shape[1])+1) *
+                    da['cell_size_avg'] +
+                    da['blank_dist_avg'])
+        dv['orientmat'] = dv.pop('orientmat_avg')
+        tmat = da['filehead_config']['XFAVG']
+        da['fs'] = da['filehead_config']['PLAN']['MIAVG']
+        da['avg_interval_sec'] = da['filehead_config']['AVG']['AI']
+        da['bandwidth'] = da['filehead_config']['AVG']['BW']
     if 'vel_b5' in dv:
         dc['range_b5'] = ((np.arange(dv['vel_b5'].shape[1])+1) *
                           da['cell_size_b5'] +
@@ -566,10 +602,19 @@ def _reduce(data):
     else:
         da['has_imu'] = 0
 
-    da['fs'] = da['filehead_config']['BURST'].pop('SR')
-    tmat = da['filehead_config'].pop('XFBURST')
+    theta = da['filehead_config']['BEAMCFGLIST'][0]
+    if 'THETA=' in theta:
+        da['beam_angle'] = int(theta[13:15])
+    
     tm = np.zeros((tmat['ROWS'], tmat['COLS']), dtype=np.float32)
     for irow in range(tmat['ROWS']):
         for icol in range(tmat['COLS']):
             tm[irow, icol] = tmat['M' + str(irow + 1) + str(icol + 1)]
     dv['beam2inst_orientmat'] = tm
+
+    # If burst velocity isn't used, need to copy one for 'time'
+    if 'time' not in dc:
+        for val in dc:
+            if 'time' in val:
+                time = val
+        dc['time'] = dc[time]

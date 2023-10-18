@@ -81,7 +81,7 @@ class TestWINDToolkit(unittest.TestCase):
     def tearDownClass(self):
         pass
 
-    ## WIND Toolkit data
+    # WIND Toolkit data
     def test_multi_year(self):
         data_type = '1-hour'
         years = [2018,2019]

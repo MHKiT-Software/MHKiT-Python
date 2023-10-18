@@ -32,12 +32,11 @@ class TestResourceSpectrum(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        omega = np.arange(0.1,3.5,0.01)
-        self.f = omega/(2*np.pi)
+        Trep = 600
+        df = 1 / Trep
+        self.f = np.arange(0, 1, df)
         self.Hs = 2.5
         self.Tp = 8
-        df = self.f[1] - self.f[0]
-        Trep = 1/df
         self.t = np.arange(0, Trep, 0.05)
 
     @classmethod
@@ -55,6 +54,17 @@ class TestResourceSpectrum(unittest.TestCase):
         self.assertLess(errorHm0, 0.01)
         self.assertLess(errorTp0, 0.01)
 
+    def test_pierson_moskowitz_spectrum_zero_freq(self):
+        df = 0.1
+        f_zero = np.arange(0, 1, df)
+        f_nonzero = np.arange(df, 1, df)
+
+        S_zero = wave.resource.pierson_moskowitz_spectrum(f_zero, self.Tp, self.Hs)
+        S_nonzero = wave.resource.pierson_moskowitz_spectrum(f_nonzero, self.Tp, self.Hs)
+
+        self.assertEqual(S_zero.values.squeeze()[0], 0.0)
+        self.assertGreater(S_nonzero.values.squeeze()[0], 0.0)
+
     def test_jonswap_spectrum(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
         Hm0 = wave.resource.significant_wave_height(S).iloc[0,0]
@@ -65,6 +75,17 @@ class TestResourceSpectrum(unittest.TestCase):
 
         self.assertLess(errorHm0, 0.01)
         self.assertLess(errorTp0, 0.01)
+
+    def test_jonswap_spectrum_zero_freq(self):
+        df = 0.1
+        f_zero = np.arange(0, 1, df)
+        f_nonzero = np.arange(df, 1, df)
+
+        S_zero = wave.resource.jonswap_spectrum(f_zero, self.Tp, self.Hs)
+        S_nonzero = wave.resource.jonswap_spectrum(f_nonzero, self.Tp, self.Hs)
+
+        self.assertEqual(S_zero.values.squeeze()[0], 0.0)
+        self.assertGreater(S_nonzero.values.squeeze()[0], 0.0)
 
     def test_surface_elevation_phases_np_and_pd(self):
         S0 = wave.resource.jonswap_spectrum(self.f,self.Tp,self.Hs)
@@ -128,6 +149,14 @@ class TestResourceSpectrum(unittest.TestCase):
         rmse_sum = (np.sum(rmse)/len(rmse))**0.5
 
         self.assertLess(rmse_sum, 0.02)
+
+    def test_ifft_sum_of_sines(self):
+        S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
+
+        eta_ifft = wave.resource.surface_elevation(S, self.t, seed=1, method='ifft')
+        eta_sos = wave.resource.surface_elevation(S, self.t, seed=1, method='sum_of_sines')
+
+        assert_allclose(eta_ifft, eta_sos)     
 
     def test_plot_spectrum(self):
         filename = abspath(join(plotdir, 'wave_plot_spectrum.png'))
