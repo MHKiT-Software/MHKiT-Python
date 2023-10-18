@@ -171,6 +171,17 @@ jobs:
           name: data
           path: ~/.cache/mhkit
 
+      - name: Install Tcl/Tk
+        run: |
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y tk
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            brew install tcl-tk
+          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            choco install active-tcl -y
+          fi
+
       - name: Update and install packages
         run: |
           python -m pip install --upgrade pip wheel
