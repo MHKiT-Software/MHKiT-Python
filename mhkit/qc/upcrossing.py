@@ -22,19 +22,7 @@ Key Functions:
   
 Dependencies:
 -------------
-- rex: Library to handle renewable energy datasets.
-- pandas: Data manipulation and analysis.
-- os, hashlib, pickle: Used for caching functionality.
-- matplotlib: Used for plotting.
-
-Notes:
-------
-- To access the WIND Toolkit hindcast data, users need to configure `h5pyd` 
-  for data access on HSDS (see the WTK_hindcast_example notebook for more details).
-
-- While some functions perform basic checks (e.g., verifying that latitude 
-  and longitude are within a predefined region), it's essential to understand 
-  the boundaries of each region and the available parameters and elevations in the dataset.
+- numpy: Data analysis
   
 Author: 
 -------
