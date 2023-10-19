@@ -277,7 +277,7 @@ def automatic_hs_threshold(
             range_min = thresholds[max_i-1]
             range_max = thresholds[max_i+1]
 
-    best_threshold_unit = stats.scoreatpercentile(peaks, 100*best_threshold)
+    best_threshold_unit = np.percentile(peaks, 100*best_threshold, method='hazen')
     return best_threshold, best_threshold_unit
 
 
