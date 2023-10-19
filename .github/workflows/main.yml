@@ -148,6 +148,8 @@ jobs:
     name: pip-${{ matrix.os }}/${{ matrix.python-version }}
     needs: [prepare-cache]
     runs-on: ${{ matrix.os }}
+    container:
+      image: continuumio/miniconda3:latest
     strategy:
       fail-fast: false
       matrix:
@@ -155,12 +157,12 @@ jobs:
         python-version: [3.8, 3.9]
 
     steps:
-      - uses: conda-incubator/setup-miniconda@v2
+      # - uses: conda-incubator/setup-miniconda@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
+      # - name: Set up Python ${{ matrix.python-version }}
+      #   uses: actions/setup-python@v2
+      #   with:
+      #     python-version: ${{ matrix.python-version }}
 
       - name: Set up Git repository
         uses: actions/checkout@v2
@@ -170,20 +172,6 @@ jobs:
         with:
           name: data
           path: ~/.cache/mhkit
-
-      - name: Install Tcl/Tk
-        shell: bash
-        run: |
-          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            sudo apt-get update
-            sudo apt-get install -y tk
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            brew install tcl-tk
-          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            curl -L -O https://downloads.activestate.com/ActiveTcl/releases/8.6.10.0/ActiveTcl-8.6.10.0-MSWin32-x86_64-403863.exe
-            ./ActiveTcl-8.6.10.0-MSWin32-x86_64-403863.exe /quiet InstallDir=C:\Tcl
-            echo "C:\Tcl\bin" >> $GITHUB_PATH
-          fi
 
       - name: Update and install packages
         run: |
