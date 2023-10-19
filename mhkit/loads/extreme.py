@@ -211,7 +211,7 @@ def automatic_hs_threshold(
     years = len(peaks)/(365.25*24/sampling_rate)
 
     def _peaks_over_threshold(peaks, threshold, sampling_rate):
-        threshold_unit = stats.scoreatpercentile(peaks, 100*threshold)
+        threshold_unit = np.percentile(peaks, 100*threshold, method='hazen')
         idx_peaks = np.arange(len(peaks))
         idx_storm_peaks, storm_peaks = global_peaks(
             idx_peaks, peaks-threshold_unit)
@@ -237,10 +237,10 @@ def automatic_hs_threshold(
         for idx in idx_storm_peaks[1:]:
             if (idx - idx_independent_storm_peaks[-1]) > window:
                 idx_independent_storm_peaks.append(idx)
-                independent_storm_peaks.append(peaks[idx])
+                independent_storm_peaks.append(peaks[idx]-threshold_unit)
             elif peaks[idx] > independent_storm_peaks[-1]:
                 idx_independent_storm_peaks[-1] = idx
-                independent_storm_peaks[-1] = peaks[idx]
+                independent_storm_peaks[-1] = peaks[idx]-threshold_unit
 
         return independent_storm_peaks
 
@@ -277,7 +277,7 @@ def automatic_hs_threshold(
             range_min = thresholds[max_i-1]
             range_max = thresholds[max_i+1]
 
-    best_threshold_unit = stats.scoreatpercentile(peaks, 100*best_threshold)
+    best_threshold_unit = np.percentile(peaks, 100*best_threshold, method='hazen')
     return best_threshold, best_threshold_unit
 
 
