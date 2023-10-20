@@ -199,12 +199,17 @@ def automatic_hs_threshold(
     best_threshold: float
         Threshold that results in the best correlation.
     """
-    assert isinstance(sampling_rate, (float, int)), (
-        'sampling_rate must be of type float')
-    assert isinstance(peaks, np.ndarray), 'peaks must be of type np.ndarray'
-    assert len(initial_threshold_range) == 3, (
-        'initial_threshold_range must be length 3')
-    assert isinstance(max_refinement, int)
+    if not isinstance(sampling_rate, (float, int)):
+        raise TypeError('sampling_rate must be of type float or int')
+    
+    if not isinstance(peaks, np.ndarray):
+        raise TypeError('peaks must be of type np.ndarray')
+    
+    if not len(initial_threshold_range) == 3:
+        raise ValueError('initial_threshold_range must be length 3')
+    
+    if not isinstance(max_refinement, int):
+        raise TypeError('max_refinement must be of type int')
 
     range_min, range_max, range_step = initial_threshold_range
     best_threshold = -1
