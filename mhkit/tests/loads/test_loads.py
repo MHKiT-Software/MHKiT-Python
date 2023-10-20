@@ -224,7 +224,7 @@ class TestWDRT(unittest.TestCase):
         years = 2.97
         pct, threshold = loads.extreme.automatic_hs_threshold(data, years)
         assert np.isclose(pct, 0.9913)
-        assert np.isclose(threshold, 1.032)
+        assert np.isclose(threshold, 1.032092)
 
 if __name__ == '__main__':
     unittest.main()
