@@ -386,7 +386,9 @@ def create_points(x, y, waterdepth):
     return points 
 
 
-def variable_interpolation(data, variables, points='cells', edges= 'none'):
+def variable_interpolation(data, variables, points='cells', edges= 'none', 
+                           x_max_lim= float('inf'), x_min_lim= float('-inf'),
+                           y_max_lim= float('inf'), y_min_lim= float('-inf')):
     '''
     Interpolate multiple variables from the Delft3D onto the same points. 
 
@@ -424,8 +426,13 @@ def variable_interpolation(data, variables, points='cells', edges= 'none'):
 
     data_raw = {}
     for var in variables:
-        var_data_df = get_all_data_points(data, var,time_index=-1)   
-        var_data_df=var_data_df.loc[:,~var_data_df.T.duplicated(keep='first')]        
+        var_data_df = get_all_data_points(data, var,time_index=-1)  
+        var_data_df['depth']=var_data_df.waterdepth-var_data_df.waterlevel #added
+        var_data_df=var_data_df.loc[:,~var_data_df.T.duplicated(keep='first')]
+        var_data_df=var_data_df[var_data_df.x > x_min_lim]
+        var_data_df=var_data_df[var_data_df.x < x_max_lim] 
+        var_data_df=var_data_df[var_data_df.y > y_min_lim]
+        var_data_df=var_data_df[var_data_df.y < y_max_lim]
         data_raw[var] = var_data_df 
     if type(points) == pd.DataFrame:  
         print('points provided')
@@ -437,7 +444,7 @@ def variable_interpolation(data, variables, points='cells', edges= 'none'):
     transformed_data= points.copy(deep=True)
     
     for var in variables :    
-        transformed_data[var] = interp.griddata(data_raw[var][['x','y','waterdepth']],
+        transformed_data[var] = interp.griddata(data_raw[var][['x','y','waterdepth']], #waterdepth to depth 
                                         data_raw[var][var], points[['x','y','waterdepth']])
         if edges == 'nearest' :
             idx= np.where(np.isnan(transformed_data[var]))
