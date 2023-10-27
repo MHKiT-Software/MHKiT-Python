@@ -13,7 +13,7 @@ jobs:
   set-os:
     runs-on: ubuntu-latest
     outputs:
-      matrix_os: ${{ steps.set-matrix.outputs.os }}
+      matrix_os: ${{ steps.set-matrix.outputs.matrix_os }}
     steps:
       - id: set-matrix
         run: |
