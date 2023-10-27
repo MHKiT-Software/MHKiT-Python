@@ -18,9 +18,9 @@ jobs:
       - id: set-matrix
         run: |
           if [[ "${{ github.base_ref }}" == "develop" ]]; then
-            echo "os=[\"ubuntu-latest\"]" >> $GITHUB_ENV
+            echo "matrix_os=[\"ubuntu-latest\"]" >> $GITHUB_OUTPUT          
           else
-            echo "os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_ENV
+            echo "matrix_os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_OUTPUT
           fi
 
   check-changes:
@@ -43,9 +43,9 @@ jobs:
       - id: hindcast-logic
         run: |
           if [[ "${{ github.event.pull_request.base.ref }}" == "master" || "${{ steps.changes.outputs.wave_io_hindcast }}" == "true" ]]; then
-            echo "should-run-hindcast=true" >> $GITHUB_ENV
+            echo "should-run-hindcast=true" >> "$GITHUB_OUTPUT"
           else
-            echo "should-run-hindcast=false" >> $GITHUB_ENV
+            echo "should-run-hindcast=false" >> "$GITHUB_OUTPUT"
           fi
 
   prepare-cache:
