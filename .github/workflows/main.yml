@@ -106,7 +106,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{needs.set-os.outputs.matrix_os}}
+        os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
         python-version: ["3.8", "3.9", "3.10", "3.11"]
     env:
       PYTHON_VER: ${{ matrix.python-version }}
@@ -164,7 +164,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{needs.set-os.outputs.matrix_os}}
+        os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
         python-version: ["3.8", "3.9", "3.10", "3.11"]
 
     steps:
@@ -210,7 +210,7 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        os: ${{needs.set-os.outputs.matrix_os}}
+        os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
         python-version: [3.8, 3.9, 3.10, 3.11]
 
     steps:
