@@ -10,6 +10,19 @@ on:
       - master
       - develop
 jobs:
+  set-os:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix_os: ${{ steps.set-matrix.outputs.os }}
+    steps:
+      - id: set-matrix
+        run: |
+          if [[ "${{ github.base_ref }}" == "develop" ]]; then
+            echo "::set-output name=os::[\"ubuntu-latest\"]"
+          else
+            echo "::set-output name=os::[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]"
+          fi
+
   check-changes:
     runs-on: ubuntu-latest
     outputs:
@@ -88,12 +101,12 @@ jobs:
 
   conda-build:
     name: conda-${{ matrix.os }}/${{ matrix.python-version }}
-    needs: [prepare-cache]
+    needs: [set-os, prepare-cache]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
+        os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
         python-version: ["3.8", "3.9", "3.10", "3.11"]
     env:
       PYTHON_VER: ${{ matrix.python-version }}
@@ -146,12 +159,12 @@ jobs:
 
   pip-build:
     name: pip-${{ matrix.os }}/${{ matrix.python-version }}
-    needs: [prepare-cache]
+    needs: [set-os, prepare-cache]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
+        os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
         python-version: ["3.10"]
 
     steps:
@@ -189,7 +202,7 @@ jobs:
 
   hindcast-calls:
     name: hindcast-${{ matrix.os }}/${{ matrix.python-version }}
-    needs: [check-changes, prepare-cache]
+    needs: [check-changes, prepare-cache, set-os]
     if: (needs.check-changes.outputs.should-run-hindcast == 'true')
 
     runs-on: ${{ matrix.os }}
@@ -197,7 +210,7 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        os: ["windows-latest", "macos-latest", "ubuntu-latest"]
+        os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
         python-version: [3.8, 3.9, 3.10, 3.11]
 
     steps:
