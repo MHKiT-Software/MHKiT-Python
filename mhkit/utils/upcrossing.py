@@ -63,7 +63,7 @@ def upcrossing(t, data):
     Returns
     -------
     inds: np.array
-        Zero crossing indicies
+        Zero crossing indices
     """
     if not isinstance(t, np.ndarray):
         raise TypeError('t must be of type np.ndarray')
@@ -97,7 +97,7 @@ def peaks(t, data, inds=None):
     data: np.array
         Signal time-series.
     inds: np.array
-        Optional indicies for the upcrossing. Useful
+        Optional indices for the upcrossing. Useful
         when using several of the upcrossing methods
         to avoid repeating the upcrossing analysis 
         each time.
@@ -128,7 +128,7 @@ def troughs(t, data, inds=None):
     data: np.array
         Signal time-series.
     inds: np.array
-        Optional indicies for the upcrossing. Useful
+        Optional indices for the upcrossing. Useful
         when using several of the upcrossing methods
         to avoid repeating the upcrossing analysis 
         each time.
@@ -159,7 +159,7 @@ def heights(t, data, inds=None):
     data: np.array
         Signal time-series.
     inds: np.array
-        Optional indicies for the upcrossing. Useful
+        Optional indices for the upcrossing. Useful
         when using several of the upcrossing methods
         to avoid repeating the upcrossing analysis 
         each time.
@@ -189,7 +189,7 @@ def periods(t, data, inds=None):
     data: np.array
         Signal time-series.
     inds: np.array
-        Optional indicies for the upcrossing. Useful
+        Optional indices for the upcrossing. Useful
         when using several of the upcrossing methods
         to avoid repeating the upcrossing analysis 
         each time.
@@ -220,7 +220,7 @@ def custom(t, data, func, inds=None):
         given t[ind1], t[ind2], where ind1 < ind2, correspond
         to the start and end of an upcrossing section.
     inds: np.array
-        Optional indicies for the upcrossing. Useful
+        Optional indices for the upcrossing. Useful
         when using several of the upcrossing methods
         to avoid repeating the upcrossing analysis 
         each time.

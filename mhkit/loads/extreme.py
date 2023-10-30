@@ -3,7 +3,7 @@ import pandas as pd
 from scipy import stats
 from scipy import optimize
 from mhkit.wave.resource import frequency_moment
-import mhkit.utils.upcrossing  as upcrossing
+from mhkit.utils import upcrossing, custom
 
 
 def global_peaks(t, data):
@@ -31,7 +31,7 @@ def global_peaks(t, data):
     assert isinstance(data, np.ndarray), 'data must be of type np.ndarray'
 
     # Find zero up-crossings
-    inds = upcrossing.upcrossing(t, data)
+    inds = upcrossing(t, data)
 
     # We also include the final point in the dataset
     inds = np.append(inds, len(data)-1)
@@ -44,7 +44,7 @@ def global_peaks(t, data):
     # starts the zero crossing period, ind1.
     func = lambda ind1, ind2: np.argmax(data[ind1:ind2]) + ind1
 
-    peak_inds = np.array(upcrossing.custom(t, data, func, inds), dtype=int)
+    peak_inds = np.array(custom(t, data, func, inds), dtype=int)
     
     return t[peak_inds], data[peak_inds]
 
