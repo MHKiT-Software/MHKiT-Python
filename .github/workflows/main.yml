@@ -1,4 +1,4 @@
-name: Py 3.8, 3.9 | Windows Mac Linux
+name: Py 3.8, 3.9, 3.10, 3.11 | Windows Mac Linux
 
 on:
   push:
@@ -10,6 +10,19 @@ on:
       - master
       - develop
 jobs:
+  set-os:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix_os: ${{ steps.set-matrix.outputs.matrix_os }}
+    steps:
+      - id: set-matrix
+        run: |
+          if [[ "${{ github.base_ref }}" == "develop" ]]; then
+            echo "matrix_os=[\"ubuntu-latest\"]" >> $GITHUB_OUTPUT          
+          else
+            echo "matrix_os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_OUTPUT
+          fi
+
   check-changes:
     runs-on: ubuntu-latest
     outputs:
@@ -17,7 +30,7 @@ jobs:
       should-run-hindcast: ${{ steps.hindcast-logic.outputs.should-run-hindcast }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Check for changes in wave/io/hindcast
         id: changes
@@ -30,9 +43,9 @@ jobs:
       - id: hindcast-logic
         run: |
           if [[ "${{ github.event.pull_request.base.ref }}" == "master" || "${{ steps.changes.outputs.wave_io_hindcast }}" == "true" ]]; then
-            echo "::set-output name=should-run-hindcast::true"
+            echo "should-run-hindcast=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::set-output name=should-run-hindcast::false"
+            echo "should-run-hindcast=false" >> "$GITHUB_OUTPUT"
           fi
 
   prepare-cache:
@@ -42,7 +55,7 @@ jobs:
       PYTHON_VER: 3.9
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup Conda
         uses: s-weigand/setup-conda@v1
@@ -81,25 +94,25 @@ jobs:
           pytest mhkit/tests/wave/io/hindcast/test_wind_toolkit.py
 
       - name: Upload data as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: data
           path: ~/.cache/mhkit
 
   conda-build:
     name: conda-${{ matrix.os }}/${{ matrix.python-version }}
-    needs: [prepare-cache]
+    needs: [set-os, prepare-cache]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        python-version: [3.8, 3.9]
+        os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
     env:
       PYTHON_VER: ${{ matrix.python-version }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup Conda
         uses: s-weigand/setup-conda@v1
@@ -123,7 +136,7 @@ jobs:
           pip install coverage pytest coveralls .
 
       - name: Download data from artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: data
           path: ~/.cache/mhkit
@@ -146,27 +159,27 @@ jobs:
 
   pip-build:
     name: pip-${{ matrix.os }}/${{ matrix.python-version }}
-    needs: [prepare-cache]
+    needs: [set-os, prepare-cache]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        python-version: [3.8, 3.9]
+        os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
 
     steps:
       - uses: conda-incubator/setup-miniconda@v2
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Set up Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Download data from artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: data
           path: ~/.cache/mhkit
@@ -189,7 +202,7 @@ jobs:
 
   hindcast-calls:
     name: hindcast-${{ matrix.os }}/${{ matrix.python-version }}
-    needs: [check-changes, prepare-cache]
+    needs: [check-changes, prepare-cache, set-os]
     if: (needs.check-changes.outputs.should-run-hindcast == 'true')
 
     runs-on: ${{ matrix.os }}
@@ -197,11 +210,11 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        os: ["windows-latest", "macos-latest", "ubuntu-latest"]
-        python-version: [3.8, 3.9]
+        os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
+        python-version: [3.8, 3.9, 3.10, 3.11]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup Conda
         uses: s-weigand/setup-conda@v1
@@ -218,7 +231,7 @@ jobs:
           pip install -e . --no-deps --force-reinstall
 
       - name: Download data from artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: data
           path: ~/.cache/mhkit
