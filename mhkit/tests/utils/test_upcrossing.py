@@ -1,4 +1,4 @@
-import mhkit.utils.upcrossing as upcrossing
+import mhkit.utils import upcrossing, peaks, troughs, heights, periods, custom
 import unittest
 from numpy.testing import assert_allclose
 import numpy as np
@@ -58,28 +58,28 @@ class TestUpcrossing(unittest.TestCase):
     def test_peaks(self):
         want, _, _, _ = self._example_analysis(self.t, self.signal)
 
-        got = upcrossing.peaks(self.t, self.signal)
+        got = peaks(self.t, self.signal)
 
         assert_allclose(got, want)
 
     def test_troughs(self):
         _, want, _, _ = self._example_analysis(self.t, self.signal)
 
-        got = upcrossing.troughs(self.t, self.signal)
+        got = troughs(self.t, self.signal)
 
         assert_allclose(got, want)
 
     def test_heights(self):
         _, _, want, _ = self._example_analysis(self.t, self.signal)
 
-        got = upcrossing.heights(self.t, self.signal)
+        got = heights(self.t, self.signal)
 
         assert_allclose(got, want)
 
     def test_periods(self):
         _, _, _, want = self._example_analysis(self.t, self.signal)
 
-        got = upcrossing.periods(self.t, self.signal)
+        got = periods(self.t, self.signal)
 
         assert_allclose(got, want, rtol=1e-3, atol=1e-3)
 
@@ -89,54 +89,54 @@ class TestUpcrossing(unittest.TestCase):
         # create a similar function to finding the peaks
         def f(ind1, ind2): return np.max(self.signal[ind1:ind2])
 
-        got = upcrossing.custom(self.t, self.signal, f)
+        got = custom(self.t, self.signal, f)
 
         assert_allclose(got, want)
 
     def test_peaks_with_inds(self):
         want, _, _, _ = self._example_analysis(self.t, self.signal)
 
-        inds = upcrossing.upcrossing(self.t, self.signal)
+        inds = upcrossing(self.t, self.signal)
 
-        got = upcrossing.peaks(self.t, self.signal, inds)
+        got = peaks(self.t, self.signal, inds)
 
         assert_allclose(got, want)
 
     def test_trough_with_inds(self):
         _, want, _, _ = self._example_analysis(self.t, self.signal)
 
-        inds = upcrossing.upcrossing(self.t, self.signal)
+        inds = upcrossing(self.t, self.signal)
 
-        got = upcrossing.troughs(self.t, self.signal, inds)
+        got = troughs(self.t, self.signal, inds)
 
         assert_allclose(got, want)
 
     def test_heights_with_inds(self):
         _, _, want, _ = self._example_analysis(self.t, self.signal)
 
-        inds = upcrossing.upcrossing(self.t, self.signal)
+        inds = upcrossing(self.t, self.signal)
 
-        got = upcrossing.heights(self.t, self.signal, inds)
+        got = heights(self.t, self.signal, inds)
 
         assert_allclose(got, want)
 
     def test_periods_with_inds(self):
         _, _, _, want = self._example_analysis(self.t, self.signal)
 
-        inds = upcrossing.upcrossing(self.t, self.signal)
+        inds = upcrossing(self.t, self.signal)
 
-        got = upcrossing.periods(self.t, self.signal, inds)
+        got = periods(self.t, self.signal, inds)
 
         assert_allclose(got, want, rtol=1e-3, atol=1e-3)
 
     def test_custom_with_inds(self):
         want, _, _, _ = self._example_analysis(self.t, self.signal)
 
-        inds = upcrossing.upcrossing(self.t, self.signal)
+        inds = upcrossing(self.t, self.signal)
 
         # create a similar function to finding the peaks
         def f(ind1, ind2): return np.max(self.signal[ind1:ind2])
 
-        got = upcrossing.custom(self.t, self.signal, f, inds)
+        got = custom(self.t, self.signal, f, inds)
 
         assert_allclose(got, want)
