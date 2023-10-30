@@ -7,8 +7,12 @@ import scipy.stats as stats
 import scipy.interpolate as interp
 import numpy as np
 
+import matplotlib
+mpl_version = tuple(map(int, matplotlib.__version__.split('.')))
 
-### Contours
+# Contours
+
+
 def environmental_contours(x1, x2, sea_state_duration, return_period,
                            method, **kwargs):
     """
@@ -72,7 +76,7 @@ def environmental_contours(x1, x2, sea_state_duration, return_period,
     -------
     copulas: Dictionary
         Dictionary of x1 and x2 copula components for each copula method
-   """
+    """
     try:
         x1 = np.array(x1)
     except:
@@ -112,7 +116,7 @@ def environmental_contours(x1, x2, sea_state_duration, return_period,
     assert isinstance(initial_bin_max_val, (int, float)), (
         'initial_bin_max_val must be of type int or float')
     if bandwidth == None:
-        assert(not 'bivariate_KDE' in method), (
+        assert (not 'bivariate_KDE' in method), (
             'Must specify keyword bandwidth with bivariate KDE method')
 
     if isinstance(method, str):
@@ -145,7 +149,7 @@ def environmental_contours(x1, x2, sea_state_duration, return_period,
     if 'parametric' in classification:
         (para_dist_1, para_dist_2, mean_cond, std_cond) = (
             _copula_parameters(x1, x2, min_bin_count,
-            initial_bin_max_val, bin_val_size))
+                               initial_bin_max_val, bin_val_size))
 
         x_quantile = fit['x_quantile']
         a = para_dist_1[0]
@@ -289,7 +293,7 @@ def PCA_contour(x1, x2, fit, kwargs):
         Calculated x2 values along the contour boundary following
         return to original input orientation.
     fit: dict (optional)
-	    principal component analysis dictionary
+            principal component analysis dictionary
         Keys:
         -----
         'principal_axes': sign corrected PCA axes
@@ -807,7 +811,7 @@ def _gumbel_density(u, alpha):
         Copula density function.
     """
 
-    #Ignore divide by 0 warnings and resulting NaN warnings
+    # Ignore divide by 0 warnings and resulting NaN warnings
     np.seterr(all='ignore')
     v = -np.log(u)
     v = np.sort(v, axis=0)
@@ -818,7 +822,7 @@ def _gumbel_density(u, alpha):
         -nlogC+np.sum((alpha-1) * np.log(v)+v, axis=0) +
         (1-2*alpha)*np.log(nlogC))
     np.seterr(all='warn')
-    return(y)
+    return (y)
 
 
 def _gumbel_copula(x1, x2, fit, component_1, nb_steps, kwargs):
@@ -1551,7 +1555,12 @@ def _bivariate_KDE(x1, x2, bw, fit, nb_steps, Ndata_bivariate_KDE, kwargs):
     x1_bivariate_KDE = []
     x2_bivariate_KDE = []
 
-    for i, seg in enumerate(vals.allsegs[0]):
+    if mpl_version < (3, 8):  # For versions before 3.8
+        segments = vals.allsegs[0]
+    else:
+        segments = [path.vertices for path in vals.get_paths()]
+
+    for seg in segments:
         x1_bivariate_KDE.append(seg[:, 1])
         x2_bivariate_KDE.append(seg[:, 0])
 
@@ -1569,7 +1578,7 @@ def _bivariate_KDE(x1, x2, bw, fit, nb_steps, Ndata_bivariate_KDE, kwargs):
     return x1_bivariate_KDE, x2_bivariate_KDE
 
 
-### Sampling
+# Sampling
 def samples_full_seastate(x1, x2, points_per_interval, return_periods,
                           sea_state_duration, method="PCA", bin_size=250):
     """
@@ -1742,12 +1751,12 @@ def samples_contour(t_samples, t_contour, hs_contour):
     assert isinstance(
         hs_contour, np.ndarray), 'hs_contour must be of type np.ndarray'
 
-    #finds minimum and maximum energy period values
+    # finds minimum and maximum energy period values
     amin = np.argmin(t_contour)
     amax = np.argmax(t_contour)
     aamin = np.min([amin, amax])
     aamax = np.max([amin, amax])
-    #finds points along the contour
+    # finds points along the contour
     w1 = hs_contour[aamin:aamax]
     w2 = np.concatenate((hs_contour[aamax:], hs_contour[:aamin]))
     if (np.max(w1) > np.max(w2)):
@@ -1756,13 +1765,13 @@ def samples_contour(t_samples, t_contour, hs_contour):
     else:
         x1 = np.concatenate((t_contour[aamax:], t_contour[:aamin]))
         y1 = np.concatenate((hs_contour[aamax:], hs_contour[:aamin]))
-    #sorts data based on the max and min energy period values
+    # sorts data based on the max and min energy period values
     ms = np.argsort(x1)
     x = x1[ms]
     y = y1[ms]
-    #interpolates the sorted data
+    # interpolates the sorted data
     si = interp.interp1d(x, y)
-    #finds the wave height based on the user specified energy period values
+    # finds the wave height based on the user specified energy period values
     hs_samples = si(t_samples)
 
     return hs_samples

@@ -40,16 +40,15 @@ class io_adp_testcase(unittest.TestCase):
     def test_io_rdi(self):
         warnings.simplefilter('ignore', UserWarning)
         nens = 100
-        td_rdi = tb.drop_config(read('RDI_test01.000'))
-        td_7f79 = tb.drop_config(read('RDI_7f79.000'))
-        td_rdi_bt = tb.drop_config(read('RDI_withBT.000', nens=nens))
-        td_vm = tb.drop_config(read('vmdas01_wh.ENX', nens=nens))
-        td_os = tb.drop_config(read('vmdas02_os.ENR', nens=nens))
-        td_wr1 = tb.drop_config(read('winriver01.PD0'))
-        td_wr2 = tb.drop_config(read('winriver02.PD0'))
-        td_rp = tb.drop_config(read('RiverPro_test01.PD0', nens=nens))
-        td_transect = tb.drop_config(
-            read('winriver02_transect.PD0', nens=nens))
+        td_rdi = read('RDI_test01.000')
+        td_7f79 = read('RDI_7f79.000')
+        td_rdi_bt = read('RDI_withBT.000', nens=nens)
+        td_vm = read('vmdas01_wh.ENX', nens=nens)
+        td_os = read('vmdas02_os.ENR', nens=nens)
+        td_wr1 = read('winriver01.PD0')
+        td_wr2 = read('winriver02.PD0')
+        td_rp = read('RiverPro_test01.PD0', nens=nens)
+        td_transect = read('winriver02_transect.PD0', nens=nens)
 
         if make_data:
             save(td_rdi, 'RDI_test01.nc')
@@ -76,10 +75,9 @@ class io_adp_testcase(unittest.TestCase):
     def test_io_nortek(self):
         nens = 100
         with pytest.warns(UserWarning):
-            td_awac = tb.drop_config(
-                read('AWAC_test01.wpr', userdata=False, nens=[0, nens]))
-        td_awac_ud = tb.drop_config(read('AWAC_test01.wpr', nens=nens))
-        td_hwac = tb.drop_config(read('H-AWAC_test01.wpr'))
+            td_awac = read('AWAC_test01.wpr', userdata=False, nens=[0, nens])
+        td_awac_ud = read('AWAC_test01.wpr', nens=nens)
+        td_hwac = read('H-AWAC_test01.wpr')
 
         if make_data:
             save(td_awac, 'AWAC_test01.nc')
@@ -93,26 +91,24 @@ class io_adp_testcase(unittest.TestCase):
 
     def test_io_nortek2(self):
         nens = 100
-        td_sig = tb.drop_config(read('BenchFile01.ad2cp', nens=nens))
-        td_sig_i = tb.drop_config(read('Sig1000_IMU.ad2cp', userdata=False,
-                                       nens=nens))
-        td_sig_i_ud = tb.drop_config(read('Sig1000_IMU.ad2cp', nens=nens))
-        td_sig_ieb = tb.drop_config(read('VelEchoBT01.ad2cp', nens=nens))
-        td_sig_ie = tb.drop_config(read('Sig500_Echo.ad2cp', nens=nens))
-        td_sig_tide = tb.drop_config(read('Sig1000_tidal.ad2cp', nens=nens))
+        td_sig = read('BenchFile01.ad2cp', nens=nens)
+        td_sig_i = read('Sig1000_IMU.ad2cp', userdata=False, nens=nens)
+        td_sig_i_ud = read('Sig1000_IMU.ad2cp', nens=nens)
+        td_sig_ieb = read('VelEchoBT01.ad2cp', nens=nens)
+        td_sig_ie = read('Sig500_Echo.ad2cp', nens=nens)
+        td_sig_tide = read('Sig1000_tidal.ad2cp', nens=nens)
 
         with pytest.warns(UserWarning):
             # This issues a warning...
-            td_sig_skip = tb.drop_config(read('Sig_SkippedPings01.ad2cp'))
+            td_sig_skip = read('Sig_SkippedPings01.ad2cp')
 
         with pytest.warns(UserWarning):
-            td_sig_badt = tb.drop_config(sig.read_signature(
-                tb.rfnm('Sig1000_BadTime01.ad2cp')))
+            td_sig_badt = sig.read_signature(
+                tb.rfnm('Sig1000_BadTime01.ad2cp'))
 
         # Make sure we read all the way to the end of the file.
         # This file ends exactly at the end of an ensemble.
-        td_sig5_leiw = tb.drop_config(
-            read('Sig500_last_ensemble_is_whole.ad2cp'))
+        td_sig5_leiw = read('Sig500_last_ensemble_is_whole.ad2cp')
 
         os.remove(tb.exdt('BenchFile01.ad2cp.index'))
         os.remove(tb.exdt('Sig1000_IMU.ad2cp.index'))
@@ -150,7 +146,7 @@ class io_adp_testcase(unittest.TestCase):
         crop_ensembles(infile=tb.exdt('Sig500_Echo.ad2cp'),
                        outfile=tb.exdt('Sig500_Echo_crop.ad2cp'),
                        range=[50, 100])
-        td_sig_ie_crop = tb.drop_config(read('Sig500_Echo_crop.ad2cp'))
+        td_sig_ie_crop = read('Sig500_Echo_crop.ad2cp')
 
         if make_data:
             save(td_sig_ie_crop, 'Sig500_Echo_crop.nc')

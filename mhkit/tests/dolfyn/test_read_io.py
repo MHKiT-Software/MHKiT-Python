@@ -1,6 +1,6 @@
 from . import test_read_adp as tp
 from . import test_read_adv as tv
-from mhkit.tests.dolfyn.base import assert_allclose, save_netcdf, save_matlab, load_matlab, exdt, rfnm, drop_config
+from mhkit.tests.dolfyn.base import assert_allclose, save_netcdf, save_matlab, load_matlab, exdt, rfnm
 import mhkit.dolfyn.io.rdi as wh
 import mhkit.dolfyn.io.nortek as awac
 import mhkit.dolfyn.io.nortek2 as sig
@@ -22,17 +22,17 @@ class io_testcase(unittest.TestCase):
         assert os.path.exists(rfnm('test_save.nc'))
         assert os.path.exists(rfnm('test_save.mat'))
 
-    def test_matlab_io(self, make_data=False):
+    def test_matlab_io(self):
         nens = 100
-        td_vec = drop_config(read('vector_data_imu01.VEC', nens=nens))
-        td_rdi_bt = drop_config(read('RDI_withBT.000', nens=nens))
+        td_vec = read('vector_data_imu01.VEC', nens=nens)
+        td_rdi_bt = read('RDI_withBT.000', nens=nens)
 
         # This read should trigger a warning about the declination being
         # defined in two places (in the binary .ENX files), and in the
         # .userdata.json file. NOTE: DOLfYN defaults to using what is in
         # the .userdata.json file.
         with pytest.warns(UserWarning, match='magnetic_var_deg'):
-            td_vm = drop_config(read('vmdas01_wh.ENX', nens=nens))
+            td_vm = read('vmdas01_wh.ENX', nens=nens)
 
         if make_data:
             save_matlab(td_vec, 'dat_vec')
@@ -48,7 +48,7 @@ class io_testcase(unittest.TestCase):
         assert_allclose(td_rdi_bt, mat_rdi_bt, atol=1e-6)
         assert_allclose(td_vm, mat_vm, atol=1e-6)
 
-    def test_debugging(make_data=False):
+    def test_debugging(self):
         def read_txt(fname, loc):
             with open(loc(fname), 'r') as f:
                 string = f.read()
@@ -71,27 +71,23 @@ class io_testcase(unittest.TestCase):
             os.remove(exdt(fname))
 
         nens = 100
-        drop_config(wh.read_rdi(
-            exdt('RDI_withBT.000'), nens, debug_level=3))
-        drop_config(awac.read_nortek(
-            exdt('AWAC_test01.wpr'), nens, debug=True, do_checksum=True))
-        drop_config(awac.read_nortek(
-            exdt('vector_data_imu01.VEC'), nens, debug=True, do_checksum=True))
-        drop_config(sig.read_signature(
-            exdt('Sig500_Echo.ad2cp'), nens, rebuild_index=True, debug=True))
+        wh.read_rdi(exdt('RDI_withBT.000'), nens, debug_level=3)
+        awac.read_nortek(exdt('AWAC_test01.wpr'), nens, debug=True, do_checksum=True)
+        awac.read_nortek(exdt('vector_data_imu01.VEC'), nens, debug=True, do_checksum=True)
+        sig.read_signature(exdt('Sig500_Echo.ad2cp'), nens, rebuild_index=True, debug=True)
         os.remove(exdt('Sig500_Echo.ad2cp.index'))
 
         if make_data:
-            clip_file('RDI_withBT.log')
-            clip_file('AWAC_test01.log')
-            clip_file('vector_data_imu01.log')
-            clip_file('Sig500_Echo.log')
+            clip_file('RDI_withBT.dolfyn.log')
+            clip_file('AWAC_test01.dolfyn.log')
+            clip_file('vector_data_imu01.dolfyn.log')
+            clip_file('Sig500_Echo.dolfyn.log')
             return
 
-        read_file_and_test('RDI_withBT.log')
-        read_file_and_test('AWAC_test01.log')
-        read_file_and_test('vector_data_imu01.log')
-        read_file_and_test('Sig500_Echo.log')
+        read_file_and_test('RDI_withBT.dolfyn.log')
+        read_file_and_test('AWAC_test01.dolfyn.log')
+        read_file_and_test('vector_data_imu01.dolfyn.log')
+        read_file_and_test('Sig500_Echo.dolfyn.log')
 
     def test_read_warnings(self):
         with self.assertRaises(Exception):

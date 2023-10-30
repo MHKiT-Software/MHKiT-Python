@@ -160,7 +160,7 @@ def fill_nan_ensemble_mean(u, mask, fs, window):
     if diff:
         vel = np.empty((var.shape[0], var.shape[-1]+extra_nans))
         extra = var[:, -diff:]
-        empty = np.empty((vel.shape[0], vel_reshaped.shape[-1]-diff))*np.nan
+        empty = np.empty((vel.shape[0], extra_nans))*np.nan
         extra = np.concatenate((extra, empty), axis=-1)
         vel_reshaped = np.concatenate(
             (vel_reshaped, extra[:, None, :]), axis=1)

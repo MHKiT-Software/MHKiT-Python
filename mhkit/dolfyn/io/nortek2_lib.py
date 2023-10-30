@@ -101,19 +101,23 @@ def _create_index(infile, outfile, N_ens, debug):
     fout = open(_abspath(outfile), 'wb')
     fout.write(b'Index Ver:')
     fout.write(struct.pack('<H', _index_version))
-    ens = dict.fromkeys([21, 23, 24, 26, 28], 0)
-    N = dict.fromkeys([21, 23, 24, 26, 28], 0)
+    ids = [21, 22, 23, 24, 26, 28, 
+           27, 29, 30, 31, 35, 36]  
+    # Saved: burst, avg, bt, vel_b5, alt_raw, echo
+    # Not saved: bt record, DVL, alt record, avg alt_raw record, raw echo, raw echo transmit
+    ens = dict.fromkeys(ids, 0)
+    N = dict.fromkeys(ids, 0)
     config = 0
-    last_ens = dict.fromkeys([21, 23, 24, 26, 28], -1)
-    seek_2ens = {21: 40, 24: 40, 26: 40,
-                 23: 42, 28: 40}  # 23 starts from "42"
+    last_ens = dict.fromkeys(ids, -1)
+    seek_2ens = {21:40, 22:40, 23:42, 24:40, 26:40, 28:40, # 23 starts from "42"
+                 27:40, 29:40, 30:40, 31:40, 35:40, 36:40}
     while N[21] < N_ens:  # Will fail if velocity ping isn't saved first
         pos = fin.tell()
         try:
             dat = _hdr.unpack(fin.read(_hdr.size))
         except:
             break
-        if dat[2] in [21, 23, 24, 26, 28]:  # vel, bt, vel_b5, alt_raw, echo
+        if dat[2] in ids:  
             idk = dat[2]
             d_ver, d_off, config = struct.unpack('<BBH', fin.read(4))
             fin.seek(4, 1)
@@ -187,7 +191,8 @@ def _check_index(idx, infile, fix_hw_ens=False):
 
 
 def _boolarray_firstensemble_ping(index):
-    """Return a boolean of the index that indicates only the first ping in 
+    """
+    Return a boolean of the index that indicates only the first ping in 
     each ensemble.
     """
     dens = np.ones(index['ens'].shape, dtype='bool')
@@ -196,7 +201,8 @@ def _boolarray_firstensemble_ping(index):
 
 
 def get_index(infile, reload=False, debug=False):
-    """This function reads ad2cp.index files
+    """
+    This function reads ad2cp.index files
 
     Parameters
     ----------
@@ -211,8 +217,8 @@ def get_index(infile, reload=False, debug=False):
     -------
     out: tuple
       Tuple containing info held within index file
-
     """
+
     index_file = infile + '.index'
     if not path.isfile(index_file) or reload:
         _create_index(infile, index_file, 2 ** 32, debug)
@@ -231,7 +237,8 @@ def get_index(infile, reload=False, debug=False):
 
 
 def crop_ensembles(infile, outfile, range):
-    """This function is for cropping certain pings out of an AD2CP
+    """
+    This function is for cropping certain pings out of an AD2CP
     file to create a new AD2CP file. It properly grabs the header from
     infile.
 
@@ -246,8 +253,8 @@ def crop_ensembles(infile, outfile, range):
       Path for new, cropped ad2cp file (with .ad2cp file extension)
     range: list
       2 element list of start and end ensemble (or time index)
-
     """
+
     idx = get_index(infile)
     with open(_abspath(infile), 'rb') as fin:
         with open(_abspath(outfile), 'wb') as fout:
@@ -316,12 +323,14 @@ def _getbit(val, n):
 
 
 def _headconfig_int2dict(val, mode='burst'):
-    """Convert the burst Configuration bit-mask to a dict of bools.
+    """
+    Convert the burst Configuration bit-mask to a dict of bools.
 
     mode: {'burst', 'bt'}
        For 'burst' configs, or 'bottom-track' configs.
     """
-    if mode == 'burst':
+
+    if (mode == 'burst') or (mode == 'avg'):
         return dict(
             press_valid=_getbit(val, 0),
             temp_valid=_getbit(val, 1),
@@ -423,9 +432,11 @@ def _isuniform(vec, exclude=[]):
 
 
 def _collapse(vec, name=None, exclude=[]):
-    """Check that the input vector is uniform, then collapse it to a
+    """
+    Check that the input vector is uniform, then collapse it to a
     single value, otherwise raise a warning.
     """
+
     if _isuniform(vec):
         return vec[0]
     elif _isuniform(vec, exclude=exclude):
@@ -445,11 +456,13 @@ def _collapse(vec, name=None, exclude=[]):
                           "Values found: {} (counts: {}).\n"
                           "Using the most common value: {}".format(
                               name, list(uniq), list(counts), val))
+    
         return val
 
 
 def _calc_config(index):
-    """Calculate the configuration information (e.g., number of pings,
+    """
+    Calculate the configuration information (e.g., number of pings,
     number of beams, struct types, etc.) from the index data.
 
     Returns
@@ -457,13 +470,16 @@ def _calc_config(index):
     config : dict
         A dict containing the key information for initializing arrays.
     """
+
     ids = np.unique(index['ID'])
     config = {}
     for id in ids:
-        if id not in [21, 23, 24, 26, 28]:
+        if id not in [21, 22, 23, 24, 26, 28]:
             continue
         if id == 23:
             type = 'bt'
+        elif id == 22:
+            type = 'avg'
         else:
             type = 'burst'
         inds = index['ID'] == id
@@ -483,4 +499,5 @@ def _calc_config(index):
         config[id]['_beams_cy'] = _beams_cy[0]
         config[id]['type'] = type
         config[id].pop('cy', None)
+
     return config

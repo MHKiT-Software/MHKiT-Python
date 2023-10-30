@@ -65,7 +65,7 @@ class clean_testcase(unittest.TestCase):
         td_sig = tp.dat_sig_tide.copy(deep=True)
 
         apm.clean.find_surface_from_P(td_awac, salinity=30)
-        td_awac = apm.clean.nan_beyond_surface(td_awac)
+        td_awac = apm.clean.nan_beyond_surface(td_awac, beam_angle=20)
 
         apm.clean.set_range_offset(td_sig, 0.6)
         apm.clean.find_surface_from_P(td_sig, salinity=31)
