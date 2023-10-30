@@ -1,4 +1,4 @@
-import mhkit.qc.upcrossing as upcrossing
+import mhkit.utils.upcrossing as upcrossing
 import unittest
 from numpy.testing import assert_allclose
 import numpy as np

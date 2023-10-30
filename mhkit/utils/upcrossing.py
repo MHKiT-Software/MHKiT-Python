@@ -16,9 +16,7 @@ Key Functions:
   
 - `periods`: Calculates the period between zero crossings.
   
-- `custom`: Fetches specified wind data parameters for given 
-  latitude-longitude points and years from the WIND Toolkit hindcast dataset. 
-  Supports caching for faster repeated data retrieval.
+- `custom`: Applies a custom, user-defined function between zero crossings.
   
 Dependencies:
 -------------
