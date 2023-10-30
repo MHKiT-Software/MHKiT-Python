@@ -1,9 +1,41 @@
 import numpy as np
 import pandas as pd
-from scipy import stats
-from scipy import optimize
+from scipy import stats, optimize, signal
 from mhkit.wave.resource import frequency_moment
 
+def _peaks_over_threshold(peaks, threshold, sampling_rate):
+    threshold_unit = np.percentile(peaks, 100*threshold, method='hazen')
+    idx_peaks = np.arange(len(peaks))
+    idx_storm_peaks, storm_peaks = global_peaks(
+        idx_peaks, peaks-threshold_unit)
+    idx_storm_peaks = idx_storm_peaks.astype(int)
+
+    # Two storms that are close enough (within specified window) are
+    # considered the same storm, to ensure independence.
+    independent_storm_peaks = [storm_peaks[0],]
+    idx_independent_storm_peaks = [idx_storm_peaks[0],]
+    # check first 14 days to determine window size
+    nlags = int(14 * 24 / sampling_rate)
+    x = peaks - np.mean(peaks)
+    acf = signal.correlate(x, x, mode="full")
+    lag = signal.correlation_lags(len(x), len(x), mode="full")
+    idx_zero = np.argmax(lag==0)
+    positive_lag = lag[(idx_zero):(idx_zero+nlags+1)]
+    acf_positive = acf[(idx_zero):(idx_zero+nlags+1)] / acf[idx_zero]
+
+    window_size = sampling_rate * positive_lag[acf_positive<0.5][0]
+    # window size in "observations" instead of "hours" between peaks.
+    window = window_size / sampling_rate
+    # keep only independent storm peaks
+    for idx in idx_storm_peaks[1:]:
+        if (idx - idx_independent_storm_peaks[-1]) > window:
+            idx_independent_storm_peaks.append(idx)
+            independent_storm_peaks.append(peaks[idx]-threshold_unit)
+        elif peaks[idx] > independent_storm_peaks[-1]:
+            idx_independent_storm_peaks[-1] = idx
+            independent_storm_peaks[-1] = peaks[idx]-threshold_unit
+
+    return independent_storm_peaks
 
 def global_peaks(t, data):
     """
@@ -155,6 +187,100 @@ def peaks_distribution_weibull_tail_fit(x):
     peaks.subset_shape_params = subset_shape_params
     peaks.subset_scale_params = subset_scale_params
     return peaks
+
+
+def automatic_hs_threshold(
+    peaks,
+    sampling_rate,
+    initial_threshold_range = (0.990, 0.995, 0.001),
+    max_refinement=5
+):
+    """
+    Find the best significant wave height threshold for the
+    peaks-over-threshold method.
+
+    This method was developed by:
+
+    > Neary, V. S., S. Ahn, B. E. Seng, M. N. Allahdadi, T. Wang, Z. Yang and R. He (2020).
+    > "Characterization of Extreme Wave Conditions for Wave Energy Converter Design and Project Risk Assessment.”
+    > J. Mar. Sci. Eng. 2020, 8(4), 289; https://doi.org/10.3390/jmse8040289.
+
+    please cite this paper if using this method.
+
+    After all thresholds in the initial range are evaluated, the search
+    range is refined around the optimal point until either (i) there
+    is minimal change from the previous refinement results, (ii) the
+    number of data points become smaller than about 1 per year, or (iii)
+    the maximum number of iterations is reached.
+
+    Parameters
+    ----------
+    peaks: np.array
+        Peak values of the response time-series
+    sampling_rate: float
+        Sampling rate in hours.
+    initial_threshold_range: tuple
+        Initial range of thresholds to search. Described as
+        (min, max, step).
+    max_refinement: int
+        Maximum number of times to refine the search range.
+
+    Returns
+    -------
+    best_threshold: float
+        Threshold that results in the best correlation.
+    """
+    if not isinstance(sampling_rate, (float, int)):
+        raise TypeError('sampling_rate must be of type float or int')
+    
+    if not isinstance(peaks, np.ndarray):
+        raise TypeError('peaks must be of type np.ndarray')
+    
+    if not len(initial_threshold_range) == 3:
+        raise ValueError('initial_threshold_range must be length 3')
+    
+    if not isinstance(max_refinement, int):
+        raise TypeError('max_refinement must be of type int')
+
+    range_min, range_max, range_step = initial_threshold_range
+    best_threshold = -1
+    years = len(peaks)/(365.25*24/sampling_rate)
+
+    for i in range(max_refinement):
+        thresholds = np.arange(range_min, range_max, range_step)
+        correlations = []
+
+        for threshold in thresholds:
+            distribution = stats.genpareto
+            over_threshold = _peaks_over_threshold(
+                peaks, threshold, sampling_rate)
+            rate_per_year = len(over_threshold) / years
+            if rate_per_year < 2:
+                break
+            distributions_parameters = distribution.fit(
+                over_threshold, floc=0.)
+            _, (_, _, correlation) = stats.probplot(
+                peaks, distributions_parameters, distribution, fit=True)
+            correlations.append(correlation)
+
+        max_i = np.argmax(correlations)
+        minimal_change = np.abs(best_threshold - thresholds[max_i]) < 0.0005
+        best_threshold = thresholds[max_i]
+        if minimal_change and i<max_refinement-1:
+            break
+        range_step /= 10
+        if max_i == len(thresholds)-1:
+            range_min = thresholds[max_i - 1]
+            range_max = thresholds[max_i] + 5*range_step
+        elif max_i == 0:
+            range_min = thresholds[max_i] - 9*range_step
+            range_max = thresholds[max_i + 1]
+        else:
+            range_min = thresholds[max_i-1]
+            range_max = thresholds[max_i+1]
+
+    best_threshold_unit = np.percentile(peaks, 100*best_threshold, method='hazen')
+    return best_threshold, best_threshold_unit
 
 
 def peaks_distribution_peaks_over_threshold(x, threshold=None):
