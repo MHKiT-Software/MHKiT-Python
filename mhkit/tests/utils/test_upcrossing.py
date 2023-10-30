@@ -1,4 +1,4 @@
-import mhkit.utils import upcrossing, peaks, troughs, heights, periods, custom
+from mhkit.utils import upcrossing, peaks, troughs, heights, periods, custom
 import unittest
 from numpy.testing import assert_allclose
 import numpy as np
