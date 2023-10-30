@@ -1,10 +1,41 @@
 import numpy as np
 import pandas as pd
-from scipy import stats
-from scipy import optimize
-from scipy import signal
+from scipy import stats, optimize, signal
 from mhkit.wave.resource import frequency_moment
 
+def _peaks_over_threshold(peaks, threshold, sampling_rate):
+    threshold_unit = np.percentile(peaks, 100*threshold, method='hazen')
+    idx_peaks = np.arange(len(peaks))
+    idx_storm_peaks, storm_peaks = global_peaks(
+        idx_peaks, peaks-threshold_unit)
+    idx_storm_peaks = idx_storm_peaks.astype(int)
+
+    # Two storms that are close enough (within specified window) are
+    # considered the same storm, to ensure independence.
+    independent_storm_peaks = [storm_peaks[0],]
+    idx_independent_storm_peaks = [idx_storm_peaks[0],]
+    # check first 14 days to determine window size
+    nlags = int(14 * 24 / sampling_rate)
+    x = peaks - np.mean(peaks)
+    acf = signal.correlate(x, x, mode="full")
+    lag = signal.correlation_lags(len(x), len(x), mode="full")
+    idx_zero = np.argmax(lag==0)
+    positive_lag = lag[(idx_zero):(idx_zero+nlags+1)]
+    acf_positive = acf[(idx_zero):(idx_zero+nlags+1)] / acf[idx_zero]
+
+    window_size = sampling_rate * positive_lag[acf_positive<0.5][0]
+    # window size in "observations" instead of "hours" between peaks.
+    window = window_size / sampling_rate
+    # keep only independent storm peaks
+    for idx in idx_storm_peaks[1:]:
+        if (idx - idx_independent_storm_peaks[-1]) > window:
+            idx_independent_storm_peaks.append(idx)
+            independent_storm_peaks.append(peaks[idx]-threshold_unit)
+        elif peaks[idx] > independent_storm_peaks[-1]:
+            idx_independent_storm_peaks[-1] = idx
+            independent_storm_peaks[-1] = peaks[idx]-threshold_unit
+
+    return independent_storm_peaks
 
 def global_peaks(t, data):
     """
@@ -214,40 +245,6 @@ def automatic_hs_threshold(
     range_min, range_max, range_step = initial_threshold_range
     best_threshold = -1
     years = len(peaks)/(365.25*24/sampling_rate)
-
-    def _peaks_over_threshold(peaks, threshold, sampling_rate):
-        threshold_unit = np.percentile(peaks, 100*threshold, method='hazen')
-        idx_peaks = np.arange(len(peaks))
-        idx_storm_peaks, storm_peaks = global_peaks(
-            idx_peaks, peaks-threshold_unit)
-        idx_storm_peaks = idx_storm_peaks.astype(int)
-
-        # Two storms that are close enough (within specified window) are
-        # considered the same storm, to ensure independence.
-        independent_storm_peaks = [storm_peaks[0],]
-        idx_independent_storm_peaks = [idx_storm_peaks[0],]
-        # check first 14 days to determine window size
-        nlags = int(14 * 24 / sampling_rate)
-        x = peaks - np.mean(peaks)
-        acf = signal.correlate(x, x, mode="full")
-        lag = signal.correlation_lags(len(x), len(x), mode="full")
-        idx_zero = np.argmax(lag==0)
-        positive_lag = lag[(idx_zero):(idx_zero+nlags+1)]
-        acf_positive = acf[(idx_zero):(idx_zero+nlags+1)] / acf[idx_zero]
-
-        window_size = sampling_rate * positive_lag[acf_positive<0.5][0]
-        # window size in "observations" instead of "hours" between peaks.
-        window = window_size / sampling_rate
-        # keep only independent storm peaks
-        for idx in idx_storm_peaks[1:]:
-            if (idx - idx_independent_storm_peaks[-1]) > window:
-                idx_independent_storm_peaks.append(idx)
-                independent_storm_peaks.append(peaks[idx]-threshold_unit)
-            elif peaks[idx] > independent_storm_peaks[-1]:
-                idx_independent_storm_peaks[-1] = idx
-                independent_storm_peaks[-1] = peaks[idx]-threshold_unit
-
-        return independent_storm_peaks
 
     for i in range(max_refinement):
         thresholds = np.arange(range_min, range_max, range_step)
