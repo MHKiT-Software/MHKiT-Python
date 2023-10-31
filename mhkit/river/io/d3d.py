@@ -2,6 +2,7 @@ from mhkit.utils import unorm
 import scipy.interpolate as interp
 import numpy as np
 import pandas as pd
+import xarray as xr
 import netCDF4
 import warnings
 
@@ -272,7 +273,7 @@ def create_points(x, y, waterdepth):
     '''
     Turns three coordinate inputs into a single output DataFrame of points. 
     In any order the three inputs can consist of 3 points, 2 points and 1 array,
-    or 1 point and 2 arrays. The final output DataFrame will be the unique
+    or 1 point and 2 arrays or 3 arrays. The final output DataFrame will be the unique
     combinations of the 3 inputs. 
     
     Parameters
@@ -308,12 +309,12 @@ def create_points(x, y, waterdepth):
     5  2.0  5.0  6.0        
     '''
     
-    assert isinstance(x, (int, float, np.ndarray)), ('x must be a int, float'
-                                                     +' or array')
-    assert isinstance(y, (int, float, np.ndarray)), ('y must be a int, float'
-                                                     +' or array')
-    assert isinstance(waterdepth, (int, float, np.ndarray)), ('waterdepth must be a int, float'
-                                                     +' or array')
+    assert isinstance(x, (int, float, np.ndarray, pd.Series, xr.DataArray)), ('x' 
+                                     +'must be a int, float array or series')
+    assert isinstance(y, (int, float, np.ndarray,pd.Series, xr.DataArray)), ('y'
+                                     +' must be a int, float array or series')
+    assert isinstance(waterdepth, (int, float, np.ndarray, pd.Series, 
+            xr.DataArray)), ('waterdepth must be a int, float array or series')
     
     directions = {0:{'name':  'x',
                      'values': x},
@@ -380,6 +381,20 @@ def create_points(x, y, waterdepth):
                  directions[max_idxs[1]]['name'],  directions[idx_point]['name']]
         
         points= pd.DataFrame(request, columns=columns)
+    elif N_points == 0: 
+        assert len(directions[0]['values']) == len(directions[1]['values']), ('X'
+             +'and Y must be the same length if you are inputing three arrays')
+        x_points = np.tile(directions[0]['values'], len(directions[2]['values']))
+        y_points = np.tile(directions[1]['values'], len(directions[2]['values']))
+        depth_points = np.repeat(directions[2]['values'], len(directions[0]['values']))
+
+        request={
+                directions[0]['name']: x_points, 
+                directions[1]['name']: y_points, 
+                directions[2]['name']: depth_points
+                }
+
+        points= pd.DataFrame(request)
     else: 
         raise Exception('Can provide at most two arrays')
 
