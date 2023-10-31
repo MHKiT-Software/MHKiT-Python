@@ -218,6 +218,13 @@ class TestWDRT(unittest.TestCase):
             ste = loads.extreme.ste(t, data, t_st, method)
             assert_allclose(ste.cdf(x), cdf_1)
 
+    def test_automatic_threshold(self):
+        filename = "data_loads_hs.csv"
+        data = np.loadtxt(os.path.join(datadir, filename), delimiter=",")
+        years = 2.97
+        pct, threshold = loads.extreme.automatic_hs_threshold(data, years)
+        assert np.isclose(pct, 0.9913)
+        assert np.isclose(threshold, 1.032092)
 
 if __name__ == '__main__':
     unittest.main()
