@@ -201,7 +201,7 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
         request_netCDF   
     station_number: string
         Station number of CDIP wave buoy
-    parameters: string or list of stings
+    parameters: string or list of strings
         Parameters to return. If None will return all varaibles except
         2D-variables.        
     years: int or list of int
