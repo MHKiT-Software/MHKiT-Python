@@ -182,7 +182,8 @@ def request_netCDF(station_number, data_type):
 
 def request_parse_workflow(nc=None, station_number=None, parameters=None,
                            years=None, start_date=None, end_date=None,
-                           data_type='historic', all_2D_variables=False):
+                           data_type='historic', all_2D_variables=False,
+                           silent=False):
     '''
     Parses a passed CDIP netCDF file or requests a station number 
     from http://cdip.ucsd.edu/) and parses. This function can return specific 
@@ -216,6 +217,9 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
         processing time. If all 2D variables are not needed it is
         recomended to pass 2D parameters of interest using the 
         'parameters' keyword and leave this set to False. Default False.
+    silent: boolean
+        Set to True to prevent the print statement that announces when 2D 
+        variable processing begins. Default False.
 
     Returns
     -------
@@ -305,7 +309,8 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
             data = get_netcdf_variables(nc,
                                         start_date=start_date, end_date=end_date,
                                         parameters=parameters,
-                                        all_2D_variables=all_2D_variables)
+                                        all_2D_variables=all_2D_variables,
+                                        silent=silent)
             handle_caching(hash_params, cache_dir, data=data)
         else:
             data = data[0]
@@ -324,7 +329,8 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
                 year_data = get_netcdf_variables(nc,
                                                  start_date=start_date, end_date=end_date,
                                                  parameters=parameters,
-                                                 all_2D_variables=all_2D_variables)
+                                                 all_2D_variables=all_2D_variables,
+                                                 silent=silent)
                 # Cache the individual year's data
                 handle_caching(hash_params, cache_dir, data=year_data)
             else:
@@ -354,7 +360,8 @@ def request_parse_workflow(nc=None, station_number=None, parameters=None,
 
 
 def get_netcdf_variables(nc, start_date=None, end_date=None,
-                         parameters=None, all_2D_variables=False):
+                         parameters=None, all_2D_variables=False,
+                         silent=False):
     '''
     Iterates over and extracts variables from CDIP bouy data. See
     the MHKiT CDiP example Jupyter notbook for information on available 
@@ -376,6 +383,9 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         processing time. If all 2D variables are not needed it is
         recomended to pass 2D parameters of interest using the 
         'parameters' keyword and leave this set to False. Default False.
+    silent: boolean
+        Set to True to prevent the print statement that announces when 2D 
+        variable processing begins. Default False.
 
     Returns
     -------
@@ -495,7 +505,9 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
 
         if (prefix == 'wave') and (include_2D_variables):
 
-            print('Processing 2D Variables:')
+            if not silent:
+                print('Processing 2D Variables:')
+            
             vars2D = {}
             columns = metadata['waveFrequency']
             N_time = len(time_slice)
