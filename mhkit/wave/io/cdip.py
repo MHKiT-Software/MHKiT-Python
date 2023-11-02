@@ -375,7 +375,7 @@ def get_netcdf_variables(nc, start_date=None, end_date=None,
         Data of interest start in seconds since epoch
     end_stamp: float
         Data of interest end in seconds since epoch  
-    parameters: string or list of stings
+    parameters: string or list of strings
         Parameters to return. If None will return all varaibles except
         2D-variables. Default None.
     all_2D_variables: boolean
