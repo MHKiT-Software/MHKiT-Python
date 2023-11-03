@@ -1,4 +1,4 @@
-# ![](figures/logo.png) MHKiT-Python
+# ![](logo.png) MHKiT-Python
 
 <p align="left">
     <a href=https://github.com/MHKiT-Software/MHKiT-Python/actions/workflows/main.yml>
