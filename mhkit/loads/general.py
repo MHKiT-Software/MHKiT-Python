@@ -27,17 +27,27 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
         Standard deviation of each bim
     """
 
-    assert isinstance(data, pd.DataFrame), 'data must be of type pd.DataFram'   
-    try: bin_against = np.asarray(bin_against) 
-    except: 'bin_against must be of type np.ndarray'
-    try: bin_edges = np.asarray(bin_edges)
-    except: 'bin_edges must be of type np.ndarray'    
+    if not isinstance(data, pd.DataFrame):
+        raise TypeError(
+            f'data must be of type pd.DataFrame. Got: {type(data)}')
+    try:
+        bin_against = np.asarray(bin_against) 
+    except:
+        raise TypeError(
+            f'bin_against must be of type np.ndarray. Got: {type(bin_against)}')
+    try:
+        bin_edges = np.asarray(bin_edges)
+    except:
+        raise TypeError(
+            f'bin_edges must be of type np.ndarray. Got: {type(bin_edges)}')
 
     # Determine variables to analyze
     if len(data_signal)==0: # if not specified, bin all variables
         data_signal=data.columns.values
     else:
-        assert isinstance(data_signal, list), 'must be of type list'
+        if not isinstance(data_signal, list):
+            raise TypeError(
+                f'data_signal must be of type list. Got: {type(data_signal)}')
 
     # Pre-allocate list variables
     bin_stat_list = []
@@ -97,15 +107,28 @@ def blade_moments(blade_coefficients,flap_offset,flap_raw,edge_offset,edge_raw):
         Blade edgewise moment in SI units
     '''
     
-    try: blade_coefficients = np.asarray(blade_coefficients)
-    except: 'blade_coefficients must be of type np.ndarray'
-    try: flap_raw = np.asarray(flap_raw)
-    except: 'flap_raw must be of type np.ndarray'    
-    try: edge_raw = np.asarray(edge_raw)
-    except:  'edge_raw must be of type np.ndarray'    
+    try:
+        blade_coefficients = np.asarray(blade_coefficients)
+    except:
+        raise TypeError(
+            f'blade_coefficients must be of type np.ndarray. Got: {type(blade_coefficients)}')
+    try:
+        flap_raw = np.asarray(flap_raw)
+    except:
+        raise TypeError(
+            f'flap_raw must be of type np.ndarray. Got: {type(flap_raw)}')
+    try:
+        edge_raw = np.asarray(edge_raw)
+    except:
+        raise TypeError(
+            f'edge_raw must be of type np.ndarray. Got: {type(edge_raw)}')
     
-    assert isinstance(flap_offset, (float,int)), 'flap_offset must be of type int or float'
-    assert isinstance(edge_offset, (float,int)), 'edge_offset must be of type int or float'
+    if not isinstance(flap_offset, (float,int)):
+        raise TypeError(
+            f'flap_offset must be of type int or float. Got: {type(flap_offset)}')
+    if not isinstance(edge_offset, (float,int)):
+        raise TypeError(
+            f'edge_offset must be of type int or float. Got: {type(edge_offset)}')
     
     # remove offset from raw signal
     flap_signal = flap_raw - flap_offset
@@ -152,9 +175,14 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     
     try: data_signal = np.array(data_signal)
     except: 'data_signal must be of type np.ndarray'
-    assert isinstance(m, (float,int)), 'm must be of type float or int'
-    assert isinstance(bin_num, (float,int)), 'bin_num must be of type float or int'
-    assert isinstance(data_length, (float,int)), 'data_length must be of type float or int'
+    if not isinstance(m, (float,int)):
+        raise TypeError(f'm must be of type float or int. Got: {type(m)}')
+    if not isinstance(bin_num, (float,int)):
+        raise TypeError(
+            f'bin_num must be of type float or int. Got: {type(bin_num)}')
+    if not isinstance(data_length, (float,int)):
+        raise TypeError(
+            f'data_length must be of type float or int. Got: {type(data_length)}')
 
     rainflow_ranges = fatpack.find_rainflow_ranges(data_signal,k=256)
 
