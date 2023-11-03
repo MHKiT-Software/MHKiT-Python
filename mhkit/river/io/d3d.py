@@ -271,10 +271,13 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
 
 def create_points(x, y, waterdepth):
     '''
-    Turns three coordinate inputs into a single output DataFrame of points. 
-    In any order the three inputs can consist of 3 points, 2 points and 1 array,
-    or 1 point and 2 arrays or 3 arrays. The final output DataFrame will be the unique
-    combinations of the 3 inputs. 
+    Turns three coordinate inputs into a single output DataFrame of points.
+    In any order the three inputs can consist of 3 points, 2 points and 1 array,
+    or 1 point and 2 arrays or 3 arrays with x and y being the same size. The final
+    output DataFrame will be the combination of the 3 inputs. For inputs with
+    less than 3 arrays every combination of points will be in the resulting dataframe.    
+    For 3 arrays the x and y input will be treated like longitude and latitude    
+    and kept as pairs repeating for each point in the waterdepth array. 
     
     Parameters
     ----------
@@ -292,7 +295,7 @@ def create_points(x, y, waterdepth):
         
     Example 
     -------
-    If the inputs are 2 arrays:  and [3,4,5] and 1 point [6], the output 
+    If the inputs are 2 arrays: [1,2] and [3,4,5] and 1 point [6], the output 
     will contain 6 array combinations of the 3 inputs as shown.
     
     x=np.array([1,2])
@@ -306,7 +309,24 @@ def create_points(x, y, waterdepth):
     2  1.0  4.0  6.0
     3  2.0  4.0  6.0
     4  1.0  5.0  6.0
-    5  2.0  5.0  6.0        
+    5  2.0  5.0  6.0   
+
+    If the inputs are 3 arrays the x and y arrays must be the same length. The 
+    output will treat the x and y input as coordinate pairs and repeat them for
+    different waterdepth measurements.
+    
+    x=np.array([1,2,3])
+    y=np.array([4,5,6])
+    waterdepth= ([1,2])
+    d3d.create_points(x,y,waterdepth)
+    
+       x    y    waterdepth
+    0  1.0  4.0  1.0
+    1  2.0  5.0  1.0
+    2  3.0  6.0  1.0
+    3  1.0  4.0  2.0
+    4  2.0  5.0  2.0
+    5  4.0  6.0  2.0        
     '''
     
     assert isinstance(x, (int, float, np.ndarray, pd.Series, xr.DataArray)), ('x' 
@@ -381,7 +401,7 @@ def create_points(x, y, waterdepth):
                  directions[max_idxs[1]]['name'],  directions[idx_point]['name']]
         
         points= pd.DataFrame(request, columns=columns)
-    elif N_points == 0: 
+    else: 
         assert len(directions[0]['values']) == len(directions[1]['values']), ('X'
              +'and Y must be the same length if you are inputing three arrays')
         x_points = np.tile(directions[0]['values'], len(directions[2]['values']))
@@ -395,8 +415,6 @@ def create_points(x, y, waterdepth):
                 }
 
         points= pd.DataFrame(request)
-    else: 
-        raise Exception('Can provide at most two arrays')
 
     return points 
 
