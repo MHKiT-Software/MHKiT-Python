@@ -59,8 +59,10 @@ def global_peaks(t, data):
     peaks: np.array
         Peak values of the response time-series
     """
-    assert isinstance(t, np.ndarray), 't must be of type np.ndarray'
-    assert isinstance(data, np.ndarray), 'data must be of type np.ndarray'
+    if not isinstance(t, np.ndarray):
+        raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
+    if not isinstance(data, np.ndarray):
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
 
     # Find zero up-crossings
     inds = upcrossing(t, data)
@@ -99,9 +101,12 @@ def number_of_short_term_peaks(n, t, t_st):
     n_st : float
         Number of peaks in short term period.
     """
-    assert isinstance(n, int), 'n must be of type int'
-    assert isinstance(t, float), 't must be of type float'
-    assert isinstance(t_st, float), 't_st must be of type float'
+    if not isinstance(n, int):
+        raise TypeError(f'n must be of type int. Got: {type(n)}')
+    if not isinstance(t, float):
+        raise TypeError(f't must be of type float. Got: {type(t)}')
+    if not isinstance(t_st, float):
+        raise TypeError(f't_st must be of type float. Got: {type(t_st)}')
 
     return n * t_st / t
 
@@ -124,7 +129,8 @@ def peaks_distribution_weibull(x):
     peaks: scipy.stats.rv_frozen
         Probability distribution of the peaks.
     """
-    assert isinstance(x, np.ndarray), 'x must be of type np.ndarray'
+    if not isinstance(x, np.ndarray):
+        raise TypeError(f'x must be of type np.ndarray. Got: {type(x)}')
 
     # peaks distribution
     peaks_params = stats.exponweib.fit(x, f0=1, floc=0)
@@ -154,7 +160,8 @@ def peaks_distribution_weibull_tail_fit(x):
     peaks: scipy.stats.rv_frozen
         Probability distribution of the peaks.
     """
-    assert isinstance(x, np.ndarray), 'x must be of type np.ndarray'
+    if not isinstance(x, np.ndarray):
+        raise TypeError(f'x must be of type np.ndarray. Got: {type(x)}')
 
     # Initial guess for Weibull parameters
     p0 = stats.exponweib.fit(x, f0=1, floc=0)
@@ -231,16 +238,17 @@ def automatic_hs_threshold(
         Threshold that results in the best correlation.
     """
     if not isinstance(sampling_rate, (float, int)):
-        raise TypeError('sampling_rate must be of type float or int')
-    
+        raise TypeError(
+            f'sampling_rate must be of type float or int. Got: {type(sampling_rate)}')
     if not isinstance(peaks, np.ndarray):
-        raise TypeError('peaks must be of type np.ndarray')
-    
+        raise TypeError(
+            f'peaks must be of type np.ndarray. Got: {type(peaks)}')
     if not len(initial_threshold_range) == 3:
-        raise ValueError('initial_threshold_range must be length 3')
-    
+        raise ValueError(
+            f'initial_threshold_range must be length 3. Got: {len(initial_threshold_range)}')
     if not isinstance(max_refinement, int):
-        raise TypeError('max_refinement must be of type int')
+        raise TypeError(
+            f'max_refinement must be of type int. Got: {type(max_refinement)}')
 
     range_min, range_max, range_step = initial_threshold_range
     best_threshold = -1
@@ -309,11 +317,13 @@ def peaks_distribution_peaks_over_threshold(x, threshold=None):
     peaks: scipy.stats.rv_frozen
         Probability distribution of the peaks.
     """
-    assert isinstance(x, np.ndarray), 'x must be of type np.ndarray'
+    if not isinstance(x, np.ndarray):
+        raise TypeError(f'x must be of type np.ndarray. Got: {type(x)}')
     if threshold is None:
         threshold = np.mean(x) + 1.4 * np.std(x)
-    assert isinstance(threshold, float
-                      ), 'threshold must be of type float'
+    if not isinstance(threshold, float):
+        raise TypeError(
+            f'threshold must be of type float. Got: {type(threshold)}')
 
     # peaks over threshold
     x = np.sort(x)
@@ -370,9 +380,10 @@ def ste_peaks(peaks_distribution, npeaks):
     ste: scipy.stats.rv_frozen
             Short-term extreme distribution.
     """
-    assert callable(peaks_distribution.cdf
-                    ), 'peaks_distribution must be a scipy.stat distribution.'
-    assert isinstance(npeaks, float), 'npeaks must be of type float'
+    if not callable(peaks_distribution.cdf):
+        raise TypeError('peaks_distribution must be a scipy.stat distribution.')
+    if not isinstance(npeaks, float):
+        raise TypeError(f'npeaks must be of type float. Got: {type(npeaks)}')
 
     class _ShortTermExtreme(stats.rv_continuous):
 
@@ -415,9 +426,12 @@ def block_maxima(t, x, t_st):
     block_maxima: np.array
         Block maxima (i.e. largest peak in each block).
     """
-    assert isinstance(t, np.ndarray), 't must be of type np.ndarray'
-    assert isinstance(x, np.ndarray), 'x must be of type np.ndarray'
-    assert isinstance(t_st, float), 't_st must be of type float'
+    if not isinstance(t, np.ndarray):
+        raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
+    if not isinstance(x, np.ndarray):
+        raise TypeError(f'x must be of type np.ndarray. Got: {type(x)}')
+    if not isinstance(t_st, float):
+        raise TypeError(f't_st must be of type float. Got: {type(t_st)}')
 
     nblock = int(t[-1] / t_st)
     block_maxima = np.zeros(int(nblock))
@@ -442,8 +456,9 @@ def ste_block_maxima_gev(block_maxima):
     ste: scipy.stats.rv_frozen
             Short-term extreme distribution.
     """
-    assert isinstance(
-        block_maxima, np.ndarray), 'block_maxima must be of type np.ndarray'
+    if not isinstance(block_maxima, np.ndarray):
+        raise TypeError(
+            f'block_maxima must be of type np.ndarray. Got: {type(block_maxima)}')
 
     ste_params = stats.genextreme.fit(block_maxima)
     param_names = ['c', 'loc', 'scale']
@@ -468,8 +483,9 @@ def ste_block_maxima_gumbel(block_maxima):
     ste: scipy.stats.rv_frozen
             Short-term extreme distribution.
     """
-    assert isinstance(
-        block_maxima, np.ndarray), 'block_maxima must be of type np.ndarray'
+    if not isinstance(block_maxima, np.ndarray):
+        raise TypeError(
+            f'block_maxima must be of type np.ndarray. Got: {type(block_maxima)}')
 
     ste_params = stats.gumbel_r.fit(block_maxima)
     param_names = ['loc', 'scale']
@@ -514,10 +530,14 @@ def short_term_extreme(t, data, t_st, method):
     ste: scipy.stats.rv_frozen
             Short-term extreme distribution.
     """
-    assert isinstance(t, np.ndarray), 't must be of type np.ndarray'
-    assert isinstance(data, np.ndarray), 'x must be of type np.ndarray'
-    assert isinstance(t_st, float), 't_st must be of type float'
-    assert isinstance(method, str), 'method must be of type string'
+    if not isinstance(t, np.ndarray):
+        raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
+    if not isinstance(data, np.ndarray):
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
+    if not isinstance(t_st, float):
+        raise TypeError(f't_st must be of type float. Got: {type(t_st)}')
+    if not isinstance(method, str):
+        raise TypeError(f'method must be of type string. Got: {type(method)}')
 
     peaks_methods = {
         'peaks_weibull': peaks_distribution_weibull,
@@ -563,10 +583,12 @@ def full_seastate_long_term_extreme(ste, weights):
     ste: scipy.stats.rv_frozen
         Short-term extreme distribution.
     """
-    assert isinstance(
-        ste, list), 'ste must be of type list[scipy.stats.rv_frozen]'
-    assert isinstance(weights, (list, np.ndarray)
-                      ), 'weights must be of type list[floats]'
+    if not isinstance(ste, list):
+        raise TypeError(
+            f'ste must be of type list[scipy.stats.rv_frozen]. Got: {type(ste)}')
+    if not isinstance(weights, (list, np.ndarray)):
+        raise TypeError(
+            f'weights must be of type list[floats]. Got: {type(weights)}')
 
     class _LongTermExtreme(stats.rv_continuous):
 
@@ -612,11 +634,16 @@ def mler_coefficients(rao, wave_spectrum, response_desired):
         rao = np.array(rao)
     except:
         pass
-    assert isinstance(rao, np.ndarray), 'rao must be of type np.ndarray'
-    assert isinstance(wave_spectrum, pd.DataFrame
-                      ), 'wave_spectrum must be of type pd.DataFrame'
-    assert isinstance(response_desired, (int, float)
-                      ), 'response_desired must be of type int or float'
+    
+    if not isinstance(rao, np.ndarray):
+        raise TypeError(
+            f'rao must be of type np.ndarray. Got: {type(rao)}')
+    if not isinstance(wave_spectrum, pd.DataFrame):
+        raise TypeError(
+            f'wave_spectrum must be of type pd.DataFrame. Got: {type(wave_spectrum)}')
+    if not isinstance(response_desired, (int, float)):
+        raise TypeError(
+            f'response_desired must be of type int or float. Got: {type(response_desired)}')
 
     freq_hz = wave_spectrum.index.values
     # convert from Hz to rad/s
@@ -707,8 +734,9 @@ def mler_simulation(parameters=None):
         Simulation parameters including spatial and time calculated
         arrays.
     """
-    if not parameters == None:
-        assert isinstance(parameters, dict), 'parameters must be of type dict'
+    if not parameters == None and not isinstance(parameters, dict):
+        raise TypeError(
+            f'parameters must be of type dict. Got: {type(parameters)}')
 
     sim = {}
 
@@ -762,11 +790,18 @@ def mler_wave_amp_normalize(wave_amp, mler, sim, k):
         k = np.array(k)
     except:
         pass
-    assert isinstance(mler, pd.DataFrame), 'mler must be of type pd.DataFrame'
-    assert isinstance(wave_amp, (int, float)
-                      ), 'wave_amp must be of type int or float'
-    assert isinstance(sim, dict), 'sim must be of type dict'
-    assert isinstance(k, np.ndarray), 'k must be of type ndarray'
+    if not isinstance(mler, pd.DataFrame):
+        raise TypeError(
+            f'mler must be of type pd.DataFrame. Got: {type(mler)}')
+    if not isinstance(wave_amp, (int, float)):
+        raise TypeError(
+            f'wave_amp must be of type int or float. Got: {type(wave_amp)}')
+    if not isinstance(sim, dict):
+        raise TypeError(
+            f'sim must be of type dict. Got: {type(sim)}')
+    if not isinstance(k, np.ndarray):
+        raise TypeError(
+            f'k must be of type ndarray. Got: {type(k)}')
 
     freq = mler.index.values * 2*np.pi
     dw = (max(freq) - min(freq)) / (len(freq)-1)  # get delta
@@ -826,10 +861,18 @@ def mler_export_time_series(rao, mler, sim, k):
         k = np.array(k)
     except:
         pass
-    assert isinstance(rao, np.ndarray), 'rao must be of type ndarray'
-    assert isinstance(mler, pd.DataFrame), 'mler must be of type pd.DataFrame'
-    assert isinstance(sim, dict), 'sim must be of type dict'
-    assert isinstance(k, np.ndarray), 'k must be of type ndarray'
+    if not isinstance(rao, np.ndarray):
+        raise TypeError(
+            f'rao must be of type ndarray. Got: {type(rao)}')
+    if not isinstance(mler, pd.DataFrame):
+        raise TypeError(
+            f'mler must be of type pd.DataFrame. Got: {type(mler)}')
+    if not isinstance(sim, dict):
+        raise TypeError(
+            f'sim must be of type dict. Got: {type(sim)}')
+    if not isinstance(k, np.ndarray):
+        raise TypeError(
+            f'k must be of type ndarray. Got: {type(k)}')
 
     freq = mler.index.values * 2*np.pi  # convert Hz to rad/s
     dw = (max(freq) - min(freq)) / (len(freq)-1)  # get delta
@@ -874,9 +917,14 @@ def return_year_value(ppf, return_year, short_term_period_hr):
     value: float
         The value corresponding to the return period from the distribution.
     """
-    assert callable(ppf)
-    assert isinstance(return_year, (float, int))
-    assert isinstance(short_term_period_hr, (float, int))
+    if not callable(ppf):
+        raise TypeError('ppf must be a callable Percentage Point Function')
+    if not isinstance(return_year, (float, int)):
+        raise TypeError(
+            f'return_year must be of type float or int. Got: {type(return_year)}')
+    if not isinstance(short_term_period_hr, (float, int)):
+        raise TypeError(
+            f'short_term_period_hr must be of type ndarray. Got: {type(short_term_period_hr)}')
 
     p = 1 / (return_year * 365.25 * 24 / short_term_period_hr)
 
