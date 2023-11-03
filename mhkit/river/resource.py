@@ -24,11 +24,11 @@ def Froude_number(v, h, g=9.80665):
         Froude Number of the river [unitless].
 
     """
-    assert isinstance(v, (int,float)):
+    if not isinstance(v, (int,float)):
         raise TypeError(f'v must be of type int or float. Got: {type(v)}')
-    assert isinstance(h, (int,float)):
+    if not isinstance(h, (int,float)):
         raise TypeError(f'h must be of type int or float. Got: {type(h)}')
-    assert isinstance(g, (int,float)):
+    if not isinstance(g, (int,float)):
         raise TypeError(f'g must be of type int or float. Got: {type(g)}')
     
     Fr = v / np.sqrt( g * h )
@@ -51,7 +51,7 @@ def exceedance_probability(D):
         Exceedance probability [unitless] indexed by time [datetime or s]
     """
     # dataframe allowed for matlab
-    assert isinstance(D, (pd.DataFrame, pd.Series)):
+    if not isinstance(D, (pd.DataFrame, pd.Series)):
         raise TypeError(f'D must be of type pd.Series. Got: {type(D)}')
     
     if isinstance(D, pd.DataFrame) and len(D.columns) == 1: # for matlab
@@ -96,11 +96,11 @@ def polynomial_fit(x, y, n):
         y = np.array(y)
     except:
         pass
-    assert isinstance(x, np.ndarray):
+    if not isinstance(x, np.ndarray):
         raise TypeError(f'x must be of type np.ndarray. Got: {type(x)}')
-    assert isinstance(y, np.ndarray):
+    if not isinstance(y, np.ndarray):
         raise TypeError(f'y must be of type np.ndarray. Got: {type(y)}')
-    assert isinstance(n, int):
+    if not isinstance(n, int):
         raise TypeError(f'n must be of type int. Got: {type(n)}')
     
     # Get coeffcients of polynomial of order n 
@@ -132,9 +132,9 @@ def discharge_to_velocity(D, polynomial_coefficients):
         Velocity [m/s] indexed by time [datetime or s]
     """
     # dataframe allowed for matlab
-    assert isinstance(D, (pd.DataFrame, pd.Series)):
+    if not isinstance(D, (pd.DataFrame, pd.Series)):
         raise TypeError(f'D must be of type pd.Series. Got: {type(D)}')
-    assert isinstance(polynomial_coefficients, np.poly1d):
+    if not isinstance(polynomial_coefficients, np.poly1d):
         raise TypeError(f'polynomial_coefficients must be of type np.poly1d. Got: {type(polynomial_coefficients)}')
     
     if isinstance(D, pd.DataFrame) and len(D.columns) == 1: # for matlab
@@ -172,13 +172,13 @@ def velocity_to_power(V, polynomial_coefficients, cut_in, cut_out):
         Power [W] indexed by time [datetime or s]
     """
     # dataframe allowed for matlab
-    assert isinstance(V, (pd.DataFrame, pd.Series)):
+    if not isinstance(V, (pd.DataFrame, pd.Series)):
         raise TypeError(f'V must be of type pd.Series. Got: {type(V)}')
-    assert isinstance(polynomial_coefficients, np.poly1d):
+    if not isinstance(polynomial_coefficients, np.poly1d):
         raise TypeError(f'polynomial_coefficients must be of type np.poly1d. Got: {type(polynomial_coefficients)}')
-    assert isinstance(cut_in, (int,float)):
+    if not isinstance(cut_in, (int,float)):
         raise TypeError(f'cut_in must be of type int or float. Got: {type(cut_in)}')
-    assert isinstance(cut_out, (int,float)):
+    if not isinstance(cut_out, (int,float)):
         raise TypeError(f'cut_out must be of type int or float. Got: {type(cut_out)}')
     
     if isinstance(V, pd.DataFrame) and len(V.columns) == 1:
@@ -216,9 +216,9 @@ def energy_produced(P, seconds):
         Energy [J] produced in the given time frame
     """
     # dataframe allowed for matlab
-    assert isinstance(P, (pd.DataFrame, pd.Series)):
+    if not isinstance(P, (pd.DataFrame, pd.Series)):
         raise TypeError(f'D must be of type pd.Series. Got: {type(D)}')
-    assert isinstance(seconds, (int, float)):
+    if not isinstance(seconds, (int, float)):
         raise TypeError(f'seconds must be of type int or float. Got: {type(seconds)}')
 
     if isinstance(P, pd.DataFrame) and len(P.columns) == 1: # for matlab

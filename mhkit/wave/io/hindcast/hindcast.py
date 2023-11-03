@@ -55,10 +55,10 @@ def region_selection(lat_lon):
         Name of predefined region for given coordinates
     '''
     if not isinstance(lat_lon, (list, tuple)):
-        raise TypeError('lat_lon must be of type list or tuple')
+        raise TypeError('lat_lon must be of type list or tuple. Got: {type(lat_lon)}')
 
     if not all(isinstance(coord, (float, int)) for coord in lat_lon):
-        raise TypeError('lat_lon values must be of type float or int')
+        raise TypeError('lat_lon values must be of type float or int. Got: {type(lat_lon[0])}')
 
     regions = {
         'Hawaii': {
@@ -85,7 +85,7 @@ def region_selection(lat_lon):
         lat_lon, region, regions)]
 
     if not region:
-        raise ValueError('ERROR: coordinates out of bounds')
+        raise ValueError('ERROR: coordinates out of bounds.')
 
     return region[0]
 
@@ -165,18 +165,26 @@ def request_wpto_point_data(
     meta: DataFrame 
         Location metadata for the requested data location   
     """
-    assert isinstance(parameter, (str, list)
-                      ), 'parameter must be of type string or list'
-    assert isinstance(lat_lon, (list, tuple)
-                      ), 'lat_lon must be of type list or tuple'
-    assert isinstance(data_type, str), 'data_type must be a string'
-    assert isinstance(years, list), 'years must be a list'
-    assert isinstance(tree, (str, type(None))), 'tree must be a string'
-    assert isinstance(unscale, bool), 'unscale must be bool type'
-    assert isinstance(str_decode, bool), 'str_decode must be bool type'
-    assert isinstance(hsds, bool), 'hsds must be bool type'
-    assert isinstance(path, (str, type(None))), 'path must be a string'
-    assert isinstance(as_xarray, bool), 'as_xarray must be bool type'
+    if not isinstance(parameter, (str, list)):
+        raise TypeError(f'parameter must be of type string or list. Got: {type(parameter)}')
+    if not isinstance(lat_lon, (list, tuple)):
+        raise TypeError(f'lat_lon must be of type list or tuple. Got: {type(lat_lon)}')
+    if not isinstance(data_type, str):
+        raise TypeError(f'data_type must be a string. Got: {type(data_type)}')
+    if not isinstance(years, list):
+        raise TypeError(f'years must be a list. Got: {type(years)}')
+    if not isinstance(tree, (str, type(None))):
+        raise TypeError(f'tree must be a string. Got: {type(tree)}')
+    if not isinstance(unscale, bool):
+        raise TypeError(f'unscale must be bool type. Got: {type(unscale)}')
+    if not isinstance(str_decode, bool):
+        raise TypeError(f'str_decode must be bool type. Got: {type(str_decode)}')
+    if not isinstance(hsds, bool):
+        raise TypeError(f'hsds must be bool type. Got: {type(hsds)}')
+    if not isinstance(path, (str, type(None))):
+        raise TypeError(f'path must be a string. Got: {type(path)}')
+    if not isinstance(as_xarray, bool):
+        raise TypeError(f'as_xarray must be bool type. Got: {type(as_xarray)}')
 
     # Attempt to load data from cache
     # Construct a string representation of the function parameters
@@ -330,13 +338,18 @@ def request_wpto_directional_spectrum(
     meta: DataFrame
         Location metadata for the requested data location
     """
-    assert isinstance(lat_lon, (list, tuple)
-                      ), 'lat_lon must be of type list or tuple'
-    assert isinstance(year, str), 'years must be a string'
-    assert isinstance(tree, (str, type(None))), 'tree must be a sring'
-    assert isinstance(unscale, bool), 'unscale must be bool type'
-    assert isinstance(str_decode, bool), 'str_decode must be bool type'
-    assert isinstance(hsds, bool), 'hsds must be bool type'
+    if not isinstance(lat_lon, (list, tuple)):
+        raise TypeError(f'lat_lon must be of type list or tuple. Got: {type(lat_lon)}')
+    if not isinstance(year, str):
+        raise TypeError(f'years must be a string. Got: {type(year)}')
+    if not isinstance(tree, (str, type(None))):
+        raise TypeError(f'tree must be a sring. Got: {type(tree)}')
+    if not isinstance(unscale, bool):
+        raise TypeError(f'unscale must be bool type. Got: {type(unscale)}')
+    if not isinstance(str_decode, bool):
+        raise TypeError(f'str_decode must be bool type. Got: {type(str_decode)}')
+    if not isinstance(hsds, bool):
+        raise TypeError(f'hsds must be bool type. Got: {type(hsds)}')
 
     # check for multiple region selection
     if isinstance(lat_lon[0], float):
