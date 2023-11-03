@@ -93,8 +93,8 @@ def principal_flow_directions(directions, width_dir):
 
     if isinstance(directions, np.ndarray):
         directions=pd.Series(directions)
-    assert(all(directions>=0) and all(directions<=360),
-           'flood must be between 0 and 360 degrees')
+    if any(directions<0) or any(directions>360):
+        raise ValueError('directions must be between 0 and 360 degrees. Got: {directions}')
 
     # Number of directional bins 
     N_dir=int(360/width_dir)
