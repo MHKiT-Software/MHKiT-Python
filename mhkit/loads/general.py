@@ -173,8 +173,11 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
         Damage equivalent load (DEL) of single data signal
     '''
     
-    try: data_signal = np.array(data_signal)
-    except: 'data_signal must be of type np.ndarray'
+    try:
+        data_signal = np.array(data_signal)
+    except:
+        raise TypeError(
+            f'data_signal must be of type np.ndarray. Got: {type(data_signal)}')
     if not isinstance(m, (float,int)):
         raise TypeError(f'm must be of type float or int. Got: {type(m)}')
     if not isinstance(bin_num, (float,int)):

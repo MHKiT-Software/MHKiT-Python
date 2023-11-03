@@ -32,14 +32,22 @@ def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],**kwargs):
     ax : matplotlib pyplot axes
     '''
     
-    try: x = np.array(x)
-    except: 'x must be of type np.ndarray'       
-    try: y_mean = np.array(y_mean)
-    except: 'y_mean must be of type np.ndarray'           
-    try:y_max = np.array(y_max)
-    except: 'y_max must be of type np.ndarray'
-    try: y_min = np.array(y_min)
-    except: 'y_min must be of type np.ndarray'
+    try:
+        x = np.array(x)
+    except:
+        raise TypeError(f'x must be of type np.ndarray. Got: {type(x)}')
+    try:
+        y_mean = np.array(y_mean)
+    except:
+        raise TypeError(f'y_mean must be of type np.ndarray. Got: {type(y_mean)}')       
+    try:
+        y_max = np.array(y_max)
+    except:
+        raise TypeError(f'y_max must be of type np.ndarray. Got: {type(y_max)}')
+    try:
+        y_min = np.array(y_min)
+    except:
+        raise TypeError(f'y_min must be of type np.ndarray. Got: {type(y_min)}')
     
     x_label   = kwargs.get("x_label", None)
     y_label   = kwargs.get("y_label", None)
