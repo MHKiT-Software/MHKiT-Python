@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 from mhkit import qc
 import pandas as pd
 import numpy as np
@@ -28,15 +27,17 @@ def get_statistics(data, freq, period=600, vector_channels=[]):
         Calculated statistical values from the data, indexed by the first timestamp
     """
     # Check data type
-    assert isinstance(data, pd.DataFrame), 'data must be of type pd.DataFrame'
-    assert isinstance(freq, (float, int)), 'freq must be of type int or float'
-    assert isinstance(period, (float, int)
-                      ), 'freq must be of type int or float'
+    if not isinstance(data, pd.DataFrame):
+        raise TypeError(f'data must be of type pd.DataFrame. Got: {type(data)}')
+    if not isinstance(freq, (float, int)):
+        raise TypeError(f'freq must be of type int or float. Got: {type(freq)}')
+    if not isinstance(period, (float, int)):
+        raise TypeError(f'period must be of type int or float. Got: {type(period)}')
     # catch if vector_channels is not an string array
     if isinstance(vector_channels, str):
         vector_channels = [vector_channels]
-    assert isinstance(
-        vector_channels, list), 'vector_channels must be a list of strings'
+    if not isinstance(vector_channels, list):
+        raise TypeError(f'vector_channels must be a list of strings. Got: {type(vector_channels)}')
 
     # Check timestamp using qc module
     data.index = data.index.round('1ms')
@@ -110,7 +111,8 @@ def vector_statistics(data):
         data = np.array(data)
     except:
         pass
-    assert isinstance(data, np.ndarray), 'data must be of type np.ndarray'
+    if not isinstance(data, np.ndarray):
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
 
     # calculate mean
     Ux = sum(np.sin(data*np.pi/180))/len(data)
@@ -152,7 +154,8 @@ def unwrap_vector(data):
         data = np.array(data)
     except:
         pass
-    assert isinstance(data, np.ndarray), 'data must be of type np.ndarray'
+    if not isinstance(data, np.ndarray):
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
 
     # Loop through and unwrap points
     for i in range(len(data)):
@@ -196,9 +199,12 @@ def magnitude_phase(x, y, z=None):
         z = np.array(z)
         threeD = True
 
-    assert isinstance(x, (float, int, np.ndarray))
-    assert isinstance(y, (float, int, np.ndarray))
-    assert isinstance(z, (type(None), float, int, np.ndarray))
+    if not isinstance(x, (float, int, np.ndarray)):
+        raise TypeError(f'x must be of type np.ndarray. Got: {type(x)}')
+    if not isinstance(y, (float, int, np.ndarray)):
+        raise TypeError(f'y must be of type np.ndarray. Got: {type(y)}')
+    if not isinstance(z, (type(None), float, int, np.ndarray)):
+        raise TypeError(f'z must be of type np.ndarray. Got: {type(z)}')
 
     if threeD:
         mag = np.sqrt(x**2 + y**2 + z**2)
@@ -236,14 +242,14 @@ def unorm(x, y, z):
     The resulting output is [ 8.1240384,  9.64365076, 11.22497216].
     '''
 
-    assert isinstance(x, (np.ndarray, np.float64, pd.Series)
-                      ), 'x must be an array'
-    assert isinstance(y, (np.ndarray, np.float64, pd.Series)
-                      ), 'y must be an array'
-    assert isinstance(z, (np.ndarray, np.float64, pd.Series)
-                      ), 'z must be an array'
-    assert all([len(x) == len(y), len(y) == len(z)]), ('lengths of arrays must'
-                                                       + ' match')
+    if not isinstance(x, (np.ndarray, np.float64, pd.Series)):
+        raise TypeError(f'x must be of type np.ndarray, np.float64, or pd.Series. Got: {type(x)}')
+    if not isinstance(y, (np.ndarray, np.float64, pd.Series)):
+        raise TypeError(f'y must be of type np.ndarray, np.float64, or pd.Series. Got: {type(y)}')
+    if not isinstance(z, (np.ndarray, np.float64, pd.Series)):
+        raise TypeError(f'z must be of type np.ndarray, np.float64, or pd.Series. Got: {type(z)}')
+    if not all([len(x) == len(y), len(y) == len(z)]):
+        raise ValueError('lengths of arrays must match')
 
     xyz = np.array([x, y, z])
     unorm = np.linalg.norm(xyz, axis=0)
