@@ -338,26 +338,16 @@ def create_points(x, y, waterdepth):
         if not isinstance(value, (int, float, np.ndarray, pd.Series, xr.DataArray)):
             raise TypeError(f"{name} must be an int, float, array, or series")
 
-    directions = {0: {'name':  'x',
-                      'values': x},
-                  1: {'name':  'y',
-                      'values': y},
-                  2: {'name':  'waterdepth',
-                      'values': waterdepth}}
-
-    for i in directions:
-        try:
-            N = len(directions[i]['values'])
-        except:
-            directions[i]['values'] = np.array([directions[i]['values']])
-            N = len(directions[i]['values'])
-        if N == 1:
-            directions[i]['type'] = 'point'
-        elif N > 1:
-            directions[i]['type'] = 'array'
-        else:
-            raise Exception(f'length of direction {directions[i]["name"]} was'
-                            + 'neagative or zero')
+    directions = {}
+    for idx, (name, value) in enumerate(inputs.items()):
+        if not hasattr(value, '__len__'):
+            value = np.array([value])
+        N = len(value)
+        if N == 0:
+            raise ValueError(f"Length of direction {name} is negative or zero")
+        direction_type = 'point' if N == 1 else 'array'
+        directions[idx] = {'name': name,
+                           'values': value, 'type': direction_type}
 
     # Check how many times point is in "types"
     types = [directions[i]['type'] for i in directions]
