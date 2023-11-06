@@ -767,7 +767,7 @@ def plot_boxplot(Hs, buoy_title=None):
 
 def plot_directional_spectrum(
         spectrum, 
-        min=None, 
+        color_level_min=None, 
         fill=True, 
         nlevels=11,
         name="Elevation Variance", 
@@ -780,8 +780,8 @@ def plot_directional_spectrum(
     ------------
     spectrum: xarray.DataArray
         Spectral data indexed frequency [Hz] and wave direction [deg].
-    min: float (optional)
-        Minimum value to plot.
+    color_level_min: float (optional)
+        Minimum color bar level.
     fill: bool
         Whether to use `contourf` (filled) instead of `contour` (lines).
     nlevels: int
@@ -797,9 +797,9 @@ def plot_directional_spectrum(
     """
     if not isinstance(spectrum, xr.DataArray):
         raise TypeError(f'spectrum must be a DataArray. Got: {type(spectrum)}')
-    if min is not None:
-        if not isinstance(min, float):
-            raise TypeError(f'min must be a float. Got: {type(min)}')
+    if color_level_min is not None:
+        if not isinstance(color_level_min, float):
+            raise TypeError(f'color_level_min must be a float. Got: {type(color_level_min)}')
     if not isinstance(fill, bool):
         raise TypeError(f'fill must be a bool. Got: {type(fill)}')
     if not isinstance(nlevels, int):
@@ -812,9 +812,9 @@ def plot_directional_spectrum(
     a,f = np.meshgrid(np.deg2rad(spectrum.direction), spectrum.frequency)
     _, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     tmp = np.floor(np.min(spectrum.data)*10)/10
-    min = tmp if (min is None) else min
-    max = np.ceil(np.max(spectrum.data)*10)/10
-    levels = np.linspace(min, max, nlevels)
+    color_level_min = tmp if (color_level_min is None) else color_level_min
+    color_level_max = np.ceil(np.max(spectrum.data)*10)/10
+    levels = np.linspace(color_level_min, color_level_max, nlevels)
     if fill:
         c = ax.contourf(a, f, spectrum, levels=levels)
     else:
