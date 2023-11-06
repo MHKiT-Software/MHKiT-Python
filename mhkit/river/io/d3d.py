@@ -335,83 +335,90 @@ def create_points(x, y, waterdepth):
     # Check input types
     inputs = {'x': x, 'y': y, 'waterdepth': waterdepth}
     for name, value in inputs.items():
+        # Convert lists to numpy arrays
+        if isinstance(value, list):
+            value = np.array(value)
+            inputs[name] = value  # Update the value in the dictionary
+
+        # Check data type
         if not isinstance(value, (int, float, np.ndarray, pd.Series, xr.DataArray)):
             raise TypeError(f"{name} must be an int, float, array, or series")
 
+        # Check for empty arrays
+        if isinstance(value, (np.ndarray, pd.Series, xr.DataArray)) and len(value) == 0:
+            raise ValueError(f"{name} should not be an empty array")
+
     # Directions Initialization
     directions = {}
-    for idx, (name, value) in enumerate(inputs.items()):
-        if not hasattr(value, '__len__'):
-            value = np.array([value])
-        N = len(value)
-        if N == 0:
-            raise ValueError(f"Length of direction {name} is negative or zero")
-        direction_type = 'point' if N == 1 else 'array'
-        directions[idx] = {'name': name,
-                           'values': value, 'type': direction_type}
+    for name, value in inputs.items():
+        # Check if the value is a single integer or float, if so wrap it in an array
+        if isinstance(value, (int, float)):
+            value_array = np.array([value])
+        else:
+            value_array = value
 
-    # Check how many times point is in "types"
+        # Determine the type based on the length
+        direction_type = 'point' if len(value_array) == 1 else 'array'
+
+        # Assign to the directions dictionary
+        directions[name] = {'values': value_array, 'type': direction_type}
+
     types = [direction['type'] for direction in directions.values()]
-    N_points = types.count('point')
+    num_points = types.count('point')
 
-    # Create a mapping from names to their values for easier access
-    name_to_values = {direction['name']: direction['values']
-                      for direction in directions.values()}
-
-    if N_points >= 2:
-        max_len_name = max(
-            name_to_values, key=lambda name: len(name_to_values[name]))
-
-        for direction in directions.values():
+    if num_points >= 2:
+        max_len_name = max(directions, key=lambda name: len(
+            directions[name]['values']))
+        for name, direction in directions.items():
             if direction['type'] == 'point':
-                N = len(name_to_values[max_len_name])
-                name_to_values[direction['name']] = np.full(
-                    N, direction['values'])
+                direction['values'] = np.full(
+                    len(directions[max_len_name]['values']), direction['values'][0])
 
-        request = np.array([
-            [
-                name_to_values['x'][i],
-                name_to_values['y'][i],
-                name_to_values['waterdepth'][i]
-            ]
-            for i in range(len(name_to_values['x']))
-        ])
-        points = pd.DataFrame(request, columns=['x', 'y', 'waterdepth'])
+        combined_values = [direction['values']
+                           for direction in directions.values()]
+        points = pd.DataFrame(np.column_stack(
+            combined_values), columns=inputs.keys())
 
-    elif N_points == 1:
-        # treat as plane
-        # find index of point
-        idx_point = types.index('point')
-        max_idxs = [i for i in directions.keys()]
-        print(max_idxs)
-        del max_idxs[idx_point]
-        # find vectors
-        XX, YY = np.meshgrid(directions[max_idxs[0]]['values'],
-                             directions[max_idxs[1]]['values'])
-        N_X = np.shape(XX)[1]
-        N_Y = np.shape(YY)[0]
-        ZZ = np.ones((N_Y, N_X))*directions[idx_point]['values']
+    elif num_points == 1:
+        point_name = None
+        array_names = []
 
-        request = np.array([[x_i, y_i, z_i] for x_i, y_i, z_i in zip(XX.ravel(),
-                                                                     YY.ravel(), ZZ.ravel())])
-        columns = [directions[max_idxs[0]]['name'],
-                   directions[max_idxs[1]]['name'],  directions[idx_point]['name']]
+        for name, direction in directions.items():
+            if direction['type'] == 'point':
+                point_name = name
+            elif direction['type'] == 'array':
+                array_names.append(name)
 
-        points = pd.DataFrame(request, columns=columns)
+        if point_name is None:
+            raise ValueError("No point-type direction found!")
+
+        if len(array_names) != 2:
+            raise ValueError("Expected two array type directions")
+
+        mesh_x, mesh_y = np.meshgrid(
+            directions[array_names[0]]['values'], directions[array_names[1]]['values'])
+        mesh_depth = np.ones_like(mesh_x) * directions[point_name]['values'][0]
+
+        data = list(zip(mesh_x.ravel(), mesh_y.ravel(), mesh_depth.ravel()))
+        points = pd.DataFrame(data, columns=['x', 'y', 'waterdepth'])
+
     else:
-        assert len(directions['x']['values']) == len(directions['y']['values']), (
-            'X and Y must be the same length if you are inputting three arrays')
-        x_points = np.tile(directions['x']['values'], len(
-            directions['waterdepth']['values']))
-        y_points = np.tile(directions['y']['values'], len(
-            directions['waterdepth']['values']))
-        depth_points = np.repeat(
-            directions['waterdepth']['values'], len(directions['x']['values']))
+        x_values = directions['x']['values']
+        y_values = directions['y']['values']
+        depth_values = directions['waterdepth']['values']
+
+        if len(x_values) != len(y_values):
+            raise ValueError(
+                'X and Y must be the same length if you are inputting three arrays')
+
+        x_repeated = np.tile(x_values, len(depth_values))
+        y_repeated = np.tile(y_values, len(depth_values))
+        depth_tiled = np.repeat(depth_values, len(x_values))
 
         points = pd.DataFrame({
-            'x': x_points,
-            'y': y_points,
-            'waterdepth': depth_points
+            'x': x_repeated,
+            'y': y_repeated,
+            'waterdepth': depth_tiled
         })
 
     return points
