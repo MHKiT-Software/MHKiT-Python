@@ -26,7 +26,8 @@ def plot_spectrum(S, ax=None):
     ---------
     ax : matplotlib pyplot axes
     """
-    assert isinstance(S, pd.DataFrame), 'S must be of type pd.DataFrame'
+    if not isinstance(S, pd.DataFrame):
+        raise TypeError(f'S must be of type pd.DataFrame. Got: {type(S)}')
 
     f = S.index
     for key in S.keys():
@@ -52,7 +53,8 @@ def plot_elevation_timeseries(eta, ax=None):
     ax : matplotlib pyplot axes
     """
 
-    assert isinstance(eta, pd.DataFrame), 'eta must be of type pd.DataFrame'
+    if not isinstance(eta, pd.DataFrame):
+        raise TypeError(f'eta must be of type pd.DataFrame. Got: {type(eta)}')
 
     for key in eta.keys():
         ax = _xy_plot(eta.index, eta[key], fmt='-', xlabel='Time',
@@ -93,7 +95,8 @@ def plot_matrix(
     ax : matplotlib pyplot axes
     """
 
-    assert isinstance(M, pd.DataFrame), 'M must be of type pd.DataFrame'
+    if not isinstance(M, pd.DataFrame):
+        raise TypeError(f'M must be of type pd.DataFrame. Got: {type(M)}')
 
     if ax is None:
         plt.figure()
@@ -175,22 +178,22 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     -------
     ax : matplotlib pyplot axes
     """
-    assert isinstance(H, (np.ndarray, float, int, np.int64,pd.Series)), \
-           'H must be a real numeric type'
-    assert isinstance(lambda_w, (np.ndarray, float, int, np.int64,pd.Series)), \
-           'lambda_w must be a real numeric type'
-    assert isinstance(D, (np.ndarray, float, int, np.int64,pd.Series)), \
-           'D must be a real numeric type'
+    if not isinstance(H, (np.ndarray, float, int, np.int64,pd.Series)):
+        raise TypeError(f'H must be a real numeric type. Got: {type(H)}')
+    if not isinstance(lambda_w, (np.ndarray, float, int, np.int64,pd.Series)):
+        raise TypeError(f'lambda_w must be a real numeric type. Got: {type(lambda_w)}')
+    if not isinstance(D, (np.ndarray, float, int, np.int64,pd.Series)):
+        raise TypeError(f'D must be a real numeric type. Got: {type(D)}')
 
-    if any([(isinstance(H, np.ndarray) or isinstance(H, pd.Series)),        \
-            (isinstance(lambda_w, np.ndarray) or isinstance(H, pd.Series)), \
-            (isinstance(D, np.ndarray) or isinstance(H, pd.Series))\
+    if any([(isinstance(H, np.ndarray) or isinstance(H, pd.Series)),
+            (isinstance(lambda_w, np.ndarray) or isinstance(lambda_w, pd.Series)),
+            (isinstance(D, np.ndarray) or isinstance(D, pd.Series))
            ]):
-        errMsg = 'D, H, and lambda_w must be same shape'
         n_H = H.squeeze().shape
         n_lambda_w = lambda_w.squeeze().shape
         n_D = D.squeeze().shape
-        assert n_H == n_lambda_w and n_H == n_D, errMsg
+        if not (n_H == n_lambda_w and n_H == n_D):
+            raise ValueError('D, H, and lambda_w must be same shape')
 
         if isinstance(H, np.ndarray):
             mvals = pd.DataFrame(H.reshape(len(H),1), columns=['H'])
@@ -345,55 +348,57 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     except: pass
     try: x2 = x2.values
     except: pass
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(x1_contour, (np.ndarray,list)), ('x1_contour must be of '
-                                                'type np.ndarray or list')
-    assert isinstance(x2_contour, (np.ndarray,list)), ('x2_contour must be of '
-                                               'type np.ndarray or list')
+    if not isinstance(x1, np.ndarray):
+        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+    if not isinstance(x2, np.ndarray):
+        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
+    if not isinstance(x1_contour, (np.ndarray,list)):
+        raise TypeError(f'x1_contour must be of type np.ndarray or list. Got: {type(x1_contour)}')
+    if not isinstance(x2_contour, (np.ndarray,list)):
+        raise TypeError(f'x2_contour must be of type np.ndarray or list. Got: {type(x2_contour)}')
+    
     x_label = kwargs.get("x_label", None)
     y_label = kwargs.get("y_label", None)
     data_label=kwargs.get("data_label", None)
     contour_label=kwargs.get("contour_label", None)
     ax=kwargs.get("ax", None)
     markers=kwargs.get("markers", '-')
-    assert isinstance(data_label, (str,type(None))), 'data_label must be of type str'
-    assert isinstance(contour_label, (str,list, type(None))), ('contour_label be of '
-                                                  'type str')
+    if not isinstance(data_label, (str,type(None))):
+        raise TypeError(f'data_label must be of type str. Got: {type(data_label)}')
+    if not isinstance(contour_label, (str,list, type(None))):
+        raise TypeError('contour_label be of type str. Got: {type(contour_label)}')
 
-    if isinstance(markers, list):
-        assert all( [isinstance(marker, (str)) for marker in markers] )
-    elif isinstance(markers, str):
+    if isinstance(markers, str):
         markers=[markers]
-        assert all( [isinstance(marker, (str)) for marker in markers] )
-    else:
-        assert isinstance(markers, (str,list)), ('markers must be of type str or list of strings')
+    if not isinstance(markers, list) or not all( [isinstance(marker, (str)) for marker in markers] ):
+        raise TypeError('markers must be of type str or list of strings. Got: {markers}')
 
-    assert len(x2_contour) == len(x1_contour),  ('contour must be of'
-            f'equal dimesion got {len(x2_contour)} and {len(x1_contour)}')
-
+    if not len(x2_contour) == len(x1_contour):
+        raise ValueError(f'contour must be of equal dimesion got {len(x2_contour)} and {len(x1_contour)}')
 
     if isinstance(x1_contour, np.ndarray):
         N_contours=1
         x2_contour  = [x2_contour]
         x1_contour = [x1_contour]
     elif isinstance(x1_contour, list):
-        N_contours=len(x1_contour)
+        N_contours = len(x1_contour)
 
     if contour_label != None:
         if isinstance(contour_label, str):
             contour_label = [contour_label]
         N_c_labels = len(contour_label)
-        assert  N_c_labels == N_contours, ('If specified, the '
-             'number of contour lables must be equal to number the '
-            f'number of contour years. Got {N_c_labels} and {N_contours}')
+        if not  N_c_labels == N_contours:
+            raise ValueError('If specified, the number of contour lables must'
+                             ' be equal to number the number of contour years.'
+                             f' Got {N_c_labels} and {N_contours}')
     else:
         contour_label = [None] * N_contours
 
     if len(markers)==1:
-        markers=markers*N_contours
-    assert len(markers) == N_contours,  ('Markers must be same length'
-            f'as N contours specified. Got: {len(markers)} and {len(x1_contour)}')
+        markers = markers*N_contours
+    if not len(markers) == N_contours:
+        raise ValueError('Markers must be same length as N contours specified.'
+                         f'Got: {len(markers)} and {len(x1_contour)}')
 
     for i in range(N_contours):
         contour1 = np.array(x1_contour[i]).T
@@ -543,9 +548,10 @@ def monthly_cumulative_distribution(J):
     ax: axes
         Figure of monthly cumulative distribution
     '''
-    assert isinstance(J, pd.Series), 'J must be of type pd.Series'
-    cumSum={}
-    months=J.index.month.unique()
+    if not isinstance(J, pd.Series):
+        raise TypeError(f'J must be of type pd.Series. Got: {type(J)}')
+    cumSum = {}
+    months = J.index.month.unique()
     for month in months:
         F = exceedance_probability(J[J.index.month==month])
         cumSum[month] = 1-F/100
@@ -592,10 +598,14 @@ def plot_compendium(Hs, Tp, Dp, buoy_title=None, ax=None):
     ax : matplotlib pyplot axes
 
     """
-    assert isinstance(Hs, pd.Series), 'Hs must be of type pd.Series'
-    assert isinstance(Tp, pd.Series), 'Tp must be of type pd.Series'
-    assert isinstance(Dp, pd.Series), 'Dp must be of type pd.Series'
-    assert isinstance(buoy_title, (str, type(None))), 'buoy_title must be of type string'
+    if not isinstance(Hs, pd.Series):
+        raise TypeError(f'Hs must be of type pd.Series. Got: {type(Hs)}')
+    if not isinstance(Tp, pd.Series):
+        raise TypeError(f'Tp must be of type pd.Series. Got: {type(Tp)}')
+    if not isinstance(Dp, pd.Series):
+        raise TypeError(f'Dp must be of type pd.Series. Got: {type(Dp)}')
+    if not isinstance(buoy_title, (str, type(None))):
+        raise TypeError(f'buoy_title must be of type string. Got: {type(buoy_title)}')
 
     f, (pHs, pTp, pDp) = plt.subplots(3, 1, sharex=True, figsize=(15,10))
 
@@ -668,8 +678,10 @@ def plot_boxplot(Hs, buoy_title=None):
     ---------
     ax : matplotlib pyplot axes
     """
-    assert isinstance(Hs, pd.Series), 'Hs must be of type pd.Series'
-    assert isinstance(buoy_title, (str, type(None))), 'buoy_title must be of type string'
+    if not isinstance(Hs, pd.Series):
+        raise TypeError(f'Hs must be of type pd.Series. Got: {type(Hs)}')
+    if not isinstance(buoy_title, (str, type(None))):
+        raise TypeError(f'buoy_title must be of type string. Got: {type(buoy_title)}')
 
     months = Hs.index.month
     means = Hs.groupby(months).mean()
@@ -783,13 +795,19 @@ def plot_directional_spectrum(
     ---------
     ax : matplotlib pyplot axes
     """
-    assert isinstance(spectrum, xr.DataArray), 'spectrum must be a DataArray'
+    if not isinstance(spectrum, xr.DataArray):
+        raise TypeError(f'spectrum must be a DataArray. Got: {type(spectrum)}')
     if min is not None:
-        assert isinstance(min, float), 'min must be a float'
-    assert isinstance(fill, bool), 'fill must be a bool'
-    assert isinstance(nlevels, int), 'nlevels must be an int'
-    assert isinstance(name, str), 'name must be a string'
-    assert isinstance(units, str), 'units must be a string'
+        if not isinstance(min, float):
+            raise TypeError(f'min must be a float. Got: {type(min)}')
+    if not isinstance(fill, bool):
+        raise TypeError(f'fill must be a bool. Got: {type(fill)}')
+    if not isinstance(nlevels, int):
+        raise TypeError(f'nlevels must be an int. Got: {type(nlevels)}')
+    if not isinstance(name, str):
+        raise TypeError(f'name must be a string. Got: {type(name)}')
+    if not isinstance(units, str):
+        raise TypeError(f'units must be a string. Got: {type(units)}')
 
     a,f = np.meshgrid(np.deg2rad(spectrum.direction), spectrum.frequency)
     _, ax = plt.subplots(subplot_kw=dict(projection='polar'))
