@@ -338,6 +338,7 @@ def create_points(x, y, waterdepth):
         if not isinstance(value, (int, float, np.ndarray, pd.Series, xr.DataArray)):
             raise TypeError(f"{name} must be an int, float, array, or series")
 
+    # Directions Initialization
     directions = {}
     for idx, (name, value) in enumerate(inputs.items()):
         if not hasattr(value, '__len__'):
@@ -350,27 +351,31 @@ def create_points(x, y, waterdepth):
                            'values': value, 'type': direction_type}
 
     # Check how many times point is in "types"
-    types = [directions[i]['type'] for i in directions]
+    types = [direction['type'] for direction in directions.values()]
     N_points = types.count('point')
 
+    # Create a mapping from names to their values for easier access
+    name_to_values = {direction['name']: direction['values']
+                      for direction in directions.values()}
+
     if N_points >= 2:
-        lens = np.array([len(directions[d]['values']) for d in directions])
-        max_len_idx = lens.argmax()
-        not_max_idxs = [i for i in directions.keys()]
+        max_len_name = max(
+            name_to_values, key=lambda name: len(name_to_values[name]))
 
-        del not_max_idxs[max_len_idx]
+        for direction in directions.values():
+            if direction['type'] == 'point':
+                N = len(name_to_values[max_len_name])
+                name_to_values[direction['name']] = np.full(
+                    N, direction['values'])
 
-        for not_max in not_max_idxs:
-            N = len(directions[max_len_idx]['values'])
-            vals = np.ones(N)*directions[not_max]['values']
-            directions[not_max]['values'] = np.array(vals)
-
-        x_new = directions[0]['values']
-        y_new = directions[1]['values']
-        depth_new = directions[2]['values']
-
-        request = np.array([[x_i, y_i, depth_i] for x_i, y_i, depth_i in zip(x_new,
-                                                                             y_new, depth_new)])
+        request = np.array([
+            [
+                name_to_values['x'][i],
+                name_to_values['y'][i],
+                name_to_values['waterdepth'][i]
+            ]
+            for i in range(len(name_to_values['x']))
+        ])
         points = pd.DataFrame(request, columns=['x', 'y', 'waterdepth'])
 
     elif N_points == 1:
@@ -394,22 +399,20 @@ def create_points(x, y, waterdepth):
 
         points = pd.DataFrame(request, columns=columns)
     else:
-        assert len(directions[0]['values']) == len(directions[1]['values']), ('X'
-                                                                              + 'and Y must be the same length if you are inputing three arrays')
-        x_points = np.tile(directions[0]['values'],
-                           len(directions[2]['values']))
-        y_points = np.tile(directions[1]['values'],
-                           len(directions[2]['values']))
+        assert len(directions['x']['values']) == len(directions['y']['values']), (
+            'X and Y must be the same length if you are inputting three arrays')
+        x_points = np.tile(directions['x']['values'], len(
+            directions['waterdepth']['values']))
+        y_points = np.tile(directions['y']['values'], len(
+            directions['waterdepth']['values']))
         depth_points = np.repeat(
-            directions[2]['values'], len(directions[0]['values']))
+            directions['waterdepth']['values'], len(directions['x']['values']))
 
-        request = {
-            directions[0]['name']: x_points,
-            directions[1]['name']: y_points,
-            directions[2]['name']: depth_points
-        }
-
-        points = pd.DataFrame(request)
+        points = pd.DataFrame({
+            'x': x_points,
+            'y': y_points,
+            'waterdepth': depth_points
+        })
 
     return points
 
