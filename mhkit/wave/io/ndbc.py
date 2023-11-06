@@ -47,9 +47,10 @@ def read_file(file_name, missing_values=['MM', 9999, 999, 99]):
         Dictionary with {column name: units} key value pairs when the NDBC file
         contains unit information, otherwise None is returned
     """
-    assert isinstance(file_name, str), 'file_name must be of type str'
-    assert isinstance(
-        missing_values, list), 'missing_values must be of type list'
+    if not isinstance(file_name, str):
+        raise TypeError(f'file_name must be of type str. Got: {type(file_name)}')
+    if not isinstance(missing_values, list):
+        raise TypeError(f'missing_values must be of type list. Got: {type(missing_values)}')
 
     # Open file and get header rows
     f = open(file_name, "r")
@@ -149,19 +150,22 @@ def available_data(parameter, buoy_number=None, proxy=None, clear_cache=False):
     available_data: DataFrame
         DataFrame with station ID, years, and NDBC file names.
     '''
-    assert isinstance(parameter, str), 'parameter must be a string'
-    assert isinstance(buoy_number, (str, type(None), list)), ('If '
-                                                              'specified the buoy number must be a string or list of strings')
-    assert isinstance(proxy, (dict, type(None))
-                      ), 'If specified proxy must be a dict'
+    if not isinstance(parameter, str):
+        raise TypeError(f'parameter must be a string. Got: {type(parameter)}')
+    if not isinstance(buoy_number, (str, type(None), list)):
+        raise TypeError(f'If specified, buoy_number must be a string or list of strings. Got: {type(buoy_number)}')
+    if not isinstance(proxy, (dict, type(None))):
+        raise TypeError(f'If specified, proxy must be a dict. Got: {type(proxy)}')
     _supported_params(parameter)
     if isinstance(buoy_number, str):
-        assert len(buoy_number) == 5, ('Buoy must be 5-character'
-                                       f'alpha-numeric station identifier got: {buoy_number}')
+        if not len(buoy_number) == 5:
+            raise ValueError('Buoy must be 5-character'
+                             f'alpha-numeric station identifier. Got: {buoy_number}')
     elif isinstance(buoy_number, list):
         for buoy in buoy_number:
-            assert len(buoy) == 5, ('Each buoy must be a 5-character'
-                                    f'alpha-numeric station identifier got: {buoy}')
+            if not len(buoy) == 5:
+                raise ValueError('Each buoy must be a 5-character'
+                                 f'alpha-numeric station identifier. Got: {buoy}')
 
     # Generate a unique hash_params based on the function parameters
     hash_params = f"parameter:{parameter}_buoy_number:{buoy_number}_proxy:{proxy}"
@@ -240,9 +244,10 @@ def _parse_filenames(parameter, filenames):
     buoys: DataFrame
         DataFrame with keys=['id','year','file_name']
     '''
-    assert isinstance(
-        filenames, pd.Series), 'filenames must be of type pd.Series'
-    assert isinstance(parameter, str), 'parameter must be a string'
+    if not isinstance(filenames, pd.Series):
+        raise TypeError(f'filenames must be of type pd.Series. Got: {type(filenames)}')
+    if not isinstance(parameter, str):
+        raise TypeError(f'parameter must be a string. Got: {type(parameter)}')
     supported = _supported_params(parameter)
 
     file_seps = {
@@ -299,16 +304,18 @@ def request_data(parameter, filenames, proxy=None, clear_cache=False):
     ndbc_data: dict
         Dictionary of DataFrames indexed by buoy and year.
     '''
-    assert isinstance(filenames, (pd.Series, pd.DataFrame)), (
-        'filenames must be of type pd.Series')
-    assert isinstance(parameter, str), 'parameter must be a string'
-    assert isinstance(proxy, (dict, type(None))), (
-        'If specified proxy must be a dict')
+    if not isinstance(filenames, (pd.Series, pd.DataFrame)):
+        raise TypeError(f'filenames must be of type pd.Series. Got: {type(filenames)}')
+    if not isinstance(parameter, str):
+        raise TypeError(f'parameter must be a string. Got: {type(parameter)}')
+    if not isinstance(proxy, (dict, type(None))):
+        raise TypeError('If specified, proxy must be a dict. Got: {type(proxy)}')
 
     _supported_params(parameter)
     if isinstance(filenames, pd.DataFrame):
         filenames = pd.Series(filenames.squeeze())
-    assert len(filenames) > 0, "At least 1 filename must be passed"
+    if not len(filenames) > 0:
+        raise ValueError("At least 1 filename must be passed")
 
     # Define the path to the cache directory
     cache_dir = os.path.join(os.path.expanduser("~"),
@@ -395,9 +402,10 @@ def to_datetime_index(parameter, ndbc_data):
             Dataframe with NDBC date columns removed, and datetime index
     '''
 
-    assert isinstance(parameter, str), 'parameter must be a string'
-    assert isinstance(
-        ndbc_data, pd.DataFrame), 'ndbc_data must be of type pd.DataFrame'
+    if not isinstance(parameter, str):
+        raise TypeError(f'parameter must be a string. Got: {type(parameter)}')
+    if not isinstance(ndbc_data, pd.DataFrame):
+        raise TypeError(f'ndbc_data must be of type pd.DataFrame. Got: {type(ndbc_data)}')
 
     df_datetime = ndbc_data.copy(deep=True)
     df_datetime['date'], ndbc_date_cols = dates_to_datetime(
@@ -437,9 +445,10 @@ def dates_to_datetime(data, return_date_cols=False, return_as_dataframe=False):
         List of the DataFrame columns headers for dates as provided by
         NDBC
     '''
-    assert isinstance(data, pd.DataFrame), 'data must be of type pd.DataFrame'
-    assert isinstance(return_date_cols,
-                      bool), 'return_date_cols must be of type bool'
+    if not isinstance(data, pd.DataFrame):
+        raise TypeError(f'data must be of type pd.DataFrame. Got: {type(data)}')
+    if not isinstance(return_date_cols,bool):
+        raise TypeError(f'return_date_cols must be of type bool. Got: {type(return_date_cols)}')
 
     df = data.copy(deep=True)
     cols = df.columns.values.tolist()
@@ -514,9 +523,12 @@ def _date_string_to_datetime(df, columns, year_fmt):
     df: DataFrame
         The passed df with a new column ['date'] with the datetime format
     '''
-    assert isinstance(df, pd.DataFrame), 'df must be of type pd.DataFrame'
-    assert isinstance(columns, list), 'Columns must be a list'
-    assert isinstance(year_fmt, str), 'year_fmt must be a string'
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(f'df must be of type pd.DataFrame. Got: {type(df)}')
+    if not isinstance(columns, list):
+       raise TypeError(f'columns must be a list. Got: {type(columns)}')
+    if not isinstance(year_fmt, str):
+        raise TypeError(f'year_fmt must be a string. Got: {type(year_fmt)}')
 
     # Convert to str and zero pad
     for key in columns:
@@ -572,7 +584,8 @@ def parameter_units(parameter=''):
         Dictionary of parameter units
     '''
 
-    assert isinstance(parameter, str), 'parameter must be a string'
+    if not isinstance(parameter, str):
+        raise TypeError(f'parameter must be a string. Got: {type(parameter)}')
 
     if parameter == 'adcp':
         units = {'DEP01': 'm',
@@ -750,7 +763,8 @@ def _supported_params(parameter):
     msg: bool
         Whether the parameter is supported.
     '''
-    assert isinstance(parameter, str), 'parameter must be a string'
+    if not isinstance(parameter, str):
+        raise TypeError(f'parameter must be a string. Got: {type(parameter)}')
     supported = True
     supported_params = [
         'swden',
@@ -838,8 +852,10 @@ def request_directional_data(buoy, year):
         Dataset containing the five parameter data indexed by frequency
         and date.
     """
-    assert isinstance(buoy, str), 'buoy must be a string'
-    assert isinstance(year, int), 'year must be an int'
+    if not isinstance(buoy, str):
+        raise TypeError(f'buoy must be a string. Got: {type(buoy)}')
+    if not isinstance(year, int):
+        raise TypeError(f'year must be an int. Got: {type(year)}')
 
     directional_parameters = ['swden', 'swdir', 'swdir2', 'swr1', 'swr2']
 
@@ -936,15 +952,21 @@ def _create_spectrum(data, frequencies, directions, name, units):
         DataArray containing the spectrum values indexed by frequency
         and wave direction.
     """
-    assert isinstance(data, np.ndarray), 'data must be an array'
-    assert isinstance(frequencies, np.ndarray), 'frequencies must be an array'
-    assert isinstance(directions, np.ndarray), 'directions must be an array'
-    assert isinstance(name, str), 'name must be a string'
-    assert isinstance(units, str), 'units must be a string'
+    if not isinstance(data, np.ndarray):
+        raise TypeError(f'data must be an array. Got: {type(data)}')
+    if not isinstance(frequencies, np.ndarray):
+        raise TypeError(f'frequencies must be an array. Got: {type(frequencies)}')
+    if not isinstance(directions, np.ndarray):
+        raise TypeError(f'directions must be an array. Got: {type(directions)}')
+    if not isinstance(name, str):
+        raise TypeError(f'name must be a string. Got: {type(name)}')
+    if not isinstance(units, str):
+        raise TypeError(f'units must be a string. Got: {type(units)}')
 
     msg = (f'data has wrong shape {data.shape}, ' +
            f'expected {(len(frequencies), len(directions))}')
-    assert data.shape == (len(frequencies), len(directions)), msg
+    if not data.shape == (len(frequencies), len(directions)):
+        raise ValueError(msg)
 
     direction_attrs = {
         'units': 'deg',
@@ -994,8 +1016,10 @@ def create_spread_function(data, directions):
         DataArray containing the spread function values indexed by
         frequency and wave direction.
     """
-    assert isinstance(data, xr.Dataset), 'data must be a Dataset'
-    assert isinstance(directions, np.ndarray), 'directions must be an array'
+    if not isinstance(data, xr.Dataset):
+        raise TypeError(f'data must be a Dataset. Got: {type(data)}')
+    if not isinstance(directions, np.ndarray):
+        raise TypeError(f'directions must be an array. Got: {type(directions)}')
 
     r1 = data['swr1'].data.reshape(-1, 1)
     r2 = data['swr2'].data.reshape(-1, 1)
@@ -1037,8 +1061,10 @@ def create_directional_spectrum(data, directions):
         DataArray containing the spectrum values indexed by frequency
         and wave direction.
     """
-    assert isinstance(data, xr.Dataset), 'data must be a Dataset'
-    assert isinstance(directions, np.ndarray), 'directions must be an array'
+    if not isinstance(data, xr.Dataset):
+        raise TypeError(f'data must be a Dataset. Got: {type(data)}')
+    if not isinstance(directions, np.ndarray):
+        raise TypeError(f'directions must be an array. Got: {type(directions)}')
 
     spread = create_spread_function(data, directions).values
     omnidirectional_spectrum = data['swden'].data.reshape(-1, 1)
