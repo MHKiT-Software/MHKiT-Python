@@ -332,12 +332,14 @@ def create_points(x, y, waterdepth):
     5  4.0  6.0  2.0        
     '''
 
-    assert isinstance(x, (int, float, np.ndarray, pd.Series, xr.DataArray)), ('x'
-                                                                              + 'must be a int, float array or series')
-    assert isinstance(y, (int, float, np.ndarray, pd.Series, xr.DataArray)), ('y'
-                                                                              + ' must be a int, float array or series')
-    assert isinstance(waterdepth, (int, float, np.ndarray, pd.Series,
-                                   xr.DataArray)), ('waterdepth must be a int, float array or series')
+    if not isinstance(x, (int, float, np.ndarray, pd.Series, xr.DataArray)):
+        raise TypeError("x must be an int, float, array, or series")
+
+    if not isinstance(y, (int, float, np.ndarray, pd.Series, xr.DataArray)):
+        raise TypeError("y must be an int, float, array, or series")
+
+    if not isinstance(waterdepth, (int, float, np.ndarray, pd.Series, xr.DataArray)):
+        raise TypeError("waterdepth must be an int, float, array, or series")
 
     directions = {0: {'name':  'x',
                       'values': x},
