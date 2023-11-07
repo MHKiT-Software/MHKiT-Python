@@ -48,8 +48,10 @@ def elevation_spectrum(eta, sample_rate, nnft, window='hann',
         raise TypeError(f'window must be of type str. Got: {type(window)}')
     if not isinstance(detrend, bool):
         raise TypeError(f'detrend must be of type bool. Got: {type(detrend)}')
-    if not nnft > 0, 'nnft must be > 0. Got: {nnft}')
-    if not sample_rate > 0, 'sample_rate must be > 0. Got: {sample_rate}')
+    if not nnft > 0:
+        raise ValueError(f'nnft must be > 0. Got: {nnft}')
+    if not sample_rate > 0:
+        raise ValueError(f'sample_rate must be > 0. Got: {sample_rate}')
 
     S = pd.DataFrame()
     for col in eta.columns:
@@ -233,9 +235,9 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
     if not isinstance(seed, (type(None),int)):
         raise TypeError(f'seed must be of type int. Got: {type(seed)}')
     if not isinstance(frequency_bins, (type(None), np.ndarray, pd.DataFrame)):
-        raise TypeError('frequency_bins must be of type None, np.ndarray, or pd,DataFrame. Got: {type(frequency_bins)}')
+        raise TypeError('frequency_bins must be of type None, np.ndarray, or pd, DataFrame. Got: {type(frequency_bins)}')
     if not isinstance(phases, (type(None), np.ndarray, pd.DataFrame)):
-        raise TypeError('phases must be of type None, np.ndarray, or pd,DataFrame. Got: {type(phases)}')
+        raise TypeError('phases must be of type None, np.ndarray, or pd, DataFrame. Got: {type(phases)}')
     if not isinstance(method, str):
         raise TypeError('method must be of type str. Got: {type(method)}')
 
@@ -258,13 +260,16 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
     f.index = f
     if frequency_bins is None:
         delta_f = f.values[1]-f.values[0]
-        if not np.allclose(f.diff()[1:], delta_f)
+        if not np.allclose(f.diff()[1:], delta_f):
+            raise ValueError('Frequency bins are not evenly spaced. ' +
+                             "Define 'frequency_bins' or create a constant " +
+                             'frequency spacing for S.')
     elif isinstance(frequency_bins, np.ndarray):
         delta_f = pd.Series(frequency_bins, index=S.index)
         method = 'sum_of_sines'
     elif isinstance(frequency_bins, pd.DataFrame):
-        if not len(frequency_bins.columns) == 1, ('frequency_bins must only'
-                'contain 1 column')
+        if not len(frequency_bins.columns) == 1:
+            raise ValueError('frequency_bins must only contain 1 column')
         delta_f = frequency_bins.squeeze()
         method = 'sum_of_sines'
 

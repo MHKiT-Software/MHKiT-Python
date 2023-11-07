@@ -94,9 +94,9 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
     P: pandas DataFrame
         Magnitude of active AC power [W] indexed by time with Power column 
     """
-    if not isinstance(voltage, pd.DataFrame)):
+    if not isinstance(voltage, pd.DataFrame):
         raise TypeError(f'voltage must be of type pd.DataFrame. Got: {type(voltage)}')
-    if not isinstance(current, pd.DataFrame)):
+    if not isinstance(current, pd.DataFrame):
         raise TypeError(f'current must be of type pd.DataFrame. Got: {type(current)}')
     if not len(voltage.columns) == 3:
         raise ValueError('voltage must have three columns')
