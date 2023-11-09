@@ -214,7 +214,7 @@ class TestIOndbc(unittest.TestCase):
             self.directional_data, directions)
         wave.graphics.plot_directional_spectrum(
             spectrum,
-            min=0.0,
+            color_level_min=0.0,
             fill=True,
             nlevels=6,
             name="Elevation Variance",

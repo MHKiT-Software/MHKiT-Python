@@ -249,7 +249,7 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
             raise ValueError('shape of phases must match shape of S')
         
     if method is not None:
-        if not method == 'ifft' or method == 'sum_of_sines':
+        if not (method == 'ifft' or method == 'sum_of_sines'):
             raise ValueError(f"unknown method {method}, options are 'ifft' or 'sum_of_sines'")
         
     if method == 'ifft':
