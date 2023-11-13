@@ -341,7 +341,7 @@ def request_wpto_directional_spectrum(
     if not isinstance(lat_lon, (list, tuple)):
         raise TypeError(f'lat_lon must be of type list or tuple. Got: {type(lat_lon)}')
     if not isinstance(year, str):
-        raise TypeError(f'years must be a string. Got: {type(year)}')
+        raise TypeError(f'year must be a string. Got: {type(year)}')
     if not isinstance(tree, (str, type(None))):
         raise TypeError(f'tree must be a string. Got: {type(tree)}')
     if not isinstance(unscale, bool):

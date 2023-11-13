@@ -159,13 +159,13 @@ def available_data(parameter, buoy_number=None, proxy=None, clear_cache=False):
     _supported_params(parameter)
     if isinstance(buoy_number, str):
         if not len(buoy_number) == 5:
-            raise ValueError('Buoy must be 5-character'
+            raise ValueError('buoy_number must be 5-character'
                              f'alpha-numeric station identifier. Got: {buoy_number}')
     elif isinstance(buoy_number, list):
         for buoy in buoy_number:
             if not len(buoy) == 5:
-                raise ValueError('Each buoy must be a 5-character'
-                                 f'alpha-numeric station identifier. Got: {buoy}')
+                raise ValueError('Each value in the buoy_number list must be a 5-character'
+                                 f'alpha-numeric station identifier. Got: {buoy_number}')
 
     # Generate a unique hash_params based on the function parameters
     hash_params = f"parameter:{parameter}_buoy_number:{buoy_number}_proxy:{proxy}"
@@ -309,7 +309,7 @@ def request_data(parameter, filenames, proxy=None, clear_cache=False):
     if not isinstance(parameter, str):
         raise TypeError(f'parameter must be a string. Got: {type(parameter)}')
     if not isinstance(proxy, (dict, type(None))):
-        raise TypeError('If specified, proxy must be a dict. Got: {type(proxy)}')
+        raise TypeError(f'If specified, proxy must be a dict. Got: {type(proxy)}')
 
     _supported_params(parameter)
     if isinstance(filenames, pd.DataFrame):
@@ -953,15 +953,15 @@ def _create_spectrum(data, frequencies, directions, name, units):
         and wave direction.
     """
     if not isinstance(data, np.ndarray):
-        raise TypeError(f'data must be an array. Got: {type(data)}')
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
     if not isinstance(frequencies, np.ndarray):
-        raise TypeError(f'frequencies must be an array. Got: {type(frequencies)}')
+        raise TypeError(f'frequencies must be of type np.ndarray. Got: {type(frequencies)}')
     if not isinstance(directions, np.ndarray):
-        raise TypeError(f'directions must be an array. Got: {type(directions)}')
+        raise TypeError(f'directions must be of type np.ndarray. Got: {type(directions)}')
     if not isinstance(name, str):
-        raise TypeError(f'name must be a string. Got: {type(name)}')
+        raise TypeError(f'name must be of type string. Got: {type(name)}')
     if not isinstance(units, str):
-        raise TypeError(f'units must be a string. Got: {type(units)}')
+        raise TypeError(f'units must be of type string. Got: {type(units)}')
 
     msg = (f'data has wrong shape {data.shape}, ' +
            f'expected {(len(frequencies), len(directions))}')
@@ -1017,9 +1017,9 @@ def create_spread_function(data, directions):
         frequency and wave direction.
     """
     if not isinstance(data, xr.Dataset):
-        raise TypeError(f'data must be a Dataset. Got: {type(data)}')
+        raise TypeError(f'data must be of type xr.Dataset. Got: {type(data)}')
     if not isinstance(directions, np.ndarray):
-        raise TypeError(f'directions must be an array. Got: {type(directions)}')
+        raise TypeError(f'directions must be of type np.ndarray. Got: {type(directions)}')
 
     r1 = data['swr1'].data.reshape(-1, 1)
     r2 = data['swr2'].data.reshape(-1, 1)
@@ -1062,9 +1062,9 @@ def create_directional_spectrum(data, directions):
         and wave direction.
     """
     if not isinstance(data, xr.Dataset):
-        raise TypeError(f'data must be a Dataset. Got: {type(data)}')
+        raise TypeError(f'data must be of type xr.Dataset. Got: {type(data)}')
     if not isinstance(directions, np.ndarray):
-        raise TypeError(f'directions must be an array. Got: {type(directions)}')
+        raise TypeError(f'directions must be of type np.ndarray. Got: {type(directions)}')
 
     spread = create_spread_function(data, directions).values
     omnidirectional_spectrum = data['swden'].data.reshape(-1, 1)

@@ -36,7 +36,7 @@ def elevation_spectrum(eta, sample_rate, nnft, window='hann',
 
     # TODO: Add confidence intervals, equal energy frequency spacing, and NDBC
     #       frequency spacing
-    # TODO: may need an if not for the length of nnft- signal.welch breaks when nfft is too short
+    # TODO: may need to raise an error for the length of nnft- signal.welch breaks when nfft is too short
     # TODO: check for uniform sampling
     if not isinstance(eta, pd.DataFrame):
         raise TypeError(f'eta must be of type pd.DataFrame. Got: {type(eta)}')
@@ -254,7 +254,7 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
         
     if method == 'ifft':
         if not S.index.values[0] == 0:
-            raise ValueError('ifft method must have zero frequency defined')        
+            raise ValueError(f'ifft method must have zero frequency defined. Lowest frequency is: {S.index.values[0]}')        
 
     f = pd.Series(S.index)
     f.index = f
@@ -732,8 +732,8 @@ def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2):
     """
     if isinstance(k, pd.DataFrame):
         k = k.squeeze()
-    if not isinstance(k, pd.Series):
-        raise TypeError(f'S must be of type pd.Series. Got: {type(S)}')
+    if not isinstance(k, (pd.Series, pd.DataFrame)):
+        raise TypeError(f'k must be of type pd.Series or pd.DataFrame. Got: {type(k)}')
     if not isinstance(h, (int,float)):
         raise TypeError(f'h must be of type int or float. Got: {type(h)}')
     if not isinstance(g, (int,float)):
@@ -893,18 +893,17 @@ def depth_regime(l, h, ratio=2):
     depth_reg: boolean or boolean array
         Boolean True if deep water, False otherwise
     '''
-
+    if not isinstance(l, (int, float, list, np.ndarray, pd.DataFrame, pd.Series)):
+        raise TypeError(f'l must be of type int, float, list, np.ndarray, pd.DataFrame, or pd.Series. Got: {type(l)}')
+    if not isinstance(h, (int, float)):
+        raise TypeError(f'h must be of type int or float. Got: {type(h)}')
+    
     if isinstance(l, (int, float, list)):
         l = np.array(l)
     elif isinstance(l, pd.DataFrame):
         l = l.squeeze().values
     elif isinstance(l, pd.Series):
         l = l.values
-
-    if not isinstance(l, (np.ndarray)):
-        raise TypeError('l must be array-like. Got: {type(l)}')
-    if not isinstance(h, (int, float)):
-        raise TypeError('h must be of type int or float. Got: {type(h)}')
 
     depth_reg = h/l > ratio
 

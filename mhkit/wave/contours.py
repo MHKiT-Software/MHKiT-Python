@@ -11,8 +11,6 @@ import matplotlib
 mpl_version = tuple(map(int, matplotlib.__version__.split('.')))
 
 # Contours
-
-
 def environmental_contours(x1, x2, sea_state_duration, return_period,
                            method, **kwargs):
     """
@@ -92,7 +90,7 @@ def environmental_contours(x1, x2, sea_state_duration, return_period,
     if not isinstance(sea_state_duration, (int, float)):
         raise TypeError(f'sea_state_duration must be of type int or float. Got: {type(sea_state_duration)}')
     if not isinstance(return_period, (int, float, np.ndarray)):
-        raise TypeError(f'return_period must be of type int, float, or array. Got: {type(return_period)}')
+        raise TypeError(f'return_period must be of type int, float, or np.ndarray. Got: {type(return_period)}')
 
     bin_val_size = kwargs.get("bin_val_size", 0.25)
     nb_steps = kwargs.get("nb_steps", 1000)
@@ -120,9 +118,8 @@ def environmental_contours(x1, x2, sea_state_duration, return_period,
         raise TypeError(f'min_bin_count must be of type int. Got: {type(min_bin_count)}')
     if not isinstance(initial_bin_max_val, (int, float)):
         raise TypeError(f'initial_bin_max_val must be of type int or float. Got: {type(initial_bin_max_val)}')
-    if bandwidth == None:
-        if not (not 'bivariate_KDE' in method):
-            raise TypeError(f'Must specify keyword bandwidth with bivariate KDE method. Got: {type(bandwidth)}')
+    if 'bivariate_KDE' in method and bandwidth == None:
+        raise TypeError(f'Must specify keyword bandwidth with bivariate KDE method. Got: {type(bandwidth)}')
 
     if isinstance(method, str):
         method = [method]
@@ -430,6 +427,7 @@ def _principal_component_analysis(x1, x2, bin_size=250):
         raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
     if not isinstance(bin_size, int):
         raise TypeError(f'bin_size must be of type int. Got: {type(bin_size)}')
+    
     # Step 0: Perform Standard PCA
     mean_location = 0
     x1_mean_centered = x1 - x1.mean(axis=0)
@@ -470,7 +468,7 @@ def _principal_component_analysis(x1, x2, bin_size=250):
     minimum_4_bins = np.floor(N*0.25)
     if bin_size > minimum_4_bins:
         bin_size = minimum_4_bins
-        msg = ('To allow for a minimum of 4 bins the bin size has been' +
+        msg = ('To allow for a minimum of 4 bins, the bin size has been' +
                f'set to {minimum_4_bins}')
         print(msg)
 
@@ -780,7 +778,7 @@ def _gaussian_copula(x1, x2, fit, component_1, kwargs):
         raise TypeError(f'component_1 must be of type np.ndarray. Got: {type(component_1)}')
     return_fit = kwargs.get("return_fit", False)
     if not isinstance(return_fit, bool):
-        raise TypeError(f'If specified, return_fit must be a bool. Got: {type(return_fit)}')
+        raise TypeError(f'If specified, return_fit must be of type bool. Got: {type(return_fit)}')
 
     x_component_iso_prob = fit['x_component_iso_prob']
     y_component_iso_prob = fit['y_component_iso_prob']
@@ -897,7 +895,7 @@ def _gumbel_copula(x1, x2, fit, component_1, nb_steps, kwargs):
         raise TypeError(f'component_1 must be of type np.ndarray. Got: {type(component_1)}')
     return_fit = kwargs.get("return_fit", False)
     if not isinstance(return_fit, bool):
-        raise TypeError(f'If specified, return_fit must be a bool. Got: {type(return_fit)}')
+        raise TypeError(f'If specified, return_fit must be of type bool. Got: {type(return_fit)}')
 
     x_quantile = fit['x_quantile']
     y_quantile = fit['y_quantile']
@@ -997,7 +995,7 @@ def _clayton_copula(x1, x2, fit, component_1, kwargs):
         raise TypeError(f'component_1 must be of type np.ndarray. Got: {type(component_1)}')
     return_fit = kwargs.get("return_fit", False)
     if not isinstance(return_fit, bool):
-        raise TypeError(f'If specified, return_fit must be a bool. Got: {type(return_fit)}')
+        raise TypeError(f'If specified, return_fit must be of type bool. Got: {type(return_fit)}')
 
     x_quantile = fit['x_quantile']
     y_quantile = fit['y_quantile']
@@ -1080,7 +1078,7 @@ def _rosenblatt_copula(x1, x2, fit, component_1, kwargs):
         raise TypeError(f'component_1 must be of type np.ndarray. Got: {type(component_1)}')
     return_fit = kwargs.get("return_fit", False)
     if not isinstance(return_fit, bool):
-        raise TypeError(f'If specified, return_fit must be a bool. Got: {type(return_fit)}')
+        raise TypeError(f'If specified, return_fit must be of type bool. Got: {type(return_fit)}')
 
     y_quantile = fit['y_quantile']
     mean_cond = fit['mean_cond']
@@ -1265,7 +1263,7 @@ def _nonparametric_gaussian_copula(x1, x2, fit, nb_steps, kwargs):
         raise TypeError(f'nb_steps must be of type int. Got: {type(nb_steps)}')
     return_fit = kwargs.get("return_fit", False)
     if not isinstance(return_fit, bool):
-        raise TypeError(f'If specified, return_fit must be a bool. Got: {type(return_fit)}')
+        raise TypeError(f'If specified, return_fit must be of type bool. Got: {type(return_fit)}')
 
     x_component_iso_prob = fit['x_component_iso_prob']
     y_component_iso_prob = fit['y_component_iso_prob']
@@ -1346,7 +1344,7 @@ def _nonparametric_clayton_copula(x1, x2, fit, nb_steps, kwargs):
         raise TypeError(f'nb_steps must be of type int. Got: {type(nb_steps)}')
     return_fit = kwargs.get("return_fit", False)
     if not isinstance(return_fit, bool):
-        raise TypeError(f'If specified, return_fit must be a bool. Got: {type(return_fit)}')
+        raise TypeError(f'If specified, return_fit must be of type bool. Got: {type(return_fit)}')
 
     x_component_iso_prob = fit['x_component_iso_prob']
     x_quantile = fit['x_quantile']
@@ -1506,7 +1504,7 @@ def _bivariate_KDE(x1, x2, bw, fit, nb_steps, Ndata_bivariate_KDE, kwargs):
     fit: Dictionay
         Dictionary of the iso-probability results
     nb_steps: int
-        number of points used to discritize KDE space
+        number of points used to discretize KDE space
     max_x1: float
         Defines the max value of x1 to discretize the KDE space
     max_x2: float
@@ -1548,9 +1546,9 @@ def _bivariate_KDE(x1, x2, bw, fit, nb_steps, Ndata_bivariate_KDE, kwargs):
     if not isinstance(max_x2, float):
        raise TypeError(f'max_x2 must be of type float. Got: {type(max_x2)}')
     if not isinstance(log_transform, bool):
-       raise TypeError(f'If specified, log_transform must be a bool. Got: {type(log_transform)}')
+       raise TypeError(f'If specified, log_transform must be of type bool. Got: {type(log_transform)}')
     if not isinstance(return_fit, bool):
-       raise TypeError(f'If specified, return_fit must be a bool. Got: {type(return_fit)}')
+       raise TypeError(f'If specified, return_fit must be of type bool. Got: {type(return_fit)}')
 
     p_f = fit['exceedance_probability']
 

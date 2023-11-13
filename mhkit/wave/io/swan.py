@@ -249,7 +249,7 @@ def dictionary_of_block_to_table(dictionary_of_DataFrames, names=None):
         or names        
     '''
     if not isinstance(dictionary_of_DataFrames, dict):
-        raise TypeError('dictionary_of_DataFrames must be of type dict. Got: {type(dictionary_of_DataFrames)}')
+        raise TypeError(f'dictionary_of_DataFrames must be of type dict. Got: {type(dictionary_of_DataFrames)}')
     if not bool(dictionary_of_DataFrames):
         raise ValueError(f'dictionary_of_DataFrames is empty. Got: {dictionary_of_DataFrames}')
     for key in dictionary_of_DataFrames:  
@@ -257,9 +257,9 @@ def dictionary_of_block_to_table(dictionary_of_DataFrames, names=None):
             raise TypeError(f'Dictionary key:{key} must be of type pd.DataFrame. Got: {type(dictionary_of_DataFrames[key])}')
     if not isinstance(names, type(None)):
         if not isinstance(names, list):
-            raise TypeError('If specified, names must be of type list. Got: {type(names)}')
+            raise TypeError(f'If specified, names must be of type list. Got: {type(names)}')
         if not all([isinstance(elm, str) for elm in names]):
-                raise ValueError('If specified, all elements in names must be of type string. Got: {names}')
+                raise ValueError(f'If specified, all elements in names must be of type string. Got: {names}')
         if not len(names) == len(dictionary_of_DataFrames):
             raise ValueError('If specified, names must the same length as dictionary_of_DataFrames')
     

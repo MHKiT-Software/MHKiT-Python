@@ -178,16 +178,16 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     -------
     ax : matplotlib pyplot axes
     """
-    if not isinstance(H, (np.ndarray, float, int, np.int64,pd.Series)):
-        raise TypeError(f'H must be a real numeric type. Got: {type(H)}')
-    if not isinstance(lambda_w, (np.ndarray, float, int, np.int64,pd.Series)):
-        raise TypeError(f'lambda_w must be a real numeric type. Got: {type(lambda_w)}')
-    if not isinstance(D, (np.ndarray, float, int, np.int64,pd.Series)):
-        raise TypeError(f'D must be a real numeric type. Got: {type(D)}')
+    if not isinstance(H, (np.ndarray, float, int, np.int64, pd.Series)):
+        raise TypeError(f'H must be of type float, int, np.int64, np.ndarray, or pd.Series. Got: {type(H)}')
+    if not isinstance(lambda_w, (np.ndarray, float, int, np.int64, pd.Series)):
+        raise TypeError(f'lambda_w must be of type float, int, np.int64, np.ndarray, or pd.Series. Got: {type(lambda_w)}')
+    if not isinstance(D, (np.ndarray, float, int, np.int64, pd.Series)):
+        raise TypeError(f'D must be of type float, int, np.int64, np.ndarray, or pd.Series. Got: {type(D)}')
 
-    if any([(isinstance(H, np.ndarray) or isinstance(H, pd.Series)),
-            (isinstance(lambda_w, np.ndarray) or isinstance(lambda_w, pd.Series)),
-            (isinstance(D, np.ndarray) or isinstance(D, pd.Series))
+    if any([isinstance(H, (np.ndarray, pd.Series)),
+            isinstance(lambda_w, (np.ndarray, pd.Series)),
+            isinstance(D, (np.ndarray, pd.Series))
            ]):
         n_H = H.squeeze().shape
         n_lambda_w = lambda_w.squeeze().shape
@@ -359,26 +359,26 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     
     x_label = kwargs.get("x_label", None)
     y_label = kwargs.get("y_label", None)
-    data_label=kwargs.get("data_label", None)
-    contour_label=kwargs.get("contour_label", None)
-    ax=kwargs.get("ax", None)
-    markers=kwargs.get("markers", '-')
-    if not isinstance(data_label, (str,type(None))):
+    data_label = kwargs.get("data_label", None)
+    contour_label = kwargs.get("contour_label", None)
+    ax = kwargs.get("ax", None)
+    markers = kwargs.get("markers", '-')
+    if not isinstance(data_label, (str, type(None))):
         raise TypeError(f'data_label must be of type str. Got: {type(data_label)}')
-    if not isinstance(contour_label, (str,list, type(None))):
-        raise TypeError('contour_label be of type str. Got: {type(contour_label)}')
+    if not isinstance(contour_label, (str, list, type(None))):
+        raise TypeError(f'contour_label be of type str. Got: {type(contour_label)}')
 
     if isinstance(markers, str):
-        markers=[markers]
+        markers = [markers]
     if not isinstance(markers, list) or not all( [isinstance(marker, (str)) for marker in markers] ):
-        raise TypeError('markers must be of type str or list of strings. Got: {markers}')
+        raise TypeError(f'markers must be of type str or list of strings. Got: {markers}')
 
     if not len(x2_contour) == len(x1_contour):
-        raise ValueError(f'contour must be of equal dimesion got {len(x2_contour)} and {len(x1_contour)}')
+        raise ValueError(f'contour must be of equal dimension got {len(x2_contour)} and {len(x1_contour)}')
 
     if isinstance(x1_contour, np.ndarray):
-        N_contours=1
-        x2_contour  = [x2_contour]
+        N_contours = 1
+        x2_contour = [x2_contour]
         x1_contour = [x1_contour]
     elif isinstance(x1_contour, list):
         N_contours = len(x1_contour)
@@ -387,10 +387,10 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
         if isinstance(contour_label, str):
             contour_label = [contour_label]
         N_c_labels = len(contour_label)
-        if not  N_c_labels == N_contours:
-            raise ValueError('If specified, the number of contour lables must'
+        if not N_c_labels == N_contours:
+            raise ValueError('If specified, the number of contour labels must'
                              ' be equal to number the number of contour years.'
-                             f' Got {N_c_labels} and {N_contours}')
+                             f' Got: {N_c_labels} and {N_contours}')
     else:
         contour_label = [None] * N_contours
 
@@ -796,18 +796,18 @@ def plot_directional_spectrum(
     ax : matplotlib pyplot axes
     """
     if not isinstance(spectrum, xr.DataArray):
-        raise TypeError(f'spectrum must be a DataArray. Got: {type(spectrum)}')
+        raise TypeError(f'spectrum must be of type xr.DataArray. Got: {type(spectrum)}')
     if color_level_min is not None:
         if not isinstance(color_level_min, float):
-            raise TypeError(f'color_level_min must be a float. Got: {type(color_level_min)}')
+            raise TypeError(f'color_level_min must be of type float. Got: {type(color_level_min)}')
     if not isinstance(fill, bool):
-        raise TypeError(f'fill must be a bool. Got: {type(fill)}')
+        raise TypeError(f'fill must be of type bool. Got: {type(fill)}')
     if not isinstance(nlevels, int):
-        raise TypeError(f'nlevels must be an int. Got: {type(nlevels)}')
+        raise TypeError(f'nlevels must be of type int. Got: {type(nlevels)}')
     if not isinstance(name, str):
-        raise TypeError(f'name must be a string. Got: {type(name)}')
+        raise TypeError(f'name must be of type string. Got: {type(name)}')
     if not isinstance(units, str):
-        raise TypeError(f'units must be a string. Got: {type(units)}')
+        raise TypeError(f'units must be of type string. Got: {type(units)}')
 
     a,f = np.meshgrid(np.deg2rad(spectrum.direction), spectrum.frequency)
     _, ax = plt.subplots(subplot_kw=dict(projection='polar'))

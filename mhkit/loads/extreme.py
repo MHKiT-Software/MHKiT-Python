@@ -575,7 +575,7 @@ def full_seastate_long_term_extreme(ste, weights):
     ste: list[scipy.stats.rv_frozen]
         Short-term extreme distribution of the quantity of interest for
         each sample sea state.
-    weights: list[floats]
+    weights: list, np.ndarray
         The weights from the full sea state sampling
 
     Returns
@@ -588,7 +588,7 @@ def full_seastate_long_term_extreme(ste, weights):
             f'ste must be of type list[scipy.stats.rv_frozen]. Got: {type(ste)}')
     if not isinstance(weights, (list, np.ndarray)):
         raise TypeError(
-            f'weights must be of type list[floats]. Got: {type(weights)}')
+            f'weights must be of type list or np.ndarray. Got: {type(weights)}')
 
     class _LongTermExtreme(stats.rv_continuous):
 
@@ -924,7 +924,7 @@ def return_year_value(ppf, return_year, short_term_period_hr):
             f'return_year must be of type float or int. Got: {type(return_year)}')
     if not isinstance(short_term_period_hr, (float, int)):
         raise TypeError(
-            f'short_term_period_hr must be of type ndarray. Got: {type(short_term_period_hr)}')
+            f'short_term_period_hr must be of type float or int. Got: {type(short_term_period_hr)}')
 
     p = 1 / (return_year * 365.25 * 24 / short_term_period_hr)
 

@@ -52,7 +52,7 @@ def exceedance_probability(D):
     """
     # dataframe allowed for matlab
     if not isinstance(D, (pd.DataFrame, pd.Series)):
-        raise TypeError(f'D must be of type pd.Series. Got: {type(D)}')
+        raise TypeError(f'D must be of type pd.Series or pd.DataFrame. Got: {type(D)}')
     
     if isinstance(D, pd.DataFrame) and len(D.columns) == 1: # for matlab
         D = D.squeeze().copy()
@@ -173,7 +173,7 @@ def velocity_to_power(V, polynomial_coefficients, cut_in, cut_out):
     """
     # dataframe allowed for matlab
     if not isinstance(V, (pd.DataFrame, pd.Series)):
-        raise TypeError(f'V must be of type pd.Series. Got: {type(V)}')
+        raise TypeError(f'V must be of type pd.Series or pd.DataFrame. Got: {type(V)}')
     if not isinstance(polynomial_coefficients, np.poly1d):
         raise TypeError(f'polynomial_coefficients must be of type np.poly1d. Got: {type(polynomial_coefficients)}')
     if not isinstance(cut_in, (int,float)):
@@ -217,7 +217,7 @@ def energy_produced(P, seconds):
     """
     # dataframe allowed for matlab
     if not isinstance(P, (pd.DataFrame, pd.Series)):
-        raise TypeError(f'D must be of type pd.Series. Got: {type(D)}')
+        raise TypeError(f'P must be of type pd.Series or pd.DataFrame. Got: {type(P)}')
     if not isinstance(seconds, (int, float)):
         raise TypeError(f'seconds must be of type int or float. Got: {type(seconds)}')
 
