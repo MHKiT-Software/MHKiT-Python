@@ -200,11 +200,11 @@ def magnitude_phase(x, y, z=None):
         threeD = True
 
     if not isinstance(x, (float, int, np.ndarray)):
-        raise TypeError(f'x must be of type np.ndarray. Got: {type(x)}')
+        raise TypeError(f'x must be of type float, int, or np.ndarray. Got: {type(x)}')
     if not isinstance(y, (float, int, np.ndarray)):
-        raise TypeError(f'y must be of type np.ndarray. Got: {type(y)}')
+        raise TypeError(f'y must be of type float, int, or np.ndarray. Got: {type(y)}')
     if not isinstance(z, (type(None), float, int, np.ndarray)):
-        raise TypeError(f'z must be of type np.ndarray. Got: {type(z)}')
+        raise TypeError(f'z must be of type float, int, or np.ndarray. Got: {type(z)}')
 
     if threeD:
         mag = np.sqrt(x**2 + y**2 + z**2)

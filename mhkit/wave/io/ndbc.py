@@ -305,7 +305,7 @@ def request_data(parameter, filenames, proxy=None, clear_cache=False):
         Dictionary of DataFrames indexed by buoy and year.
     '''
     if not isinstance(filenames, (pd.Series, pd.DataFrame)):
-        raise TypeError(f'filenames must be of type pd.Series. Got: {type(filenames)}')
+        raise TypeError(f'filenames must be of type pd.Series or pd.DataFrame. Got: {type(filenames)}')
     if not isinstance(parameter, str):
         raise TypeError(f'parameter must be a string. Got: {type(parameter)}')
     if not isinstance(proxy, (dict, type(None))):

@@ -235,11 +235,11 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
     if not isinstance(seed, (type(None),int)):
         raise TypeError(f'seed must be of type int. Got: {type(seed)}')
     if not isinstance(frequency_bins, (type(None), np.ndarray, pd.DataFrame)):
-        raise TypeError('frequency_bins must be of type None, np.ndarray, or pd, DataFrame. Got: {type(frequency_bins)}')
+        raise TypeError(f'frequency_bins must be of type None, np.ndarray, or pd.DataFrame. Got: {type(frequency_bins)}')
     if not isinstance(phases, (type(None), np.ndarray, pd.DataFrame)):
-        raise TypeError('phases must be of type None, np.ndarray, or pd, DataFrame. Got: {type(phases)}')
+        raise TypeError(f'phases must be of type None, np.ndarray, or pd.DataFrame. Got: {type(phases)}')
     if not isinstance(method, str):
-        raise TypeError('method must be of type str. Got: {type(method)}')
+        raise TypeError(f'method must be of type str. Got: {type(method)}')
 
     if frequency_bins is not None:
         if not frequency_bins.squeeze().shape == (S.squeeze().shape[0],):
@@ -250,7 +250,7 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
         
     if method is not None:
         if not (method == 'ifft' or method == 'sum_of_sines'):
-            raise ValueError(f"unknown method {method}, options are 'ifft' or 'sum_of_sines'")
+            raise ValueError(f"Method must be 'ifft' or 'sum_of_sines'. Got: {method}")
         
     if method == 'ifft':
         if not S.index.values[0] == 0:
@@ -349,7 +349,7 @@ def frequency_moment(S, N, frequency_bins=None):
     else:
 
         if not isinstance(frequency_bins, (np.ndarray,pd.Series,pd.DataFrame)):
-            raise TypeError(f'frequency_bins must be of type np.ndarray or pd.Series. Got: {type(frequency_bins)}')
+            raise TypeError(f'frequency_bins must be of type np.ndarray, pd.Series, or pd.DataFrame. Got: {type(frequency_bins)}')
         delta_f = pd.Series(frequency_bins)
 
     delta_f.index = f
@@ -732,7 +732,6 @@ def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2):
     """
     if isinstance(k, pd.DataFrame):
         k = k.squeeze()
-
     if not isinstance(k, pd.Series):
         raise TypeError(f'S must be of type pd.Series. Got: {type(S)}')
     if not isinstance(h, (int,float)):
@@ -792,15 +791,15 @@ def wave_length(k):
     l: float or array
         Wave length [m] indexed by frequency
     """
+    if not isinstance(k, (int, float, list, np.ndarray, pd.DataFrame, pd.Series)):
+        raise TypeError(f'k must be of type int, float, list, np.ndarray, pd.DataFrame, or pd.Series. Got: {type(k)}')
+    
     if isinstance(k, (int, float, list)):
         k = np.array(k)
     elif isinstance(k, pd.DataFrame):
         k = k.squeeze().values
     elif isinstance(k, pd.Series):
         k = k.values
-
-    if not isinstance(k, np.ndarray):
-        raise TypeError(f'k must be array-like. Got: {type(k)}')
 
     l = 2*np.pi/k
 
@@ -860,7 +859,7 @@ def wave_number(f, h, rho=1025, g=9.80665):
 
         k, info, ier, mesg = _fsolve(func, k0_mask, full_output=True)
         if not ier == 1:
-            raise Exception('Wave number not found. ' + mesg)
+            raise ValueError('Wave number not found. ' + mesg)
         k0[mask] = k
 
     k = pd.DataFrame(k0, index=f, columns=['k'])

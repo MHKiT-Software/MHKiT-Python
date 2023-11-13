@@ -71,7 +71,7 @@ def upcrossing(t, data):
     if not isinstance(data, np.ndarray):
         raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
     if len(data.shape) != 1:
-        raise ValueError(f'only 1D data supported, try calling squeeze()')
+        raise ValueError('only 1D data supported, try calling squeeze()')
 
     # eliminate zeros
     zeroMask = (data == 0)

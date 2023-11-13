@@ -55,10 +55,10 @@ def region_selection(lat_lon):
         Name of predefined region for given coordinates
     '''
     if not isinstance(lat_lon, (list, tuple)):
-        raise TypeError('lat_lon must be of type list or tuple. Got: {type(lat_lon)}')
+        raise TypeError(f'lat_lon must be of type list or tuple. Got: {type(lat_lon)}')
 
     if not all(isinstance(coord, (float, int)) for coord in lat_lon):
-        raise TypeError('lat_lon values must be of type float or int. Got: {type(lat_lon[0])}')
+        raise TypeError(f'lat_lon values must be of type float or int. Got: {type(lat_lon[0])}')
 
     regions = {
         'Hawaii': {
@@ -343,7 +343,7 @@ def request_wpto_directional_spectrum(
     if not isinstance(year, str):
         raise TypeError(f'years must be a string. Got: {type(year)}')
     if not isinstance(tree, (str, type(None))):
-        raise TypeError(f'tree must be a sring. Got: {type(tree)}')
+        raise TypeError(f'tree must be a string. Got: {type(tree)}')
     if not isinstance(unscale, bool):
         raise TypeError(f'unscale must be bool type. Got: {type(unscale)}')
     if not isinstance(str_decode, bool):
