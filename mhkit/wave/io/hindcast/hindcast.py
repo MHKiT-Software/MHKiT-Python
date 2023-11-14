@@ -174,17 +174,17 @@ def request_wpto_point_data(
     if not isinstance(years, list):
         raise TypeError(f'years must be a list. Got: {type(years)}')
     if not isinstance(tree, (str, type(None))):
-        raise TypeError(f'tree must be a string. Got: {type(tree)}')
+        raise TypeError(f'If specified, tree must be a string. Got: {type(tree)}')
     if not isinstance(unscale, bool):
-        raise TypeError(f'unscale must be bool type. Got: {type(unscale)}')
+        raise TypeError(f'If specified, unscale must be bool type. Got: {type(unscale)}')
     if not isinstance(str_decode, bool):
-        raise TypeError(f'str_decode must be bool type. Got: {type(str_decode)}')
+        raise TypeError(f'If specified, str_decode must be bool type. Got: {type(str_decode)}')
     if not isinstance(hsds, bool):
-        raise TypeError(f'hsds must be bool type. Got: {type(hsds)}')
+        raise TypeError(f'If specified, hsds must be bool type. Got: {type(hsds)}')
     if not isinstance(path, (str, type(None))):
-        raise TypeError(f'path must be a string. Got: {type(path)}')
+        raise TypeError(f'If specified, path must be a string. Got: {type(path)}')
     if not isinstance(as_xarray, bool):
-        raise TypeError(f'as_xarray must be bool type. Got: {type(as_xarray)}')
+        raise TypeError(f'If specified, as_xarray must be bool type. Got: {type(as_xarray)}')
 
     # Attempt to load data from cache
     # Construct a string representation of the function parameters
@@ -343,13 +343,15 @@ def request_wpto_directional_spectrum(
     if not isinstance(year, str):
         raise TypeError(f'year must be a string. Got: {type(year)}')
     if not isinstance(tree, (str, type(None))):
-        raise TypeError(f'tree must be a string. Got: {type(tree)}')
+        raise TypeError(f'If specified, tree must be a string. Got: {type(tree)}')
     if not isinstance(unscale, bool):
-        raise TypeError(f'unscale must be bool type. Got: {type(unscale)}')
+        raise TypeError(f'If specified, unscale must be bool type. Got: {type(unscale)}')
     if not isinstance(str_decode, bool):
-        raise TypeError(f'str_decode must be bool type. Got: {type(str_decode)}')
+        raise TypeError(f'If specified, str_decode must be bool type. Got: {type(str_decode)}')
     if not isinstance(hsds, bool):
-        raise TypeError(f'hsds must be bool type. Got: {type(hsds)}')
+        raise TypeError(f'If specified, hsds must be bool type. Got: {type(hsds)}')
+    if not isinstance(path, (str, type(None))):
+        raise TypeError(f'If specified, path must be a string. Got: {type(path)}')
 
     # check for multiple region selection
     if isinstance(lat_lon[0], float):

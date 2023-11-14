@@ -364,9 +364,9 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
     ax = kwargs.get("ax", None)
     markers = kwargs.get("markers", '-')
     if not isinstance(data_label, (str, type(None))):
-        raise TypeError(f'data_label must be of type str. Got: {type(data_label)}')
+        raise TypeError(f'If specified, data_label must be of type str. Got: {type(data_label)}')
     if not isinstance(contour_label, (str, list, type(None))):
-        raise TypeError(f'contour_label be of type str. Got: {type(contour_label)}')
+        raise TypeError(f'If specified, contour_label be of type str. Got: {type(contour_label)}')
 
     if isinstance(markers, str):
         markers = [markers]
@@ -605,7 +605,7 @@ def plot_compendium(Hs, Tp, Dp, buoy_title=None, ax=None):
     if not isinstance(Dp, pd.Series):
         raise TypeError(f'Dp must be of type pd.Series. Got: {type(Dp)}')
     if not isinstance(buoy_title, (str, type(None))):
-        raise TypeError(f'buoy_title must be of type string. Got: {type(buoy_title)}')
+        raise TypeError(f'If specified, buoy_title must be of type string. Got: {type(buoy_title)}')
 
     f, (pHs, pTp, pDp) = plt.subplots(3, 1, sharex=True, figsize=(15,10))
 
@@ -681,7 +681,7 @@ def plot_boxplot(Hs, buoy_title=None):
     if not isinstance(Hs, pd.Series):
         raise TypeError(f'Hs must be of type pd.Series. Got: {type(Hs)}')
     if not isinstance(buoy_title, (str, type(None))):
-        raise TypeError(f'buoy_title must be of type string. Got: {type(buoy_title)}')
+        raise TypeError(f'If specified, buoy_title must be of type string. Got: {type(buoy_title)}')
 
     months = Hs.index.month
     means = Hs.groupby(months).mean()
@@ -797,17 +797,16 @@ def plot_directional_spectrum(
     """
     if not isinstance(spectrum, xr.DataArray):
         raise TypeError(f'spectrum must be of type xr.DataArray. Got: {type(spectrum)}')
-    if color_level_min is not None:
-        if not isinstance(color_level_min, float):
-            raise TypeError(f'color_level_min must be of type float. Got: {type(color_level_min)}')
+    if not isinstance(color_level_min, (type(None), float)):
+        raise TypeError(f'If specified, color_level_min must be of type float. Got: {type(color_level_min)}')
     if not isinstance(fill, bool):
-        raise TypeError(f'fill must be of type bool. Got: {type(fill)}')
+        raise TypeError(f'If specified, fill must be of type bool. Got: {type(fill)}')
     if not isinstance(nlevels, int):
-        raise TypeError(f'nlevels must be of type int. Got: {type(nlevels)}')
+        raise TypeError(f'If specified, nlevels must be of type int. Got: {type(nlevels)}')
     if not isinstance(name, str):
-        raise TypeError(f'name must be of type string. Got: {type(name)}')
+        raise TypeError(f'If specified, name must be of type string. Got: {type(name)}')
     if not isinstance(units, str):
-        raise TypeError(f'units must be of type string. Got: {type(units)}')
+        raise TypeError(f'If specified, units must be of type string. Got: {type(units)}')
 
     a,f = np.meshgrid(np.deg2rad(spectrum.direction), spectrum.frequency)
     _, ax = plt.subplots(subplot_kw=dict(projection='polar'))

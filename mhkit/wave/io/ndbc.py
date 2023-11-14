@@ -50,7 +50,7 @@ def read_file(file_name, missing_values=['MM', 9999, 999, 99]):
     if not isinstance(file_name, str):
         raise TypeError(f'file_name must be of type str. Got: {type(file_name)}')
     if not isinstance(missing_values, list):
-        raise TypeError(f'missing_values must be of type list. Got: {type(missing_values)}')
+        raise TypeError(f'If specified, missing_values must be of type list. Got: {type(missing_values)}')
 
     # Open file and get header rows
     f = open(file_name, "r")

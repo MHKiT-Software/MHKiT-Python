@@ -232,12 +232,12 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
         raise TypeError(f'S must be of type pd.DataFrame. Got: {type(S)}')
     if not isinstance(time_index, np.ndarray):
         raise TypeError(f'time_index must be of type np.ndarray. Got: {type(time_index)}')
-    if not isinstance(seed, (type(None),int)):
-        raise TypeError(f'seed must be of type int. Got: {type(seed)}')
+    if not isinstance(seed, (type(None), int)):
+        raise TypeError(f'If specified, seed must be of type int. Got: {type(seed)}')
     if not isinstance(frequency_bins, (type(None), np.ndarray, pd.DataFrame)):
-        raise TypeError(f'frequency_bins must be of type None, np.ndarray, or pd.DataFrame. Got: {type(frequency_bins)}')
+        raise TypeError(f'If specified, frequency_bins must be of type np.ndarray, or pd.DataFrame. Got: {type(frequency_bins)}')
     if not isinstance(phases, (type(None), np.ndarray, pd.DataFrame)):
-        raise TypeError(f'phases must be of type None, np.ndarray, or pd.DataFrame. Got: {type(phases)}')
+        raise TypeError(f'If specified, phases must be of type np.ndarray, or pd.DataFrame. Got: {type(phases)}')
     if not isinstance(method, str):
         raise TypeError(f'method must be of type str. Got: {type(method)}')
 

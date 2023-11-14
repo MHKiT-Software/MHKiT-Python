@@ -323,7 +323,7 @@ def peaks_distribution_peaks_over_threshold(x, threshold=None):
         threshold = np.mean(x) + 1.4 * np.std(x)
     if not isinstance(threshold, float):
         raise TypeError(
-            f'threshold must be of type float. Got: {type(threshold)}')
+            f'If specified, threshold must be of type float. Got: {type(threshold)}')
 
     # peaks over threshold
     x = np.sort(x)
@@ -734,9 +734,9 @@ def mler_simulation(parameters=None):
         Simulation parameters including spatial and time calculated
         arrays.
     """
-    if not parameters == None and not isinstance(parameters, dict):
+    if not isinstance(parameters, (type(None), dict)):
         raise TypeError(
-            f'parameters must be of type dict. Got: {type(parameters)}')
+            f'If specified, parameters must be of type dict. Got: {type(parameters)}')
 
     sim = {}
 
