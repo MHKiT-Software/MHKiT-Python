@@ -117,48 +117,14 @@ class TestIO(unittest.TestCase):
             assert_array_almost_equal(
                 layer_data.v, layer_data_expected.v, decimal=2)
 
-    # def test_create_points(self):
-    #     x = np.linspace(1, 3, num=3)
-    #     y = np.linspace(1, 3, num=3)
-    #     z = 1
-    #     points = river.io.d3d.create_points(x, y, z)
-    #     x = [1, 2, 3, 1, 2, 3, 1, 2, 3]
-    #     y = [1, 1, 1, 2, 2, 2, 3, 3, 3]
-    #     z = [1, 1, 1, 1, 1, 1, 1, 1, 1]
-    #     points_array = np.array([[x_i, y_i, z_i]
-    #                             for x_i, y_i, z_i in zip(x, y, z)])
-    #     points_expected = pd.DataFrame(points_array, columns=('x', 'y', 'z'))
-    #     assert_array_almost_equal(points, points_expected, decimal=2)
-
-    #     x = np.linspace(1, 3, num=3)
-    #     y = 2
-    #     z = 1
-    #     points = river.io.d3d.create_points(x, y, z)
-    #     x = [1, 2, 3]
-    #     y = [2, 2, 2]
-    #     z = [1, 1, 1]
-    #     points_array = np.array([[x_i, y_i, z_i]
-    #                             for x_i, y_i, z_i in zip(x, y, z)])
-    #     points_expected = pd.DataFrame(points_array, columns=('x', 'y', 'z'))
-    #     assert_array_almost_equal(points, points_expected, decimal=2)
-
-    #     x = 3
-    #     y = 2
-    #     z = 1
-    #     points = river.io.d3d.create_points(x, y, z)
-    #     output_expected = 'Can provide at most two arrays'
-    #     self.assertWarns(UserWarning)
 
     def test_create_points_three_points(self):
         """
         Test the scenario where all three inputs (x, y, z) are points.
         """
-        x, y, z = np.linspace(1, 3, num=3), np.linspace(1, 3, num=3), 1
+        x, y, z = 1,2,3
 
-        # Adjust the order of the expected values
-        expected_data = [[i, j, 1]
-                         for j in y for i in x]  # Notice the swapped loop order
-        expected = pd.DataFrame(expected_data, columns=[
+        expected = pd.DataFrame([[x,y,z]], columns=[
                                 'x', 'y', 'waterdepth'])
 
         points = river.io.d3d.create_points(x, y, z)
@@ -182,6 +148,22 @@ class TestIO(unittest.TestCase):
             'waterdepth': [4, 4]
         })
         pd.testing.assert_frame_equal(result, expected, check_dtype=False)
+        
+    def test_create_points_user_made_two_arrays_one_point(self):
+        """
+        Test the scenario where all three inputs (x, y, z) are created from 
+        points.
+        """
+        x, y, z = np.linspace(1, 3, num=3), np.linspace(1, 3, num=3), 1
+
+        # Adjust the order of the expected values
+        expected_data = [[i, j, 1]
+                             for j in y for i in x]  # Notice the swapped loop order
+        expected = pd.DataFrame(expected_data, columns=[
+                                    'x', 'y', 'waterdepth'])
+
+        points = river.io.d3d.create_points(x, y, z)
+        assert_array_almost_equal(points.values, expected.values, decimal=2)
 
     def test_create_points_mismatched_array_lengths(self):
         """
