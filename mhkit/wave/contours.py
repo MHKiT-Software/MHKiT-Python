@@ -1757,13 +1757,13 @@ def samples_contour(t_samples, t_contour, hs_contour):
         raise ValueError(
             "All t_samples must be within the range of t_contour.")
 
-    # finds minimum and maximum energy period values
+    # Find minimum and maximum energy period values
     amin = np.argmin(t_contour)
     amax = np.argmax(t_contour)
     aamin = np.min([amin, amax])
     aamax = np.max([amin, amax])
 
-    # Seperate points along the contour in 2 halves (upper & lower half)
+    # Separate points along the contour into upper & lower half
     w1 = hs_contour[aamin:aamax]
     w2 = np.concatenate((hs_contour[aamax:], hs_contour[:aamin]))
 
@@ -1772,23 +1772,27 @@ def samples_contour(t_samples, t_contour, hs_contour):
 
     # Choose the half of the contour with the largest wave height
     if np.max(w1) > np.max(w2):
+        # Check if the max or min Tp values are within the contour half
         include_aamax = t_max >= t_contour[aamax] or t_min <= t_contour[aamin]
+        # Set the x and y values for interpolation
         x1 = t_contour[aamin:aamax + int(include_aamax)]
         y1 = hs_contour[aamin:aamax + int(include_aamax)]
     else:
+        # Check if the max or min Tp values are within the contour half
         include_aamin = t_max >= t_contour[aamin] or t_min <= t_contour[aamin]
+        # Set the x and y values for interpolation
         x1 = np.concatenate(
             (t_contour[aamax:], t_contour[:aamin + int(include_aamin)]))
         y1 = np.concatenate(
             (hs_contour[aamax:], hs_contour[:aamin + int(include_aamin)]))
 
-    # sorts data based on the max and min energy period values
+    # Sort data based on the max and min Tp values
     ms = np.argsort(x1)
     x = x1[ms]
     y = y1[ms]
-    # interpolates the sorted data
+    # Interpolation function
     si = interp.interp1d(x, y)
-    # finds the wave height based on the user specified energy period values
+    # Interpolate Tp samples values to get Hs values
     hs_samples = si(t_samples)
 
     return hs_samples
