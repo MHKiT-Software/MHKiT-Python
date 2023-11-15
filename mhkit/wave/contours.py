@@ -1744,15 +1744,18 @@ def samples_contour(t_samples, t_contour, hs_contour):
     hs_samples : nparray
         points sampled along return contour
     """
-    assert isinstance(
-        t_samples, np.ndarray), 't_samples must be of type np.ndarray'
-    assert isinstance(
-        t_contour, np.ndarray), 't_contour must be of type np.ndarray'
-    assert isinstance(
-        hs_contour, np.ndarray), 'hs_contour must be of type np.ndarray'
-
+    if not isinstance(t_samples, np.ndarray):
+        raise TypeError('t_samples must be of type np.ndarray')
+    if not isinstance(t_contour, np.ndarray):
+        raise TypeError('t_contour must be of type np.ndarray')
+    if not isinstance(hs_contour, np.ndarray):
+        raise TypeError('hs_contour must be of type np.ndarray')
+    if len(t_contour) != len(hs_contour):
+        raise ValueError(
+            "t_contour and hs_contour must be of the same length.")
     if np.any(t_samples < np.min(t_contour)) or np.any(t_samples > np.max(t_contour)):
-        raise ValueError("All t_samples must be within the range of t_contour.")
+        raise ValueError(
+            "All t_samples must be within the range of t_contour.")
 
     # finds minimum and maximum energy period values
     amin = np.argmin(t_contour)
