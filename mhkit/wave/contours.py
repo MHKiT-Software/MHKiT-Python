@@ -1751,6 +1751,9 @@ def samples_contour(t_samples, t_contour, hs_contour):
     assert isinstance(
         hs_contour, np.ndarray), 'hs_contour must be of type np.ndarray'
 
+    if np.any(t_samples < np.min(t_contour)) or np.any(t_samples > np.max(t_contour)):
+        raise ValueError("All t_samples must be within the range of t_contour.")
+
     # finds minimum and maximum energy period values
     amin = np.argmin(t_contour)
     amax = np.argmax(t_contour)
