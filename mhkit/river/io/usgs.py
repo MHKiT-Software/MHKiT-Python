@@ -92,8 +92,8 @@ def request_usgs_data(
         Data indexed by datetime with columns named according to the parameter's 
         variable description
     """
-    assert data_type in [
-        'Daily', 'Instantaneous'], 'data_type must be Daily or Instantaneous'
+    if not data_type in ['Daily', 'Instantaneous']:
+        raise ValueError(f'data_type must be Daily or Instantaneous. Got: {data_type}')
 
     # Define the path to the cache directory
     cache_dir = os.path.join(os.path.expanduser("~"),

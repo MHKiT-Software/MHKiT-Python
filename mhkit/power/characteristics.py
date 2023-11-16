@@ -21,7 +21,8 @@ def instantaneous_frequency(um):
         Frequency of the measured voltage (Hz) indexed by time  
         with signal name columns
     """  
-    assert isinstance(um, (pd.Series, pd.DataFrame)), 'um must be of type pd.Series or pd.DataFrame'
+    if not isinstance(um, (pd.Series, pd.DataFrame)):
+        raise TypeError(f'um must be of type pd.Series or pd.DataFrame. Got: {type(um)}')
    
     if isinstance(um.index[0], datetime.datetime):
         t = (um.index - datetime.datetime(1970,1,1)).total_seconds()
@@ -59,9 +60,12 @@ def dc_power(voltage, current):
     P: pandas DataFrame
         DC power [W] from each channel and gross power indexed by time
     """
-    assert isinstance(voltage, (pd.Series, pd.DataFrame)), 'voltage must be of type pd.Series or pd.DataFrame'
-    assert isinstance(current, (pd.Series, pd.DataFrame)), 'current must be of type pd.Series or pd.DataFrame'
-    assert voltage.shape == current.shape, 'current and volatge must have the same shape'
+    if not isinstance(voltage, (pd.Series, pd.DataFrame)):
+        raise TypeError(f'voltage must be of type pd.Series or pd.DataFrame. Got: {type(voltage)}')
+    if not isinstance(current, (pd.Series, pd.DataFrame)):
+        raise TypeError(f'current must be of type pd.Series or pd.DataFrame. Got: {type(current)}')
+    if not voltage.shape == current.shape:
+        raise ValueError('current and volatge must have the same shape')
     
     
     P = current.values * voltage.values
@@ -90,11 +94,16 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False):
     P: pandas DataFrame
         Magnitude of active AC power [W] indexed by time with Power column 
     """
-    assert isinstance(voltage, pd.DataFrame), 'voltage must be of type pd.DataFrame'
-    assert isinstance(current, pd.DataFrame), 'current must be of type pd.DataFrame'
-    assert len(voltage.columns) == 3, 'voltage must have three columns'
-    assert len(current.columns) == 3, 'current must have three columns'
-    assert current.shape == voltage.shape, 'current and voltage must be of the same size'
+    if not isinstance(voltage, pd.DataFrame):
+        raise TypeError(f'voltage must be of type pd.DataFrame. Got: {type(voltage)}')
+    if not isinstance(current, pd.DataFrame):
+        raise TypeError(f'current must be of type pd.DataFrame. Got: {type(current)}')
+    if not len(voltage.columns) == 3:
+        raise ValueError('voltage must have three columns')
+    if not len(current.columns) == 3:
+        raise ValueError('current must have three columns')
+    if not current.shape == voltage.shape:
+        raise ValueError('current and voltage must be of the same size')
     
 
     abs_current = np.abs(current.values)

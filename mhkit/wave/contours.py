@@ -11,8 +11,6 @@ import matplotlib
 mpl_version = tuple(map(int, matplotlib.__version__.split('.')))
 
 # Contours
-
-
 def environmental_contours(x1, x2, sea_state_duration, return_period,
                            method, **kwargs):
     """
@@ -85,12 +83,14 @@ def environmental_contours(x1, x2, sea_state_duration, return_period,
         x2 = np.array(x2)
     except:
         pass
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(sea_state_duration, (int, float)), (
-        'sea_state_duration must be of type int or float')
-    assert isinstance(return_period, (int, float, np.ndarray)), (
-        'return_period must be of type int, float, or array')
+    if not isinstance(x1, np.ndarray):
+        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+    if not isinstance(x2, np.ndarray):
+        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
+    if not isinstance(sea_state_duration, (int, float)):
+        raise TypeError(f'sea_state_duration must be of type int or float. Got: {type(sea_state_duration)}')
+    if not isinstance(return_period, (int, float, np.ndarray)):
+        raise TypeError(f'return_period must be of type int, float, or np.ndarray. Got: {type(return_period)}')
 
     bin_val_size = kwargs.get("bin_val_size", 0.25)
     nb_steps = kwargs.get("nb_steps", 1000)
@@ -104,27 +104,29 @@ def environmental_contours(x1, x2, sea_state_duration, return_period,
     PCA_bin_size = kwargs.get("PCA_bin_size", 250)
     return_fit = kwargs.get("return_fit", False)
 
-    assert isinstance(PCA, (dict, type(None))), (
-        'If specified PCA must be a dict')
-    assert isinstance(PCA_bin_size, int), 'PCA_bin_size must be of type int'
-    assert isinstance(return_fit, bool), 'return_fit must be of type bool'
-    assert isinstance(bin_val_size, (int, float)), (
-        'bin_val_size must be of type int or float')
-    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
-    assert isinstance(min_bin_count, int), ('min_bin_count must be of '
-                                            + 'type int')
-    assert isinstance(initial_bin_max_val, (int, float)), (
-        'initial_bin_max_val must be of type int or float')
-    if bandwidth == None:
-        assert (not 'bivariate_KDE' in method), (
-            'Must specify keyword bandwidth with bivariate KDE method')
+    if not isinstance(PCA, (dict, type(None))):
+        raise TypeError(f'If specified, PCA must be a dict. Got: {type(PCA)}')
+    if not isinstance(PCA_bin_size, int):
+        raise TypeError(f'PCA_bin_size must be of type int. Got: {type(PCA_bin_size)}')
+    if not isinstance(return_fit, bool):
+        raise TypeError(f'return_fit must be of type bool. Got: {type(return_fit)}')
+    if not isinstance(bin_val_size, (int, float)):
+        raise TypeError(f'bin_val_size must be of type int or float. Got: {type(bin_val_size)}')
+    if not isinstance(nb_steps, int):
+        raise TypeError(f'nb_steps must be of type int. Got: {type(nb_steps)}')
+    if not isinstance(min_bin_count, int):
+        raise TypeError(f'min_bin_count must be of type int. Got: {type(min_bin_count)}')
+    if not isinstance(initial_bin_max_val, (int, float)):
+        raise TypeError(f'initial_bin_max_val must be of type int or float. Got: {type(initial_bin_max_val)}')
+    if 'bivariate_KDE' in method and bandwidth == None:
+        raise TypeError(f'Must specify keyword bandwidth with bivariate KDE method. Got: {type(bandwidth)}')
 
     if isinstance(method, str):
         method = [method]
-    assert (len(set(method)) == len(method)), (
-        'Can only pass a unique '
-        + 'method once per function call. Consider wrapping this '
-        + 'function in a for loop to investage variations on the same method')
+    if not (len(set(method)) == len(method)):
+        raise ValueError(f'Can only pass a unique '
+                        + 'method once per function call. Consider wrapping this '
+                        + 'function in a for loop to investage variations on the same method')
 
     method_class = {'PCA': 'parametric',
                     'gaussian': 'parametric',
@@ -311,16 +313,21 @@ def PCA_contour(x1, x2, fit, kwargs):
         x2 = np.array(x2)
     except:
         pass
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    if not isinstance(x1, np.ndarray):
+        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+    if not isinstance(x2, np.ndarray):
+        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
 
     bin_size = kwargs.get("bin_size", 250)
     nb_steps = kwargs.get("nb_steps", 1000)
     return_fit = kwargs.get("return_fit", False)
 
-    assert isinstance(bin_size, int), 'bin_size must be of type int'
-    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
-    assert isinstance(return_fit, bool), 'return_fit must be of type bool'
+    if not isinstance(bin_size, int):
+        raise TypeError(f'bin_size must be of type int. Got: {type(bin_size)}')
+    if not isinstance(nb_steps, int):
+        raise TypeError(f'nb_steps must be of type int. Got: {type(nb_steps)}')
+    if not isinstance(return_fit, bool):
+        raise TypeError(f'return_fit must be of type bool. Got: {type(return_fit)}')
 
     if 'x1_fit' not in fit:
         pca_fit = _principal_component_analysis(x1, x2, bin_size=bin_size)
@@ -414,9 +421,13 @@ def _principal_component_analysis(x1, x2, bin_size=250):
        'mu_param'      : fit to _mu_fcn
        'sigma_param'   : fit to _sig_fits
     """
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(bin_size, int), 'bin_size must be of type int'
+    if not isinstance(x1, np.ndarray):
+        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+    if not isinstance(x2, np.ndarray):
+        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
+    if not isinstance(bin_size, int):
+        raise TypeError(f'bin_size must be of type int. Got: {type(bin_size)}')
+    
     # Step 0: Perform Standard PCA
     mean_location = 0
     x1_mean_centered = x1 - x1.mean(axis=0)
@@ -457,7 +468,7 @@ def _principal_component_analysis(x1, x2, bin_size=250):
     minimum_4_bins = np.floor(N*0.25)
     if bin_size > minimum_4_bins:
         bin_size = minimum_4_bins
-        msg = ('To allow for a minimum of 4 bins the bin size has been' +
+        msg = ('To allow for a minimum of 4 bins, the bin size has been' +
                f'set to {minimum_4_bins}')
         print(msg)
 
@@ -545,12 +556,12 @@ def _iso_prob_and_quantile(sea_state_duration, return_period, nb_steps):
         'y_quantile' - CDF of y-component
     """
 
-    assert isinstance(sea_state_duration, (int, float)
-                      ), 'sea_state_duration must be of type int or float'
-    assert isinstance(return_period, (int, float)), (
-        'return_period must be of type int or float')
-
-    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    if not isinstance(sea_state_duration, (int, float)):
+        raise TypeError(f'sea_state_duration must be of type int or float. Got: {type(sea_state_duration)}')
+    if not isinstance(return_period, (int, float)):
+        raise TypeError(f'return_period must be of type int or float. Got: {type(return_period)}')
+    if not isinstance(nb_steps, int):
+        raise TypeError(f'nb_steps must be of type int. Got: {type(nb_steps)}')
 
     dt_yrs = sea_state_duration / (3600 * 24 * 365)
     exceedance_probability = 1 / (return_period / dt_yrs)
@@ -606,14 +617,16 @@ def _copula_parameters(x1, x2, min_bin_count, initial_bin_max_val,
     std_cond: array
         Estimate coefficients of the standard deviation of Ln(x2|x1)
     """
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(min_bin_count, int), ('min_bin_count must be of'
-                                            + 'type int')
-    assert isinstance(bin_val_size, (int, float)), (
-        'bin_val_size must be of type int or float')
-    assert isinstance(initial_bin_max_val, (int, float)), (
-        'initial_bin_max_val must be of type int or float')
+    if not isinstance(x1, np.ndarray):
+        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+    if not isinstance(x2, np.ndarray):
+        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
+    if not isinstance(min_bin_count, int):
+        raise TypeError(f'min_bin_count must be of type int. Got: {type(min_bin_count)}')
+    if not isinstance(bin_val_size, (int, float)):
+        raise TypeError(f'bin_val_size must be of type int or float. Got: {type(bin_val_size)}')
+    if not isinstance(initial_bin_max_val, (int, float)):
+        raise TypeError(f'initial_bin_max_val must be of type int or float. Got: {type(initial_bin_max_val)}')
 
     # Binning
     x1_sorted_index = x1.argsort()
@@ -757,14 +770,15 @@ def _gaussian_copula(x1, x2, fit, component_1, kwargs):
         x2 = np.array(x2)
     except:
         pass
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(component_1, np.ndarray), (
-        'x2 must be of type np.ndarray')
-
+    if not isinstance(x1, np.ndarray):
+        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+    if not isinstance(x2, np.ndarray):
+        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
+    if not isinstance(component_1, np.ndarray):
+        raise TypeError(f'component_1 must be of type np.ndarray. Got: {type(component_1)}')
     return_fit = kwargs.get("return_fit", False)
-    assert isinstance(return_fit, bool), (
-        'If specified return_fit must be a bool')
+    if not isinstance(return_fit, bool):
+        raise TypeError(f'If specified, return_fit must be of type bool. Got: {type(return_fit)}')
 
     x_component_iso_prob = fit['x_component_iso_prob']
     y_component_iso_prob = fit['y_component_iso_prob']
@@ -873,13 +887,15 @@ def _gumbel_copula(x1, x2, fit, component_1, nb_steps, kwargs):
         x2 = np.array(x2)
     except:
         pass
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(component_1, np.ndarray), 'x2 must be of type np.ndarray'
-
+    if not isinstance(x1, np.ndarray):
+        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+    if not isinstance(x2, np.ndarray):
+        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
+    if not isinstance(component_1, np.ndarray):
+        raise TypeError(f'component_1 must be of type np.ndarray. Got: {type(component_1)}')
     return_fit = kwargs.get("return_fit", False)
-    assert isinstance(
-        return_fit, bool), 'If specified return_fit must be a bool'
+    if not isinstance(return_fit, bool):
+        raise TypeError(f'If specified, return_fit must be of type bool. Got: {type(return_fit)}')
 
     x_quantile = fit['x_quantile']
     y_quantile = fit['y_quantile']
@@ -971,12 +987,15 @@ def _clayton_copula(x1, x2, fit, component_1, kwargs):
         If return_fit=True. Dictionary with iso-probabilities passed
         with additional fit metrics from the copula method.
     """
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(component_1, np.ndarray), 'x2 must be of type np.ndarray'
+    if not isinstance(x1, np.ndarray):
+        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+    if not isinstance(x2, np.ndarray):
+        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
+    if not isinstance(component_1, np.ndarray):
+        raise TypeError(f'component_1 must be of type np.ndarray. Got: {type(component_1)}')
     return_fit = kwargs.get("return_fit", False)
-    assert isinstance(
-        return_fit, bool), 'If specified return_fit must be a bool'
+    if not isinstance(return_fit, bool):
+        raise TypeError(f'If specified, return_fit must be of type bool. Got: {type(return_fit)}')
 
     x_quantile = fit['x_quantile']
     y_quantile = fit['y_quantile']
@@ -1051,12 +1070,15 @@ def _rosenblatt_copula(x1, x2, fit, component_1, kwargs):
         x2 = np.array(x2)
     except:
         pass
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(component_1, np.ndarray), 'x2 must be of type np.ndarray'
+    if not isinstance(x1, np.ndarray):
+        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+    if not isinstance(x2, np.ndarray):
+        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
+    if not isinstance(component_1, np.ndarray):
+        raise TypeError(f'component_1 must be of type np.ndarray. Got: {type(component_1)}')
     return_fit = kwargs.get("return_fit", False)
-    assert isinstance(
-        return_fit, bool), 'If specified return_fit must be a bool'
+    if not isinstance(return_fit, bool):
+        raise TypeError(f'If specified, return_fit must be of type bool. Got: {type(return_fit)}')
 
     y_quantile = fit['y_quantile']
     mean_cond = fit['mean_cond']
@@ -1106,15 +1128,20 @@ def _nonparametric_copula_parameters(x1, x2, max_x1=None, max_x2=None,
     nonpara_pdf_2:
         x2 points in KDE space and Nonparametric PDF for x2
     """
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
+    if not isinstance(x1, np.ndarray):
+        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+    if not isinstance(x2, np.ndarray):
+        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
     if not max_x1:
         max_x1 = x1.max()*2
     if not max_x2:
         max_x2 = x2.max()*2
-    assert isinstance(max_x1, float), 'max_x1 must be of type float'
-    assert isinstance(max_x2, float), 'max_x2 must be of type float'
-    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    if not isinstance(max_x1, float):
+        raise TypeError(f'max_x1 must be of type float. Got: {type(max_x1)}')
+    if not isinstance(max_x2, float):
+        raise TypeError(f'max_x2 must be of type float. Got: {type(max_x2)}')
+    if not isinstance(nb_steps, int):
+        raise TypeError(f'nb_steps must be of type int. Got: {type(nb_steps)}')
 
     # Binning
     x1_sorted_index = x1.argsort()
@@ -1180,7 +1207,8 @@ def _nonparametric_component(z, nonpara_dist, nb_steps):
     component: array
         nonparametic component values
     """
-    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    if not isinstance(nb_steps, int):
+        raise TypeError(f'nb_steps must be of type int. Got: {type(nb_steps)}')
 
     component = np.zeros(nb_steps)
     for k in range(0, nb_steps):
@@ -1227,13 +1255,15 @@ def _nonparametric_gaussian_copula(x1, x2, fit, nb_steps, kwargs):
         If return_fit=True. Dictionary with iso-probabilities passed
         with additional fit metrics from the copula method.
     """
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
-
+    if not isinstance(x1, np.ndarray):
+        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+    if not isinstance(x2, np.ndarray):
+        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
+    if not isinstance(nb_steps, int):
+        raise TypeError(f'nb_steps must be of type int. Got: {type(nb_steps)}')
     return_fit = kwargs.get("return_fit", False)
-    assert isinstance(
-        return_fit, bool), 'If specified return_fit must be a bool'
+    if not isinstance(return_fit, bool):
+        raise TypeError(f'If specified, return_fit must be of type bool. Got: {type(return_fit)}')
 
     x_component_iso_prob = fit['x_component_iso_prob']
     y_component_iso_prob = fit['y_component_iso_prob']
@@ -1306,13 +1336,15 @@ def _nonparametric_clayton_copula(x1, x2, fit, nb_steps, kwargs):
         If return_fit=True. Dictionary with iso-probabilities passed
         with additional fit metrics from the copula method.
     """
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
-
+    if not isinstance(x1, np.ndarray):
+        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+    if not isinstance(x2, np.ndarray):
+        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
+    if not isinstance(nb_steps, int):
+        raise TypeError(f'nb_steps must be of type int. Got: {type(nb_steps)}')
     return_fit = kwargs.get("return_fit", False)
-    assert isinstance(return_fit, bool), ('If specified return_fit '
-                                          + 'must be a bool')
+    if not isinstance(return_fit, bool):
+        raise TypeError(f'If specified, return_fit must be of type bool. Got: {type(return_fit)}')
 
     x_component_iso_prob = fit['x_component_iso_prob']
     x_quantile = fit['x_quantile']
@@ -1388,13 +1420,15 @@ def _nonparametric_gumbel_copula(x1, x2, fit, nb_steps, kwargs):
         If return_fit=True. Dictionary with iso-probabilities passed
         with additional fit metrics from the copula method.
     """
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
-
+    if not isinstance(x1, np.ndarray):
+        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+    if not isinstance(x2, np.ndarray):
+        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
+    if not isinstance(nb_steps, int):
+        raise TypeError(f'nb_steps must be of type int. Got: {type(nb_steps)}')
     return_fit = kwargs.get("return_fit", False)
-    assert isinstance(return_fit, bool), ('If specified return_fit '
-                                          + 'must be a bool')
+    if not isinstance(return_fit, bool):
+        raise TypeError(f'If specified, return_fit must be a bool. Got: {type(return_fit)}')
 
     Ndata = 1000
 
@@ -1470,7 +1504,7 @@ def _bivariate_KDE(x1, x2, bw, fit, nb_steps, Ndata_bivariate_KDE, kwargs):
     fit: Dictionay
         Dictionary of the iso-probability results
     nb_steps: int
-        number of points used to discritize KDE space
+        number of points used to discretize KDE space
     max_x1: float
         Defines the max value of x1 to discretize the KDE space
     max_x2: float
@@ -1491,9 +1525,12 @@ def _bivariate_KDE(x1, x2, bw, fit, nb_steps, Ndata_bivariate_KDE, kwargs):
         If return_fit=True. Dictionary with iso-probabilities passed
         with additional fit metrics from the copula method.
     """
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(nb_steps, int), 'nb_steps must be of type int'
+    if not isinstance(x1, np.ndarray):
+        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+    if not isinstance(x2, np.ndarray):
+        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
+    if not isinstance(nb_steps, int):
+        raise TypeError(f'nb_steps must be of type int. Got: {type(nb_steps)}')
 
     max_x1 = kwargs.get("max_x1", None)
     max_x2 = kwargs.get("max_x2", None)
@@ -1504,12 +1541,14 @@ def _bivariate_KDE(x1, x2, bw, fit, nb_steps, Ndata_bivariate_KDE, kwargs):
         max_x1 = x1.max()*2
     if isinstance(max_x2, type(None)):
         max_x2 = x2.max()*2
-    assert isinstance(max_x1, float), 'max_x1 must be of type float'
-    assert isinstance(max_x2, float), 'max_x2 must be of type float'
-    assert isinstance(log_transform, bool), ('If specified log_transform'
-                                             + 'must be a bool')
-    assert isinstance(return_fit, bool), ('If specified return_fit must '
-                                          + 'be a bool')
+    if not isinstance(max_x1, float):
+        raise TypeError(f'max_x1 must be of type float. Got: {type(max_x1)}')
+    if not isinstance(max_x2, float):
+       raise TypeError(f'max_x2 must be of type float. Got: {type(max_x2)}')
+    if not isinstance(log_transform, bool):
+       raise TypeError(f'If specified, log_transform must be of type bool. Got: {type(log_transform)}')
+    if not isinstance(return_fit, bool):
+       raise TypeError(f'If specified, return_fit must be of type bool. Got: {type(return_fit)}')
 
     p_f = fit['exceedance_probability']
 
@@ -1625,17 +1664,20 @@ def samples_full_seastate(x1, x2, points_per_interval, return_periods,
         raise NotImplementedError(
             "Full sea state sampling is currently only implemented using " +
             "the 'PCA' method.")
-    assert isinstance(x1, np.ndarray), 'x1 must be of type np.ndarray'
-    assert isinstance(x2, np.ndarray), 'x2 must be of type np.ndarray'
-    assert isinstance(points_per_interval,
-                      int), 'points_per_interval must be of int'
-    assert isinstance(return_periods, np.ndarray
-                      ), 'return_periods must be of type np.ndarray'
-    assert isinstance(sea_state_duration, (int, float)
-                      ), 'sea_state_duration must be of int or float'
-    assert isinstance(method, (str, list)
-                      ), 'method must be of type string or list'
-    assert isinstance(bin_size, int), 'bin_size must be of int'
+    if not isinstance(x1, np.ndarray):
+        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+    if not isinstance(x2, np.ndarray):
+        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
+    if not isinstance(points_per_interval,int):
+        raise TypeError(f'points_per_interval must be of int. Got: {type(points_per_interval)}')
+    if not isinstance(return_periods, np.ndarray):
+        raise TypeError(f'return_periods must be of type np.ndarray. Got: {type(return_periods)}')
+    if not isinstance(sea_state_duration, (int, float)):
+        raise TypeError(f'sea_state_duration must be of int or float. Got: {type(sea_state_duration)}')
+    if not isinstance(method, (str, list)):
+        raise TypeError(f'method must be of type string or list. Got: {type(method)}')
+    if not isinstance(bin_size, int):
+        raise TypeError(f'bin_size must be of int. Got: {type(bin_size)}')
 
     pca_fit = _principal_component_analysis(x1, x2, bin_size)
 
@@ -1744,12 +1786,12 @@ def samples_contour(t_samples, t_contour, hs_contour):
     hs_samples : nparray
         points sampled along return contour
     """
-    assert isinstance(
-        t_samples, np.ndarray), 't_samples must be of type np.ndarray'
-    assert isinstance(
-        t_contour, np.ndarray), 't_contour must be of type np.ndarray'
-    assert isinstance(
-        hs_contour, np.ndarray), 'hs_contour must be of type np.ndarray'
+    if not isinstance(t_samples, np.ndarray):
+        raise TypeError(f't_samples must be of type np.ndarray. Got: {type(t_samples)}')
+    if not isinstance(t_contour, np.ndarray):
+        raise TypeError(f't_contour must be of type np.ndarray. Got: {type(t_contour)}')
+    if not isinstance(hs_contour, np.ndarray):
+        raise TypeError(f'hs_contour must be of type np.ndarray. Got: {type(hs_contour)}')
 
     # finds minimum and maximum energy period values
     amin = np.argmin(t_contour)
@@ -1801,16 +1843,16 @@ def _generate_sample_data(beta_lines, rho_zeroline, theta_zeroline,
     weight_points: np.array
         Array of weights for each point.
     """
-    assert isinstance(
-        beta_lines, np.ndarray), 'beta_lines must be of type np.ndarray'
-    assert isinstance(
-        rho_zeroline, np.ndarray), 'rho_zeroline must be of type np.ndarray'
-    assert isinstance(theta_zeroline, np.ndarray
-                      ), 'theta_zeroline must be of type np.ndarray'
-    assert isinstance(points_per_interval, int
-                      ), 'points_per_interval must be of type int'
-    assert isinstance(
-        contour_probs, np.ndarray), 'contour_probs must be of type np.ndarray'
+    if not isinstance(beta_lines, np.ndarray):
+        raise TypeError(f'beta_lines must be of type np.ndarray. Got: {type(beta_lines)}')
+    if not isinstance(rho_zeroline, np.ndarray):
+        raise TypeError(f'rho_zeroline must be of type np.ndarray. Got: {type(rho_zeroline)}')
+    if not isinstance(theta_zeroline, np.ndarray):
+        raise TypeError(f'theta_zeroline must be of type np.ndarray. Got: {type(theta_zeroline)}')
+    if not isinstance(points_per_interval, int):
+        raise TypeError(f'points_per_interval must be of type int. Got: {type(points_per_interval)}')
+    if not isinstance(contour_probs, np.ndarray):
+        raise TypeError(f'contour_probs must be of type np.ndarray. Got: {type(contour_probs)}')
 
     num_samples = (len(beta_lines) - 1) * points_per_interval
     alpha_bounds = np.zeros((len(beta_lines) - 1, 2))
@@ -1889,12 +1931,14 @@ def _princomp_inv(princip_data1, princip_data2, coeff, shift):
     original2: np.array
         T values following rotation from principal component space.
     """
-    assert isinstance(
-        princip_data1, np.ndarray), 'princip_data1 must be of type np.ndarray'
-    assert isinstance(
-        princip_data2, np.ndarray), 'princip_data2 must be of type np.ndarray'
-    assert isinstance(coeff, np.ndarray), 'coeff must be of type np.ndarray'
-    assert isinstance(shift, float), 'float must be of type float'
+    if not isinstance(princip_data1, np.ndarray):
+        raise TypeError(f'princip_data1 must be of type np.ndarray. Got: {type(princip_data1)}')
+    if not isinstance(princip_data2, np.ndarray):
+        raise TypeError(f'princip_data2 must be of type np.ndarray. Got: {type(princip_data2)}')
+    if not isinstance(coeff, np.ndarray):
+        raise TypeError(f'coeff must be of type np.ndarray. Got: {type(coeff)}')
+    if not isinstance(shift, float):
+        raise TypeError(f'shift must be of type float. Got: {type(shift)}')
 
     original1 = np.zeros(len(princip_data1))
     original2 = np.zeros(len(princip_data1))

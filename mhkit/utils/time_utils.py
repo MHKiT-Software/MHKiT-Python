@@ -1,9 +1,6 @@
-
-
 import datetime as dt
 import pandas as pd
 import numpy as np
-from pecos.utils import index_to_datetime
 
 
 def matlab_to_datetime(matlab_datenum):
@@ -25,8 +22,8 @@ def matlab_to_datetime(matlab_datenum):
         matlab_datenum = np.array(matlab_datenum, ndmin=1)
     except:
         pass
-    assert isinstance(
-        matlab_datenum, np.ndarray), 'data must be of type np.ndarray'
+    if not isinstance(matlab_datenum, np.ndarray):
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
 
     # Pre-allocate
     time = []
@@ -60,7 +57,8 @@ def excel_to_datetime(excel_num):
         excel_num = np.array(excel_num)
     except:
         pass
-    assert isinstance(excel_num, np.ndarray), 'data must be of type np.ndarray'
+    if not isinstance(excel_num, np.ndarray):
+        raise TypeError(f'excel_num must be of type np.ndarray. Got: {type(excel_num)}')
 
     # Convert to datetime
     time = pd.to_datetime('1899-12-30')+pd.to_timedelta(excel_num, 'D')

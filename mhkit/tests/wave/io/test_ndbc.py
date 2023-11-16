@@ -128,7 +128,7 @@ class TestIOndbc(unittest.TestCase):
         assert_frame_equal(self.swden, ndbc_data['1996'])
 
     def test_ndbc_request_data_filenames_length(self):
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             wave.io.ndbc.request_data('swden', pd.Series(dtype=float))
 
     def test_ndbc_to_datetime_index(self):
@@ -214,7 +214,7 @@ class TestIOndbc(unittest.TestCase):
             self.directional_data, directions)
         wave.graphics.plot_directional_spectrum(
             spectrum,
-            min=0.0,
+            color_level_min=0.0,
             fill=True,
             nlevels=6,
             name="Elevation Variance",
