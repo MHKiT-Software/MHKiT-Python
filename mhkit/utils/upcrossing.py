@@ -111,7 +111,7 @@ def peaks(t, data, inds=None):
     if not isinstance(t, np.ndarray):
         raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
     if not isinstance(data, np.ndarray):
-        raise TypeError(f'data must of type np.ndarray. Got: {type(data)}')
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
 
     return _apply(t, data, lambda ind1, ind2: np.max(data[ind1:ind2]), inds)
 
@@ -142,7 +142,7 @@ def troughs(t, data, inds=None):
     if not isinstance(t, np.ndarray):
         raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
     if not isinstance(data, np.ndarray):
-        raise TypeError(f'data must of type np.ndarray. Got: {type(data)}')
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
 
     return _apply(t, data, lambda ind1, ind2: np.min(data[ind1:ind2]), inds)
 
@@ -175,7 +175,7 @@ def heights(t, data, inds=None):
     if not isinstance(t, np.ndarray):
         raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
     if not isinstance(data, np.ndarray):
-        raise TypeError(f'data must of type np.ndarray. Got: {type(data)}')
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
 
     def func(ind1, ind2): 
         return np.max(data[ind1:ind2]) - np.min(data[ind1:ind2])
@@ -208,7 +208,7 @@ def periods(t, data, inds=None):
     if not isinstance(t, np.ndarray):
         raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
     if not isinstance(data, np.ndarray):
-        raise TypeError(f'data must of type np.ndarray. Got: {type(data)}')
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
 
     return _apply(t, data, lambda ind1, ind2: t[ind2] - t[ind1], inds)
 
@@ -242,7 +242,7 @@ def custom(t, data, func, inds=None):
     if not isinstance(t, np.ndarray):
         raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
     if not isinstance(data, np.ndarray):
-        raise TypeError(f'data must of type np.ndarray. Got: {type(data)}')
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
     if not callable(func):
         raise ValueError('func must be callable')
 

@@ -150,7 +150,7 @@ def jonswap_spectrum(f, Tp, Hs, gamma=None):
     if not isinstance(Hs, (int,float)):
         raise TypeError(f'Hs must be of type int or float. Got: {type(Hs)}')
     if not isinstance(gamma, (int,float, type(None))):
-        raise TypeError(f'gamma must be of type int or float. Got: {type(gamma)}')
+        raise TypeError(f'If specified, gamma must be of type int or float. Got: {type(gamma)}')
 
     f.sort()
     B_PM = (5/4)*(1/Tp)**4
