@@ -32,24 +32,37 @@ def plot_statistics(x,y_mean,y_max,y_min,y_stdev=[],**kwargs):
     ax : matplotlib pyplot axes
     '''
     
-    try: x = np.array(x)
-    except: 'x must be of type np.ndarray'       
-    try: y_mean = np.array(y_mean)
-    except: 'y_mean must be of type np.ndarray'           
-    try:y_max = np.array(y_max)
-    except: 'y_max must be of type np.ndarray'
-    try: y_min = np.array(y_min)
-    except: 'y_min must be of type np.ndarray'
+    try:
+        x = np.array(x)
+    except:
+        raise TypeError(f'x must be of type np.ndarray. Got: {type(x)}')
+    try:
+        y_mean = np.array(y_mean)
+    except:
+        raise TypeError(f'y_mean must be of type np.ndarray. Got: {type(y_mean)}')       
+    try:
+        y_max = np.array(y_max)
+    except:
+        raise TypeError(f'y_max must be of type np.ndarray. Got: {type(y_max)}')
+    try:
+        y_min = np.array(y_min)
+    except:
+        raise TypeError(f'y_min must be of type np.ndarray. Got: {type(y_min)}')
     
     x_label   = kwargs.get("x_label", None)
     y_label   = kwargs.get("y_label", None)
     title     = kwargs.get("title", None)
     save_path = kwargs.get("save_path", None)
     
-    assert isinstance(x_label, (str, type(None))), 'x_label must be of type str'
-    assert isinstance(y_label, (str, type(None))), 'y_label must be of type str'
-    assert isinstance(title, (str, type(None))), 'title must be of type str'
-    assert isinstance(save_path, (str, type(None))), 'save_path must be of type str'
+    if not isinstance(x_label, (str, type(None))):
+        raise TypeError(f'x_label must be of type str. Got: {type(x_label)}')
+    if not isinstance(y_label, (str, type(None))):
+        raise TypeError(f'y_label must be of type str. Got: {type(y_label)}')
+    if not isinstance(title, (str, type(None))):
+        raise TypeError(f'title must be of type str. Got: {type(title)}')
+    if not isinstance(save_path, (str, type(None))):
+        raise TypeError(
+            f'save_path must be of type str. Got: {type(save_path)}')
 
     fig, ax = plt.subplots(figsize=(6,4))
     ax.plot(x,y_max,'^',label='max',mfc='none')
@@ -132,10 +145,15 @@ def plot_bin_statistics(bin_centers, bin_mean,bin_max, bin_min,
     title     = kwargs.get("title", None)
     save_path = kwargs.get("save_path", None)
     
-    assert isinstance(x_label, (str, type(None))), 'x_label must be of type str'
-    assert isinstance(y_label, (str, type(None))), 'y_label must be of type str'
-    assert isinstance(title, (str, type(None))), 'title must be of type str'
-    assert isinstance(save_path, (str, type(None))), 'save_path must be of type str'
+    if not isinstance(x_label, (str, type(None))):
+        raise TypeError(f'x_label must be of type str. Got: {type(x_label)}')
+    if not isinstance(y_label, (str, type(None))):
+        raise TypeError(f'y_label must be of type str. Got: {type(y_label)}')
+    if not isinstance(title, (str, type(None))):
+        raise TypeError(f'title must be of type str. Got: {type(title)}')
+    if not isinstance(save_path, (str, type(None))):
+        raise TypeError(
+            f'save_path must be of type str. Got: {type(save_path)}')
     
     fig, ax = plt.subplots(figsize=(7,5))
     ax.errorbar(bin_centers,bin_max,marker='^',mfc='none',

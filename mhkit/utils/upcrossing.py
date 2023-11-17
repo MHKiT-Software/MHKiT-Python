@@ -65,12 +65,11 @@ def upcrossing(t, data):
     inds: np.array
         Zero crossing indices
     """
+    # Check data types
     if not isinstance(t, np.ndarray):
-        raise TypeError('t must be of type np.ndarray')
-    
-    if not isinstance(t, np.ndarray):
-        'data must be of type np.ndarray'
-    
+        raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
+    if not isinstance(data, np.ndarray):
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
     if len(data.shape) != 1:
         raise ValueError('only 1D data supported, try calling squeeze()')
 
@@ -108,11 +107,11 @@ def peaks(t, data, inds=None):
         Peak values of the time-series
 
     """
+    # Check data types
     if not isinstance(t, np.ndarray):
-        TypeError('t must be of type np.ndarray')
-        
+        raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
     if not isinstance(data, np.ndarray):
-        TypeError('data must be of type np.ndarray')
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
 
     return _apply(t, data, lambda ind1, ind2: np.max(data[ind1:ind2]), inds)
 
@@ -139,8 +138,11 @@ def troughs(t, data, inds=None):
         Trough values of the time-series
 
     """
-    assert isinstance(t, np.ndarray), 't must be of type np.ndarray'
-    assert isinstance(data, np.ndarray), 'data must be of type np.ndarray'
+    # Check data types
+    if not isinstance(t, np.ndarray):
+        raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
+    if not isinstance(data, np.ndarray):
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
 
     return _apply(t, data, lambda ind1, ind2: np.min(data[ind1:ind2]), inds)
 
@@ -169,8 +171,11 @@ def heights(t, data, inds=None):
     heights: np.array
         Height values of the time-series
     """
-    assert isinstance(t, np.ndarray), 't must be of type np.ndarray'
-    assert isinstance(data, np.ndarray), 'data must be of type np.ndarray'
+    # Check data types
+    if not isinstance(t, np.ndarray):
+        raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
+    if not isinstance(data, np.ndarray):
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
 
     def func(ind1, ind2): 
         return np.max(data[ind1:ind2]) - np.min(data[ind1:ind2])
@@ -199,8 +204,11 @@ def periods(t, data, inds=None):
     periods: np.array
         Period values of the time-series
     """
-    assert isinstance(t, np.ndarray), 't must be of type np.ndarray'
-    assert isinstance(data, np.ndarray), 'data must be of type np.ndarray'
+    # Check data types
+    if not isinstance(t, np.ndarray):
+        raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
+    if not isinstance(data, np.ndarray):
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
 
     return _apply(t, data, lambda ind1, ind2: t[ind2] - t[ind1], inds)
 
@@ -230,9 +238,12 @@ def custom(t, data, func, inds=None):
     values: np.array
         Custom values of the time-series
     """
-
-    assert isinstance(t, np.ndarray), 't must be of type np.ndarray'
-    assert isinstance(data, np.ndarray), 'data must of type np.ndarray'
-    assert callable(func), 'f must be callable'
+    # Check data types
+    if not isinstance(t, np.ndarray):
+        raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
+    if not isinstance(data, np.ndarray):
+        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
+    if not callable(func):
+        raise ValueError('func must be callable')
 
     return _apply(t, data, func, inds)
