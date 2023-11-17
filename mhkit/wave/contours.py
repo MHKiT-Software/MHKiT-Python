@@ -1779,7 +1779,7 @@ def samples_contour(t_samples, t_contour, hs_contour):
         y1 = hs_contour[aamin:aamax + int(include_aamax)]
     else:
         # Check if the max or min Tp values are within the contour half
-        include_aamin = t_max >= t_contour[aamin] or t_min <= t_contour[aamin]
+        include_aamin = t_max >= t_contour[aamin] or t_min <= t_contour[aamax]
         # Set the x and y values for interpolation
         x1 = np.concatenate(
             (t_contour[aamax:], t_contour[:aamin + int(include_aamin)]))
