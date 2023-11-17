@@ -1792,28 +1792,51 @@ def samples_contour(t_samples, t_contour, hs_contour):
         raise TypeError(f't_contour must be of type np.ndarray. Got: {type(t_contour)}')
     if not isinstance(hs_contour, np.ndarray):
         raise TypeError(f'hs_contour must be of type np.ndarray. Got: {type(hs_contour)}')
+    if len(t_contour) != len(hs_contour):
+        raise ValueError(
+            "t_contour and hs_contour must be of the same length.")
+    if np.any(t_samples < np.min(t_contour)) or np.any(t_samples > np.max(t_contour)):
+        raise ValueError(
+            "All t_samples must be within the range of t_contour.")
+    
 
-    # finds minimum and maximum energy period values
+
+    # Find minimum and maximum energy period values
     amin = np.argmin(t_contour)
     amax = np.argmax(t_contour)
     aamin = np.min([amin, amax])
     aamax = np.max([amin, amax])
-    # finds points along the contour
+
+    # Separate points along the contour into upper & lower half
     w1 = hs_contour[aamin:aamax]
     w2 = np.concatenate((hs_contour[aamax:], hs_contour[:aamin]))
-    if (np.max(w1) > np.max(w2)):
-        x1 = t_contour[aamin:aamax]
-        y1 = hs_contour[aamin:aamax]
+
+    # Get samples min and max
+    t_min, t_max = np.min(t_samples), np.max(t_samples)
+
+    # Choose the half of the contour with the largest wave height
+    if np.max(w1) > np.max(w2):
+        # Check if the max or min Tp values are within the contour half
+        include_aamax = t_max >= t_contour[aamax] or t_min <= t_contour[aamin]
+        # Set the x and y values for interpolation
+        x1 = t_contour[aamin:aamax + int(include_aamax)]
+        y1 = hs_contour[aamin:aamax + int(include_aamax)]
     else:
-        x1 = np.concatenate((t_contour[aamax:], t_contour[:aamin]))
-        y1 = np.concatenate((hs_contour[aamax:], hs_contour[:aamin]))
-    # sorts data based on the max and min energy period values
+        # Check if the max or min Tp values are within the contour half
+        include_aamin = t_max >= t_contour[aamin] or t_min <= t_contour[aamax]
+        # Set the x and y values for interpolation
+        x1 = np.concatenate(
+            (t_contour[aamax:], t_contour[:aamin + int(include_aamin)]))
+        y1 = np.concatenate(
+            (hs_contour[aamax:], hs_contour[:aamin + int(include_aamin)]))
+
+    # Sort data based on the max and min Tp values
     ms = np.argsort(x1)
     x = x1[ms]
     y = y1[ms]
-    # interpolates the sorted data
+    # Interpolation function
     si = interp.interp1d(x, y)
-    # finds the wave height based on the user specified energy period values
+    # Interpolate Tp samples values to get Hs values
     hs_samples = si(t_samples)
 
     return hs_samples
