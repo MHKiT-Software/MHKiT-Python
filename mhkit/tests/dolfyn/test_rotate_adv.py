@@ -167,7 +167,6 @@ class rotate_adv_testcase(unittest.TestCase):
             rotate2(warn2, 'earth')
         with self.assertRaises(Exception):
             set_inst2head_rotmat(warn3, np.eye(3))
-            set_inst2head_rotmat(warn3, np.eye(3))
         with self.assertRaises(Exception):
             set_inst2head_rotmat(warn4, np.eye(3))
 

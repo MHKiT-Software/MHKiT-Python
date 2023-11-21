@@ -21,8 +21,10 @@ def read_table(swan_file):
     metaDict: Dictionary
         Dictionary of metaData
     '''
-    assert isinstance(swan_file, str), 'swan_file must be of type str'
-    assert isfile(swan_file)==True, f'File not found: {swan_file}'
+    if not isinstance(swan_file, str):
+        raise TypeError(f'swan_file must be of type str. Got: {type(swan_file)}')
+    if not isfile(swan_file):
+        raise ValueError(f'File not found: {swan_file}')
     
     f = open(swan_file,'r')
     header_line_number = 4
@@ -62,8 +64,10 @@ def read_block(swan_file):
     metaDict: Dictionary
         Dictionary of metaData dependent on file type    
     '''
-    assert isinstance(swan_file, str), 'swan_file must be of type str'
-    assert isfile(swan_file)==True, f'File not found: {swan_file}'
+    if not isinstance(swan_file, str):
+        raise TypeError(f'swan_file must be of type str. Got: {type(swan_file)}')
+    if not isfile(swan_file):
+        raise ValueError(f'File not found: {swan_file}')
     
     extension = swan_file.split('.')[1].lower()
     if extension == 'mat':
@@ -92,8 +96,10 @@ def _read_block_txt(swan_file):
     metaDict: Dictionary
         Dictionary of metaData dependent on file type    
     '''
-    assert isinstance(swan_file, str), 'swan_file must be of type str'
-    assert isfile(swan_file)==True, f'File not found: {swan_file}'
+    if not isinstance(swan_file, str):
+        raise TypeError(f'swan_file must be of type str. Got: {type(swan_file)}')
+    if not isfile(swan_file):
+        raise ValueError(f'File not found: {swan_file}')
     
     f = open(swan_file) 
     runLines=[]
@@ -174,8 +180,10 @@ def _read_block_mat(swan_file):
     dataDict: Dictionary
         Dictionary of DataFrame of swan output variables
     '''
-    assert isinstance(swan_file, str), 'swan_file must be of type str'
-    assert isfile(swan_file)==True, f'File not found: {swan_file}'
+    if not isinstance(swan_file, str):
+        raise TypeError(f'swan_file must be of type str. Got: {type(swan_file)}')
+    if not isfile(swan_file):
+        raise ValueError(f'File not found: {swan_file}')
         
     dataDict = loadmat(swan_file, struct_as_record=False, squeeze_me=True)
     removeKeys = ['__header__', '__version__', '__globals__']
@@ -200,7 +208,8 @@ def _parse_line_metadata(line):
     metaDict: Dictionary
         Dictionary of variable metadata
     '''
-    assert isinstance(line, str), 'line must be of type str'
+    if not isinstance(line, str):
+        raise TypeError(f'line must be of type str. Got: {type(line)}')
     
     metaDict={}        
     meta=re.sub('\s+', " ", line.replace(',', ' ').strip('% \n').replace('**', 'vars:'))
@@ -239,19 +248,20 @@ def dictionary_of_block_to_table(dictionary_of_DataFrames, names=None):
         DataFrame with columns x,y,values where values = Dictionary.keys()
         or names        
     '''
-    assert isinstance(dictionary_of_DataFrames, dict), (
-                          'dictionary_of_DataFrames must be of type Dict')
-    assert bool(dictionary_of_DataFrames), 'dictionary_of_DataFrames is empty'
+    if not isinstance(dictionary_of_DataFrames, dict):
+        raise TypeError(f'dictionary_of_DataFrames must be of type dict. Got: {type(dictionary_of_DataFrames)}')
+    if not bool(dictionary_of_DataFrames):
+        raise ValueError(f'dictionary_of_DataFrames is empty. Got: {dictionary_of_DataFrames}')
     for key in dictionary_of_DataFrames:  
-        assert isinstance(dictionary_of_DataFrames[key],pd.DataFrame), (
-                          f'Dictionary key:{key} must be of type pd.DataFrame')
+        if not isinstance(dictionary_of_DataFrames[key],pd.DataFrame):
+            raise TypeError(f'Dictionary key:{key} must be of type pd.DataFrame. Got: {type(dictionary_of_DataFrames[key])}')
     if not isinstance(names, type(None)):
-        assert isinstance(names, list), (
-                'If specified names must be of type list')         
-        assert all([isinstance(elm, str) for elm in names]), (
-                'If specified all elements in names must be of type string')
-        assert len(names) == len(dictionary_of_DataFrames), (
-                'If specified names must the same length as dictionary_of_DataFrames')
+        if not isinstance(names, list):
+            raise TypeError(f'If specified, names must be of type list. Got: {type(names)}')
+        if not all([isinstance(elm, str) for elm in names]):
+                raise ValueError(f'If specified, all elements in names must be of type string. Got: {names}')
+        if not len(names) == len(dictionary_of_DataFrames):
+            raise ValueError('If specified, names must the same length as dictionary_of_DataFrames')
     
     if names == None:
         variables = [var for var in  dictionary_of_DataFrames.keys() ]
@@ -284,8 +294,10 @@ def block_to_table(data, name='values'):
     table: DataFrame
         DataFrame with columns x,y,values           
     '''
-    assert isinstance(data,pd.DataFrame), 'data must be of type pd.DataFrame'
-    assert isinstance(name, str), 'Name must be of type str'
+    if not isinstance(data,pd.DataFrame):
+        raise TypeError(f'data must be of type pd.DataFrame. Got: {type(data)}')
+    if not isinstance(name, str):
+        raise TypeError(f'If specified, name must be of type str. Got: {type(name)}')
     
     table = data.unstack().reset_index(name=name)
     table = table.rename(columns={'level_0':'x', 'level_1': 'y'})

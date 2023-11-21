@@ -1,24 +1,15 @@
 from os.path import abspath, dirname, join, isfile, normpath, relpath
-from pandas.testing import assert_frame_equal
+import unittest
+import pickle
+import json
+import os
+
 from numpy.testing import assert_allclose
-from scipy.interpolate import interp1d
-from random import seed, randint
 import matplotlib.pylab as plt
-from datetime import datetime
-import xarray.testing as xrt
-import mhkit.wave as wave
-from io import StringIO
 import pandas as pd
 import numpy as np
-import contextlib
-import unittest
-import netCDF4
-import inspect
-import pickle
-import time
-import json
-import sys
-import os
+
+import mhkit.wave as wave
 
 
 testdir = dirname(abspath(__file__))
@@ -53,6 +44,10 @@ class TestContours(unittest.TestCase):
 
         self.wdrt_dt = 3600
         self.wdrt_period = 50
+
+        # `samples_contour`Example data
+        self.hs_contour = np.array([8.56637939, 9.27612515, 8.70427774])
+        self.te_contour = np.array([10, 15, 20])
 
     @classmethod
     def tearDownClass(self):
@@ -240,7 +235,28 @@ class TestContours(unittest.TestCase):
                              self.wdrt_copulas['bivariate_KDE_log_x2'])]
         self.assertTrue(all(close))
 
-    def test_samples_contours(self):
+    def test_samples_contours_type_validation(self):
+        with self.assertRaises(TypeError):
+            wave.contours.samples_contour(
+                'not an array', self.te_contour, self.hs_contour)
+        with self.assertRaises(TypeError):
+            wave.contours.samples_contour(
+                self.te_contour, 'not an array', self.hs_contour)
+        with self.assertRaises(TypeError):
+            wave.contours.samples_contour(
+                self.te_contour, self.hs_contour, 'not an array')
+
+    def test_samples_contours_length_mismatch(self):
+        with self.assertRaises(ValueError):
+            wave.contours.samples_contour(
+                self.te_contour, self.hs_contour, np.array([1, 2]))
+
+    def test_samples_contours_range_validation(self):
+        with self.assertRaises(ValueError):
+            wave.contours.samples_contour(
+                np.array([5, 25]), self.te_contour, self.hs_contour)
+
+    def test_samples_contours_correct_interpolation(self):
         te_samples = np.array([10, 15, 20])
         hs_samples_0 = np.array([8.56637939, 9.27612515, 8.70427774])
         hs_contour = np.array(self.wdrt_copulas["gaussian_x1"])
