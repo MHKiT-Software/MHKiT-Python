@@ -477,14 +477,15 @@ def variable_interpolation(data, variables, points='cells', edges='none',
         and the x, y, and waterdepth coordinates of those points. 
     '''
 
-    if not isinstance(x, (int, float, np.ndarray)):
-        raise TypeError('x must be an int, float, or array')
+    if not isinstance(points, (str, pd.DataFrame)):
+        raise TypeError('points must be a string or DataFrame')
 
-    if not isinstance(y, (int, float, np.ndarray)):
-        raise TypeError('y must be an int, float, or array')
+    if isinstance(points, str):
+        if not (points == 'cells' or points == 'faces'):
+            raise ValueError('points must be cells or faces')
 
-    if not isinstance(waterdepth, (int, float, np.ndarray)):
-        raise TypeError('waterdepth must be an int, float, or array')
+    if not isinstance(data, netCDF4._netCDF4.Dataset):
+        raise TypeError('data must be netCDF4 object')
 
     data_raw = {}
     for var in variables:
