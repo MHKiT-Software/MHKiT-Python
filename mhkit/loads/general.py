@@ -1,5 +1,6 @@
 from scipy.stats import binned_statistic
-import pandas as pd 
+import pandas as pd
+import xarray as xr
 import numpy as np
 import fatpack
 
@@ -10,7 +11,7 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     
     Parameters
     -----------
-    data : pandas DataFrame
+    data : pandas DataFrame or xarray Dataset
        Time-series statistics of data signal(s) 
     bin_against : array
         Data signal to bin data against (e.g. wind speed)
@@ -27,9 +28,9 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
         Standard deviation of each bim
     """
 
-    if not isinstance(data, pd.DataFrame):
+    if not isinstance(data, (pd.DataFrame, xr.Dataset)):
         raise TypeError(
-            f'data must be of type pd.DataFrame. Got: {type(data)}')
+            f'data must be of type pd.DataFrame or xr.Dataset. Got: {type(data)}')
     try:
         bin_against = np.asarray(bin_against) 
     except:
@@ -40,10 +41,14 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     except:
         raise TypeError(
             f'bin_edges must be of type np.ndarray. Got: {type(bin_edges)}')
+    
+    # If input is pandas, convert to xarray
+    if isinstance(data,pd.DataFrame):
+        data = data.to_xarray()
 
     # Determine variables to analyze
     if len(data_signal)==0: # if not specified, bin all variables
-        data_signal=data.columns.values
+        data_signal = list(data.keys())
     else:
         if not isinstance(data_signal, list):
             raise TypeError(
@@ -60,12 +65,13 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
                                     statistic='mean',bins=bin_edges)
         # Calculate std of bins
         std = []
-        stdev = pd.DataFrame(data[signal_name])
-        stdev.set_index(bin_stat.binnumber,inplace=True)
+        stdev = xr.DataArray(data = data[signal_name].values,
+                             dims = 'binnumber',
+                             coords = {'binnumber': bin_stat.binnumber})
         for i in range(1,len(bin_stat.bin_edges)):
             try:
-                temp = stdev.loc[i].std(ddof=0)
-                std.append(temp[0])
+                temp = stdev.sel(binnumber=i).std().values
+                std.append(np.array(temp,ndmin=1)[0])
             except:
                 std.append(np.nan)
         bin_stat_list.append(bin_stat.statistic)
