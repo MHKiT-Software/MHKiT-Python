@@ -10,7 +10,7 @@ def get_all_time(data):
     '''
     Returns all of the time stamps from a D3D simulation passed to the function 
     as a NetCDF object (data)
-    
+
     Parameters
     ----------
     data: NetCDF4 object 
@@ -24,8 +24,9 @@ def get_all_time(data):
         the simulation started and that the data object contains a snapshot of
         simulation conditions at that time.
     '''
-    
-    assert type(data)== netCDF4._netCDF4.Dataset, 'data must be NetCDF4 object' 
+
+    if not isinstance(data, netCDF4._netCDF4.Dataset):
+        raise TypeError('data must be a NetCDF4 object')
 
     seconds_run = np.ma.getdata(data.variables['time'][:], False)
 
@@ -57,7 +58,7 @@ def seconds_to_index(data, seconds_run):
     '''
     The function will return the nearest 'time_index' in the data if passed an
     integer number of 'seconds_run'
-    
+
     Parameters
     ----------
     data: NetCDF4 object 
@@ -103,26 +104,34 @@ def _convert_time(data, time_index=None, seconds_run=None):
         and incrementing until in simulation is complete. The 'seconds_run' is
         the seconds corresponding to the 'time_index' increments.
     '''
-    
-    assert type(data)== netCDF4._netCDF4.Dataset, 'data must be NetCDF4 object'
-    assert time_index or seconds_run, 'input of time_index or seconds_run needed'
-    assert not(time_index and seconds_run), f'only one time_index or seconds_run'
-    assert isinstance(time_index, (int, float)) or isinstance(seconds_run, (int,
-            float)),'time_index or seconds_run input must be a int or float'
-   
+
+    if not isinstance(data, netCDF4._netCDF4.Dataset):
+        raise TypeError('data must be NetCDF4 object')
+
+    if not (time_index or seconds_run):
+        raise ValueError('Input of time_index or seconds_run needed')
+
+    if time_index and seconds_run:
+        raise ValueError(
+            'Only one of time_index or seconds_run should be provided')
+
+    if not (isinstance(time_index, (int, float)) or isinstance(seconds_run, (int, float))):
+        raise TypeError(
+            'time_index or seconds_run input must be an int or float')
+
     times = get_all_time(data)
-    
+
     if time_index:
-        QoI= times[time_index]
+        QoI = times[time_index]
     if seconds_run:
-        try: 
-            idx=np.where(times == seconds_run)
-            QoI=idx[0][0]
-        except: 
+        try:
+            idx = np.where(times == seconds_run)
+            QoI = idx[0][0]
+        except:
             idx = (np.abs(times - seconds_run)).argmin()
-            QoI= idx
-            warnings.warn( f'Warning: seconds_run not found. Closest time stamp' 
-                          +'found {times[idx]}', stacklevel= 2)
+            QoI = idx
+            warnings.warn(f'Warning: seconds_run not found. Closest time stamp'
+                          + 'found {times[idx]}', stacklevel=2)
 
     return QoI
 
@@ -154,104 +163,118 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
         simulation has run. The waterdepth is measured from the water surface and the
         "waterlevel" is the water level diffrencein meters from the zero water level. 
     '''
-    
-    assert isinstance(time_index, int), 'time_index  must be an int'
-    assert isinstance(layer_index, int), 'layer_index  must be an int'
-    assert type(data)== netCDF4._netCDF4.Dataset, 'data must be NetCDF4 object'
-    assert variable in data.variables.keys(), 'variable not recognized'
-    coords = str(data.variables[variable].coordinates).split()
-    var=data.variables[variable][:]
-    max_time_index= data['time'].shape[0]-1 # to account for zero index
-    assert abs(time_index) <= max_time_index, (f'time_index must be less than'
-                  +'the absolute value of the max time index {max_time_index}')
 
-    x=np.ma.getdata(data.variables[coords[0]][:], False) 
-    y=np.ma.getdata(data.variables[coords[1]][:], False)
-    
-    
-    if type(var[0][0]) == np.ma.core.MaskedArray: 
-        max_layer= len(var[0][0])
-        
-        assert abs(layer_index) <= max_layer,( f'layer_index must be less than'
-                                              +'the max layer {max_layer}')
-        v= np.ma.getdata(var[time_index,:,layer_index], False)
-        dimensions= 3
-    
-    else: 
-        assert type(var[0][0])== np.float64, 'data not  recognized'
-        dimensions= 2
-        v= np.ma.getdata(var[time_index,:], False)
-        
-    #waterdepth 
-    if "mesh2d" in variable:
-        cords_to_layers= {'mesh2d_face_x mesh2d_face_y': {'name':'mesh2d_nLayers', 
-                                'coords':data.variables['mesh2d_layer_sigma'][:]},
-                       'mesh2d_edge_x mesh2d_edge_y': {'name':'mesh2d_nInterfaces', 
-                                'coords':data.variables['mesh2d_interface_sigma'][:]}}
-        bottom_depth=np.ma.getdata(data.variables['mesh2d_waterdepth'][time_index, :], False)
-        waterlevel= np.ma.getdata(data.variables['mesh2d_s1'][time_index, :], False)
-        coords = str(data.variables['waterdepth'].coordinates).split()
-        
+    if not isinstance(time_index, int):
+        raise TypeError('time_index must be an int')
+
+    if not isinstance(layer_index, int):
+        raise TypeError('layer_index must be an int')
+
+    if not isinstance(data, netCDF4._netCDF4.Dataset):
+        raise TypeError('data must be NetCDF4 object')
+
+    if variable not in data.variables.keys():
+        raise ValueError('variable not recognized')
+    coords = str(data.variables[variable].coordinates).split()
+    var = data.variables[variable][:]
+    max_time_index = data['time'].shape[0]-1  # to account for zero index
+    if abs(time_index) > max_time_index:
+        raise ValueError(
+            f'time_index must be less than the absolute value of the max time index {max_time_index}')
+
+    x = np.ma.getdata(data.variables[coords[0]][:], False)
+    y = np.ma.getdata(data.variables[coords[1]][:], False)
+
+    if type(var[0][0]) == np.ma.core.MaskedArray:
+        max_layer = len(var[0][0])
+
+        if abs(layer_index) > max_layer:
+            raise ValueError(
+                f'layer_index must be less than the max layer {max_layer}')
+
+        v = np.ma.getdata(var[time_index, :, layer_index], False)
+        dimensions = 3
+
     else:
-        cords_to_layers= {'FlowElem_xcc FlowElem_ycc':{'name':'laydim', 
-                                'coords':data.variables['LayCoord_cc'][:]},
-                           'FlowLink_xu FlowLink_yu': {'name':'wdim', 
-                                   'coords':data.variables['LayCoord_w'][:]}}
-        bottom_depth=np.ma.getdata(data.variables['waterdepth'][time_index, :], False)
-        waterlevel= np.ma.getdata(data.variables['s1'][time_index, :], False)
+        if type(var[0][0]) != np.float64:
+            raise TypeError('data not recognized')
+        dimensions = 2
+        v = np.ma.getdata(var[time_index, :], False)
+
+    # waterdepth
+    if "mesh2d" in variable:
+        cords_to_layers = {'mesh2d_face_x mesh2d_face_y': {'name': 'mesh2d_nLayers',
+                                                           'coords': data.variables['mesh2d_layer_sigma'][:]},
+                           'mesh2d_edge_x mesh2d_edge_y': {'name': 'mesh2d_nInterfaces',
+                                                           'coords': data.variables['mesh2d_interface_sigma'][:]}}
+        bottom_depth = np.ma.getdata(
+            data.variables['mesh2d_waterdepth'][time_index, :], False)
+        waterlevel = np.ma.getdata(
+            data.variables['mesh2d_s1'][time_index, :], False)
         coords = str(data.variables['waterdepth'].coordinates).split()
-        
-    layer_dim =  str(data.variables[variable].coordinates)
-    
-    cord_sys= cords_to_layers[layer_dim]['coords']
-    layer_percentages= np.ma.getdata(cord_sys, False) #accumulative
+
+    else:
+        cords_to_layers = {'FlowElem_xcc FlowElem_ycc': {'name': 'laydim',
+                                                         'coords': data.variables['LayCoord_cc'][:]},
+                           'FlowLink_xu FlowLink_yu': {'name': 'wdim',
+                                                       'coords': data.variables['LayCoord_w'][:]}}
+        bottom_depth = np.ma.getdata(
+            data.variables['waterdepth'][time_index, :], False)
+        waterlevel = np.ma.getdata(data.variables['s1'][time_index, :], False)
+        coords = str(data.variables['waterdepth'].coordinates).split()
+
+    layer_dim = str(data.variables[variable].coordinates)
+
+    cord_sys = cords_to_layers[layer_dim]['coords']
+    layer_percentages = np.ma.getdata(cord_sys, False)  # accumulative
 
     if layer_dim == 'FlowLink_xu FlowLink_yu':
-        #interpolate 
-        x_laydim=np.ma.getdata(data.variables[coords[0]][:], False) 
-        y_laydim=np.ma.getdata(data.variables[coords[1]][:], False)
-        points_laydim = np.array([ [x, y] for x, y in zip(x_laydim, y_laydim)])
-        
+        # interpolate
+        x_laydim = np.ma.getdata(data.variables[coords[0]][:], False)
+        y_laydim = np.ma.getdata(data.variables[coords[1]][:], False)
+        points_laydim = np.array([[x, y] for x, y in zip(x_laydim, y_laydim)])
+
         coords_request = str(data.variables[variable].coordinates).split()
-        x_wdim=np.ma.getdata(data.variables[coords_request[0]][:], False) 
-        y_wdim=np.ma.getdata(data.variables[coords_request[1]][:], False)
-        points_wdim=np.array([ [x, y] for x, y in zip(x_wdim, y_wdim)])
-        
+        x_wdim = np.ma.getdata(data.variables[coords_request[0]][:], False)
+        y_wdim = np.ma.getdata(data.variables[coords_request[1]][:], False)
+        points_wdim = np.array([[x, y] for x, y in zip(x_wdim, y_wdim)])
+
         bottom_depth_wdim = interp.griddata(points_laydim, bottom_depth,
                                             points_wdim)
-        water_level_wdim= interp.griddata(points_laydim, waterlevel,
-                                            points_wdim)
-        
-        idx_bd= np.where(np.isnan(bottom_depth_wdim))
-        
-        for i in idx_bd: 
-            bottom_depth_wdim[i]= interp.griddata(points_laydim, bottom_depth,
-                                              points_wdim[i], method='nearest')
-            water_level_wdim[i]= interp.griddata(points_laydim, waterlevel,
-                                              points_wdim[i], method='nearest')
+        water_level_wdim = interp.griddata(points_laydim, waterlevel,
+                                           points_wdim)
 
-    
-    waterdepth=[]
-    
-    if dimensions== 2:
-        if layer_dim == 'FlowLink_xu FlowLink_yu': 
+        idx_bd = np.where(np.isnan(bottom_depth_wdim))
+
+        for i in idx_bd:
+            bottom_depth_wdim[i] = interp.griddata(points_laydim, bottom_depth,
+                                                   points_wdim[i], method='nearest')
+            water_level_wdim[i] = interp.griddata(points_laydim, waterlevel,
+                                                  points_wdim[i], method='nearest')
+
+    waterdepth = []
+
+    if dimensions == 2:
+        if layer_dim == 'FlowLink_xu FlowLink_yu':
             z = [bottom_depth_wdim]
-            waterlevel=water_level_wdim
+            waterlevel = water_level_wdim
         else:
             z = [bottom_depth]
     else:
-        if layer_dim == 'FlowLink_xu FlowLink_yu': 
+        if layer_dim == 'FlowLink_xu FlowLink_yu':
             z = [bottom_depth_wdim*layer_percentages[layer_index]]
-            waterlevel=water_level_wdim
+            waterlevel = water_level_wdim
         else:
             z = [bottom_depth*layer_percentages[layer_index]]
-    waterdepth=np.append(waterdepth, z)
+    waterdepth = np.append(waterdepth, z)
 
-    time= np.ma.getdata(data.variables['time'][time_index], False)*np.ones(len(x))
+    time = np.ma.getdata(
+        data.variables['time'][time_index], False)*np.ones(len(x))
 
-    layer= np.array([ [x_i, y_i, d_i, w_i, v_i, t_i] for x_i, y_i, d_i, w_i, v_i, t_i in
-                     zip(x, y, waterdepth, waterlevel, v, time)]) 
-    layer_data = pd.DataFrame(layer, columns=['x', 'y', 'waterdepth','waterlevel', 'v', 'time'])
+    layer = np.array([[x_i, y_i, d_i, w_i, v_i, t_i] for x_i, y_i, d_i, w_i, v_i, t_i in
+                     zip(x, y, waterdepth, waterlevel, v, time)])
+    layer_data = pd.DataFrame(
+        layer, columns=['x', 'y', 'waterdepth', 'waterlevel', 'v', 'time'])
 
     return layer_data
 
@@ -262,7 +285,7 @@ def create_points(x, y, waterdepth):
     In any order the three inputs can consist of 3 points, 2 points and 1 array,
     or 1 point and 2 arrays. The final output DataFrame will be the unique
     combinations of the 3 inputs. 
-    
+
     Parameters
     ----------
     x: float, array or int 
@@ -276,17 +299,17 @@ def create_points(x, y, waterdepth):
     -------
     points: DateFrame 
         DataFrame with columns x, y and waterdepth points. 
-        
+
     Example 
     -------
     If the inputs are 2 arrays:  and [3,4,5] and 1 point [6], the output 
     will contain 6 array combinations of the 3 inputs as shown.
-    
+
     x=np.array([1,2])
     y=np.array([3,4,5])
     waterdepth= 6
     d3d.create_points(x,y,waterdepth)
-    
+
        x    y    waterdepth
     0  1.0  3.0  6.0
     1  2.0  3.0  6.0
@@ -295,86 +318,88 @@ def create_points(x, y, waterdepth):
     4  1.0  5.0  6.0
     5  2.0  5.0  6.0        
     '''
-    
-    assert isinstance(x, (int, float, np.ndarray)), ('x must be a int, float'
-                                                     +' or array')
-    assert isinstance(y, (int, float, np.ndarray)), ('y must be a int, float'
-                                                     +' or array')
-    assert isinstance(waterdepth, (int, float, np.ndarray)), ('waterdepth must be a int, float'
-                                                     +' or array')
-    
-    directions = {0:{'name':  'x',
-                     'values': x},
-                  1:{'name':  'y',
-                     'values': y},
-                  2:{'name':  'waterdepth',
-                     'values': waterdepth}}
+
+    if not isinstance(x, (int, float, np.ndarray)):
+        raise TypeError('x must be an int, float, or array')
+
+    if not isinstance(y, (int, float, np.ndarray)):
+        raise TypeError('y must be an int, float, or array')
+
+    if not isinstance(waterdepth, (int, float, np.ndarray)):
+        raise TypeError('waterdepth must be an int, float, or array')
+
+    directions = {0: {'name':  'x',
+                      'values': x},
+                  1: {'name':  'y',
+                      'values': y},
+                  2: {'name':  'waterdepth',
+                      'values': waterdepth}}
 
     for i in directions:
         try:
-            N=len(directions[i]['values'])
+            N = len(directions[i]['values'])
         except:
-            directions[i]['values'] = np.array([directions[i]['values']]) 
-            N=len(directions[i]['values'])  
-        if N == 1 :
-            directions[i]['type']= 'point'      
-        elif N > 1 :
-            directions[i]['type']= 'array'
+            directions[i]['values'] = np.array([directions[i]['values']])
+            N = len(directions[i]['values'])
+        if N == 1:
+            directions[i]['type'] = 'point'
+        elif N > 1:
+            directions[i]['type'] = 'array'
         else:
             raise Exception(f'length of direction {directions[i]["name"]} was'
-                            +'neagative or zero')
-    
-    # Check how many times point is in "types" 
-    types= [directions[i]['type'] for i in directions]
+                            + 'neagative or zero')
+
+    # Check how many times point is in "types"
+    types = [directions[i]['type'] for i in directions]
     N_points = types.count('point')
 
     if N_points >= 2:
-        lens = np.array([len(directions[d]['values'])  for d in directions])
+        lens = np.array([len(directions[d]['values']) for d in directions])
         max_len_idx = lens.argmax()
-        not_max_idxs= [i for i in directions.keys()]
-        
+        not_max_idxs = [i for i in directions.keys()]
+
         del not_max_idxs[max_len_idx]
-        
-        for not_max in not_max_idxs:     
-            N= len(directions[max_len_idx]['values'])
-            vals =np.ones(N)*directions[not_max]['values']
+
+        for not_max in not_max_idxs:
+            N = len(directions[max_len_idx]['values'])
+            vals = np.ones(N)*directions[not_max]['values']
             directions[not_max]['values'] = np.array(vals)
-                    
+
         x_new = directions[0]['values']
         y_new = directions[1]['values']
         depth_new = directions[2]['values']
-            
-        request= np.array([ [x_i, y_i, depth_i] for x_i, y_i, depth_i in zip(x_new, 
-                                                             y_new, depth_new)]) 
-        points= pd.DataFrame(request, columns=[ 'x', 'y', 'waterdepth'])
-        
-    elif N_points == 1: 
+
+        request = np.array([[x_i, y_i, depth_i] for x_i, y_i, depth_i in zip(x_new,
+                                                                             y_new, depth_new)])
+        points = pd.DataFrame(request, columns=['x', 'y', 'waterdepth'])
+
+    elif N_points == 1:
         # treat as plane
-        #find index of point 
+        # find index of point
         idx_point = types.index('point')
-        max_idxs= [i for i in directions.keys()]
+        max_idxs = [i for i in directions.keys()]
         print(max_idxs)
         del max_idxs[idx_point]
-        #find vectors 
+        # find vectors
         XX, YY = np.meshgrid(directions[max_idxs[0]]['values'],
-                             directions[max_idxs[1]]['values'] )
-        N_X=np.shape(XX)[1]
-        N_Y=np.shape(YY)[0]
-        ZZ= np.ones((N_Y,N_X))*directions[idx_point]['values'] 
-     
-        request= np.array([ [x_i, y_i, z_i] for x_i, y_i, z_i in zip(XX.ravel(),
-                            YY.ravel() , ZZ.ravel())]) 
-        columns=[ directions[max_idxs[0]]['name'],  
-                 directions[max_idxs[1]]['name'],  directions[idx_point]['name']]
-        
-        points= pd.DataFrame(request, columns=columns)
-    else: 
-        raise Exception('Can provide at most two arrays')
+                             directions[max_idxs[1]]['values'])
+        N_X = np.shape(XX)[1]
+        N_Y = np.shape(YY)[0]
+        ZZ = np.ones((N_Y, N_X))*directions[idx_point]['values']
 
-    return points 
+        request = np.array([[x_i, y_i, z_i] for x_i, y_i, z_i in zip(XX.ravel(),
+                                                                     YY.ravel(), ZZ.ravel())])
+        columns = [directions[max_idxs[0]]['name'],
+                   directions[max_idxs[1]]['name'],  directions[idx_point]['name']]
+
+        points = pd.DataFrame(request, columns=columns)
+    else:
+        raise ValueError('Can provide at most two arrays')
+
+    return points
 
 
-def variable_interpolation(data, variables, points='cells', edges= 'none'):
+def variable_interpolation(data, variables, points='cells', edges='none'):
     '''
     Interpolate multiple variables from the Delft3D onto the same points. 
 
@@ -395,53 +420,57 @@ def variable_interpolation(data, variables, points='cells', edges= 'none'):
     edges: sting: 'nearest'
         If edges is set to 'nearest' the code will fill in nan values with nearest 
         interpolation. Otherwise only linear interpolarion will be used. 
-  
+
     Returns
     -------
     transformed_data: DataFrame  
         Variables on specified grid points saved under the input variable names 
         and the x, y, and waterdepth coordinates of those points. 
     '''
-    
-    assert isinstance(points, (str, pd.DataFrame)),('points must be a string ' 
-                    +'or DataFrame')
-    if isinstance ( points, str):
-       assert any([points == 'cells', points=='faces']), ('points must be'
-                                                          +' cells or faces')
-    assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
+
+    if not isinstance(points, (str, pd.DataFrame)):
+        raise TypeError('points must be a string or DataFrame')
+
+    if isinstance(points, str):
+        if not any([points == 'cells', points == 'faces']):
+            raise ValueError('points must be cells or faces')
+
+    if not isinstance(data, netCDF4._netCDF4.Dataset):
+        raise TypeError('data must be netCDF4 object')
 
     data_raw = {}
     for var in variables:
-        var_data_df = get_all_data_points(data, var,time_index=-1)   
-        var_data_df=var_data_df.loc[:,~var_data_df.T.duplicated(keep='first')]        
-        data_raw[var] = var_data_df 
-    if type(points) == pd.DataFrame:  
+        var_data_df = get_all_data_points(data, var, time_index=-1)
+        var_data_df = var_data_df.loc[:, ~
+                                      var_data_df.T.duplicated(keep='first')]
+        data_raw[var] = var_data_df
+    if type(points) == pd.DataFrame:
         print('points provided')
-    elif points=='faces':
-        points = data_raw['ucx'][['x','y','waterdepth']]
-    elif points=='cells':
-        points = data_raw['turkin1'][['x','y','waterdepth']]
-    
-    transformed_data= points.copy(deep=True)
-    
-    for var in variables :    
-        transformed_data[var] = interp.griddata(data_raw[var][['x','y','waterdepth']],
-                                        data_raw[var][var], points[['x','y','waterdepth']])
-        if edges == 'nearest' :
-            idx= np.where(np.isnan(transformed_data[var]))
-        
+    elif points == 'faces':
+        points = data_raw['ucx'][['x', 'y', 'waterdepth']]
+    elif points == 'cells':
+        points = data_raw['turkin1'][['x', 'y', 'waterdepth']]
+
+    transformed_data = points.copy(deep=True)
+
+    for var in variables:
+        transformed_data[var] = interp.griddata(data_raw[var][['x', 'y', 'waterdepth']],
+                                                data_raw[var][var], points[['x', 'y', 'waterdepth']])
+        if edges == 'nearest':
+            idx = np.where(np.isnan(transformed_data[var]))
+
             if len(idx[0]):
-                for i in idx[0]: 
-                    transformed_data[var][i]= (interp
-                                              .griddata(data_raw[var][['x','y','waterdepth']], 
-                                                data_raw[var][var],
-                                                [points['x'][i],points['y'][i],
-                                                points['waterdepth'][i]], method='nearest'))
-     
+                for i in idx[0]:
+                    transformed_data[var][i] = (interp
+                                                .griddata(data_raw[var][['x', 'y', 'waterdepth']],
+                                                          data_raw[var][var],
+                                                          [points['x'][i], points['y'][i],
+                                                           points['waterdepth'][i]], method='nearest'))
+
     return transformed_data
 
 
-def get_all_data_points(data, variable, time_index=-1):  
+def get_all_data_points(data, variable, time_index=-1):
     '''
     Get data points for a passed variable for all layers at a specified time from 
     the Delft3D NetCDF4 object by iterating over the `get_layer_data` function. 
@@ -457,75 +486,80 @@ def get_all_data_points(data, variable, time_index=-1):
     time_index: int
         An integer to pull the time step from the dataset. 
         Default is last time step, found with the input -1.
-        
+
     Returns
     -------
     all_data: DataFrame 
         Dataframe with columns x, y, waterdepth, waterlevel, variable, and time.
         The waterdepth is measured from the water surface and the "waterlevel" is 
         the water level diffrence in meters from the zero water level.
- 
-    '''  
-    
-    assert isinstance(time_index, int), 'time_index  must be a int'
-    assert type(data)== netCDF4._netCDF4.Dataset, 'data must be NetCDF4 object'
-    assert variable in data.variables.keys(), 'variable not recognized'
+
+    '''
+
+    if not isinstance(time_index, int):
+        raise TypeError('time_index must be an int')
+
+    if not isinstance(data, netCDF4._netCDF4.Dataset):
+        raise TypeError('data must be NetCDF4 object')
+
+    if variable not in data.variables.keys():
+        raise ValueError('variable not recognized')
 
     max_time_index = len(data.variables[variable][:])
-    assert abs(time_index) <= max_time_index, (f'time_index must be less than'
-                                      +'the max time index {max_time_index}')
+    if abs(time_index) > max_time_index:
+        raise ValueError(
+            f'time_index must be less than the max time index {max_time_index}')
 
     if "mesh2d" in variable:
-        cords_to_layers= {'mesh2d_face_x mesh2d_face_y': {'name':'mesh2d_nLayers', 
-                                'coords':data.variables['mesh2d_layer_sigma'][:]},
-                       'mesh2d_edge_x mesh2d_edge_y': {'name':'mesh2d_nInterfaces', 
-                                'coords':data.variables['mesh2d_interface_sigma'][:]}}
+        cords_to_layers = {'mesh2d_face_x mesh2d_face_y': {'name': 'mesh2d_nLayers',
+                                                           'coords': data.variables['mesh2d_layer_sigma'][:]},
+                           'mesh2d_edge_x mesh2d_edge_y': {'name': 'mesh2d_nInterfaces',
+                                                           'coords': data.variables['mesh2d_interface_sigma'][:]}}
     else:
-        cords_to_layers= {'FlowElem_xcc FlowElem_ycc':{'name':'laydim', 
-                                'coords':data.variables['LayCoord_cc'][:]},
-                           'FlowLink_xu FlowLink_yu': {'name':'wdim', 
-                                   'coords':data.variables['LayCoord_w'][:]}}
+        cords_to_layers = {'FlowElem_xcc FlowElem_ycc': {'name': 'laydim',
+                                                         'coords': data.variables['LayCoord_cc'][:]},
+                           'FlowLink_xu FlowLink_yu': {'name': 'wdim',
+                                                       'coords': data.variables['LayCoord_w'][:]}}
 
-    layer_dim =  str(data.variables[variable].coordinates)
-    
-    try:    
-        cord_sys= cords_to_layers[layer_dim]['coords']
-    except: 
+    layer_dim = str(data.variables[variable].coordinates)
+
+    try:
+        cord_sys = cords_to_layers[layer_dim]['coords']
+    except:
         raise Exception('Coordinates not recognized.')
-    else: 
-        layer_percentages= np.ma.getdata(cord_sys, False) 
-        
-    x_all=[]
-    y_all=[]
-    depth_all=[]
-    water_level_all=[]
-    v_all=[]
-    time_all=[]
-    
+    else:
+        layer_percentages = np.ma.getdata(cord_sys, False)
+
+    x_all = []
+    y_all = []
+    depth_all = []
+    water_level_all = []
+    v_all = []
+    time_all = []
+
     layers = range(len(layer_percentages))
     for layer in layers:
-        layer_data= get_layer_data(data, variable, layer, time_index)
+        layer_data = get_layer_data(data, variable, layer, time_index)
 
-        x_all=np.append(x_all, layer_data.x)
-        y_all=np.append(y_all, layer_data.y)
-        depth_all=np.append(depth_all, layer_data.waterdepth)
-        water_level_all=np.append(water_level_all, layer_data.waterlevel)
-        v_all=np.append(v_all, layer_data.v)
-        time_all= np.append(time_all, layer_data.time)
-    
-    known_points = np.array([ [x, y, waterdepth, waterlevel, v, time] 
-                    for x, y, waterdepth, waterlevel, v, time in zip(x_all, y_all, 
-                                depth_all, water_level_all, v_all, time_all)])
-    
-    all_data= pd.DataFrame(known_points, columns=['x','y','waterdepth', 'waterlevel'
-                                                  ,f'{variable}', 'time'])
+        x_all = np.append(x_all, layer_data.x)
+        y_all = np.append(y_all, layer_data.y)
+        depth_all = np.append(depth_all, layer_data.waterdepth)
+        water_level_all = np.append(water_level_all, layer_data.waterlevel)
+        v_all = np.append(v_all, layer_data.v)
+        time_all = np.append(time_all, layer_data.time)
+
+    known_points = np.array([[x, y, waterdepth, waterlevel, v, time]
+                             for x, y, waterdepth, waterlevel, v, time in zip(x_all, y_all,
+                                                                              depth_all, water_level_all, v_all, time_all)])
+
+    all_data = pd.DataFrame(known_points, columns=[
+                            'x', 'y', 'waterdepth', 'waterlevel', f'{variable}', 'time'])
 
     return all_data
 
 
-
-def turbulent_intensity(data, points='cells', time_index= -1,
-                        intermediate_values = False ):
+def turbulent_intensity(data, points='cells', time_index=-1,
+                        intermediate_values=False):
     '''
     Calculate the turbulent intensity percentage for a given data set for the 
     specified points. Assumes variable names: ucx, ucy, ucz and turkin1.
@@ -548,7 +582,7 @@ def turbulent_intensity(data, points='cells', time_index= -1,
         If false the function will return position and turbulent intensity values. 
         If true the function will return position(x,y,z) and values need to calculate
         turbulent intensity (ucx, uxy, uxz and turkin1) in a Dataframe.  Default False.
-   
+
     Returns
     -------
     TI_data : Dataframe
@@ -565,64 +599,73 @@ def turbulent_intensity(data, points='cells', time_index= -1,
             ucy- velocity in the y direction 
             ucz- velocity in the vertical direction 
     '''
-    
-    assert isinstance(points, (str, pd.DataFrame)),('points must a string or'
-                                                    +' DataFrame')
-    if isinstance ( points, str):
-       assert any([points == 'cells', points=='faces']), ('points must be cells'
-                                                          +' or faces')
-    assert isinstance(time_index, int), 'time_index  must be a int'
-    max_time_index= data['time'].shape[0]-1 # to account for zero index
-    assert abs(time_index) <= max_time_index, (f'time_index must be less than'
-                  +'the absolute value of the max time index {max_time_index}')
-    assert type(data)== netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
-    assert 'turkin1' in data.variables.keys(), ('Varaiable turkin1 not'
-                                                +' present in Data')
-    assert 'ucx' in data.variables.keys(),'Varaiable ucx 1 not present in Data'
-    assert 'ucy' in data.variables.keys(),'Varaiable ucy 1 not present in Data'
-    assert 'ucz' in data.variables.keys(),'Varaiable ucz 1 not present in Data'
 
-    TI_vars= ['turkin1', 'ucx', 'ucy', 'ucz']
+    if not isinstance(points, (str, pd.DataFrame)):
+        raise TypeError('points must be a string or DataFrame')
+
+    if isinstance(points, str):
+        if not (points == 'cells' or points == 'faces'):
+            raise ValueError('points must be cells or faces')
+
+    if not isinstance(time_index, int):
+        raise TypeError('time_index must be an int')
+
+    max_time_index = data['time'].shape[0] - 1  # to account for zero index
+    if abs(time_index) > max_time_index:
+        raise ValueError(
+            f'time_index must be less than the absolute value of the max time index {max_time_index}')
+
+    if not isinstance(data, netCDF4._netCDF4.Dataset):
+        raise TypeError('data must be netCDF4 object')
+
+    for variable in ['turkin1', 'ucx', 'ucy', 'ucz']:
+        if variable not in data.variables.keys():
+            raise ValueError(f'Variable {variable} not present in Data')
+
+    TI_vars = ['turkin1', 'ucx', 'ucy', 'ucz']
     TI_data_raw = {}
     for var in TI_vars:
-        var_data_df = get_all_data_points(data, var ,time_index)           
-        TI_data_raw[var] = var_data_df 
-    if type(points) == pd.DataFrame:  
+        var_data_df = get_all_data_points(data, var, time_index)
+        TI_data_raw[var] = var_data_df
+    if type(points) == pd.DataFrame:
         print('points provided')
-    elif points=='faces':
-        points = TI_data_raw['turkin1'].drop(['waterlevel','turkin1'],axis=1)
-    elif points=='cells':
-        points = TI_data_raw['ucx'].drop(['waterlevel','ucx'],axis=1)
-       
+    elif points == 'faces':
+        points = TI_data_raw['turkin1'].drop(['waterlevel', 'turkin1'], axis=1)
+    elif points == 'cells':
+        points = TI_data_raw['ucx'].drop(['waterlevel', 'ucx'], axis=1)
+
     TI_data = points.copy(deep=True)
 
-    for var in TI_vars:    
-        TI_data[var] = interp.griddata(TI_data_raw[var][['x','y','waterdepth']],
-                                TI_data_raw[var][var], points[['x','y','waterdepth']])
-        idx= np.where(np.isnan(TI_data[var]))
-        
-        if len(idx[0]):
-            for i in idx[0]: 
-                TI_data[var][i]= interp.griddata(TI_data_raw[var][['x','y','waterdepth']], 
-                                TI_data_raw[var][var],
-                                [points['x'][i],points['y'][i], points['waterdepth'][i]],
-                                method='nearest')
+    for var in TI_vars:
+        TI_data[var] = interp.griddata(TI_data_raw[var][['x', 'y', 'waterdepth']],
+                                       TI_data_raw[var][var], points[['x', 'y', 'waterdepth']])
+        idx = np.where(np.isnan(TI_data[var]))
 
-    u_mag=unorm(np.array(TI_data['ucx']),np.array(TI_data['ucy']), 
-                np.array(TI_data['ucz']))
-    
-    neg_index=np.where( TI_data['turkin1']<0)
-    zero_bool= np.isclose( TI_data['turkin1'][ TI_data['turkin1']<0].array, 
-               np.zeros(len( TI_data['turkin1'][TI_data['turkin1']<0].array)),
-               atol=1.0e-4)
-    zero_ind= neg_index[0][zero_bool]
-    non_zero_ind= neg_index[0][~zero_bool]
-    TI_data.loc[zero_ind,'turkin1']=np.zeros(len(zero_ind))
-    TI_data.loc[non_zero_ind,'turkin1']=[np.nan]*len(non_zero_ind)
-        
-    TI_data['turbulent_intensity']= np.sqrt(2/3*TI_data['turkin1'])/u_mag * 100 #%
-    
+        if len(idx[0]):
+            for i in idx[0]:
+                TI_data[var][i] = interp.griddata(TI_data_raw[var][['x', 'y', 'waterdepth']],
+                                                  TI_data_raw[var][var],
+                                                  [points['x'][i], points['y']
+                                                      [i], points['waterdepth'][i]],
+                                                  method='nearest')
+
+    u_mag = unorm(np.array(TI_data['ucx']), np.array(TI_data['ucy']),
+                  np.array(TI_data['ucz']))
+
+    neg_index = np.where(TI_data['turkin1'] < 0)
+    zero_bool = np.isclose(TI_data['turkin1'][TI_data['turkin1'] < 0].array,
+                           np.zeros(
+        len(TI_data['turkin1'][TI_data['turkin1'] < 0].array)),
+        atol=1.0e-4)
+    zero_ind = neg_index[0][zero_bool]
+    non_zero_ind = neg_index[0][~zero_bool]
+    TI_data.loc[zero_ind, 'turkin1'] = np.zeros(len(zero_ind))
+    TI_data.loc[non_zero_ind, 'turkin1'] = [np.nan]*len(non_zero_ind)
+
+    TI_data['turbulent_intensity'] = np.sqrt(
+        2/3*TI_data['turkin1'])/u_mag * 100  # %
+
     if intermediate_values == False:
-        TI_data= TI_data.drop(TI_vars, axis = 1)
-        
+        TI_data = TI_data.drop(TI_vars, axis=1)
+
     return TI_data
