@@ -26,7 +26,8 @@ def get_all_time(data):
         simulation conditions at that time.
     '''
 
-    assert type(data) == netCDF4._netCDF4.Dataset, 'data must be NetCDF4 object'
+    if not isinstance(data, netCDF4._netCDF4.Dataset):
+        raise TypeError('data must be a NetCDF4 object')
 
     seconds_run = np.ma.getdata(data.variables['time'][:], False)
 
@@ -105,12 +106,19 @@ def _convert_time(data, time_index=None, seconds_run=None):
         the seconds corresponding to the 'time_index' increments.
     '''
 
-    assert type(data) == netCDF4._netCDF4.Dataset, 'data must be NetCDF4 object'
-    assert time_index or seconds_run, 'input of time_index or seconds_run needed'
-    assert not (
-        time_index and seconds_run), f'only one time_index or seconds_run'
-    assert isinstance(time_index, (int, float)) or isinstance(seconds_run, (int,
-                                                                            float)), 'time_index or seconds_run input must be a int or float'
+    if not isinstance(data, netCDF4._netCDF4.Dataset):
+        raise TypeError('data must be NetCDF4 object')
+
+    if not (time_index or seconds_run):
+        raise ValueError('Input of time_index or seconds_run needed')
+
+    if time_index and seconds_run:
+        raise ValueError(
+            'Only one of time_index or seconds_run should be provided')
+
+    if not (isinstance(time_index, (int, float)) or isinstance(seconds_run, (int, float))):
+        raise TypeError(
+            'time_index or seconds_run input must be an int or float')
 
     times = get_all_time(data)
 
@@ -157,15 +165,25 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
         "waterlevel" is the water level diffrencein meters from the zero water level. 
     '''
 
-    assert isinstance(time_index, int), 'time_index  must be an int'
-    assert isinstance(layer_index, int), 'layer_index  must be an int'
-    assert type(data) == netCDF4._netCDF4.Dataset, 'data must be NetCDF4 object'
-    assert variable in data.variables.keys(), 'variable not recognized'
+    if not isinstance(time_index, int):
+        raise TypeError('time_index must be an int')
+
+    if not isinstance(layer_index, int):
+        raise TypeError('layer_index must be an int')
+
+    if not isinstance(data, netCDF4._netCDF4.Dataset):
+        raise TypeError('data must be NetCDF4 object')
+
+    if variable not in data.variables.keys():
+        raise ValueError('variable not recognized')
+
     coords = str(data.variables[variable].coordinates).split()
     var = data.variables[variable][:]
-    max_time_index = data['time'].shape[0]-1  # to account for zero index
-    assert abs(time_index) <= max_time_index, (f'time_index must be less than'
-                                               + 'the absolute value of the max time index {max_time_index}')
+    max_time_index = data['time'].shape[0] - 1  # to account for zero index
+
+    if abs(time_index) > max_time_index:
+        raise ValueError(
+            f'time_index must be less than the absolute value of the max time index {max_time_index}')
 
     x = np.ma.getdata(data.variables[coords[0]][:], False)
     y = np.ma.getdata(data.variables[coords[1]][:], False)
@@ -173,13 +191,17 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
     if type(var[0][0]) == np.ma.core.MaskedArray:
         max_layer = len(var[0][0])
 
-        assert abs(layer_index) <= max_layer, (f'layer_index must be less than'
-                                               + 'the max layer {max_layer}')
+        if abs(layer_index) > max_layer:
+            raise ValueError(
+                f'layer_index must be less than the max layer {max_layer}')
+
         v = np.ma.getdata(var[time_index, :, layer_index], False)
         dimensions = 3
 
     else:
-        assert type(var[0][0]) == np.float64, 'data not  recognized'
+        if type(var[0][0]) != np.float64:
+            raise TypeError('data not recognized')
+
         dimensions = 2
         v = np.ma.getdata(var[time_index, :], False)
 
@@ -455,12 +477,14 @@ def variable_interpolation(data, variables, points='cells', edges='none',
         and the x, y, and waterdepth coordinates of those points. 
     '''
 
-    assert isinstance(points, (str, pd.DataFrame)), ('points must be a string '
-                                                     + 'or DataFrame')
-    if isinstance(points, str):
-        assert any([points == 'cells', points == 'faces']), ('points must be'
-                                                             + ' cells or faces')
-    assert type(data) == netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
+    if not isinstance(x, (int, float, np.ndarray)):
+        raise TypeError('x must be an int, float, or array')
+
+    if not isinstance(y, (int, float, np.ndarray)):
+        raise TypeError('y must be an int, float, or array')
+
+    if not isinstance(waterdepth, (int, float, np.ndarray)):
+        raise TypeError('waterdepth must be an int, float, or array')
 
     data_raw = {}
     for var in variables:
@@ -526,13 +550,19 @@ def get_all_data_points(data, variable, time_index=-1):
 
     '''
 
-    assert isinstance(time_index, int), 'time_index  must be a int'
-    assert type(data) == netCDF4._netCDF4.Dataset, 'data must be NetCDF4 object'
-    assert variable in data.variables.keys(), 'variable not recognized'
+    if not isinstance(time_index, int):
+        raise TypeError('time_index must be an int')
+
+    if not isinstance(data, netCDF4._netCDF4.Dataset):
+        raise TypeError('data must be NetCDF4 object')
+
+    if variable not in data.variables.keys():
+        raise ValueError('variable not recognized')
 
     max_time_index = len(data.variables[variable][:])
-    assert abs(time_index) <= max_time_index, (f'time_index must be less than'
-                                               + 'the max time index {max_time_index}')
+    if abs(time_index) > max_time_index:
+        raise ValueError(
+            f'time_index must be less than the max time index {max_time_index}')
 
     if "mesh2d" in variable:
         cords_to_layers = {'mesh2d_face_x mesh2d_face_y': {'name': 'mesh2d_nLayers',
@@ -632,21 +662,27 @@ def turbulent_intensity(data, points='cells', time_index=-1,
             ucz- velocity in the vertical direction 
     '''
 
-    assert isinstance(points, (str, pd.DataFrame)), ('points must a string or'
-                                                     + ' DataFrame')
+    if not isinstance(points, (str, pd.DataFrame)):
+        raise TypeError('points must be a string or DataFrame')
+
     if isinstance(points, str):
-        assert any([points == 'cells', points == 'faces']), ('points must be cells'
-                                                             + ' or faces')
-    assert isinstance(time_index, int), 'time_index  must be a int'
-    max_time_index = data['time'].shape[0]-1  # to account for zero index
-    assert abs(time_index) <= max_time_index, (f'time_index must be less than'
-                                               + 'the absolute value of the max time index {max_time_index}')
-    assert type(data) == netCDF4._netCDF4.Dataset, 'data must be nerCDF4 object'
-    assert 'turkin1' in data.variables.keys(), ('Varaiable turkin1 not'
-                                                + ' present in Data')
-    assert 'ucx' in data.variables.keys(), 'Varaiable ucx 1 not present in Data'
-    assert 'ucy' in data.variables.keys(), 'Varaiable ucy 1 not present in Data'
-    assert 'ucz' in data.variables.keys(), 'Varaiable ucz 1 not present in Data'
+        if not (points == 'cells' or points == 'faces'):
+            raise ValueError('points must be cells or faces')
+
+    if not isinstance(time_index, int):
+        raise TypeError('time_index must be an int')
+
+    max_time_index = data['time'].shape[0] - 1  # to account for zero index
+    if abs(time_index) > max_time_index:
+        raise ValueError(
+            f'time_index must be less than the absolute value of the max time index {max_time_index}')
+
+    if not isinstance(data, netCDF4._netCDF4.Dataset):
+        raise TypeError('data must be netCDF4 object')
+
+    for variable in ['turkin1', 'ucx', 'ucy', 'ucz']:
+        if variable not in data.variables.keys():
+            raise ValueError(f'Variable {variable} not present in Data')
 
     TI_vars = ['turkin1', 'ucx', 'ucy', 'ucz']
     TI_data_raw = {}
