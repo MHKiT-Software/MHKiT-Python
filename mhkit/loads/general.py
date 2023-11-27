@@ -4,7 +4,7 @@ import xarray as xr
 import numpy as np
 import fatpack
 
-def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
+def bin_statistics(data,bin_against,bin_edges,data_signal=[],to_pandas=True):
     """
     Bins calculated statistics against data signal (or channel) 
     according to IEC TS 62600-3:2020 ED1.
@@ -19,6 +19,8 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
         Bin edges with consistent step size
     data_signal : list, optional 
         List of data signal(s) to bin, default = all data signals
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
     
     Returns
     --------
@@ -41,6 +43,9 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     except:
         raise TypeError(
             f'bin_edges must be of type np.ndarray. Got: {type(bin_edges)}')
+    if not isinstance(to_pandas, bool):
+        raise TypeError(
+            f'to_pandas must be of type bool. Got: {type(to_pandas)}')
     
     # If input is pandas, convert to xarray
     if isinstance(data,pd.DataFrame):
@@ -53,11 +58,11 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
         if not isinstance(data_signal, list):
             raise TypeError(
                 f'data_signal must be of type list. Got: {type(data_signal)}')
-
-    # Pre-allocate list variables
-    bin_stat_list = []
-    bin_std_list = []
-
+    
+    # Pre-allocate variable dictionaries
+    bin_stat_list = {}
+    bin_std_list = {}
+    
     # loop through data_signal and get binned means
     for signal_name in data_signal:
         # Bin data
@@ -74,17 +79,24 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
                 std.append(np.array(temp,ndmin=1)[0])
             except:
                 std.append(np.nan)
-        bin_stat_list.append(bin_stat.statistic)
-        bin_std_list.append(std)
- 
-    # Convert to DataFrames
-    bin_mean = pd.DataFrame(np.transpose(bin_stat_list),columns=data_signal)
-    bin_std = pd.DataFrame(np.transpose(bin_std_list),columns=data_signal)
-
+        
+        bin_stat_list[signal_name] = ('index', bin_stat.statistic)
+        bin_std_list[signal_name] = ('index', bin_stat.statistic)
+    
+    # Convert to Datasets
+    bin_mean = xr.Dataset(data_vars = bin_stat_list,
+                          coords = {'index':np.arange(0,len(bin_stat.statistic))})
+    bin_std = xr.Dataset(data_vars = bin_std_list,
+                          coords = {'index':np.arange(0,len(bin_stat.statistic))})
+    
     # Check for nans 
     if bin_mean.isna().any().any():
         print('Warning: some bins may be empty!')
-
+    
+    if to_pandas:
+        bin_mean = bin_mean.to_pandas()
+        bin_std = bin_std.to_pandas()
+        
     return bin_mean, bin_std
 
 
