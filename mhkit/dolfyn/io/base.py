@@ -118,7 +118,7 @@ def _create_dataset(data):
     Direction 'dir' coordinates are set in `set_coords`
     """
     ds = xr.Dataset()
-    tag = ['_avg', '_b5', '_echo', '_bt', '_gps', '_ast', '_sl']
+    tag = ['_avg', '_b5', '_echo', '_bt', '_gps', '_altraw', '_sl']
 
     FoR = {}
     try:
@@ -205,6 +205,11 @@ def _create_dataset(data):
                                               'dim_1': 'time_echo'})
                     ds[key] = ds[key].assign_coords({'range_echo': data['coords']['range_echo'],
                                                      'time_echo': data['coords']['time_echo']})
+                elif key=='samp_altraw': # raw altimeter samples
+                    ds[key] = ds[key].rename({'dim_0': 'n_altraw',
+                                              'dim_1': 'time_altraw'})
+                    ds[key] = ds[key].assign_coords({'time_altraw': data['coords']['time_altraw']})
+                    
                 # ADV/ADCP instrument vector data, bottom tracking
                 elif shp[0] == n_beams and not any(val in key for val in tag[:3]):
                     if 'bt' in key and 'time_bt' in data['coords']:

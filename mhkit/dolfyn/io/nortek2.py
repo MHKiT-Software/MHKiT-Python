@@ -218,9 +218,14 @@ class _Ad2cpReader():
     def init_data(self, ens_start, ens_stop):
         outdat = {}
         nens = int(ens_stop - ens_start)
+        
+        # ID 26 usually only recorded in first ensemble
         n26 = ((self._index['ID'] == 26) &
                (self._index['ens'] >= ens_start) &
                (self._index['ens'] < ens_stop)).sum()
+        if not n26 and 26 in self._burst_readers:
+            self._burst_readers.pop(26)
+        
         for ky in self._burst_readers:
             if ky == 26:
                 n = n26
@@ -234,6 +239,7 @@ class _Ad2cpReader():
             outdat[ky]['units'] = self._burst_readers[ky].data_units()
             outdat[ky]['long_name'] = self._burst_readers[ky].data_longnames()
             outdat[ky]['standard_name'] = self._burst_readers[ky].data_stdnames()
+        
         return outdat
 
     def _read_hdr(self, do_cs=False):
@@ -273,13 +279,16 @@ class _Ad2cpReader():
             except IOError:
                 return outdat
             id = hdr['id']
-            if id in [21, 22, 23, 24, 28]:  # vel, bt, vel_b5, echo
+            if id in [21, 22, 23, 24, 28]:  # "burst data record" (vel + ast), 
+                # "avg data record" (vel_avg + ast_avg), "bottom track data record" (bt),
+                # "interleaved burst data record" (vel_b5), "echosounder record" (echo)
                 self._read_burst(id, outdat[id], c)
-            elif id in [26]:  # alt_raw (altimeter burst)
+            elif id in [26]:  
+                # "burst altimeter raw record" (alt_raw) - recorded on nens==0
                 rdr = self._burst_readers[26]
                 if not hasattr(rdr, '_nsamp_index'):
                     first_pass = True
-                    tmp_idx = rdr._nsamp_index = rdr._names.index('altraw_nsamp')  # noqa
+                    tmp_idx = rdr._nsamp_index = rdr._names.index('nsamp_alt')
                     shift = rdr._nsamp_shift = calcsize(
                         defs._format(rdr._format[:tmp_idx],
                                      rdr._N[:tmp_idx]))
@@ -301,9 +310,9 @@ class _Ad2cpReader():
                     rdr._cs_struct = defs.Struct(
                         '<' + '{}H'.format(int(rdr.nbyte // 2)))
                     # Initialize the array
-                    outdat[26]['altraw_samp'] = defs._nans(
+                    outdat[26]['samp_alt'] = defs._nans(
                         [rdr._N[tmp_idx],
-                         len(outdat[26]['altraw_samp'])],
+                         len(outdat[26]['samp_alt'])],
                         dtype=np.uint16)
                 else:
                     if sz != rdr._N[tmp_idx]:
@@ -314,8 +323,9 @@ class _Ad2cpReader():
                 outdat[id]['ensemble'][c26] = c
                 c26 += 1
 
-            elif id in [27, 29, 30, 31, 35, 36]:  # bt record, DVL,
-                # alt record, avg alt_raw record, raw echo, raw echo transmit
+            elif id in [27, 29, 30, 31, 35, 36]: # unknown how to handle
+                # "bottom track record", DVL, "altimeter record", "avg altimeter raw record", 
+                # "raw echosounder data record", "raw echosounder transmit data record"
                 if self.debug:
                     logging.debug(
                         "Skipped ID: 0x{:02X} ({:02d})\n".format(id, id))
@@ -402,7 +412,7 @@ def _reorg(dat):
     cfg['inst_type'] = 'ADCP'
 
     for id, tag in [(21, ''), (22, '_avg'), (23, '_bt'), 
-                    (24, '_b5'), (26, '_ast'), (28, '_echo')]:
+                    (24, '_b5'), (26, 'raw'), (28, '_echo')]:
         if id in [24, 26]:
             collapse_exclude = [0]
         else:
@@ -454,10 +464,10 @@ def _reorg(dat):
                 outdat['standard_name'][ky + tag] = 'number_of_observations'
 
         for ky in ['vel', 'amp', 'corr', 'prcnt_gd', 'echo', 'dist',
-                   'orientmat', 'angrt', 'quaternions', 'ast_pressure',
-                   'alt_dist', 'alt_quality', 'alt_status',
-                   'ast_dist', 'ast_quality', 'ast_offset_time',
-                   'altraw_nsamp', 'altraw_dsamp', 'altraw_samp',
+                   'orientmat', 'angrt', 'quaternions', 'pressure_alt',
+                   'le_dist_alt', 'le_quality_alt', 'status_alt',
+                   'ast_dist_alt', 'ast_quality_alt', 'ast_offset_time_alt',
+                   'nsamp_alt', 'dsamp_alt', 'samp_alt',
                    'status0', 'fom', 'temp_press', 'press_std',
                    'pitch_std', 'roll_std', 'heading_std', 'xmit_energy',
                    ]:
@@ -466,20 +476,19 @@ def _reorg(dat):
 
     # Move 'altimeter raw' data to its own down-sampled structure
     if 26 in dat:
-        ard = outdat['altraw']
         for ky in list(outdat['data_vars']):
-            if ky.endswith('_ast'):
-                grp = ky.split('.')[0]
-                if '.' in ky and grp not in ard:
-                    ard[grp] = {}
-                ard[ky.rstrip('_ast')] = outdat['data_vars'].pop(ky)
+            if ky.endswith('raw') and not ky.endswith('_altraw'):
+                 outdat['data_vars'].pop(ky)
+        outdat['coords']['time_altraw'] = outdat['coords'].pop('timeraw')
+        outdat['data_vars']['samp_altraw'] =  outdat['data_vars']['samp_altraw'].astype('float32') / 2**8  # convert "signed fractional" to float
 
         # Read altimeter status
-        alt_status = lib._alt_status2data(outdat['data_vars']['alt_status'])
-        for ky in alt_status:
+        outdat['data_vars'].pop('status_altraw')
+        status_alt = lib._alt_status2data(outdat['data_vars']['status_alt'])
+        for ky in status_alt:
             outdat['attrs'][ky] = lib._collapse(
-                alt_status[ky].astype('uint8'), name=ky)
-        outdat['data_vars'].pop('alt_status')
+                status_alt[ky].astype('uint8'), name=ky)
+        outdat['data_vars'].pop('status_alt')
 
         # Power level index
         power = {0: 'high', 1: 'med-high', 2: 'med-low', 3: 'low'}
