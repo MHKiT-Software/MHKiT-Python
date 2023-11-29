@@ -90,8 +90,10 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[],to_pandas=True):
                           coords = {'index':np.arange(0,len(bin_stat.statistic))})
     
     # Check for nans 
-    if bin_mean.isna().any().any():
-        print('Warning: some bins may be empty!')
+    for variable in list(bin_mean.variables):
+        if bin_mean[variable].isnull().any():
+            print('Warning: bins for some variables may be empty!')
+            break
     
     if to_pandas:
         bin_mean = bin_mean.to_pandas()

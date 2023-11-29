@@ -2,7 +2,6 @@ from os.path import abspath, dirname, join, isfile, normpath, relpath
 from numpy.testing import assert_array_almost_equal, assert_allclose
 from pandas._testing.asserters import assert_series_equal
 from pandas.testing import assert_frame_equal
-from mhkit import utils
 from mhkit.wave import resource
 import mhkit.loads as loads
 import pandas as pd
@@ -46,7 +45,20 @@ class TestLoads(unittest.TestCase):
         bin_edges = np.arange(3,26,1)
 
         # Apply function to calculate means
-        load_means =self.data['means']
+        load_means = self.data['means']
+        bin_against = load_means['uWind_80m']
+        [b_means, b_means_std] = loads.general.bin_statistics(load_means, bin_against, bin_edges)
+
+        assert_frame_equal(self.data['bin_means'],b_means)
+        assert_frame_equal(self.data['bin_means_std'],b_means_std)
+
+    def test_bin_statistics_xarray(self):
+        # create array containg wind speeds to use as bin edges
+        bin_edges = np.arange(3,26,1)
+
+        # Apply function to calculate means
+        load_means = self.data['means']
+        load_means = load_means.to_xarray()
         bin_against = load_means['uWind_80m']
         [b_means, b_means_std] = loads.general.bin_statistics(load_means, bin_against, bin_edges)
 
