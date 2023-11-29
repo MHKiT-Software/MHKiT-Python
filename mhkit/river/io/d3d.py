@@ -201,7 +201,6 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1):
     else:
         if type(var[0][0]) != np.float64:
             raise TypeError('data not recognized')
-
         dimensions = 2
         v = np.ma.getdata(var[time_index, :], False)
 
