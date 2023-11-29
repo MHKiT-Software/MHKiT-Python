@@ -87,7 +87,8 @@ class TestUpcrossing(unittest.TestCase):
         want, _, _, _ = self._example_analysis(self.t, self.signal)
 
         # create a similar function to finding the peaks
-        def f(ind1, ind2): return np.max(self.signal[ind1:ind2])
+        def f(ind1, ind2):
+            return np.max(self.signal[ind1:ind2])
 
         got = custom(self.t, self.signal, f)
 
@@ -135,7 +136,8 @@ class TestUpcrossing(unittest.TestCase):
         inds = upcrossing(self.t, self.signal)
 
         # create a similar function to finding the peaks
-        def f(ind1, ind2): return np.max(self.signal[ind1:ind2])
+        def f(ind1, ind2):
+            return np.max(self.signal[ind1:ind2])
 
         got = custom(self.t, self.signal, f, inds)
 

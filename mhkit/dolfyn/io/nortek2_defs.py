@@ -4,15 +4,15 @@ from struct import Struct
 from . import nortek2_lib as lib
 
 
-dt32 = 'float32'
+dt32 = "float32"
 grav = 9.81
 # The starting value for the checksum:
-cs0 = int('0xb58c', 0)
+cs0 = int("0xb58c", 0)
 
 
 def _nans(*args, **kwargs):
     out = np.empty(*args, **kwargs)
-    if out.dtype.kind == 'f':
+    if out.dtype.kind == "f":
         out[:] = np.NaN
     else:
         out[:] = 0
@@ -20,15 +20,15 @@ def _nans(*args, **kwargs):
 
 
 def _format(form, N):
-    out = ''
+    out = ""
     for f, n in zip(form, N):
         if n > 1:
-            out += '{}'.format(n)
+            out += "{}".format(n)
         out += f
     return out
 
 
-class _DataDef():
+class _DataDef:
     def __init__(self, list_of_defs):
         self._names = []
         self._format = []
@@ -46,22 +46,22 @@ class _DataDef():
             if len(itm) > 4:
                 self._units.append(itm[4])
             else:
-                self._units.append('1')
+                self._units.append("1")
             if len(itm) > 5:
                 self._long_name.append(itm[5])
             else:
-                self._long_name.append('')
+                self._long_name.append("")
             if len(itm) > 6:
                 self._standard_name.append(itm[6])
             else:
-                self._standard_name.append('')
+                self._standard_name.append("")
             if itm[2] == []:
                 self._N.append(1)
             else:
                 self._N.append(int(np.prod(itm[2])))
-        self._struct = Struct('<' + self.format)
+        self._struct = Struct("<" + self.format)
         self.nbyte = self._struct.size
-        self._cs_struct = Struct('<' + '{}H'.format(int(self.nbyte // 2)))
+        self._cs_struct = Struct("<" + "{}H".format(int(self.nbyte // 2)))
 
     def init_data(self, npings):
         out = {}
@@ -80,7 +80,9 @@ class _DataDef():
                 data[nm][..., ens] = np.asarray(d).reshape(shp)
 
     @property
-    def format(self, ):
+    def format(
+        self,
+    ):
         return _format(self._format, self._N)
 
     def read(self, fobj, cs=None):
@@ -99,24 +101,22 @@ class _DataDef():
                 off = cs0
             cs_res = sum(self._cs_struct.unpack(bytes)) + off
             if csval is not False and (cs_res % 65536) != csval:
-                raise Exception('Checksum failed!')
+                raise Exception("Checksum failed!")
         out = []
         c = 0
         for idx, n in enumerate(self._N):
             if n == 1:
                 out.append(data[c])
             else:
-                out.append(data[c:(c + n)])
+                out.append(data[c : (c + n)])
             c += n
         return out
 
     def read2dict(self, fobj, cs=False):
-        return {self._names[idx]: dat
-                for idx, dat in enumerate(self.read(fobj, cs=cs))}
+        return {self._names[idx]: dat for idx, dat in enumerate(self.read(fobj, cs=cs))}
 
     def sci_data(self, data):
-        for ky, func in zip(self._names,
-                            self._sci_func):
+        for ky, func in zip(self._names, self._sci_func):
             if func is None:
                 continue
             data[ky] = func(data[ky])
@@ -140,7 +140,7 @@ class _DataDef():
         return stdnms
 
 
-class _LinFunc():
+class _LinFunc:
     """A simple linear offset and scaling object.
 
     Usage:
@@ -165,129 +165,248 @@ class _LinFunc():
         return array
 
 
-header = _DataDef([
-    ('sync', 'B', [], None),
-    ('hsz', 'B', [], None),
-    ('id', 'B', [], None),
-    ('fam', 'B', [], None),
-    ('sz', 'H', [], None),
-    ('cs', 'H', [], None),
-    ('hcs', 'H', [], None),
-])
+header = _DataDef(
+    [
+        ("sync", "B", [], None),
+        ("hsz", "B", [], None),
+        ("id", "B", [], None),
+        ("fam", "B", [], None),
+        ("sz", "H", [], None),
+        ("cs", "H", [], None),
+        ("hcs", "H", [], None),
+    ]
+)
 
 _burst_hdr = [
-    ('ver', 'B', [], None),
-    ('DatOffset', 'B', [], None),
-    ('config', 'H', [], None),
-    ('SerialNum', 'I', [], None),
-    ('year', 'B', [], None),
-    ('month', 'B', [], None),
-    ('day', 'B', [], None),
-    ('hour', 'B', [], None),
-    ('minute', 'B', [], None),
-    ('second', 'B', [], None),
-    ('usec100', 'H', [], None),
-    ('c_sound', 'H', [], _LinFunc(0.1, dtype=dt32), 'm s-1',
-     'Speed of Sound', 'speed_of_sound_in_sea_water'),
-    ('temp', 'H', [], _LinFunc(0.01, dtype=dt32),
-     'degree_C', 'Temperature', 'sea_water_temperature'),
-    ('pressure', 'I', [], _LinFunc(0.001, dtype=dt32),
-     'dbar', 'Pressure', 'sea_water_pressure'),
-    ('heading', 'H', [], _LinFunc(0.01, dtype=dt32),
-     'degree', 'Heading', 'platform_orientation'),
-    ('pitch', 'h', [], _LinFunc(0.01, dtype=dt32),
-     'degree', 'Pitch', 'platform_pitch'),
-    ('roll', 'h', [], _LinFunc(0.01, dtype=dt32), 'degree', 'Roll', 'platform_roll'),
-    ('beam_config', 'H', [], None),
-    ('cell_size', 'H', [], _LinFunc(0.001), 'm'),
-    ('blank_dist', 'H', [], _LinFunc(0.01), 'm'),
-    ('nominal_corr', 'B', [], None, '%'),
-    ('temp_press', 'B', [], _LinFunc(0.2, -20, dtype=dt32),
-     'degree_C', 'Pressure Sensor Temperature'),
-    ('batt', 'H', [], _LinFunc(0.1, dtype=dt32),
-     'V', 'Battery Voltage', 'battery_voltage'),
-    ('mag', 'h', [3], _LinFunc(0.1, dtype=dt32), 'uT', 'Compass'),
-    ('accel', 'h', [3], _LinFunc(1. / 16384 * grav, dtype=dt32),
-     'm s-2', 'Acceleration'),
-    ('ambig_vel', 'h', [], _LinFunc(0.001, dtype=dt32), 'm s-1'),
-    ('data_desc', 'H', [], None),
-    ('xmit_energy', 'H', [], None, 'dB', 'Sound Pressure Level of Acoustic Signal'),
-    ('vel_scale', 'b', [], None),
-    ('power_level_dB', 'b', [], _LinFunc(dtype=dt32), 'dB', 'Power Level'),
-    ('temp_mag', 'h', [], None),  # uncalibrated
-    ('temp_clock', 'h', [], _LinFunc(0.01, dtype=dt32),
-     'degree_C', 'Internal Clock Temperature'),
-    ('error', 'H', [], None, '1', 'Error Code'),
-    ('status0', 'H', [], None, '1', 'Status 0 Code'),
-    ('status', 'I', [], None, '1', 'Status Code'),
-    ('_ensemble', 'I', [], None),
+    ("ver", "B", [], None),
+    ("DatOffset", "B", [], None),
+    ("config", "H", [], None),
+    ("SerialNum", "I", [], None),
+    ("year", "B", [], None),
+    ("month", "B", [], None),
+    ("day", "B", [], None),
+    ("hour", "B", [], None),
+    ("minute", "B", [], None),
+    ("second", "B", [], None),
+    ("usec100", "H", [], None),
+    (
+        "c_sound",
+        "H",
+        [],
+        _LinFunc(0.1, dtype=dt32),
+        "m s-1",
+        "Speed of Sound",
+        "speed_of_sound_in_sea_water",
+    ),
+    (
+        "temp",
+        "H",
+        [],
+        _LinFunc(0.01, dtype=dt32),
+        "degree_C",
+        "Temperature",
+        "sea_water_temperature",
+    ),
+    (
+        "pressure",
+        "I",
+        [],
+        _LinFunc(0.001, dtype=dt32),
+        "dbar",
+        "Pressure",
+        "sea_water_pressure",
+    ),
+    (
+        "heading",
+        "H",
+        [],
+        _LinFunc(0.01, dtype=dt32),
+        "degree",
+        "Heading",
+        "platform_orientation",
+    ),
+    ("pitch", "h", [], _LinFunc(0.01, dtype=dt32), "degree", "Pitch", "platform_pitch"),
+    ("roll", "h", [], _LinFunc(0.01, dtype=dt32), "degree", "Roll", "platform_roll"),
+    ("beam_config", "H", [], None),
+    ("cell_size", "H", [], _LinFunc(0.001), "m"),
+    ("blank_dist", "H", [], _LinFunc(0.01), "m"),
+    ("nominal_corr", "B", [], None, "%"),
+    (
+        "temp_press",
+        "B",
+        [],
+        _LinFunc(0.2, -20, dtype=dt32),
+        "degree_C",
+        "Pressure Sensor Temperature",
+    ),
+    (
+        "batt",
+        "H",
+        [],
+        _LinFunc(0.1, dtype=dt32),
+        "V",
+        "Battery Voltage",
+        "battery_voltage",
+    ),
+    ("mag", "h", [3], _LinFunc(0.1, dtype=dt32), "uT", "Compass"),
+    (
+        "accel",
+        "h",
+        [3],
+        _LinFunc(1.0 / 16384 * grav, dtype=dt32),
+        "m s-2",
+        "Acceleration",
+    ),
+    ("ambig_vel", "h", [], _LinFunc(0.001, dtype=dt32), "m s-1"),
+    ("data_desc", "H", [], None),
+    ("xmit_energy", "H", [], None, "dB", "Sound Pressure Level of Acoustic Signal"),
+    ("vel_scale", "b", [], None),
+    ("power_level_dB", "b", [], _LinFunc(dtype=dt32), "dB", "Power Level"),
+    ("temp_mag", "h", [], None),  # uncalibrated
+    (
+        "temp_clock",
+        "h",
+        [],
+        _LinFunc(0.01, dtype=dt32),
+        "degree_C",
+        "Internal Clock Temperature",
+    ),
+    ("error", "H", [], None, "1", "Error Code"),
+    ("status0", "H", [], None, "1", "Status 0 Code"),
+    ("status", "I", [], None, "1", "Status Code"),
+    ("_ensemble", "I", [], None),
 ]
 
 _bt_hdr = [
-    ('ver', 'B', [], None),
-    ('DatOffset', 'B', [], None),
-    ('config', 'H', [], None),
-    ('SerialNum', 'I', [], None),
-    ('year', 'B', [], None),
-    ('month', 'B', [], None),
-    ('day', 'B', [], None),
-    ('hour', 'B', [], None),
-    ('minute', 'B', [], None),
-    ('second', 'B', [], None),
-    ('usec100', 'H', [], None),
-    ('c_sound', 'H', [], _LinFunc(0.1, dtype=dt32), 'm s-1',
-     'Speed of Sound', 'speed_of_sound_in_sea_water'),
-    ('temp', 'H', [], _LinFunc(0.01, dtype=dt32),
-     'degree_C', 'Temperature', 'sea_water_temperature'),
-    ('pressure', 'I', [], _LinFunc(0.001, dtype=dt32),
-     'dbar', 'Pressure', 'sea_water_pressure'),
-    ('heading', 'H', [], _LinFunc(0.01, dtype=dt32),
-     'degree', 'Heading', 'platform_orientation'),
-    ('pitch', 'h', [], _LinFunc(0.01, dtype=dt32),
-     'degree', 'Pitch', 'platform_pitch'),
-    ('roll', 'h', [], _LinFunc(0.01, dtype=dt32), 'degree', 'Roll', 'platform_roll'),
-    ('beam_config', 'H', [], None),
-    ('cell_size', 'H', [], _LinFunc(0.001), 'm'),
-    ('blank_dist', 'H', [], _LinFunc(0.01), 'm'),
-    ('nominal_corr', 'B', [], None, '%'),
-    ('unused', 'B', [], None),
-    ('batt', 'H', [], _LinFunc(0.1, dtype=dt32),
-     'V', 'Battery Voltage', 'battery_voltage'),
-    ('mag', 'h', [3], None, 'uT', 'Compass'),
-    ('accel', 'h', [3], _LinFunc(1. / 16384 * grav, dtype=dt32),
-     'm s-2', 'Acceleration', ''),
-    ('ambig_vel', 'I', [], _LinFunc(0.001, dtype=dt32), 'm s-1'),
-    ('data_desc', 'H', [], None),
-    ('xmit_energy', 'H', [], None, 'dB', 'Sound Pressure Level of Acoustic Signal'),
-    ('vel_scale', 'b', [], None),
-    ('power_level_dB', 'b', [], _LinFunc(dtype=dt32), 'dB'),
-    ('temp_mag', 'h', [], None),  # uncalibrated
-    ('temp_clock', 'h', [], _LinFunc(0.01, dtype=dt32),
-     'degree_C', 'Internal Clock Temperature'),
-    ('error', 'I', [], None, '1', 'Error Code'),
-    ('status', 'I', [], None, '1', 'Status Code'),
-    ('_ensemble', 'I', [], None),
+    ("ver", "B", [], None),
+    ("DatOffset", "B", [], None),
+    ("config", "H", [], None),
+    ("SerialNum", "I", [], None),
+    ("year", "B", [], None),
+    ("month", "B", [], None),
+    ("day", "B", [], None),
+    ("hour", "B", [], None),
+    ("minute", "B", [], None),
+    ("second", "B", [], None),
+    ("usec100", "H", [], None),
+    (
+        "c_sound",
+        "H",
+        [],
+        _LinFunc(0.1, dtype=dt32),
+        "m s-1",
+        "Speed of Sound",
+        "speed_of_sound_in_sea_water",
+    ),
+    (
+        "temp",
+        "H",
+        [],
+        _LinFunc(0.01, dtype=dt32),
+        "degree_C",
+        "Temperature",
+        "sea_water_temperature",
+    ),
+    (
+        "pressure",
+        "I",
+        [],
+        _LinFunc(0.001, dtype=dt32),
+        "dbar",
+        "Pressure",
+        "sea_water_pressure",
+    ),
+    (
+        "heading",
+        "H",
+        [],
+        _LinFunc(0.01, dtype=dt32),
+        "degree",
+        "Heading",
+        "platform_orientation",
+    ),
+    ("pitch", "h", [], _LinFunc(0.01, dtype=dt32), "degree", "Pitch", "platform_pitch"),
+    ("roll", "h", [], _LinFunc(0.01, dtype=dt32), "degree", "Roll", "platform_roll"),
+    ("beam_config", "H", [], None),
+    ("cell_size", "H", [], _LinFunc(0.001), "m"),
+    ("blank_dist", "H", [], _LinFunc(0.01), "m"),
+    ("nominal_corr", "B", [], None, "%"),
+    ("unused", "B", [], None),
+    (
+        "batt",
+        "H",
+        [],
+        _LinFunc(0.1, dtype=dt32),
+        "V",
+        "Battery Voltage",
+        "battery_voltage",
+    ),
+    ("mag", "h", [3], None, "uT", "Compass"),
+    (
+        "accel",
+        "h",
+        [3],
+        _LinFunc(1.0 / 16384 * grav, dtype=dt32),
+        "m s-2",
+        "Acceleration",
+        "",
+    ),
+    ("ambig_vel", "I", [], _LinFunc(0.001, dtype=dt32), "m s-1"),
+    ("data_desc", "H", [], None),
+    ("xmit_energy", "H", [], None, "dB", "Sound Pressure Level of Acoustic Signal"),
+    ("vel_scale", "b", [], None),
+    ("power_level_dB", "b", [], _LinFunc(dtype=dt32), "dB"),
+    ("temp_mag", "h", [], None),  # uncalibrated
+    (
+        "temp_clock",
+        "h",
+        [],
+        _LinFunc(0.01, dtype=dt32),
+        "degree_C",
+        "Internal Clock Temperature",
+    ),
+    ("error", "I", [], None, "1", "Error Code"),
+    ("status", "I", [], None, "1", "Status Code"),
+    ("_ensemble", "I", [], None),
 ]
 
 
 _ahrs_def = [
-    ('orientmat', 'f', [3, 3], None, '1', 'Orientation Matrix'),
-    ('quaternions', 'f', [4], None, '1', 'Quaternions'),
-    ('angrt', 'f', [3], _LinFunc(np.pi / 180, dtype=dt32), 'rad s-1', 'Angular Velocity'),
+    ("orientmat", "f", [3, 3], None, "1", "Orientation Matrix"),
+    ("quaternions", "f", [4], None, "1", "Quaternions"),
+    (
+        "angrt",
+        "f",
+        [3],
+        _LinFunc(np.pi / 180, dtype=dt32),
+        "rad s-1",
+        "Angular Velocity",
+    ),
 ]
 
 
 def _calc_bt_struct(config, nb):
-    flags = lib._headconfig_int2dict(config, mode='bt')
+    flags = lib._headconfig_int2dict(config, mode="bt")
     dd = copy(_bt_hdr)
-    if flags['vel']:
+    if flags["vel"]:
         # units handled in Ad2cpReader.sci_data
-        dd.append(('vel', 'i', [nb], None, 'm s-1', 'Platform Velocity from Bottom Track'))
-    if flags['dist']:
-        dd.append(('dist', 'i', [nb], _LinFunc(0.001, dtype=dt32), 'm', 'Bottom Track Measured Depth'))
-    if flags['fom']:
-        dd.append(('fom', 'H', [nb], None, '1', 'Figure of Merit'))
-    if flags['ahrs']:
+        dd.append(
+            ("vel", "i", [nb], None, "m s-1", "Platform Velocity from Bottom Track")
+        )
+    if flags["dist"]:
+        dd.append(
+            (
+                "dist",
+                "i",
+                [nb],
+                _LinFunc(0.001, dtype=dt32),
+                "m",
+                "Bottom Track Measured Depth",
+            )
+        )
+    if flags["fom"]:
+        dd.append(("fom", "H", [nb], None, "1", "Figure of Merit"))
+    if flags["ahrs"]:
         dd += _ahrs_def
     return _DataDef(dd)
 
@@ -295,14 +414,27 @@ def _calc_bt_struct(config, nb):
 def _calc_echo_struct(config, nc):
     flags = lib._headconfig_int2dict(config)
     dd = copy(_burst_hdr)
-    dd[19] = ('blank_dist', 'H', [], _LinFunc(0.001))  # m
-    if any([flags[nm] for nm in ['vel', 'amp', 'corr', 'alt', 'ast',
-                                 'alt_raw', 'p_gd', 'std']]):
+    dd[19] = ("blank_dist", "H", [], _LinFunc(0.001))  # m
+    if any(
+        [
+            flags[nm]
+            for nm in ["vel", "amp", "corr", "alt", "ast", "alt_raw", "p_gd", "std"]
+        ]
+    ):
         raise Exception("Echosounder ping contains invalid data?")
-    if flags['echo']:
-        dd += [('echo', 'H', [nc], _LinFunc(0.01, dtype=dt32), 'dB', 
-                'Echo Sounder Acoustic Signal Backscatter', 'acoustic_target_strength_in_sea_water')]
-    if flags['ahrs']:
+    if flags["echo"]:
+        dd += [
+            (
+                "echo",
+                "H",
+                [nc],
+                _LinFunc(0.01, dtype=dt32),
+                "dB",
+                "Echo Sounder Acoustic Signal Backscatter",
+                "acoustic_target_strength_in_sea_water",
+            )
+        ]
+    if flags["ahrs"]:
         dd += _ahrs_def
     return _DataDef(dd)
 
@@ -310,53 +442,155 @@ def _calc_echo_struct(config, nc):
 def _calc_burst_struct(config, nb, nc):
     flags = lib._headconfig_int2dict(config)
     dd = copy(_burst_hdr)
-    if flags['echo']:
+    if flags["echo"]:
         raise Exception("Echosounder data found in velocity ping?")
-    if flags['vel']:
-        dd.append(('vel', 'h', [nb, nc], None, 'm s-1', 'Water Velocity'))
-    if flags['amp']:
-        dd.append(('amp', 'B', [nb, nc], _LinFunc(0.5, dtype=dt32), '1', 'Acoustic Signal Amplitude',
-                  'signal_intensity_from_multibeam_acoustic_doppler_velocity_sensor_in_sea_water'))
-    if flags['corr']:
-        dd.append(('corr', 'B', [nb, nc], None, '%', 'Acoustic Signal Correlation',
-                  'beam_consistency_indicator_from_multibeam_acoustic_doppler_velocity_profiler_in_sea_water'))
-    if flags['alt']:
+    if flags["vel"]:
+        dd.append(("vel", "h", [nb, nc], None, "m s-1", "Water Velocity"))
+    if flags["amp"]:
+        dd.append(
+            (
+                "amp",
+                "B",
+                [nb, nc],
+                _LinFunc(0.5, dtype=dt32),
+                "1",
+                "Acoustic Signal Amplitude",
+                "signal_intensity_from_multibeam_acoustic_doppler_velocity_sensor_in_sea_water",
+            )
+        )
+    if flags["corr"]:
+        dd.append(
+            (
+                "corr",
+                "B",
+                [nb, nc],
+                None,
+                "%",
+                "Acoustic Signal Correlation",
+                "beam_consistency_indicator_from_multibeam_acoustic_doppler_velocity_profiler_in_sea_water",
+            )
+        )
+    if flags["alt"]:
         # There may be a problem here with reading 32bit floats if
         # nb and nc are odd
-        dd += [('alt_dist', 'f', [], _LinFunc(dtype=dt32), 'm', 'Altimeter Range', 'altimeter_range'),
-               ('alt_quality', 'H', [], _LinFunc(0.01, dtype=dt32), '1', 'Altimeter Quality Indicator'),
-               ('alt_status', 'H', [], None, '1', 'Altimeter Status')]
-    if flags['ast']:
         dd += [
-            ('ast_dist', 'f', [], _LinFunc(dtype=dt32), 'm', 'Acoustic Surface Tracking Range'),
-            ('ast_quality', 'H', [], _LinFunc(0.01, dtype=dt32), '1',
-             'Acoustic Surface Tracking Quality Indicator'),
-            ('ast_offset_time', 'h', [], _LinFunc(0.0001, dtype=dt32),
-             's', 'Acoustic Surface Tracking Time Offset to Velocity Ping'),
-            ('ast_pressure', 'f', [], None, 'dbar', 'Pressure measured during AST ping',
-             'sea_water_pressure'),
-            ('ast_spare', 'B7x', [], None),
+            (
+                "alt_dist",
+                "f",
+                [],
+                _LinFunc(dtype=dt32),
+                "m",
+                "Altimeter Range",
+                "altimeter_range",
+            ),
+            (
+                "alt_quality",
+                "H",
+                [],
+                _LinFunc(0.01, dtype=dt32),
+                "1",
+                "Altimeter Quality Indicator",
+            ),
+            ("alt_status", "H", [], None, "1", "Altimeter Status"),
         ]
-    if flags['alt_raw']:
+    if flags["ast"]:
         dd += [
-            ('altraw_nsamp', 'I', [], None, '1', 'Number of Altimeter Samples'),
-            ('altraw_dsamp', 'H', [], _LinFunc(0.0001, dtype=dt32), 'm',
-             'Altimeter Distance between Samples'),
-            ('altraw_samp', 'h', [], None),
+            (
+                "ast_dist",
+                "f",
+                [],
+                _LinFunc(dtype=dt32),
+                "m",
+                "Acoustic Surface Tracking Range",
+            ),
+            (
+                "ast_quality",
+                "H",
+                [],
+                _LinFunc(0.01, dtype=dt32),
+                "1",
+                "Acoustic Surface Tracking Quality Indicator",
+            ),
+            (
+                "ast_offset_time",
+                "h",
+                [],
+                _LinFunc(0.0001, dtype=dt32),
+                "s",
+                "Acoustic Surface Tracking Time Offset to Velocity Ping",
+            ),
+            (
+                "ast_pressure",
+                "f",
+                [],
+                None,
+                "dbar",
+                "Pressure measured during AST ping",
+                "sea_water_pressure",
+            ),
+            ("ast_spare", "B7x", [], None),
         ]
-    if flags['ahrs']:
+    if flags["alt_raw"]:
+        dd += [
+            ("altraw_nsamp", "I", [], None, "1", "Number of Altimeter Samples"),
+            (
+                "altraw_dsamp",
+                "H",
+                [],
+                _LinFunc(0.0001, dtype=dt32),
+                "m",
+                "Altimeter Distance between Samples",
+            ),
+            ("altraw_samp", "h", [], None),
+        ]
+    if flags["ahrs"]:
         dd += _ahrs_def
-    if flags['p_gd']:
-        dd += [('percent_good', 'B', [nc], None, '%', 'Percent Good',
-                'proportion_of_acceptable_signal_returns_from_acoustic_instrument_in_sea_water')]
-    if flags['std']:
-        dd += [('pitch_std', 'h', [],
-                _LinFunc(0.01, dtype=dt32), 'degree', 'Pitch Standard Deviation'),
-               ('roll_std', 'h', [],
-                _LinFunc(0.01, dtype=dt32), 'degree', 'Roll Standard Deviation'),
-               ('heading_std', 'h', [],
-                _LinFunc(0.01, dtype=dt32), 'degree', 'Heading Standard Deviation'),
-               ('press_std', 'h', [],
-                _LinFunc(0.1, dtype=dt32), 'dbar', 'Pressure Standard Deviation'),
-               ('std_spare', 'H22x', [], None)]
+    if flags["p_gd"]:
+        dd += [
+            (
+                "percent_good",
+                "B",
+                [nc],
+                None,
+                "%",
+                "Percent Good",
+                "proportion_of_acceptable_signal_returns_from_acoustic_instrument_in_sea_water",
+            )
+        ]
+    if flags["std"]:
+        dd += [
+            (
+                "pitch_std",
+                "h",
+                [],
+                _LinFunc(0.01, dtype=dt32),
+                "degree",
+                "Pitch Standard Deviation",
+            ),
+            (
+                "roll_std",
+                "h",
+                [],
+                _LinFunc(0.01, dtype=dt32),
+                "degree",
+                "Roll Standard Deviation",
+            ),
+            (
+                "heading_std",
+                "h",
+                [],
+                _LinFunc(0.01, dtype=dt32),
+                "degree",
+                "Heading Standard Deviation",
+            ),
+            (
+                "press_std",
+                "h",
+                [],
+                _LinFunc(0.1, dtype=dt32),
+                "dbar",
+                "Pressure Standard Deviation",
+            ),
+            ("std_spare", "H22x", [], None),
+        ]
     return _DataDef(dd)

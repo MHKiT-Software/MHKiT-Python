@@ -44,8 +44,7 @@ class TestExtreme(unittest.TestCase):
     def test_global_peaks(self):
         peaks_t, peaks_val = loads.extreme.global_peaks(self.t, self.signal)
 
-        test_crests, test_crests_ind = self._example_crest_analysis(
-            self.t, self.signal)
+        test_crests, test_crests_ind = self._example_crest_analysis(self.t, self.signal)
 
         assert_allclose(peaks_t, self.t[test_crests_ind])
         assert_allclose(peaks_val, test_crests)

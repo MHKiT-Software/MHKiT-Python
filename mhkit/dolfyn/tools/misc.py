@@ -50,8 +50,9 @@ def detrend_array(arr, axis=-1, in_place=False):
     x = np.arange(sz[axis], dtype=np.float_).reshape(sz)
     x -= np.nanmean(x, axis=axis, keepdims=True)
     arr -= np.nanmean(arr, axis=axis, keepdims=True)
-    b = np.nanmean((x * arr), axis=axis, keepdims=True) / \
-        np.nanmean((x ** 2), axis=axis, keepdims=True)
+    b = np.nanmean((x * arr), axis=axis, keepdims=True) / np.nanmean(
+        (x**2), axis=axis, keepdims=True
+    )
     arr -= b * x
     return arr
 
@@ -82,7 +83,7 @@ def group(bl, min_length=0):
 
     if not any(bl):
         return np.empty(0)
-    vl = np.diff(bl.astype('int'))
+    vl = np.diff(bl.astype("int"))
     ups = np.nonzero(vl == 1)[0] + 1
     dns = np.nonzero(vl == -1)[0] + 1
     if bl[0]:
@@ -95,7 +96,7 @@ def group(bl, min_length=0):
             dns = np.array([len(bl)])
         else:
             dns = np.concatenate((dns, [len(bl)]))
-    out = np.empty(len(dns), dtype='O')
+    out = np.empty(len(dns), dtype="O")
     idx = 0
     for u, d in zip(ups, dns):
         if d - u < min_length:
@@ -134,7 +135,7 @@ def slice1d_along_axis(arr_shape, axis=0):
     if axis < 0:
         axis += nd
     ind = [0] * (nd - 1)
-    i = np.zeros(nd, 'O')
+    i = np.zeros(nd, "O")
     indlist = list(range(nd))
     indlist.remove(axis)
     i[axis] = slice(None)
@@ -165,18 +166,18 @@ def convert_degrees(deg, tidal_mode=True):
     deg: float or array-like
       Number or array in 'degrees CCW from East' or 'degrees CW from North'
     tidal_mode : bool
-      If true, range is set from 0 to +/-180 degrees. If false, range is 0 to 
+      If true, range is set from 0 to +/-180 degrees. If false, range is 0 to
       360 degrees. Default = True
 
     Returns
     -------
     out : float or array-like
-      Input data transformed to 'degrees CW from North' or 
+      Input data transformed to 'degrees CW from North' or
       'degrees CCW from East', respectively (based on `deg`)
 
     Notes
     -----
-    The same algorithm is used to convert back and forth between 'CCW from E' 
+    The same algorithm is used to convert back and forth between 'CCW from E'
     and 'CW from N'
     """
 
@@ -223,11 +224,10 @@ def fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
     nd = a.ndim
     if dim < 0:
         dim += nd
-    if (dim >= nd):
-        raise ValueError("dim must be less than a.ndim; dim=%d, rank=%d."
-                         % (dim, nd))
+    if dim >= nd:
+        raise ValueError("dim must be less than a.ndim; dim=%d, rank=%d." % (dim, nd))
     ind = [0] * (nd - 1)
-    i = np.zeros(nd, 'O')
+    i = np.zeros(nd, "O")
     indlist = list(range(nd))
     indlist.remove(dim)
     i[dim] = slice(None, None)
@@ -238,18 +238,21 @@ def fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
     # Here we extrapolate the ends, if necessary:
     if extrapFlg and gd.__len__() > 0:
         if gd[0] != 0 and gd[0] <= maxgap:
-            a[:gd[0]] = a[gd[0]]
+            a[: gd[0]] = a[gd[0]]
         if gd[-1] != a.__len__() and (a.__len__() - (gd[-1] + 1)) <= maxgap:
-            a[gd[-1]:] = a[gd[-1]]
+            a[gd[-1] :] = a[gd[-1]]
 
     # Here is the main loop
     if gd.__len__() > 1:
         inds = np.nonzero((1 < np.diff(gd)) & (np.diff(gd) <= maxgap + 1))[0]
         for i2 in range(0, inds.__len__()):
             ii = list(range(gd[inds[i2]] + 1, gd[inds[i2] + 1]))
-            a[ii] = (np.diff(a[gd[[inds[i2], inds[i2] + 1]]]) *
-                     (np.arange(0, ii.__len__()) + 1) /
-                     (ii.__len__() + 1) + a[gd[inds[i2]]]).astype(a.dtype)
+            a[ii] = (
+                np.diff(a[gd[[inds[i2], inds[i2] + 1]]])
+                * (np.arange(0, ii.__len__()) + 1)
+                / (ii.__len__() + 1)
+                + a[gd[inds[i2]]]
+            ).astype(a.dtype)
 
     return a
 
@@ -289,27 +292,28 @@ def interpgaps(a, t, maxgap=np.inf, dim=0, extrapFlg=False):
     # Here we extrapolate the ends, if necessary:
     if extrapFlg and gd.__len__() > 0:
         if gd[0] != 0 and gd[0] <= maxgap:
-            a[:gd[0]] = a[gd[0]]
+            a[: gd[0]] = a[gd[0]]
         if gd[-1] != a.__len__() and (a.__len__() - (gd[-1] + 1)) <= maxgap:
-            a[gd[-1]:] = a[gd[-1]]
+            a[gd[-1] :] = a[gd[-1]]
 
     # Here is the main loop
     if gd.__len__() > 1:
-        inds = _find((1 < np.diff(gd)) &
-                     (np.diff(gd) <= maxgap + 1))
+        inds = _find((1 < np.diff(gd)) & (np.diff(gd) <= maxgap + 1))
         for i2 in range(0, inds.__len__()):
             ii = np.arange(gd[inds[i2]] + 1, gd[inds[i2] + 1])
-            ti = (t[ii] - t[gd[inds[i2]]]) / np.diff(t[[gd[inds[i2]],
-                                                        gd[inds[i2] + 1]]])
-            a[ii] = (np.diff(a[gd[[inds[i2], inds[i2] + 1]]]) * ti +
-                     a[gd[inds[i2]]]).astype(a.dtype)
+            ti = (t[ii] - t[gd[inds[i2]]]) / np.diff(
+                t[[gd[inds[i2]], gd[inds[i2] + 1]]]
+            )
+            a[ii] = (
+                np.diff(a[gd[[inds[i2], inds[i2] + 1]]]) * ti + a[gd[inds[i2]]]
+            ).astype(a.dtype)
 
     return a
 
 
 def medfiltnan(a, kernel, thresh=0):
     """
-    Do a running median filter of the data. Regions where more than 
+    Do a running median filter of the data. Regions where more than
     ``thresh`` fraction of the points are NaN are set to NaN.
 
     Parameters
@@ -317,9 +321,9 @@ def medfiltnan(a, kernel, thresh=0):
     a : numpy.ndarray
       2D array containing data to be filtered.
     kernel_size : numpy.ndarray or list, optional
-      A scalar or a list of length 2, giving the size of the median 
-      filter window in each dimension. Elements of kernel_size should 
-      be odd. If kernel_size is a scalar, then this scalar is used as 
+      A scalar or a list of length 2, giving the size of the median
+      filter window in each dimension. Elements of kernel_size should
+      be odd. If kernel_size is a scalar, then this scalar is used as
       the size in each dimension.
     thresh : int
       Maximum gap in *a* to filter over
@@ -344,9 +348,9 @@ def medfiltnan(a, kernel, thresh=0):
         kernel = [1, kernel]
     out = medfilt2d(a, kernel)
     if thresh > 0:
-        out[convolve2d(np.isnan(a),
-                       np.ones(kernel) / np.prod(kernel),
-                       'same') > thresh] = np.NaN
+        out[
+            convolve2d(np.isnan(a), np.ones(kernel) / np.prod(kernel), "same") > thresh
+        ] = np.NaN
     if flag_1D:
         return out[0]
     return out

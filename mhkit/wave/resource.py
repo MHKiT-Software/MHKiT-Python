@@ -4,9 +4,11 @@ import pandas as pd
 import numpy as np
 from scipy import stats
 
+
 ### Spectrum
-def elevation_spectrum(eta, sample_rate, nnft, window='hann',
-    detrend=True, noverlap=None):
+def elevation_spectrum(
+    eta, sample_rate, nnft, window="hann", detrend=True, noverlap=None
+):
     """
     Calculates the wave energy spectrum from wave elevation time-series
 
@@ -39,29 +41,37 @@ def elevation_spectrum(eta, sample_rate, nnft, window='hann',
     # TODO: may need to raise an error for the length of nnft- signal.welch breaks when nfft is too short
     # TODO: check for uniform sampling
     if not isinstance(eta, pd.DataFrame):
-        raise TypeError(f'eta must be of type pd.DataFrame. Got: {type(eta)}')
-    if not isinstance(sample_rate, (float,int)):
-        raise TypeError(f'sample_rate must be of type int or float. Got: {type(sample_rate)}')
+        raise TypeError(f"eta must be of type pd.DataFrame. Got: {type(eta)}")
+    if not isinstance(sample_rate, (float, int)):
+        raise TypeError(
+            f"sample_rate must be of type int or float. Got: {type(sample_rate)}"
+        )
     if not isinstance(nnft, int):
-        raise TypeError(f'nnft must be of type int. Got: {type(nnft)}')
+        raise TypeError(f"nnft must be of type int. Got: {type(nnft)}")
     if not isinstance(window, str):
-        raise TypeError(f'window must be of type str. Got: {type(window)}')
+        raise TypeError(f"window must be of type str. Got: {type(window)}")
     if not isinstance(detrend, bool):
-        raise TypeError(f'detrend must be of type bool. Got: {type(detrend)}')
+        raise TypeError(f"detrend must be of type bool. Got: {type(detrend)}")
     if not nnft > 0:
-        raise ValueError(f'nnft must be > 0. Got: {nnft}')
+        raise ValueError(f"nnft must be > 0. Got: {nnft}")
     if not sample_rate > 0:
-        raise ValueError(f'sample_rate must be > 0. Got: {sample_rate}')
+        raise ValueError(f"sample_rate must be > 0. Got: {sample_rate}")
 
     S = pd.DataFrame()
     for col in eta.columns:
         data = eta[col]
         if detrend:
-            data = _signal.detrend(data.dropna(), axis=-1, type='linear', bp=0)
-        [f, wave_spec_measured] = _signal.welch(data, fs=sample_rate, window=window,
-            nperseg=nnft, nfft=nnft, noverlap=noverlap)
+            data = _signal.detrend(data.dropna(), axis=-1, type="linear", bp=0)
+        [f, wave_spec_measured] = _signal.welch(
+            data,
+            fs=sample_rate,
+            window=window,
+            nperseg=nnft,
+            nfft=nnft,
+            noverlap=noverlap,
+        )
         S[col] = wave_spec_measured
-    S.index=f
+    S.index = f
     S.columns = eta.columns
 
     return S
@@ -91,15 +101,15 @@ def pierson_moskowitz_spectrum(f, Tp, Hs):
     except:
         pass
     if not isinstance(f, np.ndarray):
-        raise TypeError(f'f must be of type np.ndarray. Got: {type(f)}')
-    if not isinstance(Tp, (int,float)):
-        raise TypeError(f'Tp must be of type int or float. Got: {type(Tp)}')
-    if not isinstance(Hs, (int,float)):
-        raise TypeError(f'Hs must be of type int or float. Got: {type(Hs)}')
+        raise TypeError(f"f must be of type np.ndarray. Got: {type(f)}")
+    if not isinstance(Tp, (int, float)):
+        raise TypeError(f"Tp must be of type int or float. Got: {type(Tp)}")
+    if not isinstance(Hs, (int, float)):
+        raise TypeError(f"Hs must be of type int or float. Got: {type(Hs)}")
 
     f.sort()
-    B_PM = (5/4)*(1/Tp)**4
-    A_PM = B_PM*(Hs/2)**2
+    B_PM = (5 / 4) * (1 / Tp) ** 4
+    A_PM = B_PM * (Hs / 2) ** 2
 
     # Avoid a divide by zero if the 0 frequency is provided
     # The zero frequency should always have 0 amplitude, otherwise
@@ -109,10 +119,10 @@ def pierson_moskowitz_spectrum(f, Tp, Hs):
         inds = range(1, f.size)
     else:
         inds = range(0, f.size)
-    
-    Sf[inds]  = A_PM*f[inds]**(-5)*np.exp(-B_PM*f[inds]**(-4))
 
-    col_name = 'Pierson-Moskowitz ('+str(Tp)+'s)'
+    Sf[inds] = A_PM * f[inds] ** (-5) * np.exp(-B_PM * f[inds] ** (-4))
+
+    col_name = "Pierson-Moskowitz (" + str(Tp) + "s)"
     S = pd.DataFrame(Sf, index=f, columns=[col_name])
 
     return S
@@ -144,17 +154,19 @@ def jonswap_spectrum(f, Tp, Hs, gamma=None):
     except:
         pass
     if not isinstance(f, np.ndarray):
-        raise TypeError(f'f must be of type np.ndarray. Got: {type(f)}')
-    if not isinstance(Tp, (int,float)):
-        raise TypeError(f'Tp must be of type int or float. Got: {type(Tp)}')
-    if not isinstance(Hs, (int,float)):
-        raise TypeError(f'Hs must be of type int or float. Got: {type(Hs)}')
-    if not isinstance(gamma, (int,float, type(None))):
-        raise TypeError(f'If specified, gamma must be of type int or float. Got: {type(gamma)}')
+        raise TypeError(f"f must be of type np.ndarray. Got: {type(f)}")
+    if not isinstance(Tp, (int, float)):
+        raise TypeError(f"Tp must be of type int or float. Got: {type(Tp)}")
+    if not isinstance(Hs, (int, float)):
+        raise TypeError(f"Hs must be of type int or float. Got: {type(Hs)}")
+    if not isinstance(gamma, (int, float, type(None))):
+        raise TypeError(
+            f"If specified, gamma must be of type int or float. Got: {type(gamma)}"
+        )
 
     f.sort()
-    B_PM = (5/4)*(1/Tp)**4
-    A_PM = B_PM*(Hs/2)**2
+    B_PM = (5 / 4) * (1 / Tp) ** 4
+    A_PM = B_PM * (Hs / 2) ** 2
 
     # Avoid a divide by zero if the 0 frequency is provided
     # The zero frequency should always have 0 amplitude, otherwise
@@ -165,37 +177,40 @@ def jonswap_spectrum(f, Tp, Hs, gamma=None):
     else:
         inds = range(0, f.size)
 
-    S_f[inds]  = A_PM*f[inds]**(-5)*np.exp(-B_PM*f[inds]**(-4))
+    S_f[inds] = A_PM * f[inds] ** (-5) * np.exp(-B_PM * f[inds] ** (-4))
 
     if not gamma:
-        TpsqrtHs = Tp/np.sqrt(Hs);
+        TpsqrtHs = Tp / np.sqrt(Hs)
         if TpsqrtHs <= 3.6:
-            gamma = 5;
+            gamma = 5
         elif TpsqrtHs > 5:
-            gamma = 1;
+            gamma = 1
         else:
-            gamma = np.exp(5.75 - 1.15*TpsqrtHs);
+            gamma = np.exp(5.75 - 1.15 * TpsqrtHs)
 
     # Cutoff frequencies for gamma function
     siga = 0.07
     sigb = 0.09
 
-    fp = 1/Tp # peak frequency
-    lind = np.where(f<=fp)
-    hind = np.where(f>fp)
+    fp = 1 / Tp  # peak frequency
+    lind = np.where(f <= fp)
+    hind = np.where(f > fp)
     Gf = np.zeros(f.shape)
-    Gf[lind] = gamma**np.exp(-(f[lind]-fp)**2/(2*siga**2*fp**2))
-    Gf[hind] = gamma**np.exp(-(f[hind]-fp)**2/(2*sigb**2*fp**2))
-    C = 1- 0.287*np.log(gamma)
-    Sf = C*S_f*Gf
+    Gf[lind] = gamma ** np.exp(-((f[lind] - fp) ** 2) / (2 * siga**2 * fp**2))
+    Gf[hind] = gamma ** np.exp(-((f[hind] - fp) ** 2) / (2 * sigb**2 * fp**2))
+    C = 1 - 0.287 * np.log(gamma)
+    Sf = C * S_f * Gf
 
-    col_name = 'JONSWAP ('+str(Hs)+'m,'+str(Tp)+'s)'
+    col_name = "JONSWAP (" + str(Hs) + "m," + str(Tp) + "s)"
     S = pd.DataFrame(Sf, index=f, columns=[col_name])
 
     return S
 
+
 ### Metrics
-def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None, method='ifft'):
+def surface_elevation(
+    S, time_index, seed=None, frequency_bins=None, phases=None, method="ifft"
+):
     """
     Calculates wave elevation time-series from spectrum
 
@@ -229,77 +244,92 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
     """
     time_index = np.array(time_index)
     if not isinstance(S, pd.DataFrame):
-        raise TypeError(f'S must be of type pd.DataFrame. Got: {type(S)}')
+        raise TypeError(f"S must be of type pd.DataFrame. Got: {type(S)}")
     if not isinstance(time_index, np.ndarray):
-        raise TypeError(f'time_index must be of type np.ndarray. Got: {type(time_index)}')
+        raise TypeError(
+            f"time_index must be of type np.ndarray. Got: {type(time_index)}"
+        )
     if not isinstance(seed, (type(None), int)):
-        raise TypeError(f'If specified, seed must be of type int. Got: {type(seed)}')
+        raise TypeError(f"If specified, seed must be of type int. Got: {type(seed)}")
     if not isinstance(frequency_bins, (type(None), np.ndarray, pd.DataFrame)):
-        raise TypeError(f'If specified, frequency_bins must be of type np.ndarray, or pd.DataFrame. Got: {type(frequency_bins)}')
+        raise TypeError(
+            f"If specified, frequency_bins must be of type np.ndarray, or pd.DataFrame. Got: {type(frequency_bins)}"
+        )
     if not isinstance(phases, (type(None), np.ndarray, pd.DataFrame)):
-        raise TypeError(f'If specified, phases must be of type np.ndarray, or pd.DataFrame. Got: {type(phases)}')
+        raise TypeError(
+            f"If specified, phases must be of type np.ndarray, or pd.DataFrame. Got: {type(phases)}"
+        )
     if not isinstance(method, str):
-        raise TypeError(f'method must be of type str. Got: {type(method)}')
+        raise TypeError(f"method must be of type str. Got: {type(method)}")
 
     if frequency_bins is not None:
         if not frequency_bins.squeeze().shape == (S.squeeze().shape[0],):
-            raise ValueError('shape of frequency_bins must match shape of S')
+            raise ValueError("shape of frequency_bins must match shape of S")
     if phases is not None:
         if not phases.squeeze().shape == S.squeeze().shape:
-            raise ValueError('shape of phases must match shape of S')
-        
+            raise ValueError("shape of phases must match shape of S")
+
     if method is not None:
-        if not (method == 'ifft' or method == 'sum_of_sines'):
+        if not (method == "ifft" or method == "sum_of_sines"):
             raise ValueError(f"Method must be 'ifft' or 'sum_of_sines'. Got: {method}")
-        
-    if method == 'ifft':
+
+    if method == "ifft":
         if not S.index.values[0] == 0:
-            raise ValueError(f'ifft method must have zero frequency defined. Lowest frequency is: {S.index.values[0]}')        
+            raise ValueError(
+                f"ifft method must have zero frequency defined. Lowest frequency is: {S.index.values[0]}"
+            )
 
     f = pd.Series(S.index)
     f.index = f
     if frequency_bins is None:
-        delta_f = f.values[1]-f.values[0]
+        delta_f = f.values[1] - f.values[0]
         if not np.allclose(f.diff()[1:], delta_f):
-            raise ValueError('Frequency bins are not evenly spaced. ' +
-                             "Define 'frequency_bins' or create a constant " +
-                             'frequency spacing for S.')
+            raise ValueError(
+                "Frequency bins are not evenly spaced. "
+                + "Define 'frequency_bins' or create a constant "
+                + "frequency spacing for S."
+            )
     elif isinstance(frequency_bins, np.ndarray):
         delta_f = pd.Series(frequency_bins, index=S.index)
-        method = 'sum_of_sines'
+        method = "sum_of_sines"
     elif isinstance(frequency_bins, pd.DataFrame):
         if not len(frequency_bins.columns) == 1:
-            raise ValueError('frequency_bins must only contain 1 column')
+            raise ValueError("frequency_bins must only contain 1 column")
         delta_f = frequency_bins.squeeze()
-        method = 'sum_of_sines'
+        method = "sum_of_sines"
 
     if phases is None:
         np.random.seed(seed)
-        phase = pd.DataFrame(2*np.pi*np.random.rand(S.shape[0], S.shape[1]),
-                             index=S.index, columns=S.columns)
+        phase = pd.DataFrame(
+            2 * np.pi * np.random.rand(S.shape[0], S.shape[1]),
+            index=S.index,
+            columns=S.columns,
+        )
     elif isinstance(phases, np.ndarray):
         phase = pd.DataFrame(phases, index=S.index, columns=S.columns)
     elif isinstance(phases, pd.DataFrame):
         phase = phases
 
-    omega = pd.Series(2*np.pi*f)
+    omega = pd.Series(2 * np.pi * f)
     omega.index = f
 
     # Wave amplitude times delta f
-    A = 2*S
+    A = 2 * S
     A = A.multiply(delta_f, axis=0)
     A = np.sqrt(A)
 
-    if method == 'ifft':
-        A_cmplx = A * (np.cos(phase) + 1j*np.sin(phase))
+    if method == "ifft":
+        A_cmplx = A * (np.cos(phase) + 1j * np.sin(phase))
 
         def func(v):
-            eta = np.fft.irfft(0.5 * v.values.squeeze() * time_index.size, time_index.size)
+            eta = np.fft.irfft(
+                0.5 * v.values.squeeze() * time_index.size, time_index.size
+            )
             return pd.Series(data=eta, index=time_index)
-        
+
         eta = A_cmplx.apply(func)
 
-    elif method == 'sum_of_sines':
+    elif method == "sum_of_sines":
         # Product of omega and time
         B = np.outer(time_index, omega)
         B = B.reshape((len(time_index), len(omega)))
@@ -308,10 +338,10 @@ def surface_elevation(S, time_index, seed=None, frequency_bins=None, phases=None
         # wave elevation
         eta = pd.DataFrame(columns=S.columns, index=time_index)
         for mcol in eta.columns:
-            C = np.cos(B+phase[mcol])
+            C = np.cos(B + phase[mcol])
             C = pd.DataFrame(C, index=time_index, columns=omega.index)
-            eta[mcol] = (C*A[mcol]).sum(axis=1)
-    
+            eta[mcol] = (C * A[mcol]).sum(axis=1)
+
     return eta
 
 
@@ -333,33 +363,34 @@ def frequency_moment(S, N, frequency_bins=None):
     m: pandas DataFrame
         Nth Frequency Moment indexed by S.columns
     """
-    if not isinstance(S, (pd.Series,pd.DataFrame)):
-        raise TypeError(f'S must be of type pd.DataFrame or pd.Series. Got: {type(S)}')
+    if not isinstance(S, (pd.Series, pd.DataFrame)):
+        raise TypeError(f"S must be of type pd.DataFrame or pd.Series. Got: {type(S)}")
     if not isinstance(N, int):
-        raise TypeError(f'N must be of type int. Got: {type(N)}')
+        raise TypeError(f"N must be of type int. Got: {type(N)}")
 
     # Eq 8 in IEC 62600-101
-    spec = S[S.index > 0] # omit frequency of 0
+    spec = S[S.index > 0]  # omit frequency of 0
 
     f = spec.index
     fn = np.power(f, N)
     if frequency_bins is None:
         delta_f = pd.Series(f).diff()
-        delta_f[0] = f[1]-f[0]
+        delta_f[0] = f[1] - f[0]
     else:
-
-        if not isinstance(frequency_bins, (np.ndarray,pd.Series,pd.DataFrame)):
-            raise TypeError(f'frequency_bins must be of type np.ndarray, pd.Series, or pd.DataFrame. Got: {type(frequency_bins)}')
+        if not isinstance(frequency_bins, (np.ndarray, pd.Series, pd.DataFrame)):
+            raise TypeError(
+                f"frequency_bins must be of type np.ndarray, pd.Series, or pd.DataFrame. Got: {type(frequency_bins)}"
+            )
         delta_f = pd.Series(frequency_bins)
 
     delta_f.index = f
 
-    m = spec.multiply(fn,axis=0).multiply(delta_f,axis=0)
+    m = spec.multiply(fn, axis=0).multiply(delta_f, axis=0)
     m = m.sum(axis=0)
-    if isinstance(S,pd.Series):
-        m = pd.DataFrame(m, index=[0], columns = ['m'+str(N)])
+    if isinstance(S, pd.Series):
+        m = pd.DataFrame(m, index=[0], columns=["m" + str(N)])
     else:
-        m = pd.DataFrame(m, index=S.columns, columns = ['m'+str(N)])
+        m = pd.DataFrame(m, index=S.columns, columns=["m" + str(N)])
 
     return m
 
@@ -380,18 +411,18 @@ def significant_wave_height(S, frequency_bins=None):
     Hm0: pandas DataFrame
         Significant wave height [m] index by S.columns
     """
-    if not isinstance(S, (pd.Series,pd.DataFrame)):
-        raise TypeError(f'S must be of type pd.DataFrame or pd.Series. Got: {type(S)}')
+    if not isinstance(S, (pd.Series, pd.DataFrame)):
+        raise TypeError(f"S must be of type pd.DataFrame or pd.Series. Got: {type(S)}")
 
     # Eq 12 in IEC 62600-101
 
-    Hm0 = 4*np.sqrt(frequency_moment(S,0,frequency_bins=frequency_bins))
-    Hm0.columns = ['Hm0']
+    Hm0 = 4 * np.sqrt(frequency_moment(S, 0, frequency_bins=frequency_bins))
+    Hm0.columns = ["Hm0"]
 
     return Hm0
 
 
-def average_zero_crossing_period(S,frequency_bins=None):
+def average_zero_crossing_period(S, frequency_bins=None):
     """
     Calculates wave average zero crossing period from spectra
 
@@ -408,19 +439,21 @@ def average_zero_crossing_period(S,frequency_bins=None):
         Average zero crossing period [s] indexed by S.columns
     """
     if not isinstance(S, pd.DataFrame):
-        raise TypeError(f'S must be of type pd.DataFrame. Got: {type(S)}')
+        raise TypeError(f"S must be of type pd.DataFrame. Got: {type(S)}")
 
     # Eq 15 in IEC 62600-101
-    m0 = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
-    m2 = frequency_moment(S,2,frequency_bins=frequency_bins).squeeze()
+    m0 = frequency_moment(
+        S, 0, frequency_bins=frequency_bins
+    ).squeeze()  # convert to Series for calculation
+    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins).squeeze()
 
-    Tz = np.sqrt(m0/m2)
-    Tz = pd.DataFrame(Tz, index=S.columns, columns = ['Tz'])
+    Tz = np.sqrt(m0 / m2)
+    Tz = pd.DataFrame(Tz, index=S.columns, columns=["Tz"])
 
     return Tz
 
 
-def average_crest_period(S,frequency_bins=None):
+def average_crest_period(S, frequency_bins=None):
     """
     Calculates wave average crest period from spectra
 
@@ -438,18 +471,20 @@ def average_crest_period(S,frequency_bins=None):
 
     """
     if not isinstance(S, pd.DataFrame):
-        raise TypeError(f'S must be of type pd.DataFrame. Got: {type(S)}')
+        raise TypeError(f"S must be of type pd.DataFrame. Got: {type(S)}")
 
-    m2 = frequency_moment(S,2,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
-    m4 = frequency_moment(S,4,frequency_bins=frequency_bins).squeeze()
+    m2 = frequency_moment(
+        S, 2, frequency_bins=frequency_bins
+    ).squeeze()  # convert to Series for calculation
+    m4 = frequency_moment(S, 4, frequency_bins=frequency_bins).squeeze()
 
-    Tavg = np.sqrt(m2/m4)
-    Tavg = pd.DataFrame(Tavg, index=S.columns, columns=['Tavg'])
+    Tavg = np.sqrt(m2 / m4)
+    Tavg = pd.DataFrame(Tavg, index=S.columns, columns=["Tavg"])
 
     return Tavg
 
 
-def average_wave_period(S,frequency_bins=None):
+def average_wave_period(S, frequency_bins=None):
     """
     Calculates mean wave period from spectra
 
@@ -466,13 +501,15 @@ def average_wave_period(S,frequency_bins=None):
         Mean wave period [s] indexed by S.columns
     """
     if not isinstance(S, pd.DataFrame):
-        raise TypeError(f'S must be of type pd.DataFrame. Got: {type(S)}')
+        raise TypeError(f"S must be of type pd.DataFrame. Got: {type(S)}")
 
-    m0 = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
-    m1 = frequency_moment(S,1,frequency_bins=frequency_bins).squeeze()
+    m0 = frequency_moment(
+        S, 0, frequency_bins=frequency_bins
+    ).squeeze()  # convert to Series for calculation
+    m1 = frequency_moment(S, 1, frequency_bins=frequency_bins).squeeze()
 
-    Tm = np.sqrt(m0/m1)
-    Tm = pd.DataFrame(Tm, index=S.columns, columns=['Tm'])
+    Tm = np.sqrt(m0 / m1)
+    Tm = pd.DataFrame(Tm, index=S.columns, columns=["Tm"])
 
     return Tm
 
@@ -492,18 +529,18 @@ def peak_period(S):
         Wave peak period [s] indexed by S.columns
     """
     if not isinstance(S, pd.DataFrame):
-        raise TypeError(f'S must be of type pd.DataFrame. Got: {type(S)}')
+        raise TypeError(f"S must be of type pd.DataFrame. Got: {type(S)}")
 
     # Eq 14 in IEC 62600-101
-    fp = S.idxmax(axis=0) # Hz
+    fp = S.idxmax(axis=0)  # Hz
 
-    Tp = 1/fp
+    Tp = 1 / fp
     Tp = pd.DataFrame(Tp, index=S.columns, columns=["Tp"])
 
     return Tp
 
 
-def energy_period(S,frequency_bins=None):
+def energy_period(S, frequency_bins=None):
     """
     Calculates wave energy period from spectra
 
@@ -520,24 +557,25 @@ def energy_period(S,frequency_bins=None):
         Wave energy period [s] indexed by S.columns
     """
 
-    if not isinstance(S, (pd.Series,pd.DataFrame)):
-        raise TypeError(f'S must be of type pd.DataFrame or pd.Series. Got: {type(S)}')
+    if not isinstance(S, (pd.Series, pd.DataFrame)):
+        raise TypeError(f"S must be of type pd.DataFrame or pd.Series. Got: {type(S)}")
 
-    mn1 = frequency_moment(S,-1,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
-    m0  = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze()
+    mn1 = frequency_moment(
+        S, -1, frequency_bins=frequency_bins
+    ).squeeze()  # convert to Series for calculation
+    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins).squeeze()
 
     # Eq 13 in IEC 62600-101
-    Te = mn1/m0
-    if isinstance(S,pd.Series):
-            Te = pd.DataFrame(Te, index=[0], columns=['Te'])
+    Te = mn1 / m0
+    if isinstance(S, pd.Series):
+        Te = pd.DataFrame(Te, index=[0], columns=["Te"])
     else:
-            Te = pd.DataFrame(Te, S.columns, columns=['Te'])
-
+        Te = pd.DataFrame(Te, S.columns, columns=["Te"])
 
     return Te
 
 
-def spectral_bandwidth(S,frequency_bins=None):
+def spectral_bandwidth(S, frequency_bins=None):
     """
     Calculates bandwidth from spectra
 
@@ -554,19 +592,21 @@ def spectral_bandwidth(S,frequency_bins=None):
         Spectral bandwidth [s] indexed by S.columns
     """
     if not isinstance(S, pd.DataFrame):
-        raise TypeError(f'S must be of type pd.DataFrame. Got: {type(S)}')
+        raise TypeError(f"S must be of type pd.DataFrame. Got: {type(S)}")
 
-    m2 = frequency_moment(S,2,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
-    m0 = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze()
-    m4 = frequency_moment(S,4,frequency_bins=frequency_bins).squeeze()
+    m2 = frequency_moment(
+        S, 2, frequency_bins=frequency_bins
+    ).squeeze()  # convert to Series for calculation
+    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins).squeeze()
+    m4 = frequency_moment(S, 4, frequency_bins=frequency_bins).squeeze()
 
-    e = np.sqrt(1- (m2**2)/(m0/m4))
-    e = pd.DataFrame(e, index=S.columns, columns=['e'])
+    e = np.sqrt(1 - (m2**2) / (m0 / m4))
+    e = pd.DataFrame(e, index=S.columns, columns=["e"])
 
     return e
 
 
-def spectral_width(S,frequency_bins=None):
+def spectral_width(S, frequency_bins=None):
     """
     Calculates wave spectral width from spectra
 
@@ -583,15 +623,17 @@ def spectral_width(S,frequency_bins=None):
         Spectral width [m] indexed by S.columns
     """
     if not isinstance(S, pd.DataFrame):
-        raise TypeError(f'S must be of type pd.DataFrame. Got: {type(S)}')
+        raise TypeError(f"S must be of type pd.DataFrame. Got: {type(S)}")
 
-    mn2 = frequency_moment(S,-2,frequency_bins=frequency_bins).squeeze() # convert to Series for calculation
-    m0 = frequency_moment(S,0,frequency_bins=frequency_bins).squeeze()
-    mn1 = frequency_moment(S,-1,frequency_bins=frequency_bins).squeeze()
+    mn2 = frequency_moment(
+        S, -2, frequency_bins=frequency_bins
+    ).squeeze()  # convert to Series for calculation
+    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins).squeeze()
+    mn1 = frequency_moment(S, -1, frequency_bins=frequency_bins).squeeze()
 
     # Eq 16 in IEC 62600-101
-    v = np.sqrt((m0*mn2/np.power(mn1,2))-1)
-    v = pd.DataFrame(v, index=S.columns, columns=['v'])
+    v = np.sqrt((m0 * mn2 / np.power(mn1, 2)) - 1)
+    v = pd.DataFrame(v, index=S.columns, columns=["v"])
 
     return v
 
@@ -624,32 +666,31 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2):
     J: pandas DataFrame
         Omni-directional wave energy flux [W/m] indexed by S.columns
     """
-    if not isinstance(S, (pd.Series,pd.DataFrame)):
-        raise TypeError(f'S must be of type pd.DataFrame or pd.Series. Got: {type(S)}')
-    if not isinstance(h, (int,float)):
-        raise TypeError(f'h must be of type int or float. Got: {type(h)}')
+    if not isinstance(S, (pd.Series, pd.DataFrame)):
+        raise TypeError(f"S must be of type pd.DataFrame or pd.Series. Got: {type(S)}")
+    if not isinstance(h, (int, float)):
+        raise TypeError(f"h must be of type int or float. Got: {type(h)}")
     if not isinstance(deep, bool):
-        raise TypeError(f'deep must be of type bool. Got: {type(deep)}')
-    if not isinstance(rho, (int,float)):
-        raise TypeError(f'rho must be of type int or float. Got: {type(rho)}')
-    if not isinstance(g, (int,float)):
-        raise TypeError(f'g must be of type int or float. Got: {type(g)}')
-    if not isinstance(ratio, (int,float)):
-        raise TypeError(f'ratio must be of type int or float. Got: {type(ratio)}')
+        raise TypeError(f"deep must be of type bool. Got: {type(deep)}")
+    if not isinstance(rho, (int, float)):
+        raise TypeError(f"rho must be of type int or float. Got: {type(rho)}")
+    if not isinstance(g, (int, float)):
+        raise TypeError(f"g must be of type int or float. Got: {type(g)}")
+    if not isinstance(ratio, (int, float)):
+        raise TypeError(f"ratio must be of type int or float. Got: {type(ratio)}")
 
     if deep:
         # Eq 8 in IEC 62600-100, deep water simpilification
         Te = energy_period(S)
         Hm0 = significant_wave_height(S)
 
-        coeff = rho*(g**2)/(64*np.pi)
+        coeff = rho * (g**2) / (64 * np.pi)
 
-        J = coeff*(Hm0.squeeze()**2)*Te.squeeze()
-        if isinstance(S,pd.Series):
+        J = coeff * (Hm0.squeeze() ** 2) * Te.squeeze()
+        if isinstance(S, pd.Series):
             J = pd.DataFrame(J, index=[0], columns=["J"])
         else:
             J = pd.DataFrame(J, S.columns, columns=["J"])
-
 
     else:
         # deep water flag is false
@@ -669,7 +710,7 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2):
 
         J = rho * g * CgSdelF.sum(axis=0)
 
-        if isinstance(S,pd.Series):
+        if isinstance(S, pd.Series):
             J = pd.DataFrame(J, index=[0], columns=["J"])
         else:
             J = pd.DataFrame(J, S.columns, columns=["J"])
@@ -698,11 +739,11 @@ def energy_period_to_peak_period(Te, gamma):
         Spectral peak period [s]
     """
     if not isinstance(Te, (float, np.ndarray)):
-        raise TypeError(f'Te must be a float or a ndarray. Got: {type(Te)}')
+        raise TypeError(f"Te must be a float or a ndarray. Got: {type(Te)}")
     if not isinstance(gamma, (float, int)):
-        raise TypeError(f'gamma must be of type float or int. Got: {type(gamma)}')
+        raise TypeError(f"gamma must be of type float or int. Got: {type(gamma)}")
 
-    factor = 0.8255 + 0.03852*gamma - 0.005537*gamma**2 + 0.0003154*gamma**3
+    factor = 0.8255 + 0.03852 * gamma - 0.005537 * gamma**2 + 0.0003154 * gamma**3
 
     return Te / factor
 
@@ -733,15 +774,15 @@ def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2):
     if isinstance(k, pd.DataFrame):
         k = k.squeeze()
     if not isinstance(k, (pd.Series, pd.DataFrame)):
-        raise TypeError(f'k must be of type pd.Series or pd.DataFrame. Got: {type(k)}')
-    if not isinstance(h, (int,float)):
-        raise TypeError(f'h must be of type int or float. Got: {type(h)}')
-    if not isinstance(g, (int,float)):
-        raise TypeError(f'g must be of type int or float. Got: {type(g)}')
+        raise TypeError(f"k must be of type pd.Series or pd.DataFrame. Got: {type(k)}")
+    if not isinstance(h, (int, float)):
+        raise TypeError(f"h must be of type int or float. Got: {type(h)}")
+    if not isinstance(g, (int, float)):
+        raise TypeError(f"g must be of type int or float. Got: {type(g)}")
     if not isinstance(depth_check, bool):
-        raise TypeError(f'depth_check must be of type bool. Got: {type(depth_check)}')
-    if not isinstance(ratio, (int,float)):
-        raise TypeError(f'ratio must be of type int or float. Got: {type(ratio)}')
+        raise TypeError(f"depth_check must be of type bool. Got: {type(depth_check)}")
+    if not isinstance(ratio, (int, float)):
+        raise TypeError(f"ratio must be of type int or float. Got: {type(ratio)}")
 
     f = k.index
     k = k.values
@@ -757,14 +798,14 @@ def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2):
         dk = k[dr]
 
         # deep water approximation
-        dCg = (np.pi * df / dk)
+        dCg = np.pi * df / dk
         dCg = pd.DataFrame(dCg, index=df, columns=["Cg"])
 
         # shallow frequencies
         sf = f[~dr]
         sk = k[~dr]
         sCg = (np.pi * sf / sk) * (1 + (2 * h * sk) / np.sinh(2 * h * sk))
-        sCg = pd.DataFrame(sCg, index = sf, columns = ["Cg"])
+        sCg = pd.DataFrame(sCg, index=sf, columns=["Cg"])
 
         Cg = pd.concat([dCg, sCg]).sort_index()
 
@@ -792,8 +833,10 @@ def wave_length(k):
         Wave length [m] indexed by frequency
     """
     if not isinstance(k, (int, float, list, np.ndarray, pd.DataFrame, pd.Series)):
-        raise TypeError(f'k must be of type int, float, list, np.ndarray, pd.DataFrame, or pd.Series. Got: {type(k)}')
-    
+        raise TypeError(
+            f"k must be of type int, float, list, np.ndarray, pd.DataFrame, or pd.Series. Got: {type(k)}"
+        )
+
     if isinstance(k, (int, float, list)):
         k = np.array(k)
     elif isinstance(k, pd.DataFrame):
@@ -801,7 +844,7 @@ def wave_length(k):
     elif isinstance(k, pd.Series):
         k = k.values
 
-    l = 2*np.pi/k
+    l = 2 * np.pi / k
 
     return l
 
@@ -834,22 +877,22 @@ def wave_number(f, h, rho=1025, g=9.80665):
     except:
         pass
     if not isinstance(f, np.ndarray):
-        raise TypeError(f'f must be of type np.ndarray. Got: {type(f)}')
-    if not isinstance(h, (int,float)):
-        raise TypeError(f'h must be of type int or float. Got: {type(h)}')
-    if not isinstance(rho, (int,float)):
-        raise TypeError(f'rho must be of type int or float. Got: {type(rho)}')
-    if not isinstance(g, (int,float)):
-        raise TypeError(f'g must be of type int or float. Got: {type(g)}')
+        raise TypeError(f"f must be of type np.ndarray. Got: {type(f)}")
+    if not isinstance(h, (int, float)):
+        raise TypeError(f"h must be of type int or float. Got: {type(h)}")
+    if not isinstance(rho, (int, float)):
+        raise TypeError(f"rho must be of type int or float. Got: {type(rho)}")
+    if not isinstance(g, (int, float)):
+        raise TypeError(f"g must be of type int or float. Got: {type(g)}")
 
-    w = 2*np.pi*f # angular frequency
-    xi = w/np.sqrt(g/h) # note: =h*wa/sqrt(h*g/h)
-    yi = xi*xi/np.power(1.0-np.exp(-np.power(xi,2.4908)),0.4015)
-    k0 = yi/h # Initial guess without current-wave interaction
+    w = 2 * np.pi * f  # angular frequency
+    xi = w / np.sqrt(g / h)  # note: =h*wa/sqrt(h*g/h)
+    yi = xi * xi / np.power(1.0 - np.exp(-np.power(xi, 2.4908)), 0.4015)
+    k0 = yi / h  # Initial guess without current-wave interaction
 
     # Eq 11 in IEC 62600-101 using initial guess from Guo (2002)
     def func(kk):
-        val = np.power(w,2) - g*kk*np.tanh(kk*h)
+        val = np.power(w, 2) - g * kk * np.tanh(kk * h)
         return val
 
     mask = np.abs(func(k0)) > 1e-9
@@ -859,16 +902,16 @@ def wave_number(f, h, rho=1025, g=9.80665):
 
         k, info, ier, mesg = _fsolve(func, k0_mask, full_output=True)
         if not ier == 1:
-            raise ValueError('Wave number not found. ' + mesg)
+            raise ValueError("Wave number not found. " + mesg)
         k0[mask] = k
 
-    k = pd.DataFrame(k0, index=f, columns=['k'])
+    k = pd.DataFrame(k0, index=f, columns=["k"])
 
     return k
 
 
 def depth_regime(l, h, ratio=2):
-    '''
+    """
     Calculates the depth regime based on wavelength and height
     Deep water: h/l > ratio
     This function exists so sinh in wave celerity doesn't blow
@@ -892,12 +935,14 @@ def depth_regime(l, h, ratio=2):
     -------
     depth_reg: boolean or boolean array
         Boolean True if deep water, False otherwise
-    '''
+    """
     if not isinstance(l, (int, float, list, np.ndarray, pd.DataFrame, pd.Series)):
-        raise TypeError(f'l must be of type int, float, list, np.ndarray, pd.DataFrame, or pd.Series. Got: {type(l)}')
+        raise TypeError(
+            f"l must be of type int, float, list, np.ndarray, pd.DataFrame, or pd.Series. Got: {type(l)}"
+        )
     if not isinstance(h, (int, float)):
-        raise TypeError(f'h must be of type int or float. Got: {type(h)}')
-    
+        raise TypeError(f"h must be of type int or float. Got: {type(h)}")
+
     if isinstance(l, (int, float, list)):
         l = np.array(l)
     elif isinstance(l, pd.DataFrame):
@@ -905,6 +950,6 @@ def depth_regime(l, h, ratio=2):
     elif isinstance(l, pd.Series):
         l = l.values
 
-    depth_reg = h/l > ratio
+    depth_reg = h / l > ratio
 
-    return  depth_reg
+    return depth_reg
