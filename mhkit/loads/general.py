@@ -66,28 +66,19 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[],to_pandas=True):
     # loop through data_signal and get binned means
     for signal_name in data_signal:
         # Bin data
-        bin_stat = binned_statistic(bin_against,data[signal_name],
+        bin_stat_mean = binned_statistic(bin_against,data[signal_name],
                                     statistic='mean',bins=bin_edges)
-        # Calculate std of bins
-        std = []
-        stdev = xr.DataArray(data = data[signal_name].values,
-                             dims = 'binnumber',
-                             coords = {'binnumber': bin_stat.binnumber})
-        for i in range(1,len(bin_stat.bin_edges)):
-            try:
-                temp = stdev.sel(binnumber=i).std().values
-                std.append(np.array(temp,ndmin=1)[0])
-            except:
-                std.append(np.nan)
+        bin_stat_std = binned_statistic(bin_against,data[signal_name],
+                                    statistic='std',bins=bin_edges)
         
-        bin_stat_list[signal_name] = ('index', bin_stat.statistic)
-        bin_std_list[signal_name] = ('index', bin_stat.statistic)
+        bin_stat_list[signal_name] = ('index', bin_stat_mean.statistic)
+        bin_std_list[signal_name] = ('index', bin_stat_std.statistic)
     
     # Convert to Datasets
     bin_mean = xr.Dataset(data_vars = bin_stat_list,
-                          coords = {'index':np.arange(0,len(bin_stat.statistic))})
+                          coords = {'index':np.arange(0,len(bin_stat_mean.statistic))})
     bin_std = xr.Dataset(data_vars = bin_std_list,
-                          coords = {'index':np.arange(0,len(bin_stat.statistic))})
+                          coords = {'index':np.arange(0,len(bin_stat_std.statistic))})
     
     # Check for nans 
     for variable in list(bin_mean.variables):

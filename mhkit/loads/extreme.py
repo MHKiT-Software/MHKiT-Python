@@ -835,7 +835,8 @@ def mler_wave_amp_normalize(wave_amp, mler, sim, k, to_pandas=True):
     if isinstance(mler,pd.DataFrame):
         mler = mler.to_xarray()
     
-    freq = mler.coords['frequency'].values * 2*np.pi
+    coord_names = list(mler.coords)
+    freq = mler.coords[coord_names[0]].values * 2*np.pi
     dw = (max(freq) - min(freq)) / (len(freq)-1)  # get delta
     
     wave_amp_time = np.zeros((sim['maxIX'], sim['maxIT']))
@@ -917,7 +918,8 @@ def mler_export_time_series(rao, mler, sim, k, to_pandas=True):
     if isinstance(mler,pd.DataFrame):
         mler = mler.to_xarray()
     
-    freq = mler.coords['frequency'].values * 2*np.pi
+    coord_names = list(mler.coords)
+    freq = mler.coords[coord_names[0]].values * 2*np.pi
     dw = (max(freq) - min(freq)) / (len(freq)-1)  # get delta
 
     # calculate the series
