@@ -711,11 +711,6 @@ def mler_coefficients(rao, wave_spectrum, response_desired, to_pandas=True):
     if response_desired < 0:
         _phase += np.pi
     
-    mler = pd.DataFrame(
-        data={'WaveSpectrum': _s, 'Phase': _phase}, index=freq_hz)
-    mler = mler.fillna(0)
-    
-    
     mler = xr.Dataset(data_vars = {'WaveSpectrum': (['frequency'], _s),
                                   'Phase': (['frequency'], _phase)},
                       coords = {'frequency': freq_hz}
@@ -738,7 +733,7 @@ def mler_simulation(parameters=None):
 
     Parameters
     ----------
-    parameters: dict (fto_)
+    parameters: dict (optional)
         Simulation parameters.
         Keys:
         -----

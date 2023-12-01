@@ -99,14 +99,14 @@ class TestLoads(unittest.TestCase):
         savepath = abspath(join(testdir, 'test_scatplotter.png'))
 
         # Generate plot
-        loads.graphics.plot_statistics( self.data['means']['uWind_80m'],
-                                self.data['means']['TB_ForeAft'],
-                                self.data['maxs']['TB_ForeAft'],
-                                self.data['mins']['TB_ForeAft'],
-                                y_stdev=self.data['std']['TB_ForeAft'],
-                                x_label='Wind Speed [m/s]',
-                                y_label='Tower Base Mom [kNm]',
-                                save_path=savepath)
+        loads.graphics.plot_statistics(self.data['means']['uWind_80m'],
+                                       self.data['means']['TB_ForeAft'],
+                                       self.data['maxs']['TB_ForeAft'],
+                                       self.data['mins']['TB_ForeAft'],
+                                       y_stdev=self.data['std']['TB_ForeAft'],
+                                       x_label='Wind Speed [m/s]',
+                                       y_label='Tower Base Mom [kNm]',
+                                       save_path=savepath)
 
         self.assertTrue(isfile(savepath))
 
@@ -234,8 +234,8 @@ class TestWDRT(unittest.TestCase):
 
     def test_shortterm_extreme(self):
         methods = ['peaks_weibull', 'peaks_weibull_tail_fit',
-                    'peaks_over_threshold', 'block_maxima_gev',
-                    'block_maxima_gumbel']
+                   'peaks_over_threshold', 'block_maxima_gev',
+                   'block_maxima_gumbel']
         filename = "time_series_for_extremes.txt"
         data = np.loadtxt(os.path.join(datadir, filename))
         t = data[:, 0]

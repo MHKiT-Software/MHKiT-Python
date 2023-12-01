@@ -58,11 +58,11 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[],to_pandas=True):
         if not isinstance(data_signal, list):
             raise TypeError(
                 f'data_signal must be of type list. Got: {type(data_signal)}')
-    
+
     # Pre-allocate variable dictionaries
     bin_stat_list = {}
     bin_std_list = {}
-    
+
     # loop through data_signal and get binned means
     for signal_name in data_signal:
         # Bin data
