@@ -856,7 +856,7 @@ def mler_wave_amp_normalize(wave_amp, mler, sim, k, to_pandas=True):
     # rescale the wave spectral amplitude coefficients
     mler_norm = mler['WaveSpectrum'] * rescale_fact**2
     mler_norm = mler_norm.to_dataset()
-    mler_norm = mler_norm.assign({'Phase': ('frequency', mler['Phase'].data)})
+    mler_norm = mler_norm.assign({'Phase': (coord_names[0], mler['Phase'].data)})
     
     if to_pandas:
         mler_norm = mler_norm.to_pandas()
