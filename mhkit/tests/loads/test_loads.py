@@ -48,6 +48,8 @@ class TestLoads(unittest.TestCase):
         load_means = self.data['means']
         bin_against = load_means['uWind_80m']
         [b_means, b_means_std] = loads.general.bin_statistics(load_means, bin_against, bin_edges)
+        b_means.index.name = None # compatibility with old test data
+        b_means_std.index.name = None # compatibility with old test data
 
         assert_frame_equal(self.data['bin_means'],b_means)
         assert_frame_equal(self.data['bin_means_std'],b_means_std)
@@ -61,6 +63,8 @@ class TestLoads(unittest.TestCase):
         load_means = load_means.to_xarray()
         bin_against = load_means['uWind_80m']
         [b_means, b_means_std] = loads.general.bin_statistics(load_means, bin_against, bin_edges)
+        b_means.index.name = None # compatibility with old test data
+        b_means_std.index.name = None # compatibility with old test data
 
         assert_frame_equal(self.data['bin_means'],b_means)
         assert_frame_equal(self.data['bin_means_std'],b_means_std)
@@ -96,13 +100,13 @@ class TestLoads(unittest.TestCase):
 
         # Generate plot
         loads.graphics.plot_statistics( self.data['means']['uWind_80m'],
-                               self.data['means']['TB_ForeAft'],
-                               self.data['maxs']['TB_ForeAft'],
-                               self.data['mins']['TB_ForeAft'],
-                               y_stdev=self.data['std']['TB_ForeAft'],
-                               x_label='Wind Speed [m/s]',
-                               y_label='Tower Base Mom [kNm]',
-                               save_path=savepath)
+                                self.data['means']['TB_ForeAft'],
+                                self.data['maxs']['TB_ForeAft'],
+                                self.data['mins']['TB_ForeAft'],
+                                y_stdev=self.data['std']['TB_ForeAft'],
+                                x_label='Wind Speed [m/s]',
+                                y_label='Tower Base Mom [kNm]',
+                                save_path=savepath)
 
         self.assertTrue(isfile(savepath))
 
@@ -158,6 +162,19 @@ class TestWDRT(unittest.TestCase):
         assert_series_equal(mler_data['Phase'], self.mler['phase'],
                             check_exact=False, check_names=False, rtol=0.001)
 
+    def test_mler_coefficients_xarray(self):
+        Hs = 9.0  # significant wave height
+        Tp = 15.1  # time period of waves
+        pm = resource.pierson_moskowitz_spectrum(self.wave_freq, Tp, Hs)
+        mler_data = loads.extreme.mler_coefficients(
+            self.mler['RAO'].astype(complex).to_xarray(), pm, 1)
+        mler_data.reset_index(drop=True, inplace=True)
+
+        assert_series_equal(mler_data['WaveSpectrum'], self.mler['Res_Spec'],
+                            check_exact=False, check_names=False, atol=0.001)
+        assert_series_equal(mler_data['Phase'], self.mler['phase'],
+                            check_exact=False, check_names=False, rtol=0.001)
+
     def test_mler_simulation(self):
         T = np.linspace(-150, 150, 301)
         X = np.linspace(-300, 300, 601)
@@ -189,6 +206,7 @@ class TestWDRT(unittest.TestCase):
         RAO = self.mler['RAO'].astype(complex)
         mler_ts = loads.extreme.mler_export_time_series(
             RAO.values, mler, self.sim, k.k.values)
+        mler_ts.index.name = None # compatibility with old data
 
         assert_frame_equal(self.mler_ts, mler_ts, atol=0.0001)
 
@@ -216,8 +234,8 @@ class TestWDRT(unittest.TestCase):
 
     def test_shortterm_extreme(self):
         methods = ['peaks_weibull', 'peaks_weibull_tail_fit',
-                   'peaks_over_threshold', 'block_maxima_gev',
-                   'block_maxima_gumbel']
+                    'peaks_over_threshold', 'block_maxima_gev',
+                    'block_maxima_gumbel']
         filename = "time_series_for_extremes.txt"
         data = np.loadtxt(os.path.join(datadir, filename))
         t = data[:, 0]
