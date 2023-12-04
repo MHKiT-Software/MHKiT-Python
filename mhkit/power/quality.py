@@ -1,17 +1,17 @@
 import pandas as pd
 import numpy as np
 from scipy import fftpack
-
+import xarray as xr
 
 # This group of functions are to be used for power quality assessments
 
-def harmonics(x, freq, grid_freq):
+def harmonics(x, freq, grid_freq, to_pandas=True):
     """
     Calculates the harmonics from time series of voltage or current based on IEC 61000-4-7. 
 
     Parameters
     -----------
-    x: pandas Series or DataFrame
+    x: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Time-series of voltage [V] or current [A]
 
     freq: float or Int
@@ -19,15 +19,17 @@ def harmonics(x, freq, grid_freq):
 
     grid_freq: int
         Value indicating if the power supply is 50 or 60 Hz. Options = 50 or 60
-
+        
+    to_pandas: bool (Optional)
+        Flag to save output to pandas instead of xarray. Default = True.
 
     Returns
     --------
-    harmonics: pandas DataFrame 
+    harmonics: pandas DataFrame  or xarray Dataset
         Amplitude of the time-series data harmonics indexed by the harmonic 
         frequency with signal name columns
     """
-    if not isinstance(x, (pd.Series, pd.DataFrame)):
+    if not isinstance(x, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise ValueError(
             'Provided voltage or current must be of type pd.DataFrame or pd.Series')
 
@@ -37,8 +39,11 @@ def harmonics(x, freq, grid_freq):
     if grid_freq not in [50, 60]:
         raise ValueError('grid_freq must be either 50 or 60')
 
+    if isinstance(x, (pd.DataFrame, pd.Series)):
+        x = x.to_xarray()
+        
     # Check if x is a DataFrame
-    if isinstance(x, (pd.DataFrame)) == True:
+    if isinstance(x, (pd.DataFrame)):
         cols = x.columns
 
     x = x.to_numpy()
@@ -61,28 +66,35 @@ def harmonics(x, freq, grid_freq):
 
     harmonics = harmonics.reindex(hz, method='nearest')
     harmonics = harmonics/len(x)*2
+    
+    if to_pandas:
+        harmonics = harmonics.to_pandas()
 
     return harmonics
 
 
-def harmonic_subgroups(harmonics, grid_freq):
+def harmonic_subgroups(harmonics, grid_freq, to_pandas=True):
     """
     Calculates the harmonic subgroups based on IEC 61000-4-7
 
     Parameters
     ----------
-    harmonics: pandas Series or DataFrame 
+    harmonics: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Harmonic amplitude indexed by the harmonic frequency 
+        
     grid_freq: int
         Value indicating if the power supply is 50 or 60 Hz. Options = 50 or 60
+        
+    to_pandas: bool (Optional)
+        Flag to save output to pandas instead of xarray. Default = True.
 
     Returns
     --------
-    harmonic_subgroups: pandas DataFrame
+    harmonic_subgroups: pandas DataFrame or xarray Dataset
         Harmonic subgroups indexed by harmonic frequency 
         with signal name columns
     """
-    if not isinstance(harmonics, (pd.Series, pd.DataFrame)):
+    if not isinstance(harmonics, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise ValueError('harmonics must be of type pd.DataFrame or pd.Series')
 
     if grid_freq not in [50, 60]:
@@ -120,28 +132,34 @@ def harmonic_subgroups(harmonics, grid_freq):
     # Keep the signal name as the column name
     if 'cols' in locals():
         harmonic_subgroups.columns = cols
+    
+    if to_pandas:
+        harmonic_subgroups = harmonic_subgroups.to_pandas()
 
     return harmonic_subgroups
 
 
-def total_harmonic_current_distortion(harmonics_subgroup, rated_current):
+def total_harmonic_current_distortion(harmonics_subgroup, rated_current, to_pandas=True):
     """
     Calculates the total harmonic current distortion (THC) based on IEC/TS 62600-30
 
     Parameters
     ----------
-    harmonics_subgroup: pandas DataFrame or Series
+    harmonics_subgroup: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Subgrouped current harmonics indexed by harmonic frequency
 
     rated_current: float
         Rated current of the energy device in Amps
+        
+    to_pandas: bool (Optional)
+        Flag to save output to pandas instead of xarray. Default = True.
 
     Returns
     --------
-    THCD: pd.DataFrame
+    THCD: pd.DataFrame or xarray Dataset
         Total harmonic current distortion indexed by signal name with THCD column 
     """
-    if not isinstance(harmonics_subgroup, (pd.Series, pd.DataFrame)):
+    if not isinstance(harmonics_subgroup, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise ValueError(
             'harmonic_subgroups must be of type pd.DataFrame or pd.Series')
 
@@ -156,28 +174,34 @@ def total_harmonic_current_distortion(harmonics_subgroup, rated_current):
     THCD = pd.DataFrame(THCD)  # converting to dataframe for Matlab
     THCD.columns = ['THCD']
     THCD = THCD.T
+    
+    if to_pandas:
+        THCD = THCD.to_pandas()
 
     return THCD
 
 
-def interharmonics(harmonics, grid_freq):
+def interharmonics(harmonics, grid_freq, to_pandas=True):
     """
     Calculates the interharmonics from the harmonics of current
 
     Parameters
     -----------
-    harmonics: pandas Series or DataFrame 
+    harmonics: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Harmonic amplitude indexed by the harmonic frequency 
 
     grid_freq: int
         Value indicating if the power supply is 50 or 60 Hz. Options = 50 or 60
+        
+    to_pandas: bool (Optional)
+        Flag to save output to pandas instead of xarray. Default = True.
 
     Returns
     -------
-    interharmonics: pandas DataFrame
+    interharmonics: pandas DataFrame or xarray Dataset
         Interharmonics groups
     """
-    if not isinstance(harmonics, (pd.Series, pd.DataFrame)):
+    if not isinstance(harmonics, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise ValueError('harmonics must be of type pd.DataFrame or pd.Series')
 
     if grid_freq not in [50, 60]:
@@ -212,5 +236,8 @@ def interharmonics(harmonics, grid_freq):
         i = i+1
 
     interharmonics = pd.DataFrame(interharmonics, index=hz)
+    
+    if to_pandas:
+        interharmonics = interharmonics.to_pandas()
 
     return interharmonics
