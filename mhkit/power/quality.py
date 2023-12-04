@@ -41,30 +41,41 @@ def harmonics(x, freq, grid_freq, to_pandas=True):
 
     if isinstance(x, (pd.DataFrame, pd.Series)):
         x = x.to_xarray()
-        
-    # Check if x is a DataFrame
-    if isinstance(x, (pd.DataFrame)):
-        cols = x.columns
-
-    x = x.to_numpy()
+    
     sample_spacing = 1./freq
-    frequency_bin_centers = fftpack.fftfreq(len(x), d=sample_spacing)
-
-    harmonics_amplitude = np.abs(np.fft.fft(x, axis=0))
-
-    harmonics = pd.DataFrame(harmonics_amplitude, index=frequency_bin_centers)
-    harmonics = harmonics.sort_index()
-
-    # Keep the signal name as the column name
-    if 'cols' in locals():
-        harmonics.columns = cols
+    
+    # Handle multi variable input
+    if isinstance(x, (xr.Dataset)):
+        harmonics = xr.Dataset()
+        cols = list(x.data_vars)
+        for var in x.data_vars:
+            dataarray = x[var]
+            dataarray = dataarray.to_numpy()
+            
+            frequency_bin_centers = fftpack.fftfreq(len(dataarray), d=sample_spacing)
+            harmonics_amplitude = np.abs(np.fft.fft(dataarray, axis=0))
+            
+            harmonics.assign({var: (['frequency'], harmonics_amplitude)})
+            harmonics.assign_coords({'frequency': frequency_bin_centers})
+    else:
+        cols = x.name
+        x = x.to_numpy()
+        frequency_bin_centers = fftpack.fftfreq(len(x), d=sample_spacing)
+    
+        harmonics_amplitude = np.abs(np.fft.fft(x, axis=0))
+        harmonics = xr.DataArray(data=harmonics_amplitude,
+                                 dims='frequency',
+                                 coords={'frequency': frequency_bin_centers},
+                                 name = cols)
+    
+    harmonics = harmonics.sortby('frequency')
 
     if grid_freq == 60:
         hz = np.arange(0, 3060, 5)
     elif grid_freq == 50:
         hz = np.arange(0, 2570, 5)
 
-    harmonics = harmonics.reindex(hz, method='nearest')
+    harmonics = harmonics.reindex({'frequency': hz}, method='nearest')
     harmonics = harmonics/len(x)*2
     
     if to_pandas:
@@ -100,46 +111,57 @@ def harmonic_subgroups(harmonics, grid_freq, to_pandas=True):
     if grid_freq not in [50, 60]:
         raise ValueError('grid_freq must be either 50 or 60')
 
-    # Check if harmonics is a DataFrame
-    if isinstance(harmonics, pd.DataFrame):
-        cols = harmonics.columns
+    if isinstance(harmonics, (pd.DataFrame, pd.Series)):
+        harmonics = harmonics.to_xarray()
 
     if grid_freq == 60:
         hz = np.arange(0, 3060, 60)
     else:
         hz = np.arange(0, 2550, 50)
-
-    j = 0
-    i = 0
-    cols = harmonics.columns
-    harmonic_subgroups = np.ones((np.size(hz), np.size(cols)))
-    for n in hz:
-
-        harmonics = harmonics.sort_index(axis=0)
-        ind = pd.Index(harmonics.index)
-
-        indn = ind.get_indexer([n], method='nearest')[0]
-
-        for col in cols:
-            harmonic_subgroups[i, j] = np.sqrt(np.sum(
-                [harmonics[col].iloc[indn-1]**2, harmonics[col].iloc[indn]**2, harmonics[col].iloc[indn+1]**2]))
-            j = j+1
-        j = 0
-        i = i+1
-
-    harmonic_subgroups = pd.DataFrame(harmonic_subgroups, index=hz)
-
-    # Keep the signal name as the column name
-    if 'cols' in locals():
-        harmonic_subgroups.columns = cols
     
+    # Sort input data index
+    dim = list(harmonics.dims)[0]
+    harmonics = harmonics.sortby(dim)
+    
+    # Handle multi variable input
+    if isinstance(harmonics, xr.Dataset):
+        harmonic_subgroups = xr.Dataset()
+        
+        for var in harmonics.data_vars:
+            dataarray = harmonics[var]
+            subgroup = np.zeros(np.size(hz))
+            
+            for ihz in np.arange(0,len(hz)):
+                n = hz[ihz] 
+                ind = dataarray.indexes[dim].get_loc(n)
+                
+                data_subset = dataarray.isel({dim:[ind-1, ind, ind+1]})
+                subgroup[ihz] = (data_subset**2).sum()**0.5
+                
+            harmonic_subgroups.assign({var: (['frequency'], subgroup)})
+            harmonic_subgroups.assign_coords({'frequency': hz})
+    else:
+        subgroup = np.zeros(np.size(hz))
+        
+        for ihz in np.arange(0,len(hz)):
+            n = hz[ihz] 
+            ind = harmonics.indexes[dim].get_loc(n)
+            
+            data_subset = harmonics.isel({dim:[ind-1, ind, ind+1]})
+            subgroup[ihz] = (data_subset**2).sum()**0.5
+            
+        harmonic_subgroups = xr.DataArray(data = subgroup,
+                                          dims = 'frequency',
+                                          coords = {'frequency': hz},
+                                          name = harmonics.name)
+
     if to_pandas:
         harmonic_subgroups = harmonic_subgroups.to_pandas()
 
     return harmonic_subgroups
 
 
-def total_harmonic_current_distortion(harmonics_subgroup, rated_current, to_pandas=True):
+def total_harmonic_current_distortion(harmonics_subgroup, to_pandas=True):
     """
     Calculates the total harmonic current distortion (THC) based on IEC/TS 62600-30
 
@@ -147,9 +169,6 @@ def total_harmonic_current_distortion(harmonics_subgroup, rated_current, to_pand
     ----------
     harmonics_subgroup: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Subgrouped current harmonics indexed by harmonic frequency
-
-    rated_current: float
-        Rated current of the energy device in Amps
         
     to_pandas: bool (Optional)
         Flag to save output to pandas instead of xarray. Default = True.
@@ -163,17 +182,19 @@ def total_harmonic_current_distortion(harmonics_subgroup, rated_current, to_pand
         raise ValueError(
             'harmonic_subgroups must be of type pd.DataFrame or pd.Series')
 
-    if not isinstance(rated_current, float):
-        raise ValueError('rated_current must be a float')
-
-    harmonics_sq = harmonics_subgroup.iloc[2:50]**2
-
+    if isinstance(harmonics_subgroup, (pd.DataFrame, pd.Series)):
+        harmonics_subgroup = harmonics_subgroup.to_xarray()
+    
+    dim = list(harmonics_subgroup.dims)[0]
+    harmonics_sq = harmonics_subgroup.isel({dim: slice(2,50)})**2
     harmonics_sum = harmonics_sq.sum()
 
-    THCD = (np.sqrt(harmonics_sum)/harmonics_subgroup.iloc[1])*100
-    THCD = pd.DataFrame(THCD)  # converting to dataframe for Matlab
-    THCD.columns = ['THCD']
-    THCD = THCD.T
+    THCD = (np.sqrt(harmonics_sum)/harmonics_subgroup.isel({dim: 1}))*100
+    
+    if isinstance(THCD, xr.DataArray):
+        THCD.name = ['THCD']
+    
+    THCD = THCD.transpose()
     
     if to_pandas:
         THCD = THCD.to_pandas()
@@ -211,31 +232,50 @@ def interharmonics(harmonics, grid_freq, to_pandas=True):
         hz = np.arange(0, 3060, 60)
     elif grid_freq == 50:
         hz = np.arange(0, 2550, 50)
-
-    j = 0
-    i = 0
-    cols = harmonics.columns
-    interharmonics = np.ones((np.size(hz), np.size(cols)))
-    for n in hz:
-        harmonics = harmonics.sort_index(axis=0)
-        ind = pd.Index(harmonics.index)
-
-        indn = ind.get_indexer([n], method='nearest')[0]
-
-        for col in cols:
+        
+    # Sort input data index
+    dim = list(harmonics.dims)[0]
+    harmonics = harmonics.sortby(dim)
+    
+    # Handle multi variable input
+    if isinstance(harmonics, xr.Dataset):
+        interharmonics = xr.Dataset()
+        
+        for var in harmonics.data_vars:
+            dataarray = harmonics[var]
+            subset = np.zeros(np.size(hz))
+            
+            for ihz in np.arange(0,len(hz)):
+                n = hz[ihz] 
+                ind = dataarray.indexes[dim].get_loc(n)
+                
+                if grid_freq == 60:
+                    data = dataarray.isel({dim:slice(ind+1,ind+11)})
+                    subset[ihz] = (data**2).sum()**0.5
+                else:
+                    data = dataarray.isel({dim:slice(ind+1,ind+7)})
+                    subset[ihz] = (data**2).sum()**0.5
+                
+            interharmonics.assign({var: (['frequency'], subset)})
+            interharmonics.assign_coords({'frequency': hz})
+    else:
+        subset = np.zeros(np.size(hz))
+        
+        for ihz in np.arange(0,len(hz)):
+            n = hz[ihz] 
+            ind = harmonics.indexes[dim].get_loc(n)    
+            
             if grid_freq == 60:
-                subset = harmonics[col].iloc[indn+1:indn+11]**2
-                subset = subset.squeeze()
+                data = harmonics.isel({dim:slice(ind+1,ind+11)})
+                subset[ihz] = (data**2).sum()**0.5
             else:
-                subset = harmonics[col].iloc[indn+1:indn+7]**2
-                subset = subset.squeeze()
-
-            interharmonics[i, j] = np.sqrt(np.sum(subset))
-            j = j+1
-        j = 0
-        i = i+1
-
-    interharmonics = pd.DataFrame(interharmonics, index=hz)
+                data = harmonics.isel({dim:slice(ind+1,ind+7)})
+                subset[ihz] = (data**2).sum()**0.5
+                
+        interharmonics = xr.DataArray(data = subset,
+                                          dims = 'frequency',
+                                          coords = {'frequency': hz},
+                                          name = harmonics.name)
     
     if to_pandas:
         interharmonics = interharmonics.to_pandas()
