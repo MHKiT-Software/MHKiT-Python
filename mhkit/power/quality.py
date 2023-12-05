@@ -25,7 +25,7 @@ def harmonics(x, freq, grid_freq, to_pandas=True):
 
     Returns
     --------
-    harmonics: pandas DataFrame  or xarray Dataset
+    harmonics: pandas DataFrame or xarray Dataset
         Amplitude of the time-series data harmonics indexed by the harmonic 
         frequency with signal name columns
     """
