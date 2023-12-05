@@ -8,7 +8,6 @@ def instantaneous_frequency(um, to_pandas=True):
 
     """
     Calculates instantaneous frequency of measured voltage
-    
      
     Parameters
     -----------
@@ -25,7 +24,8 @@ def instantaneous_frequency(um, to_pandas=True):
         with signal name columns
     """  
     if not isinstance(um, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
-        raise TypeError(f'um must be of type pd.Series or pd.DataFrame. Got: {type(um)}')
+        raise TypeError('um must be of type pd.Series, pd.DataFrame, ' + 
+                        f'xr.DataArray, or xr.Dataset. Got{type(um)}')
    
     if isinstance(um.index[0], datetime.datetime):
         t = (um.index - datetime.datetime(1970,1,1)).total_seconds()
@@ -74,9 +74,11 @@ def dc_power(voltage, current, to_pandas=True):
         DC power [W] from each channel and gross power indexed by time
     """
     if not isinstance(voltage, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
-        raise TypeError(f'voltage must be of type pd.Series or pd.DataFrame. Got: {type(voltage)}')
+        raise TypeError('voltage must be of type pd.Series, pd.DataFrame, ' + 
+                        f'xr.DataArray, or xr.Dataset. Got{type(voltage)}')
     if not isinstance(current, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
-        raise TypeError(f'current must be of type pd.Series or pd.DataFrame. Got: {type(current)}')
+        raise TypeError('current must be of type pd.Series, pd.DataFrame, ' + 
+                        f'xr.DataArray, or xr.Dataset. Got{type(current)}')
     if not voltage.shape == current.shape:
         raise ValueError('current and volatge must have the same shape')
     
@@ -122,9 +124,11 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False, to_
         Magnitude of active AC power [W] indexed by time with Power column 
     """
     if not isinstance(voltage, (pd.DataFrame, xr.Dataset)):
-        raise TypeError(f'voltage must be of type pd.DataFrame. Got: {type(voltage)}')
+        raise TypeError('current must be of type pd.DataFrame ' + 
+                        f'or xr.Dataset. Got{type(current)}')
     if not isinstance(current, (pd.DataFrame, xr.Dataset)):
-        raise TypeError(f'current must be of type pd.DataFrame. Got: {type(current)}')
+        raise TypeError('current must be of type pd.DataFrame ' + 
+                        f'or xr.Dataset. Got{type(current)}')
     if not len(voltage.columns) == 3:
         raise ValueError('voltage must have three columns')
     if not len(current.columns) == 3:
