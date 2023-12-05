@@ -55,8 +55,8 @@ def harmonics(x, freq, grid_freq, to_pandas=True):
             frequency_bin_centers = fftpack.fftfreq(len(dataarray), d=sample_spacing)
             harmonics_amplitude = np.abs(np.fft.fft(dataarray, axis=0))
             
-            harmonics.assign({var: (['frequency'], harmonics_amplitude)})
-            harmonics.assign_coords({'frequency': frequency_bin_centers})
+            harmonics = harmonics.assign({var: (['frequency'], harmonics_amplitude)})
+            harmonics = harmonics.assign_coords({'frequency': frequency_bin_centers})
     else:
         cols = x.name
         x = x.to_numpy()
@@ -138,8 +138,8 @@ def harmonic_subgroups(harmonics, grid_freq, to_pandas=True):
                 data_subset = dataarray.isel({dim:[ind-1, ind, ind+1]})
                 subgroup[ihz] = (data_subset**2).sum()**0.5
                 
-            harmonic_subgroups.assign({var: (['frequency'], subgroup)})
-            harmonic_subgroups.assign_coords({'frequency': hz})
+            harmonic_subgroups = harmonic_subgroups.assign({var: (['frequency'], subgroup)})
+            harmonic_subgroups = harmonic_subgroups.assign_coords({'frequency': hz})
     else:
         subgroup = np.zeros(np.size(hz))
         
@@ -228,6 +228,9 @@ def interharmonics(harmonics, grid_freq, to_pandas=True):
     if grid_freq not in [50, 60]:
         raise ValueError('grid_freq must be either 50 or 60')
 
+    if isinstance(harmonics, (pd.DataFrame, pd.Series)):
+        harmonics = harmonics.to_xarray()
+    
     if grid_freq == 60:
         hz = np.arange(0, 3060, 60)
     elif grid_freq == 50:
@@ -256,8 +259,8 @@ def interharmonics(harmonics, grid_freq, to_pandas=True):
                     data = dataarray.isel({dim:slice(ind+1,ind+7)})
                     subset[ihz] = (data**2).sum()**0.5
                 
-            interharmonics.assign({var: (['frequency'], subset)})
-            interharmonics.assign_coords({'frequency': hz})
+            interharmonics = interharmonics.assign({var: (['frequency'], subset)})
+            interharmonics = interharmonics.assign_coords({'frequency': hz})
     else:
         subset = np.zeros(np.size(hz))
         
