@@ -24,9 +24,9 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[],to_pandas=True):
     
     Returns
     --------
-    bin_mean : pandas DataFrame
+    bin_mean : pandas DataFrame or xarray Dataset
         Mean of each bin
-    bin_std : pandas DataFrame
+    bin_std : pandas DataFrame or xarray Dataset
         Standard deviation of each bim
     """
 

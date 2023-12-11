@@ -611,7 +611,7 @@ def full_seastate_long_term_extreme(ste, weights):
     return _LongTermExtreme(name="long_term_extreme", weights=weights, ste=ste)
 
 
-def mler_coefficients(rao, wave_spectrum, response_desired, to_pandas=True):
+def mler_coefficients(rao, wave_spectrum, response_desired, dimension="", to_pandas=True):
     """
     Calculate MLER (most likely extreme response) coefficients from a
     sea state spectrum and a response RAO.
@@ -620,17 +620,21 @@ def mler_coefficients(rao, wave_spectrum, response_desired, to_pandas=True):
     ----------
     rao: numpy ndarray
         Response amplitude operator.
-    wave_spectrum: pd.DataFrame or xarray Dataset
-        Wave spectral density [m^2/Hz] indexed by frequency [Hz].
+    wave_spectrum: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
+        Wave spectral density [m^2/Hz] indexed by frequency [Hz]. 
+        DataFrame and Dataset inputs should only have one data variable
     response_desired: int or float
         Desired response, units should correspond to a motion RAO or
         units of force for a force RAO.
+    dimension: string (optional)
+        Name of the xarray dimension corresponding to time.
+        If not supplied, time is assumed to be the first dimension.
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
     Returns
     -------
-    mler: pd.DataFrame
+    mler: pandas DataFrame or xarray Dataset
         DataFrame containing conditioned wave spectral amplitude
         coefficient [m^2-s], and Phase [rad] indexed by freq [Hz].
     """
@@ -651,57 +655,58 @@ def mler_coefficients(rao, wave_spectrum, response_desired, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(
             f'to_pandas must be of type bool. Got: {type(to_pandas)}')
+
+    # Convert input to xarray DataArray
+    if isinstance(wave_spectrum, (pd.Series, pd.DataFrame)):
+        wave_spectrum = wave_spectrum.squeeze().to_xarray()
     
-    # If input is pandas, convert to xarray
-    if isinstance(wave_spectrum,pd.DataFrame):
-        wave_spectrum = wave_spectrum.to_xarray()
-    
+    if isinstance(wave_spectrum, xr.Dataset):
+        if len(wave_spectrum.data_vars) > 1:
+            raise ValueError(
+                f'wave_spectrum can only contain one variable. Got {list(wave_spectrum.data_vars)}.')
+        wave_spectrum = wave_spectrum.to_array()
+
+    if dimension == "":
+        dimension = list(wave_spectrum.coords)[0]
+
     # convert from Hz to rad/s
-    freq_hz = wave_spectrum.index.values
+    freq_hz = wave_spectrum.coords[dimension].values
     freq = freq_hz * (2*np.pi)
-    key_name = list(wave_spectrum.keys())[0]
-    wave_spectrum = wave_spectrum[key_name].values / (2*np.pi)
-    
-    # get delta
-    dw = (2*np.pi - 0.) / (len(freq)-1)
-    
-    spectrum_r = np.zeros(len(freq))  # [(response units)^2-s/rad]
-    _s = np.zeros(len(freq))  # [m^2-s/rad]
-    _a = np.zeros(len(freq))  # [m^2-s/rad]
-    _coeff_a_rn = np.zeros(len(freq))  # [1/(response units)]
-    _phase = np.zeros(len(freq))
-    
+    wave_spectrum = wave_spectrum.to_numpy() / (2*np.pi)
+
+    # get frequency step
+    dw = 2.0*np.pi / (len(freq)-1)
+
     # Note: waves.A is "S" in Quon2016; 'waves' naming convention
     # matches WEC-Sim conventions (EWQ)
     # Response spectrum [(response units)^2-s/rad] -- Quon2016 Eqn. 3
-    spectrum_r[:] = np.abs(rao)**2 * (2*wave_spectrum)
-    
+    spectrum_r = np.abs(rao)**2 * (2*wave_spectrum)
+
     # calculate spectral moments and other important spectral values.
     m0 = (frequency_moment(pd.Series(spectrum_r, index=freq), 0)).iloc[0, 0]
     m1 = (frequency_moment(pd.Series(spectrum_r, index=freq), 1)).iloc[0, 0]
     m2 = (frequency_moment(pd.Series(spectrum_r, index=freq), 2)).iloc[0, 0]
     wBar = m1 / m0
-    
+
     # calculate coefficient A_{R,n} [(response units)^-1] -- Quon2016 Eqn. 8
     # Drummen version.  Dietz has negative of this.
-    _coeff_a_rn[:] = np.abs(rao) * np.sqrt(2*wave_spectrum*dw) * \
+    _coeff_a_rn = np.abs(rao) * np.sqrt(2*wave_spectrum*dw) * \
         ((m2 - freq*m1) + wBar*(freq*m0 - m1)) / (m0*m2 - m1**2)
-    
+
     # save the new spectral info to pass out
     # Phase delay should be a positive number in this convention (AP)
-    _phase[:] = -np.unwrap(np.angle(rao))
-    
+    _phase = -np.unwrap(np.angle(rao))
+
     # for negative values of Amp, shift phase by pi and flip sign
     # for negative amplitudes, add a pi phase shift, then flip sign on
     # negative Amplitudes
     _phase[_coeff_a_rn < 0] -= np.pi
     _coeff_a_rn[_coeff_a_rn < 0] *= -1
-    
+
     # calculate the conditioned spectrum [m^2-s/rad]
-    _s[:] = wave_spectrum * _coeff_a_rn[:]**2 * response_desired**2
-    _a[:] = 2*wave_spectrum * _coeff_a_rn[:]**2 * \
-        response_desired**2
-    
+    _s = wave_spectrum * _coeff_a_rn**2 * response_desired**2
+    _a = 2*wave_spectrum * _coeff_a_rn**2 * response_desired**2
+
     # if the response amplitude we ask for is negative, we will add
     # a pi phase shift to the phase information.  This is because
     # the sign of self.desiredRespAmp is lost in the squaring above.
@@ -710,16 +715,16 @@ def mler_coefficients(rao, wave_spectrum, response_desired, to_pandas=True):
     # new spectral information, S. (AP)
     if response_desired < 0:
         _phase += np.pi
-    
+
     mler = xr.Dataset(data_vars = {'WaveSpectrum': (['frequency'], _s),
                                   'Phase': (['frequency'], _phase)},
                       coords = {'frequency': freq_hz}
                       )
     mler.fillna(0)
-    
+
     if to_pandas:
         mler = mler.to_pandas()
-        
+
     return mler
 
 
@@ -782,7 +787,7 @@ def mler_simulation(parameters=None):
     return sim
 
 
-def mler_wave_amp_normalize(wave_amp, mler, sim, k, to_pandas=True):
+def mler_wave_amp_normalize(wave_amp, mler, sim, k, dimension="", to_pandas=True):
     """
     Function that renormalizes the incoming amplitude of the MLER wave
     to the desired peak height (peak to MSL).
@@ -798,12 +803,15 @@ def mler_wave_amp_normalize(wave_amp, mler, sim, k, to_pandas=True):
         'mler_simulation'.
     k: numpy ndarray
         Wave number
+    dimension: string (optional)
+        Name of the xarray dimension corresponding to time.
+        If not supplied, time is assumed to be the first dimension.
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
     Returns
     -------
-    mler_norm : pd.DataFrame
+    mler_norm : pandas DataFrame or xarray Dataset
         MLER coefficients
     """
     try:
@@ -829,11 +837,12 @@ def mler_wave_amp_normalize(wave_amp, mler, sim, k, to_pandas=True):
     # If input is pandas, convert to xarray
     if isinstance(mler,pd.DataFrame):
         mler = mler.to_xarray()
-    
-    coord_names = list(mler.coords)
-    freq = mler.coords[coord_names[0]].values * 2*np.pi
+
+    if dimension == "":
+        dimension = list(mler.coords)[0]
+    freq = mler.coords[dimension].values * 2*np.pi
     dw = (max(freq) - min(freq)) / (len(freq)-1)  # get delta
-    
+
     wave_amp_time = np.zeros((sim['maxIX'], sim['maxIT']))
     for ix, x in enumerate(sim['X']):
         for it, t in enumerate(sim['T']):
@@ -842,24 +851,24 @@ def mler_wave_amp_normalize(wave_amp, mler, sim, k, to_pandas=True):
                 np.sqrt(2*mler['WaveSpectrum']*dw) *
                 np.cos(freq*(t-sim['T0']) - k*(x-sim['X0']) + mler['Phase'])
             )
-    
+
     tmp_max_amp = np.max(np.abs(wave_amp_time))
-    
+
     # renormalization of wave amplitudes
     rescale_fact = np.abs(wave_amp) / np.abs(tmp_max_amp)
-    
+
     # rescale the wave spectral amplitude coefficients
     mler_norm = mler['WaveSpectrum'] * rescale_fact**2
     mler_norm = mler_norm.to_dataset()
-    mler_norm = mler_norm.assign({'Phase': (coord_names[0], mler['Phase'].data)})
-    
+    mler_norm = mler_norm.assign({'Phase': (dimension, mler['Phase'].data)})
+
     if to_pandas:
         mler_norm = mler_norm.to_pandas()
-    
+
     return mler_norm
 
 
-def mler_export_time_series(rao, mler, sim, k, to_pandas=True):
+def mler_export_time_series(rao, mler, sim, k, dimension="", to_pandas=True):
     """
     Generate the wave amplitude time series at X0 from the calculated
     MLER coefficients
@@ -875,12 +884,15 @@ def mler_export_time_series(rao, mler, sim, k, to_pandas=True):
         'mler_simulation'.
     k: numpy ndarray
         Wave number.
+    dimension: string (optional)
+        Name of the xarray dimension corresponding to time.
+        If not supplied, time is assumed to be the first dimension.
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
     Returns
     -------
-    mler_ts: pd.DataFrame
+    mler_ts: pandas DataFrame or xarray Dataset
         Time series of wave height [m] and linear response [*] indexed
         by time [s].
 
@@ -912,9 +924,10 @@ def mler_export_time_series(rao, mler, sim, k, to_pandas=True):
     # If input is pandas, convert to xarray
     if isinstance(mler,pd.DataFrame):
         mler = mler.to_xarray()
-    
-    coord_names = list(mler.coords)
-    freq = mler.coords[coord_names[0]].values * 2*np.pi
+
+    if dimension == "":
+        dimension = list(mler.coords)[0]
+    freq = mler.coords[dimension].values * 2*np.pi
     dw = (max(freq) - min(freq)) / (len(freq)-1)  # get delta
 
     # calculate the series
@@ -935,7 +948,7 @@ def mler_export_time_series(rao, mler, sim, k, to_pandas=True):
     mler_ts = xr.Dataset(data_vars = {'WaveHeight': (['time'], wave_amp_time[:,0]),
                                       'LinearResponse': (['time'], wave_amp_time[:,1])},
                          coords = {'time': sim['T']})
-    
+
     if to_pandas:
         mler_ts = mler_ts.to_pandas()
 
