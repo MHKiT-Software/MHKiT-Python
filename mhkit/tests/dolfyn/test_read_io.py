@@ -15,12 +15,18 @@ make_data = False
 class io_testcase(unittest.TestCase):
     def test_save(self):
         ds = tv.dat.copy(deep=True)
-
+        ds2 = tp.dat_sig.copy(deep=True)
         save_netcdf(ds, 'test_save')
+        save_netcdf(ds2, 'test_save_comp.nc', compression=True)
         save_matlab(ds, 'test_save')
 
         assert os.path.exists(rfnm('test_save.nc'))
+        assert os.path.exists(rfnm('test_save_comp.nc'))
         assert os.path.exists(rfnm('test_save.mat'))
+
+        os.remove(rfnm('test_save.nc'))
+        os.remove(rfnm('test_save_comp.nc'))
+        os.remove(rfnm('test_save.mat'))
 
     def test_matlab_io(self):
         nens = 100

@@ -300,7 +300,7 @@ def _calc_echo_struct(config, nc):
                                  'altraw', 'p_gd', 'std']]):
         raise Exception("Echosounder ping contains invalid data?")
     if flags['echo']:
-        dd += [('echo', 'H', [nc], _LinFunc(0.01, dtype=dt32), 'dB', 
+        dd += [('echo', 'H', [nc], _LinFunc(0.01, dtype=dt32), 'dB',
                 'Echo Sounder Acoustic Signal Backscatter', 'acoustic_target_strength_in_sea_water')]
     if flags['ahrs']:
         dd += _ahrs_def
@@ -323,14 +323,14 @@ def _calc_burst_struct(config, nb, nc):
     if flags['le']:
         # There may be a problem here with reading 32bit floats if
         # nb and nc are odd
-        dd += [('le_dist_alt', 'f', [], _LinFunc(dtype=dt32), 'm', 'Altimeter Range Leading Edge Algorithm', 
+        dd += [('le_dist_alt', 'f', [], _LinFunc(dtype=dt32), 'm', 'Altimeter Range Leading Edge Algorithm',
                 'altimeter_range'),
-               ('le_quality_alt', 'H', [], _LinFunc(0.01, dtype=dt32), 'dB', 
+               ('le_quality_alt', 'H', [], _LinFunc(0.01, dtype=dt32), 'dB',
                 'Altimeter Quality Indicator Leading Edge Algorithm'),
                ('status_alt', 'H', [], None, '1', 'Altimeter Status')]
     if flags['ast']:
         dd += [
-            ('ast_dist_alt', 'f', [], _LinFunc(dtype=dt32), 'm', 'Altimeter Range Acoustic Surface Tracking', 
+            ('ast_dist_alt', 'f', [], _LinFunc(dtype=dt32), 'm', 'Altimeter Range Acoustic Surface Tracking',
              'altimeter_range'),
             ('ast_quality_alt', 'H', [], _LinFunc(0.01, dtype=dt32), 'dB',
              'Altimeter Quality Indicator Acoustic Surface Tracking'),
