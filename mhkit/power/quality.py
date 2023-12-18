@@ -19,7 +19,7 @@ def harmonics(x, freq, grid_freq, to_pandas=True):
 
     grid_freq: int
         Value indicating if the power supply is 50 or 60 Hz. Options = 50 or 60
-        
+
     to_pandas: bool (Optional)
         Flag to save output to pandas instead of xarray. Default = True.
 
@@ -92,10 +92,10 @@ def harmonic_subgroups(harmonics, grid_freq, to_pandas=True):
     ----------
     harmonics: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Harmonic amplitude indexed by the harmonic frequency 
-        
+
     grid_freq: int
         Value indicating if the power supply is 50 or 60 Hz. Options = 50 or 60
-        
+
     to_pandas: bool (Optional)
         Flag to save output to pandas instead of xarray. Default = True.
 
@@ -170,7 +170,7 @@ def total_harmonic_current_distortion(harmonics_subgroup, to_pandas=True):
     ----------
     harmonics_subgroup: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Subgrouped current harmonics indexed by harmonic frequency
-        
+
     to_pandas: bool (Optional)
         Flag to save output to pandas instead of xarray. Default = True.
 
@@ -214,7 +214,7 @@ def interharmonics(harmonics, grid_freq, to_pandas=True):
 
     grid_freq: int
         Value indicating if the power supply is 50 or 60 Hz. Options = 50 or 60
-        
+
     to_pandas: bool (Optional)
         Flag to save output to pandas instead of xarray. Default = True.
 

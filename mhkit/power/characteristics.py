@@ -8,7 +8,7 @@ def instantaneous_frequency(um, dimension="", to_pandas=True):
 
     """
     Calculates instantaneous frequency of measured voltage
-     
+
     Parameters
     -----------
     um: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
@@ -17,10 +17,10 @@ def instantaneous_frequency(um, dimension="", to_pandas=True):
     dimension: string (optional)
         Name of the xarray dimension corresponding to time.
         If not supplied, time is assumed to be the first dimension.
-        
+
     to_pandas: bool (Optional)
         Flag to save output to pandas instead of xarray. Default = True.
-        
+
     Returns
     ---------
     frequency: pandas DataFrame or xarray Dataset
@@ -73,13 +73,13 @@ def dc_power(voltage, current, to_pandas=True):
     -----------
     voltage: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Measured DC voltage [V] indexed by time
-        
+
     current: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Measured three phase current [A] indexed by time
-        
+
     to_pandas: bool (Optional)
         Flag to save output to pandas instead of xarray. Default = True.
-    
+
     Returns
     --------
     P: pandas DataFrame or xarray Dataset
@@ -133,19 +133,19 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False, to_
     -----------
     voltage: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Measured DC voltage [V] indexed by time
-        
+
     current: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Measured three phase current [A] indexed by time
-        
+
     power_factor: float 
         Power factor for the efficiency of the system
-        
+
     line_to_line: bool (Optional)
         Set to true if the given voltage measurements are line_to_line
-        
+
     to_pandas: bool (Optional)
         Flag to save output to pandas instead of xarray. Default = True.
-    
+
     Returns
     --------
     P: pandas DataFrame or xarray Dataset
