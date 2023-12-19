@@ -39,8 +39,6 @@ def harmonics(x, freq, grid_freq, to_pandas=True):
     if grid_freq not in [50, 60]:
         raise ValueError('grid_freq must be either 50 or 60')
 
-    x_pd = x
-    
     # Convert input to xr.Dataset
     x = _convert_to_dataset(x, 'data')
 
@@ -65,7 +63,7 @@ def harmonics(x, freq, grid_freq, to_pandas=True):
         hz = np.arange(0, 2570, 5)
 
     harmonics = harmonics.reindex({'frequency': hz}, method='nearest')
-    harmonics = harmonics/len(x.data)*2
+    harmonics = harmonics/len(x[var])*2
     
     if to_pandas:
         harmonics = harmonics.to_pandas()
