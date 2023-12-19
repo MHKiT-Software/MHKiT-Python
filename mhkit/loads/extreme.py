@@ -627,10 +627,8 @@ def mler_coefficients(rao, wave_spectrum, response_desired, time_dimension="", t
         Desired response, units should correspond to a motion RAO or
         units of force for a force RAO.
     time_dimension: string (optional)
-        Name of the xarray dimension corresponding to time. Pandas only defines
-        1 dimension, so for Pandas input the index is assumed to be time.
-        If not supplied for xarray input, time is assumed to be the first 
-        dimension.
+        Name of the xarray dimension corresponding to time. If not supplied, 
+        defaults to the first dimension. Does not affect pandas input.
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
@@ -668,11 +666,11 @@ def mler_coefficients(rao, wave_spectrum, response_desired, time_dimension="", t
                 f'wave_spectrum can only contain one variable. Got {list(wave_spectrum.data_vars)}.')
         wave_spectrum = wave_spectrum.to_array()
 
-    if dimension == "":
-        dimension = list(wave_spectrum.coords)[0]
+    if time_dimension == "":
+        time_dimension = list(wave_spectrum.coords)[0]
 
     # convert from Hz to rad/s
-    freq_hz = wave_spectrum.coords[dimension].values
+    freq_hz = wave_spectrum.coords[time_dimension].values
     freq = freq_hz * (2*np.pi)
     wave_spectrum = wave_spectrum.to_numpy() / (2*np.pi)
 
@@ -806,10 +804,8 @@ def mler_wave_amp_normalize(wave_amp, mler, sim, k, time_dimension="", to_pandas
     k: numpy ndarray
         Wave number
     time_dimension: string (optional)
-        Name of the xarray dimension corresponding to time. Pandas only defines
-        1 dimension, so for Pandas input the index is assumed to be time.
-        If not supplied for xarray input, time is assumed to be the first 
-        dimension.
+        Name of the xarray dimension corresponding to time. If not supplied, 
+        defaults to the first dimension. Does not affect pandas input.
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
@@ -842,9 +838,9 @@ def mler_wave_amp_normalize(wave_amp, mler, sim, k, time_dimension="", to_pandas
     if isinstance(mler,pd.DataFrame):
         mler = mler.to_xarray()
 
-    if dimension == "":
-        dimension = list(mler.coords)[0]
-    freq = mler.coords[dimension].values * 2*np.pi
+    if time_dimension == "":
+        time_dimension = list(mler.coords)[0]
+    freq = mler.coords[time_dimension].values * 2*np.pi
     dw = (max(freq) - min(freq)) / (len(freq)-1)  # get delta
 
     wave_amp_time = np.zeros((sim['maxIX'], sim['maxIT']))
@@ -864,7 +860,7 @@ def mler_wave_amp_normalize(wave_amp, mler, sim, k, time_dimension="", to_pandas
     # rescale the wave spectral amplitude coefficients
     mler_norm = mler['WaveSpectrum'] * rescale_fact**2
     mler_norm = mler_norm.to_dataset()
-    mler_norm = mler_norm.assign({'Phase': (dimension, mler['Phase'].data)})
+    mler_norm = mler_norm.assign({'Phase': (time_dimension, mler['Phase'].data)})
 
     if to_pandas:
         mler_norm = mler_norm.to_pandas()
@@ -889,10 +885,8 @@ def mler_export_time_series(rao, mler, sim, k, time_dimension="", to_pandas=True
     k: numpy ndarray
         Wave number.
     time_dimension: string (optional)
-        Name of the xarray dimension corresponding to time. Pandas only defines
-        1 dimension, so for Pandas input the index is assumed to be time.
-        If not supplied for xarray input, time is assumed to be the first 
-        dimension.
+        Name of the xarray dimension corresponding to time. If not supplied, 
+        defaults to the first dimension. Does not affect pandas input.
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
@@ -931,9 +925,9 @@ def mler_export_time_series(rao, mler, sim, k, time_dimension="", to_pandas=True
     if isinstance(mler,pd.DataFrame):
         mler = mler.to_xarray()
 
-    if dimension == "":
-        dimension = list(mler.coords)[0]
-    freq = mler.coords[dimension].values * 2*np.pi
+    if time_dimension == "":
+        time_dimension = list(mler.coords)[0]
+    freq = mler.coords[time_dimension].values * 2*np.pi
     dw = (max(freq) - min(freq)) / (len(freq)-1)  # get delta
 
     # calculate the series
