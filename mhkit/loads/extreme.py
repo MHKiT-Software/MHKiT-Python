@@ -646,9 +646,9 @@ def mler_coefficients(rao, wave_spectrum, response_desired, dimension="", to_pan
     if not isinstance(rao, np.ndarray):
         raise TypeError(
             f'rao must be of type np.ndarray. Got: {type(rao)}')
-    if not isinstance(wave_spectrum, (pd.DataFrame, xr.Dataset)):
+    if not isinstance(wave_spectrum, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise TypeError(
-            f'wave_spectrum must be of type pd.DataFrame or xr.Dataset. Got: {type(wave_spectrum)}')
+            f'wave_spectrum must be of type pd.Series, pd.DataFrame, xr.DataArray, or xr.Dataset. Got: {type(wave_spectrum)}')
     if not isinstance(response_desired, (int, float)):
         raise TypeError(
             f'response_desired must be of type int or float. Got: {type(response_desired)}')
