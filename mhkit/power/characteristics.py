@@ -4,7 +4,7 @@ import numpy as np
 from scipy.signal import hilbert
 import datetime
 
-def instantaneous_frequency(um, dimension="", to_pandas=True):
+def instantaneous_frequency(um, time_dimension="", to_pandas=True):
 
     """
     Calculates instantaneous frequency of measured voltage
@@ -14,9 +14,9 @@ def instantaneous_frequency(um, dimension="", to_pandas=True):
     um: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Measured voltage (V) indexed by time
 
-    dimension: string (optional)
-        Name of the xarray dimension corresponding to time.
-        If not supplied, time is assumed to be the first dimension.
+    time_dimension: string (optional)
+        Name of the xarray dimension corresponding to time. If not supplied, 
+        defaults to the first dimension. Does not affect pandas input.
 
     to_pandas: bool (Optional)
         Flag to save output to pandas instead of xarray. Default = True.
@@ -35,14 +35,14 @@ def instantaneous_frequency(um, dimension="", to_pandas=True):
     um = _convert_to_dataset(um, 'data')
 
     # Get the dimension of interest
-    if dimension == "":
-        dimension = list(um.coords)[0]
+    if time_dimension == "":
+        time_dimension = list(um.coords)[0]
 
     # Calculate time step
-    if isinstance(um.coords[dimension].values[0], np.datetime64):
-        t = (um[dimension] - np.datetime64('1970-01-01 00:00:00'))/np.timedelta64(1, 's')
+    if isinstance(um.coords[time_dimension].values[0], np.datetime64):
+        t = (um[time_dimension] - np.datetime64('1970-01-01 00:00:00'))/np.timedelta64(1, 's')
     else:
-        t = um[dimension]
+        t = um[time_dimension]
     dt = np.diff(t)
 
     # Calculate frequency
@@ -52,8 +52,8 @@ def instantaneous_frequency(um, dimension="", to_pandas=True):
         instantaneous_phase = np.unwrap(np.angle(f))
         instantaneous_frequency = np.diff(instantaneous_phase)/(2.0*np.pi) * (1/dt)
 
-        frequency = frequency.assign({var: (dimension, instantaneous_frequency)})
-        frequency = frequency.assign_coords({dimension: um.coords[dimension].values[0:-1]})
+        frequency = frequency.assign({var: (time_dimension, instantaneous_frequency)})
+        frequency = frequency.assign_coords({time_dimension: um.coords[time_dimension].values[0:-1]})
 
     if to_pandas:
         frequency = frequency.to_pandas()

@@ -71,7 +71,7 @@ def harmonics(x, freq, grid_freq, to_pandas=True):
     return harmonics
 
 
-def harmonic_subgroups(harmonics, grid_freq, to_pandas=True):
+def harmonic_subgroups(harmonics, grid_freq, frequency_dimension="", to_pandas=True):
     """
     Calculates the harmonic subgroups based on IEC 61000-4-7
 
@@ -82,6 +82,10 @@ def harmonic_subgroups(harmonics, grid_freq, to_pandas=True):
 
     grid_freq: int
         Value indicating if the power supply is 50 or 60 Hz. Options = 50 or 60
+
+    frequency_dimension: string (optional)
+        Name of the xarray dimension corresponding to frequency. If not supplied, 
+        defaults to the first dimension. Does not affect pandas input.
 
     to_pandas: bool (Optional)
         Flag to save output to pandas instead of xarray. Default = True.
@@ -108,8 +112,9 @@ def harmonic_subgroups(harmonics, grid_freq, to_pandas=True):
         hz = np.arange(0, 2550, 50)
     
     # Sort input data index
-    dim = list(harmonics.dims)[0]
-    harmonics = harmonics.sortby(dim)
+    if frequency_dimension == "":
+        frequency_dimension = list(harmonics.dims)[0]
+    harmonics = harmonics.sortby(frequency_dimension)
     
     # Loop through all variables in harmonics
     harmonic_subgroups = xr.Dataset()
@@ -119,9 +124,9 @@ def harmonic_subgroups(harmonics, grid_freq, to_pandas=True):
         
         for ihz in np.arange(0,len(hz)):
             n = hz[ihz] 
-            ind = dataarray.indexes[dim].get_loc(n)
+            ind = dataarray.indexes[frequency_dimension].get_loc(n)
             
-            data_subset = dataarray.isel({dim:[ind-1, ind, ind+1]})
+            data_subset = dataarray.isel({frequency_dimension:[ind-1, ind, ind+1]})
             subgroup[ihz] = (data_subset**2).sum()**0.5
             
         harmonic_subgroups = harmonic_subgroups.assign({var: (['frequency'], subgroup)})
@@ -133,7 +138,7 @@ def harmonic_subgroups(harmonics, grid_freq, to_pandas=True):
     return harmonic_subgroups
 
 
-def total_harmonic_current_distortion(harmonics_subgroup, to_pandas=True):
+def total_harmonic_current_distortion(harmonics_subgroup, frequency_dimension="", to_pandas=True):
     """
     Calculates the total harmonic current distortion (THC) based on IEC/TS 62600-30
 
@@ -141,6 +146,10 @@ def total_harmonic_current_distortion(harmonics_subgroup, to_pandas=True):
     ----------
     harmonics_subgroup: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Subgrouped current harmonics indexed by harmonic frequency
+
+    frequency_dimension: string (optional)
+        Name of the xarray dimension corresponding to frequency. If not supplied, 
+        defaults to the first dimension. Does not affect pandas input.
 
     to_pandas: bool (Optional)
         Flag to save output to pandas instead of xarray. Default = True.
@@ -157,11 +166,12 @@ def total_harmonic_current_distortion(harmonics_subgroup, to_pandas=True):
     # Convert input to xr.Dataset
     harmonics_subgroup = _convert_to_dataset(harmonics_subgroup, 'harmonics')
     
-    dim = list(harmonics_subgroup.dims)[0]
-    harmonics_sq = harmonics_subgroup.isel({dim: slice(2,50)})**2
+    if frequency_dimension == "":
+        frequency_dimension = list(harmonics_subgroup.dims)[0]
+    harmonics_sq = harmonics_subgroup.isel({frequency_dimension: slice(2,50)})**2
     harmonics_sum = harmonics_sq.sum()
 
-    THCD = (np.sqrt(harmonics_sum)/harmonics_subgroup.isel({dim: 1}))*100
+    THCD = (np.sqrt(harmonics_sum)/harmonics_subgroup.isel({frequency_dimension: 1}))*100
     
     if isinstance(THCD, xr.DataArray):
         THCD.name = ['THCD']    
@@ -172,7 +182,7 @@ def total_harmonic_current_distortion(harmonics_subgroup, to_pandas=True):
     return THCD
 
 
-def interharmonics(harmonics, grid_freq, to_pandas=True):
+def interharmonics(harmonics, grid_freq, frequency_dimension="", to_pandas=True):
     """
     Calculates the interharmonics from the harmonics of current
 
@@ -183,6 +193,10 @@ def interharmonics(harmonics, grid_freq, to_pandas=True):
 
     grid_freq: int
         Value indicating if the power supply is 50 or 60 Hz. Options = 50 or 60
+
+    frequency_dimension: string (optional)
+        Name of the xarray dimension corresponding to frequency. If not supplied, 
+        defaults to the first dimension. Does not affect pandas input.
 
     to_pandas: bool (Optional)
         Flag to save output to pandas instead of xarray. Default = True.
@@ -208,8 +222,9 @@ def interharmonics(harmonics, grid_freq, to_pandas=True):
         hz = np.arange(0, 2550, 50)
 
     # Sort input data index
-    dim = list(harmonics.dims)[0]
-    harmonics = harmonics.sortby(dim)
+    if frequency_dimension == "":
+        frequency_dimension = list(harmonics.dims)[0]
+    harmonics = harmonics.sortby(frequency_dimension)
 
     # Loop through all variables in harmonics
     interharmonics = xr.Dataset()
@@ -218,14 +233,14 @@ def interharmonics(harmonics, grid_freq, to_pandas=True):
         subset = np.zeros(np.size(hz))
 
         for ihz in np.arange(0,len(hz)):
-            n = hz[ihz] 
-            ind = dataarray.indexes[dim].get_loc(n)
+            n = hz[ihz]
+            ind = dataarray.indexes[frequency_dimension].get_loc(n)
 
             if grid_freq == 60:
-                data = dataarray.isel({dim:slice(ind+1,ind+11)})
+                data = dataarray.isel({frequency_dimension:slice(ind+1,ind+11)})
                 subset[ihz] = (data**2).sum()**0.5
             else:
-                data = dataarray.isel({dim:slice(ind+1,ind+7)})
+                data = dataarray.isel({frequency_dimension:slice(ind+1,ind+7)})
                 subset[ihz] = (data**2).sum()**0.5
 
         interharmonics = interharmonics.assign({var: (['frequency'], subset)})
