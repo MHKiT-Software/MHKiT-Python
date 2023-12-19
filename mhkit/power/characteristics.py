@@ -12,7 +12,7 @@ def instantaneous_frequency(um, dimension="", to_pandas=True):
     Parameters
     -----------
     um: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
-        Measured voltage (V) indexed by time 
+        Measured voltage (V) indexed by time
 
     dimension: string (optional)
         Name of the xarray dimension corresponding to time.
@@ -24,20 +24,15 @@ def instantaneous_frequency(um, dimension="", to_pandas=True):
     Returns
     ---------
     frequency: pandas DataFrame or xarray Dataset
-        Frequency of the measured voltage (Hz) indexed by time  
+        Frequency of the measured voltage (Hz) indexed by time
         with signal name columns
     """  
     if not isinstance(um, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise TypeError('um must be of type pd.Series, pd.DataFrame, ' + 
                         f'xr.DataArray, or xr.Dataset. Got{type(um)}')
 
-    # Convert data into xr.Dataset
-    if isinstance(um, (pd.DataFrame, pd.Series)):
-        um = um.to_xarray()
-    if um.name is None:
-        um.name = 'data'
-    if isinstance(um, xr.DataArray):
-        um = um.to_dataset()
+    # Convert input to xr.Dataset
+    um = _convert_to_dataset(um, 'data')
 
     # Get the dimension of interest
     if dimension == "":
@@ -45,9 +40,9 @@ def instantaneous_frequency(um, dimension="", to_pandas=True):
 
     # Calculate time step
     if isinstance(um.coords[dimension].values[0], datetime.datetime):
-        t = (um.index - datetime.datetime(1970,1,1)).total_seconds()
+        t = (um[dimension] - datetime.datetime(1970,1,1)).total_seconds()
     else:
-        t = um.index
+        t = um[dimension]
     dt = np.diff(t)
 
     # Calculate frequency
@@ -55,7 +50,7 @@ def instantaneous_frequency(um, dimension="", to_pandas=True):
     for var in um.data_vars:
         f = hilbert(um[var])
         instantaneous_phase = np.unwrap(np.angle(f))
-        instantaneous_frequency = np.diff(instantaneous_phase) /(2.0*np.pi) * (1/dt)
+        instantaneous_frequency = np.diff(instantaneous_phase)/(2.0*np.pi) * (1/dt)
 
         frequency = frequency.assign({var: (dimension, instantaneous_frequency)})
         frequency = frequency.assign_coords({dimension: um.coords[dimension].values[0:-1]})
@@ -92,15 +87,9 @@ def dc_power(voltage, current, to_pandas=True):
         raise TypeError('current must be of type pd.Series, pd.DataFrame, ' + 
                         f'xr.DataArray, or xr.Dataset. Got{type(current)}')
 
-    # Convert input to xarray.Dataset
-    if isinstance(voltage, (pd.DataFrame, pd.Series)):
-        voltage = voltage.to_xarray()
-    if isinstance(current, (pd.DataFrame, pd.Series)):
-        current = current.to_xarray()
-    if isinstance(voltage, xr.DataArray):
-        voltage = voltage.to_dataset()
-    if isinstance(current, xr.DataArray):
-        current = current.to_dataset()
+    # Convert inputs to xr.Dataset
+    voltage = _convert_to_dataset(voltage, 'voltage')
+    current = _convert_to_dataset(current, 'current')
 
     # Check that sizes are the same
     if not (voltage.sizes == current.sizes and len(voltage.data_vars) == len(current.data_vars)):
@@ -158,15 +147,9 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False, to_
         raise TypeError('current must be of type pd.Series, pd.DataFrame, ' + 
                         f'xr.DataArray, or xr.Dataset. Got{type(current)}')
 
-    # Convert input to xarray.Dataset
-    if isinstance(voltage, (pd.DataFrame, pd.Series)):
-        voltage = voltage.to_xarray()
-    if isinstance(current, (pd.DataFrame, pd.Series)):
-        current = current.to_xarray()
-    if isinstance(voltage, xr.DataArray):
-        voltage = voltage.to_dataset()
-    if isinstance(current, xr.DataArray):
-        current = current.to_dataset()
+    # Convert inputs to xr.Dataset
+    voltage = _convert_to_dataset(voltage, 'voltage')
+    current = _convert_to_dataset(current, 'current')
 
     # Check that sizes are the same
     if not len(voltage.data_vars) == 3:
@@ -188,3 +171,16 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False, to_
         P = P.to_pandas()
 
     return P
+
+def _convert_to_dataset(data, name='data'):
+    # Takes data that could be pd.DataFrame, pd.Series, xr.DataArray, or 
+    # xr.Dataset and converts it to xr.Dataset
+    if isinstance(data, (pd.DataFrame, pd.Series)):
+        data = data.to_xarray()
+
+    if isinstance(data, xr.DataArray):
+        if data.name is None:
+            data.name = name # xr.DataArray.to_dataset() breaks if the data variable is unnamed
+        data = data.to_dataset()
+
+    return data
