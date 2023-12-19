@@ -39,8 +39,8 @@ def instantaneous_frequency(um, dimension="", to_pandas=True):
         dimension = list(um.coords)[0]
 
     # Calculate time step
-    if isinstance(um.coords[dimension].values[0], datetime.datetime):
-        t = (um[dimension] - datetime.datetime(1970,1,1)).total_seconds()
+    if isinstance(um.coords[dimension].values[0], np.datetime64):
+        t = (um[dimension] - np.datetime64('1970-01-01 00:00:00'))/np.timedelta64(1, 's')
     else:
         t = um[dimension]
     dt = np.diff(t)

@@ -43,7 +43,7 @@ class TestDevice(unittest.TestCase):
     def tearDownClass(self):
         pass
 
-    def test_harmonics_sine_wave(self):
+    def test_harmonics_sine_wave_pandas(self):
         current = pd.Series(self.signal, index=self.samples)
         harmonics = power.quality.harmonics(current, 1000, self.frequency)
         
@@ -59,7 +59,7 @@ class TestDevice(unittest.TestCase):
         for i, j in zip(harmonics.values, self.harmonics_vals):
             self.assertAlmostEqual(i, j, 1)
 
-    def test_harmonic_subgroup_sine_wave(self):
+    def test_harmonic_subgroup_sine_wave_pandas(self):
         harmonics = pd.DataFrame(self.harmonics_vals,
                                   index=self.harmonics_int)
         hsg = power.quality.harmonic_subgroups(harmonics, self.frequency)
@@ -75,7 +75,7 @@ class TestDevice(unittest.TestCase):
         for i, j in zip(hsg.values, self.harmonic_groups):
             self.assertAlmostEqual(i[0], j, 1)
 
-    def test_TCHD_sine_wave(self):
+    def test_TCHD_sine_wave_pandas(self):
         harmonics = pd.DataFrame(self.harmonics_vals,
                                   index=self.harmonics_int)
         hsg = power.quality.harmonic_subgroups(harmonics, self.frequency)
@@ -93,7 +93,7 @@ class TestDevice(unittest.TestCase):
         
         self.assertAlmostEqual(TCHD.values[0], self.thcd)
 
-    def test_interharmonics_sine_wave(self):
+    def test_interharmonics_sine_wave_pandas(self):
         harmonics = pd.DataFrame(self.harmonics_vals,
                                   index=self.harmonics_int)
         inter_harmonics = power.quality.interharmonics(
