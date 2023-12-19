@@ -2,7 +2,6 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 from scipy.signal import hilbert
-import datetime
 
 def instantaneous_frequency(um, time_dimension="", to_pandas=True):
 
