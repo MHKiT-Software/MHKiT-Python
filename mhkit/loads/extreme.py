@@ -611,7 +611,7 @@ def full_seastate_long_term_extreme(ste, weights):
     return _LongTermExtreme(name="long_term_extreme", weights=weights, ste=ste)
 
 
-def mler_coefficients(rao, wave_spectrum, response_desired, dimension="", to_pandas=True):
+def mler_coefficients(rao, wave_spectrum, response_desired, time_dimension="", to_pandas=True):
     """
     Calculate MLER (most likely extreme response) coefficients from a
     sea state spectrum and a response RAO.
@@ -626,9 +626,11 @@ def mler_coefficients(rao, wave_spectrum, response_desired, dimension="", to_pan
     response_desired: int or float
         Desired response, units should correspond to a motion RAO or
         units of force for a force RAO.
-    dimension: string (optional)
-        Name of the xarray dimension corresponding to time.
-        If not supplied, time is assumed to be the first dimension.
+    time_dimension: string (optional)
+        Name of the xarray dimension corresponding to time. Pandas only defines
+        1 dimension, so for Pandas input the index is assumed to be time.
+        If not supplied for xarray input, time is assumed to be the first 
+        dimension.
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
@@ -787,7 +789,7 @@ def mler_simulation(parameters=None):
     return sim
 
 
-def mler_wave_amp_normalize(wave_amp, mler, sim, k, dimension="", to_pandas=True):
+def mler_wave_amp_normalize(wave_amp, mler, sim, k, time_dimension="", to_pandas=True):
     """
     Function that renormalizes the incoming amplitude of the MLER wave
     to the desired peak height (peak to MSL).
@@ -803,9 +805,11 @@ def mler_wave_amp_normalize(wave_amp, mler, sim, k, dimension="", to_pandas=True
         'mler_simulation'.
     k: numpy ndarray
         Wave number
-    dimension: string (optional)
-        Name of the xarray dimension corresponding to time.
-        If not supplied, time is assumed to be the first dimension.
+    time_dimension: string (optional)
+        Name of the xarray dimension corresponding to time. Pandas only defines
+        1 dimension, so for Pandas input the index is assumed to be time.
+        If not supplied for xarray input, time is assumed to be the first 
+        dimension.
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
@@ -868,7 +872,7 @@ def mler_wave_amp_normalize(wave_amp, mler, sim, k, dimension="", to_pandas=True
     return mler_norm
 
 
-def mler_export_time_series(rao, mler, sim, k, dimension="", to_pandas=True):
+def mler_export_time_series(rao, mler, sim, k, time_dimension="", to_pandas=True):
     """
     Generate the wave amplitude time series at X0 from the calculated
     MLER coefficients
@@ -884,9 +888,11 @@ def mler_export_time_series(rao, mler, sim, k, dimension="", to_pandas=True):
         'mler_simulation'.
     k: numpy ndarray
         Wave number.
-    dimension: string (optional)
-        Name of the xarray dimension corresponding to time.
-        If not supplied, time is assumed to be the first dimension.
+    time_dimension: string (optional)
+        Name of the xarray dimension corresponding to time. Pandas only defines
+        1 dimension, so for Pandas input the index is assumed to be time.
+        If not supplied for xarray input, time is assumed to be the first 
+        dimension.
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
