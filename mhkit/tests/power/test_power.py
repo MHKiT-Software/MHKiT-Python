@@ -111,8 +111,16 @@ class TestDevice(unittest.TestCase):
         for i, j in zip(inter_harmonics.values, self.interharmonic):
             self.assertAlmostEqual(i[0], j, 1)
 
-    def test_instfreq(self):
+    def test_instfreq_pandas(self):
         um = pd.Series(self.signal, index=self.samples)
+
+        freq = power.characteristics.instantaneous_frequency(um)
+        for i in freq.values:
+            self.assertAlmostEqual(i[0], self.frequency, 1)
+
+    def test_instfreq_xarray(self):
+        um = pd.Series(self.signal, index=self.samples)
+        um = um.to_xarray()
 
         freq = power.characteristics.instantaneous_frequency(um)
         for i in freq.values:
