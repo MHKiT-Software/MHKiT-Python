@@ -47,7 +47,7 @@ class TestDevice(unittest.TestCase):
         current = pd.Series(self.signal, index=self.samples)
         harmonics = power.quality.harmonics(current, 1000, self.frequency)
         
-        for i, j in zip(harmonics.values, self.harmonics_vals):
+        for i, j in zip(harmonics['data'].values, self.harmonics_vals):
             self.assertAlmostEqual(i, j, 1)
             
     def test_harmonics_sine_wave_xarray(self):
@@ -56,7 +56,7 @@ class TestDevice(unittest.TestCase):
                                 coords={'index':self.samples})
         harmonics = power.quality.harmonics(current, 1000, self.frequency)
         
-        for i, j in zip(harmonics.values, self.harmonics_vals):
+        for i, j in zip(harmonics['data'].values, self.harmonics_vals):
             self.assertAlmostEqual(i, j, 1)
 
     def test_harmonic_subgroup_sine_wave_pandas(self):

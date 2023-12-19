@@ -5,7 +5,6 @@ import xarray as xr
 from .characteristics import _convert_to_dataset
 
 # This group of functions are to be used for power quality assessments
-
 def harmonics(x, freq, grid_freq, to_pandas=True):
     """
     Calculates the harmonics from time series of voltage or current based on IEC 61000-4-7. 
@@ -40,6 +39,8 @@ def harmonics(x, freq, grid_freq, to_pandas=True):
     if grid_freq not in [50, 60]:
         raise ValueError('grid_freq must be either 50 or 60')
 
+    x_pd = x
+    
     # Convert input to xr.Dataset
     x = _convert_to_dataset(x, 'data')
 
@@ -64,7 +65,7 @@ def harmonics(x, freq, grid_freq, to_pandas=True):
         hz = np.arange(0, 2570, 5)
 
     harmonics = harmonics.reindex({'frequency': hz}, method='nearest')
-    harmonics = harmonics/len(x)*2
+    harmonics = harmonics/len(x.data)*2
     
     if to_pandas:
         harmonics = harmonics.to_pandas()
