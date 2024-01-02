@@ -1,16 +1,17 @@
 from scipy.stats import binned_statistic
-import pandas as pd 
+import pandas as pd
+import xarray as xr
 import numpy as np
 import fatpack
 
-def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
+def bin_statistics(data,bin_against,bin_edges,data_signal=[],to_pandas=True):
     """
     Bins calculated statistics against data signal (or channel) 
     according to IEC TS 62600-3:2020 ED1.
     
     Parameters
     -----------
-    data : pandas DataFrame
+    data : pandas DataFrame or xarray Dataset
        Time-series statistics of data signal(s) 
     bin_against : array
         Data signal to bin data against (e.g. wind speed)
@@ -18,18 +19,20 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
         Bin edges with consistent step size
     data_signal : list, optional 
         List of data signal(s) to bin, default = all data signals
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
     
     Returns
     --------
-    bin_mean : pandas DataFrame
+    bin_mean : pandas DataFrame or xarray Dataset
         Mean of each bin
-    bin_std : pandas DataFrame
+    bin_std : pandas DataFrame or xarray Dataset
         Standard deviation of each bim
     """
 
-    if not isinstance(data, pd.DataFrame):
+    if not isinstance(data, (pd.DataFrame, xr.Dataset)):
         raise TypeError(
-            f'data must be of type pd.DataFrame. Got: {type(data)}')
+            f'data must be of type pd.DataFrame or xr.Dataset. Got: {type(data)}')
     try:
         bin_against = np.asarray(bin_against) 
     except:
@@ -40,45 +43,53 @@ def bin_statistics(data,bin_against,bin_edges,data_signal=[]):
     except:
         raise TypeError(
             f'bin_edges must be of type np.ndarray. Got: {type(bin_edges)}')
+    if not isinstance(to_pandas, bool):
+        raise TypeError(
+            f'to_pandas must be of type bool. Got: {type(to_pandas)}')
+    
+    # If input is pandas, convert to xarray
+    if isinstance(data,pd.DataFrame):
+        data = data.to_xarray()
 
     # Determine variables to analyze
     if len(data_signal)==0: # if not specified, bin all variables
-        data_signal=data.columns.values
+        data_signal = list(data.keys())
     else:
         if not isinstance(data_signal, list):
             raise TypeError(
                 f'data_signal must be of type list. Got: {type(data_signal)}')
 
-    # Pre-allocate list variables
-    bin_stat_list = []
-    bin_std_list = []
+    # Pre-allocate variable dictionaries
+    bin_stat_list = {}
+    bin_std_list = {}
 
     # loop through data_signal and get binned means
     for signal_name in data_signal:
         # Bin data
-        bin_stat = binned_statistic(bin_against,data[signal_name],
+        bin_stat_mean = binned_statistic(bin_against,data[signal_name],
                                     statistic='mean',bins=bin_edges)
-        # Calculate std of bins
-        std = []
-        stdev = pd.DataFrame(data[signal_name])
-        stdev.set_index(bin_stat.binnumber,inplace=True)
-        for i in range(1,len(bin_stat.bin_edges)):
-            try:
-                temp = stdev.loc[i].std(ddof=0)
-                std.append(temp[0])
-            except:
-                std.append(np.nan)
-        bin_stat_list.append(bin_stat.statistic)
-        bin_std_list.append(std)
- 
-    # Convert to DataFrames
-    bin_mean = pd.DataFrame(np.transpose(bin_stat_list),columns=data_signal)
-    bin_std = pd.DataFrame(np.transpose(bin_std_list),columns=data_signal)
-
+        bin_stat_std = binned_statistic(bin_against,data[signal_name],
+                                    statistic='std',bins=bin_edges)
+        
+        bin_stat_list[signal_name] = ('index', bin_stat_mean.statistic)
+        bin_std_list[signal_name] = ('index', bin_stat_std.statistic)
+    
+    # Convert to Datasets
+    bin_mean = xr.Dataset(data_vars = bin_stat_list,
+                          coords = {'index':np.arange(0,len(bin_stat_mean.statistic))})
+    bin_std = xr.Dataset(data_vars = bin_std_list,
+                          coords = {'index':np.arange(0,len(bin_stat_std.statistic))})
+    
     # Check for nans 
-    if bin_mean.isna().any().any():
-        print('Warning: some bins may be empty!')
-
+    for variable in list(bin_mean.variables):
+        if bin_mean[variable].isnull().any():
+            print('Warning: bins for some variables may be empty!')
+            break
+    
+    if to_pandas:
+        bin_mean = bin_mean.to_pandas()
+        bin_std = bin_std.to_pandas()
+        
     return bin_mean, bin_std
 
 
