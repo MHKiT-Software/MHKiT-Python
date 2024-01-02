@@ -80,7 +80,7 @@ class TestDevice(unittest.TestCase):
                                   index=self.harmonics_int)
         hsg = power.quality.harmonic_subgroups(harmonics, self.frequency)
         TCHD = power.quality.total_harmonic_current_distortion(
-            hsg, 18.8)  # had to just put a random rated current in here
+            hsg)  # had to just put a random rated current in here
         
         self.assertAlmostEqual(TCHD.values[0], self.thcd)
 
@@ -89,7 +89,7 @@ class TestDevice(unittest.TestCase):
                                 coords={'index':self.harmonics_int})
         hsg = power.quality.harmonic_subgroups(harmonics, self.frequency)
         TCHD = power.quality.total_harmonic_current_distortion(
-            hsg, 18.8)  # had to just put a random rated current in here
+            hsg)  # had to just put a random rated current in here
         
         self.assertAlmostEqual(TCHD.values[0], self.thcd)
 
