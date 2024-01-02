@@ -28,28 +28,28 @@ def _beam2inst(dat, reverse=False, force=False):
 
 def _rotate_inst2head(advo, reverse=False):
     """
-    Rotates the velocity vector from the instrument frame to the ADV probe (head) frame or 
+    Rotates the velocity vector from the instrument frame to the ADV probe (head) frame or
     vice versa.
 
-    This function uses the rotation matrix 'inst2head_rotmat' to rotate the velocity vector 'vel' 
-    from the instrument frame to the head frame ('inst->head') or from the head frame to the 
+    This function uses the rotation matrix 'inst2head_rotmat' to rotate the velocity vector 'vel'
+    from the instrument frame to the head frame ('inst->head') or from the head frame to the
     instrument frame ('head->inst').
 
     Parameters
     ----------
     advo: dict
-      A dictionary-like object that includes the rotation matrix 'inst2head_rotmat' 
+      A dictionary-like object that includes the rotation matrix 'inst2head_rotmat'
       and the velocity vector 'vel' to be rotated.
 
     reverse: bool, optional
-      A boolean value indicating the direction of the rotation. 
-      If False (default), the function rotates 'vel' from the instrument frame to the head frame. 
+      A boolean value indicating the direction of the rotation.
+      If False (default), the function rotates 'vel' from the instrument frame to the head frame.
       If True, the function rotates 'vel' from the head frame to the instrument frame.
 
     Returns
     -------
     advo: dict
-      The input dictionary-like object with the rotated velocity vector. 
+      The input dictionary-like object with the rotated velocity vector.
       If 'inst2head_rotmat' doesn't exist in 'advo', the function returns the input 'advo' unmodified.
     """
 
@@ -57,9 +57,9 @@ def _rotate_inst2head(advo, reverse=False):
         # This object doesn't have a head2inst_rotmat, so we do nothing.
         return advo
     if reverse:  # head->inst
-        advo['vel'].values = np.dot(advo['inst2head_rotmat'].T, advo['vel'])
+        advo["vel"].values = np.dot(advo["inst2head_rotmat"].T, advo["vel"])
     else:  # inst->head
-        advo['vel'].values = np.dot(advo['inst2head_rotmat'], advo['vel'])
+        advo["vel"].values = np.dot(advo["inst2head_rotmat"], advo["vel"])
 
     return advo
 
@@ -80,12 +80,14 @@ def _check_inst2head_rotmat(advo):
       Returns True if 'inst2head_rotmat' exists, was set correctly, and is valid (False if not).
     """
 
-    if advo.get('inst2head_rotmat', None) is None:
+    if advo.get("inst2head_rotmat", None) is None:
         # This is the default value, and we do nothing.
         return False
     if not advo.inst2head_rotmat_was_set:
-        raise Exception("The inst2head rotation matrix exists in props, "
-                        "but it was not set using `set_inst2head_rotmat.")
+        raise Exception(
+            "The inst2head rotation matrix exists in props, "
+            "but it was not set using `set_inst2head_rotmat."
+        )
     if not rotb._check_rotmat_det(advo.inst2head_rotmat.values):
         raise ValueError("Invalid inst2head_rotmat (determinant != 1).")
     return True
@@ -107,20 +109,20 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
       The list of variables to rotate. By default this is taken from
       advo.attrs['rotate_vars'].
     force : bool
-      Do not check which frame the data is in prior to performing 
+      Do not check which frame the data is in prior to performing
       this rotation. Default = False
     """
 
     if reverse:  # earth->inst
         # The transpose of the rotation matrix gives the inverse
         # rotation, so we simply reverse the order of the einsum:
-        sumstr = 'jik,j...k->i...k'
-        cs_now = 'earth'
-        cs_new = 'inst'
+        sumstr = "jik,j...k->i...k"
+        cs_now = "earth"
+        cs_new = "inst"
     else:  # inst->earth
-        sumstr = 'ijk,j...k->i...k'
-        cs_now = 'inst'
-        cs_new = 'earth'
+        sumstr = "ijk,j...k->i...k"
+        cs_now = "inst"
+        cs_new = "earth"
 
     rotate_vars = rotb._check_rotate_vars(advo, rotate_vars)
 
@@ -131,17 +133,18 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
             return
         elif cs != cs_now:
             raise ValueError(
-                "Data must be in the '%s' frame when using this function" %
-                cs_now)
+                "Data must be in the '%s' frame when using this function" % cs_now
+            )
 
-    if hasattr(advo, 'orientmat'):
-        omat = advo['orientmat']
+    if hasattr(advo, "orientmat"):
+        omat = advo["orientmat"]
     else:
-        if 'vector' in advo.inst_model.lower():
-            orientation_down = advo['orientation_down']
+        if "vector" in advo.inst_model.lower():
+            orientation_down = advo["orientation_down"]
 
-        omat = _calc_omat(advo['time'], advo['heading'], advo['pitch'],
-                          advo['roll'], orientation_down)
+        omat = _calc_omat(
+            advo["time"], advo["heading"], advo["pitch"], advo["roll"], orientation_down
+        )
 
     # Take the transpose of the orientation to get the inst->earth rotation
     # matrix.
@@ -149,15 +152,20 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
 
     _dcheck = rotb._check_rotmat_det(rmat)
     if not _dcheck.all():
-        warnings.warn("Invalid orientation matrix (determinant != 1) at indices: {}. "
-                      "If rotated, data at these indices will be erroneous."
-                      .format(np.nonzero(~_dcheck)[0]), UserWarning)
+        warnings.warn(
+            "Invalid orientation matrix (determinant != 1) at indices: {}. "
+            "If rotated, data at these indices will be erroneous.".format(
+                np.nonzero(~_dcheck)[0]
+            ),
+            UserWarning,
+        )
 
     for nm in rotate_vars:
         n = advo[nm].shape[0]
         if n != 3:
-            raise Exception("The entry {} is not a vector, it cannot "
-                            "be rotated.".format(nm))
+            raise Exception(
+                "The entry {} is not a vector, it cannot " "be rotated.".format(nm)
+            )
         advo[nm].values = np.einsum(sumstr, rmat, advo[nm])
 
     advo = rotb._set_coords(advo, cs_new)
@@ -191,34 +199,32 @@ def _earth2principal(advo, reverse=False, rotate_vars=None):
     # the rest of the function)
 
     if reverse:
-        cs_now = 'principal'
-        cs_new = 'earth'
+        cs_now = "principal"
+        cs_new = "earth"
     else:
         ang *= -1
-        cs_now = 'earth'
-        cs_new = 'principal'
+        cs_now = "earth"
+        cs_new = "principal"
 
     rotate_vars = rotb._check_rotate_vars(advo, rotate_vars)
 
     cs = advo.coord_sys.lower()
     if cs == cs_new:
-        print('Data is already in the %s coordinate system' % cs_new)
+        print("Data is already in the %s coordinate system" % cs_new)
         return
     elif cs != cs_now:
         raise ValueError(
-            'Data must be in the {} frame '
-            'to use this function'.format(cs_now))
+            "Data must be in the {} frame " "to use this function".format(cs_now)
+        )
 
     # Calculate the rotation matrix:
     cp, sp = np.cos(ang), np.sin(ang)
-    rotmat = np.array([[cp, -sp, 0],
-                       [sp, cp, 0],
-                       [0, 0, 1]], dtype=np.float32)
+    rotmat = np.array([[cp, -sp, 0], [sp, cp, 0], [0, 0, 1]], dtype=np.float32)
 
     # Perform the rotation:
     for nm in rotate_vars:
         dat = advo[nm].values
-        dat[:2] = np.einsum('ij,j...->i...', rotmat[:2, :2], dat[:2])
+        dat[:2] = np.einsum("ij,j...->i...", rotmat[:2, :2], dat[:2])
         advo[nm].values = dat.copy()
 
     # Finalize the output.
@@ -273,7 +279,7 @@ def _calc_omat(time, hh, pp, rr, orientation_down=None):
     return _euler2orient(time, hh, pp, rr)
 
 
-def _euler2orient(time, heading, pitch, roll, units='degrees'):
+def _euler2orient(time, heading, pitch, roll, units="degrees"):
     # For Nortek data only.
     # The heading, pitch, roll used here are from the Nortek binary files.
 
@@ -281,7 +287,7 @@ def _euler2orient(time, heading, pitch, roll, units='degrees'):
     # Returns a rotation matrix that rotates earth (ENU) -> inst.
     # This is based on the Nortek `Transforms.m` file, available in
     # the refs folder.
-    if units.lower() == 'degrees':
+    if units.lower() == "degrees":
         pitch = np.deg2rad(pitch)
         roll = np.deg2rad(roll)
         heading = np.deg2rad(heading)
@@ -291,7 +297,7 @@ def _euler2orient(time, heading, pitch, roll, units='degrees'):
 
     # This also involved swapping the sign on sh in the def of omat
     # below from the values provided in the Nortek Matlab script.
-    heading = (np.pi / 2 - heading)
+    heading = np.pi / 2 - heading
 
     ch = np.cos(heading)
     sh = np.sin(heading)
@@ -313,14 +319,29 @@ def _euler2orient(time, heading, pitch, roll, units='degrees'):
     omat[1, 2, :] = sr * cp
     omat[2, 2, :] = cp * cr
 
-    earth = xr.DataArray(['E', 'N', 'U'], dims=['earth'], name='earth', attrs={
-        'units': '1', 'long_name': 'Earth Reference Frame', 'coverage_content_type': 'coordinate'})
-    inst = xr.DataArray(['X', 'Y', 'Z'], dims=['inst'], name='inst', attrs={
-        'units': '1', 'long_name': 'Instrument Reference Frame', 'coverage_content_type': 'coordinate'})
-    return xr.DataArray(omat,
-                        coords={'earth': earth,
-                                'inst': inst,
-                                'time': time},
-                        dims=['earth', 'inst', 'time'],
-                        attrs={'units': '1',
-                               'long_name': 'Orientation Matrix'})
+    earth = xr.DataArray(
+        ["E", "N", "U"],
+        dims=["earth"],
+        name="earth",
+        attrs={
+            "units": "1",
+            "long_name": "Earth Reference Frame",
+            "coverage_content_type": "coordinate",
+        },
+    )
+    inst = xr.DataArray(
+        ["X", "Y", "Z"],
+        dims=["inst"],
+        name="inst",
+        attrs={
+            "units": "1",
+            "long_name": "Instrument Reference Frame",
+            "coverage_content_type": "coordinate",
+        },
+    )
+    return xr.DataArray(
+        omat,
+        coords={"earth": earth, "inst": inst, "time": time},
+        dims=["earth", "inst", "time"],
+        attrs={"units": "1", "long_name": "Orientation Matrix"},
+    )

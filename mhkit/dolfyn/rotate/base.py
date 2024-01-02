@@ -10,8 +10,7 @@ def _make_model(ds):
     The make and model of the instrument that collected the data
     in this data object.
     """
-    return '{} {}'.format(ds.attrs['inst_make'],
-                          ds.attrs['inst_model']).lower()
+    return "{} {}".format(ds.attrs["inst_make"], ds.attrs["inst_model"]).lower()
 
 
 def _check_rotmat_det(rotmat, thresh=1e-3):
@@ -30,72 +29,81 @@ def _check_rotmat_det(rotmat, thresh=1e-3):
 
 def _check_rotate_vars(ds, rotate_vars):
     if rotate_vars is None:
-        if 'rotate_vars' in ds.attrs:
+        if "rotate_vars" in ds.attrs:
             rotate_vars = ds.rotate_vars
         else:
-            warnings.warn("    'rotate_vars' attribute not found."
-                          "Rotating `vel`.")
-            rotate_vars = ['vel']
+            warnings.warn("    'rotate_vars' attribute not found." "Rotating `vel`.")
+            rotate_vars = ["vel"]
 
     return rotate_vars
 
 
 def _set_coords(ds, ref_frame, forced=False):
     """
-    Checks the current reference frame and adjusts xarray coords/dims 
+    Checks the current reference frame and adjusts xarray coords/dims
     as necessary.
     Makes sure assigned dataarray coordinates match what DOLfYN is reading in.
     """
 
     make = _make_model(ds)
 
-    XYZ = ['X', 'Y', 'Z']
-    ENU = ['E', 'N', 'U']
+    XYZ = ["X", "Y", "Z"]
+    ENU = ["E", "N", "U"]
     beam = ds.beam.values
-    principal = ['streamwise', 'x-stream', 'vert']
+    principal = ["streamwise", "x-stream", "vert"]
 
     # check make/model
-    if 'rdi' in make:
-        inst = ['X', 'Y', 'Z', 'err']
-        earth = ['E', 'N', 'U', 'err']
-        princ = ['streamwise', 'x-stream', 'vert', 'err']
+    if "rdi" in make:
+        inst = ["X", "Y", "Z", "err"]
+        earth = ["E", "N", "U", "err"]
+        princ = ["streamwise", "x-stream", "vert", "err"]
 
-    elif 'nortek' in make:
-        if 'signature' in make or 'ad2cp' in make:
-            inst = ['X', 'Y', 'Z1', 'Z2']
-            earth = ['E', 'N', 'U1', 'U2']
-            princ = ['streamwise', 'x-stream', 'vert1', 'vert2']
+    elif "nortek" in make:
+        if "signature" in make or "ad2cp" in make:
+            inst = ["X", "Y", "Z1", "Z2"]
+            earth = ["E", "N", "U1", "U2"]
+            princ = ["streamwise", "x-stream", "vert1", "vert2"]
 
         else:  # AWAC or Vector
             inst = XYZ
             earth = ENU
             princ = principal
 
-    orient = {'beam': beam, 'inst': inst, 'ship': inst, 'earth': earth,
-              'principal': princ}
-    orientIMU = {'beam': XYZ, 'inst': XYZ, 'ship': XYZ, 'earth': ENU,
-                 'principal': principal}
+    orient = {
+        "beam": beam,
+        "inst": inst,
+        "ship": inst,
+        "earth": earth,
+        "principal": princ,
+    }
+    orientIMU = {
+        "beam": XYZ,
+        "inst": XYZ,
+        "ship": XYZ,
+        "earth": ENU,
+        "principal": principal,
+    }
 
     if forced:
-        ref_frame += '-forced'
+        ref_frame += "-forced"
 
     # Update 'dir' and 'dirIMU' dimensions
-    attrs = ds['dir'].attrs
-    attrs.update({'ref_frame': ref_frame})
+    attrs = ds["dir"].attrs
+    attrs.update({"ref_frame": ref_frame})
 
-    ds['dir'] = orient[ref_frame]
-    ds['dir'].attrs = attrs
-    if hasattr(ds, 'dirIMU'):
-        ds['dirIMU'] = orientIMU[ref_frame]
-        ds['dirIMU'].attrs = attrs
+    ds["dir"] = orient[ref_frame]
+    ds["dir"].attrs = attrs
+    if hasattr(ds, "dirIMU"):
+        ds["dirIMU"] = orientIMU[ref_frame]
+        ds["dirIMU"].attrs = attrs
 
-    ds.attrs['coord_sys'] = ref_frame
+    ds.attrs["coord_sys"] = ref_frame
 
     # These are essentially one extra line to scroll through
-    tag = ['', '_echo', '_bt']
+    tag = ["", "_echo", "_bt"]
     for tg in tag:
-        if hasattr(ds, 'coord_sys_axes'+tg):
-            ds.attrs.pop('coord_sys_axes'+tg)
+        if hasattr(ds, "coord_sys_axes" + tg):
+            ds.attrs.pop("coord_sys_axes" + tg)
 
     return ds
 
@@ -122,12 +130,12 @@ def _beam2inst(dat, reverse=False, force=False):
     """
 
     if not force:
-        if not reverse and dat.coord_sys.lower() != 'beam':
-            raise ValueError('The input must be in beam coordinates.')
-        if reverse and dat.coord_sys != 'inst':
-            raise ValueError('The input must be in inst coordinates.')
+        if not reverse and dat.coord_sys.lower() != "beam":
+            raise ValueError("The input must be in beam coordinates.")
+        if reverse and dat.coord_sys != "inst":
+            raise ValueError("The input must be in inst coordinates.")
 
-    rotmat = dat['beam2inst_orientmat']
+    rotmat = dat["beam2inst_orientmat"]
 
     if isinstance(force, (list, set, tuple)):
         # You can force a distinct set of variables to be rotated by
@@ -135,16 +143,17 @@ def _beam2inst(dat, reverse=False, force=False):
         rotate_vars = force
     else:
         rotate_vars = [
-            ky for ky in dat.rotate_vars if dat[ky].shape[0] == rotmat.shape[0]]
+            ky for ky in dat.rotate_vars if dat[ky].shape[0] == rotmat.shape[0]
+        ]
 
-    cs = 'inst'
+    cs = "inst"
     if reverse:
         # Can't use transpose because rotation is not between
         # orthogonal coordinate systems
         rotmat = inv(rotmat)
-        cs = 'beam'
+        cs = "beam"
     for ky in rotate_vars:
-        dat[ky].values = np.einsum('ij,j...->i...', rotmat, dat[ky].values)
+        dat[ky].values = np.einsum("ij,j...->i...", rotmat, dat[ky].values)
 
     if force:
         dat = _set_coords(dat, cs, forced=True)
@@ -154,7 +163,7 @@ def _beam2inst(dat, reverse=False, force=False):
     return dat
 
 
-def euler2orient(heading, pitch, roll, units='degrees'):
+def euler2orient(heading, pitch, roll, units="degrees"):
     """
     Calculate the orientation matrix from DOLfYN-defined euler angles.
 
@@ -163,8 +172,8 @@ def euler2orient(heading, pitch, roll, units='degrees'):
 
     The matrices H, P, R are the transpose of the matrices for rotation about z, y, x
     as shown here https://en.wikipedia.org/wiki/Rotation_matrix. The transpose is used
-    because in DOLfYN the orientation matrix is organized for 
-    rotation from EARTH --> INST, while the wiki's matrices are organized for 
+    because in DOLfYN the orientation matrix is organized for
+    rotation from EARTH --> INST, while the wiki's matrices are organized for
     rotation from INST --> EARTH.
 
     Parameters
@@ -187,7 +196,7 @@ def euler2orient(heading, pitch, roll, units='degrees'):
        - a "ZYX" rotation order. That is, these variables are computed
          assuming that rotation from the earth -> instrument frame happens
          by rotating around the z-axis first (heading), then rotating
-         around the y-axis (pitch), then rotating around the x-axis (roll). 
+         around the y-axis (pitch), then rotating around the x-axis (roll).
          Note this requires matrix multiplication in the reverse order.
 
        - heading is defined as the direction the x-axis points, positive
@@ -201,11 +210,11 @@ def euler2orient(heading, pitch, roll, units='degrees'):
          instrument's x-axis
     """
 
-    if units.lower() == 'degrees':
+    if units.lower() == "degrees":
         pitch = np.deg2rad(pitch)
         roll = np.deg2rad(roll)
         heading = np.deg2rad(heading)
-    elif units.lower() == 'radians':
+    elif units.lower() == "radians":
         pass
     else:
         raise Exception("Invalid units")
@@ -227,19 +236,28 @@ def euler2orient(heading, pitch, roll, units='degrees'):
     one = np.ones_like(sr)
 
     H = np.array(
-        [[ch, sh, zero],
-         [-sh, ch, zero],
-         [zero, zero, one], ])
+        [
+            [ch, sh, zero],
+            [-sh, ch, zero],
+            [zero, zero, one],
+        ]
+    )
     P = np.array(
-        [[cp, zero, -sp],
-         [zero, one, zero],
-         [sp, zero, cp], ])
+        [
+            [cp, zero, -sp],
+            [zero, one, zero],
+            [sp, zero, cp],
+        ]
+    )
     R = np.array(
-        [[one, zero, zero],
-         [zero, cr, sr],
-         [zero, -sr, cr], ])
+        [
+            [one, zero, zero],
+            [zero, cr, sr],
+            [zero, -sr, cr],
+        ]
+    )
 
-    return np.einsum('ij...,jk...,kl...->il...', R, P, H)
+    return np.einsum("ij...,jk...,kl...->il...", R, P, H)
 
 
 def orient2euler(omat):
@@ -258,18 +276,17 @@ def orient2euler(omat):
       positive clockwise from North (this is *opposite* the right-hand-rule
       around the Z-axis), range 0-360 degrees.
     pitch : np.ndarray
-      The pitch angle (degrees). Pitch is positive when the x-axis 
+      The pitch angle (degrees). Pitch is positive when the x-axis
       pitches up (this is *opposite* the right-hand-rule around the Y-axis).
     roll : np.ndarray
-      The roll angle (degrees). Roll is positive according to the 
+      The roll angle (degrees). Roll is positive according to the
       right-hand-rule around the instrument's x-axis.
     """
 
-    if isinstance(omat, np.ndarray) and \
-            omat.shape[:2] == (3, 3):
+    if isinstance(omat, np.ndarray) and omat.shape[:2] == (3, 3):
         pass
-    elif hasattr(omat, 'orientmat'):
-        omat = omat['orientmat'].values
+    elif hasattr(omat, "orientmat"):
+        omat = omat["orientmat"].values
 
     # Note: orientation matrix is earth->inst unless supplied by an external IMU
     hh = np.rad2deg(np.arctan2(omat[0, 0], omat[0, 1]))
@@ -286,7 +303,7 @@ def orient2euler(omat):
 
 def quaternion2orient(quaternions):
     """
-    Calculate orientation from Nortek AHRS quaternions, where q = [W, X, Y, Z] 
+    Calculate orientation from Nortek AHRS quaternions, where q = [W, X, Y, Z]
     instead of the standard q = [X, Y, Z, W] = [q1, q2, q3, q4]
 
     Parameters
@@ -305,23 +322,43 @@ def quaternion2orient(quaternions):
     """
 
     omat = type(quaternions)(np.empty((3, 3, quaternions.time.size)))
-    omat = omat.rename({'dim_0': 'earth', 'dim_1': 'inst', 'dim_2': 'time'})
+    omat = omat.rename({"dim_0": "earth", "dim_1": "inst", "dim_2": "time"})
 
     for i in range(quaternions.time.size):
-        r = R.from_quat([quaternions.isel(q=1, time=i),
-                         quaternions.isel(q=2, time=i),
-                         quaternions.isel(q=3, time=i),
-                         quaternions.isel(q=0, time=i)])
+        r = R.from_quat(
+            [
+                quaternions.isel(q=1, time=i),
+                quaternions.isel(q=2, time=i),
+                quaternions.isel(q=3, time=i),
+                quaternions.isel(q=0, time=i),
+            ]
+        )
         omat[..., i] = r.as_matrix()
 
     # quaternions in inst2earth reference frame, need to rotate to earth2inst
     omat.values = np.rollaxis(omat.values, 1)
 
-    earth = xr.DataArray(['E', 'N', 'U'], dims=['earth'], name='earth', attrs={
-        'units': '1', 'long_name': 'Earth Reference Frame', 'coverage_content_type': 'coordinate'})
-    inst = xr.DataArray(['X', 'Y', 'Z'], dims=['inst'], name='inst', attrs={
-        'units': '1', 'long_name': 'Instrument Reference Frame', 'coverage_content_type': 'coordinate'})
-    return omat.assign_coords({'earth': earth, 'inst': inst, 'time': quaternions.time})
+    earth = xr.DataArray(
+        ["E", "N", "U"],
+        dims=["earth"],
+        name="earth",
+        attrs={
+            "units": "1",
+            "long_name": "Earth Reference Frame",
+            "coverage_content_type": "coordinate",
+        },
+    )
+    inst = xr.DataArray(
+        ["X", "Y", "Z"],
+        dims=["inst"],
+        name="inst",
+        attrs={
+            "units": "1",
+            "long_name": "Instrument Reference Frame",
+            "coverage_content_type": "coordinate",
+        },
+    )
+    return omat.assign_coords({"earth": earth, "inst": inst, "time": quaternions.time})
 
 
 def calc_tilt(pitch, roll):
@@ -334,16 +371,16 @@ def calc_tilt(pitch, roll):
       Instrument roll in degrees
     pitch : numpy.ndarray or xarray.DataArray
       Instrument pitch in degrees
-      
+
     Returns
     -------
     tilt : numpy.ndarray
       Vertical inclination of the instrument in degrees
     """
 
-    if 'xarray' in type(pitch).__module__:
+    if "xarray" in type(pitch).__module__:
         pitch = pitch.values
-    if 'xarray' in type(roll).__module__:
+    if "xarray" in type(roll).__module__:
         roll = roll.values
 
     tilt = np.arctan(

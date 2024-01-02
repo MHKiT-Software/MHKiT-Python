@@ -42,7 +42,7 @@ class TestCacheUtils(unittest.TestCase):
     """
     Unit tests for cache utility functions.
 
-    This test class provides a suite of tests to validate the functionality of caching utilities, 
+    This test class provides a suite of tests to validate the functionality of caching utilities,
     ensuring data is correctly cached, retrieved, and cleared. It specifically tests:
 
     1. The creation of cache files by the `handle_caching` function.
@@ -50,8 +50,8 @@ class TestCacheUtils(unittest.TestCase):
     3. The appropriate file extension used when caching CDIP data.
     4. The effective clearing of specified cache directories.
 
-    During the setup phase, a test cache directory is created, and sample data is prepared. 
-    Upon completion of tests, the teardown phase ensures the test cache directory is removed, 
+    During the setup phase, a test cache directory is created, and sample data is prepared.
+    Upon completion of tests, the teardown phase ensures the test cache directory is removed,
     leaving the environment clean.
 
     Attributes:
@@ -63,14 +63,16 @@ class TestCacheUtils(unittest.TestCase):
     data : pandas DataFrame
         Sample data to be used for caching in tests.
     """
+
     @classmethod
     def setUpClass(cls):
-
-        cls.cache_dir = os.path.join(os.path.expanduser("~"),
-                                     ".cache", "mhkit", "test_cache")
+        cls.cache_dir = os.path.join(
+            os.path.expanduser("~"), ".cache", "mhkit", "test_cache"
+        )
         cls.hash_params = "test_params"
-        cls.data = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]},
-                                index=pd.date_range("20220101", periods=3))
+        cls.data = pd.DataFrame(
+            {"A": [1, 2, 3], "B": [4, 5, 6]}, index=pd.date_range("20220101", periods=3)
+        )
 
     @classmethod
     def tearDownClass(cls):
@@ -92,8 +94,9 @@ class TestCacheUtils(unittest.TestCase):
         """
         handle_caching(self.hash_params, self.cache_dir, data=self.data)
 
-        cache_filename = hashlib.md5(
-            self.hash_params.encode('utf-8')).hexdigest() + ".json"
+        cache_filename = (
+            hashlib.md5(self.hash_params.encode("utf-8")).hexdigest() + ".json"
+        )
         cache_filepath = os.path.join(self.cache_dir, cache_filename)
 
         assert os.path.isfile(cache_filepath)
@@ -112,8 +115,7 @@ class TestCacheUtils(unittest.TestCase):
         """
         handle_caching(self.hash_params, self.cache_dir, data=self.data)
         retrieved_data, _, _ = handle_caching(self.hash_params, self.cache_dir)
-        pd.testing.assert_frame_equal(
-            self.data, retrieved_data, check_freq=False)
+        pd.testing.assert_frame_equal(self.data, retrieved_data, check_freq=False)
 
     def test_handle_caching_cdip_file_extension(self):
         """
@@ -131,8 +133,9 @@ class TestCacheUtils(unittest.TestCase):
         cache_dir = os.path.join(self.cache_dir, "cdip")
         handle_caching(self.hash_params, cache_dir, data=self.data)
 
-        cache_filename = hashlib.md5(
-            self.hash_params.encode('utf-8')).hexdigest() + ".pkl"
+        cache_filename = (
+            hashlib.md5(self.hash_params.encode("utf-8")).hexdigest() + ".pkl"
+        )
         cache_filepath = os.path.join(cache_dir, cache_filename)
 
         assert os.path.isfile(cache_filepath)
@@ -169,5 +172,5 @@ class TestCacheUtils(unittest.TestCase):
         shutil.rmtree(temp_dir)  # Clean up temporary directory
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
