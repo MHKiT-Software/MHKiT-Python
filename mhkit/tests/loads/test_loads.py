@@ -2,7 +2,6 @@ from os.path import abspath, dirname, join, isfile, normpath, relpath
 from numpy.testing import assert_array_almost_equal, assert_allclose
 from pandas._testing.asserters import assert_series_equal
 from pandas.testing import assert_frame_equal
-from mhkit import utils
 from mhkit.wave import resource
 import mhkit.loads as loads
 import pandas as pd
@@ -47,6 +46,25 @@ class TestLoads(unittest.TestCase):
         [b_means, b_means_std] = loads.general.bin_statistics(
             load_means, bin_against, bin_edges
         )
+        b_means.index.name = None  # compatibility with old test data
+        b_means_std.index.name = None  # compatibility with old test data
+
+        assert_frame_equal(self.data["bin_means"], b_means)
+        assert_frame_equal(self.data["bin_means_std"], b_means_std)
+
+    def test_bin_statistics_xarray(self):
+        # create array containg wind speeds to use as bin edges
+        bin_edges = np.arange(3, 26, 1)
+
+        # Apply function to calculate means
+        load_means = self.data["means"]
+        load_means = load_means.to_xarray()
+        bin_against = load_means["uWind_80m"]
+        [b_means, b_means_std] = loads.general.bin_statistics(
+            load_means, bin_against, bin_edges
+        )
+        b_means.index.name = None  # compatibility with old test data
+        b_means_std.index.name = None  # compatibility with old test data
 
         assert_frame_equal(self.data["bin_means"], b_means)
         assert_frame_equal(self.data["bin_means_std"], b_means_std)
@@ -170,6 +188,30 @@ class TestWDRT(unittest.TestCase):
             rtol=0.001,
         )
 
+    def test_mler_coefficients_xarray(self):
+        Hs = 9.0  # significant wave height
+        Tp = 15.1  # time period of waves
+        pm = resource.pierson_moskowitz_spectrum(self.wave_freq, Tp, Hs)
+        mler_data = loads.extreme.mler_coefficients(
+            self.mler["RAO"].astype(complex).to_xarray(), pm, 1
+        )
+        mler_data.reset_index(drop=True, inplace=True)
+
+        assert_series_equal(
+            mler_data["WaveSpectrum"],
+            self.mler["Res_Spec"],
+            check_exact=False,
+            check_names=False,
+            atol=0.001,
+        )
+        assert_series_equal(
+            mler_data["Phase"],
+            self.mler["phase"],
+            check_exact=False,
+            check_names=False,
+            rtol=0.001,
+        )
+
     def test_mler_simulation(self):
         T = np.linspace(-150, 150, 301)
         X = np.linspace(-300, 300, 601)
@@ -209,6 +251,7 @@ class TestWDRT(unittest.TestCase):
         mler_ts = loads.extreme.mler_export_time_series(
             RAO.values, mler, self.sim, k.k.values
         )
+        mler_ts.index.name = None  # compatibility with old data
 
         assert_frame_equal(self.mler_ts, mler_ts, atol=0.0001)
 
