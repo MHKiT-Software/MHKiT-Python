@@ -6,7 +6,7 @@ import pandas as pd
 from mhkit.utils.cache import handle_caching
 
 
-def _read_usgs_json(text):
+def _read_usgs_json(text, to_pandas=True):
 
     data = pd.DataFrame()
     for i in range(len(text['value']['timeSeries'])):
@@ -24,10 +24,13 @@ def _read_usgs_json(text):
         except:
             pass
 
+    if not to_pandas:
+        data = data.to_xarray()
+
     return data
 
 
-def read_usgs_file(file_name):
+def read_usgs_file(file_name, to_pandas=True):
     """
     Reads a USGS JSON data file (from https://waterdata.usgs.gov/nwis)
 
@@ -35,17 +38,19 @@ def read_usgs_file(file_name):
     ----------
     file_name : str
         Name of USGS JSON data file
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     -------
-    data : pandas DataFrame 
+    data : pandas DataFrame or xarray Dataset
         Data indexed by datetime with columns named according to the parameter's 
         variable description
     """
     with open(file_name) as json_file:
         text = json.load(json_file)
 
-    data = _read_usgs_json(text)
+    data = _read_usgs_json(text, to_pandas)
 
     return data
 
@@ -58,7 +63,8 @@ def request_usgs_data(
         data_type='Daily',
         proxy=None,
         write_json=None,
-        clear_cache=False):
+        clear_cache=False,
+        to_pandas=True):
     """
     Loads USGS data directly from https://waterdata.usgs.gov/nwis using a 
     GET request
@@ -84,11 +90,13 @@ def request_usgs_data(
     write_json : str or None
         Name of json file to write data
     clear_cache : bool
-        If True, the cache for this specific request will be cleared.         
+        If True, the cache for this specific request will be cleared.
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.    
 
     Returns
     -------
-    data : pandas DataFrame 
+    data : pandas DataFrame or xarray Dataset
         Data indexed by datetime with columns named according to the parameter's 
         variable description
     """
@@ -127,7 +135,7 @@ def request_usgs_data(
     response = requests.get(url=data_url+api_query, proxies=proxy)
     text = json.loads(response.text)
 
-    data = _read_usgs_json(text)
+    data = _read_usgs_json(text, to_pandas)
 
     # After making the API request and processing the response, write the
     #  response to a cache file
