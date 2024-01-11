@@ -59,6 +59,7 @@ class TestWINDToolkit(unittest.TestCase):
         )
         self.ml.index = pd.to_datetime(self.ml.index)
 
+
         self.mp = pd.read_csv(
             join(datadir, "wtk_multiparm.csv"),
             index_col="time_index",
@@ -94,6 +95,10 @@ class TestWINDToolkit(unittest.TestCase):
             },
         )
 
+        # Replace NaN values in 'state' and 'county' with the string "None"
+        self.my_meta['state'] = self.my_meta['state'].fillna("None")
+        self.my_meta['county'] = self.my_meta['county'].fillna("None")
+
         self.ml_meta = pd.read_csv(
             join(datadir, "wtk_multiloc_meta.csv"),
             index_col=0,
@@ -119,6 +124,9 @@ class TestWINDToolkit(unittest.TestCase):
                 "offshore": "int16",
             },
         )
+        # Replace NaN values in 'state' and 'county' with the string "None"
+        self.ml_meta['state'] = self.ml_meta['state'].fillna("None")
+        self.ml_meta['county'] = self.ml_meta['county'].fillna("None")
 
         self.mp_meta = pd.read_csv(
             join(datadir, "wtk_multiparm_meta.csv"),
@@ -145,6 +153,9 @@ class TestWINDToolkit(unittest.TestCase):
                 "offshore": "int16",
             },
         )
+        # Replace NaN values in 'state' and 'county' with the string "None"
+        self.mp_meta['state'] = self.mp_meta['state'].fillna("None")
+        self.mp_meta['county'] = self.mp_meta['county'].fillna("None")
 
     @classmethod
     def tearDownClass(self):
@@ -177,10 +188,12 @@ class TestWINDToolkit(unittest.TestCase):
         data_type = "1-hour"
         years = [2012]
         lat_lon = (17.2, -156.5)  # Hawaii
+
         parameters = ["temperature_20m", "temperature_40m"]
         wtk_multiparm, meta = wtk.request_wtk_point_data(
             data_type, parameters, lat_lon, years
         )
+
         assert_frame_equal(self.mp, wtk_multiparm)
         assert_frame_equal(self.mp_meta, meta)
 
