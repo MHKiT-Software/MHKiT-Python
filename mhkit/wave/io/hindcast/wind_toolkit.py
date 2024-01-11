@@ -445,8 +445,10 @@ def request_wtk_point_data(
             "years": years,
         }
         data_list = []
-
+        # import ipdb; ipdb.set_trace()
         with MultiYearWindX(wind_path, **windKwargs) as rex_wind:
+            # import ipdb; ipdb.set_trace()
+
             if isinstance(parameter, list):
                 for p in parameter:
                     temp_data = rex_wind.get_lat_lon_df(p, lat_lon)
