@@ -88,10 +88,20 @@ jobs:
       - name: Prepare Hindcast data
         if: (needs.check-changes.outputs.should-run-hindcast == 'true')
         run: |
-          # pytest tests/test_specific_file.py::TestClass::test_function
           source activate TEST
-          pytest mhkit/tests/wave/io/hindcast/test_hindcast.py
-          pytest mhkit/tests/wave/io/hindcast/test_wind_toolkit.py
+          python -m pip install --upgrade pip wheel
+          pip install coveralls .
+          coverage run --rcfile=.github/workflows/.coveragehindcastrc -m  pytest -c  .github/workflows/pytest-hindcast.ini
+
+      - name: Upload coverage data to coveralls.io
+        shell: bash -l {0}
+        run: |
+          source activate TEST
+          coveralls --service=github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_FLAG_NAME: 'Hindcast'
+          COVERALLS_PARALLEL: true
 
       - name: Upload data as artifact
         uses: actions/upload-artifact@v3
@@ -107,7 +117,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
     env:
       PYTHON_VER: ${{ matrix.python-version }}
 
@@ -165,7 +175,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
 
     steps:
       - uses: conda-incubator/setup-miniconda@v2
@@ -211,7 +221,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: [3.8, 3.9, 3.10, 3.11]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
 
     steps:
       - uses: actions/checkout@v3
@@ -225,7 +235,7 @@ jobs:
       - name: Python ${{ matrix.python-version }}
         shell: bash -l {0}
         run: |
-          conda create --name TEST python=${{ matrix.python-version }} numpy cython pip pytest hdf5 libnetcdf cftime netcdf4 coverage --strict-channel-priority
+          conda create --name TEST python=${{ matrix.python-version }} numpy cython pip pytest hdf5 libnetcdf cftime netcdf4  --strict-channel-priority
           source activate TEST
           export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH" # so setup.py finds nc-config
           pip install -e . --no-deps --force-reinstall
@@ -241,18 +251,7 @@ jobs:
         run: |
           source activate TEST
           python -m pip install --upgrade pip wheel
-          pip install coveralls .
-          coverage run --rcfile=.github/workflows/.coveragehindcastrc -m  pytest -c  .github/workflows/pytest-hindcast.ini
-
-      - name: Upload coverage data to coveralls.io
-        shell: bash -l {0}
-        run: |
-          source activate TEST
-          coveralls --service=github
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
-          COVERALLS_PARALLEL: true
+          pytest -c  .github/workflows/pytest-hindcast.ini
 
   coveralls:
     name: Indicate completion to coveralls.io
