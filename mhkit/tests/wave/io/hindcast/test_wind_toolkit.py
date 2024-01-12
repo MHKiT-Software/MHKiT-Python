@@ -188,7 +188,7 @@ class TestWINDToolkit(unittest.TestCase):
                 time_interval="1-hour",
                 parameter=123,  # Invalid type, should be a string or list of strings
                 lat_lon=(17.2, -156.5),
-                years=[2012]
+                years=[2012],
             )
 
     def test_invalid_lat_lon_type(self):
@@ -197,7 +197,7 @@ class TestWINDToolkit(unittest.TestCase):
                 time_interval="1-hour",
                 parameter="temperature_20m",
                 lat_lon="17.2, -156.5",  # Invalid type, should be a tuple or list of tuples
-                years=[2012]
+                years=[2012],
             )
 
     def test_invalid_time_interval_type(self):
@@ -206,7 +206,7 @@ class TestWINDToolkit(unittest.TestCase):
                 time_interval=123,  # Invalid type, should be a string
                 parameter="temperature_20m",
                 lat_lon=(17.2, -156.5),
-                years=[2012]
+                years=[2012],
             )
 
     def test_invalid_years_type(self):
@@ -215,7 +215,7 @@ class TestWINDToolkit(unittest.TestCase):
                 time_interval="1-hour",
                 parameter="temperature_20m",
                 lat_lon=(17.2, -156.5),
-                years="2012"  # Invalid type, should be a list
+                years="2012",  # Invalid type, should be a list
             )
 
     def test_invalid_preferred_region_type(self):
@@ -225,7 +225,7 @@ class TestWINDToolkit(unittest.TestCase):
                 parameter="temperature_20m",
                 lat_lon=(17.2, -156.5),
                 years=[2012],
-                preferred_region=123  # Invalid type, should be a string
+                preferred_region=123,  # Invalid type, should be a string
             )
 
     def test_invalid_tree_type(self):
@@ -236,7 +236,7 @@ class TestWINDToolkit(unittest.TestCase):
                 lat_lon=(17.2, -156.5),
                 years=[2012],
                 preferred_region="",
-                tree=123  # Invalid type, should be a string or None
+                tree=123,  # Invalid type, should be a string or None
             )
 
     def test_invalid_unscale_type(self):
@@ -248,7 +248,7 @@ class TestWINDToolkit(unittest.TestCase):
                 years=[2012],
                 preferred_region="",
                 tree=None,
-                unscale="True"  # Invalid type, should be bool
+                unscale="True",  # Invalid type, should be bool
             )
 
     def test_invalid_str_decode_type(self):
@@ -261,7 +261,7 @@ class TestWINDToolkit(unittest.TestCase):
                 preferred_region="",
                 tree=None,
                 unscale=True,
-                str_decode=123  # Invalid type, should be bool
+                str_decode=123,  # Invalid type, should be bool
             )
 
     def test_invalid_hsds_type(self):
@@ -275,7 +275,7 @@ class TestWINDToolkit(unittest.TestCase):
                 tree=None,
                 unscale=True,
                 str_decode=True,
-                hsds="True"  # Invalid type, should be bool
+                hsds="True",  # Invalid type, should be bool
             )
 
     def test_invalid_clear_cache_type(self):
@@ -290,9 +290,8 @@ class TestWINDToolkit(unittest.TestCase):
                 unscale=True,
                 str_decode=True,
                 hsds=True,
-                clear_cache="False"  # Invalid type, should be bool
+                clear_cache="False",  # Invalid type, should be bool
             )
-
 
     # test region_selection function and catch for the preferred region
     def test_region(self):
