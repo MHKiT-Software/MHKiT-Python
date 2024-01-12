@@ -1,24 +1,10 @@
 from os.path import abspath, dirname, join, isfile, normpath, relpath
 from pandas.testing import assert_frame_equal
-from numpy.testing import assert_allclose
-from scipy.interpolate import interp1d
-from random import seed, randint
 import matplotlib.pylab as plt
-from datetime import datetime
-import xarray.testing as xrt
 import mhkit.wave.io.hindcast.wind_toolkit as wtk
-from io import StringIO
 import pandas as pd
-import numpy as np
-import contextlib
 import unittest
-import netCDF4
-import inspect
-import pickle
-import time
-import json
-import sys
-import os
+import pytest
 
 
 testdir = dirname(abspath(__file__))
@@ -195,6 +181,118 @@ class TestWINDToolkit(unittest.TestCase):
 
         assert_frame_equal(self.mp, wtk_multiparm)
         assert_frame_equal(self.mp_meta, meta)
+
+    def test_invalid_parameter_type(self):
+        with pytest.raises(TypeError):
+            wtk.request_wtk_point_data(
+                time_interval="1-hour",
+                parameter=123,  # Invalid type, should be a string or list of strings
+                lat_lon=(17.2, -156.5),
+                years=[2012]
+            )
+
+    def test_invalid_lat_lon_type(self):
+        with pytest.raises(TypeError):
+            wtk.request_wtk_point_data(
+                time_interval="1-hour",
+                parameter="temperature_20m",
+                lat_lon="17.2, -156.5",  # Invalid type, should be a tuple or list of tuples
+                years=[2012]
+            )
+
+    def test_invalid_time_interval_type(self):
+        with pytest.raises(TypeError):
+            wtk.request_wtk_point_data(
+                time_interval=123,  # Invalid type, should be a string
+                parameter="temperature_20m",
+                lat_lon=(17.2, -156.5),
+                years=[2012]
+            )
+
+    def test_invalid_years_type(self):
+        with pytest.raises(TypeError):
+            wtk.request_wtk_point_data(
+                time_interval="1-hour",
+                parameter="temperature_20m",
+                lat_lon=(17.2, -156.5),
+                years="2012"  # Invalid type, should be a list
+            )
+
+    def test_invalid_preferred_region_type(self):
+        with pytest.raises(TypeError):
+            wtk.request_wtk_point_data(
+                time_interval="1-hour",
+                parameter="temperature_20m",
+                lat_lon=(17.2, -156.5),
+                years=[2012],
+                preferred_region=123  # Invalid type, should be a string
+            )
+
+    def test_invalid_tree_type(self):
+        with pytest.raises(TypeError):
+            wtk.request_wtk_point_data(
+                time_interval="1-hour",
+                parameter="temperature_20m",
+                lat_lon=(17.2, -156.5),
+                years=[2012],
+                preferred_region="",
+                tree=123  # Invalid type, should be a string or None
+            )
+
+    def test_invalid_unscale_type(self):
+        with pytest.raises(TypeError):
+            wtk.request_wtk_point_data(
+                time_interval="1-hour",
+                parameter="temperature_20m",
+                lat_lon=(17.2, -156.5),
+                years=[2012],
+                preferred_region="",
+                tree=None,
+                unscale="True"  # Invalid type, should be bool
+            )
+
+    def test_invalid_str_decode_type(self):
+        with pytest.raises(TypeError):
+            wtk.request_wtk_point_data(
+                time_interval="1-hour",
+                parameter="temperature_20m",
+                lat_lon=(17.2, -156.5),
+                years=[2012],
+                preferred_region="",
+                tree=None,
+                unscale=True,
+                str_decode=123  # Invalid type, should be bool
+            )
+
+    def test_invalid_hsds_type(self):
+        with pytest.raises(TypeError):
+            wtk.request_wtk_point_data(
+                time_interval="1-hour",
+                parameter="temperature_20m",
+                lat_lon=(17.2, -156.5),
+                years=[2012],
+                preferred_region="",
+                tree=None,
+                unscale=True,
+                str_decode=True,
+                hsds="True"  # Invalid type, should be bool
+            )
+
+    def test_invalid_clear_cache_type(self):
+        with pytest.raises(TypeError):
+            wtk.request_wtk_point_data(
+                time_interval="1-hour",
+                parameter="temperature_20m",
+                lat_lon=(17.2, -156.5),
+                years=[2012],
+                preferred_region="",
+                tree=None,
+                unscale=True,
+                str_decode=True,
+                hsds=True,
+                clear_cache="False"  # Invalid type, should be bool
+            )
+
 
     # test region_selection function and catch for the preferred region
     def test_region(self):
