@@ -238,7 +238,7 @@ jobs:
           conda create --name TEST python=${{ matrix.python-version }} numpy cython pip pytest hdf5 libnetcdf cftime netcdf4 scipy --strict-channel-priority
           source activate TEST
           export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH" # so setup.py finds nc-config
-          pip install -e . --no-deps --force-reinstall
+          pip install -e . --force-reinstall
 
       - name: Download data from artifact
         uses: actions/download-artifact@v3
