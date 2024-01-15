@@ -65,7 +65,6 @@ class TestIO(unittest.TestCase):
         seconds_run_expected = 120
         self.assertEqual(seconds_run, seconds_run_expected)
 
-
     def test_layer_data(self):
         data = self.d3d_flume_data
         variable = ["ucx", "s1"]

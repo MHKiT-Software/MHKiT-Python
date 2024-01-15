@@ -18,7 +18,6 @@ class TestIO(unittest.TestCase):
     def setUpClass(self):
         pass
 
-
     @classmethod
     def tearDownClass(self):
         pass

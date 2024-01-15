@@ -267,12 +267,12 @@ class tools_testcase(unittest.TestCase):
         assert_equal(len(freq_full), nfft)
 
         # Check symmetry of positive and negative frequencies, ignoring the zero frequency
-        positive_freqs = freq_full[1:int(nfft / 2)]
-        negative_freqs = freq_full[int(nfft / 2) + 1:]
+        positive_freqs = freq_full[1 : int(nfft / 2)]
+        negative_freqs = freq_full[int(nfft / 2) + 1 :]
         assert_allclose(positive_freqs, -negative_freqs[::-1])
 
         # Test for half frequency range
-        freq_half = tools.fft.fft_frequency(nfft, fs, full=False)       
+        freq_half = tools.fft.fft_frequency(nfft, fs, full=False)
         assert_equal(len(freq_half), int(nfft / 2) - 1)
         # TODO Fix based on james response
         # assert_allclose(freq_half, positive_freqs)  # Ignore the zero frequency
@@ -316,19 +316,16 @@ class tools_testcase(unittest.TestCase):
         cpsd = tools.fft.cpsd_quasisync_1D(a, b, nfft, fs)
         self.assertEqual(cpsd.shape, (nfft // 2,))
 
-
         # Test with signals of different lengths
         a = np.random.normal(0, 1, 1500)
         b = np.random.normal(0, 1, 1000)
         cpsd = tools.fft.cpsd_quasisync_1D(a, b, nfft, fs)
         self.assertEqual(cpsd.shape, (nfft // 2,))
 
-
         # Test with different window types
         for window in [None, 1, "hann"]:
             cpsd = tools.fft.cpsd_quasisync_1D(a, b, nfft, fs, window=window)
             self.assertEqual(cpsd.shape, (nfft // 2,))
-
 
         # Test with a custom window
         # TODO Fix based on james response
