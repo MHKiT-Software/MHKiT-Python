@@ -1,4 +1,4 @@
-import mhkit.dolfyn.tools.misc as tools
+import mhkit.dolfyn.tools as tools
 from numpy.testing import assert_equal, assert_allclose
 import numpy as np
 import unittest
@@ -15,12 +15,12 @@ class tools_testcase(unittest.TestCase):
         pass
 
     def test_detrend_array(self):
-        d = tools.detrend_array(self.array)
+        d = tools.misc.detrend_array(self.array)
         assert_allclose(d, np.zeros(10), atol=1e-10)
 
     def test_group(self):
         array = np.concatenate((self.array, self.array))
-        d = tools.group(array)
+        d = tools.misc.group(array)
 
         out = np.array([slice(1, 20, None)], dtype=object)
         assert_equal(d, out)
@@ -35,7 +35,7 @@ class tools_testcase(unittest.TestCase):
         )
         out = np.zeros((3, 3, 3))
         slices = list()
-        for slc in tools.slice1d_along_axis((3, 3, 3), axis=-1):
+        for slc in tools.misc.slice1d_along_axis((3, 3, 3), axis=-1):
             slices.append(slc)
             out[slc] = tensor[slc]
 
@@ -56,8 +56,8 @@ class tools_testcase(unittest.TestCase):
 
     def test_fillgaps(self):
         arr = np.concatenate((self.array, self.nan, self.array))
-        d1 = tools.fillgaps(arr.copy())
-        d2 = tools.fillgaps(arr.copy(), maxgap=1)
+        d1 = tools.misc.fillgaps(arr.copy())
+        d2 = tools.misc.fillgaps(arr.copy(), maxgap=1)
 
         out1 = np.array(
             [
@@ -121,8 +121,8 @@ class tools_testcase(unittest.TestCase):
         arr = np.concatenate((self.array, self.nan, self.array, self.nan))
 
         t = np.arange(0, arr.shape[0], 0.1)
-        d1 = tools.interpgaps(arr.copy(), t, extrapFlg=True)
-        d2 = tools.interpgaps(arr.copy(), t, maxgap=1)
+        d1 = tools.misc.interpgaps(arr.copy(), t, extrapFlg=True)
+        d2 = tools.misc.interpgaps(arr.copy(), t, maxgap=1)
 
         out1 = np.array(
             [
@@ -192,7 +192,7 @@ class tools_testcase(unittest.TestCase):
         arr = np.concatenate((self.array, self.nan, self.array))
         a = np.concatenate((arr[None, :], arr[None, :]), axis=0)
 
-        d = tools.medfiltnan(a, [1, 5], thresh=3)
+        d = tools.misc.medfiltnan(a, [1, 5], thresh=3)
 
         out = np.array(
             [
@@ -252,11 +252,89 @@ class tools_testcase(unittest.TestCase):
         assert_allclose(d, out, atol=1e-10)
 
     def test_deg_conv(self):
-        d = tools.convert_degrees(self.array)
+        d = tools.misc.convert_degrees(self.array)
 
         out = np.array([90.0, 89.0, 88.0, 87.0, 86.0, 85.0, 84.0, 83.0, 82.0, 81.0])
 
         assert_allclose(d, out, atol=1e-10)
+
+    def test_fft_frequency(self):
+        fs = 1000  # Sampling frequency
+        nfft = 512  # Number of samples in a window
+
+        # Test for full frequency range
+        freq_full = tools.fft.fft_frequency(nfft, fs, full=True)
+        assert_equal(len(freq_full), nfft)
+
+        # Check symmetry of positive and negative frequencies, ignoring the zero frequency
+        positive_freqs = freq_full[1:int(nfft / 2)]
+        negative_freqs = freq_full[int(nfft / 2) + 1:]
+        assert_allclose(positive_freqs, -negative_freqs[::-1])
+
+        # Test for half frequency range
+        freq_half = tools.fft.fft_frequency(nfft, fs, full=False)       
+        assert_equal(len(freq_half), int(nfft / 2) - 1)
+        # TODO Fix based on james response
+        # assert_allclose(freq_half, positive_freqs)  # Ignore the zero frequency
+
+    def test_stepsize(self):
+        # Case 1: l < nfft
+        step, nens, nfft = tools.fft._stepsize(100, 200)
+        assert_equal((step, nens, nfft), (0, 1, 100))
+
+        # Case 2: l == nfft
+        step, nens, nfft = tools.fft._stepsize(200, 200)
+        assert_equal((step, nens, nfft), (0, 1, 200))
+
+        # Case 3: l > nfft, no nens
+        step, nens, nfft = tools.fft._stepsize(300, 100)
+        expected_nens = int(2.0 * 300 / 100)
+        expected_step = int((300 - 100) / (expected_nens - 1))
+        assert_equal((step, nens, nfft), (expected_step, expected_nens, 100))
+
+        # Case 4: l > nfft, with nens
+        step, nens, nfft = tools.fft._stepsize(300, 100, nens=5)
+        expected_step = int((300 - 100) / (5 - 1))
+        assert_equal((step, nens, nfft), (expected_step, 5, 100))
+
+        # Case 5: l > nfft, with step
+        step, nens, nfft = tools.fft._stepsize(300, 100, step=50)
+        expected_nens = int((300 - 100) / 50 + 1)
+        assert_equal((step, nens, nfft), (50, expected_nens, 100))
+
+        # Case 6: nens is 1
+        step, nens, nfft = tools.fft._stepsize(300, 100, nens=1)
+        assert_equal((step, nens, nfft), (0, 1, 100))
+
+    def test_cpsd_quasisync_1D(self):
+        fs = 1000  # Sample rate
+        nfft = 512  # Number of points in the fft
+
+        # Test with signals of same length
+        a = np.random.normal(0, 1, 1000)
+        b = np.random.normal(0, 1, 1000)
+        cpsd = tools.fft.cpsd_quasisync_1D(a, b, nfft, fs)
+        self.assertEqual(cpsd.shape, (nfft // 2,))
+
+
+        # Test with signals of different lengths
+        a = np.random.normal(0, 1, 1500)
+        b = np.random.normal(0, 1, 1000)
+        cpsd = tools.fft.cpsd_quasisync_1D(a, b, nfft, fs)
+        self.assertEqual(cpsd.shape, (nfft // 2,))
+
+
+        # Test with different window types
+        for window in [None, 1, "hann"]:
+            cpsd = tools.fft.cpsd_quasisync_1D(a, b, nfft, fs, window=window)
+            self.assertEqual(cpsd.shape, (nfft // 2,))
+
+
+        # Test with a custom window
+        # TODO Fix based on james response
+        # custom_window = np.hamming(nfft)
+        # cpsd = tools.fft.cpsd_quasisync_1D(a, b, nfft, fs, window=custom_window)
+        # self.assertEqual(cpsd.shape, (nfft // 2,))
 
 
 if __name__ == "__main__":
