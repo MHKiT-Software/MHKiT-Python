@@ -81,7 +81,7 @@ jobs:
       - name: Prepare data
         run: |
           source activate TEST
-          pytest mhkit/tests/river/test_usgs.py
+          pytest mhkit/tests/river/test_io_usgs.py
           pytest mhkit/tests/tidal/test_io.py
           pytest mhkit/tests/wave/io/test_cdip.py
 
