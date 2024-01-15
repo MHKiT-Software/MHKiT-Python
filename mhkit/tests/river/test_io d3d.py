@@ -2,6 +2,7 @@ from os.path import abspath, dirname, join, isfile, normpath, relpath
 from numpy.testing import assert_array_almost_equal
 import scipy.interpolate as interp
 import mhkit.river as river
+import mhkit.tidal as tidal
 import pandas as pd
 import xarray as xr
 import numpy as np
@@ -53,6 +54,17 @@ class TestIO(unittest.TestCase):
         time_index_expected = 1
         output_expected = f"ERROR: invalid seconds_run. Closest seconds_run found {time_index_expected}"
         self.assertWarns(UserWarning)
+
+    def test_convert_time_from_tidal(self):
+        """
+        Test the conversion of time from using tidal import of d3d
+        """
+        data = self.d3d_flume_data
+        time_index = 2
+        seconds_run = tidal.io.d3d.index_to_seconds(data, time_index=time_index)
+        seconds_run_expected = 120
+        self.assertEqual(seconds_run, seconds_run_expected)
+
 
     def test_layer_data(self):
         data = self.d3d_flume_data
