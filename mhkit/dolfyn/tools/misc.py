@@ -140,7 +140,7 @@ def slice1d_along_axis(arr_shape, axis=0):
     indlist.remove(axis)
     i[axis] = slice(None)
     itr_dims = np.asarray(arr_shape).take(indlist)
-    Ntot = np.product(itr_dims)
+    Ntot = np.prod(itr_dims)
     i.put(indlist, ind)
     k = 0
     while k < Ntot:
