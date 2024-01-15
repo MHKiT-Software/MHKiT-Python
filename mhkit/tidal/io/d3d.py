@@ -1,1 +1,1 @@
-from mhkit.river.d3d import *
+from mhkit.river.io.d3d import *
