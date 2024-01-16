@@ -198,6 +198,24 @@ class TestLoads(unittest.TestCase):
 
         self.assertTrue(isfile(savepath))
 
+    def test_plot_statistics_wrong_types(self):
+            # Test with incorrect types for some arguments
+            x = "invalid"  # Should be np.ndarray
+            y_mean = "invalid"  # Should be np.ndarray
+            y_max = "invalid"  # Should be np.ndarray
+            y_min = "invalid"  # Should be np.ndarray
+            y_stdev = "invalid"  # Should be np.ndarray
+
+            kwargs = {
+                "x_label": "X Axis",
+                "y_label": "Y Axis",
+                "title": "Test Plot",
+                "save_path": "test_plot.png"
+            }
+
+            with self.assertRaises(TypeError):
+                loads.graphics.plot_statistics(x, y_mean, y_max, y_min, y_stdev, **kwargs)
+
     def test_plot_bin_statistics(self):
         # Define signal name, path, and bin centers
         savepath = abspath(join(testdir, "test_binplotter.png"))
@@ -229,6 +247,93 @@ class TestLoads(unittest.TestCase):
 
         self.assertTrue(isfile(savepath))
 
+    def test_plot_bin_statistics_type_errors(self):
+        # Specify inputs to be used in plotting
+        bin_centers = np.arange(3.5, 25.5, step=1)
+        signal_name = "TB_ForeAft"
+        bin_mean = self.data["bin_means"][signal_name]
+        bin_max = self.data["bin_maxs"][signal_name]
+        bin_min = self.data["bin_mins"][signal_name]
+        bin_mean_std = self.data["bin_means_std"][signal_name]
+        bin_max_std = self.data["bin_maxs_std"][signal_name]
+        bin_min_std = self.data["bin_mins_std"][signal_name]
+        # Test invalid data types one at a time
+        with self.assertRaises(TypeError):
+            loads.graphics.plot_bin_statistics(
+                [1, 2, 3],  # Invalid bin_centers (list instead of np.ndarray)
+                bin_mean,
+                bin_max,
+                bin_min,
+                bin_mean_std,
+                bin_max_std,
+                bin_min_std,
+            )
+
+        with self.assertRaises(TypeError):
+            loads.graphics.plot_bin_statistics(
+                bin_centers,
+                [10, 20, 30],  # Invalid bin_mean (list instead of np.ndarray)
+                bin_max,
+                bin_min,
+                bin_mean_std,
+                bin_max_std,
+                bin_min_std,
+            )
+
+        with self.assertRaises(TypeError):
+            loads.graphics.plot_bin_statistics(
+                bin_centers,
+                bin_mean,
+                [15, 25, 35],  # Invalid bin_max (list instead of np.ndarray)
+                bin_min,
+                bin_mean_std,
+                bin_max_std,
+                bin_min_std,
+            )
+
+        with self.assertRaises(TypeError):
+            loads.graphics.plot_bin_statistics(
+                bin_centers,
+                bin_mean,
+                bin_max,
+                [5, 15, 25],  # Invalid bin_min (list instead of np.ndarray)
+                bin_mean_std,
+                bin_max_std,
+                bin_min_std,
+            )
+
+        with self.assertRaises(TypeError):
+            loads.graphics.plot_bin_statistics(
+                bin_centers,
+                bin_mean,
+                bin_max,
+                bin_min,
+                [1, 2, 3],  # Invalid bin_mean_std (list instead of np.ndarray)
+                bin_max_std,
+                bin_min_std,
+            )
+
+        with self.assertRaises(TypeError):
+            loads.graphics.plot_bin_statistics(
+                bin_centers,
+                bin_mean,
+                bin_max,
+                bin_min,
+                bin_mean_std,
+                [0.5, 1.5, 2.5],  # Invalid bin_max_std (list instead of np.ndarray)
+                bin_min_std,
+            )
+
+        with self.assertRaises(TypeError):
+            loads.graphics.plot_bin_statistics(
+                bin_centers,
+                bin_mean,
+                bin_max,
+                bin_min,
+                bin_mean_std,
+                bin_max_std,
+                [0.8, 1.8, 2.8],  # Invalid bin_min_std (list instead of np.ndarray)
+            )
 
 class TestWDRT(unittest.TestCase):
     @classmethod
