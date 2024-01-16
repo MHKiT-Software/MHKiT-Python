@@ -1,13 +1,9 @@
-from os.path import abspath, dirname, join, isfile, normpath, relpath
-from numpy.testing import assert_array_almost_equal
-from pandas.testing import assert_frame_equal
-import scipy.interpolate as interp
+from os.path import abspath, dirname, join, isfile, normpath
 import matplotlib.pylab as plt
 import mhkit.river as river
 import pandas as pd
 import numpy as np
 import unittest
-import netCDF4
 import os
 
 
@@ -41,6 +37,25 @@ class TestResource(unittest.TestCase):
         Fr = river.resource.Froude_number(v, h)
         self.assertAlmostEqual(Fr, 0.286, places=3)
 
+    def test_froude_number_v_type_error(self):
+        v = "invalid_type"  # String instead of int/float
+        h = 5
+        with self.assertRaises(TypeError):
+            river.resource.Froude_number(v, h)
+
+    def test_froude_number_h_type_error(self):
+        v = 2
+        h = "invalid_type"  # String instead of int/float
+        with self.assertRaises(TypeError):
+            river.resource.Froude_number(v, h)
+
+    def test_froude_number_g_type_error(self):
+        v = 2
+        h = 5
+        g = "invalid_type"  # String instead of int/float
+        with self.assertRaises(TypeError):
+            river.resource.Froude_number(v, h, g)
+
     def test_exceedance_probability(self):
         # Create arbitrary discharge between 0 and 8(N=9)
         Q = pd.Series(np.arange(9))
@@ -50,6 +65,11 @@ class TestResource(unittest.TestCase):
         f = river.resource.exceedance_probability(Q)
         self.assertEqual(f.min().values, 10.0)
         self.assertEqual(f.max().values, 90.0)
+
+    def test_exceedance_probability_type_error(self):
+        D = "invalid_type"  # String instead of pd.Series or pd.DataFrame
+        with self.assertRaises(TypeError):
+            river.resource.exceedance_probability(D)
 
     def test_polynomial_fit(self):
         # Calculate a first order polynomial on an x=y line
@@ -61,6 +81,27 @@ class TestResource(unittest.TestCase):
         # r-squared should be perfect
         self.assertAlmostEqual(r2, 1.0, places=2)
 
+    def test_polynomial_fit_x_type_error(self):
+        x = "invalid_type"  # String instead of numpy array
+        y = np.array([1, 2, 3])
+        n = 1
+        with self.assertRaises(TypeError):
+            river.resource.polynomial_fit(x, y, n)
+
+    def test_polynomial_fit_y_type_error(self):
+        x = np.array([1, 2, 3])
+        y = "invalid_type"  # String instead of numpy array
+        n = 1
+        with self.assertRaises(TypeError):
+            river.resource.polynomial_fit(x, y, n)
+
+    def test_polynomial_fit_n_type_error(self):
+        x = np.array([1, 2, 3])
+        y = np.array([1, 2, 3])
+        n = "invalid_type"  # String instead of int
+        with self.assertRaises(TypeError):
+            river.resource.polynomial_fit(x, y, n)
+
     def test_discharge_to_velocity(self):
         # Create arbitrary discharge between 0 and 8(N=9)
         Q = pd.Series(np.arange(9))
@@ -69,6 +110,18 @@ class TestResource(unittest.TestCase):
         # Becuase the polynomial line fits perfect we should expect the V to equal 10*Q
         V = river.resource.discharge_to_velocity(Q, p)
         self.assertAlmostEqual(np.sum(10 * Q - V["V"]), 0.00, places=2)
+
+    def test_discharge_to_velocity_D_type_error(self):
+        D = "invalid_type"  # String instead of pd.Series or pd.DataFrame
+        polynomial_coefficients = np.poly1d([1, 2])
+        with self.assertRaises(TypeError):
+            river.resource.discharge_to_velocity(D, polynomial_coefficients)
+
+    def test_discharge_to_velocity_polynomial_coefficients_type_error(self):
+        D = pd.Series([1, 2, 3])
+        polynomial_coefficients = "invalid_type"  # String instead of np.poly1d
+        with self.assertRaises(TypeError):
+            river.resource.discharge_to_velocity(D, polynomial_coefficients)
 
     def test_velocity_to_power(self):
         # Calculate a first order polynomial on an DV_Curve x=y line 10 times greater than the Q values
@@ -89,6 +142,39 @@ class TestResource(unittest.TestCase):
         # Middle 10x greater than velocity
         self.assertAlmostEqual((P["P"][1:-1] - 10 * V["V"][1:-1]).sum(), 0.00, places=2)
 
+    def test_velocity_to_power_V_type_error(self):
+        V = "invalid_type"  # String instead of pd.Series or pd.DataFrame
+        polynomial_coefficients = np.poly1d([1, 2])
+        cut_in = 1
+        cut_out = 5
+        with self.assertRaises(TypeError):
+            river.resource.velocity_to_power(V, polynomial_coefficients, cut_in, cut_out)
+
+    def test_velocity_to_power_polynomial_coefficients_type_error(self):
+        V = pd.Series([1, 2, 3])
+        polynomial_coefficients = "invalid_type"  # String instead of np.poly1d
+        cut_in = 1
+        cut_out = 5
+        with self.assertRaises(TypeError):
+            river.resource.velocity_to_power(V, polynomial_coefficients, cut_in, cut_out)
+
+    def test_velocity_to_power_cut_in_type_error(self):
+        V = pd.Series([1, 2, 3])
+        polynomial_coefficients = np.poly1d([1, 2])
+        cut_in = "invalid_type"  # String instead of int/float
+        cut_out = 5
+        with self.assertRaises(TypeError):
+            river.resource.velocity_to_power(V, polynomial_coefficients, cut_in, cut_out)
+
+    def test_velocity_to_power_cut_out_type_error(self):
+        V = pd.Series([1, 2, 3])
+        polynomial_coefficients = np.poly1d([1, 2])
+        cut_in = 1
+        cut_out = "invalid_type"  # String instead of int/float
+        with self.assertRaises(TypeError):
+            river.resource.velocity_to_power(V, polynomial_coefficients, cut_in, cut_out)
+
+
     def test_energy_produced(self):
         # If power is always X then energy produced with be x*seconds
         X = 1
@@ -102,6 +188,18 @@ class TestResource(unittest.TestCase):
         power_dist = pd.Series(np.random.normal(mu, sigma, 10000))
         EP2 = river.resource.energy_produced(power_dist, seconds)
         self.assertAlmostEqual(EP2, mu * seconds, places=1)
+
+    def test_energy_produced_P_type_error(self):
+        P = "invalid_type"  # String instead of pd.Series or pd.DataFrame
+        seconds = 3600
+        with self.assertRaises(TypeError):
+            river.resource.energy_produced(P, seconds)
+
+    def test_energy_produced_seconds_type_error(self):
+        P = pd.Series([100, 200, 300])
+        seconds = "invalid_type"  # String instead of int/float
+        with self.assertRaises(TypeError):
+            river.resource.energy_produced(P, seconds)
 
     def test_plot_flow_duration_curve(self):
         filename = abspath(join(plotdir, "river_plot_flow_duration_curve.png"))
