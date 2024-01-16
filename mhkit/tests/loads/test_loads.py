@@ -46,6 +46,11 @@ class TestLoads(unittest.TestCase):
         [b_means, b_means_std] = loads.general.bin_statistics(
             load_means, bin_against, bin_edges
         )
+
+        # Ensure the data type of the index matches
+        b_means.index = b_means.index.astype(self.data["bin_means"].index.dtype)
+        b_means_std.index = b_means_std.index.astype(self.data["bin_means_std"].index.dtype)
+
         b_means.index.name = None  # compatibility with old test data
         b_means_std.index.name = None  # compatibility with old test data
 
@@ -53,7 +58,7 @@ class TestLoads(unittest.TestCase):
         assert_frame_equal(self.data["bin_means_std"], b_means_std)
 
     def test_bin_statistics_xarray(self):
-        # create array containg wind speeds to use as bin edges
+        # create array containing wind speeds to use as bin edges
         bin_edges = np.arange(3, 26, 1)
 
         # Apply function to calculate means
@@ -63,11 +68,62 @@ class TestLoads(unittest.TestCase):
         [b_means, b_means_std] = loads.general.bin_statistics(
             load_means, bin_against, bin_edges
         )
+
+        # Ensure the data type of the index matches
+        b_means.index = b_means.index.astype(self.data["bin_means"].index.dtype)
+        b_means_std.index = b_means_std.index.astype(self.data["bin_means_std"].index.dtype)
+
         b_means.index.name = None  # compatibility with old test data
         b_means_std.index.name = None  # compatibility with old test data
 
         assert_frame_equal(self.data["bin_means"], b_means)
         assert_frame_equal(self.data["bin_means_std"], b_means_std)
+
+
+    def test_bin_statistics_data_type_error(self):
+        bin_against = np.array([10, 20, 30])
+        bin_edges = np.array([0, 15, 25, 35])
+        data_signal = ["signal_1"]
+        to_pandas = True
+        with self.assertRaises(TypeError):
+            loads.general.bin_statistics("invalid_data_type", bin_against, bin_edges, data_signal, to_pandas)
+
+    def test_bin_statistics_bin_against_type_error(self):
+        data = pd.DataFrame({"signal_1": [1, 2, 3]})
+        bin_edges = np.array([0, 15, 25, 35])
+        data_signal = ["signal_1"]
+        to_pandas = True
+        invalid_bin_against = "invalid_bin_against_type"
+        with self.assertRaises(TypeError):
+            loads.general.bin_statistics(data, invalid_bin_against, bin_edges, data_signal, to_pandas)
+
+
+    def test_bin_statistics_bin_edges_type_error(self):
+        data = pd.DataFrame({"signal_1": [1, 2, 3]})
+        bin_against = np.array([10, 20, 30])
+        data_signal = ["signal_1"]
+        to_pandas = True
+        with self.assertRaises(TypeError):
+            loads.general.bin_statistics(data, bin_against, "invalid_bin_edges_type", data_signal, to_pandas)
+
+    def test_bin_statistics_data_signal_type_error(self):
+        data = pd.DataFrame({"signal_1": [1, 2, 3]})
+        bin_against = np.array([10, 20, 30])
+        bin_edges = np.array([0, 15, 25, 35])
+        data_signal = "invalid_data_signal_type"
+        to_pandas = True
+        with self.assertRaises(TypeError):
+            loads.general.bin_statistics(data, bin_against, bin_edges, data_signal, to_pandas)
+
+    def test_bin_statistics_to_pandas_type_error(self):
+        data = pd.DataFrame({"signal_1": [1, 2, 3]})
+        bin_against = np.array([10, 20, 30])
+        bin_edges = np.array([0, 15, 25, 35])
+        data_signal = ["signal_1"]
+        to_pandas = "invalid_to_pandas_type"
+        with self.assertRaises(TypeError):
+            loads.general.bin_statistics(data, bin_against, bin_edges, data_signal, to_pandas)
+
 
     def test_blade_moments(self):
         flap_raw = self.blade_data["flap_raw"]
@@ -83,6 +139,17 @@ class TestLoads(unittest.TestCase):
             self.assertAlmostEqual(i, j, places=1)
         for i, j in zip(M_edge, self.blade_data["edge_scaled"]):
             self.assertAlmostEqual(i, j, places=1)
+
+    def test_blade_moments_wrong_types(self):
+            # Test with incorrect types
+            blade_coefficients = [1.0, 2.0, 3.0, 4.0]  # Should be np.ndarray
+            flap_offset = "invalid"  # Should be float
+            flap_raw = "invalid"  # Should be np.ndarray
+            edge_offset = "invalid"  # Should be float
+            edge_raw = "invalid"  # Should be np.ndarray
+
+            with self.assertRaises(TypeError):
+                loads.general.blade_moments(blade_coefficients, flap_offset, flap_raw, edge_offset, edge_raw)
 
     def test_damage_equivalent_loads(self):
         loads_data = self.data["loads"]
@@ -101,6 +168,17 @@ class TestLoads(unittest.TestCase):
         self.assertAlmostEqual(
             DEL_blade, self.fatigue_blade, delta=self.fatigue_blade * 0.04
         )
+
+    def test_damage_equivalent_load_wrong_types(self):
+        # Test with incorrect types
+        data_signal = "invalid"  # Should be np.ndarray
+        m = "invalid"  # Should be float or int
+        bin_num = "invalid"  # Should be int
+        data_length = "invalid"  # Should be float or int
+
+        with self.assertRaises(TypeError):
+            loads.general.damage_equivalent_load(data_signal, m, bin_num, data_length)
+
 
     def test_plot_statistics(self):
         # Define path
