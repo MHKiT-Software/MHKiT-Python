@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 
 def plot_statistics(x, y_mean, y_max, y_min, y_stdev=[], **kwargs):
@@ -33,22 +34,19 @@ def plot_statistics(x, y_mean, y_max, y_min, y_stdev=[], **kwargs):
     ax : matplotlib pyplot axes
     """
 
-    try:
-        x = np.array(x)
-    except:
-        raise TypeError(f"x must be of type np.ndarray. Got: {type(x)}")
-    try:
-        y_mean = np.array(y_mean)
-    except:
-        raise TypeError(f"y_mean must be of type np.ndarray. Got: {type(y_mean)}")
-    try:
-        y_max = np.array(y_max)
-    except:
-        raise TypeError(f"y_max must be of type np.ndarray. Got: {type(y_max)}")
-    try:
-        y_min = np.array(y_min)
-    except:
-        raise TypeError(f"y_min must be of type np.ndarray. Got: {type(y_min)}")
+    input_variables = [x, y_mean, y_max, y_min, y_stdev]
+
+    for i in range(len(input_variables)):
+        var_name = ["x", "y_mean", "y_max", "y_min", "y_stdev"][i]
+        if not isinstance(input_variables[i], (np.ndarray, pd.Series, int, float)):
+            raise TypeError(f"{var_name} must be of type np.ndarray, int, or float. Got: {type(input_variables[i])}")
+
+        try:
+            input_variables[i] = np.array(input_variables[i])
+        except:
+            pass
+
+    x, y_mean, y_max, y_min, y_stdev = input_variables
 
     x_label = kwargs.get("x_label", None)
     y_label = kwargs.get("y_label", None)
@@ -135,36 +133,19 @@ def plot_bin_statistics(
     ax : matplotlib pyplot axes
     """
 
-    try:
-        bin_centers = np.asarray(bin_centers)
-    except:
-        "bin_centers must be of type np.ndarray"
+    input_variables = [bin_centers, bin_mean, bin_max, bin_min, bin_mean_std, bin_max_std, bin_min_std]
 
-    try:
-        bin_mean = np.asarray(bin_mean)
-    except:
-        "bin_mean must be of type np.ndarray"
-    try:
-        bin_max = np.asarray(bin_max)
-    except:
-        "bin_max must be of type np.ndarray"
-    try:
-        bin_min = np.asarray(bin_min)
-    except:
-        "bin_min must be of type type np.ndarray"
+    for i in range(len(input_variables)):
+        var_name = ["bin_centers", "bin_mean", "bin_max", "bin_min", "bin_mean_std", "bin_max_std", "bin_min_std"][i]
+        if not isinstance(input_variables[i], (np.ndarray, pd.Series, int, float)):
+            raise TypeError(f"{var_name} must be of type np.ndarray, int, or float. Got: {type(input_variables[i])}")
 
-    try:
-        bin_mean_std = np.asarray(bin_mean_std)
-    except:
-        "bin_mean_std must be of type np.ndarray"
-    try:
-        bin_max_std = np.asarray(bin_max_std)
-    except:
-        "bin_max_std must be of type np.ndarray"
-    try:
-        bin_min_std = np.asarray(bin_min_std)
-    except:
-        "bin_min_std must be of type np.ndarray"
+        try:
+            input_variables[i] = np.array(input_variables[i])
+        except:
+            pass
+
+    bin_centers, bin_mean, bin_max, bin_min, bin_mean_std, bin_max_std, bin_min_std = input_variables
 
     x_label = kwargs.get("x_label", None)
     y_label = kwargs.get("y_label", None)
