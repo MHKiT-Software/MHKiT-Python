@@ -39,7 +39,9 @@ def plot_statistics(x, y_mean, y_max, y_min, y_stdev=[], **kwargs):
     for i in range(len(input_variables)):
         var_name = ["x", "y_mean", "y_max", "y_min", "y_stdev"][i]
         if not isinstance(input_variables[i], (np.ndarray, pd.Series, int, float)):
-            raise TypeError(f"{var_name} must be of type np.ndarray, int, or float. Got: {type(input_variables[i])}")
+            raise TypeError(
+                f"{var_name} must be of type np.ndarray, int, or float. Got: {type(input_variables[i])}"
+            )
 
         try:
             input_variables[i] = np.array(input_variables[i])
@@ -133,19 +135,45 @@ def plot_bin_statistics(
     ax : matplotlib pyplot axes
     """
 
-    input_variables = [bin_centers, bin_mean, bin_max, bin_min, bin_mean_std, bin_max_std, bin_min_std]
+    input_variables = [
+        bin_centers,
+        bin_mean,
+        bin_max,
+        bin_min,
+        bin_mean_std,
+        bin_max_std,
+        bin_min_std,
+    ]
 
     for i in range(len(input_variables)):
-        var_name = ["bin_centers", "bin_mean", "bin_max", "bin_min", "bin_mean_std", "bin_max_std", "bin_min_std"][i]
+        var_name = [
+            "bin_centers",
+            "bin_mean",
+            "bin_max",
+            "bin_min",
+            "bin_mean_std",
+            "bin_max_std",
+            "bin_min_std",
+        ][i]
         if not isinstance(input_variables[i], (np.ndarray, pd.Series, int, float)):
-            raise TypeError(f"{var_name} must be of type np.ndarray, int, or float. Got: {type(input_variables[i])}")
+            raise TypeError(
+                f"{var_name} must be of type np.ndarray, int, or float. Got: {type(input_variables[i])}"
+            )
 
         try:
             input_variables[i] = np.array(input_variables[i])
         except:
             pass
 
-    bin_centers, bin_mean, bin_max, bin_min, bin_mean_std, bin_max_std, bin_min_std = input_variables
+    (
+        bin_centers,
+        bin_mean,
+        bin_max,
+        bin_min,
+        bin_mean_std,
+        bin_max_std,
+        bin_min_std,
+    ) = input_variables
 
     x_label = kwargs.get("x_label", None)
     y_label = kwargs.get("y_label", None)

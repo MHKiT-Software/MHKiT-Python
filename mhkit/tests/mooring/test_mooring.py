@@ -71,15 +71,17 @@ class TestMooring(unittest.TestCase):
         )
 
         # Extract the figure and axes
-        fig = ani2d._fig 
+        fig = ani2d._fig
         ax = fig.axes[0]
-        line, = ax.lines
+        (line,) = ax.lines
 
         # Simulate the update for a specific frame
         frame = 5
 
         # Extracting data from the list of nodes
-        nodes_x, nodes_y, _ = mooring.graphics._get_axis_nodes(self.dsani, 'x', 'z', 'y')
+        nodes_x, nodes_y, _ = mooring.graphics._get_axis_nodes(
+            self.dsani, "x", "z", "y"
+        )
         x_data = self.dsani[nodes_x[0]].isel(Time=frame).values
         y_data = self.dsani[nodes_y[0]].isel(Time=frame).values
 
@@ -110,13 +112,15 @@ class TestMooring(unittest.TestCase):
         # Extract the figure and axes
         fig = ani3d._fig
         ax = fig.axes[0]
-        line, = ax.lines
+        (line,) = ax.lines
 
         # Simulate the update for a specific frame
         frame = 5
 
         # Extracting data for the specified frame
-        nodes_x, nodes_y, nodes_z = mooring.graphics._get_axis_nodes(self.dsani, 'x', 'z', 'y')
+        nodes_x, nodes_y, nodes_z = mooring.graphics._get_axis_nodes(
+            self.dsani, "x", "z", "y"
+        )
         x_data = self.dsani[nodes_x[0]].isel(Time=frame).values
         y_data = self.dsani[nodes_y[0]].isel(Time=frame).values
         z_data = self.dsani[nodes_z[0]].isel(Time=frame).values
@@ -132,7 +136,6 @@ class TestMooring(unittest.TestCase):
         np.testing.assert_array_equal(updated_x, x_data)
         np.testing.assert_array_equal(updated_y, y_data)
         np.testing.assert_array_equal(updated_z, z_data)
-
 
     # Test for xaxis, yaxis, zaxis type handling
     def test_animate_xaxis_type_handling(self):
@@ -230,7 +233,6 @@ class TestMooring(unittest.TestCase):
     def test_animate_dimension_type_handling(self):
         with pytest.raises(ValueError):
             mooring.graphics.animate(self.dsani, dimension="not_2d_or_3d")
-
 
 
 if __name__ == "__main__":

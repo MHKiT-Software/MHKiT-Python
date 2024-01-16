@@ -35,19 +35,24 @@ def bin_statistics(data, bin_against, bin_edges, data_signal=[], to_pandas=True)
         raise TypeError(
             f"data must be of type pd.DataFrame or xr.Dataset. Got: {type(data)}"
         )
-    
+
     if isinstance(bin_against, str):
-        raise TypeError(f"bin_against must be numeric, not a string. Got: {bin_against}")
+        raise TypeError(
+            f"bin_against must be numeric, not a string. Got: {bin_against}"
+        )
 
     if not isinstance(bin_against, (list, xr.DataArray, pd.Series, np.ndarray)):
-        raise TypeError(f"bin_against must be of type list, xr.DataArray, pd.Series, or np.ndarray. Got: {type(bin_against)}")
+        raise TypeError(
+            f"bin_against must be of type list, xr.DataArray, pd.Series, or np.ndarray. Got: {type(bin_against)}"
+        )
 
     if not isinstance(bin_against, np.ndarray):
         try:
             bin_against = np.asarray(bin_against)
         except:
-            raise TypeError(f"bin_against must be of type np.ndarray. Got: {type(bin_against)}")
-
+            raise TypeError(
+                f"bin_against must be of type np.ndarray. Got: {type(bin_against)}"
+            )
 
     # Check if bin_edges is a string and raise an error if it is
     if isinstance(bin_edges, str):
@@ -63,7 +68,6 @@ def bin_statistics(data, bin_against, bin_edges, data_signal=[], to_pandas=True)
     # Check if bin_edges is now a NumPy array, and raise an error if it's not
     if not isinstance(bin_edges, np.ndarray):
         raise TypeError(f"bin_edges must be of type np.ndarray. Got: {type(bin_edges)}")
-                
 
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")

@@ -49,7 +49,9 @@ class TestLoads(unittest.TestCase):
 
         # Ensure the data type of the index matches
         b_means.index = b_means.index.astype(self.data["bin_means"].index.dtype)
-        b_means_std.index = b_means_std.index.astype(self.data["bin_means_std"].index.dtype)
+        b_means_std.index = b_means_std.index.astype(
+            self.data["bin_means_std"].index.dtype
+        )
 
         b_means.index.name = None  # compatibility with old test data
         b_means_std.index.name = None  # compatibility with old test data
@@ -71,7 +73,9 @@ class TestLoads(unittest.TestCase):
 
         # Ensure the data type of the index matches
         b_means.index = b_means.index.astype(self.data["bin_means"].index.dtype)
-        b_means_std.index = b_means_std.index.astype(self.data["bin_means_std"].index.dtype)
+        b_means_std.index = b_means_std.index.astype(
+            self.data["bin_means_std"].index.dtype
+        )
 
         b_means.index.name = None  # compatibility with old test data
         b_means_std.index.name = None  # compatibility with old test data
@@ -79,14 +83,15 @@ class TestLoads(unittest.TestCase):
         assert_frame_equal(self.data["bin_means"], b_means)
         assert_frame_equal(self.data["bin_means_std"], b_means_std)
 
-
     def test_bin_statistics_data_type_error(self):
         bin_against = np.array([10, 20, 30])
         bin_edges = np.array([0, 15, 25, 35])
         data_signal = ["signal_1"]
         to_pandas = True
         with self.assertRaises(TypeError):
-            loads.general.bin_statistics("invalid_data_type", bin_against, bin_edges, data_signal, to_pandas)
+            loads.general.bin_statistics(
+                "invalid_data_type", bin_against, bin_edges, data_signal, to_pandas
+            )
 
     def test_bin_statistics_bin_against_type_error(self):
         data = pd.DataFrame({"signal_1": [1, 2, 3]})
@@ -95,8 +100,9 @@ class TestLoads(unittest.TestCase):
         to_pandas = True
         invalid_bin_against = "invalid_bin_against_type"
         with self.assertRaises(TypeError):
-            loads.general.bin_statistics(data, invalid_bin_against, bin_edges, data_signal, to_pandas)
-
+            loads.general.bin_statistics(
+                data, invalid_bin_against, bin_edges, data_signal, to_pandas
+            )
 
     def test_bin_statistics_bin_edges_type_error(self):
         data = pd.DataFrame({"signal_1": [1, 2, 3]})
@@ -104,7 +110,9 @@ class TestLoads(unittest.TestCase):
         data_signal = ["signal_1"]
         to_pandas = True
         with self.assertRaises(TypeError):
-            loads.general.bin_statistics(data, bin_against, "invalid_bin_edges_type", data_signal, to_pandas)
+            loads.general.bin_statistics(
+                data, bin_against, "invalid_bin_edges_type", data_signal, to_pandas
+            )
 
     def test_bin_statistics_data_signal_type_error(self):
         data = pd.DataFrame({"signal_1": [1, 2, 3]})
@@ -113,7 +121,9 @@ class TestLoads(unittest.TestCase):
         data_signal = "invalid_data_signal_type"
         to_pandas = True
         with self.assertRaises(TypeError):
-            loads.general.bin_statistics(data, bin_against, bin_edges, data_signal, to_pandas)
+            loads.general.bin_statistics(
+                data, bin_against, bin_edges, data_signal, to_pandas
+            )
 
     def test_bin_statistics_to_pandas_type_error(self):
         data = pd.DataFrame({"signal_1": [1, 2, 3]})
@@ -122,8 +132,9 @@ class TestLoads(unittest.TestCase):
         data_signal = ["signal_1"]
         to_pandas = "invalid_to_pandas_type"
         with self.assertRaises(TypeError):
-            loads.general.bin_statistics(data, bin_against, bin_edges, data_signal, to_pandas)
-
+            loads.general.bin_statistics(
+                data, bin_against, bin_edges, data_signal, to_pandas
+            )
 
     def test_blade_moments(self):
         flap_raw = self.blade_data["flap_raw"]
@@ -141,15 +152,17 @@ class TestLoads(unittest.TestCase):
             self.assertAlmostEqual(i, j, places=1)
 
     def test_blade_moments_wrong_types(self):
-            # Test with incorrect types
-            blade_coefficients = [1.0, 2.0, 3.0, 4.0]  # Should be np.ndarray
-            flap_offset = "invalid"  # Should be float
-            flap_raw = "invalid"  # Should be np.ndarray
-            edge_offset = "invalid"  # Should be float
-            edge_raw = "invalid"  # Should be np.ndarray
+        # Test with incorrect types
+        blade_coefficients = [1.0, 2.0, 3.0, 4.0]  # Should be np.ndarray
+        flap_offset = "invalid"  # Should be float
+        flap_raw = "invalid"  # Should be np.ndarray
+        edge_offset = "invalid"  # Should be float
+        edge_raw = "invalid"  # Should be np.ndarray
 
-            with self.assertRaises(TypeError):
-                loads.general.blade_moments(blade_coefficients, flap_offset, flap_raw, edge_offset, edge_raw)
+        with self.assertRaises(TypeError):
+            loads.general.blade_moments(
+                blade_coefficients, flap_offset, flap_raw, edge_offset, edge_raw
+            )
 
     def test_damage_equivalent_loads(self):
         loads_data = self.data["loads"]
@@ -179,7 +192,6 @@ class TestLoads(unittest.TestCase):
         with self.assertRaises(TypeError):
             loads.general.damage_equivalent_load(data_signal, m, bin_num, data_length)
 
-
     def test_plot_statistics(self):
         # Define path
         savepath = abspath(join(testdir, "test_scatplotter.png"))
@@ -199,22 +211,22 @@ class TestLoads(unittest.TestCase):
         self.assertTrue(isfile(savepath))
 
     def test_plot_statistics_wrong_types(self):
-            # Test with incorrect types for some arguments
-            x = "invalid"  # Should be np.ndarray
-            y_mean = "invalid"  # Should be np.ndarray
-            y_max = "invalid"  # Should be np.ndarray
-            y_min = "invalid"  # Should be np.ndarray
-            y_stdev = "invalid"  # Should be np.ndarray
+        # Test with incorrect types for some arguments
+        x = "invalid"  # Should be np.ndarray
+        y_mean = "invalid"  # Should be np.ndarray
+        y_max = "invalid"  # Should be np.ndarray
+        y_min = "invalid"  # Should be np.ndarray
+        y_stdev = "invalid"  # Should be np.ndarray
 
-            kwargs = {
-                "x_label": "X Axis",
-                "y_label": "Y Axis",
-                "title": "Test Plot",
-                "save_path": "test_plot.png"
-            }
+        kwargs = {
+            "x_label": "X Axis",
+            "y_label": "Y Axis",
+            "title": "Test Plot",
+            "save_path": "test_plot.png",
+        }
 
-            with self.assertRaises(TypeError):
-                loads.graphics.plot_statistics(x, y_mean, y_max, y_min, y_stdev, **kwargs)
+        with self.assertRaises(TypeError):
+            loads.graphics.plot_statistics(x, y_mean, y_max, y_min, y_stdev, **kwargs)
 
     def test_plot_bin_statistics(self):
         # Define signal name, path, and bin centers
@@ -334,6 +346,7 @@ class TestLoads(unittest.TestCase):
                 bin_max_std,
                 [0.8, 1.8, 2.8],  # Invalid bin_min_std (list instead of np.ndarray)
             )
+
 
 class TestWDRT(unittest.TestCase):
     @classmethod

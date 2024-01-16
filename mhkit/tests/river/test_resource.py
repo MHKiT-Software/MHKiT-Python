@@ -148,7 +148,9 @@ class TestResource(unittest.TestCase):
         cut_in = 1
         cut_out = 5
         with self.assertRaises(TypeError):
-            river.resource.velocity_to_power(V, polynomial_coefficients, cut_in, cut_out)
+            river.resource.velocity_to_power(
+                V, polynomial_coefficients, cut_in, cut_out
+            )
 
     def test_velocity_to_power_polynomial_coefficients_type_error(self):
         V = pd.Series([1, 2, 3])
@@ -156,7 +158,9 @@ class TestResource(unittest.TestCase):
         cut_in = 1
         cut_out = 5
         with self.assertRaises(TypeError):
-            river.resource.velocity_to_power(V, polynomial_coefficients, cut_in, cut_out)
+            river.resource.velocity_to_power(
+                V, polynomial_coefficients, cut_in, cut_out
+            )
 
     def test_velocity_to_power_cut_in_type_error(self):
         V = pd.Series([1, 2, 3])
@@ -164,7 +168,9 @@ class TestResource(unittest.TestCase):
         cut_in = "invalid_type"  # String instead of int/float
         cut_out = 5
         with self.assertRaises(TypeError):
-            river.resource.velocity_to_power(V, polynomial_coefficients, cut_in, cut_out)
+            river.resource.velocity_to_power(
+                V, polynomial_coefficients, cut_in, cut_out
+            )
 
     def test_velocity_to_power_cut_out_type_error(self):
         V = pd.Series([1, 2, 3])
@@ -172,8 +178,9 @@ class TestResource(unittest.TestCase):
         cut_in = 1
         cut_out = "invalid_type"  # String instead of int/float
         with self.assertRaises(TypeError):
-            river.resource.velocity_to_power(V, polynomial_coefficients, cut_in, cut_out)
-
+            river.resource.velocity_to_power(
+                V, polynomial_coefficients, cut_in, cut_out
+            )
 
     def test_energy_produced(self):
         # If power is always X then energy produced with be x*seconds
