@@ -68,51 +68,72 @@ class TestContours(unittest.TestCase):
         # Invalid x1 tests
         x1_non_numeric = "not an array"
         with self.assertRaises(ValueError):
-            wave.contours.environmental_contours(x1_non_numeric, self.wdrt_Te, 3600, 50, "PCA")
+            wave.contours.environmental_contours(
+                x1_non_numeric, self.wdrt_Te, 3600, 50, "PCA"
+            )
 
         x1_scalar = 5
         with self.assertRaises(TypeError):
-            wave.contours.environmental_contours(x1_scalar, self.wdrt_Te, 3600, 50, "PCA")
+            wave.contours.environmental_contours(
+                x1_scalar, self.wdrt_Te, 3600, 50, "PCA"
+            )
 
         # Invalid x2 tests
         x2_non_numeric = "not an array"
         with self.assertRaises(ValueError):
-            wave.contours.environmental_contours(self.wdrt_Hm0, x2_non_numeric, 3600, 50, "PCA")
+            wave.contours.environmental_contours(
+                self.wdrt_Hm0, x2_non_numeric, 3600, 50, "PCA"
+            )
 
         x2_scalar = 10
         with self.assertRaises(TypeError):
-            wave.contours.environmental_contours(self.wdrt_Hm0, x2_scalar, 3600, 50, "PCA")
+            wave.contours.environmental_contours(
+                self.wdrt_Hm0, x2_scalar, 3600, 50, "PCA"
+            )
 
         # Unequal lengths of x1 and x2
         x2_unequal_length = self.wdrt_Te[:-1]
         with self.assertRaises(ValueError):
-            wave.contours.environmental_contours(self.wdrt_Hm0, x2_unequal_length, 3600, 50, "PCA")
+            wave.contours.environmental_contours(
+                self.wdrt_Hm0, x2_unequal_length, 3600, 50, "PCA"
+            )
 
         # Invalid sea_state_duration tests
         invalid_sea_state_duration_string = "one hour"
         with self.assertRaises(TypeError):
-            wave.contours.environmental_contours(self.wdrt_Hm0, self.wdrt_Te, invalid_sea_state_duration_string, 50, "PCA")
+            wave.contours.environmental_contours(
+                self.wdrt_Hm0,
+                self.wdrt_Te,
+                invalid_sea_state_duration_string,
+                50,
+                "PCA",
+            )
 
         invalid_sea_state_duration_list = [3600]
         with self.assertRaises(TypeError):
-            wave.contours.environmental_contours(self.wdrt_Hm0, self.wdrt_Te, invalid_sea_state_duration_list, 50, "PCA")
+            wave.contours.environmental_contours(
+                self.wdrt_Hm0, self.wdrt_Te, invalid_sea_state_duration_list, 50, "PCA"
+            )
 
         # Invalid return_period tests
         invalid_return_period_string = "fifty years"
         with self.assertRaises(TypeError):
-            wave.contours.environmental_contours(self.wdrt_Hm0, self.wdrt_Te, 3600, invalid_return_period_string, "PCA")
+            wave.contours.environmental_contours(
+                self.wdrt_Hm0, self.wdrt_Te, 3600, invalid_return_period_string, "PCA"
+            )
 
         invalid_return_period_list = [50]
         with self.assertRaises(TypeError):
-            wave.contours.environmental_contours(self.wdrt_Hm0, self.wdrt_Te, 3600, invalid_return_period_list, "PCA")
+            wave.contours.environmental_contours(
+                self.wdrt_Hm0, self.wdrt_Te, 3600, invalid_return_period_list, "PCA"
+            )
 
         # Invalid method tests
         invalid_method = 123
         with self.assertRaises(TypeError):
-            wave.contours.environmental_contours(self.wdrt_Hm0, self.wdrt_Te, 3600, 50, invalid_method)
-
-
-
+            wave.contours.environmental_contours(
+                self.wdrt_Hm0, self.wdrt_Te, 3600, 50, invalid_method
+            )
 
     def test__principal_component_analysis(self):
         Hm0Te = self.Hm0Te

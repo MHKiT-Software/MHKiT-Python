@@ -120,9 +120,9 @@ def request_noaa_data(
         if write_json:
             shutil.copy(cache_filepath, write_json)
         return cached_data, cached_metadata
-    # If no cached data is available, make the API request 
+    # If no cached data is available, make the API request
     # no coverage bc in coverage runs we have already cached the data/ run this code
-    else: # pragma: no cover
+    else:  # pragma: no cover
         # Convert start and end dates to datetime objects
         begin = datetime.datetime.strptime(start_date, "%Y%m%d").date()
         end = datetime.datetime.strptime(end_date, "%Y%m%d").date()

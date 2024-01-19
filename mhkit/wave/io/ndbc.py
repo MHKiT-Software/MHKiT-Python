@@ -188,9 +188,9 @@ def available_data(parameter, buoy_number=None, proxy=None, clear_cache=False):
 
     # Check the cache before making the request
     data, _, _ = handle_caching(hash_params, cache_dir, clear_cache_file=clear_cache)
-    
+
     # no coverage bc in coverage runs we have already cached the data/ run this code
-    if data is None: # pragma: no cover
+    if data is None:  # pragma: no cover
         ndbc_data = f"https://www.ndbc.noaa.gov/data/historical/{parameter}/"
 
         try:
