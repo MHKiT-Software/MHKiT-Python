@@ -120,66 +120,68 @@ def request_noaa_data(
         if write_json:
             shutil.copy(cache_filepath, write_json)
         return cached_data, cached_metadata
+    # If no cached data is available, make the API request 
+    # no coverage bc in coverage runs we have already cached the data/ run this code
+    else: # pragma: no cover
+        # Convert start and end dates to datetime objects
+        begin = datetime.datetime.strptime(start_date, "%Y%m%d").date()
+        end = datetime.datetime.strptime(end_date, "%Y%m%d").date()
 
-    # Convert start and end dates to datetime objects
-    begin = datetime.datetime.strptime(start_date, "%Y%m%d").date()
-    end = datetime.datetime.strptime(end_date, "%Y%m%d").date()
+        # Determine the number of 30 day intervals
+        delta = 30
+        interval = math.ceil(((end - begin).days) / delta)
 
-    # Determine the number of 30 day intervals
-    delta = 30
-    interval = math.ceil(((end - begin).days) / delta)
+        # Create date ranges with 30 day intervals
+        date_list = [
+            begin + datetime.timedelta(days=i * delta) for i in range(interval + 1)
+        ]
+        date_list[-1] = end
 
-    # Create date ranges with 30 day intervals
-    date_list = [
-        begin + datetime.timedelta(days=i * delta) for i in range(interval + 1)
-    ]
-    date_list[-1] = end
+        # Iterate over date_list (30 day intervals) and fetch data
+        data_frames = []
+        for i in range(len(date_list) - 1):
+            start_date = date_list[i].strftime("%Y%m%d")
+            end_date = date_list[i + 1].strftime("%Y%m%d")
 
-    # Iterate over date_list (30 day intervals) and fetch data
-    data_frames = []
-    for i in range(len(date_list) - 1):
-        start_date = date_list[i].strftime("%Y%m%d")
-        end_date = date_list[i + 1].strftime("%Y%m%d")
+            api_query = f"begin_date={start_date}&end_date={end_date}&station={station}&product={parameter}&units=metric&time_zone=gmt&application=web_services&format=xml"
+            data_url = f"https://tidesandcurrents.noaa.gov/api/datagetter?{api_query}"
 
-        api_query = f"begin_date={start_date}&end_date={end_date}&station={station}&product={parameter}&units=metric&time_zone=gmt&application=web_services&format=xml"
-        data_url = f"https://tidesandcurrents.noaa.gov/api/datagetter?{api_query}"
+            print("Data request URL: ", data_url)
 
-        print("Data request URL: ", data_url)
+            # Get response
+            try:
+                response = requests.get(url=data_url, proxies=proxy)
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as err:
+                print(f"HTTP error occurred: {err}")
+                continue
+            except requests.exceptions.RequestException as err:
+                print(f"Error occurred: {err}")
+                continue
+            # Convert to DataFrame and save in data_frames list
+            df, metadata = _xml_to_dataframe(response)
+            data_frames.append(df)
 
-        # Get response
-        try:
-            response = requests.get(url=data_url, proxies=proxy)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            print(f"HTTP error occurred: {err}")
-            continue
-        except requests.exceptions.RequestException as err:
-            print(f"Error occurred: {err}")
-            continue
-        # Convert to DataFrame and save in data_frames list
-        df, metadata = _xml_to_dataframe(response)
-        data_frames.append(df)
+        # Concatenate all DataFrames
+        data = pd.concat(data_frames, ignore_index=False)
 
-    # Concatenate all DataFrames
-    data = pd.concat(data_frames, ignore_index=False)
+        # Remove duplicated date values
+        data = data.loc[~data.index.duplicated()]
 
-    # Remove duplicated date values
-    data = data.loc[~data.index.duplicated()]
+        # After making the API request and processing the response, write the
+        #  response to a cache file
+        handle_caching(
+            hash_params,
+            cache_dir,
+            data=data,
+            metadata=metadata,
+            clear_cache_file=clear_cache,
+        )
 
-    # After making the API request and processing the response, write the
-    #  response to a cache file
-    handle_caching(
-        hash_params,
-        cache_dir,
-        data=data,
-        metadata=metadata,
-        clear_cache_file=clear_cache,
-    )
+        if write_json:
+            shutil.copy(cache_filepath, write_json)
 
-    if write_json:
-        shutil.copy(cache_filepath, write_json)
-
-    return data, metadata
+        return data, metadata
 
 
 def _xml_to_dataframe(response):
