@@ -139,9 +139,14 @@ class TestContours(unittest.TestCase):
         invalid_bin_val_size = "not a number"
         with self.assertRaises(TypeError):
             wave.contours.environmental_contours(
-                self.wdrt_Hm0, self.wdrt_Te, 3600, 50, "PCA", bin_val_size=invalid_bin_val_size
+                self.wdrt_Hm0,
+                self.wdrt_Te,
+                3600,
+                50,
+                "PCA",
+                bin_val_size=invalid_bin_val_size,
             )
-        
+
         invalid_nb_steps = 100.5
         with self.assertRaises(TypeError):
             wave.contours.environmental_contours(
@@ -151,19 +156,29 @@ class TestContours(unittest.TestCase):
         invalid_initial_bin_max_val = "not a number"
         with self.assertRaises(TypeError):
             wave.contours.environmental_contours(
-                self.wdrt_Hm0, self.wdrt_Te, 3600, 50, "PCA", initial_bin_max_val=invalid_initial_bin_max_val
+                self.wdrt_Hm0,
+                self.wdrt_Te,
+                3600,
+                50,
+                "PCA",
+                initial_bin_max_val=invalid_initial_bin_max_val,
             )
 
         invalid_min_bin_count = 40.5
         with self.assertRaises(TypeError):
             wave.contours.environmental_contours(
-                self.wdrt_Hm0, self.wdrt_Te, 3600, 50, "PCA", min_bin_count=invalid_min_bin_count
+                self.wdrt_Hm0,
+                self.wdrt_Te,
+                3600,
+                50,
+                "PCA",
+                min_bin_count=invalid_min_bin_count,
             )
 
         with self.assertRaises(TypeError):
             wave.contours.environmental_contours(
                 self.wdrt_Hm0, self.wdrt_Te, 3600, 50, "bivariate_KDE"
-            )            
+            )
 
         invalid_PCA = "not a dict"
         with self.assertRaises(TypeError):
@@ -174,41 +189,60 @@ class TestContours(unittest.TestCase):
         invalid_PCA_bin_size = "not an int"
         with self.assertRaises(TypeError):
             wave.contours.environmental_contours(
-                self.wdrt_Hm0, self.wdrt_Te, 3600, 50, "PCA", PCA_bin_size=invalid_PCA_bin_size
-            )         
+                self.wdrt_Hm0,
+                self.wdrt_Te,
+                3600,
+                50,
+                "PCA",
+                PCA_bin_size=invalid_PCA_bin_size,
+            )
 
         invalid_return_fit = "not a boolean"
         with self.assertRaises(TypeError):
             wave.contours.environmental_contours(
-                self.wdrt_Hm0, self.wdrt_Te, 3600, 50, "PCA", return_fit=invalid_return_fit
-            )               
+                self.wdrt_Hm0,
+                self.wdrt_Te,
+                3600,
+                50,
+                "PCA",
+                return_fit=invalid_return_fit,
+            )
 
         invalid_Ndata_bivariate_KDE = "not a number"
         with self.assertRaises(TypeError):
             wave.contours.environmental_contours(
-                self.wdrt_Hm0, self.wdrt_Te, 3600, 50, "bivariate_KDE", Ndata_bivariate_KDE=invalid_Ndata_bivariate_KDE
-            )      
+                self.wdrt_Hm0,
+                self.wdrt_Te,
+                3600,
+                50,
+                "bivariate_KDE",
+                Ndata_bivariate_KDE=invalid_Ndata_bivariate_KDE,
+            )
 
         invalid_max_x1 = "not a number"
         with self.assertRaises(TypeError):
             wave.contours.environmental_contours(
                 self.wdrt_Hm0, self.wdrt_Te, 3600, 50, "PCA", max_x1=invalid_max_x1
-            )                
+            )
 
         invalid_max_x2 = "not a number"
         with self.assertRaises(TypeError):
             wave.contours.environmental_contours(
                 self.wdrt_Hm0, self.wdrt_Te, 3600, 50, "PCA", max_x2=invalid_max_x2
-            )    
+            )
 
         invalid_bandwidth = "not a number"
         with self.assertRaises(TypeError):
             wave.contours.environmental_contours(
-                self.wdrt_Hm0, self.wdrt_Te, 3600, 50, "bivariate_KDE", bandwidth=invalid_bandwidth
-            )            
+                self.wdrt_Hm0,
+                self.wdrt_Te,
+                3600,
+                50,
+                "bivariate_KDE",
+                bandwidth=invalid_bandwidth,
+            )
 
     def test_PCA_contours_invalid_inputs(self):
-
         Hm0Te = self.Hm0Te
         df = Hm0Te[Hm0Te["Hm0"] < 20]
 
@@ -218,36 +252,48 @@ class TestContours(unittest.TestCase):
         dt_ss = (Hm0Te.index[2] - Hm0Te.index[1]).seconds
         period = 100
 
-        copula  = wave.contours.environmental_contours(Hm0, Te, dt_ss, period, "PCA", return_fit=True)
+        copula = wave.contours.environmental_contours(
+            Hm0, Te, dt_ss, period, "PCA", return_fit=True
+        )
 
-        PCA_args ={
-                    "nb_steps": 1000,
-                    "return_fit": False,
-                    "bin_size": 250,
-                }
+        PCA_args = {
+            "nb_steps": 1000,
+            "return_fit": False,
+            "bin_size": 250,
+        }
 
         # Invalid x1 tests
         x1_non_numeric = "not an array"
         with self.assertRaises(ValueError):
-            wave.contours.PCA_contour(x1_non_numeric, self.wdrt_Te, copula['PCA_fit'], PCA_args)
+            wave.contours.PCA_contour(
+                x1_non_numeric, self.wdrt_Te, copula["PCA_fit"], PCA_args
+            )
 
         x1_scalar = 5
         with self.assertRaises(TypeError):
-            wave.contours.PCA_contour(x1_scalar, self.wdrt_Te, copula['PCA_fit'], PCA_args)
+            wave.contours.PCA_contour(
+                x1_scalar, self.wdrt_Te, copula["PCA_fit"], PCA_args
+            )
 
         # Invalid x2 tests
         x2_non_numeric = "not an array"
         with self.assertRaises(ValueError):
-            wave.contours.PCA_contour(self.wdrt_Hm0, x2_non_numeric, copula['PCA_fit'], PCA_args)
+            wave.contours.PCA_contour(
+                self.wdrt_Hm0, x2_non_numeric, copula["PCA_fit"], PCA_args
+            )
 
         x2_scalar = 10
         with self.assertRaises(TypeError):
-            wave.contours.PCA_contour(self.wdrt_Hm0, x2_scalar, copula['PCA_fit'], PCA_args)
+            wave.contours.PCA_contour(
+                self.wdrt_Hm0, x2_scalar, copula["PCA_fit"], PCA_args
+            )
 
         # Unequal lengths of x1 and x2
         x2_unequal_length = self.wdrt_Te[:-1]
         with self.assertRaises(ValueError):
-            wave.contours.PCA_contour(self.wdrt_Hm0, x2_unequal_length, copula['PCA_fit'], PCA_args)
+            wave.contours.PCA_contour(
+                self.wdrt_Hm0, x2_unequal_length, copula["PCA_fit"], PCA_args
+            )
 
     def test__principal_component_analysis(self):
         Hm0Te = self.Hm0Te
@@ -281,8 +327,9 @@ class TestContours(unittest.TestCase):
         # Test invalid bin_size (non-integer input)
         invalid_bin_size = "not an integer"
         with self.assertRaises(TypeError):
-            wave.contours._principal_component_analysis(x1_valid, x2_valid, bin_size=invalid_bin_size)
-
+            wave.contours._principal_component_analysis(
+                x1_valid, x2_valid, bin_size=invalid_bin_size
+            )
 
     def test_principal_component_analysis_bin_size_adjustment_warning(self):
         Hm0Te = self.Hm0Te
@@ -291,16 +338,22 @@ class TestContours(unittest.TestCase):
         Hm0 = df.Hm0.values
         Te = df.Te.values
 
-        large_bin_size = 1000000 
+        large_bin_size = 1000000
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")  # Cause all warnings to always be triggered
-            wave.contours._principal_component_analysis(Hm0, Te, bin_size=large_bin_size)
+            wave.contours._principal_component_analysis(
+                Hm0, Te, bin_size=large_bin_size
+            )
 
             self.assertTrue(len(w) == 1)  # Check that exactly one warning was raised
-            self.assertTrue(issubclass(w[-1].category, UserWarning))  # Check the warning category
-            self.assertIn("To allow for a minimum of 4 bins, the bin size has been set to", str(w[-1].message)) 
-
+            self.assertTrue(
+                issubclass(w[-1].category, UserWarning)
+            )  # Check the warning category
+            self.assertIn(
+                "To allow for a minimum of 4 bins, the bin size has been set to",
+                str(w[-1].message),
+            )
 
     def test_plot_environmental_contour(self):
         file_loc = join(plotdir, "wave_plot_environmental_contour.png")
