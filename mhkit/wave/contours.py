@@ -6,6 +6,7 @@ import scipy.optimize as optim
 import scipy.stats as stats
 import scipy.interpolate as interp
 import numpy as np
+import warnings
 
 import matplotlib
 
@@ -532,13 +533,13 @@ def _principal_component_analysis(x1, x2, bin_size=250):
     if bin_size > minimum_4_bins:
         bin_size = minimum_4_bins
         msg = (
-            "To allow for a minimum of 4 bins, the bin size has been"
+            "To allow for a minimum of 4 bins, the bin size has been "
             + f"set to {minimum_4_bins}"
         )
-        print(msg)
+        warnings.warn(msg, UserWarning)
 
-    N_multiples = N // bin_size
-    max_N_multiples_index = N_multiples * bin_size
+    N_multiples = int(N // bin_size)
+    max_N_multiples_index = int(N_multiples * bin_size)
 
     x1_integer_multiples_of_bin_size = x1_sorted[0:max_N_multiples_index]
     x2_integer_multiples_of_bin_size = x2_sorted[0:max_N_multiples_index]
