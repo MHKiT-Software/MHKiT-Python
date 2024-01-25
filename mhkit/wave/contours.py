@@ -84,16 +84,12 @@ def environmental_contours(x1, x2, sea_state_duration, return_period, method, **
         x2 = np.asarray(x2, dtype=float)
     except ValueError:
         raise ValueError("x2 must contain numeric values.")
-
     if not isinstance(x1, np.ndarray) or x1.ndim == 0:
         raise TypeError(f"x1 must be a non-scalar array. Got: {type(x1)}")
     if not isinstance(x2, np.ndarray) or x2.ndim == 0:
         raise TypeError(f"x2 must be a non-scalar array. Got: {type(x2)}")
-
-    # Check if the lengths of x1 and x2 are equal
     if len(x1) != len(x2):
         raise ValueError("The lengths of x1 and x2 must be equal.")
-
     if not isinstance(sea_state_duration, (int, float)):
         raise TypeError(
             f"sea_state_duration must be of type int or float. Got: {type(sea_state_duration)}"
@@ -115,6 +111,10 @@ def environmental_contours(x1, x2, sea_state_duration, return_period, method, **
     PCA_bin_size = kwargs.get("PCA_bin_size", 250)
     return_fit = kwargs.get("return_fit", False)
 
+    if not isinstance(max_x1, (int, float, type(None))):
+        raise TypeError(f"If specified, max_x1 must be a dict. Got: {type(PCA)}")
+    if not isinstance(max_x2, (int, float, type(None))):
+        raise TypeError(f"If specified, max_x2 must be a dict. Got: {type(PCA)}")
     if not isinstance(PCA, (dict, type(None))):
         raise TypeError(f"If specified, PCA must be a dict. Got: {type(PCA)}")
     if not isinstance(PCA_bin_size, int):
@@ -362,17 +362,19 @@ def PCA_contour(x1, x2, fit, kwargs):
 
     """
     try:
-        x1 = np.array(x1)
-    except:
-        pass
+        x1 = np.asarray(x1, dtype=float)
+    except ValueError:
+        raise ValueError("x1 must contain numeric values.")
     try:
-        x2 = np.array(x2)
-    except:
-        pass
-    if not isinstance(x1, np.ndarray):
-        raise TypeError(f"x1 must be of type np.ndarray. Got: {type(x1)}")
-    if not isinstance(x2, np.ndarray):
-        raise TypeError(f"x2 must be of type np.ndarray. Got: {type(x2)}")
+        x2 = np.asarray(x2, dtype=float)
+    except ValueError:
+        raise ValueError("x2 must contain numeric values.")
+    if not isinstance(x1, np.ndarray) or x1.ndim == 0:
+        raise TypeError(f"x1 must be a non-scalar array. Got: {type(x1)}")
+    if not isinstance(x2, np.ndarray) or x2.ndim == 0:
+        raise TypeError(f"x2 must be a non-scalar array. Got: {type(x2)}")
+    if len(x1) != len(x2):
+        raise ValueError("The lengths of x1 and x2 must be equal.")
 
     bin_size = kwargs.get("bin_size", 250)
     nb_steps = kwargs.get("nb_steps", 1000)
