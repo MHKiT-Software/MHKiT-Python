@@ -39,6 +39,10 @@ def harmonics(x, freq, grid_freq, to_pandas=True):
     if grid_freq not in [50, 60]:
         raise ValueError('grid_freq must be either 50 or 60')
 
+    if not isinstance(to_pandas, bool):
+        raise TypeError(
+            f'to_pandas must be of type bool. Got: {type(to_pandas)}')
+
     # Convert input to xr.Dataset
     x = _convert_to_dataset(x, 'data')
 
@@ -103,6 +107,10 @@ def harmonic_subgroups(harmonics, grid_freq, frequency_dimension="", to_pandas=T
     if grid_freq not in [50, 60]:
         raise ValueError('grid_freq must be either 50 or 60')
 
+    if not isinstance(to_pandas, bool):
+        raise TypeError(
+            f'to_pandas must be of type bool. Got: {type(to_pandas)}')
+
     # Convert input to xr.Dataset
     harmonics = _convert_to_dataset(harmonics, 'harmonics')
 
@@ -163,6 +171,10 @@ def total_harmonic_current_distortion(harmonics_subgroup, frequency_dimension=""
         raise TypeError('harmonics_subgroup must be of type pd.Series, pd.DataFrame, ' + 
                         f'xr.DataArray, or xr.Dataset. Got{type(harmonics_subgroup)}')
 
+    if not isinstance(to_pandas, bool):
+        raise TypeError(
+            f'to_pandas must be of type bool. Got: {type(to_pandas)}')
+
     # Convert input to xr.Dataset
     harmonics_subgroup = _convert_to_dataset(harmonics_subgroup, 'harmonics')
     
@@ -212,6 +224,10 @@ def interharmonics(harmonics, grid_freq, frequency_dimension="", to_pandas=True)
 
     if grid_freq not in [50, 60]:
         raise ValueError('grid_freq must be either 50 or 60')
+
+    if not isinstance(to_pandas, bool):
+        raise TypeError(
+            f'to_pandas must be of type bool. Got: {type(to_pandas)}')
 
     if isinstance(harmonics, (pd.DataFrame, pd.Series)):
         harmonics = harmonics.to_xarray()
