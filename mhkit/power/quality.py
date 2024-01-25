@@ -111,8 +111,16 @@ def harmonic_subgroups(harmonics, grid_freq, frequency_dimension="", to_pandas=T
         raise TypeError(
             f'to_pandas must be of type bool. Got: {type(to_pandas)}')
 
+    if not isinstance(frequency_dimension, str):
+        raise TypeError(
+            f'frequency_dimension must be of type bool. Got: {type(frequency_dimension)}')
+
     # Convert input to xr.Dataset
     harmonics = _convert_to_dataset(harmonics, 'harmonics')
+    
+    if frequency_dimension != '' and frequency_dimension not in harmonics.coords:
+        raise ValueError('frequency_dimension was supplied but is not a dimension '
+                         + f'of harmonics. Got {frequency_dimension}')
 
     if grid_freq == 60:
         hz = np.arange(0, 3060, 60)
@@ -175,8 +183,16 @@ def total_harmonic_current_distortion(harmonics_subgroup, frequency_dimension=""
         raise TypeError(
             f'to_pandas must be of type bool. Got: {type(to_pandas)}')
 
+    if not isinstance(frequency_dimension, str):
+        raise TypeError(
+            f'frequency_dimension must be of type bool. Got: {type(frequency_dimension)}')
+
     # Convert input to xr.Dataset
     harmonics_subgroup = _convert_to_dataset(harmonics_subgroup, 'harmonics')
+
+    if frequency_dimension != '' and frequency_dimension not in harmonics.coords:
+        raise ValueError('frequency_dimension was supplied but is not a dimension '
+                         + f'of harmonics. Got {frequency_dimension}')
     
     if frequency_dimension == "":
         frequency_dimension = list(harmonics_subgroup.dims)[0]

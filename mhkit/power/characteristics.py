@@ -32,9 +32,16 @@ def instantaneous_frequency(um, time_dimension="", to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(
             f'to_pandas must be of type bool. Got: {type(to_pandas)}')
+    if not isinstance(time_dimension, str):
+        raise TypeError(
+            f'time_dimension must be of type bool. Got: {type(time_dimension)}')
 
     # Convert input to xr.Dataset
     um = _convert_to_dataset(um, 'data')
+    
+    if time_dimension != '' and time_dimension not in um.coords:
+        raise ValueError('time_dimension was supplied but is not a dimension '
+                         + f'of um. Got {time_dimension}')
 
     # Get the dimension of interest
     if time_dimension == "":
