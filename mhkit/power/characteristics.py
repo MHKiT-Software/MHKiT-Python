@@ -28,7 +28,7 @@ def instantaneous_frequency(um, time_dimension="", to_pandas=True):
     """  
     if not isinstance(um, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise TypeError('um must be of type pd.Series, pd.DataFrame, ' + 
-                        f'xr.DataArray, or xr.Dataset. Got{type(um)}')
+                        f'xr.DataArray, or xr.Dataset. Got {type(um)}')
     if not isinstance(to_pandas, bool):
         raise TypeError(
             f'to_pandas must be of type bool. Got: {type(to_pandas)}')
@@ -91,10 +91,10 @@ def dc_power(voltage, current, to_pandas=True):
     """
     if not isinstance(voltage, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise TypeError('voltage must be of type pd.Series, pd.DataFrame, ' + 
-                        f'xr.DataArray, or xr.Dataset. Got{type(voltage)}')
+                        f'xr.DataArray, or xr.Dataset. Got {type(voltage)}')
     if not isinstance(current, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise TypeError('current must be of type pd.Series, pd.DataFrame, ' + 
-                        f'xr.DataArray, or xr.Dataset. Got{type(current)}')
+                        f'xr.DataArray, or xr.Dataset. Got {type(current)}')
     if not isinstance(to_pandas, bool):
         raise TypeError(
             f'to_pandas must be of type bool. Got: {type(to_pandas)}')
@@ -154,10 +154,10 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False, to_
     """
     if not isinstance(voltage, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise TypeError('voltage must be of type pd.Series, pd.DataFrame, ' + 
-                        f'xr.DataArray, or xr.Dataset. Got{type(voltage)}')
+                        f'xr.DataArray, or xr.Dataset. Got {type(voltage)}')
     if not isinstance(current, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise TypeError('current must be of type pd.Series, pd.DataFrame, ' + 
-                        f'xr.DataArray, or xr.Dataset. Got{type(current)}')
+                        f'xr.DataArray, or xr.Dataset. Got {type(current)}')
     if not isinstance(to_pandas, bool):
         raise TypeError(
             f'to_pandas must be of type bool. Got: {type(to_pandas)}')
