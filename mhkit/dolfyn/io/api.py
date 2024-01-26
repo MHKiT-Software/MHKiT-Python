@@ -76,7 +76,7 @@ def read(fname, userdata=True, nens=None, **kwargs):
     userdata : True, False, or string of userdata.json filename (default ``True``)
       Whether to read the '<base-filename>.userdata.json' file.
     nens : None, int or 2-element tuple (start, stop)
-      Number of pings or ensembles to read from the file. 
+      Number of pings or ensembles to read from the file.
       Default is None, read entire file
     **kwargs : dict
       Passed to instrument-specific parser.
@@ -173,8 +173,8 @@ def save(ds, filename,
     ds.attrs['complex_vars'] = []
     for var in ds.data_vars:
         if np.iscomplexobj(ds[var]):
-            ds[var+'_real'] = ds[var].real
-            ds[var+'_imag'] = ds[var].imag
+            ds[var + '_real'] = ds[var].real
+            ds[var + '_imag'] = ds[var].imag
 
             ds = ds.drop_vars(var)
             ds.attrs['complex_vars'].append(var)
@@ -183,15 +183,25 @@ def save(ds, filename,
         elif ds[var].dtype == np.float64:
             ds[var] = ds[var].astype('float32')
 
-    if compression:
-        enc = dict()
-        for ky in ds.variables:
-            enc[ky] = dict(zlib=True, complevel=1)
-        if 'encoding' in kwargs:
-            # Overwrite ('update') values in enc with whatever is in kwargs['encoding']
-            enc.update(kwargs['encoding'])
-        else:
-            kwargs['encoding'] = enc
+    # Write variable encoding
+    enc = dict()
+    if 'encoding' in kwargs:
+        enc.update(kwargs['encoding'])
+    for ky in ds.variables:
+        # Save prior encoding
+        enc[ky] = ds[ky].encoding
+        # Remove unexpected netCDF4 encoding parameters
+        # https://github.com/pydata/xarray/discussions/5709
+        params = ['szip', 'zstd', 'bzip2', 'blosc', 'contiguous', 'chunksizes']
+        [enc[ky].pop(p) for p in params if p in enc[ky]]
+
+        if compression:
+            # New netcdf4-c cannot compress variable length strings
+            if isinstance(ds[ky].data[0], str):
+                continue
+            enc[ky].update(dict(zlib=True, complevel=1))
+
+    kwargs['encoding'] = enc
 
     # Fix encoding on datetime64 variables.
     ds = _decode_cf(ds)
@@ -220,19 +230,20 @@ def load(filename):
 
     # Convert numpy arrays and strings back to lists
     for nm in ds.attrs:
-        if type(ds.attrs[nm]) == np.ndarray and ds.attrs[nm].size > 1:
+        if isinstance(ds.attrs[nm], np.ndarray) and ds.attrs[nm].size > 1:
             ds.attrs[nm] = list(ds.attrs[nm])
-        elif type(ds.attrs[nm]) == str and nm in ['rotate_vars']:
+        elif isinstance(ds.attrs[nm], str) and nm in ['rotate_vars']:
             ds.attrs[nm] = [ds.attrs[nm]]
 
     # Rejoin complex numbers
-    if hasattr(ds, 'complex_vars') and len(ds.complex_vars):
-        if len(ds.complex_vars[0]) == 1:
-            ds.attrs['complex_vars'] = [ds.complex_vars]
-        for var in ds.complex_vars:
-            ds[var] = ds[var+'_real'] + ds[var+'_imag'] * 1j
-            ds = ds.drop_vars([var+'_real', var+'_imag'])
-    ds.attrs.pop('complex_vars')
+    if hasattr(ds, 'complex_vars'):
+        if len(ds.complex_vars):
+            if len(ds.complex_vars[0]) == 1:
+                ds.attrs['complex_vars'] = [ds.complex_vars]
+            for var in ds.complex_vars:
+                ds[var] = ds[var + '_real'] + ds[var + '_imag'] * 1j
+                ds = ds.drop_vars([var + '_real', var + '_imag'])
+        ds.attrs.pop('complex_vars')
 
     return ds
 
@@ -318,7 +329,7 @@ def load_mat(filename, datenum=True):
     filename : str
       Filename and/or path with the '.mat' extension
     datenum : bool
-      If true, converts time from datenum. If false, converts time from 
+      If true, converts time from datenum. If false, converts time from
       "epoch time".
 
     Returns
@@ -351,12 +362,12 @@ def load_mat(filename, datenum=True):
 
     # Convert numpy arrays and strings back to lists
     for nm in ds.attrs:
-        if type(ds.attrs[nm]) == np.ndarray and ds.attrs[nm].size > 1:
+        if isinstance(ds.attrs[nm], np.ndarray) and ds.attrs[nm].size > 1:
             try:
                 ds.attrs[nm] = [x.strip(' ') for x in list(ds.attrs[nm])]
             except:
                 ds.attrs[nm] = list(ds.attrs[nm])
-        elif type(ds.attrs[nm]) == str and nm in ['time_coords', 'time_data_vars', 'rotate_vars']:
+        elif isinstance(ds.attrs[nm], str) and nm in ['time_coords', 'time_data_vars', 'rotate_vars']:
             ds.attrs[nm] = [ds.attrs[nm]]
 
     if hasattr(ds, 'orientation_down'):

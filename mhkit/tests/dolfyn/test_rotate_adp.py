@@ -151,8 +151,8 @@ class rotate_adp_testcase(unittest.TestCase):
             td_rdi.vel.mean('range'))
         td_sig.attrs['principal_heading'] = calc_principal_heading(
             td_sig.vel.mean('range'))
-        td_awac.attrs['principal_heading'] = calc_principal_heading(td_awac.vel.mean('range'),
-                                                                    tidal_mode=False)
+        td_awac.attrs['principal_heading'] = calc_principal_heading(
+            td_awac.vel.mean('range'), tidal_mode=False)
         rotate2(td_rdi, 'principal', inplace=True)
         rotate2(td_sig, 'principal', inplace=True)
         rotate2(td_awac, 'principal', inplace=True)
