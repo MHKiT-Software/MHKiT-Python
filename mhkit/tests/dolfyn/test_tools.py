@@ -270,9 +270,6 @@ class tools_testcase(unittest.TestCase):
         positive_freqs = freq_full[1 : int(nfft / 2)]
         negative_freqs = freq_full[int(nfft / 2) + 1 :]
         assert_allclose(positive_freqs, -negative_freqs[::-1])
-        import ipdb
-
-        ipdb.set_trace()
         # Test for half frequency range
         # TODO Fix based on james response
         freq_half = tools.fft.fft_frequency(nfft, fs, full=False)
