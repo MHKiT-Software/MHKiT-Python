@@ -245,8 +245,12 @@ def interharmonics(harmonics, grid_freq, frequency_dimension="", to_pandas=True)
         raise TypeError(
             f'to_pandas must be of type bool. Got: {type(to_pandas)}')
 
-    if isinstance(harmonics, (pd.DataFrame, pd.Series)):
-        harmonics = harmonics.to_xarray()
+    # Convert input to xr.Dataset
+    harmonics = _convert_to_dataset(harmonics, 'harmonics')
+
+    if frequency_dimension != '' and frequency_dimension not in harmonics.coords:
+        raise ValueError('frequency_dimension was supplied but is not a dimension '
+                         + f'of harmonics. Got {frequency_dimension}')
 
     if grid_freq == 60:
         hz = np.arange(0, 3060, 60)
