@@ -109,13 +109,12 @@ def _calc_time(year, month, day, hour, minute, second, usec, zero_is_bad=True):
 
 def _create_index(infile, outfile, N_ens, debug):
     logging = getLogger()
-    print("Indexing {}...".format(infile), end='')
-    fin = open(_abspath(infile), 'rb')
-    fout = open(_abspath(outfile), 'wb')
-    fout.write(b'Index Ver:')
-    fout.write(struct.pack('<H', _index_version))
-    ids = [21, 22, 23, 24, 26, 28,
-           27, 29, 30, 31, 35, 36]
+    print("Indexing {}...".format(infile), end="")
+    fin = open(_abspath(infile), "rb")
+    fout = open(_abspath(outfile), "wb")
+    fout.write(b"Index Ver:")
+    fout.write(struct.pack("<H", _index_version))
+    ids = [21, 22, 23, 24, 26, 28, 27, 29, 30, 31, 35, 36]
     # Saved: burst, avg, bt, vel_b5, alt_raw, echo
     # Not saved: bt record, DVL, alt record, avg alt_raw record, raw echo, raw echo transmit
     ens = dict.fromkeys(ids, 0)
@@ -510,10 +509,13 @@ def _collapse(vec, name=None, exclude=[]):
 
         if not set(uniq) == set([0, val]) and set(counts) == set([1, np.max(counts)]):
             # warn when the 'wrong value' is not just a single zero.
-            warnings.warn("The variable {} is expected to be uniform, but it is not.\n"
-                          "Values found: {} (counts: {}).\n"
-                          "Using the most common value: {}".format(
-                              name, list(uniq), list(counts), val))
+            warnings.warn(
+                "The variable {} is expected to be uniform, but it is not.\n"
+                "Values found: {} (counts: {}).\n"
+                "Using the most common value: {}".format(
+                    name, list(uniq), list(counts), val
+                )
+            )
 
         return val
 

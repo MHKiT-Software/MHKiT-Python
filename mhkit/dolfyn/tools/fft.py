@@ -33,9 +33,9 @@ def fft_frequency(nfft, fs, full=False):
 
 
 def _getwindow(window, nfft):
-    if 'hann' in window:
+    if "hann" in window:
         window = np.hanning(nfft)
-    elif 'hamm' in window:
+    elif "hamm" in window:
         window = np.hamming(nfft)
     elif window is None or np.sum(window == 1):
         window = np.ones(nfft)

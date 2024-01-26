@@ -165,19 +165,20 @@ class _NortekReader:
     """
 
     _lastread = [None, None, None, None, None]
-    fun_map = {'0x00': 'read_user_cfg',
-               '0x04': 'read_head_cfg',
-               '0x05': 'read_hw_cfg',
-               '0x07': 'read_vec_checkdata',
-               '0x10': 'read_vec_data',
-               '0x11': 'read_vec_sysdata',
-               '0x12': 'read_vec_hdr',
-               '0x20': 'read_awac_profile',
-               '0x30': 'read_awac_waves',
-               '0x31': 'read_awac_waves_hdr',
-               '0x36': 'read_awac_waves',  # "SUV"
-               '0x71': 'read_microstrain',
-               }
+    fun_map = {
+        "0x00": "read_user_cfg",
+        "0x04": "read_head_cfg",
+        "0x05": "read_hw_cfg",
+        "0x07": "read_vec_checkdata",
+        "0x10": "read_vec_data",
+        "0x11": "read_vec_sysdata",
+        "0x12": "read_vec_hdr",
+        "0x20": "read_awac_profile",
+        "0x30": "read_awac_waves",
+        "0x31": "read_awac_waves_hdr",
+        "0x36": "read_awac_waves",  # "SUV"
+        "0x71": "read_microstrain",
+    }
 
     def __init__(
         self,
@@ -1157,78 +1158,95 @@ class _NortekReader:
         self.data["attrs"]["cell_size"] = cs
         self.data["attrs"]["blank_dist"] = bd
 
-    def read_awac_waves_hdr(self,):
+    def read_awac_waves_hdr(
+        self,
+    ):
         # ID: '0x31'
         c = self.c
         if self.debug:
-            print('Reading vector header data (0x31) ping #{} @ {}...'
-                  .format(self.c, self.pos))
+            print(
+                "Reading vector header data (0x31) ping #{} @ {}...".format(
+                    self.c, self.pos
+                )
+            )
         hdrnow = {}
         dat = self.data
-        ds = dat['sys']
-        dv = dat['data_vars']
-        if 'time' not in dat['coords']:
+        ds = dat["sys"]
+        dv = dat["data_vars"]
+        if "time" not in dat["coords"]:
             self._init_data(nortek_defs.waves_hdrdata)
         byts = self.read(56)
         # The first two are size, the next 6 are time.
-        tmp = unpack(self.endian + '8x4H3h2HhH4B6H5h', byts)
-        dat['coords']['time'][c] = self.rd_time(byts[2:8])
-        hdrnow['n_records_alt'] = tmp[0]
-        hdrnow['blank_dist_alt'] = tmp[1]  # counts
-        ds['batt_alt'][c] = tmp[2]  # voltage (0.1 V)
-        dv['c_sound_alt'][c] = tmp[3]  # c (0.1 m/s)
-        dv['heading_alt'][c] = tmp[4]  # (0.1 deg)
-        dv['pitch_alt'][c] = tmp[5]  # (0.1 deg)
-        dv['roll_alt'][c] = tmp[6]  # (0.1 deg)
-        dv['pressure1_alt'][c] = tmp[7]  # min pressure previous profile (0.001 dbar)
-        dv['pressure2_alt'][c] = tmp[8]  # max pressure previous profile (0.001 dbar)
-        dv['temp_alt'][c] = tmp[9]  # (0.01 deg C)
-        hdrnow['cell_size_alt'][c] = tmp[10]  # (counts of T3)
-        hdrnow['noise_alt'][c] = tmp[11:15]  # noise amplitude beam 1-4 (counts)
-        hdrnow['proc_magn_alt'][c] = tmp[15:19]  # processing magnitude beam 1-4
-        hdrnow['n_past_window_alt'] = tmp[19]  # number of samples of AST window past boundary
-        hdrnow['n_window_alt'] = tmp[20]  # AST window size (# samples)
-        hdrnow['Spare1'] = tmp[21:]
+        tmp = unpack(self.endian + "8x4H3h2HhH4B6H5h", byts)
+        dat["coords"]["time"][c] = self.rd_time(byts[2:8])
+        hdrnow["n_records_alt"] = tmp[0]
+        hdrnow["blank_dist_alt"] = tmp[1]  # counts
+        ds["batt_alt"][c] = tmp[2]  # voltage (0.1 V)
+        dv["c_sound_alt"][c] = tmp[3]  # c (0.1 m/s)
+        dv["heading_alt"][c] = tmp[4]  # (0.1 deg)
+        dv["pitch_alt"][c] = tmp[5]  # (0.1 deg)
+        dv["roll_alt"][c] = tmp[6]  # (0.1 deg)
+        dv["pressure1_alt"][c] = tmp[7]  # min pressure previous profile (0.001 dbar)
+        dv["pressure2_alt"][c] = tmp[8]  # max pressure previous profile (0.001 dbar)
+        dv["temp_alt"][c] = tmp[9]  # (0.01 deg C)
+        hdrnow["cell_size_alt"][c] = tmp[10]  # (counts of T3)
+        hdrnow["noise_alt"][c] = tmp[11:15]  # noise amplitude beam 1-4 (counts)
+        hdrnow["proc_magn_alt"][c] = tmp[15:19]  # processing magnitude beam 1-4
+        hdrnow["n_past_window_alt"] = tmp[
+            19
+        ]  # number of samples of AST window past boundary
+        hdrnow["n_window_alt"] = tmp[20]  # AST window size (# samples)
+        hdrnow["Spare1"] = tmp[21:]
         self.checksum(byts)
-        if 'data_header' not in self.config:
-            self.config['data_header'] = hdrnow
+        if "data_header" not in self.config:
+            self.config["data_header"] = hdrnow
         else:
-            if not isinstance(self.config['data_header'], list):
-                self.config['data_header'] = [self.config['data_header']]
-            self.config['data_header'] += [hdrnow]
+            if not isinstance(self.config["data_header"], list):
+                self.config["data_header"] = [self.config["data_header"]]
+            self.config["data_header"] += [hdrnow]
 
-    def read_awac_waves(self,):
-        """Read awac wave and suv data
-        """
+    def read_awac_waves(
+        self,
+    ):
+        """Read awac wave and suv data"""
         # IDs: 0x30 & 0x36
         c = self.c
         dat = self.data
         if self.debug:
-            print('Reading awac wave data (0x30) ping #{} @ {}...'
-                  .format(self.c, self.pos))
-        if 'dist1_alt' not in dat['data_vars']:
+            print(
+                "Reading awac wave data (0x30) ping #{} @ {}...".format(
+                    self.c, self.pos
+                )
+            )
+        if "dist1_alt" not in dat["data_vars"]:
             self._init_data(nortek_defs.wave_data)
-            self._dtypes += ['wave_data']
+            self._dtypes += ["wave_data"]
         # The first two are size
         byts = self.read(20)
-        ds = dat['sys']
-        dv = dat['data_vars']
-        (dv['pressure'][c],  # (0.001 dbar)
-         dv['dist1_alt'][c],  # distance 1 to surface, vertical beam (mm)
-         ds['AnaIn_alt'][c],  # analog input 1
-         dv['vel_alt'][0, c],  # velocity beam 1 (mm/s) East for SUV
-         dv['vel_alt'][1, c],  # North for SUV
-         dv['vel_alt'][2, c],  # Up for SUV
-         dv['dist2_alt'][c],  # distance 2 to surface, vertical beam (mm) or vel 4 for non-AST
-         dv['amp_alt'][0, c],  # amplitude beam 1 (counts)
-         dv['amp_alt'][1, c],  # amplitude beam 2 (counts)
-         dv['amp_alt'][2, c],  # amplitude beam 3 (counts)
-         # AST quality (counts) or amplitude beam 4 for non-AST
-         dv['quality_alt'][c]) = unpack(self.endian + '3H4h4B', byts)
+        ds = dat["sys"]
+        dv = dat["data_vars"]
+        (
+            dv["pressure"][c],  # (0.001 dbar)
+            dv["dist1_alt"][c],  # distance 1 to surface, vertical beam (mm)
+            ds["AnaIn_alt"][c],  # analog input 1
+            dv["vel_alt"][0, c],  # velocity beam 1 (mm/s) East for SUV
+            dv["vel_alt"][1, c],  # North for SUV
+            dv["vel_alt"][2, c],  # Up for SUV
+            dv["dist2_alt"][
+                c
+            ],  # distance 2 to surface, vertical beam (mm) or vel 4 for non-AST
+            dv["amp_alt"][0, c],  # amplitude beam 1 (counts)
+            dv["amp_alt"][1, c],  # amplitude beam 2 (counts)
+            dv["amp_alt"][2, c],  # amplitude beam 3 (counts)
+            # AST quality (counts) or amplitude beam 4 for non-AST
+            dv["quality_alt"][c],
+        ) = unpack(self.endian + "3H4h4B", byts)
         self.checksum(byts)
         self.c += 1
 
-    def dat2sci(self,):
+    def dat2sci(
+        self,
+    ):
         for nm in self._dtypes:
             getattr(self, "sci_" + nm)()
         for nm in ["data_header", "checkdata"]:

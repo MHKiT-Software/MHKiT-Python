@@ -149,25 +149,27 @@ class io_adp_testcase(unittest.TestCase):
         )
         td_sig_ie_crop = read("Sig500_Echo_crop.ad2cp")
 
-        crop_ensembles(infile=tb.exdt('BenchFile01.ad2cp'),
-                       outfile=tb.exdt('BenchFile01_crop.ad2cp'),
-                       range=[50, 100])
-        td_sig_crop = read('BenchFile01_crop.ad2cp')
+        crop_ensembles(
+            infile=tb.exdt("BenchFile01.ad2cp"),
+            outfile=tb.exdt("BenchFile01_crop.ad2cp"),
+            range=[50, 100],
+        )
+        td_sig_crop = read("BenchFile01_crop.ad2cp")
 
         if make_data:
-            save(td_sig_ie_crop, 'Sig500_Echo_crop.nc')
-            save(td_sig_crop, 'BenchFile01_crop.nc')
+            save(td_sig_ie_crop, "Sig500_Echo_crop.nc")
+            save(td_sig_crop, "BenchFile01_crop.nc")
             return
 
-        os.remove(tb.exdt('Sig500_Echo.ad2cp.index'))
-        os.remove(tb.exdt('Sig500_Echo_crop.ad2cp'))
-        os.remove(tb.exdt('Sig500_Echo_crop.ad2cp.index'))
-        os.remove(tb.exdt('BenchFile01.ad2cp.index'))
-        os.remove(tb.exdt('BenchFile01_crop.ad2cp'))
-        os.remove(tb.exdt('BenchFile01_crop.ad2cp.index'))
+        os.remove(tb.exdt("Sig500_Echo.ad2cp.index"))
+        os.remove(tb.exdt("Sig500_Echo_crop.ad2cp"))
+        os.remove(tb.exdt("Sig500_Echo_crop.ad2cp.index"))
+        os.remove(tb.exdt("BenchFile01.ad2cp.index"))
+        os.remove(tb.exdt("BenchFile01_crop.ad2cp"))
+        os.remove(tb.exdt("BenchFile01_crop.ad2cp.index"))
 
-        cd_sig_ie_crop = load('Sig500_Echo_crop.nc')
-        cd_sig_crop = load('BenchFile01_crop.nc')
+        cd_sig_ie_crop = load("Sig500_Echo_crop.nc")
+        cd_sig_crop = load("BenchFile01_crop.nc")
 
         assert_allclose(td_sig_ie_crop, cd_sig_ie_crop, atol=1e-6)
         assert_allclose(td_sig_crop, cd_sig_crop, atol=1e-6)
