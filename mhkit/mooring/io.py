@@ -16,6 +16,7 @@ Typical usage example:
 
     dataset = read_moordyn(filepath="FAST.MD.out", input_file="FAST.MD.input")
 """
+
 import os
 import pandas as pd
 

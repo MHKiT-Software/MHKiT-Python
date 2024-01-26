@@ -1,5 +1,6 @@
 """Module containing functions to clean data
 """
+
 import numpy as np
 import xarray as xr
 from scipy.signal import medfilt

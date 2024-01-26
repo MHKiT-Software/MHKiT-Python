@@ -1194,9 +1194,7 @@ def _rosenblatt_copula(x1, x2, fit, component_1, kwargs):
         + mean_cond[3] * component_1**3
     )
     # Standard deviation of Ln(x2) as a function of x1
-    sigma_cond = (
-        std_cond[0] + std_cond[1] * component_1 + std_cond[2] * component_1**2
-    )
+    sigma_cond = std_cond[0] + std_cond[1] * component_1 + std_cond[2] * component_1**2
     # lognormal inverse
     component_2_Rosenblatt = stats.lognorm.ppf(
         y_quantile, s=sigma_cond, loc=0, scale=np.exp(lamda_cond)

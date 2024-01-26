@@ -270,9 +270,9 @@ def read_output(file_name):
             if num_constraints == 1:
                 constraint_output = _write_constraint_output(constraint)
             elif num_constraints > 1:
-                constraint_output[
-                    f"constraint{constraint+1}"
-                ] = _write_constraint_output(constraint)
+                constraint_output[f"constraint{constraint+1}"] = (
+                    _write_constraint_output(constraint)
+                )
     else:
         print("constraint class not used")
         constraint_output = []
