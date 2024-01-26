@@ -140,18 +140,15 @@ class rotate_adp_testcase(unittest.TestCase):
         td_sig = load("BenchFile01_rotate_inst2earth.nc")
         td_awac = tr.dat_awac.copy(deep=True)
 
-        td_rdi.attrs["principal_heading"] = calc_principal_heading(
-            td_rdi.vel.mean("range")
-        )
-        td_sig.attrs["principal_heading"] = calc_principal_heading(
-            td_sig.vel.mean("range")
-        )
-        td_awac.attrs["principal_heading"] = calc_principal_heading(
-            td_awac.vel.mean("range"), tidal_mode=False
-        )
-        rotate2(td_rdi, "principal", inplace=True)
-        rotate2(td_sig, "principal", inplace=True)
-        rotate2(td_awac, "principal", inplace=True)
+        td_rdi.attrs['principal_heading'] = calc_principal_heading(
+            td_rdi.vel.mean('range'))
+        td_sig.attrs['principal_heading'] = calc_principal_heading(
+            td_sig.vel.mean('range'))
+        td_awac.attrs['principal_heading'] = calc_principal_heading(
+            td_awac.vel.mean('range'), tidal_mode=False)
+        rotate2(td_rdi, 'principal', inplace=True)
+        rotate2(td_sig, 'principal', inplace=True)
+        rotate2(td_awac, 'principal', inplace=True)
 
         if make_data:
             save(td_rdi, "RDI_test01_rotate_earth2principal.nc")

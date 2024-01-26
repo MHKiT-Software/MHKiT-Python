@@ -33,12 +33,14 @@ def fft_frequency(nfft, fs, full=False):
 
 
 def _getwindow(window, nfft):
-    if window == "hann":
+    if 'hann' in window:
         window = np.hanning(nfft)
-    elif window == "hamm":
+    elif 'hamm' in window:
         window = np.hamming(nfft)
-    elif window is None or window == 1:
+    elif window is None or np.sum(window == 1):
         window = np.ones(nfft)
+    if len(window) != nfft:
+        raise ValueError("Custom window length must be equal to nfft")
     return window
 
 

@@ -235,11 +235,14 @@ class _Ad2cpReader:
     def init_data(self, ens_start, ens_stop):
         outdat = {}
         nens = int(ens_stop - ens_start)
-        n26 = (
-            (self._index["ID"] == 26)
-            & (self._index["ens"] >= ens_start)
-            & (self._index["ens"] < ens_stop)
-        ).sum()
+
+        # ID 26 usually only recorded in first ensemble
+        n26 = ((self._index['ID'] == 26) &
+               (self._index['ens'] >= ens_start) &
+               (self._index['ens'] < ens_stop)).sum()
+        if not n26 and 26 in self._burst_readers:
+            self._burst_readers.pop(26)
+
         for ky in self._burst_readers:
             if ky == 26:
                 n = n26
@@ -248,10 +251,11 @@ class _Ad2cpReader:
                 ens = np.arange(ens_start, ens_stop).astype("uint32")
                 n = nens
             outdat[ky] = self._burst_readers[ky].init_data(n)
-            outdat[ky]["ensemble"] = ens
-            outdat[ky]["units"] = self._burst_readers[ky].data_units()
-            outdat[ky]["long_name"] = self._burst_readers[ky].data_longnames()
-            outdat[ky]["standard_name"] = self._burst_readers[ky].data_stdnames()
+            outdat[ky]['ensemble'] = ens
+            outdat[ky]['units'] = self._burst_readers[ky].data_units()
+            outdat[ky]['long_name'] = self._burst_readers[ky].data_longnames()
+            outdat[ky]['standard_name'] = self._burst_readers[ky].data_stdnames()
+
         return outdat
 
     def _read_hdr(self, do_cs=False):
@@ -290,16 +294,17 @@ class _Ad2cpReader:
                 hdr = self._read_hdr()
             except IOError:
                 return outdat
-            id = hdr["id"]
-            if id in [21, 22, 23, 24, 28]:  # vel, bt, vel_b5, echo
+            id = hdr['id']
+            if id in [21, 22, 23, 24, 28]:  # "burst data record" (vel + ast),
+                # "avg data record" (vel_avg + ast_avg), "bottom track data record" (bt),
+                # "interleaved burst data record" (vel_b5), "echosounder record" (echo)
                 self._read_burst(id, outdat[id], c)
-            elif id in [26]:  # alt_raw (altimeter burst)
+            elif id in [26]:
+                # "burst altimeter raw record" (alt_raw) - recorded on nens==0
                 rdr = self._burst_readers[26]
                 if not hasattr(rdr, "_nsamp_index"):
                     first_pass = True
-                    tmp_idx = rdr._nsamp_index = rdr._names.index(
-                        "altraw_nsamp"
-                    )  # noqa
+                    tmp_idx = rdr._nsamp_index = rdr._names.index('nsamp_alt')
                     shift = rdr._nsamp_shift = calcsize(
                         defs._format(rdr._format[:tmp_idx], rdr._N[:tmp_idx])
                     )
@@ -322,10 +327,10 @@ class _Ad2cpReader:
                         "<" + "{}H".format(int(rdr.nbyte // 2))
                     )
                     # Initialize the array
-                    outdat[26]["altraw_samp"] = defs._nans(
-                        [rdr._N[tmp_idx], len(outdat[26]["altraw_samp"])],
-                        dtype=np.uint16,
-                    )
+                    outdat[26]['samp_alt'] = defs._nans(
+                        [rdr._N[tmp_idx],
+                         len(outdat[26]['samp_alt'])],
+                        dtype=np.uint16)
                 else:
                     if sz != rdr._N[tmp_idx]:
                         raise Exception(
@@ -336,8 +341,9 @@ class _Ad2cpReader:
                 outdat[id]["ensemble"][c26] = c
                 c26 += 1
 
-            elif id in [27, 29, 30, 31, 35, 36]:  # bt record, DVL,
-                # alt record, avg alt_raw record, raw echo, raw echo transmit
+            elif id in [27, 29, 30, 31, 35, 36]:  # unknown how to handle
+                # "bottom track record", DVL, "altimeter record", "avg altimeter raw record", 
+                # "raw echosounder data record", "raw echosounder transmit data record"
                 if self.debug:
                     logging.debug("Skipped ID: 0x{:02X} ({:02d})\n".format(id, id))
                 self.f.seek(hdr["sz"], 1)
@@ -438,14 +444,8 @@ def _reorg(dat):
     cfg["inst_make"] = "Nortek"
     cfg["inst_type"] = "ADCP"
 
-    for id, tag in [
-        (21, ""),
-        (22, "_avg"),
-        (23, "_bt"),
-        (24, "_b5"),
-        (26, "_ast"),
-        (28, "_echo"),
-    ]:
+    for id, tag in [(21, ''), (22, '_avg'), (23, '_bt'),
+                    (24, '_b5'), (26, 'raw'), (28, '_echo')]:
         if id in [24, 26]:
             collapse_exclude = [0]
         else:
@@ -513,53 +513,32 @@ def _reorg(dat):
                 outdat["long_name"][ky + tag] = "Ensemble Number"
                 outdat["standard_name"][ky + tag] = "number_of_observations"
 
-        for ky in [
-            "vel",
-            "amp",
-            "corr",
-            "prcnt_gd",
-            "echo",
-            "dist",
-            "orientmat",
-            "angrt",
-            "quaternions",
-            "ast_pressure",
-            "alt_dist",
-            "alt_quality",
-            "alt_status",
-            "ast_dist",
-            "ast_quality",
-            "ast_offset_time",
-            "altraw_nsamp",
-            "altraw_dsamp",
-            "altraw_samp",
-            "status0",
-            "fom",
-            "temp_press",
-            "press_std",
-            "pitch_std",
-            "roll_std",
-            "heading_std",
-            "xmit_energy",
-        ]:
+        for ky in ['vel', 'amp', 'corr', 'prcnt_gd', 'echo', 'dist',
+                   'orientmat', 'angrt', 'quaternions', 'pressure_alt',
+                   'le_dist_alt', 'le_quality_alt', 'status_alt',
+                   'ast_dist_alt', 'ast_quality_alt', 'ast_offset_time_alt',
+                   'nsamp_alt', 'dsamp_alt', 'samp_alt',
+                   'status0', 'fom', 'temp_press', 'press_std',
+                   'pitch_std', 'roll_std', 'heading_std', 'xmit_energy',
+                   ]:
             if ky in dnow:
                 outdat["data_vars"][ky + tag] = dnow[ky]
 
     # Move 'altimeter raw' data to its own down-sampled structure
     if 26 in dat:
-        ard = outdat["altraw"]
-        for ky in list(outdat["data_vars"]):
-            if ky.endswith("_ast"):
-                grp = ky.split(".")[0]
-                if "." in ky and grp not in ard:
-                    ard[grp] = {}
-                ard[ky.rstrip("_ast")] = outdat["data_vars"].pop(ky)
+        for ky in list(outdat['data_vars']):
+            if ky.endswith('raw') and not ky.endswith('_altraw'):
+                outdat['data_vars'].pop(ky)
+        outdat['coords']['time_altraw'] = outdat['coords'].pop('timeraw')
+        outdat['data_vars']['samp_altraw'] = outdat['data_vars']['samp_altraw'].astype('float32') / 2**8  # convert "signed fractional" to float
 
         # Read altimeter status
-        alt_status = lib._alt_status2data(outdat["data_vars"]["alt_status"])
-        for ky in alt_status:
-            outdat["attrs"][ky] = lib._collapse(alt_status[ky].astype("uint8"), name=ky)
-        outdat["data_vars"].pop("alt_status")
+        outdat['data_vars'].pop('status_altraw')
+        status_alt = lib._alt_status2data(outdat['data_vars']['status_alt'])
+        for ky in status_alt:
+            outdat['attrs'][ky] = lib._collapse(
+                status_alt[ky].astype('uint8'), name=ky)
+        outdat['data_vars'].pop('status_alt')
 
         # Power level index
         power = {0: "high", 1: "med-high", 2: "med-low", 3: "low"}
@@ -646,9 +625,9 @@ def _reduce(data):
     averaging.
     """
 
-    dv = data["data_vars"]
-    dc = data["coords"]
-    da = data["attrs"]
+    dv = data['data_vars']
+    dc = data['coords']
+    da = data['attrs']
 
     # Average these fields
     for ky in ["c_sound", "temp", "pressure", "temp_press", "temp_clock", "batt"]:
@@ -658,30 +637,30 @@ def _reduce(data):
     for ky in ["heading", "pitch", "roll"]:
         lib._reduce_by_average_angle(dv, ky, ky + "_b5")
 
-    if "vel" in dv:
-        dc["range"] = (np.arange(dv["vel"].shape[1]) + 1) * da["cell_size"] + da[
-            "blank_dist"
-        ]
-        da["fs"] = da["filehead_config"]["BURST"]["SR"]
-        tmat = da["filehead_config"]["XFBURST"]
-    if "vel_avg" in dv:
-        dc["range_avg"] = (np.arange(dv["vel_avg"].shape[1]) + 1) * da[
-            "cell_size_avg"
-        ] + da["blank_dist_avg"]
-        dv["orientmat"] = dv.pop("orientmat_avg")
-        tmat = da["filehead_config"]["XFAVG"]
-        da["fs"] = da["filehead_config"]["PLAN"]["MIAVG"]
-        da["avg_interval_sec"] = da["filehead_config"]["AVG"]["AI"]
-        da["bandwidth"] = da["filehead_config"]["AVG"]["BW"]
-    if "vel_b5" in dv:
-        dc["range_b5"] = (np.arange(dv["vel_b5"].shape[1]) + 1) * da[
-            "cell_size_b5"
-        ] + da["blank_dist_b5"]
-    if "echo_echo" in dv:
-        dv["echo"] = dv.pop("echo_echo")
-        dc["range_echo"] = (np.arange(dv["echo"].shape[0]) + 1) * da[
-            "cell_size_echo"
-        ] + da["blank_dist_echo"]
+    if 'vel' in dv:
+        dc['range'] = ((np.arange(dv['vel'].shape[1])+1) *
+                       da['cell_size'] +
+                       da['blank_dist'])
+        da['fs'] = da['filehead_config']['BURST']['SR']
+        tmat = da['filehead_config']['XFBURST']
+    if 'vel_avg' in dv:
+        dc['range_avg'] = ((np.arange(dv['vel_avg'].shape[1])+1) *
+                           da['cell_size_avg'] +
+                           da['blank_dist_avg'])
+        dv['orientmat'] = dv.pop('orientmat_avg')
+        tmat = da['filehead_config']['XFAVG']
+        da['fs'] = da['filehead_config']['PLAN']['MIAVG']
+        da['avg_interval_sec'] = da['filehead_config']['AVG']['AI']
+        da['bandwidth'] = da['filehead_config']['AVG']['BW']
+    if 'vel_b5' in dv:
+        dc['range_b5'] = ((np.arange(dv['vel_b5'].shape[1])+1) *
+                          da['cell_size_b5'] +
+                          da['blank_dist_b5'])
+    if 'echo_echo' in dv:
+        dv['echo'] = dv.pop('echo_echo')
+        dc['range_echo'] = ((np.arange(dv['echo'].shape[0])+1) *
+                            da['cell_size_echo'] +
+                            da['blank_dist_echo'])
 
     if "orientmat" in data["data_vars"]:
         da["has_imu"] = 1  # logical
@@ -691,15 +670,15 @@ def _reduce(data):
     else:
         da["has_imu"] = 0
 
-    theta = da["filehead_config"]["BEAMCFGLIST"][0]
-    if "THETA=" in theta:
-        da["beam_angle"] = int(theta[13:15])
+    theta = da['filehead_config']['BEAMCFGLIST'][0]
+    if 'THETA=' in theta:
+        da['beam_angle'] = int(theta[13:15])
 
-    tm = np.zeros((tmat["ROWS"], tmat["COLS"]), dtype=np.float32)
-    for irow in range(tmat["ROWS"]):
-        for icol in range(tmat["COLS"]):
-            tm[irow, icol] = tmat["M" + str(irow + 1) + str(icol + 1)]
-    dv["beam2inst_orientmat"] = tm
+    tm = np.zeros((tmat['ROWS'], tmat['COLS']), dtype=np.float32)
+    for irow in range(tmat['ROWS']):
+        for icol in range(tmat['COLS']):
+            tm[irow, icol] = tmat['M' + str(irow + 1) + str(icol + 1)]
+    dv['beam2inst_orientmat'] = tm
 
     # If burst velocity isn't used, need to copy one for 'time'
     if "time" not in dc:

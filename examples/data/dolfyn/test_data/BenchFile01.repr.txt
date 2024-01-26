@@ -4,6 +4,7 @@
   . (100 pings @ 2Hz)
   Variables:
   - time ('time',)
+  - time_altraw ('time_altraw',)
   - time_b5 ('time_b5',)
   - vel ('dir', 'range', 'time')
   - vel_b5 ('range_b5', 'time_b5')
@@ -14,6 +15,8 @@
   - roll ('time',)
   - temp ('time',)
   - pressure ('time',)
+  - pressure_alt ('time',)
+  - pressure_altraw ('time_altraw',)
   - amp ('beam', 'range', 'time')
   - amp_b5 ('range_b5', 'time_b5')
   - corr ('beam', 'range', 'time')
