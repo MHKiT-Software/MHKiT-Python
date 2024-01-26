@@ -178,6 +178,7 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False, to_
         raise ValueError('current and voltage must be of the same size')
 
     power = dc_power(voltage, current, to_pandas=False)['Gross']
+    power.name = 'Power'
     power = power.to_dataset() # force xr.DataArray to be consistently in xr.Dataset format
     P = np.abs(power) * power_factor
 
