@@ -158,6 +158,9 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False, to_
     if not isinstance(current, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise TypeError('current must be of type pd.Series, pd.DataFrame, ' + 
                         f'xr.DataArray, or xr.Dataset. Got {type(current)}')
+    if not isinstance(line_to_line, bool):
+        raise TypeError(
+            f'line_to_line must be of type bool. Got: {type(line_to_line)}')
     if not isinstance(to_pandas, bool):
         raise TypeError(
             f'to_pandas must be of type bool. Got: {type(to_pandas)}')
@@ -175,7 +178,6 @@ def ac_power_three_phase(voltage, current, power_factor, line_to_line=False, to_
         raise ValueError('current and voltage must be of the same size')
 
     power = dc_power(voltage, current, to_pandas=False)['Gross']
-    power.name = 'Power'
     power = power.to_dataset() # force xr.DataArray to be consistently in xr.Dataset format
     P = np.abs(power) * power_factor
 
