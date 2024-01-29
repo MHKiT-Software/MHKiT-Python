@@ -49,7 +49,7 @@ def _getwindow(window, nfft):
             raise ValueError("Custom window length must be equal to nfft")
     else:
         raise ValueError("Invalid window parameter")
-    
+
     return window
 
 
