@@ -33,14 +33,23 @@ def fft_frequency(nfft, fs, full=False):
 
 
 def _getwindow(window, nfft):
-    if "hann" in window:
-        window = np.hanning(nfft)
-    elif "hamm" in window:
-        window = np.hamming(nfft)
-    elif window is None or np.sum(window == 1):
+    if window is None:
         window = np.ones(nfft)
-    if len(window) != nfft:
-        raise ValueError("Custom window length must be equal to nfft")
+    elif isinstance(window, (int, float)) and window == 1:
+        window = np.ones(nfft)
+    elif isinstance(window, str):
+        if "hann" in window:
+            window = np.hanning(nfft)
+        elif "hamm" in window:
+            window = np.hamming(nfft)
+        else:
+            raise ValueError("Unsupported window type: {}".format(window))
+    elif isinstance(window, np.ndarray):
+        if len(window) != nfft:
+            raise ValueError("Custom window length must be equal to nfft")
+    else:
+        raise ValueError("Invalid window parameter")
+    
     return window
 
 
