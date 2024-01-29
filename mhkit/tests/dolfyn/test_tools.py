@@ -327,10 +327,9 @@ class tools_testcase(unittest.TestCase):
             self.assertEqual(cpsd.shape, (nfft // 2,))
 
         # Test with a custom window
-        # TODO Fix based on james response
-        # custom_window = np.hamming(nfft)
-        # cpsd = tools.fft.cpsd_quasisync_1D(a, b, nfft, fs, window=custom_window)
-        # self.assertEqual(cpsd.shape, (nfft // 2,))
+        custom_window = np.hamming(nfft)
+        cpsd = tools.fft.cpsd_quasisync_1D(a, b, nfft, fs, window=custom_window)
+        self.assertEqual(cpsd.shape, (nfft // 2,))
 
 
 if __name__ == "__main__":
