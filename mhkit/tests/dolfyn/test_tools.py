@@ -271,7 +271,6 @@ class tools_testcase(unittest.TestCase):
         negative_freqs = freq_full[int(nfft / 2) + 1 :]
         assert_allclose(positive_freqs, -negative_freqs[::-1])
 
-
     def test_stepsize(self):
         # Case 1: l < nfft
         step, nens, nfft = tools.fft._stepsize(100, 200)
