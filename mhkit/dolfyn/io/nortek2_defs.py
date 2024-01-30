@@ -545,19 +545,6 @@ def _calc_burst_struct(config, nb, nc):
             ),
             ("samp_alt", "h", [], None, "1", "Altimeter Samples"),
         ]
-    if flags["alt_raw"]:
-        dd += [
-            ("altraw_nsamp", "I", [], None, "1", "Number of Altimeter Samples"),
-            (
-                "altraw_dsamp",
-                "H",
-                [],
-                _LinFunc(0.0001, dtype=dt32),
-                "m",
-                "Altimeter Distance between Samples",
-            ),
-            ("altraw_samp", "h", [], None),
-        ]
     if flags["ahrs"]:
         dd += _ahrs_def
     if flags["p_gd"]:
