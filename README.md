@@ -92,3 +92,15 @@ The GitHub platform has the pull request feature that allows you to propose chan
 7. If you want to allow anyone with push access to the upstream repository to make changes to your pull request, select **Allow edits from maintainers**.
 8. To create a pull request that is ready for review, click **Create Pull Request**. To create a draft pull request, use the drop-down and select **Create Draft Pull Request**, then click **Draft Pull Request**. More information about draft pull requests can be found [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests)
 9. MHKiT-Python adminstrators will review your pull request and contact you if needed.
+
+## Code Formatting in MHKiT
+
+MHKiT adheres to the "black" code formatting standard to maintain a consistent and readable code style. Developers contributing to MHKiT have several options to ensure their code meets this standard:
+
+1. **Manual Formatting with Black**: Install the 'black' formatter and run it manually from the terminal to format your code. This can be done by executing a command like `black [file or directory]`.
+
+2. **IDE Extension**: If you are using an Integrated Development Environment (IDE) like Visual Studio Code (VS Code), you can install the 'black' formatter as an extension. This allows for automatic formatting of code within the IDE.
+
+3. **Pre-Commit Hook**: Enable the pre-commit hook in your development environment. This automatically formats your code with 'black' each time you make a commit, ensuring that all committed code conforms to the formatting standard.
+
+For detailed instructions on installing and using 'black', please refer to the [Black Documentation](https://black.readthedocs.io/en/stable/). This resource provides comprehensive guidance on installation, usage, and configuration of the formatter.
