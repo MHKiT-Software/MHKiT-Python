@@ -296,11 +296,11 @@ def _calc_echo_struct(config, nc):
     flags = lib._headconfig_int2dict(config)
     dd = copy(_burst_hdr)
     dd[19] = ('blank_dist', 'H', [], _LinFunc(0.001))  # m
-    if any([flags[nm] for nm in ['vel', 'amp', 'corr', 'alt', 'ast',
-                                 'alt_raw', 'p_gd', 'std']]):
+    if any([flags[nm] for nm in ['vel', 'amp', 'corr', 'le', 'ast',
+                                 'altraw', 'p_gd', 'std']]):
         raise Exception("Echosounder ping contains invalid data?")
     if flags['echo']:
-        dd += [('echo', 'H', [nc], _LinFunc(0.01, dtype=dt32), 'dB', 
+        dd += [('echo', 'H', [nc], _LinFunc(0.01, dtype=dt32), 'dB',
                 'Echo Sounder Acoustic Signal Backscatter', 'acoustic_target_strength_in_sea_water')]
     if flags['ahrs']:
         dd += _ahrs_def
@@ -320,29 +320,33 @@ def _calc_burst_struct(config, nb, nc):
     if flags['corr']:
         dd.append(('corr', 'B', [nb, nc], None, '%', 'Acoustic Signal Correlation',
                   'beam_consistency_indicator_from_multibeam_acoustic_doppler_velocity_profiler_in_sea_water'))
-    if flags['alt']:
+    if flags['le']:
         # There may be a problem here with reading 32bit floats if
         # nb and nc are odd
-        dd += [('alt_dist', 'f', [], _LinFunc(dtype=dt32), 'm', 'Altimeter Range', 'altimeter_range'),
-               ('alt_quality', 'H', [], _LinFunc(0.01, dtype=dt32), '1', 'Altimeter Quality Indicator'),
-               ('alt_status', 'H', [], None, '1', 'Altimeter Status')]
+        dd += [('le_dist_alt', 'f', [], _LinFunc(dtype=dt32), 'm', 'Altimeter Range Leading Edge Algorithm',
+                'altimeter_range'),
+               ('le_quality_alt', 'H', [], _LinFunc(0.01, dtype=dt32), 'dB',
+                'Altimeter Quality Indicator Leading Edge Algorithm'),
+               ('status_alt', 'H', [], None, '1', 'Altimeter Status')]
     if flags['ast']:
         dd += [
-            ('ast_dist', 'f', [], _LinFunc(dtype=dt32), 'm', 'Acoustic Surface Tracking Range'),
-            ('ast_quality', 'H', [], _LinFunc(0.01, dtype=dt32), '1',
-             'Acoustic Surface Tracking Quality Indicator'),
-            ('ast_offset_time', 'h', [], _LinFunc(0.0001, dtype=dt32),
+            ('ast_dist_alt', 'f', [], _LinFunc(dtype=dt32), 'm', 'Altimeter Range Acoustic Surface Tracking',
+             'altimeter_range'),
+            ('ast_quality_alt', 'H', [], _LinFunc(0.01, dtype=dt32), 'dB',
+             'Altimeter Quality Indicator Acoustic Surface Tracking'),
+            ('ast_offset_time_alt', 'h', [], _LinFunc(0.0001, dtype=dt32),
              's', 'Acoustic Surface Tracking Time Offset to Velocity Ping'),
-            ('ast_pressure', 'f', [], None, 'dbar', 'Pressure measured during AST ping',
+            ('pressure_alt', 'f', [], None, 'dbar', 'Pressure measured during AST ping',
              'sea_water_pressure'),
-            ('ast_spare', 'B7x', [], None),
+            # This use of 'x' here is a hack
+            ('spare', 'B7x', [], None),
         ]
-    if flags['alt_raw']:
+    if flags['altraw']:
         dd += [
-            ('altraw_nsamp', 'I', [], None, '1', 'Number of Altimeter Samples'),
-            ('altraw_dsamp', 'H', [], _LinFunc(0.0001, dtype=dt32), 'm',
+            ('nsamp_alt', 'I', [], None, '1', 'Number of Altimeter Samples'),
+            ('dsamp_alt', 'H', [], _LinFunc(0.0001, dtype=dt32), 'm',
              'Altimeter Distance between Samples'),
-            ('altraw_samp', 'h', [], None),
+            ('samp_alt', 'h', [], None, '1', 'Altimeter Samples'),
         ]
     if flags['ahrs']:
         dd += _ahrs_def

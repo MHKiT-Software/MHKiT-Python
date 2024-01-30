@@ -559,6 +559,8 @@ class VelBinner(TimeBinner):
         for ky in names:
             # set up dimensions and coordinates for Dataset
             dims_list = raw_ds[ky].dims
+            if any([ar for ar in dims_list if 'altraw' in ar]):
+                continue
             coords_dict = {}
             for nm in dims_list:
                 if 'time' in nm:
@@ -630,6 +632,8 @@ class VelBinner(TimeBinner):
         for ky in names:
             # set up dimensions and coordinates for dataarray
             dims_list = raw_ds[ky].dims
+            if any([ar for ar in dims_list if 'altraw' in ar]):
+                continue
             coords_dict = {}
             for nm in dims_list:
                 if 'time' in nm:

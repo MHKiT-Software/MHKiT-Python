@@ -101,8 +101,8 @@ def _create_index(infile, outfile, N_ens, debug):
     fout = open(_abspath(outfile), 'wb')
     fout.write(b'Index Ver:')
     fout.write(struct.pack('<H', _index_version))
-    ids = [21, 22, 23, 24, 26, 28, 
-           27, 29, 30, 31, 35, 36]  
+    ids = [21, 22, 23, 24, 26, 28,
+           27, 29, 30, 31, 35, 36]
     # Saved: burst, avg, bt, vel_b5, alt_raw, echo
     # Not saved: bt record, DVL, alt record, avg alt_raw record, raw echo, raw echo transmit
     ens = dict.fromkeys(ids, 0)
@@ -117,7 +117,7 @@ def _create_index(infile, outfile, N_ens, debug):
             dat = _hdr.unpack(fin.read(_hdr.size))
         except:
             break
-        if dat[2] in ids:  
+        if dat[2] in ids:
             idk = dat[2]
             d_ver, d_off, config = struct.unpack('<BBH', fin.read(4))
             fin.seek(4, 1)
@@ -192,7 +192,7 @@ def _check_index(idx, infile, fix_hw_ens=False):
 
 def _boolarray_firstensemble_ping(index):
     """
-    Return a boolean of the index that indicates only the first ping in 
+    Return a boolean of the index that indicates only the first ping in
     each ensemble.
     """
     dens = np.ones(index['ens'].shape, dtype='bool')
@@ -340,8 +340,8 @@ def _headconfig_int2dict(val, mode='burst'):
             vel=_getbit(val, 5),
             amp=_getbit(val, 6),
             corr=_getbit(val, 7),
-            alt=_getbit(val, 8),
-            alt_raw=_getbit(val, 9),
+            le=_getbit(val, 8),
+            altraw=_getbit(val, 9),
             ast=_getbit(val, 10),
             echo=_getbit(val, 11),
             ahrs=_getbit(val, 12),
@@ -456,7 +456,7 @@ def _collapse(vec, name=None, exclude=[]):
                           "Values found: {} (counts: {}).\n"
                           "Using the most common value: {}".format(
                               name, list(uniq), list(counts), val))
-    
+
         return val
 
 
