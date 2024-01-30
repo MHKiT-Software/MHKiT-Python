@@ -3,7 +3,7 @@ import xarray as xr
 import numpy as np
 from scipy.stats import linregress as _linregress
 from scipy.stats import rv_histogram as _rv_histogram
-from mhkit.utils import _convert_to_dataset
+from mhkit.utils import convert_to_dataset
 
 
 def Froude_number(v, h, g=9.80665):
@@ -70,7 +70,7 @@ def exceedance_probability(D, dimension="", to_pandas=True):
     if dimension == "":
         dimension = list(D.coords)[0]
 
-    D = _convert_to_dataset(D)
+    D = convert_to_dataset(D)
 
     # Calculate exceedence probability (F)
     rank = D.rank()
@@ -163,7 +163,7 @@ def discharge_to_velocity(D, polynomial_coefficients, dimension="", to_pandas=Tr
     if not isinstance(to_pandas, bool):
         raise TypeError(f'to_pandas must be of type str. Got: {type(to_pandas)}')
 
-    D = _convert_to_dataset(D,'V')
+    D = convert_to_dataset(D,'V')
 
     if dimension == "":
         dimension = list(D.coords)[0]
@@ -222,7 +222,7 @@ def velocity_to_power(V, polynomial_coefficients, cut_in, cut_out, dimension="",
     if not isinstance(to_pandas, bool):
         raise TypeError(f'to_pandas must be of type str. Got: {type(to_pandas)}')
     
-    V = _convert_to_dataset(V)
+    V = convert_to_dataset(V)
 
     # Calculate power using transfer function and FDC
     vals = polynomial_coefficients(V)
@@ -262,7 +262,7 @@ def energy_produced(P, seconds):
     if not isinstance(seconds, (int, float)):
         raise TypeError(f'seconds must be of type int or float. Got: {type(seconds)}')
 
-    P = _convert_to_dataset(P)
+    P = convert_to_dataset(P)
         
     # Calculate Histogram of power
     H, edges = np.histogram(P, 100 )

@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from scipy import fftpack
 import xarray as xr
-from .characteristics import _convert_to_dataset
+from mhkit.utils import convert_to_dataset
 
 # This group of functions are to be used for power quality assessments
 def harmonics(x, freq, grid_freq, to_pandas=True):
@@ -44,7 +44,7 @@ def harmonics(x, freq, grid_freq, to_pandas=True):
             f'to_pandas must be of type bool. Got {type(to_pandas)}')
 
     # Convert input to xr.Dataset
-    x = _convert_to_dataset(x, 'data')
+    x = convert_to_dataset(x, 'data')
 
     sample_spacing = 1./freq
     
@@ -116,7 +116,7 @@ def harmonic_subgroups(harmonics, grid_freq, frequency_dimension="", to_pandas=T
             f'frequency_dimension must be of type bool. Got: {type(frequency_dimension)}')
 
     # Convert input to xr.Dataset
-    harmonics = _convert_to_dataset(harmonics, 'harmonics')
+    harmonics = convert_to_dataset(harmonics, 'harmonics')
     
     if frequency_dimension != '' and frequency_dimension not in harmonics.coords:
         raise ValueError('frequency_dimension was supplied but is not a dimension '
@@ -188,7 +188,7 @@ def total_harmonic_current_distortion(harmonics_subgroup, frequency_dimension=""
             f'frequency_dimension must be of type bool. Got: {type(frequency_dimension)}')
 
     # Convert input to xr.Dataset
-    harmonics_subgroup = _convert_to_dataset(harmonics_subgroup, 'harmonics')
+    harmonics_subgroup = convert_to_dataset(harmonics_subgroup, 'harmonics')
 
     if frequency_dimension != '' and frequency_dimension not in harmonics.coords:
         raise ValueError('frequency_dimension was supplied but is not a dimension '
@@ -246,7 +246,7 @@ def interharmonics(harmonics, grid_freq, frequency_dimension="", to_pandas=True)
             f'to_pandas must be of type bool. Got: {type(to_pandas)}')
 
     # Convert input to xr.Dataset
-    harmonics = _convert_to_dataset(harmonics, 'harmonics')
+    harmonics = convert_to_dataset(harmonics, 'harmonics')
 
     if frequency_dimension != '' and frequency_dimension not in harmonics.coords:
         raise ValueError('frequency_dimension was supplied but is not a dimension '
