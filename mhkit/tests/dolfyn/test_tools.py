@@ -270,11 +270,7 @@ class tools_testcase(unittest.TestCase):
         positive_freqs = freq_full[1 : int(nfft / 2)]
         negative_freqs = freq_full[int(nfft / 2) + 1 :]
         assert_allclose(positive_freqs, -negative_freqs[::-1])
-        # Test for half frequency range
-        # TODO Fix based on james response
-        freq_half = tools.fft.fft_frequency(nfft, fs, full=False)
-        # assert_equal(len(freq_half), int(nfft / 2) - 1)
-        # assert_allclose(freq_half, positive_freqs)  # Ignore the zero frequency
+
 
     def test_stepsize(self):
         # Case 1: l < nfft
