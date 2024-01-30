@@ -162,15 +162,18 @@ def discharge_to_velocity(D, polynomial_coefficients, dimension="", to_pandas=Tr
         raise TypeError(f'dimension must be of type str. Got: {type(dimension)}')
     if not isinstance(to_pandas, bool):
         raise TypeError(f'to_pandas must be of type str. Got: {type(to_pandas)}')
-    
+
+    D = _convert_to_dataset(D,'V')
+
     if dimension == "":
         dimension = list(D.coords)[0]
-
-    D = _convert_to_dataset(D)
         
     # Calculate velocity using polynomial
-    vals = polynomial_coefficients(D)
-    V = xr.Dataset(vals)
+    V = xr.Dataset()
+    for var in list(D.data_vars):
+        vals = polynomial_coefficients(D[var])
+        V = V.assign(variables={var: ([dimension], vals)})
+    V = V.assign_coords({dimension: D[dimension]})
     
     if to_pandas:
         V = V.to_pandas()
