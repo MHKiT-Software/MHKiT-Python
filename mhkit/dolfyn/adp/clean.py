@@ -1,5 +1,6 @@
 """Module containing functions to clean data
 """
+
 import numpy as np
 import xarray as xr
 from scipy.signal import medfilt
@@ -40,15 +41,15 @@ def set_range_offset(ds, h_deploy):
     the surface and downward-facing ADCP's transducers.
     """
 
-    r = [s for s in ds.dims if 'range' in s]
+    r = [s for s in ds.dims if "range" in s]
     for val in r:
         ds[val] = ds[val].values + h_deploy
-        ds[val].attrs['units'] = 'm'
+        ds[val].attrs["units"] = "m"
 
-    if hasattr(ds, 'h_deploy'):
-        ds.attrs['h_deploy'] += h_deploy
+    if hasattr(ds, "h_deploy"):
+        ds.attrs["h_deploy"] += h_deploy
     else:
-        ds.attrs['h_deploy'] = h_deploy
+        ds.attrs["h_deploy"] = h_deploy
 
 
 def find_surface(ds, thresh=10, nfilt=None):
@@ -78,9 +79,13 @@ def find_surface(ds, thresh=10, nfilt=None):
     # This finds the first point that increases (away from the profiler) in
     # the echo profile
     edf = np.diff(ds.amp.values.astype(np.int16), axis=1)
-    inds2 = np.max((edf < 0) *
-                   np.arange(ds.vel.shape[1] - 1,
-                             dtype=np.uint8)[None, :, None], axis=1) + 1
+    inds2 = (
+        np.max(
+            (edf < 0) * np.arange(ds.vel.shape[1] - 1, dtype=np.uint8)[None, :, None],
+            axis=1,
+        )
+        + 1
+    )
 
     # Calculate the depth of these quantities
     d1 = ds.range.values[inds]
@@ -101,12 +106,17 @@ def find_surface(ds, thresh=10, nfilt=None):
         dfilt[dfilt == 0] = np.NaN
         d = dfilt
 
-    ds['depth'] = xr.DataArray(d.astype('float32'),
-                               dims=['time'],
-                               attrs={'units': 'm',
-                                      'long_name': 'Depth',
-                                      'standard_name': 'depth',
-                                      'positive': 'down'})
+    ds["depth"] = xr.DataArray(
+        d.astype("float32"),
+        dims=["time"],
+        attrs={
+            "units": "m",
+            "long_name": "Depth",
+            "standard_name": "depth",
+            "positive": "down",
+        },
+    )
+
 
 def find_surface_from_P(ds, salinity=35):
     """
@@ -137,9 +147,9 @@ def find_surface_from_P(ds, salinity=35):
     .. math:: \\rho - \\rho_0 = -\\alpha (T-T_0) + \\beta (S-S_0) + \\kappa P
 
     Where :math:`\\rho` is water density, :math:`T` is water temperature,
-    :math:`P` is water pressure, :math:`S` is practical salinity, 
-    :math:`\\alpha` is the thermal expansion coefficient, :math:`\\beta` is 
-    the haline contraction coefficient, and :math:`\\kappa` is adiabatic 
+    :math:`P` is water pressure, :math:`S` is practical salinity,
+    :math:`\\alpha` is the thermal expansion coefficient, :math:`\\beta` is
+    the haline contraction coefficient, and :math:`\\kappa` is adiabatic
     compressibility.
     """
 
@@ -153,31 +163,37 @@ def find_surface_from_P(ds, salinity=35):
     a = 0.15  # thermal expansion coefficient, kg/m^3/degC
     b = 0.78  # haline contraction coefficient, kg/m^3/ppt
     k = 4.5e-3  # adiabatic compressibility, kg/m^3/dbar
-    rho = rho0 - a*(T-T0) + b*(S-S0) + k*P
+    rho = rho0 - a * (T - T0) + b * (S - S0) + k * P
 
     # Depth = pressure (conversion from dbar to MPa) / water weight
-    d = (ds.pressure*10000)/(9.81*rho)
+    d = (ds.pressure * 10000) / (9.81 * rho)
 
-    if hasattr(ds, 'h_deploy'):
+    if hasattr(ds, "h_deploy"):
         d += ds.h_deploy
         description = "Depth to Seafloor"
     else:
         description = "Depth to Instrument"
 
-    ds['water_density'] = xr.DataArray(
-        rho.astype('float32'),
-        dims=['time'],
-        attrs={'units': 'kg m-3',
-               'long_name': 'Water Density',
-               'standard_name': 'sea_water_density',
-               'description': 'Water density from linear approximation of sea water equation of state'})
-    ds['depth'] = xr.DataArray(
-        d.astype('float32'),
-        dims=['time'],
-        attrs={'units': 'm',
-               'long_name': description,
-               'standard_name': 'depth',
-               'positive': 'down'})
+    ds["water_density"] = xr.DataArray(
+        rho.astype("float32"),
+        dims=["time"],
+        attrs={
+            "units": "kg m-3",
+            "long_name": "Water Density",
+            "standard_name": "sea_water_density",
+            "description": "Water density from linear approximation of sea water equation of state",
+        },
+    )
+    ds["depth"] = xr.DataArray(
+        d.astype("float32"),
+        dims=["time"],
+        attrs={
+            "units": "m",
+            "long_name": description,
+            "standard_name": "depth",
+            "positive": "down",
+        },
+    )
 
 
 def nan_beyond_surface(ds, val=np.nan, beam_angle=None, inplace=False):
@@ -204,7 +220,7 @@ def nan_beyond_surface(ds, val=np.nan, beam_angle=None, inplace=False):
 
     Notes
     -----
-    Surface interference expected to happen at 
+    Surface interference expected to happen at
     `distance > range * cos(beam angle) - cell size`
     """
 
@@ -212,29 +228,32 @@ def nan_beyond_surface(ds, val=np.nan, beam_angle=None, inplace=False):
         ds = ds.copy(deep=True)
 
     # Get all variables with 'range' coordinate
-    var = [h for h in ds.keys() if any(s for s in ds[h].dims if 'range' in s)]
+    var = [h for h in ds.keys() if any(s for s in ds[h].dims if "range" in s)]
 
     if beam_angle is None:
-        if hasattr(ds, 'beam_angle'):
-            beam_angle = ds.beam_angle * (np.pi/180)
+        if hasattr(ds, "beam_angle"):
+            beam_angle = ds.beam_angle * (np.pi / 180)
         else:
-            raise Exception("'beam_angle` not found in dataset attributes. "\
-                            "Please supply the ADCP's beam angle.")
+            raise Exception(
+                "'beam_angle` not found in dataset attributes. "
+                "Please supply the ADCP's beam angle."
+            )
 
     # Surface interference distance calculated from distance of transducers to surface
-    if hasattr(ds, 'h_deploy'):
-        range_limit = ((ds.depth-ds.h_deploy) * np.cos(beam_angle) -
-                       ds.cell_size) + ds.h_deploy
+    if hasattr(ds, "h_deploy"):
+        range_limit = (
+            (ds.depth - ds.h_deploy) * np.cos(beam_angle) - ds.cell_size
+        ) + ds.h_deploy
     else:
         range_limit = ds.depth * np.cos(beam_angle) - ds.cell_size
 
     bds = ds.range > range_limit
 
     # Echosounder data needs only be trimmed at water surface
-    if 'echo' in var:
+    if "echo" in var:
         bds_echo = ds.range_echo > ds.depth
-        ds['echo'].values[..., bds_echo] = val
-        var.remove('echo')
+        ds["echo"].values[..., bds_echo] = val
+        var.remove("echo")
 
     # Correct rest of "range" data for surface interference
     for nm in var:
@@ -251,7 +270,7 @@ def nan_beyond_surface(ds, val=np.nan, beam_angle=None, inplace=False):
 
 def correlation_filter(ds, thresh=50, inplace=False):
     """
-    Filters out data where correlation is below a threshold in the 
+    Filters out data where correlation is below a threshold in the
     along-beam correlation data.
 
     Parameters
@@ -268,7 +287,7 @@ def correlation_filter(ds, thresh=50, inplace=False):
     Returns
     -------
     ds : xarray.Dataset
-      Elements in velocity, correlation, and amplitude are removed if below the 
+      Elements in velocity, correlation, and amplitude are removed if below the
       correlation threshold
 
     Notes
@@ -280,27 +299,30 @@ def correlation_filter(ds, thresh=50, inplace=False):
         ds = ds.copy(deep=True)
 
     # 4 or 5 beam
-    if hasattr(ds, 'vel_b5'):
-        tag = ['', '_b5']
+    if hasattr(ds, "vel_b5"):
+        tag = ["", "_b5"]
     else:
-        tag = ['']
+        tag = [""]
 
     # copy original ref frame
     coord_sys_orig = ds.coord_sys
 
     # correlation is always in beam coordinates
-    rotate2(ds, 'beam', inplace=True)
+    rotate2(ds, "beam", inplace=True)
     # correlation is always in beam coordinates
     for tg in tag:
-        mask = ds['corr'+tg].values <= thresh
+        mask = ds["corr" + tg].values <= thresh
 
-        for var in ['vel', 'corr', 'amp']:
+        for var in ["vel", "corr", "amp"]:
             try:
-                ds[var+tg].values[mask] = np.nan
+                ds[var + tg].values[mask] = np.nan
             except:
-                ds[var+tg].values[mask] = 0
-            ds[var+tg].attrs['Comments'] = 'Filtered of data with a correlation value below ' + \
-                str(thresh) + ds.corr.units
+                ds[var + tg].values[mask] = 0
+            ds[var + tg].attrs["Comments"] = (
+                "Filtered of data with a correlation value below "
+                + str(thresh)
+                + ds.corr.units
+            )
 
     rotate2(ds, coord_sys_orig, inplace=True)
 
@@ -332,22 +354,22 @@ def medfilt_orient(ds, nfilt=7):
 
     ds = ds.copy(deep=True)
 
-    if getattr(ds, 'has_imu'):
+    if getattr(ds, "has_imu"):
         q_filt = np.zeros(ds.quaternions.shape)
         for i in range(ds.quaternions.q.size):
             q_filt[i] = medfilt(ds.quaternions[i].values, nfilt)
         ds.quaternions.values = q_filt
 
-        ds['orientmat'] = quaternion2orient(ds.quaternions)
+        ds["orientmat"] = quaternion2orient(ds.quaternions)
         return ds
 
     else:
         # non Nortek AHRS-equipped instruments
-        do_these = ['pitch', 'roll', 'heading']
+        do_these = ["pitch", "roll", "heading"]
         for nm in do_these:
             ds[nm].values = medfilt(ds[nm].values, nfilt)
 
-        return ds.drop_vars('orientmat')
+        return ds.drop_vars("orientmat")
 
 
 def val_exceeds_thresh(var, thresh=5, val=np.nan):
@@ -373,15 +395,15 @@ def val_exceeds_thresh(var, thresh=5, val=np.nan):
 
     var = var.copy(deep=True)
 
-    bd = np.zeros(var.shape, dtype='bool')
-    bd |= (np.abs(var.values) > thresh)
+    bd = np.zeros(var.shape, dtype="bool")
+    bd |= np.abs(var.values) > thresh
 
     var.values[bd] = val
 
     return var
 
 
-def fillgaps_time(var, method='cubic', maxgap=None):
+def fillgaps_time(var, method="cubic", maxgap=None):
     """
     Fill gaps (nan values) in var across time using the specified method
 
@@ -404,14 +426,14 @@ def fillgaps_time(var, method='cubic', maxgap=None):
     xarray.DataArray.interpolate_na()
     """
 
-    time_dim = [t for t in var.dims if 'time' in t][0]
+    time_dim = [t for t in var.dims if "time" in t][0]
 
-    return var.interpolate_na(dim=time_dim, method=method,
-                              use_coordinate=True,
-                              limit=maxgap)
+    return var.interpolate_na(
+        dim=time_dim, method=method, use_coordinate=True, limit=maxgap
+    )
 
 
-def fillgaps_depth(var, method='cubic', maxgap=None):
+def fillgaps_depth(var, method="cubic", maxgap=None):
     """
     Fill gaps (nan values) in var along the depth profile using the specified method
 
@@ -434,8 +456,8 @@ def fillgaps_depth(var, method='cubic', maxgap=None):
     xarray.DataArray.interpolate_na()
     """
 
-    range_dim = [t for t in var.dims if 'range' in t][0]
+    range_dim = [t for t in var.dims if "range" in t][0]
 
-    return var.interpolate_na(dim=range_dim, method=method,
-                              use_coordinate=False,
-                              limit=maxgap)
+    return var.interpolate_na(
+        dim=range_dim, method=method, use_coordinate=False, limit=maxgap
+    )

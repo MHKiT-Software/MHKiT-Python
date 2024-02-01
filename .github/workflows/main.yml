@@ -81,7 +81,7 @@ jobs:
       - name: Prepare data
         run: |
           source activate TEST
-          pytest mhkit/tests/river/test_io.py
+          pytest mhkit/tests/river/test_io_usgs.py
           pytest mhkit/tests/tidal/test_io.py
           pytest mhkit/tests/wave/io/test_cdip.py
 
@@ -107,7 +107,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
     env:
       PYTHON_VER: ${{ matrix.python-version }}
 
@@ -165,7 +165,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
 
     steps:
       - uses: conda-incubator/setup-miniconda@v2
@@ -211,7 +211,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: [3.8, 3.9, 3.10, 3.11]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
 
     steps:
       - uses: actions/checkout@v3

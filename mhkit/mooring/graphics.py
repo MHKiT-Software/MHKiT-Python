@@ -29,8 +29,22 @@ import xarray as xr
 from matplotlib.animation import FuncAnimation
 
 
-def animate(dsani, dimension='2d', xaxis='x', yaxis='z', zaxis='y', xlim=None, ylim=None, zlim=None,
-            interval=10, repeat=False, xlabel=None, ylabel=None, zlabel=None, title=None):
+def animate(
+    dsani,
+    dimension="2d",
+    xaxis="x",
+    yaxis="z",
+    zaxis="y",
+    xlim=None,
+    ylim=None,
+    zlim=None,
+    interval=10,
+    repeat=False,
+    xlabel=None,
+    ylabel=None,
+    zlabel=None,
+    title=None,
+):
     """
     Graphics function that creates a 2D or 3D animation of the node positions of a mooring line over time.
 
@@ -73,25 +87,26 @@ def animate(dsani, dimension='2d', xaxis='x', yaxis='z', zaxis='y', xlim=None, y
     Raises
     ------
     TypeError
-        Checks for correct input types for dsani, dimension, xaxis, yaxis, zaxis, xlim, ylim, 
+        Checks for correct input types for dsani, dimension, xaxis, yaxis, zaxis, xlim, ylim,
         zlim, interval, repeat, xlabel, ylabel, zlabel, and title
     """
-    _validate_input(dsani, xlim, ylim, interval, repeat,
-                    xlabel, ylabel, title, dimension)
-    if dimension == '3d':
+    _validate_input(
+        dsani, xlim, ylim, interval, repeat, xlabel, ylabel, title, dimension
+    )
+    if dimension == "3d":
         if not isinstance(zlim, (list, type(None))):
-            raise TypeError('zlim must be of type list')
+            raise TypeError("zlim must be of type list")
         if not isinstance(zlabel, (str, type(None))):
-            raise TypeError('zlabel must be of type str')
+            raise TypeError("zlabel must be of type str")
     if not isinstance(xaxis, str):
-        raise TypeError('xaxis must be of type str')
+        raise TypeError("xaxis must be of type str")
     if not isinstance(yaxis, str):
-        raise TypeError('yaxis must be of type str')
+        raise TypeError("yaxis must be of type str")
     if not isinstance(zaxis, str):
-        raise TypeError('zaxis must be of type str')
+        raise TypeError("zaxis must be of type str")
 
     current_idx = list(dsani.dims.mapping.keys())[0]
-    dsani = dsani.rename({current_idx: 'time'})
+    dsani = dsani.rename({current_idx: "time"})
 
     nodes_x, nodes_y, nodes_z = _get_axis_nodes(dsani, xaxis, yaxis, zaxis)
 
@@ -99,18 +114,18 @@ def animate(dsani, dimension='2d', xaxis='x', yaxis='z', zaxis='y', xlim=None, y
         xlim = _find_limits(dsani[nodes_x])
     if not ylim:
         ylim = _find_limits(dsani[nodes_y])
-    if dimension == '3d' and not zlim:
+    if dimension == "3d" and not zlim:
         zlim = _find_limits(dsani[nodes_z])
 
     fig = plt.figure()
-    if dimension == '3d':
-        ax = fig.add_subplot(projection='3d')
+    if dimension == "3d":
+        ax = fig.add_subplot(projection="3d")
     else:
         ax = fig.add_subplot()
     ax.grid()
 
-    if dimension == '2d':
-        ln, = ax.plot([], [], '-o')
+    if dimension == "2d":
+        (ln,) = ax.plot([], [], "-o")
 
         def init():
             ax.set(xlim=xlim, ylim=ylim)
@@ -122,8 +137,8 @@ def animate(dsani, dimension='2d', xaxis='x', yaxis='z', zaxis='y', xlim=None, y
             y = dsani[nodes_y].isel(time=frame).to_array().values
             ln.set_data(x, y)
 
-    elif dimension == '3d':
-        ln, = ax.plot([], [], [], '-o')
+    elif dimension == "3d":
+        (ln,) = ax.plot([], [], [], "-o")
 
         def init():
             ax.set(xlim3d=xlim, ylim3d=ylim, zlim3d=zlim)
@@ -137,33 +152,41 @@ def animate(dsani, dimension='2d', xaxis='x', yaxis='z', zaxis='y', xlim=None, y
             ln.set_data(x, y)
             ln.set_3d_properties(z)
 
-    ani = FuncAnimation(fig, update, frames=len(dsani.time),
-                        init_func=init, interval=interval, repeat=repeat)
+    ani = FuncAnimation(
+        fig,
+        update,
+        frames=len(dsani.time),
+        init_func=init,
+        interval=interval,
+        repeat=repeat,
+    )
 
     return ani
 
 
-def _validate_input(dsani, xlim, ylim, interval, repeat, xlabel, ylabel, title, dimension):
+def _validate_input(
+    dsani, xlim, ylim, interval, repeat, xlabel, ylabel, title, dimension
+):
     """
     Validate common input parameters for animate function.
     """
     if not isinstance(dsani, xr.Dataset):
-        raise TypeError('dsani must be of type xr.Dataset')
+        raise TypeError("dsani must be of type xr.Dataset")
     if not isinstance(xlim, (list, type(None))):
-        raise TypeError('xlim must be of type list')
+        raise TypeError("xlim must be of type list")
     if not isinstance(ylim, (list, type(None))):
-        raise TypeError('ylim must be of type list')
+        raise TypeError("ylim must be of type list")
     if not isinstance(interval, int):
-        raise TypeError('interval must be of type int')
+        raise TypeError("interval must be of type int")
     if not isinstance(repeat, bool):
-        raise TypeError('repeat must be of type bool')
+        raise TypeError("repeat must be of type bool")
     if not isinstance(xlabel, (str, type(None))):
-        raise TypeError('xlabel must be of type str')
+        raise TypeError("xlabel must be of type str")
     if not isinstance(ylabel, (str, type(None))):
-        raise TypeError('ylabel must be of type str')
+        raise TypeError("ylabel must be of type str")
     if not isinstance(title, (str, type(None))):
-        raise TypeError('title must be of type str')
-    if dimension not in ['2d', '3d']:
+        raise TypeError("title must be of type str")
+    if dimension not in ["2d", "3d"]:
         raise ValueError('dimension must be either "2d" or "3d"')
 
 
@@ -191,10 +214,10 @@ def _get_axis_nodes(dsani, xaxis, yaxis, zaxis):
     nodesZ : list
         List of nodes along the z-axis
     """
-    nodes = [s for s in list(dsani.data_vars) if 'Node' in s]
-    nodes_x = [s for s in nodes if f'p{xaxis}' in s]
-    nodes_y = [s for s in nodes if f'p{yaxis}' in s]
-    nodes_z = [s for s in nodes if f'p{zaxis}' in s]
+    nodes = [s for s in list(dsani.data_vars) if "Node" in s]
+    nodes_x = [s for s in nodes if f"p{xaxis}" in s]
+    nodes_y = [s for s in nodes if f"p{yaxis}" in s]
+    nodes_z = [s for s in nodes if f"p{zaxis}" in s]
 
     return nodes_x, nodes_y, nodes_z
 
@@ -213,9 +236,9 @@ def _find_limits(dataset):
         Min and max plot limits for axis
     """
     x_1 = dataset.min().to_array().min().values
-    x_1 = x_1 - abs(x_1*0.1)
+    x_1 = x_1 - abs(x_1 * 0.1)
     x_2 = dataset.max().to_array().max().values
-    x_2 = x_2 + abs(x_2*0.1)
+    x_2 = x_2 + abs(x_2 * 0.1)
     return [x_1, x_2]
 
 

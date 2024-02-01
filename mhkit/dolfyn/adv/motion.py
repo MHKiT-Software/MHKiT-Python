@@ -11,21 +11,24 @@ from ..rotate.api import _make_model, rotate2
 class MissingDataError(ValueError):
     pass
 
+
 class DataAlreadyProcessedError(Exception):
     pass
+
 
 class MissingRequiredDataError(Exception):
     pass
 
+
 def _get_body2imu(make_model):
-    if make_model == 'nortek vector':
+    if make_model == "nortek vector":
         # In inches it is: (0.25, 0.25, 5.9)
         return np.array([0.00635, 0.00635, 0.14986])
     else:
         raise Exception("The imu->body vector is unknown for this instrument.")
 
 
-class CalcMotion():
+class CalcMotion:
     """
     A 'calculator' for computing the velocity of points that are
     rigidly connected to an ADV-body with an IMU.
@@ -44,22 +47,17 @@ class CalcMotion():
 
     _default_accel_filtfreq = 0.03
 
-    def __init__(self, ds,
-                 accel_filtfreq=None,
-                 vel_filtfreq=None,
-                 to_earth=True):
-
+    def __init__(self, ds, accel_filtfreq=None, vel_filtfreq=None, to_earth=True):
         self.ds = ds
-        self._check_filtfreqs(accel_filtfreq,
-                              vel_filtfreq)
+        self._check_filtfreqs(accel_filtfreq, vel_filtfreq)
         self.to_earth = to_earth
 
         self._set_accel()
         self._set_acclow()
-        self.angrt = ds['angrt'].values  # No copy because not modified.
+        self.angrt = ds["angrt"].values  # No copy because not modified.
 
     def _check_filtfreqs(self, accel_filtfreq, vel_filtfreq):
-        datval = self.ds.attrs.get('motion accel_filtfreq Hz', None)
+        datval = self.ds.attrs.get("motion accel_filtfreq Hz", None)
         if datval is None:
             if accel_filtfreq is None:
                 accel_filtfreq = self._default_accel_filtfreq
@@ -72,48 +70,58 @@ class CalcMotion():
                     warnings.warn(
                         f"The default accel_filtfreq is {datval} Hz. "
                         "Overriding this with the user-specified "
-                        "value: {accel_filtfreq} Hz.")
+                        "value: {accel_filtfreq} Hz."
+                    )
         if vel_filtfreq is None:
-            vel_filtfreq = self.ds.attrs.get('motion vel_filtfreq Hz', None)
+            vel_filtfreq = self.ds.attrs.get("motion vel_filtfreq Hz", None)
         if vel_filtfreq is None:
             vel_filtfreq = accel_filtfreq / 3.0
         self.accel_filtfreq = accel_filtfreq
         self.accelvel_filtfreq = vel_filtfreq
 
-    def _set_accel(self, ):
+    def _set_accel(
+        self,
+    ):
         ds = self.ds
-        if ds.coord_sys == 'inst':
-            self.accel = np.einsum('ij...,i...->j...',
-                                   ds['orientmat'].values,
-                                   ds['accel'].values)
-        elif self.ds.coord_sys == 'earth':
-            self.accel = ds['accel'].values.copy()
+        if ds.coord_sys == "inst":
+            self.accel = np.einsum(
+                "ij...,i...->j...", ds["orientmat"].values, ds["accel"].values
+            )
+        elif self.ds.coord_sys == "earth":
+            self.accel = ds["accel"].values.copy()
         else:
-            raise Exception(("Invalid coordinate system '%s'. The coordinate "
-                             "system must either be 'earth' or 'inst' to "
-                             "perform motion correction.")
-                            % (self.ds.coord_sys))
+            raise Exception(
+                (
+                    "Invalid coordinate system '%s'. The coordinate "
+                    "system must either be 'earth' or 'inst' to "
+                    "perform motion correction."
+                )
+                % (self.ds.coord_sys)
+            )
 
-    def _check_duty_cycle(self, ):
+    def _check_duty_cycle(
+        self,
+    ):
         """
         Function to check if duty cycle exists and if it is followed
         consistently in the datafile
         """
 
-        n_burst = self.ds.attrs.get('duty_cycle_n_burst')
+        n_burst = self.ds.attrs.get("duty_cycle_n_burst")
         if not n_burst:
             return
 
         # duty cycle interval in seconds
-        interval = self.ds.attrs.get('duty_cycle_interval')
+        interval = self.ds.attrs.get("duty_cycle_interval")
         actual_interval = (
-            self.ds.time[n_burst:].values - self.ds.time[:-n_burst].values)/1e9
+            self.ds.time[n_burst:].values - self.ds.time[:-n_burst].values
+        ) / 1e9
 
         rng = actual_interval.max() - actual_interval.min()
         mean = actual_interval.mean()
         # Range will vary depending on how datetime64 rounds the timestamp
         # But isn't an issue if it does
-        if rng > 2 or (mean > interval+1 and mean < interval-1):
+        if rng > 2 or (mean > interval + 1 and mean < interval - 1):
             raise Exception("Bad duty cycle detected")
 
         # If this passes, it means we're safe to blindly skip n_burst for every integral
@@ -121,17 +129,21 @@ class CalcMotion():
 
     def reshape(self, dat, n_bin):
         # Assumes shape is (3, time)
-        length = dat.shape[-1]//n_bin
-        return np.reshape(dat[..., :length*n_bin], (dat.shape[0], length, n_bin))
+        length = dat.shape[-1] // n_bin
+        return np.reshape(dat[..., : length * n_bin], (dat.shape[0], length, n_bin))
 
-    def _set_acclow(self, ):
+    def _set_acclow(
+        self,
+    ):
         # Check if file is duty cycled
         n = self._check_duty_cycle()
 
         if n:
-            warnings.warn("   Duty Cycle detected. "
-                          "Motion corrected data may contain edge effects "
-                          "at the beginning and end of each duty cycle.")
+            warnings.warn(
+                "   Duty Cycle detected. "
+                "Motion corrected data may contain edge effects "
+                "at the beginning and end of each duty cycle."
+            )
             self.accel = self.reshape(self.accel, n_bin=n)
 
         self.acclow = acc = self.accel.copy()
@@ -146,10 +158,13 @@ class CalcMotion():
             if np.isnan(acc).any():
                 warnings.warn(
                     "Error filtering acceleration data. "
-                    "Please decrease `accel_filtfreq`.")
+                    "Please decrease `accel_filtfreq`."
+                )
                 acc = np.nan_to_num(acc)
 
-    def calc_velacc(self, ):
+    def calc_velacc(
+        self,
+    ):
         """
         Calculates the translational velocity from the high-pass
         filtered acceleration signal.
@@ -170,8 +185,13 @@ class CalcMotion():
         hp = self.accel - self.acclow
 
         # Integrate in time to get velocities
-        dat = np.concatenate((np.zeros(list(hp.shape[:-1]) + [1]),
-                              cumtrapz(hp, dx=1 / samp_freq, axis=-1)), axis=-1)
+        dat = np.concatenate(
+            (
+                np.zeros(list(hp.shape[:-1]) + [1]),
+                cumtrapz(hp, dx=1 / samp_freq, axis=-1),
+            ),
+            axis=-1,
+        )
 
         if self.accelvel_filtfreq > 0:
             filt_freq = self.accelvel_filtfreq
@@ -179,14 +199,15 @@ class CalcMotion():
             # Applied twice by 'filtfilt' = 4th order butterworth
             filt = ss.butter(2, float(filt_freq) / (samp_freq / 2))
             for idx in range(hp.shape[0]):
-                dat[idx] = dat[idx] - \
-                    ss.filtfilt(filt[0], filt[1], dat[idx], axis=-1)
+                dat[idx] = dat[idx] - ss.filtfilt(filt[0], filt[1], dat[idx], axis=-1)
 
             # Fill nan with zeros - happens for some filter frequencies
             if np.isnan(dat).any():
-                warnings.warn("Error filtering acceleration data. "
-                              "Please decrease `vel_filtfreq`. "
-                              "(default is 1/3 `accel_filtfreq`)")
+                warnings.warn(
+                    "Error filtering acceleration data. "
+                    "Please decrease `vel_filtfreq`. "
+                    "(default is 1/3 `accel_filtfreq`)"
+                )
                 dat = np.nan_to_num(dat)
 
         if n:
@@ -195,9 +216,9 @@ class CalcMotion():
             acclow_shaped = np.empty(self.angrt.shape)
             accel_shaped = np.empty(self.angrt.shape)
             for idx in range(hp.shape[0]):
-                velacc_shaped[idx] = np.ravel(dat[idx], 'C')
-                acclow_shaped[idx] = np.ravel(self.acclow[idx], 'C')
-                accel_shaped[idx] = np.ravel(self.accel[idx], 'C')
+                velacc_shaped[idx] = np.ravel(dat[idx], "C")
+                acclow_shaped[idx] = np.ravel(self.acclow[idx], "C")
+                accel_shaped[idx] = np.ravel(self.accel[idx], "C")
 
             # return acclow and velacc
             self.acclow = acclow_shaped
@@ -209,7 +230,7 @@ class CalcMotion():
 
     def calc_velrot(self, vec, to_earth=None):
         """
-        Calculate the induced velocity due to rotations of the 
+        Calculate the induced velocity due to rotations of the
         instrument about the IMU center.
 
         Parameters
@@ -245,17 +266,16 @@ class CalcMotion():
         # cross-product of omega (rotation vector) and the vector.
         #   u=dz*omegaY-dy*omegaZ,v=dx*omegaZ-dz*omegaX,w=dy*omegaX-dx*omegaY
         # where vec=[dx,dy,dz], and angrt=[omegaX,omegaY,omegaZ]
-        velrot = np.array([(vec[2][:, None] * self.angrt[1] -
-                            vec[1][:, None] * self.angrt[2]),
-                           (vec[0][:, None] * self.angrt[2] -
-                            vec[2][:, None] * self.angrt[0]),
-                           (vec[1][:, None] * self.angrt[0] -
-                            vec[0][:, None] * self.angrt[1]),
-                           ])
+        velrot = np.array(
+            [
+                (vec[2][:, None] * self.angrt[1] - vec[1][:, None] * self.angrt[2]),
+                (vec[0][:, None] * self.angrt[2] - vec[2][:, None] * self.angrt[0]),
+                (vec[1][:, None] * self.angrt[0] - vec[0][:, None] * self.angrt[1]),
+            ]
+        )
 
         if to_earth:
-            velrot = np.einsum('ji...,j...->i...',
-                               self.ds['orientmat'].values, velrot)
+            velrot = np.einsum("ji...,j...->i...", self.ds["orientmat"].values, velrot)
 
         if dimflag:
             return velrot[:, 0, :]
@@ -271,16 +291,16 @@ def _calc_probe_pos(ds, separate_probes=False):
     -----------
     ds : xarray.Dataset
       ADV dataset
-    separate_probes : bool 
-      If a Nortek Vector ADV, this function returns the 
-      transformation matrix of positions of the probe's 
+    separate_probes : bool
+      If a Nortek Vector ADV, this function returns the
+      transformation matrix of positions of the probe's
       acoustic recievers to the ADV's instrument frame of
       reference. Optional, default = False
 
     Returns
     -------
     vec : 3x3 numpy.ndarray
-      Transformation matrix to convert from ADV probe to 
+      Transformation matrix to convert from ADV probe to
       instrument frame of reference
     """
 
@@ -294,26 +314,28 @@ def _calc_probe_pos(ds, separate_probes=False):
     # In the coordinate system of the center of the probe (origin at
     # the acoustic transmitter) then, the positions of the centers of
     # the receivers is:
-    if separate_probes and _make_model(ds) == 'nortek vector':
+    if separate_probes and _make_model(ds) == "nortek vector":
         r = 0.076
         # The angle between the x-y plane and the probes
         phi = np.deg2rad(-30)
         # The angles of the probes from the x-axis:
-        theta = np.deg2rad(np.array([0., 120., 240.]))
-        return (np.dot(ds['inst2head_rotmat'].values.T,
-                       np.array([r * np.cos(theta),
-                                 r * np.sin(theta),
-                                 r * np.tan(phi) * np.ones(3)])) +
-                vec[:, None])
+        theta = np.deg2rad(np.array([0.0, 120.0, 240.0]))
+        return (
+            np.dot(
+                ds["inst2head_rotmat"].values.T,
+                np.array(
+                    [r * np.cos(theta), r * np.sin(theta), r * np.tan(phi) * np.ones(3)]
+                ),
+            )
+            + vec[:, None]
+        )
     else:
         return vec
 
 
-def correct_motion(ds,
-                   accel_filtfreq=None,
-                   vel_filtfreq=None,
-                   to_earth=True,
-                   separate_probes=False):
+def correct_motion(
+    ds, accel_filtfreq=None, vel_filtfreq=None, to_earth=True, separate_probes=False
+):
     """
     This function performs motion correction on an IMU-ADV data
     object. The IMU and ADV data should be tightly synchronized and
@@ -332,7 +354,7 @@ def correct_motion(ds,
       a second frequency to high-pass filter the integrated
       acceleration.  Optional, default = 1/3 of `accel_filtfreq`
 
-    to_earth : bool 
+    to_earth : bool
       All variables in the ds.props['rotate_vars'] list will be
       rotated into either the earth frame (to_earth=True) or the
       instrument frame (to_earth=False). Optional, default = True
@@ -357,7 +379,7 @@ def correct_motion(ds,
       ``velacc`` is the translational component of the head motion (from
                  accel, the high-pass filtered accel sigal)
 
-      ``acclow`` is the low-pass filtered accel sigal (i.e., 
+      ``acclow`` is the low-pass filtered accel sigal (i.e.,
 
     The primary velocity vector attribute, ``vel``, is motion corrected
     such that:
@@ -408,44 +430,44 @@ def correct_motion(ds,
     ds = ds.copy(deep=True)
 
     # Check that no nan's exist
-    if ds['accel'].isnull().sum():
+    if ds["accel"].isnull().sum():
         raise MissingDataError("There should be no missing data in `accel` variable")
-    if ds['angrt'].isnull().sum():
+    if ds["angrt"].isnull().sum():
         raise MissingDataError("There should be no missing data in `angrt` variable")
 
-    if hasattr(ds, 'velrot') or ds.attrs.get('motion corrected', False):
-        raise DataAlreadyProcessedError('The data appears to already have been '
-                        'motion corrected.')
+    if hasattr(ds, "velrot") or ds.attrs.get("motion corrected", False):
+        raise DataAlreadyProcessedError(
+            "The data appears to already have been " "motion corrected."
+        )
 
-    if not hasattr(ds, 'has_imu') or ('accel' not in ds):
-        raise MissingRequiredDataError('The instrument does not appear to have an IMU.')
+    if not hasattr(ds, "has_imu") or ("accel" not in ds):
+        raise MissingRequiredDataError("The instrument does not appear to have an IMU.")
 
-    if ds.coord_sys != 'inst':
-        rotate2(ds, 'inst', inplace=True)
+    if ds.coord_sys != "inst":
+        rotate2(ds, "inst", inplace=True)
 
     # Returns True/False if head2inst_rotmat has been set/not-set.
     # Bad configs raises errors (this is to check for those)
     rot._check_inst2head_rotmat(ds)
 
     # Create the motion 'calculator':
-    calcobj = CalcMotion(ds,
-                         accel_filtfreq=accel_filtfreq,
-                         vel_filtfreq=vel_filtfreq,
-                         to_earth=to_earth)
+    calcobj = CalcMotion(
+        ds, accel_filtfreq=accel_filtfreq, vel_filtfreq=vel_filtfreq, to_earth=to_earth
+    )
 
     ##########
     # Calculate the translational velocity (from the accel):
-    ds['velacc'] = xr.DataArray(calcobj.calc_velacc(),
-                                dims=['dirIMU', 'time'],
-                                attrs={'units': 'm s-1',
-                                       'long_name': 'Velocity from IMU Accelerometer'}
-                                ).astype('float32')
+    ds["velacc"] = xr.DataArray(
+        calcobj.calc_velacc(),
+        dims=["dirIMU", "time"],
+        attrs={"units": "m s-1", "long_name": "Velocity from IMU Accelerometer"},
+    ).astype("float32")
     # Copy acclow to the adv-object.
-    ds['acclow'] = xr.DataArray(calcobj.acclow,
-                                dims=['dirIMU', 'time'],
-                                attrs={'units': 'm s-2',
-                                       'long_name': 'Low-Frequency Acceleration from IMU'}
-                                ).astype('float32')
+    ds["acclow"] = xr.DataArray(
+        calcobj.acclow,
+        dims=["dirIMU", "time"],
+        attrs={"units": "m s-2", "long_name": "Low-Frequency Acceleration from IMU"},
+    ).astype("float32")
 
     ##########
     # Calculate rotational velocity (from angrt):
@@ -454,60 +476,65 @@ def correct_motion(ds,
     velrot = calcobj.calc_velrot(pos, to_earth=False)
     if separate_probes:
         # The head->beam transformation matrix
-        transMat = ds.get('beam2inst_orientmat', None)
+        transMat = ds.get("beam2inst_orientmat", None)
         # The inst->head transformation matrix
-        rmat = ds['inst2head_rotmat']
+        rmat = ds["inst2head_rotmat"]
 
         # 1) Rotate body-coordinate velocities to head-coord.
         velrot = np.dot(rmat, velrot)
         # 2) Rotate body-coord to beam-coord (einsum),
         # 3) Take along beam-component (diagonal),
         # 4) Rotate back to head-coord (einsum),
-        velrot = np.einsum('ij,kj->ik',
-                           transMat,
-                           np.diagonal(np.einsum('ij,j...->i...',
-                                                 np.linalg.inv(transMat),
-                                                 velrot)))
+        velrot = np.einsum(
+            "ij,kj->ik",
+            transMat,
+            np.diagonal(np.einsum("ij,j...->i...", np.linalg.inv(transMat), velrot)),
+        )
         # 5) Rotate back to body-coord.
         velrot = np.dot(rmat.T, velrot)
-    ds['velrot'] = xr.DataArray(velrot,
-                                dims=['dirIMU', 'time'],
-                                attrs={'units': 'm s-1',
-                                       'long_name': 'Velocity from IMU Gyroscope'}
-                                ).astype('float32')
+    ds["velrot"] = xr.DataArray(
+        velrot,
+        dims=["dirIMU", "time"],
+        attrs={"units": "m s-1", "long_name": "Velocity from IMU Gyroscope"},
+    ).astype("float32")
 
     ##########
     # Rotate the data into the correct coordinate system.
     # inst2earth expects a 'rotate_vars' property.
     # Add velrot, velacc, acclow, to it.
-    if 'rotate_vars' not in ds.attrs:
-        ds.attrs['rotate_vars'] = ['vel', 'velrot', 'velacc', 'accel',
-                                   'acclow', 'angrt', 'mag']
+    if "rotate_vars" not in ds.attrs:
+        ds.attrs["rotate_vars"] = [
+            "vel",
+            "velrot",
+            "velacc",
+            "accel",
+            "acclow",
+            "angrt",
+            "mag",
+        ]
     else:
-        ds.attrs['rotate_vars'].extend(['velrot', 'velacc', 'acclow'])
+        ds.attrs["rotate_vars"].extend(["velrot", "velacc", "acclow"])
 
     # NOTE: accel, acclow, and velacc are in the earth-frame after
     #       calc_velacc() call.
     inst2earth = rot._inst2earth
     if to_earth:
         # accel was converted to earth coordinates
-        ds['accel'].values = calcobj.accel
-        to_remove = ['accel', 'acclow', 'velacc']
-        ds = inst2earth(ds, rotate_vars=[e for e in
-                                         ds.attrs['rotate_vars']
-                                         if e not in to_remove])
+        ds["accel"].values = calcobj.accel
+        to_remove = ["accel", "acclow", "velacc"]
+        ds = inst2earth(
+            ds, rotate_vars=[e for e in ds.attrs["rotate_vars"] if e not in to_remove]
+        )
     else:
         # rotate these variables back to the instrument frame.
-        ds = inst2earth(ds, reverse=True,
-                        rotate_vars=['acclow', 'velacc'],
-                        force=True)
+        ds = inst2earth(ds, reverse=True, rotate_vars=["acclow", "velacc"], force=True)
 
     ##########
     # Copy vel -> velraw prior to motion correction:
-    ds['vel_raw'] = ds.vel.copy(deep=True)
+    ds["vel_raw"] = ds.vel.copy(deep=True)
 
     # Add it to rotate_vars:
-    ds.attrs['rotate_vars'].append('vel_raw')
+    ds.attrs["rotate_vars"].append("vel_raw")
 
     ##########
     # Remove motion from measured velocity
@@ -517,10 +544,10 @@ def correct_motion(ds,
     #       measures a velocity in the opposite direction.
 
     # use xarray to keep dimensions consistent
-    velmot = ds['velrot'] + ds['velacc']
-    ds['vel'].values += velmot.values
+    velmot = ds["velrot"] + ds["velacc"]
+    ds["vel"].values += velmot.values
 
-    ds.attrs['motion corrected'] = 1
-    ds.attrs['motion accel_filtfreq Hz'] = calcobj.accel_filtfreq
+    ds.attrs["motion corrected"] = 1
+    ds.attrs["motion accel_filtfreq Hz"] = calcobj.accel_filtfreq
 
     return ds

@@ -20,11 +20,12 @@ class time_testcase(unittest.TestCase):
         assert_equal(dt[0], datetime(2012, 6, 12, 12, 0, 2, 687283))
         assert_equal(dt1, [datetime(2012, 6, 12, 12, 0, 2, 687283)])
         assert_equal(dt_off[0], datetime(2012, 6, 12, 5, 0, 2, 687283))
-        assert_equal(t_str[0], '2012-06-12 12:00:02.687283')
+        assert_equal(t_str[0], "2012-06-12 12:00:02.687283")
 
         # Validated based on data in ad2cp.index file
-        assert_equal(time.dt642date(dat_sig.time[0])[0],
-                     datetime(2017, 7, 24, 17, 0, 0, 63500))
+        assert_equal(
+            time.dt642date(dat_sig.time[0])[0], datetime(2017, 7, 24, 17, 0, 0, 63500)
+        )
         # This should always be true
         assert_equal(time.epoch2date([0])[0], datetime(1970, 1, 1, 0, 0))
 
@@ -48,5 +49,5 @@ class time_testcase(unittest.TestCase):
         assert_equal(dn[0], 735032.5000311028)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

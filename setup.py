@@ -2,39 +2,42 @@ import os
 import re
 from setuptools import setup, find_packages
 
-DISTNAME = 'mhkit'
+DISTNAME = "mhkit"
 PACKAGES = find_packages()
 EXTENSIONS = []
-DESCRIPTION = 'Marine and Hydrokinetic Toolkit'
-AUTHOR = 'MHKiT developers'
-MAINTAINER_EMAIL = ''
-LICENSE = 'Revised BSD'
-URL = 'https://github.com/MHKiT-Software/mhkit-python'
-CLASSIFIERS = ['Development Status :: 3 - Alpha',
-               'Programming Language :: Python :: 3',
-               'Topic :: Scientific/Engineering',
-               'Intended Audience :: Science/Research',
-               'Operating System :: OS Independent',
-               ]
-DEPENDENCIES = ['pandas>=1.0.0',
-                'numpy>=1.21.0',
-                'scipy',
-                'matplotlib',
-                'requests',
-                'pecos>=0.3.0',
-                'fatpack',
-                'lxml',
-                'scikit-learn',
-                'NREL-rex>=0.2.63',
-                'six>=1.13.0',
-                'h5py>=3.6.0',
-                'h5pyd >=0.7.0',
-                'netCDF4',
-                'xarray',
-                'statsmodels',
-                'pytz',
-                'bottleneck',
-                'beautifulsoup4',]
+DESCRIPTION = "Marine and Hydrokinetic Toolkit"
+AUTHOR = "MHKiT developers"
+MAINTAINER_EMAIL = ""
+LICENSE = "Revised BSD"
+URL = "https://github.com/MHKiT-Software/mhkit-python"
+CLASSIFIERS = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+]
+DEPENDENCIES = [
+    "pandas>=1.0.0",
+    "numpy>=1.21.0",
+    "scipy",
+    "matplotlib",
+    "requests",
+    "pecos>=0.3.0",
+    "fatpack",
+    "lxml",
+    "scikit-learn",
+    "NREL-rex>=0.2.63",
+    "six>=1.13.0",
+    "h5py>=3.6.0",
+    "h5pyd >=0.7.0",
+    "netCDF4",
+    "xarray",
+    "statsmodels",
+    "pytz",
+    "bottleneck",
+    "beautifulsoup4",
+]
 
 LONG_DESCRIPTION = """
 MHKiT-Python is a Python package designed for marine renewable energy applications to assist in 
@@ -69,29 +72,29 @@ See [copyright and license](LICENSE.md) for more information.
 
 # get version from __init__.py
 file_dir = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(file_dir, 'mhkit', '__init__.py')) as f:
+with open(os.path.join(file_dir, "mhkit", "__init__.py")) as f:
     version_file = f.read()
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
-                              version_file, re.M)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M)
     if version_match:
         VERSION = version_match.group(1)
     else:
         raise RuntimeError("Unable to find version string.")
 
-setup(name=DISTNAME,
-      version=VERSION,
-      packages=PACKAGES,
-      ext_modules=EXTENSIONS,
-      description=DESCRIPTION,
-      long_description_content_type="text/markdown",
-      long_description=LONG_DESCRIPTION,
-      author=AUTHOR,
-      maintainer_email=MAINTAINER_EMAIL,
-      license=LICENSE,
-      url=URL,
-      classifiers=CLASSIFIERS,
-      zip_safe=False,
-      install_requires=DEPENDENCIES,
-      scripts=[],
-      include_package_data=True
-      )
+setup(
+    name=DISTNAME,
+    version=VERSION,
+    packages=PACKAGES,
+    ext_modules=EXTENSIONS,
+    description=DESCRIPTION,
+    long_description_content_type="text/markdown",
+    long_description=LONG_DESCRIPTION,
+    author=AUTHOR,
+    maintainer_email=MAINTAINER_EMAIL,
+    license=LICENSE,
+    url=URL,
+    classifiers=CLASSIFIERS,
+    zip_safe=False,
+    install_requires=DEPENDENCIES,
+    scripts=[],
+    include_package_data=True,
+)
