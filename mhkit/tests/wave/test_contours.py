@@ -477,70 +477,70 @@ class TestContours(unittest.TestCase):
             )
         self.assertTrue(all(close))
 
-    # def test_nonparametric_copulas(self):
-    #     methods = [
-    #         "nonparametric_gaussian",
-    #         "nonparametric_clayton",
-    #         "nonparametric_gumbel",
-    #     ]
+    def test_nonparametric_copulas(self):
+        methods = [
+            "nonparametric_gaussian",
+            "nonparametric_clayton",
+            "nonparametric_gumbel",
+        ]
 
-    #     np_copulas = wave.contours.environmental_contours(
-    #         self.wdrt_Hm0, self.wdrt_Te, self.wdrt_dt, self.wdrt_period, method=methods
-    #     )
+        np_copulas = wave.contours.environmental_contours(
+            self.wdrt_Hm0, self.wdrt_Te, self.wdrt_dt, self.wdrt_period, method=methods
+        )
 
-    #     close = []
-    #     for method in methods:
-    #         close.append(
-    #             np.allclose(
-    #                 np_copulas[f"{method}_x1"],
-    #                 self.wdrt_copulas[f"{method}_x1"],
-    #                 atol=0.13,
-    #             )
-    #         )
-    #         close.append(
-    #             np.allclose(
-    #                 np_copulas[f"{method}_x2"],
-    #                 self.wdrt_copulas[f"{method}_x2"],
-    #                 atol=0.13,
-    #             )
-    #         )
-    #     self.assertTrue(all(close))
+        close = []
+        for method in methods:
+            close.append(
+                np.allclose(
+                    np_copulas[f"{method}_x1"],
+                    self.wdrt_copulas[f"{method}_x1"],
+                    atol=0.13,
+                )
+            )
+            close.append(
+                np.allclose(
+                    np_copulas[f"{method}_x2"],
+                    self.wdrt_copulas[f"{method}_x2"],
+                    atol=0.13,
+                )
+            )
+        self.assertTrue(all(close))
 
-    # def test_kde_copulas(self):
-    #     kde_copula = wave.contours.environmental_contours(
-    #         self.wdrt_Hm0,
-    #         self.wdrt_Te,
-    #         self.wdrt_dt,
-    #         self.wdrt_period,
-    #         method=["bivariate_KDE"],
-    #         bandwidth=[0.23, 0.23],
-    #     )
-    #     log_kde_copula = wave.contours.environmental_contours(
-    #         self.wdrt_Hm0,
-    #         self.wdrt_Te,
-    #         self.wdrt_dt,
-    #         self.wdrt_period,
-    #         method=["bivariate_KDE_log"],
-    #         bandwidth=[0.02, 0.11],
-    #     )
+    def test_kde_copulas(self):
+        kde_copula = wave.contours.environmental_contours(
+            self.wdrt_Hm0,
+            self.wdrt_Te,
+            self.wdrt_dt,
+            self.wdrt_period,
+            method=["bivariate_KDE"],
+            bandwidth=[0.23, 0.23],
+        )
+        log_kde_copula = wave.contours.environmental_contours(
+            self.wdrt_Hm0,
+            self.wdrt_Te,
+            self.wdrt_dt,
+            self.wdrt_period,
+            method=["bivariate_KDE_log"],
+            bandwidth=[0.02, 0.11],
+        )
 
-    #     close = [
-    #         np.allclose(
-    #             kde_copula["bivariate_KDE_x1"], self.wdrt_copulas["bivariate_KDE_x1"]
-    #         ),
-    #         np.allclose(
-    #             kde_copula["bivariate_KDE_x2"], self.wdrt_copulas["bivariate_KDE_x2"]
-    #         ),
-    #         np.allclose(
-    #             log_kde_copula["bivariate_KDE_log_x1"],
-    #             self.wdrt_copulas["bivariate_KDE_log_x1"],
-    #         ),
-    #         np.allclose(
-    #             log_kde_copula["bivariate_KDE_log_x2"],
-    #             self.wdrt_copulas["bivariate_KDE_log_x2"],
-    #         ),
-    #     ]
-    #     self.assertTrue(all(close))
+        close = [
+            np.allclose(
+                kde_copula["bivariate_KDE_x1"], self.wdrt_copulas["bivariate_KDE_x1"]
+            ),
+            np.allclose(
+                kde_copula["bivariate_KDE_x2"], self.wdrt_copulas["bivariate_KDE_x2"]
+            ),
+            np.allclose(
+                log_kde_copula["bivariate_KDE_log_x1"],
+                self.wdrt_copulas["bivariate_KDE_log_x1"],
+            ),
+            np.allclose(
+                log_kde_copula["bivariate_KDE_log_x2"],
+                self.wdrt_copulas["bivariate_KDE_log_x2"],
+            ),
+        ]
+        self.assertTrue(all(close))
 
     def test_samples_contours(self):
         te_samples = np.array([10, 15, 20])
