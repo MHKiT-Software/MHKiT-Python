@@ -66,14 +66,14 @@ class TestResource(unittest.TestCase):
         Q = pd.Series(np.arange(9))
         # Calculate a first order polynomial on an DV_Curve x=y line 10 times greater than the Q values
         p, r2 = river.resource.polynomial_fit(np.arange(9), 10*np.arange(9), 1)
-        # Becuase the polynomial line fits perfect we should expect the V to equal 10*Q
+        # Because the polynomial line fits perfect we should expect the V to equal 10*Q
         V = river.resource.discharge_to_velocity(Q, p)
         self.assertAlmostEqual(np.sum(10*Q - V['V']), 0.00, places=2)
 
     def test_velocity_to_power(self):
         # Calculate a first order polynomial on an DV_Curve x=y line 10 times greater than the Q values
         p, r2 = river.resource.polynomial_fit(np.arange(9), 10*np.arange(9), 1)
-        # Becuase the polynomial line fits perfect we should expect the V to equal 10*Q
+        # Because the polynomial line fits perfect we should expect the V to equal 10*Q
         V = river.resource.discharge_to_velocity(pd.Series(np.arange(9)), p)
         # Calculate a first order polynomial on an VP_Curve x=y line 10 times greater than the V values
         p2, r22 = river.resource.polynomial_fit(

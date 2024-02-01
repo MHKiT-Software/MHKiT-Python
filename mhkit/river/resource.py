@@ -163,7 +163,7 @@ def discharge_to_velocity(D, polynomial_coefficients, dimension="", to_pandas=Tr
     if not isinstance(to_pandas, bool):
         raise TypeError(f'to_pandas must be of type str. Got: {type(to_pandas)}')
 
-    D = convert_to_dataset(D,'V')
+    D = convert_to_dataset(D, name='V')
 
     if dimension == "":
         dimension = list(D.coords)[0]
@@ -222,16 +222,23 @@ def velocity_to_power(V, polynomial_coefficients, cut_in, cut_out, dimension="",
     if not isinstance(to_pandas, bool):
         raise TypeError(f'to_pandas must be of type str. Got: {type(to_pandas)}')
     
-    V = convert_to_dataset(V)
+    V = convert_to_dataset(V, name='P')
 
-    # Calculate power using transfer function and FDC
-    vals = polynomial_coefficients(V)
+    if dimension == "":
+        dimension = list(V.coords)[0]
+        
+    # Calculate velocity using polynomial
+    P = xr.Dataset()
+    for var in list(V.data_vars):
+        # Calculate power using transfer function and FDC
+        vals = polynomial_coefficients(V[var])
 
-    # Power for velocity values outside lower and upper bounds Turbine produces 0 power
-    vals[V < cut_in] = 0.
-    vals[V > cut_out] = 0.
+        # Power for velocity values outside lower and upper bounds Turbine produces 0 power
+        vals[V[var] < cut_in] = 0.
+        vals[V[var] > cut_out] = 0.
 
-    P = xr.Dataset(vals)
+        P = P.assign(variables={var: ([dimension], vals)})
+    P = P.assign_coords({dimension: V[dimension]})
 
     if to_pandas:
         P = P.to_pandas()
