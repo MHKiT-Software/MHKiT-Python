@@ -1,42 +1,54 @@
 """
 noaa.py
 
-This module provides functions to fetch, process, and read NOAA (National Oceanic and Atmospheric Administration) 
-current data directly from the NOAA Tides and Currents API (https://tidesandcurrents.noaa.gov/api/). It supports 
-loading data into a pandas DataFrame, handling data in XML and JSON formats, and writing data to a JSON file.
+This module provides functions to fetch, process, and read NOAA (National
+Oceanic and Atmospheric Administration) current data directly from the
+NOAA Tides and Currents API (https://tidesandcurrents.noaa.gov/api/). It
+supports loading data into a pandas DataFrame, handling data in XML and 
+JSON formats, and writing data to a JSON file.
 
 Functions:
 ----------
-request_noaa_data(station, parameter, start_date, end_date, proxy=None, write_json=None):
-    Loads NOAA current data from the API into a pandas DataFrame, with optional support for proxy settings and 
-    writing data to a JSON file.
-
-_json_to_dataframe(response):
-    Converts NOAA response data in JSON format into a pandas DataFrame and returns metadata. (Currently, this 
-    function does not return the full dataset requested.)
+request_noaa_data(station, parameter, start_date, end_date, proxy=None, 
+  write_json=None):
+    Loads NOAA current data from the API into a pandas DataFrame, 
+    with optional support for proxy settings and writing data to a JSON
+    file.
 
 _xml_to_dataframe(response):
-    Converts NOAA response data in XML format into a pandas DataFrame and returns metadata.
+    Converts NOAA response data in XML format into a pandas DataFrame
+    and returns metadata.
 
 read_noaa_json(filename):
-    Reads a JSON file containing NOAA data saved from the request_noaa_data function and returns a DataFrame with 
-    timeseries site data and metadata.
+    Reads a JSON file containing NOAA data saved from the request_noaa_data
+    function and returns a DataFrame with timeseries site data and metadata.
 """
+
+import os
 import xml.etree.ElementTree as ET
 import datetime
 import json
 import math
+import shutil
 import pandas as pd
 import requests
+from mhkit.utils.cache import handle_caching
 
 
-def request_noaa_data(station, parameter, start_date, end_date,
-                      proxy=None, write_json=None):
+def request_noaa_data(
+    station,
+    parameter,
+    start_date,
+    end_date,
+    proxy=None,
+    write_json=None,
+    clear_cache=False,
+):
     """
-    Loads NOAA current data directly from https://tidesandcurrents.noaa.gov/api/ using a 
-    get request into a pandas DataFrame. NOAA sets max of 31 days between start and end date.
-    See https://co-ops.nos.noaa.gov/api/ for options. All times are reported as GMT and metric
-    units are returned for data.
+    Loads NOAA current data directly from https://tidesandcurrents.noaa.gov/api/
+    into a pandas DataFrame. NOAA sets max of 31 days between start and end date.
+    See https://co-ops.nos.noaa.gov/api/ for options. All times are reported as
+    GMT and metric units are returned for data. Uses cached data if available.
 
     The request URL prints to the screen.
 
@@ -49,138 +61,171 @@ def request_noaa_data(station, parameter, start_date, end_date,
     start_date : str
         Start date in the format yyyyMMdd
     end_date : str
-        End date in the format yyyyMMdd 
+        End date in the format yyyyMMdd
     proxy : dict or None
-        To request data from behind a firewall, define a dictionary of proxy settings, 
-        for example {"http": 'localhost:8080'}
+         To request data from behind a firewall, define a dictionary of proxy
+         settings, for example {"http": 'localhost:8080'}
     write_json : str or None
         Name of json file to write data
+    clear_cache : bool
+        If True, the cache for this specific request will be cleared.
 
     Returns
     -------
-    data : pandas DataFrame 
-        Data indexed by datetime with columns named according to the parameter's 
+    data : pandas DataFrame
+        Data indexed by datetime with columns named according to the parameter's
         variable description
     """
-    # Convert start and end dates to datetime objects
-    begin = datetime.datetime.strptime(start_date, '%Y%m%d').date()
-    end = datetime.datetime.strptime(end_date, '%Y%m%d').date()
+    # Type check inputs
+    if not isinstance(station, str):
+        raise TypeError(
+            f"Expected 'station' to be of type str, but got {type(station)}"
+        )
+    if not isinstance(parameter, str):
+        raise TypeError(
+            f"Expected 'parameter' to be of type str, but got {type(parameter)}"
+        )
+    if not isinstance(start_date, str):
+        raise TypeError(
+            f"Expected 'start_date' to be of type str, but got {type(start_date)}"
+        )
+    if not isinstance(end_date, str):
+        raise TypeError(
+            f"Expected 'end_date' to be of type str, but got {type(end_date)}"
+        )
+    if proxy and not isinstance(proxy, dict):
+        raise TypeError(
+            f"Expected 'proxy' to be of type dict or None, but got {type(proxy)}"
+        )
+    if write_json and not isinstance(write_json, str):
+        raise TypeError(
+            f"Expected 'write_json' to be of type str or None, but got {type(write_json)}"
+        )
+    if not isinstance(clear_cache, bool):
+        raise TypeError(
+            f"Expected 'clear_cache' to be of type bool, but got {type(clear_cache)}"
+        )
 
-    # Determine the number of 30 day intervals
-    delta = 30
-    interval = math.ceil(((end - begin).days)/delta)
+    # Define the path to the cache directory
+    cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit", "noaa")
 
-    # Create date ranges with 30 day intervals
-    date_list = [
-        begin + datetime.timedelta(days=i * delta) for i in range(interval + 1)]
-    date_list[-1] = end
+    # Create a unique filename based on the function parameters
+    hash_params = f"{station}_{parameter}_{start_date}_{end_date}"
 
-    # Iterate over date_list (30 day intervals) and fetch data
-    data_frames = []
-    for i in range(len(date_list) - 1):
-        start_date = date_list[i].strftime('%Y%m%d')
-        end_date = date_list[i + 1].strftime('%Y%m%d')
+    # Use handle_caching to manage cache
+    cached_data, cached_metadata, cache_filepath = handle_caching(
+        hash_params, cache_dir, write_json=write_json, clear_cache_file=clear_cache
+    )
 
-        api_query = f"begin_date={start_date}&end_date={end_date}&station={station}&product={parameter}&units=metric&time_zone=gmt&application=web_services&format=xml"
-        data_url = f"https://tidesandcurrents.noaa.gov/api/datagetter?{api_query}"
+    if cached_data is not None:
+        if write_json:
+            shutil.copy(cache_filepath, write_json)
+        return cached_data, cached_metadata
+    # If no cached data is available, make the API request
+    # no coverage bc in coverage runs we have already cached the data/ run this code
+    else:  # pragma: no cover
+        # Convert start and end dates to datetime objects
+        begin = datetime.datetime.strptime(start_date, "%Y%m%d").date()
+        end = datetime.datetime.strptime(end_date, "%Y%m%d").date()
 
-        print('Data request URL: ', data_url)
+        # Determine the number of 30 day intervals
+        delta = 30
+        interval = math.ceil(((end - begin).days) / delta)
 
-        # Get response
-        response = requests.get(url=data_url, proxies=proxy)
+        # Create date ranges with 30 day intervals
+        date_list = [
+            begin + datetime.timedelta(days=i * delta) for i in range(interval + 1)
+        ]
+        date_list[-1] = end
 
-        # Convert to DataFrame and save in data_frames list
-        df, metadata = _xml_to_dataframe(response)
-        data_frames.append(df)
+        # Iterate over date_list (30 day intervals) and fetch data
+        data_frames = []
+        for i in range(len(date_list) - 1):
+            start_date = date_list[i].strftime("%Y%m%d")
+            end_date = date_list[i + 1].strftime("%Y%m%d")
 
-    # Concatenate all DataFrames
-    data = pd.concat(data_frames, ignore_index=False)
+            api_query = f"begin_date={start_date}&end_date={end_date}&station={station}&product={parameter}&units=metric&time_zone=gmt&application=web_services&format=xml"
+            data_url = f"https://tidesandcurrents.noaa.gov/api/datagetter?{api_query}"
 
-    # Remove duplicated date values
-    data = data.loc[~data.index.duplicated()]
+            print("Data request URL: ", data_url)
 
-    # Write json if specified
-    if write_json is not None:
-        with open(write_json, 'w') as outfile:
-            # Convert DataFrame to json
-            jsonData = data.to_json()
-            # Convert to python object data
-            pyData = json.loads(jsonData)
-            # Add metadata to pyData
-            pyData['metadata'] = metadata
-            # Wrtie the pyData to a json file
-            json.dump(pyData, outfile)
-    return data, metadata
+            # Get response
+            try:
+                response = requests.get(url=data_url, proxies=proxy)
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as err:
+                print(f"HTTP error occurred: {err}")
+                continue
+            except requests.exceptions.RequestException as err:
+                print(f"Error occurred: {err}")
+                continue
+            # Convert to DataFrame and save in data_frames list
+            df, metadata = _xml_to_dataframe(response)
+            data_frames.append(df)
 
+        # Concatenate all DataFrames
+        data = pd.concat(data_frames, ignore_index=False)
 
-def _json_to_dataframe(response):
-    '''
-    Returns a dataframe  and metadata from a NOAA
-    response.
-    TODO: This function currently does not return the 
-      full dataset requested.
-    '''
-    text = json.loads(response.text)
-    metadata = text['metadata']
-    # import ipdb; ipdb.set_trace()
-    # Initialize DataFrame
-    data = pd.DataFrame.from_records(
-        text['data'][1], index=[text['data'][1]['t']])
-    # Append all times to DataFrame
-    for i in range(1, len(text['data'])):
-        data.append(pd.DataFrame.from_records(text['data'][i],
-                                              index=[text['data'][i]['t']]))
-    # Convert index to DataFram
-    data.index = pd.to_datetime(data.index)
-    # Remove 't' becuase it is the index
-    del data['t']
-    # List of columns which are string
-    cols = data.columns[data.dtypes.eq('object')]
-    # Convert columns to float
-    data[cols] = data[cols].apply(pd.to_numeric, errors='coerce')
-    return data, metadata
+        # Remove duplicated date values
+        data = data.loc[~data.index.duplicated()]
+
+        # After making the API request and processing the response, write the
+        #  response to a cache file
+        handle_caching(
+            hash_params,
+            cache_dir,
+            data=data,
+            metadata=metadata,
+            clear_cache_file=clear_cache,
+        )
+
+        if write_json:
+            shutil.copy(cache_filepath, write_json)
+
+        return data, metadata
 
 
 def _xml_to_dataframe(response):
-    '''
+    """
     Returns a dataframe from an xml response
-    '''
+    """
     root = ET.fromstring(response.text)
     metadata = None
     data = None
 
     for child in root:
         # Save meta data dictionary
-        if child.tag == 'metadata':
+        if child.tag == "metadata":
             metadata = child.attrib
-        elif child.tag == 'observations':
+        elif child.tag == "observations":
             data = child
-        elif child.tag == 'error':
-            print('***ERROR: Response returned error')
+        elif child.tag == "error":
+            print("***ERROR: Response returned error")
             return None
 
     if data is None:
-        print('***ERROR: No observations found')
+        print("***ERROR: No observations found")
         return None
 
     # Create a list of DataFrames then Concatenate
-    df = pd.concat([pd.DataFrame(obs.attrib, index=[0])
-                   for obs in data], ignore_index=True)
+    df = pd.concat(
+        [pd.DataFrame(obs.attrib, index=[0]) for obs in data], ignore_index=True
+    )
 
     # Convert time to datetime
-    df['t'] = pd.to_datetime(df.t)
-    df = df.set_index('t')
+    df["t"] = pd.to_datetime(df.t)
+    df = df.set_index("t")
     df.drop_duplicates(inplace=True)
 
     # Convert data to float
-    df[['d', 's']] = df[['d', 's']].apply(pd.to_numeric)
+    df[["d", "s"]] = df[["d", "s"]].apply(pd.to_numeric)
 
     return df, metadata
 
 
 def read_noaa_json(filename):
-    '''
-    Returns site DataFrame and metadata from a json saved from the 
+    """
+    Returns site DataFrame and metadata from a json saved from the
     request_noaa_data
     Parameters
     ----------
@@ -189,18 +234,29 @@ def read_noaa_json(filename):
     Returns
     -------
     data: DataFrame
-        Timeseries Site data of direction and speed 
+        Timeseries Site data of direction and speed
     metadata: dictionary
         Site metadata
-    '''
+    """
+
     with open(filename) as outfile:
-        jsonData = json.load(outfile)
-    # Get the metadata
-    metadata = jsonData['metadata']
-    # Remove metadata entry
-    del jsonData['metadata']
-    # Remainder is DataFrame
-    data = pd.DataFrame.from_dict(jsonData)
-    # Convert from epoch to date time
-    data.index = pd.to_datetime(data.index, unit='ms')
+        json_data = json.load(outfile)
+    try:  # original MHKiT format (deprecate in future)
+        # Get the metadata
+        metadata = json_data["metadata"]
+        # Remove metadata entry
+        del json_data["metadata"]
+        # Remainder is DataFrame
+        data = pd.DataFrame.from_dict(json_data)
+        # Convert from epoch to date time
+        data.index = pd.to_datetime(data.index, unit="ms")
+
+    except ValueError:  # using cache.py format
+        if "metadata" in json_data:
+            metadata = json_data.pop("metadata", None)
+        data = pd.DataFrame(
+            json_data["data"],
+            index=pd.to_datetime(json_data["index"]),
+            columns=json_data["columns"],
+        )
     return data, metadata

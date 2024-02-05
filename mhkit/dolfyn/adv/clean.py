@@ -1,16 +1,18 @@
 """Module containing functions to clean data
 """
+
 import numpy as np
 import warnings
 from ..velocity import VelBinner
 from ..tools.misc import group, slice1d_along_axis
-warnings.filterwarnings('ignore', category=np.RankWarning)
+
+warnings.filterwarnings("ignore", category=np.RankWarning)
 
 sin = np.sin
 cos = np.cos
 
 
-def clean_fill(u, mask, npt=12, method='cubic', maxgap=6):
+def clean_fill(u, mask, npt=12, method="cubic", maxgap=6):
     """
     Interpolate over mask values in timeseries data using the specified method
 
@@ -22,7 +24,7 @@ def clean_fill(u, mask, npt=12, method='cubic', maxgap=6):
       Logical tensor of elements to "nan" out (from `spikeThresh`, `rangeLimit`,
       or `GN2002`) and replace
     npt : int
-      The number of points on either side of the bad values that 
+      The number of points on either side of the bad values that
       interpolation occurs over
     method : string
       Interpolation method to use (linear, cubic, pchip, etc). Default is 'cubic'
@@ -43,7 +45,7 @@ def clean_fill(u, mask, npt=12, method='cubic', maxgap=6):
     u.values[..., mask] = np.nan
 
     # Remove bad data for 2D+ and 1D timeseries variables
-    if 'dir' in u.dims:
+    if "dir" in u.dims:
         for i in range(u.shape[0]):
             u[i] = _interp_nan(u[i], npt, method, maxgap)
     else:
@@ -101,13 +103,12 @@ def _interp_nan(da, npt, method, maxgap):
                 ntail += 1
             pos += 1
 
-            if (ntail == npt or pos == len(da)):
+            if ntail == npt or pos == len(da):
                 # This is the block we are interpolating over
                 i_int = i[start:pos]
-                da[i_int] = da[i_int].interpolate_na(dim=da.dims[-1],
-                                                     method=method,
-                                                     use_coordinate=True,
-                                                     limit=maxgap)
+                da[i_int] = da[i_int].interpolate_na(
+                    dim=da.dims[-1], method=method, use_coordinate=True, limit=maxgap
+                )
                 # Reset
                 searching = True
                 ntail = 0
@@ -141,7 +142,7 @@ def fill_nan_ensemble_mean(u, mask, fs, window):
     """
 
     u = u.where(~mask)
-    bnr = VelBinner(n_bin=window*fs, fs=fs)
+    bnr = VelBinner(n_bin=window * fs, fs=fs)
 
     if len(u.shape) == 1:
         var = u.values[None, :]
@@ -158,12 +159,11 @@ def fill_nan_ensemble_mean(u, mask, fs, window):
     # diff = number of extra points
     extra_nans = vel_reshaped.shape[-1] - diff
     if diff:
-        vel = np.empty((var.shape[0], var.shape[-1]+extra_nans))
+        vel = np.empty((var.shape[0], var.shape[-1] + extra_nans))
         extra = var[:, -diff:]
-        empty = np.empty((vel.shape[0], extra_nans))*np.nan
+        empty = np.empty((vel.shape[0], extra_nans)) * np.nan
         extra = np.concatenate((extra, empty), axis=-1)
-        vel_reshaped = np.concatenate(
-            (vel_reshaped, extra[:, None, :]), axis=1)
+        vel_reshaped = np.concatenate((vel_reshaped, extra[:, None, :]), axis=1)
         extra_mean = np.nanmean(extra, axis=-1)
         vel_mean = np.concatenate((vel_mean, extra_mean[:, None]), axis=-1)
 
@@ -172,11 +172,12 @@ def fill_nan_ensemble_mean(u, mask, fs, window):
     vel_mean_matrix = np.tile(vel_mean[..., None], (1, 1, bnr.n_bin))
     vel_missing = np.isnan(vel_reshaped)
     vel_mask = np.ma.masked_array(vel_mean_matrix, ~vel_missing).filled(np.nan)
-    vel_filled = np.where(np.isnan(vel_reshaped), vel_mask,
-                          vel_reshaped + np.nan_to_num(vel_mask))
+    vel_filled = np.where(
+        np.isnan(vel_reshaped), vel_mask, vel_reshaped + np.nan_to_num(vel_mask)
+    )
     # "Unshape" the data
     for i in range(var.shape[0]):
-        vel[i] = np.ravel(vel_filled[i], 'C')
+        vel[i] = np.ravel(vel_filled[i], "C")
 
     if diff:  # Trim off the extra means
         u.values = np.squeeze(vel[:, :-extra_nans])
@@ -212,7 +213,7 @@ def spike_thresh(u, thresh=10):
 
 def range_limit(u, range=[-5, 5]):
     """
-    Returns a logical vector that is True where the values of `u` are 
+    Returns a logical vector that is True where the values of `u` are
     outside of `range`.
 
     Parameters
@@ -232,12 +233,13 @@ def range_limit(u, range=[-5, 5]):
 
 
 def _calcab(al, Lu_std_u, Lu_std_d2u):
-    """Solve equations 10 and 11 of Goring+Nikora2002
-    """
-    return tuple(np.linalg.solve(
-        np.array([[cos(al) ** 2, sin(al) ** 2],
-                  [sin(al) ** 2, cos(al) ** 2]]),
-        np.array([(Lu_std_u) ** 2, (Lu_std_d2u) ** 2])))
+    """Solve equations 10 and 11 of Goring+Nikora2002"""
+    return tuple(
+        np.linalg.solve(
+            np.array([[cos(al) ** 2, sin(al) ** 2], [sin(al) ** 2, cos(al) ** 2]]),
+            np.array([(Lu_std_u) ** 2, (Lu_std_d2u) ** 2]),
+        )
+    )
 
 
 def _phaseSpaceThresh(u):
@@ -252,27 +254,28 @@ def _phaseSpaceThresh(u):
     du[1:-1] = (u[2:] - u[:-2]) / 2
     # And again.
     d2u[2:-2] = (du[1:-1][2:] - du[1:-1][:-2]) / 2
-    p = (u ** 2 + du ** 2 + d2u ** 2)
+    p = u**2 + du**2 + d2u**2
     std_u = np.std(u, axis=0)
     std_du = np.std(du, axis=0)
     std_d2u = np.std(d2u, axis=0)
-    alpha = np.arctan2(np.sum(u * d2u, axis=0), np.sum(u ** 2, axis=0))
+    alpha = np.arctan2(np.sum(u * d2u, axis=0), np.sum(u**2, axis=0))
     a = np.empty_like(alpha)
     b = np.empty_like(alpha)
     with warnings.catch_warnings() as w:
         warnings.filterwarnings(
-            'ignore', category=RuntimeWarning, message='invalid value encountered in ')
+            "ignore", category=RuntimeWarning, message="invalid value encountered in "
+        )
         for idx, al in enumerate(alpha):
             a[idx], b[idx] = _calcab(al, Lu * std_u[idx], Lu * std_d2u[idx])
         theta = np.arctan2(du, u)
-        phi = np.arctan2((du ** 2 + u ** 2) ** 0.5, d2u)
-        pe = (((sin(phi) * cos(theta) * cos(alpha) +
-                cos(phi) * sin(alpha)) ** 2) / a +
-              ((sin(phi) * cos(theta) * sin(alpha) -
-                cos(phi) * cos(alpha)) ** 2) / b +
-              ((sin(phi) * sin(theta)) ** 2) / (Lu * std_du) ** 2) ** -1
+        phi = np.arctan2((du**2 + u**2) ** 0.5, d2u)
+        pe = (
+            ((sin(phi) * cos(theta) * cos(alpha) + cos(phi) * sin(alpha)) ** 2) / a
+            + ((sin(phi) * cos(theta) * sin(alpha) - cos(phi) * cos(alpha)) ** 2) / b
+            + ((sin(phi) * sin(theta)) ** 2) / (Lu * std_du) ** 2
+        ) ** -1
     pe[:, np.isnan(pe[0, :])] = 0
-    return (p > pe).flatten('F')
+    return (p > pe).flatten("F")
 
 
 def GN2002(u, npt=5000):
@@ -297,16 +300,16 @@ def GN2002(u, npt=5000):
         return GN2002(u.values, npt=npt)
 
     if u.ndim > 1:
-        mask = np.zeros(u.shape, dtype='bool')
+        mask = np.zeros(u.shape, dtype="bool")
         for slc in slice1d_along_axis(u.shape, -1):
             mask[slc] = GN2002(u[slc], npt=npt)
         return mask
 
-    mask = np.zeros(len(u), dtype='bool')
+    mask = np.zeros(len(u), dtype="bool")
 
     # Find large bad segments (>npt/10):
     # group returns a vector of slice objects.
-    bad_segs = group(np.isnan(u), min_length=int(npt//10))
+    bad_segs = group(np.isnan(u), min_length=int(npt // 10))
     if bad_segs.size > 2:
         # Break them up into separate regions:
         sp = 0
@@ -323,7 +326,7 @@ def GN2002(u, npt=5000):
         for ind in range(len(bad_segs)):
             bs = bad_segs[ind]  # bs is a slice object.
             # Clean the good region:
-            mask[sp:bs.start] = GN2002(u[sp:bs.start], npt=npt)
+            mask[sp : bs.start] = GN2002(u[sp : bs.start], npt=npt)
             sp = bs.stop
         # Clean the last good region.
         mask[sp:ep] = GN2002(u[sp:ep], npt=npt)
@@ -335,12 +338,13 @@ def GN2002(u, npt=5000):
     mask_last = np.zeros_like(mask) + np.inf
     mask[0] = True  # make sure we start.
     while mask.any():
-        mask[:nbins * npt] = _phaseSpaceThresh(
-            np.array(np.reshape(u[:(nbins * npt)], (npt, nbins), order='F')))
+        mask[: nbins * npt] = _phaseSpaceThresh(
+            np.array(np.reshape(u[: (nbins * npt)], (npt, nbins), order="F"))
+        )
         mask[-npt:] = _phaseSpaceThresh(u[-npt:])
         c += 1
         if c >= 100:
-            raise Exception('GN2002 loop-limit exceeded.')
+            raise Exception("GN2002 loop-limit exceeded.")
         if mask.sum() >= mask_last.sum():
             break
         mask_last = mask.copy()
