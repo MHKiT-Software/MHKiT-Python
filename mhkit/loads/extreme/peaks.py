@@ -1,12 +1,7 @@
 """
 This module provides utilities for analyzing wave data, specifically
 for identifying significant wave heights and estimating wave peak
-distributions using statistical methods. It includes functionalities
-for calculating the window size for independence based on the 
-auto-correlation function, identifying peaks over a specified 
-threshold, determining the global peaks of a zero-centered response
-time-series, estimating the number of short-term peaks, and fitting
-Weibull distributions to wave peak data.
+distributions using statistical methods. 
 
 Functions:
 - _calculate_window_size: Calculates the window size for peak 
@@ -27,10 +22,6 @@ Functions:
 - peaks_distribution_peaks_over_threshold: Estimates the peaks
  distribution using the peaks over threshold method by fitting a 
  generalized Pareto distribution.
-
-Each function is designed to operate on wave data represented as NumPy
-arrays, utilizing statistical methods from the SciPy library to
-perform analyses and estimations.
 
 References:
 - Neary, V. S., S. Ahn, B. E. Seng, M. N. Allahdadi, T. Wang, Z. Yang, 
