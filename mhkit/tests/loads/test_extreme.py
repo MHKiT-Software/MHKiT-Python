@@ -42,7 +42,7 @@ class TestExtreme(unittest.TestCase):
         return crests, crest_inds
 
     def test_global_peaks(self):
-        peaks_t, peaks_val = loads.extremes.global_peaks(self.t, self.signal)
+        peaks_t, peaks_val = loads.extreme.global_peaks(self.t, self.signal)
 
         test_crests, test_crests_ind = self._example_crest_analysis(self.t, self.signal)
 
