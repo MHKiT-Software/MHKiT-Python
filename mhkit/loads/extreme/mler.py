@@ -1,14 +1,39 @@
-import numpy as np
+"""
+This module provides functionalities to calculate and analyze Most 
+Likely Extreme Response (MLER) coefficients for wave energy converter
+design and risk assessment. It includes functions to:
+
+  - Calculate MLER coefficients (`mler_coefficients`) from a sea state
+    spectrum and a response Amplitude Response Operator (ARO).
+  - Define and manipulate simulation parameters (`mler_simulation`) used
+    across various MLER analyses.
+  - Renormalize the incoming amplitude of the MLER wave 
+    (`mler_wave_amp_normalize`) to match the desired peak height for more
+    accurate modeling and analysis.
+  - Export the wave amplitude time series (`mler_export_time_series`) 
+    based on the calculated MLER coefficients for further analysis or
+    visualization.
+"""
+
+from typing import Union, List, Optional, Dict
+
 import pandas as pd
 import xarray as xr
-from scipy import stats, optimize, signal
+import numpy as np
+from numpy.typing import NDArray
+
 from mhkit.wave.resource import frequency_moment
-from mhkit.utils import upcrossing, custom
+
+SimulationParameters = Dict[str, Union[float, int, np.ndarray]]
 
 
 def mler_coefficients(
-    rao, wave_spectrum, response_desired, frequency_dimension="", to_pandas=True
-):
+    rao: Union[NDArray[np.float_], pd.Series, List[float], List[int], xr.DataArray],
+    wave_spectrum: Union[pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset],
+    response_desired: Union[int, float],
+    frequency_dimension: str = "",
+    to_pandas: bool = True,
+) -> Union[pd.DataFrame, xr.Dataset]:
     """
     Calculate MLER (most likely extreme response) coefficients from a
     sea state spectrum and a response RAO.
@@ -35,18 +60,25 @@ def mler_coefficients(
         DataFrame containing conditioned wave spectral amplitude
         coefficient [m^2-s], and Phase [rad] indexed by freq [Hz].
     """
-    try:
-        rao = np.array(rao)
-    except:
-        pass
 
-    if not isinstance(rao, np.ndarray):
-        raise TypeError(f"rao must be of type np.ndarray. Got: {type(rao)}")
+    if isinstance(rao, (list, pd.Series, xr.DataArray)):
+        rao_array = np.array(rao)
+    elif isinstance(rao, np.ndarray):
+        rao_array = rao
+    else:
+        raise TypeError(
+            "Unsupported type for 'rao'. Must be one of: list, pd.Series, \
+            np.ndarray, xr.DataArray."
+        )
+
+    if not isinstance(rao_array, np.ndarray):
+        raise TypeError(f"rao must be of type np.ndarray. Got: {type(rao_array)}")
     if not isinstance(
         wave_spectrum, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)
     ):
         raise TypeError(
-            f"wave_spectrum must be of type pd.Series, pd.DataFrame, xr.DataArray, or xr.Dataset. Got: {type(wave_spectrum)}"
+            f"wave_spectrum must be of type pd.Series, pd.DataFrame, "
+            f"xr.DataArray, or xr.Dataset. Got: {type(wave_spectrum)}"
         )
     if not isinstance(response_desired, (int, float)):
         raise TypeError(
@@ -70,36 +102,38 @@ def mler_coefficients(
         frequency_dimension = list(wave_spectrum.coords)[0]
 
     # convert from Hz to rad/s
-    freq_hz = wave_spectrum.coords[frequency_dimension].values
-    freq = freq_hz * (2 * np.pi)
+    freq_hz = wave_spectrum.coords[frequency_dimension].values * (2 * np.pi)
     wave_spectrum = wave_spectrum.to_numpy() / (2 * np.pi)
 
     # get frequency step
-    dw = 2.0 * np.pi / (len(freq) - 1)
+    dw = 2.0 * np.pi / (len(freq_hz) - 1)
 
     # Note: waves.A is "S" in Quon2016; 'waves' naming convention
     # matches WEC-Sim conventions (EWQ)
     # Response spectrum [(response units)^2-s/rad] -- Quon2016 Eqn. 3
-    spectrum_r = np.abs(rao) ** 2 * (2 * wave_spectrum)
+    spectrum_r = np.abs(rao_array) ** 2 * (2 * wave_spectrum)
 
     # calculate spectral moments and other important spectral values.
-    m0 = (frequency_moment(pd.Series(spectrum_r, index=freq), 0)).iloc[0, 0]
-    m1 = (frequency_moment(pd.Series(spectrum_r, index=freq), 1)).iloc[0, 0]
-    m2 = (frequency_moment(pd.Series(spectrum_r, index=freq), 2)).iloc[0, 0]
-    wBar = m1 / m0
+    m0 = frequency_moment(pd.Series(spectrum_r, index=freq_hz), 0).iloc[0, 0]
+    m1_m2 = (
+        frequency_moment(pd.Series(spectrum_r, index=freq_hz), 1).iloc[0, 0],
+        frequency_moment(pd.Series(spectrum_r, index=freq_hz), 2).iloc[0, 0],
+    )
 
     # calculate coefficient A_{R,n} [(response units)^-1] -- Quon2016 Eqn. 8
     # Drummen version.  Dietz has negative of this.
     _coeff_a_rn = (
         np.abs(rao)
         * np.sqrt(2 * wave_spectrum * dw)
-        * ((m2 - freq * m1) + wBar * (freq * m0 - m1))
-        / (m0 * m2 - m1**2)
+        * (
+            (m1_m2[1] - freq_hz * m1_m2[0])
+            + (m1_m2[0] / m0) * (freq_hz * m0 - m1_m2[0])
+        )
+        / (m0 * m1_m2[1] - m1_m2[0] ** 2)
     )
-
     # save the new spectral info to pass out
     # Phase delay should be a positive number in this convention (AP)
-    _phase = -np.unwrap(np.angle(rao))
+    _phase = -np.unwrap(np.angle(rao_array))
 
     # for negative values of Amp, shift phase by pi and flip sign
     # for negative amplitudes, add a pi phase shift, then flip sign on
@@ -108,8 +142,7 @@ def mler_coefficients(
     _coeff_a_rn[_coeff_a_rn < 0] *= -1
 
     # calculate the conditioned spectrum [m^2-s/rad]
-    _s = wave_spectrum * _coeff_a_rn**2 * response_desired**2
-    _a = 2 * wave_spectrum * _coeff_a_rn**2 * response_desired**2
+    conditioned_spectrum = wave_spectrum * _coeff_a_rn**2 * response_desired**2
 
     # if the response amplitude we ask for is negative, we will add
     # a pi phase shift to the phase information.  This is because
@@ -121,21 +154,20 @@ def mler_coefficients(
         _phase += np.pi
 
     mler = xr.Dataset(
-        data_vars={
-            "WaveSpectrum": (["frequency"], _s),
-            "Phase": (["frequency"], _phase),
+        {
+            "WaveSpectrum": (["frequency"], conditioned_spectrum),
+            "Phase": (["frequency"], _phase + np.pi * (response_desired < 0)),
         },
         coords={"frequency": freq_hz},
     )
     mler.fillna(0)
 
-    if to_pandas:
-        mler = mler.to_pandas()
-
-    return mler
+    return mler.to_pandas() if to_pandas else mler
 
 
-def mler_simulation(parameters=None):
+def mler_simulation(
+    parameters: Optional[SimulationParameters] = None,
+) -> SimulationParameters:
     """
     Define the simulation parameters that are used in various MLER
     functionalities.
@@ -149,14 +181,19 @@ def mler_simulation(parameters=None):
         Simulation parameters.
         Keys:
         -----
-        'startTime': starting time [s]
-        'endTime': ending time [s]
-        'dT': time-step size [s]
-        'T0': time of maximum event [s]
-        'startx': start of simulation space [m]
-        'endX': end of simulation space [m]
-        'dX': horizontal spacing [m]
-        'X': position of maximum event [m]
+        - 'startTime': starting time [s]
+        - 'endTime': ending time [s]
+        - 'dT': time-step size [s]
+        - 'T0': time of maximum event [s]
+        - 'startx': start of simulation space [m]
+        - 'endX': end of simulation space [m]
+        - 'dX': horizontal spacing [m]
+        - 'X': position of maximum event [m]
+        The following keys are calculated from the above parameters:
+        - 'maxIT': int, maximum timestep index
+        - 'T': np.ndarray, time array
+        - 'maxIX': int, maximum index for space
+        - 'X': np.ndarray, space array
 
     Returns
     -------
@@ -171,12 +208,11 @@ def mler_simulation(parameters=None):
 
     sim = {}
 
-    if parameters == None:
+    if parameters is None:
         sim["startTime"] = -150.0  # [s] Starting time
         sim["endTime"] = 150.0  # [s] Ending time
         sim["dT"] = 1.0  # [s] Time-step size
         sim["T0"] = 0.0  # [s] Time of maximum event
-
         sim["startX"] = -300.0  # [m] Start of simulation space
         sim["endX"] = 300.0  # [m] End of simulation space
         sim["dX"] = 1.0  # [m] Horiontal spacing
@@ -195,8 +231,13 @@ def mler_simulation(parameters=None):
 
 
 def mler_wave_amp_normalize(
-    wave_amp, mler, sim, k, frequency_dimension="", to_pandas=True
-):
+    wave_amp: float,
+    mler: Union[pd.DataFrame, xr.Dataset],
+    sim: SimulationParameters,
+    k: Union[NDArray[np.float_], List[float], pd.Series],
+    frequency_dimension: str = "",
+    to_pandas: bool = True,
+) -> Union[pd.DataFrame, xr.Dataset]:
     """
     Function that renormalizes the incoming amplitude of the MLER wave
     to the desired peak height (peak to MSL).
@@ -223,10 +264,8 @@ def mler_wave_amp_normalize(
     mler_norm : pandas DataFrame or xarray Dataset
         MLER coefficients
     """
-    try:
-        k = np.array(k)
-    except:
-        pass
+    if not isinstance(k, np.ndarray):
+        k = np.array(k, dtype=float)
     if not isinstance(mler, (pd.DataFrame, xr.Dataset)):
         raise TypeError(
             f"mler must be of type pd.DataFrame or xr.Dataset. Got: {type(mler)}"
@@ -274,7 +313,14 @@ def mler_wave_amp_normalize(
     return mler_norm
 
 
-def mler_export_time_series(rao, mler, sim, k, frequency_dimension="", to_pandas=True):
+def mler_export_time_series(
+    rao: Union[NDArray[np.float_], List[float], pd.Series],
+    mler: Union[pd.DataFrame, xr.Dataset],
+    sim: SimulationParameters,
+    k: Union[NDArray[np.float_], List[float], pd.Series],
+    frequency_dimension: str = "",
+    to_pandas: bool = True,
+) -> Union[pd.DataFrame, xr.Dataset]:
     """
     Generate the wave amplitude time series at X0 from the calculated
     MLER coefficients
@@ -303,24 +349,19 @@ def mler_export_time_series(rao, mler, sim, k, frequency_dimension="", to_pandas
         by time [s].
 
     """
-    try:
-        rao = np.array(rao)
-    except:
-        pass
-    try:
-        k = np.array(k)
-    except:
-        pass
-    if not isinstance(rao, np.ndarray):
-        raise TypeError(f"rao must be of type ndarray. Got: {type(rao)}")
+    rao_array = np.array(rao, dtype=float) if not isinstance(rao, np.ndarray) else rao
+    k_array = np.array(k, dtype=float) if not isinstance(k, np.ndarray) else k
+
+    if not isinstance(rao_array, np.ndarray):
+        raise TypeError(f"rao must be of type ndarray. Got: {type(rao_array)}")
     if not isinstance(mler, (pd.DataFrame, xr.Dataset)):
         raise TypeError(
             f"mler must be of type pd.DataFrame or xr.Dataset. Got: {type(mler)}"
         )
     if not isinstance(sim, dict):
         raise TypeError(f"sim must be of type dict. Got: {type(sim)}")
-    if not isinstance(k, np.ndarray):
-        raise TypeError(f"k must be of type ndarray. Got: {type(k)}")
+    if not isinstance(k_array, np.ndarray):
+        raise TypeError(f"k must be of type ndarray. Got: {type(k_array)}")
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
@@ -340,13 +381,15 @@ def mler_export_time_series(rao, mler, sim, k, frequency_dimension="", to_pandas
         # conditioned wave
         wave_amp_time[i, 0] = np.sum(
             np.sqrt(2 * mler["WaveSpectrum"] * dw)
-            * np.cos(freq * (ti - sim["T0"]) + mler["Phase"] - k * (xi - sim["X0"]))
+            * np.cos(
+                freq * (ti - sim["T0"]) + mler["Phase"] - k_array * (xi - sim["X0"])
+            )
         )
         # Response calculation
         wave_amp_time[i, 1] = np.sum(
             np.sqrt(2 * mler["WaveSpectrum"] * dw)
-            * np.abs(rao)
-            * np.cos(freq * (ti - sim["T0"]) - k * (xi - sim["X0"]))
+            * np.abs(rao_array)
+            * np.cos(freq * (ti - sim["T0"]) - k_array * (xi - sim["X0"]))
         )
 
     mler_ts = xr.Dataset(
