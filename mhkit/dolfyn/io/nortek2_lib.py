@@ -553,11 +553,11 @@ def _calc_config(index):
     ids = np.unique(index["ID"])
     config = {}
     for id in ids:
-        if id not in [21, 22, 23, 24, 26, 28]:
+        if id not in [21, 22, 23, 24, 26, 28, 31]:
             continue
         if id == 23:
             type = "bt"
-        elif id == 22:
+        elif (id == 22) or (id == 31):
             type = "avg"
         else:
             type = "burst"

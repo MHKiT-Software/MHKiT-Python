@@ -113,11 +113,13 @@ def _handle_nan(data):
 
 
 def _create_dataset(data):
-    """Creates an xarray dataset from dictionary created from binary
+    """
+    Creates an xarray dataset from dictionary created from binary
     readers.
     Direction 'dir' coordinates are set in `set_coords`
     """
-    tag = ['_avg', '_b5', '_echo', '_bt', '_gps', '_altraw', '_sl']
+
+    tag = ['_avg', '_b5', '_echo', '_bt', '_gps', '_altraw', '_altraw_avg', '_sl']
 
     ds_dict = {}
     for key in data['coords']:
@@ -187,7 +189,9 @@ def _create_dataset(data):
         else:
             shp = data['data_vars'][key].shape
             if len(shp) == 1:  # 1D variables
-                if any(val in key for val in tag):
+                if '_altraw_avg' in key:
+                    tg = '_altraw_avg'
+                elif any(val in key for val in tag):
                     tg = '_' + key.rsplit('_')[-1]
                 else:
                     tg = ''
@@ -198,6 +202,8 @@ def _create_dataset(data):
                     ds_dict[key] = {"dims": ("range_echo", "time_echo"), "data": data['data_vars'][key]}
                 elif key == 'samp_altraw':
                     ds_dict[key] = {"dims": ("n_altraw", "time_altraw"), "data": data['data_vars'][key]}
+                elif key == 'samp_altraw_avg':
+                    ds_dict[key] = {"dims": ("n_altraw_avg", "time_altraw_avg"), "data": data['data_vars'][key]}
 
                 # ADV/ADCP instrument vector data, bottom tracking
                 elif shp[0] == n_beams and not any(val in key for val in tag[:3]):
