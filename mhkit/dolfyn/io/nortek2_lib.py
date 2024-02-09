@@ -219,31 +219,37 @@ def _check_index(idx, infile, fix_hw_ens=False, dp=False):
 
     # Are there better ways to detect dual profile?
     if (21 in uid) and (22 in uid):
-        warnings.warn("Dual Profile detected...")
+        warnings.warn("Dual Profile detected... Two datasets will be returned.")
         dp = True
 
     # This loop fixes 'skips' inside the file
-    if not dp:
-        for id in uid:
-            # These are the indices for this ID
-            inds = np.nonzero(idx["ID"] == id)[0]
-
-            # These are bad steps in the indices for this ID
-            ibad = np.nonzero(np.diff(inds) > N_id)[0]
-            # Will need to fix for dual profile ADCPs
-            for ib in ibad:
-                FLAG = True
-                # The ping number reported here may not be quite right if
-                # the ensemble count is wrong.
-                warnings.warn(
-                    "Skipped ping (ID: {}) in file {} at ensemble {}.".format(
-                        id, infile, idx["ens"][inds[ib + 1] - 1]
-                    )
+    for id in uid:
+        # These are the indices for this ID
+        inds = np.nonzero(idx["ID"] == id)[0]
+        # These are bad steps in the indices for this ID
+        ibad = np.nonzero(np.diff(inds) > N_id)[0]
+        # Check if spacing is equal for dual profiling ADCPs
+        if dp:
+            skip_size = np.diff(ibad)
+            avg_skip = np.median(skip_size)
+            # assume last "ibad" element is always good for dp's
+            mask = np.append(skip_size - avg_skip, 0).astype(bool)
+            ibad = ibad[mask]
+        for ib in ibad:
+            FLAG = True
+            # The ping number reported here may not be quite right if
+            # the ensemble count is wrong.
+            warnings.warn(
+                "Skipped ping (ID: {}) in file {} at ensemble {}.".format(
+                    id, infile, idx["ens"][inds[ib + 1] - 1]
                 )
-                hwe[inds[(ib + 1) :]] += 1
-                ens[inds[(ib + 1) :]] += 1
+            )
+            hwe[inds[(ib + 1) :]] += 1
+            ens[inds[(ib + 1) :]] += 1
 
+    if not dp:
         # This block fixes skips that originate from before this file.
+        # Check first N id's and correct
         delta = max(hwe[:N_id]) - hwe[:N_id]
         for d, id in zip(delta, idx["ID"][:N_id]):
             if d != 0:
