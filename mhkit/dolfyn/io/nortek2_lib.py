@@ -231,9 +231,13 @@ def _check_index(idx, infile, fix_hw_ens=False, dp=False):
         # Check if spacing is equal for dual profiling ADCPs
         if dp:
             skip_size = np.diff(ibad)
-            avg_skip = np.median(skip_size)
+            n_skip, count = np.unique(skip_size, return_counts=True)
+            # If multiple skips are of the same size, assume okay
+            for n, c in zip(n_skip, count):
+                if c > 1:
+                    skip_size[skip_size == n] = 0
             # assume last "ibad" element is always good for dp's
-            mask = np.append(skip_size - avg_skip, 0).astype(bool)
+            mask = np.append(skip_size, 0).astype(bool)
             ibad = ibad[mask]
         for ib in ibad:
             FLAG = True
@@ -564,11 +568,21 @@ def _calc_config(index):
         inds = index["ID"] == id
         _config = index["config"][inds]
         _beams_cy = index["beams_cy"][inds]
+
         # Check that these variables are consistent
         if not _isuniform(_config):
             raise Exception("config are not identical for id: 0x{:X}.".format(id))
         if not _isuniform(_beams_cy):
-            raise Exception("beams_cy are not identical for id: 0x{:X}.".format(id))
+            err = True
+            if id == 23:
+                # change in "n_cells" doesn't matter
+                lob = np.unique(_beams_cy)
+                beams = list(map(_beams_cy_int2dict, lob, 23 * np.ones(lob.size)))
+                if all([d['cy'] for d in beams]) and all([d['n_beams'] for d in beams]):
+                    err = False
+            if err:
+                raise Exception("beams_cy are not identical for id: 0x{:X}.".format(id))
+
         # Now that we've confirmed they are the same:
         config[id] = _headconfig_int2dict(_config[0], mode=type)
         config[id].update(_beams_cy_int2dict(_beams_cy[0], id))
