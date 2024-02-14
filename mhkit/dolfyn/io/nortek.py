@@ -273,10 +273,10 @@ class _NortekReader:
                 burst_seconds = self.config["n_burst"] / fs
             else:
                 burst_seconds = round(1 / fs, 3)
-            da["duty_cycle_description"] = (
-                "{} second bursts collected at {} Hz, with bursts taken every {} minutes".format(
-                    burst_seconds, fs, self.config["burst_interval"] / 60
-                )
+            da[
+                "duty_cycle_description"
+            ] = "{} second bursts collected at {} Hz, with bursts taken every {} minutes".format(
+                burst_seconds, fs, self.config["burst_interval"] / 60
             )
         self.burst_start = np.zeros(self.n_samp_guess, dtype="bool")
         da["fs"] = self.config["fs"]

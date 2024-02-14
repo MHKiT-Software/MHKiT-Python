@@ -578,7 +578,7 @@ def _calc_config(index):
                 # change in "n_cells" doesn't matter
                 lob = np.unique(_beams_cy)
                 beams = list(map(_beams_cy_int2dict, lob, 23 * np.ones(lob.size)))
-                if all([d['cy'] for d in beams]) and all([d['n_beams'] for d in beams]):
+                if all([d["cy"] for d in beams]) and all([d["n_beams"] for d in beams]):
                     err = False
             if err:
                 raise Exception("beams_cy are not identical for id: 0x{:X}.".format(id))

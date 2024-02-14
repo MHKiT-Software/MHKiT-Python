@@ -262,9 +262,12 @@ class _Ad2cpReader:
 
         # ID 26 and 31 recorded infrequently
         def n_id(id):
-            return ((self._index['ID'] == id) &
-                    (self._index['ens'] >= ens_start) &
-                    (self._index['ens'] < ens_stop)).sum()
+            return (
+                (self._index["ID"] == id)
+                & (self._index["ens"] >= ens_start)
+                & (self._index["ens"] < ens_stop)
+            ).sum()
+
         n_altraw = {26: n_id(26), 31: n_id(31)}
         if not n_altraw[26] and 26 in self._burst_readers:
             self._burst_readers.pop(26)
@@ -274,7 +277,7 @@ class _Ad2cpReader:
         for ky in self._burst_readers:
             if (ky == 26) or (ky == 31):
                 n = n_altraw[ky]
-                ens = np.zeros(n, dtype='uint32')
+                ens = np.zeros(n, dtype="uint32")
             else:
                 ens = np.arange(ens_start, ens_stop).astype("uint32")
                 n = nens
@@ -436,32 +439,36 @@ class _Ad2cpReader:
                 )
 
 
-def _altraw_reorg(outdat, tag=''):
-    """Submethod for `_reorg` particular to raw altimeter pings (ID 26 and 31)
-    """
-    for ky in list(outdat['data_vars']):
-        if ky.endswith('raw' + tag) and not ky.endswith('_altraw' + tag):
-            outdat['data_vars'].pop(ky)
-    outdat['coords']['time_altraw' + tag] = outdat['coords'].pop('timeraw' + tag)
+def _altraw_reorg(outdat, tag=""):
+    """Submethod for `_reorg` particular to raw altimeter pings (ID 26 and 31)"""
+    for ky in list(outdat["data_vars"]):
+        if ky.endswith("raw" + tag) and not ky.endswith("_altraw" + tag):
+            outdat["data_vars"].pop(ky)
+    outdat["coords"]["time_altraw" + tag] = outdat["coords"].pop("timeraw" + tag)
     # convert "signed fractional" to float
-    outdat['data_vars']['samp_altraw' + tag] = outdat['data_vars']['samp_altraw' + tag].astype('float32') / 2**8
+    outdat["data_vars"]["samp_altraw" + tag] = (
+        outdat["data_vars"]["samp_altraw" + tag].astype("float32") / 2**8
+    )
 
     # Read altimeter status
-    outdat['data_vars'].pop('status_altraw' + tag)
-    status_alt = lib._alt_status2data(outdat['data_vars']['status_alt' + tag])
+    outdat["data_vars"].pop("status_altraw" + tag)
+    status_alt = lib._alt_status2data(outdat["data_vars"]["status_alt" + tag])
     for ky in status_alt:
-        outdat['attrs'][ky + tag] = lib._collapse(
-            status_alt[ky].astype('uint8'), name=ky)
-    outdat['data_vars'].pop('status_alt' + tag)
+        outdat["attrs"][ky + tag] = lib._collapse(
+            status_alt[ky].astype("uint8"), name=ky
+        )
+    outdat["data_vars"].pop("status_alt" + tag)
 
     # Power level index
-    power = {0: 'high', 1: 'med-high', 2: 'med-low', 3: 'low'}
-    outdat['attrs']['power_level_alt' + tag] = power[outdat['attrs'].pop('power_level_idx_alt' + tag)]
+    power = {0: "high", 1: "med-high", 2: "med-low", 3: "low"}
+    outdat["attrs"]["power_level_alt" + tag] = power[
+        outdat["attrs"].pop("power_level_idx_alt" + tag)
+    ]
 
     # Other attrs
-    for ky in list(outdat['attrs']):
-        if ky.endswith('raw' + tag):
-            outdat['attrs'][ky.split('raw')[0] + '_alt' + tag] = outdat['attrs'].pop(ky)
+    for ky in list(outdat["attrs"]):
+        if ky.endswith("raw" + tag):
+            outdat["attrs"][ky.split("raw")[0] + "_alt" + tag] = outdat["attrs"].pop(ky)
 
 
 def _reorg(dat):
@@ -493,7 +500,7 @@ def _reorg(dat):
         (24, "_b5"),
         (26, "raw"),
         (28, "_echo"),
-        (31, 'raw_avg')
+        (31, "raw_avg"),
     ]:
         if id in [24, 26]:
             collapse_exclude = [0]
@@ -598,7 +605,7 @@ def _reorg(dat):
     if 26 in dat:
         _altraw_reorg(outdat)
     if 31 in dat:
-        _altraw_reorg(outdat, tag='_avg')
+        _altraw_reorg(outdat, tag="_avg")
 
     # Read status data
     status0_vars = [x for x in outdat["data_vars"] if "status0" in x]
@@ -769,13 +776,13 @@ def split_dp_datasets(ds):
     # Figure out which variables belong to which profile based on length of time variables
     t_dict = {}
     for t in ds.coords:
-        if 'time' in t:
+        if "time" in t:
             t_dict[t] = ds[t].size
 
     other_coords = []
     for key, val in t_dict.items():
-        if val != t_dict['time']:
-            if key.endswith('altraw'):
+        if val != t_dict["time"]:
+            if key.endswith("altraw"):
                 # altraw goes with burst, altraw_avg goes with avg
                 continue
             other_coords.append(key)

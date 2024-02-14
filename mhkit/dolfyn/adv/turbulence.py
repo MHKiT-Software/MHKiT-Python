@@ -518,7 +518,8 @@ class ADVBinner(VelBinner):
         out = np.empty_like(I_tke.flatten())
         for i, (b, t) in enumerate(zip(I_tke.flatten(), theta.flatten())):
             out[i] = np.trapz(
-                cbrt(x**2 - 2 / b * np.cos(t) * x + b ** (-2)) * np.exp(-0.5 * x**2),
+                cbrt(x**2 - 2 / b * np.cos(t) * x + b ** (-2))
+                * np.exp(-0.5 * x**2),
                 x,
             )
 
