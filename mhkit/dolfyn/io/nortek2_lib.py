@@ -144,6 +144,9 @@ def _create_index(infile, outfile, N_ens, debug):
         if dat[2] in ids:
             idk = dat[2]
             d_ver, d_off, config = struct.unpack("<BBH", fin.read(4))
+            if d_ver not in [0, 3]:
+                # 0 for bottom track, 3 for all others
+                continue
             fin.seek(4, 1)
             yr, mo, dy, h, m, s, u = struct.unpack("6BH", fin.read(8))
             fin.seek(14, 1)
@@ -181,7 +184,7 @@ def _create_index(infile, outfile, N_ens, debug):
             fin.seek(dat[4] - (36 + seek_2ens[idk]), 1)
             last_ens[idk] = ens[idk]
 
-            if debug and N[idk] < 5:
+            if debug:
                 # hex: [18, 15, 1C, 17] = [vel_b5, vel, echo, bt]
                 logging.info(
                     "%10d: %02X, %d, %02X, %d, %d, %d, %d\n"
