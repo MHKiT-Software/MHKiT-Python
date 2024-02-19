@@ -1,10 +1,42 @@
+"""
+This module provides functionality for estimating the short-term and
+long-term extreme distributions of responses in a time series. It 
+includes methods for analyzing peaks, block maxima, and applying 
+statistical distributions to model extreme events. The module supports 
+various methods for short-term extreme estimation, including peaks 
+fitting with Weibull, tail fitting, peaks over threshold, and block 
+maxima methods with GEV (Generalized Extreme Value) and Gumbel 
+distributions. Additionally, it offers functionality to approximate 
+the long-term extreme distribution by weighting short-term extremes 
+across different sea states.
+
+Functions:
+- ste_peaks: Estimates the short-term extreme distribution from peaks 
+    distribution using specified statistical methods.
+- block_maxima: Finds the block maxima in a time-series data to be used
+    in block maxima methods.
+- ste_block_maxima_gev: Approximates the short-term extreme distribution 
+    using the block maxima method with the GEV distribution.
+- ste_block_maxima_gumbel: Approximates the short-term extreme 
+    distribution using the block maxima method with the Gumbel distribution.
+- ste: Alias for `short_term_extreme`, facilitating easier access to the 
+    primary functionality of estimating short-term extremes.
+- short_term_extreme: Core function to approximate the short-term extreme 
+    distribution from a time series using chosen methods.
+- full_seastate_long_term_extreme: Combines short-term extreme 
+    distributions using weights to estimate the long-term extreme distribution.
+"""
+
+from typing import Union
+
 import numpy as np
 from scipy import stats
+from scipy.stats import rv_continuous
 
-import mhkit.loads.extreme as extreme
+from mhkit.loads import extreme
 
 
-def ste_peaks(peaks_distribution, npeaks):
+def ste_peaks(peaks_distribution: rv_continuous, npeaks: float) -> rv_continuous:
     """
     Estimate the short-term extreme distribution from the peaks
     distribution.
@@ -18,7 +50,7 @@ def ste_peaks(peaks_distribution, npeaks):
 
     Returns
     -------
-    ste: scipy.stats.rv_frozen
+    short_term_extreme: scipy.stats.rv_frozen
             Short-term extreme distribution.
     """
     if not callable(peaks_distribution.cdf):
@@ -32,29 +64,29 @@ def ste_peaks(peaks_distribution, npeaks):
             self.npeaks = kwargs.pop("npeaks")
             super().__init__(*args, **kwargs)
 
-        def _cdf(self, x):
-            peaks_cdf = np.array(self.peaks.cdf(x))
+        def _cdf(self, x, *args, **kwargs):
+            peaks_cdf = np.array(self.peaks.cdf(x, *args, **kwargs))
             peaks_cdf[np.isnan(peaks_cdf)] = 0.0
             if len(peaks_cdf) == 1:
                 peaks_cdf = peaks_cdf[0]
             return peaks_cdf**self.npeaks
 
-    ste = _ShortTermExtreme(
+    short_term_extreme_peaks = _ShortTermExtreme(
         name="short_term_extreme", peaks_distribution=peaks_distribution, npeaks=npeaks
     )
-    return ste
+    return short_term_extreme_peaks
 
 
-def block_maxima(t, x, t_st):
+def block_maxima(time: np.ndarray, global_peaks: np.ndarray, t_st: float) -> np.ndarray:
     """
     Find the block maxima of a time-series.
 
-    The timeseries (t,x) is divided into blocks of length t_st, and the
+    The timeseries (time, global_peaks) is divided into blocks of length t_st, and the
     maxima of each bloock is returned.
 
     Parameters
     ----------
-    t : np.array
+    time : np.array
         Time array.
     x : np.array
         global peaks timeseries.
@@ -63,60 +95,60 @@ def block_maxima(t, x, t_st):
 
     Returns
     -------
-    block_maxima: np.array
+    block_max: np.array
         Block maxima (i.e. largest peak in each block).
     """
-    if not isinstance(t, np.ndarray):
-        raise TypeError(f"t must be of type np.ndarray. Got: {type(t)}")
-    if not isinstance(x, np.ndarray):
-        raise TypeError(f"x must be of type np.ndarray. Got: {type(x)}")
+    if not isinstance(time, np.ndarray):
+        raise TypeError(f"time must be of type np.ndarray. Got: {type(time)}")
+    if not isinstance(global_peaks, np.ndarray):
+        raise TypeError(
+            f"global_peaks must be of type np.ndarray. Got: {type(global_peaks)}"
+        )
     if not isinstance(t_st, float):
         raise TypeError(f"t_st must be of type float. Got: {type(t_st)}")
 
-    nblock = int(t[-1] / t_st)
-    block_maxima = np.zeros(int(nblock))
+    nblock = int(time[-1] / t_st)
+    block_max = np.zeros(int(nblock))
     for iblock in range(nblock):
-        ix = x[(t >= iblock * t_st) & (t < (iblock + 1) * t_st)]
-        block_maxima[iblock] = np.max(ix)
-    return block_maxima
+        i_x = global_peaks[(time >= iblock * t_st) & (time < (iblock + 1) * t_st)]
+        block_max[iblock] = np.max(i_x)
+    return block_max
 
 
-def ste_block_maxima_gev(block_maxima):
+def ste_block_maxima_gev(block_max):
     """
     Approximate the short-term extreme distribution using the block
     maxima method and the Generalized Extreme Value distribution.
 
     Parameters
     ----------
-    block_maxima: np.array
+    block_max: np.array
         Block maxima (i.e. largest peak in each block).
 
     Returns
     -------
-    ste: scipy.stats.rv_frozen
+    short_term_extreme_rv: scipy.stats.rv_frozen
             Short-term extreme distribution.
     """
-    if not isinstance(block_maxima, np.ndarray):
-        raise TypeError(
-            f"block_maxima must be of type np.ndarray. Got: {type(block_maxima)}"
-        )
+    if not isinstance(block_max, np.ndarray):
+        raise TypeError(f"block_max must be of type np.ndarray. Got: {type(block_max)}")
 
-    ste_params = stats.genextreme.fit(block_maxima)
+    ste_params = stats.genextreme.fit(block_max)
     param_names = ["c", "loc", "scale"]
-    ste_params = {k: v for k, v in zip(param_names, ste_params)}
-    ste = stats.genextreme(**ste_params)
-    ste.params = ste_params
-    return ste
+    ste_params = dict(zip(param_names, ste_params))
+    short_term_extreme_rv = stats.genextreme(**ste_params)
+    short_term_extreme_rv.params = ste_params
+    return short_term_extreme_rv
 
 
-def ste_block_maxima_gumbel(block_maxima):
+def ste_block_maxima_gumbel(block_max):
     """
     Approximate the short-term extreme distribution using the block
     maxima method and the Gumbel (right) distribution.
 
     Parameters
     ----------
-    block_maxima: np.array
+    block_max: np.array
         Block maxima (i.e. largest peak in each block).
 
     Returns
@@ -124,28 +156,28 @@ def ste_block_maxima_gumbel(block_maxima):
     ste: scipy.stats.rv_frozen
             Short-term extreme distribution.
     """
-    if not isinstance(block_maxima, np.ndarray):
-        raise TypeError(
-            f"block_maxima must be of type np.ndarray. Got: {type(block_maxima)}"
-        )
+    if not isinstance(block_max, np.ndarray):
+        raise TypeError(f"block_max must be of type np.ndarray. Got: {type(block_max)}")
 
-    ste_params = stats.gumbel_r.fit(block_maxima)
+    ste_params = stats.gumbel_r.fit(block_max)
     param_names = ["loc", "scale"]
-    ste_params = {k: v for k, v in zip(param_names, ste_params)}
-    ste = stats.gumbel_r(**ste_params)
-    ste.params = ste_params
-    return ste
+    ste_params = dict(zip(param_names, ste_params))
+    short_term_extreme_rv = stats.gumbel_r(**ste_params)
+    short_term_extreme_rv.params = ste_params
+    return short_term_extreme_rv
 
 
-def ste(t, data, t_st, method):
+def ste(time: np.ndarray, data: np.ndarray, t_st: float, method: str) -> rv_continuous:
     """
     Alias for `short_term_extreme`.
     """
-    ste = short_term_extreme(t, data, t_st, method)
-    return ste
+    ste_dist = short_term_extreme(time, data, t_st, method)
+    return ste_dist
 
 
-def short_term_extreme(t, data, t_st, method):
+def short_term_extreme(
+    time: np.ndarray, data: np.ndarray, t_st: float, method: str
+) -> Union[rv_continuous, None]:
     """
     Approximate the short-term  extreme distribution from a
     timeseries of the response using chosen method.
@@ -158,7 +190,7 @@ def short_term_extreme(t, data, t_st, method):
 
     Parameters
     ----------
-    t: np.array
+    time: np.array
         Time array.
     data: np.array
         Response timeseries.
@@ -169,11 +201,11 @@ def short_term_extreme(t, data, t_st, method):
 
     Returns
     -------
-    ste: scipy.stats.rv_frozen
+    short_term_extreme_dist: scipy.stats.rv_frozen
             Short-term extreme distribution.
     """
-    if not isinstance(t, np.ndarray):
-        raise TypeError(f"t must be of type np.ndarray. Got: {type(t)}")
+    if not isinstance(time, np.ndarray):
+        raise TypeError(f"time must be of type np.ndarray. Got: {type(time)}")
     if not isinstance(data, np.ndarray):
         raise TypeError(f"data must be of type np.ndarray. Got: {type(data)}")
     if not isinstance(t_st, float):
@@ -191,24 +223,24 @@ def short_term_extreme(t, data, t_st, method):
         "block_maxima_gumbel": ste_block_maxima_gumbel,
     }
 
-    if method in peaks_methods.keys():
+    if method in peaks_methods:
         fit_peaks = peaks_methods[method]
-        _, peaks = extreme.global_peaks(t, data)
+        _, peaks = extreme.global_peaks(time, data)
         npeaks = len(peaks)
-        time = t[-1] - t[0]
+        time = time[-1] - time[0]
         nst = extreme.number_of_short_term_peaks(npeaks, time, t_st)
         peaks_dist = fit_peaks(peaks)
-        ste = ste_peaks(peaks_dist, nst)
-    elif method in blockmaxima_methods.keys():
+        short_term_extreme_dist = ste_peaks(peaks_dist, nst)
+    elif method in blockmaxima_methods:
         fit_maxima = blockmaxima_methods[method]
-        maxima = block_maxima(t, data, t_st)
-        ste = fit_maxima(maxima)
+        maxima = block_maxima(time, data, t_st)
+        short_term_extreme_dist = fit_maxima(maxima)
     else:
         print("Passed `method` not found.")
-    return ste
+    return short_term_extreme_dist
 
 
-def full_seastate_long_term_extreme(ste, weights):
+def full_seastate_long_term_extreme(short_term_extreme_dist, weights):
     """
     Return the long-term extreme distribution of a response of
     interest using the full sea state approach.
@@ -226,9 +258,10 @@ def full_seastate_long_term_extreme(ste, weights):
     ste: scipy.stats.rv_frozen
         Short-term extreme distribution.
     """
-    if not isinstance(ste, list):
+    if not isinstance(short_term_extreme_dist, list):
         raise TypeError(
-            f"ste must be of type list[scipy.stats.rv_frozen]. Got: {type(ste)}"
+            "short_term_extreme_dist must be of type list[scipy.stats.rv_frozen]."
+            + f"Got: {type(short_term_extreme_dist)}"
         )
     if not isinstance(weights, (list, np.ndarray)):
         raise TypeError(
@@ -241,13 +274,16 @@ def full_seastate_long_term_extreme(ste, weights):
             # make sure weights add to 1.0
             self.weights = weights / np.sum(weights)
             self.ste = kwargs.pop("ste")
-            self.n = len(self.weights)
+            # Disabled bc not sure where/ how n is applied
+            self.n = len(self.weights)  # pylint: disable=invalid-name
             super().__init__(*args, **kwargs)
 
-        def _cdf(self, x):
-            f = 0.0
+        def _cdf(self, x, *args, **kwargs):
+            weighted_cdf = 0.0
             for w_i, ste_i in zip(self.weights, self.ste):
-                f += w_i * ste_i.cdf(x)
-            return f
+                weighted_cdf += w_i * ste_i.cdf(x, *args, **kwargs)
+            return weighted_cdf
 
-    return _LongTermExtreme(name="long_term_extreme", weights=weights, ste=ste)
+    return _LongTermExtreme(
+        name="long_term_extreme", weights=weights, ste=short_term_extreme_dist
+    )
