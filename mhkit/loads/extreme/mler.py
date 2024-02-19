@@ -408,11 +408,11 @@ def mler_export_time_series(
         )
     if not isinstance(sim, dict):
         raise TypeError(f"sim must be of type dict. Got: {type(sim)}")
-    if not isinstance(k, np.ndarray, list, pd.Series):
+    if not isinstance(k, (np.ndarray, list, pd.Series)):
         raise TypeError(f"k must be of type ndarray. Got: {type(k)}")
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
-    if not isinstance(frequency_dimension, bool):
+    if not isinstance(frequency_dimension, str):
         raise TypeError(
             f"frequency_dimension must be of type str. Got: {type(frequency_dimension)}"
         )
