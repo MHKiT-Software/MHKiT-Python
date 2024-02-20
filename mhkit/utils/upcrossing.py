@@ -33,6 +33,7 @@ Date:
 
 
 """
+
 import numpy as np
 
 
@@ -44,7 +45,7 @@ def _apply(t, data, f, inds):
 
     vals = np.empty(n)
     for i in range(n):
-        vals[i] = f(inds[i], inds[i+1])
+        vals[i] = f(inds[i], inds[i + 1])
 
     return vals
 
@@ -58,7 +59,7 @@ def upcrossing(t, data):
     t: np.array
         Time array.
     data: np.array
-        Signal time series.  
+        Signal time series.
 
     Returns
     -------
@@ -67,16 +68,16 @@ def upcrossing(t, data):
     """
     # Check data types
     if not isinstance(t, np.ndarray):
-        raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
+        raise TypeError(f"t must be of type np.ndarray. Got: {type(t)}")
     if not isinstance(data, np.ndarray):
-        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
+        raise TypeError(f"data must be of type np.ndarray. Got: {type(data)}")
     if len(data.shape) != 1:
-        raise ValueError('only 1D data supported, try calling squeeze()')
+        raise ValueError("only 1D data supported, try calling squeeze()")
 
     # eliminate zeros
-    zeroMask = (data == 0)
+    zeroMask = data == 0
     data[zeroMask] = 0.5 * np.min(np.abs(data))
-    
+
     # zero up-crossings
     diff = np.diff(np.sign(data))
     zeroUpCrossings_mask = (diff == 2) | (diff == 1)
@@ -98,7 +99,7 @@ def peaks(t, data, inds=None):
     inds: np.array
         Optional indices for the upcrossing. Useful
         when using several of the upcrossing methods
-        to avoid repeating the upcrossing analysis 
+        to avoid repeating the upcrossing analysis
         each time.
 
     Returns
@@ -109,9 +110,9 @@ def peaks(t, data, inds=None):
     """
     # Check data types
     if not isinstance(t, np.ndarray):
-        raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
+        raise TypeError(f"t must be of type np.ndarray. Got: {type(t)}")
     if not isinstance(data, np.ndarray):
-        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
+        raise TypeError(f"data must be of type np.ndarray. Got: {type(data)}")
 
     return _apply(t, data, lambda ind1, ind2: np.max(data[ind1:ind2]), inds)
 
@@ -129,7 +130,7 @@ def troughs(t, data, inds=None):
     inds: np.array
         Optional indices for the upcrossing. Useful
         when using several of the upcrossing methods
-        to avoid repeating the upcrossing analysis 
+        to avoid repeating the upcrossing analysis
         each time.
 
     Returns
@@ -140,9 +141,9 @@ def troughs(t, data, inds=None):
     """
     # Check data types
     if not isinstance(t, np.ndarray):
-        raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
+        raise TypeError(f"t must be of type np.ndarray. Got: {type(t)}")
     if not isinstance(data, np.ndarray):
-        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
+        raise TypeError(f"data must be of type np.ndarray. Got: {type(data)}")
 
     return _apply(t, data, lambda ind1, ind2: np.min(data[ind1:ind2]), inds)
 
@@ -163,7 +164,7 @@ def heights(t, data, inds=None):
     inds: np.array
         Optional indices for the upcrossing. Useful
         when using several of the upcrossing methods
-        to avoid repeating the upcrossing analysis 
+        to avoid repeating the upcrossing analysis
         each time.
 
     Returns
@@ -173,13 +174,13 @@ def heights(t, data, inds=None):
     """
     # Check data types
     if not isinstance(t, np.ndarray):
-        raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
+        raise TypeError(f"t must be of type np.ndarray. Got: {type(t)}")
     if not isinstance(data, np.ndarray):
-        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
+        raise TypeError(f"data must be of type np.ndarray. Got: {type(data)}")
 
-    def func(ind1, ind2): 
+    def func(ind1, ind2):
         return np.max(data[ind1:ind2]) - np.min(data[ind1:ind2])
-    
+
     return _apply(t, data, func, inds)
 
 
@@ -196,7 +197,7 @@ def periods(t, data, inds=None):
     inds: np.array
         Optional indices for the upcrossing. Useful
         when using several of the upcrossing methods
-        to avoid repeating the upcrossing analysis 
+        to avoid repeating the upcrossing analysis
         each time.
 
     Returns
@@ -206,9 +207,9 @@ def periods(t, data, inds=None):
     """
     # Check data types
     if not isinstance(t, np.ndarray):
-        raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
+        raise TypeError(f"t must be of type np.ndarray. Got: {type(t)}")
     if not isinstance(data, np.ndarray):
-        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
+        raise TypeError(f"data must be of type np.ndarray. Got: {type(data)}")
 
     return _apply(t, data, lambda ind1, ind2: t[ind2] - t[ind1], inds)
 
@@ -230,7 +231,7 @@ def custom(t, data, func, inds=None):
     inds: np.array
         Optional indices for the upcrossing. Useful
         when using several of the upcrossing methods
-        to avoid repeating the upcrossing analysis 
+        to avoid repeating the upcrossing analysis
         each time.
 
     Returns
@@ -240,10 +241,10 @@ def custom(t, data, func, inds=None):
     """
     # Check data types
     if not isinstance(t, np.ndarray):
-        raise TypeError(f't must be of type np.ndarray. Got: {type(t)}')
+        raise TypeError(f"t must be of type np.ndarray. Got: {type(t)}")
     if not isinstance(data, np.ndarray):
-        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
+        raise TypeError(f"data must be of type np.ndarray. Got: {type(data)}")
     if not callable(func):
-        raise ValueError('func must be callable')
+        raise ValueError("func must be callable")
 
     return _apply(t, data, func, inds)

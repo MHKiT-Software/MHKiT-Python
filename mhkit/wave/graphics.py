@@ -1,4 +1,3 @@
-
 from mhkit.river.resource import exceedance_probability
 from mhkit.river.graphics import _xy_plot
 import matplotlib.patheffects as pe
@@ -27,12 +26,18 @@ def plot_spectrum(S, ax=None):
     ax : matplotlib pyplot axes
     """
     if not isinstance(S, pd.DataFrame):
-        raise TypeError(f'S must be of type pd.DataFrame. Got: {type(S)}')
+        raise TypeError(f"S must be of type pd.DataFrame. Got: {type(S)}")
 
     f = S.index
     for key in S.keys():
-        ax = _xy_plot(f*2*np.pi, S[key]/(2*np.pi), fmt='-', xlabel='omega [rad/s]',
-             ylabel='Spectral density [m$^2$s/rad]', ax=ax)
+        ax = _xy_plot(
+            f * 2 * np.pi,
+            S[key] / (2 * np.pi),
+            fmt="-",
+            xlabel="omega [rad/s]",
+            ylabel="Spectral density [m$^2$s/rad]",
+            ax=ax,
+        )
 
     return ax
 
@@ -54,23 +59,17 @@ def plot_elevation_timeseries(eta, ax=None):
     """
 
     if not isinstance(eta, pd.DataFrame):
-        raise TypeError(f'eta must be of type pd.DataFrame. Got: {type(eta)}')
+        raise TypeError(f"eta must be of type pd.DataFrame. Got: {type(eta)}")
 
     for key in eta.keys():
-        ax = _xy_plot(eta.index, eta[key], fmt='-', xlabel='Time',
-            ylabel='$\eta$ [m]', ax=ax)
+        ax = _xy_plot(
+            eta.index, eta[key], fmt="-", xlabel="Time", ylabel="$\eta$ [m]", ax=ax
+        )
 
     return ax
 
 
-def plot_matrix(
-        M, 
-        xlabel='Te', 
-        ylabel='Hm0', 
-        zlabel=None, 
-        show_values=True,
-        ax=None
-    ):
+def plot_matrix(M, xlabel="Te", ylabel="Hm0", zlabel=None, show_values=True, ax=None):
     """
     Plots values in the matrix as a scatter diagram
 
@@ -96,13 +95,13 @@ def plot_matrix(
     """
 
     if not isinstance(M, pd.DataFrame):
-        raise TypeError(f'M must be of type pd.DataFrame. Got: {type(M)}')
+        raise TypeError(f"M must be of type pd.DataFrame. Got: {type(M)}")
 
     if ax is None:
         plt.figure()
         ax = plt.gca()
 
-    im = ax.imshow(M, origin='lower', aspect='auto')
+    im = ax.imshow(M, origin="lower", aspect="auto")
 
     # Add colorbar
     cbar = plt.colorbar(im)
@@ -117,8 +116,10 @@ def plot_matrix(
     if show_values:
         for i, col in enumerate(M.columns):
             for j, index in enumerate(M.index):
-                if not np.isnan(M.loc[index,col]):
-                    ax.text(i, j, format(M.loc[index,col], '.2f'), ha="center", va="center")
+                if not np.isnan(M.loc[index, col]):
+                    ax.text(
+                        i, j, format(M.loc[index, col], ".2f"), ha="center", va="center"
+                    )
 
     # Reset x and y ticks
     ax.set_xticks(np.arange(len(M.columns)))
@@ -179,45 +180,54 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     ax : matplotlib pyplot axes
     """
     if not isinstance(H, (np.ndarray, float, int, np.int64, pd.Series)):
-        raise TypeError(f'H must be of type float, int, np.int64, np.ndarray, or pd.Series. Got: {type(H)}')
+        raise TypeError(
+            f"H must be of type float, int, np.int64, np.ndarray, or pd.Series. Got: {type(H)}"
+        )
     if not isinstance(lambda_w, (np.ndarray, float, int, np.int64, pd.Series)):
-        raise TypeError(f'lambda_w must be of type float, int, np.int64, np.ndarray, or pd.Series. Got: {type(lambda_w)}')
+        raise TypeError(
+            f"lambda_w must be of type float, int, np.int64, np.ndarray, or pd.Series. Got: {type(lambda_w)}"
+        )
     if not isinstance(D, (np.ndarray, float, int, np.int64, pd.Series)):
-        raise TypeError(f'D must be of type float, int, np.int64, np.ndarray, or pd.Series. Got: {type(D)}')
+        raise TypeError(
+            f"D must be of type float, int, np.int64, np.ndarray, or pd.Series. Got: {type(D)}"
+        )
 
-    if any([isinstance(H, (np.ndarray, pd.Series)),
+    if any(
+        [
+            isinstance(H, (np.ndarray, pd.Series)),
             isinstance(lambda_w, (np.ndarray, pd.Series)),
-            isinstance(D, (np.ndarray, pd.Series))
-           ]):
+            isinstance(D, (np.ndarray, pd.Series)),
+        ]
+    ):
         n_H = H.squeeze().shape
         n_lambda_w = lambda_w.squeeze().shape
         n_D = D.squeeze().shape
         if not (n_H == n_lambda_w and n_H == n_D):
-            raise ValueError('D, H, and lambda_w must be same shape')
+            raise ValueError("D, H, and lambda_w must be same shape")
 
         if isinstance(H, np.ndarray):
-            mvals = pd.DataFrame(H.reshape(len(H),1), columns=['H'])
-            mvals['lambda_w'] = lambda_w
-            mvals['D'] = D
+            mvals = pd.DataFrame(H.reshape(len(H), 1), columns=["H"])
+            mvals["lambda_w"] = lambda_w
+            mvals["D"] = D
         elif isinstance(H, pd.Series):
             mvals = pd.DataFrame(H)
-            mvals['lambda_w'] = lambda_w
-            mvals['D'] = D
+            mvals["lambda_w"] = lambda_w
+            mvals["D"] = D
 
     else:
         H = np.array([H])
         lambda_w = np.array([lambda_w])
         D = np.array([D])
-        mvals = pd.DataFrame(H.reshape(len(H),1), columns=['H'])
-        mvals['lambda_w'] = lambda_w
-        mvals['D'] = D
+        mvals = pd.DataFrame(H.reshape(len(H), 1), columns=["H"])
+        mvals["lambda_w"] = lambda_w
+        mvals["D"] = D
 
     if ax is None:
         plt.figure()
         ax = plt.gca()
 
-    ax.set_xscale('log')
-    ax.set_yscale('log')
+    ax.set_xscale("log")
+    ax.set_yscale("log")
 
     for index, row in mvals.iterrows():
         H = row.H
@@ -225,94 +235,131 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
         lambda_w = row.lambda_w
 
         KC = H / D
-        Diffraction = np.pi*D / lambda_w
-        label = f'$H$ = {H:g}, $\lambda_w$ = {lambda_w:g}, $D$ = {D:g}'
-        ax.plot(Diffraction, KC, 'o', label=label)
+        Diffraction = np.pi * D / lambda_w
+        label = f"$H$ = {H:g}, $\lambda_w$ = {lambda_w:g}, $D$ = {D:g}"
+        ax.plot(Diffraction, KC, "o", label=label)
 
-    if np.any(KC>=10 or KC<=.02) or np.any(Diffraction>=50) or \
-        np.any(lambda_w >= 1000) :
-        ax.autoscale(enable=True, axis='both', tight=True)
+    if (
+        np.any(KC >= 10 or KC <= 0.02)
+        or np.any(Diffraction >= 50)
+        or np.any(lambda_w >= 1000)
+    ):
+        ax.autoscale(enable=True, axis="both", tight=True)
     else:
         ax.set_xlim((0.01, 10))
         ax.set_ylim((0.01, 50))
 
     graphScale = list(ax.get_xlim())
-    if graphScale[0] >= .01:
-        graphScale[0] =.01
+    if graphScale[0] >= 0.01:
+        graphScale[0] = 0.01
 
     # deep water breaking limit (H/lambda_w = 0.14)
-    x = np.logspace(1,np.log10(graphScale[0]), 2)
+    x = np.logspace(1, np.log10(graphScale[0]), 2)
     y_breaking = 0.14 * np.pi / x
-    ax.plot(x, y_breaking, 'k-')
+    ax.plot(x, y_breaking, "k-")
     graphScale = list(ax.get_xlim())
 
-    ax.text(1, 7,
-            'wave\nbreaking\n$H/\lambda_w > 0.14$',
-            ha='center', va='center', fontstyle='italic',
-            fontsize='small',clip_on='True')
+    ax.text(
+        1,
+        7,
+        "wave\nbreaking\n$H/\lambda_w > 0.14$",
+        ha="center",
+        va="center",
+        fontstyle="italic",
+        fontsize="small",
+        clip_on="True",
+    )
 
     # upper bound of low drag region
     ldv = 20
-    y_small_drag = 20*np.ones_like(graphScale)
+    y_small_drag = 20 * np.ones_like(graphScale)
     graphScale[1] = 0.14 * np.pi / ldv
-    ax.plot(graphScale, y_small_drag,'k--')
-    ax.text(0.0125, 30,
-            'drag',
-            ha='center', va='top', fontstyle='italic',
-            fontsize='small',clip_on='True')
+    ax.plot(graphScale, y_small_drag, "k--")
+    ax.text(
+        0.0125,
+        30,
+        "drag",
+        ha="center",
+        va="top",
+        fontstyle="italic",
+        fontsize="small",
+        clip_on="True",
+    )
 
     # upper bound of small drag region
     sdv = 1.5
-    y_small_drag = sdv*np.ones_like(graphScale)
+    y_small_drag = sdv * np.ones_like(graphScale)
     graphScale[1] = 0.14 * np.pi / sdv
-    ax.plot(graphScale, y_small_drag,'k--')
-    ax.text(0.02, 7,
-            'inertia \n& drag',
-            ha='center', va='center', fontstyle='italic',
-            fontsize='small',clip_on='True')
+    ax.plot(graphScale, y_small_drag, "k--")
+    ax.text(
+        0.02,
+        7,
+        "inertia \n& drag",
+        ha="center",
+        va="center",
+        fontstyle="italic",
+        fontsize="small",
+        clip_on="True",
+    )
 
     # upper bound of negligible drag region
     ndv = 0.25
     graphScale[1] = 0.14 * np.pi / ndv
-    y_small_drag = ndv*np.ones_like(graphScale)
-    ax.plot(graphScale, y_small_drag,'k--')
-    ax.text(8e-2, 0.7,
-            'large\ninertia',
-            ha='center', va='center', fontstyle='italic',
-            fontsize='small',clip_on='True')
+    y_small_drag = ndv * np.ones_like(graphScale)
+    ax.plot(graphScale, y_small_drag, "k--")
+    ax.text(
+        8e-2,
+        0.7,
+        "large\ninertia",
+        ha="center",
+        va="center",
+        fontstyle="italic",
+        fontsize="small",
+        clip_on="True",
+    )
 
-
-    ax.text(8e-2, 6e-2,
-            'all\ninertia',
-            ha='center', va='center', fontstyle='italic',
-            fontsize='small', clip_on='True')
+    ax.text(
+        8e-2,
+        6e-2,
+        "all\ninertia",
+        ha="center",
+        va="center",
+        fontstyle="italic",
+        fontsize="small",
+        clip_on="True",
+    )
 
     # left bound of diffraction region
     drv = 0.5
     graphScale = list(ax.get_ylim())
     graphScale[1] = 0.14 * np.pi / drv
-    x_diff_reg = drv*np.ones_like(graphScale)
-    ax.plot(x_diff_reg, graphScale, 'k--')
-    ax.text(2, 6e-2,
-            'diffraction',
-            ha='center', va='center', fontstyle='italic',
-            fontsize='small',clip_on='True')
-
+    x_diff_reg = drv * np.ones_like(graphScale)
+    ax.plot(x_diff_reg, graphScale, "k--")
+    ax.text(
+        2,
+        6e-2,
+        "diffraction",
+        ha="center",
+        va="center",
+        fontstyle="italic",
+        fontsize="small",
+        clip_on="True",
+    )
 
     if index > 0:
-        ax.legend(fontsize='xx-small', ncol=2)
+        ax.legend(fontsize="xx-small", ncol=2)
 
-    ax.set_xlabel('Diffraction parameter, $\\frac{\\pi D}{\\lambda_w}$')
-    ax.set_ylabel('KC parameter, $\\frac{H}{D}$')
+    ax.set_xlabel("Diffraction parameter, $\\frac{\\pi D}{\\lambda_w}$")
+    ax.set_ylabel("KC parameter, $\\frac{H}{D}$")
 
     plt.tight_layout()
 
 
 def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
-    '''
+    """
     Plots an overlay of the x1 and x2 variables to the calculate
     environmental contours.
-    
+
     Parameters
     ----------
     x1: numpy array
@@ -339,42 +386,60 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
             Default None.
         markers: string
             string or list of strings to use as marker types
-            
+
     Returns
     -------
     ax : matplotlib pyplot axes
-    '''
-    try: x1 = x1.values
-    except: pass
-    try: x2 = x2.values
-    except: pass
+    """
+    try:
+        x1 = x1.values
+    except:
+        pass
+    try:
+        x2 = x2.values
+    except:
+        pass
     if not isinstance(x1, np.ndarray):
-        raise TypeError(f'x1 must be of type np.ndarray. Got: {type(x1)}')
+        raise TypeError(f"x1 must be of type np.ndarray. Got: {type(x1)}")
     if not isinstance(x2, np.ndarray):
-        raise TypeError(f'x2 must be of type np.ndarray. Got: {type(x2)}')
-    if not isinstance(x1_contour, (np.ndarray,list)):
-        raise TypeError(f'x1_contour must be of type np.ndarray or list. Got: {type(x1_contour)}')
-    if not isinstance(x2_contour, (np.ndarray,list)):
-        raise TypeError(f'x2_contour must be of type np.ndarray or list. Got: {type(x2_contour)}')
-    
+        raise TypeError(f"x2 must be of type np.ndarray. Got: {type(x2)}")
+    if not isinstance(x1_contour, (np.ndarray, list)):
+        raise TypeError(
+            f"x1_contour must be of type np.ndarray or list. Got: {type(x1_contour)}"
+        )
+    if not isinstance(x2_contour, (np.ndarray, list)):
+        raise TypeError(
+            f"x2_contour must be of type np.ndarray or list. Got: {type(x2_contour)}"
+        )
+
     x_label = kwargs.get("x_label", None)
     y_label = kwargs.get("y_label", None)
     data_label = kwargs.get("data_label", None)
     contour_label = kwargs.get("contour_label", None)
     ax = kwargs.get("ax", None)
-    markers = kwargs.get("markers", '-')
+    markers = kwargs.get("markers", "-")
     if not isinstance(data_label, (str, type(None))):
-        raise TypeError(f'If specified, data_label must be of type str. Got: {type(data_label)}')
+        raise TypeError(
+            f"If specified, data_label must be of type str. Got: {type(data_label)}"
+        )
     if not isinstance(contour_label, (str, list, type(None))):
-        raise TypeError(f'If specified, contour_label be of type str. Got: {type(contour_label)}')
+        raise TypeError(
+            f"If specified, contour_label be of type str. Got: {type(contour_label)}"
+        )
 
     if isinstance(markers, str):
         markers = [markers]
-    if not isinstance(markers, list) or not all( [isinstance(marker, (str)) for marker in markers] ):
-        raise TypeError(f'markers must be of type str or list of strings. Got: {markers}')
+    if not isinstance(markers, list) or not all(
+        [isinstance(marker, (str)) for marker in markers]
+    ):
+        raise TypeError(
+            f"markers must be of type str or list of strings. Got: {markers}"
+        )
 
     if not len(x2_contour) == len(x1_contour):
-        raise ValueError(f'contour must be of equal dimension got {len(x2_contour)} and {len(x1_contour)}')
+        raise ValueError(
+            f"contour must be of equal dimension got {len(x2_contour)} and {len(x1_contour)}"
+        )
 
     if isinstance(x1_contour, np.ndarray):
         N_contours = 1
@@ -388,27 +453,30 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
             contour_label = [contour_label]
         N_c_labels = len(contour_label)
         if not N_c_labels == N_contours:
-            raise ValueError('If specified, the number of contour labels must'
-                             ' be equal to number the number of contour years.'
-                             f' Got: {N_c_labels} and {N_contours}')
+            raise ValueError(
+                "If specified, the number of contour labels must"
+                " be equal to number the number of contour years."
+                f" Got: {N_c_labels} and {N_contours}"
+            )
     else:
         contour_label = [None] * N_contours
 
-    if len(markers)==1:
-        markers = markers*N_contours
+    if len(markers) == 1:
+        markers = markers * N_contours
     if not len(markers) == N_contours:
-        raise ValueError('Markers must be same length as N contours specified.'
-                         f'Got: {len(markers)} and {len(x1_contour)}')
+        raise ValueError(
+            "Markers must be same length as N contours specified."
+            f"Got: {len(markers)} and {len(x1_contour)}"
+        )
 
     for i in range(N_contours):
         contour1 = np.array(x1_contour[i]).T
         contour2 = np.array(x2_contour[i]).T
-        ax = _xy_plot(contour1, contour2, markers[i],
-                      label=contour_label[i], ax=ax)
+        ax = _xy_plot(contour1, contour2, markers[i], label=contour_label[i], ax=ax)
 
-    plt.plot(x1, x2, 'bo', alpha=0.1, label=data_label)
+    plt.plot(x1, x2, "bo", alpha=0.1, label=data_label)
 
-    plt.legend(loc='lower right')
+    plt.legend(loc="lower right")
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     plt.tight_layout()
@@ -416,16 +484,16 @@ def plot_environmental_contour(x1, x2, x1_contour, x2_contour, **kwargs):
 
 
 def plot_avg_annual_energy_matrix(
-        Hm0, 
-        Te, 
-        J, 
-        time_index=None, 
-        Hm0_bin_size=None, 
-        Te_bin_size=None, 
-        Hm0_edges=None, 
-        Te_edges=None
-    ):
-    '''
+    Hm0,
+    Te,
+    J,
+    time_index=None,
+    Hm0_bin_size=None,
+    Te_bin_size=None,
+    Hm0_edges=None,
+    Te_edges=None,
+):
+    """
     Creates an average annual energy matrix with frequency of occurance.
 
     Parameters
@@ -451,51 +519,53 @@ def plot_avg_annual_energy_matrix(
     -------
     fig: Figure
         Average annual energy table plot
-    '''
+    """
 
     fig = plt.figure()
     if isinstance(time_index, type(None)):
         data = pd.DataFrame(dict(Hm0=Hm0, Te=Te, J=J))
     else:
-        data= pd.DataFrame(dict(Hm0=Hm0, Te=Te, J=J), index=time_index)
-    years=data.index.year.unique()
+        data = pd.DataFrame(dict(Hm0=Hm0, Te=Te, J=J), index=time_index)
+    years = data.index.year.unique()
 
     if isinstance(Hm0_edges, type(None)):
         Hm0_max = data.Hm0.max()
-        Hm0_edges = np.arange(0,Hm0_max+Hm0_bin_size,Hm0_bin_size)
+        Hm0_edges = np.arange(0, Hm0_max + Hm0_bin_size, Hm0_bin_size)
     if isinstance(Te_edges, type(None)):
         Te_max = data.Te.max()
-        Te_edges = np.arange(0, Te_max+Te_bin_size,Te_bin_size)
+        Te_edges = np.arange(0, Te_max + Te_bin_size, Te_bin_size)
 
     # Dict for number of hours each sea state occurs
-    hist_counts={}
-    hist_J={}
+    hist_counts = {}
+    hist_J = {}
 
     # Create hist of counts, and weghted by J for each year
     for year in years:
         year_data = data.loc[str(year)].copy(deep=True)
 
         # Get the counts of each bin
-        counts, xedges, yedges= np.histogram2d(
+        counts, xedges, yedges = np.histogram2d(
             year_data.Te,
             year_data.Hm0,
-            bins = (Te_edges,Hm0_edges),
+            bins=(Te_edges, Hm0_edges),
         )
 
         # Get centers for number of counts plot location
-        xcenters = xedges[:-1]+ np.diff(xedges)
-        ycenters = yedges[:-1]+ np.diff(yedges)
+        xcenters = xedges[:-1] + np.diff(xedges)
+        ycenters = yedges[:-1] + np.diff(yedges)
 
-        year_data['xbins'] = np.digitize(year_data.Te, xcenters)
-        year_data['ybins'] = np.digitize(year_data.Hm0, ycenters)
+        year_data["xbins"] = np.digitize(year_data.Te, xcenters)
+        year_data["ybins"] = np.digitize(year_data.Hm0, ycenters)
 
         total_year_J = year_data.J.sum()
 
-        H=counts.copy()
+        H = counts.copy()
 
         for i in range(len(xcenters)):
             for j in range(len(ycenters)):
-                bin_J = year_data[(year_data.xbins == i) & (year_data.ybins == j)].J.sum()
+                bin_J = year_data[
+                    (year_data.xbins == i) & (year_data.ybins == j)
+                ].J.sum()
                 H[i][j] = bin_J / total_year_J
 
         # Save in results dict
@@ -503,38 +573,44 @@ def plot_avg_annual_energy_matrix(
         hist_J[year] = H
 
     # Calculate avg annual
-    avg_annual_counts_hist = sum(hist_counts.values())/len(years)
-    avg_annual_J_hist = sum(hist_J.values())/len(years)
+    avg_annual_counts_hist = sum(hist_counts.values()) / len(years)
+    avg_annual_J_hist = sum(hist_J.values()) / len(years)
 
     # Create a mask of non-zero weights to hide from imshow
-    Hmasked = np.ma.masked_where(~(avg_annual_J_hist>0),avg_annual_J_hist)
-    plt.imshow(Hmasked.T, interpolation = 'none', vmin = 0.005, origin='lower', aspect='auto',
-               extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]])
+    Hmasked = np.ma.masked_where(~(avg_annual_J_hist > 0), avg_annual_J_hist)
+    plt.imshow(
+        Hmasked.T,
+        interpolation="none",
+        vmin=0.005,
+        origin="lower",
+        aspect="auto",
+        extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],
+    )
 
     # Plot number of counts as text on the hist of annual avg J
     for xi in range(len(xcenters)):
         for yi in range(len(ycenters)):
             if avg_annual_counts_hist[xi][yi] != 0:
                 plt.text(
-                    xedges[xi], 
-                    yedges[yi], 
-                    int(np.ceil(avg_annual_counts_hist[xi][yi])), 
-                    fontsize=10, 
-                    color='white', 
-                    path_effects=[pe.withStroke(linewidth=1, foreground="k")]
-                ) 
-    plt.xlabel('Wave Energy Period (s)')
-    plt.ylabel('Significant Wave Height (m)')
+                    xedges[xi],
+                    yedges[yi],
+                    int(np.ceil(avg_annual_counts_hist[xi][yi])),
+                    fontsize=10,
+                    color="white",
+                    path_effects=[pe.withStroke(linewidth=1, foreground="k")],
+                )
+    plt.xlabel("Wave Energy Period (s)")
+    plt.ylabel("Significant Wave Height (m)")
 
-    cbar=plt.colorbar()
-    cbar.set_label('Mean Normalized Annual Energy')
+    cbar = plt.colorbar()
+    cbar.set_label("Mean Normalized Annual Energy")
 
     plt.tight_layout()
     return fig
 
 
 def monthly_cumulative_distribution(J):
-    '''
+    """
     Creates a cumulative distribution of energy flux as described in
     IEC TS 62600-101.
 
@@ -547,27 +623,33 @@ def monthly_cumulative_distribution(J):
     -------
     ax: axes
         Figure of monthly cumulative distribution
-    '''
+    """
     if not isinstance(J, pd.Series):
-        raise TypeError(f'J must be of type pd.Series. Got: {type(J)}')
+        raise TypeError(f"J must be of type pd.Series. Got: {type(J)}")
     cumSum = {}
     months = J.index.month.unique()
     for month in months:
-        F = exceedance_probability(J[J.index.month==month])
-        cumSum[month] = 1-F/100
-        cumSum[month].sort_values('F', inplace=True)
-    plt.figure(figsize=(12,8) )
+        F = exceedance_probability(J[J.index.month == month])
+        cumSum[month] = 1 - F / 100
+        cumSum[month].sort_values("F", inplace=True)
+    plt.figure(figsize=(12, 8))
     for month in months:
-        plt.semilogx(J.loc[cumSum[month].index], cumSum[month].F, '--',
-            label=calendar.month_abbr[month])
+        plt.semilogx(
+            J.loc[cumSum[month].index],
+            cumSum[month].F,
+            "--",
+            label=calendar.month_abbr[month],
+        )
 
     F = exceedance_probability(J)
-    F.sort_values('F', inplace=True)
-    ax = plt.semilogx(J.loc[F.index], 1-F['F']/100, 'k-', fillstyle='none', label='All')
+    F.sort_values("F", inplace=True)
+    ax = plt.semilogx(
+        J.loc[F.index], 1 - F["F"] / 100, "k-", fillstyle="none", label="All"
+    )
 
     plt.grid()
-    plt.xlabel('Energy Flux')
-    plt.ylabel('Cumulative Distribution')
+    plt.xlabel("Energy Flux")
+    plt.ylabel("Cumulative Distribution")
     plt.legend()
     return ax
 
@@ -599,50 +681,50 @@ def plot_compendium(Hs, Tp, Dp, buoy_title=None, ax=None):
 
     """
     if not isinstance(Hs, pd.Series):
-        raise TypeError(f'Hs must be of type pd.Series. Got: {type(Hs)}')
+        raise TypeError(f"Hs must be of type pd.Series. Got: {type(Hs)}")
     if not isinstance(Tp, pd.Series):
-        raise TypeError(f'Tp must be of type pd.Series. Got: {type(Tp)}')
+        raise TypeError(f"Tp must be of type pd.Series. Got: {type(Tp)}")
     if not isinstance(Dp, pd.Series):
-        raise TypeError(f'Dp must be of type pd.Series. Got: {type(Dp)}')
+        raise TypeError(f"Dp must be of type pd.Series. Got: {type(Dp)}")
     if not isinstance(buoy_title, (str, type(None))):
-        raise TypeError(f'If specified, buoy_title must be of type string. Got: {type(buoy_title)}')
+        raise TypeError(
+            f"If specified, buoy_title must be of type string. Got: {type(buoy_title)}"
+        )
 
-    f, (pHs, pTp, pDp) = plt.subplots(3, 1, sharex=True, figsize=(15,10))
+    f, (pHs, pTp, pDp) = plt.subplots(3, 1, sharex=True, figsize=(15, 10))
 
-    pHs.plot(Hs.index,Hs,'b')
-    pTp.plot(Tp.index,Tp,'b')
-    pDp.scatter(Dp.index,Dp,color='blue',s=5)
+    pHs.plot(Hs.index, Hs, "b")
+    pTp.plot(Tp.index, Tp, "b")
+    pDp.scatter(Dp.index, Dp, color="blue", s=5)
 
-    pHs.tick_params(axis='x', which='major', labelsize=12, top='off')
-    pHs.set_ylim(0,8)
-    pHs.tick_params(axis='y', which='major', labelsize=12, right='off')
-    pHs.set_ylabel('Hs [m]', fontsize=18)
-    pHs.grid(color='b', linestyle='--')
+    pHs.tick_params(axis="x", which="major", labelsize=12, top="off")
+    pHs.set_ylim(0, 8)
+    pHs.tick_params(axis="y", which="major", labelsize=12, right="off")
+    pHs.set_ylabel("Hs [m]", fontsize=18)
+    pHs.grid(color="b", linestyle="--")
 
     pHs2 = pHs.twinx()
-    pHs2.set_ylim(0,25)
-    pHs2.set_ylabel('Hs [ft]', fontsize=18)
-
+    pHs2.set_ylim(0, 25)
+    pHs2.set_ylabel("Hs [ft]", fontsize=18)
 
     # Peak Period, Tp
-    pTp.set_ylim(0,28)
-    pTp.set_ylabel('Tp [s]', fontsize=18)
-    pTp.grid(color='b', linestyle='--')
-
+    pTp.set_ylim(0, 28)
+    pTp.set_ylabel("Tp [s]", fontsize=18)
+    pTp.grid(color="b", linestyle="--")
 
     # Direction, Dp
-    pDp.set_ylim(0,360)
-    pDp.set_ylabel('Dp [deg]', fontsize=18)
-    pDp.grid(color='b', linestyle='--')
-    pDp.set_xlabel('Day', fontsize=18)
+    pDp.set_ylim(0, 360)
+    pDp.set_ylabel("Dp [deg]", fontsize=18)
+    pDp.grid(color="b", linestyle="--")
+    pDp.set_xlabel("Day", fontsize=18)
 
     # Set x-axis tick interval to every 5 days
     degrees = 70
     days = matplotlib.dates.DayLocator(interval=5)
-    daysFmt = matplotlib.dates.DateFormatter('%Y-%m-%d')
+    daysFmt = matplotlib.dates.DateFormatter("%Y-%m-%d")
     plt.gca().xaxis.set_major_locator(days)
     plt.gca().xaxis.set_major_formatter(daysFmt)
-    plt.setp( pDp.xaxis.get_majorticklabels(), rotation=degrees )
+    plt.setp(pDp.xaxis.get_majorticklabels(), rotation=degrees)
 
     # Set Titles
     month_name_start = Hs.index.month_name()[0][:3]
@@ -651,7 +733,7 @@ def plot_compendium(Hs, Tp, Dp, buoy_title=None, ax=None):
     year_end = Hs.index.year[-1]
     plt.suptitle(buoy_title, fontsize=30)
 
-    plt.title(f'{Hs.index[0].date()} to {Hs.index[-1].date()}', fontsize=20)
+    plt.title(f"{Hs.index[0].date()} to {Hs.index[-1].date()}", fontsize=20)
 
     ax = f
 
@@ -679,67 +761,80 @@ def plot_boxplot(Hs, buoy_title=None):
     ax : matplotlib pyplot axes
     """
     if not isinstance(Hs, pd.Series):
-        raise TypeError(f'Hs must be of type pd.Series. Got: {type(Hs)}')
+        raise TypeError(f"Hs must be of type pd.Series. Got: {type(Hs)}")
     if not isinstance(buoy_title, (str, type(None))):
-        raise TypeError(f'If specified, buoy_title must be of type string. Got: {type(buoy_title)}')
+        raise TypeError(
+            f"If specified, buoy_title must be of type string. Got: {type(buoy_title)}"
+        )
 
     months = Hs.index.month
     means = Hs.groupby(months).mean()
     monthlengths = Hs.groupby(months).count()
 
-    fig = plt.figure(figsize=(10,12))
-    gs = gridspec.GridSpec(2,1, height_ratios=[4,1])
+    fig = plt.figure(figsize=(10, 12))
+    gs = gridspec.GridSpec(2, 1, height_ratios=[4, 1])
 
-    boxprops = dict(color='k')
-    whiskerprops = dict(linestyle='--', color='k')
-    flierprops = dict(marker='+', color='r',markeredgecolor='r',markerfacecolor='r')
-    medianprops = dict(linewidth=2.5,color='firebrick')
-    meanprops = dict(linewidth=2.5, marker='_',  markersize=25)
+    boxprops = dict(color="k")
+    whiskerprops = dict(linestyle="--", color="k")
+    flierprops = dict(marker="+", color="r", markeredgecolor="r", markerfacecolor="r")
+    medianprops = dict(linewidth=2.5, color="firebrick")
+    meanprops = dict(linewidth=2.5, marker="_", markersize=25)
 
-    bp = plt.subplot(gs[0,:])
+    bp = plt.subplot(gs[0, :])
 
     Hs_months = Hs.to_frame().groupby(months)
-    bp = Hs_months.boxplot(subplots=False, boxprops=boxprops,
-        whiskerprops=whiskerprops, flierprops=flierprops,
-        medianprops=medianprops, showmeans=True, meanprops=meanprops)
+    bp = Hs_months.boxplot(
+        subplots=False,
+        boxprops=boxprops,
+        whiskerprops=whiskerprops,
+        flierprops=flierprops,
+        medianprops=medianprops,
+        showmeans=True,
+        meanprops=meanprops,
+    )
 
     # Add values of monthly means as text
     for i, mean in enumerate(means):
-        bp.annotate(np.round(mean,2), (means.index[i],mean),fontsize=12,
-                    horizontalalignment='center',verticalalignment='bottom',
-                    color='g')
+        bp.annotate(
+            np.round(mean, 2),
+            (means.index[i], mean),
+            fontsize=12,
+            horizontalalignment="center",
+            verticalalignment="bottom",
+            color="g",
+        )
 
     # Create a second row of x-axis labels for top subplot
     newax = bp.twiny()
-    newax.tick_params(which='major', direction='in', pad=-18)
+    newax.tick_params(which="major", direction="in", pad=-18)
     newax.set_xlim(bp.get_xlim())
-    newax.xaxis.set_ticks_position('top')
-    newax.xaxis.set_label_position('top')
-    newax.set_xticks(np.arange(1,13,1))
-    newax.set_xticklabels(monthlengths,fontsize=10)
-
+    newax.xaxis.set_ticks_position("top")
+    newax.xaxis.set_label_position("top")
+    newax.set_xticks(np.arange(1, 13, 1))
+    newax.set_xticklabels(monthlengths, fontsize=10)
 
     # Sample 'legend' boxplot, to go underneath actual boxplot
-    bp_sample2 = np.random.normal(2.5,0.5,500)
-    bp2 = plt.subplot(gs[1,:])
-    meanprops = dict(linewidth=2.5, marker='|',  markersize=25)
-    bp2_example = bp2.boxplot(bp_sample2,vert=False,flierprops=flierprops,
-                        medianprops=medianprops)
-    sample_mean=2.3
-    bp2.scatter(sample_mean,1,marker="|",color='g',linewidths=1.0,s=200)
+    bp_sample2 = np.random.normal(2.5, 0.5, 500)
+    bp2 = plt.subplot(gs[1, :])
+    meanprops = dict(linewidth=2.5, marker="|", markersize=25)
+    bp2_example = bp2.boxplot(
+        bp_sample2, vert=False, flierprops=flierprops, medianprops=medianprops
+    )
+    sample_mean = 2.3
+    bp2.scatter(sample_mean, 1, marker="|", color="g", linewidths=1.0, s=200)
 
-    for line in bp2_example['medians']:
+    for line in bp2_example["medians"]:
         xm, ym = line.get_xydata()[0]
-    for line in bp2_example['boxes']:
+    for line in bp2_example["boxes"]:
         xb, yb = line.get_xydata()[0]
-    for line in bp2_example['whiskers']:
+    for line in bp2_example["whiskers"]:
         xw, yw = line.get_xydata()[0]
 
-    bp2.annotate("Median",[xm-0.1,ym-0.3*ym],fontsize=10,color='firebrick')
-    bp2.annotate("Mean",[sample_mean-0.1,0.65],fontsize=10,color='g')
-    bp2.annotate("25%ile",[xb-0.05*xb,yb-0.15*yb],fontsize=10)
-    bp2.annotate("75%ile",[xb+0.26*xb,yb-0.15*yb],fontsize=10)
-    bp2.annotate("Outliers",[xw+0.3*xw,yw-0.3*yw],fontsize=10,color='r')
+    bp2.annotate("Median", [xm - 0.1, ym - 0.3 * ym], fontsize=10, color="firebrick")
+    bp2.annotate("Mean", [sample_mean - 0.1, 0.65], fontsize=10, color="g")
+    bp2.annotate("25%ile", [xb - 0.05 * xb, yb - 0.15 * yb], fontsize=10)
+    bp2.annotate("75%ile", [xb + 0.26 * xb, yb - 0.15 * yb], fontsize=10)
+    bp2.annotate("Outliers", [xw + 0.3 * xw, yw - 0.3 * yw], fontsize=10, color="r")
 
     if buoy_title:
         plt.suptitle(buoy_title, fontsize=30, y=0.97)
@@ -747,14 +842,14 @@ def plot_boxplot(Hs, buoy_title=None):
     bp2.set_title("Sample Boxplot", fontsize=10, y=1.02)
 
     # Set axes labels and ticks
-    months_text = [ m[:3] for m in Hs.index.month_name().unique()]
-    bp.set_xticklabels(months_text,fontsize=12)
-    bp.set_ylabel('Significant Wave Height, Hs (m)', fontsize=14)
-    bp.tick_params(axis='y', which='major', labelsize=12, right='off')
-    bp.tick_params(axis='x', which='major', labelsize=12, top='off')
+    months_text = [m[:3] for m in Hs.index.month_name().unique()]
+    bp.set_xticklabels(months_text, fontsize=12)
+    bp.set_ylabel("Significant Wave Height, Hs (m)", fontsize=14)
+    bp.tick_params(axis="y", which="major", labelsize=12, right="off")
+    bp.tick_params(axis="x", which="major", labelsize=12, top="off")
 
     # Plot horizontal gridlines onto top subplot
-    bp.grid(axis='x', color='b', linestyle='-', alpha=0.25)
+    bp.grid(axis="x", color="b", linestyle="-", alpha=0.25)
 
     # Remove tickmarks from bottom subplot
     bp2.axes.get_xaxis().set_visible(False)
@@ -766,13 +861,13 @@ def plot_boxplot(Hs, buoy_title=None):
 
 
 def plot_directional_spectrum(
-        spectrum, 
-        color_level_min=None, 
-        fill=True, 
-        nlevels=11,
-        name="Elevation Variance", 
-        units="m^2"
-    ):
+    spectrum,
+    color_level_min=None,
+    fill=True,
+    nlevels=11,
+    name="Elevation Variance",
+    units="m^2",
+):
     """
     Create a contour polar plot of a directional spectrum.
 
@@ -796,31 +891,37 @@ def plot_directional_spectrum(
     ax : matplotlib pyplot axes
     """
     if not isinstance(spectrum, xr.DataArray):
-        raise TypeError(f'spectrum must be of type xr.DataArray. Got: {type(spectrum)}')
+        raise TypeError(f"spectrum must be of type xr.DataArray. Got: {type(spectrum)}")
     if not isinstance(color_level_min, (type(None), float)):
-        raise TypeError(f'If specified, color_level_min must be of type float. Got: {type(color_level_min)}')
+        raise TypeError(
+            f"If specified, color_level_min must be of type float. Got: {type(color_level_min)}"
+        )
     if not isinstance(fill, bool):
-        raise TypeError(f'If specified, fill must be of type bool. Got: {type(fill)}')
+        raise TypeError(f"If specified, fill must be of type bool. Got: {type(fill)}")
     if not isinstance(nlevels, int):
-        raise TypeError(f'If specified, nlevels must be of type int. Got: {type(nlevels)}')
+        raise TypeError(
+            f"If specified, nlevels must be of type int. Got: {type(nlevels)}"
+        )
     if not isinstance(name, str):
-        raise TypeError(f'If specified, name must be of type string. Got: {type(name)}')
+        raise TypeError(f"If specified, name must be of type string. Got: {type(name)}")
     if not isinstance(units, str):
-        raise TypeError(f'If specified, units must be of type string. Got: {type(units)}')
+        raise TypeError(
+            f"If specified, units must be of type string. Got: {type(units)}"
+        )
 
-    a,f = np.meshgrid(np.deg2rad(spectrum.direction), spectrum.frequency)
-    _, ax = plt.subplots(subplot_kw=dict(projection='polar'))
-    tmp = np.floor(np.min(spectrum.data)*10)/10
+    a, f = np.meshgrid(np.deg2rad(spectrum.direction), spectrum.frequency)
+    _, ax = plt.subplots(subplot_kw=dict(projection="polar"))
+    tmp = np.floor(np.min(spectrum.data) * 10) / 10
     color_level_min = tmp if (color_level_min is None) else color_level_min
-    color_level_max = np.ceil(np.max(spectrum.data)*10)/10
+    color_level_max = np.ceil(np.max(spectrum.data) * 10) / 10
     levels = np.linspace(color_level_min, color_level_max, nlevels)
     if fill:
         c = ax.contourf(a, f, spectrum, levels=levels)
     else:
         c = ax.contour(a, f, spectrum, levels=levels)
     cbar = plt.colorbar(c)
-    cbar.set_label(f'Spectrum [{units}/Hz/deg]', rotation=270, labelpad=20)
-    ax.set_title(f'{name} Spectrum')
+    cbar.set_label(f"Spectrum [{units}/Hz/deg]", rotation=270, labelpad=20)
+    ax.set_title(f"{name} Spectrum")
     ylabels = ax.get_yticklabels()
     ylabels = [ilabel.get_text() for ilabel in ax.get_yticklabels()]
     ylabels = [ilabel + "Hz" for ilabel in ylabels]

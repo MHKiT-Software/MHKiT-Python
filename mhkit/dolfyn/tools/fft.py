@@ -1,5 +1,6 @@
 import numpy as np
 from .misc import detrend_array
+
 fft = np.fft.fft
 
 
@@ -28,18 +29,27 @@ def fft_frequency(nfft, fs, full=False):
     if full:
         return f
     else:
-        return np.abs(f[1:int(nfft / 2. + 1)])
+        return np.abs(f[1 : int(nfft / 2.0 + 1)])
 
 
 def _getwindow(window, nfft):
-    if 'hann' in window:
-        window = np.hanning(nfft)
-    elif 'hamm' in window:
-        window = np.hamming(nfft)
-    elif window is None or np.sum(window == 1):
+    if window is None:
         window = np.ones(nfft)
-    if len(window) != nfft:
-        raise ValueError("Custom window length must be equal to nfft")
+    elif isinstance(window, (int, float)) and window == 1:
+        window = np.ones(nfft)
+    elif isinstance(window, str):
+        if "hann" in window:
+            window = np.hanning(nfft)
+        elif "hamm" in window:
+            window = np.hamming(nfft)
+        else:
+            raise ValueError("Unsupported window type: {}".format(window))
+    elif isinstance(window, np.ndarray):
+        if len(window) != nfft:
+            raise ValueError("Custom window length must be equal to nfft")
+    else:
+        raise ValueError("Invalid window parameter")
+
     return window
 
 
@@ -70,7 +80,7 @@ def _stepsize(l, nfft, nens=None, step=None):
     if nens is None and step is None:
         if l == nfft:
             return 0, 1, int(nfft)
-        nens = int(2. * l / nfft)
+        nens = int(2.0 * l / nfft)
         return int((l - nfft) / (nens - 1)), nens, int(nfft)
     elif nens is None:
         return int(step), int((l - nfft) / step + 1), int(nfft)
@@ -80,7 +90,7 @@ def _stepsize(l, nfft, nens=None, step=None):
         return int((l - nfft) / (nens - 1)), int(nens), int(nfft)
 
 
-def cpsd_quasisync_1D(a, b, nfft, fs, window='hann'):
+def cpsd_quasisync_1D(a, b, nfft, fs, window="hann"):
     """
     Compute the cross power spectral density (CPSD) of the signals `a` and `b`.
 
@@ -150,21 +160,24 @@ def cpsd_quasisync_1D(a, b, nfft, fs, window='hann'):
     step[1], nens, nfft = _stepsize(l[1], nfft, nens=nens)
     fs = np.float64(fs)
     window = _getwindow(window, nfft)
-    fft_inds = slice(1, int(nfft / 2. + 1))
-    wght = 2. / (window ** 2).sum()
-    pwr = fft(detrend_array(a[0:nfft]) * window)[fft_inds] * \
-        np.conj(fft(detrend_array(b[0:nfft]) * window)[fft_inds])
+    fft_inds = slice(1, int(nfft / 2.0 + 1))
+    wght = 2.0 / (window**2).sum()
+    pwr = fft(detrend_array(a[0:nfft]) * window)[fft_inds] * np.conj(
+        fft(detrend_array(b[0:nfft]) * window)[fft_inds]
+    )
     if nens - 1:
-        for i1, i2 in zip(range(step[0], l[0] - nfft + 1, step[0]),
-                          range(step[1], l[1] - nfft + 1, step[1])):
-            pwr += fft(detrend_array(a[i1:(i1 + nfft)]) * window)[fft_inds] * \
-                np.conj(
-                    fft(detrend_array(b[i2:(i2 + nfft)]) * window)[fft_inds])
+        for i1, i2 in zip(
+            range(step[0], l[0] - nfft + 1, step[0]),
+            range(step[1], l[1] - nfft + 1, step[1]),
+        ):
+            pwr += fft(detrend_array(a[i1 : (i1 + nfft)]) * window)[fft_inds] * np.conj(
+                fft(detrend_array(b[i2 : (i2 + nfft)]) * window)[fft_inds]
+            )
     pwr *= wght / nens / fs
     return pwr
 
 
-def cpsd_1D(a, b, nfft, fs, window='hann', step=None):
+def cpsd_1D(a, b, nfft, fs, window="hann", step=None):
     """
     Compute the cross power spectral density (CPSD) of the signals `a` and `b`.
 
@@ -231,8 +244,8 @@ def cpsd_1D(a, b, nfft, fs, window='hann', step=None):
     step, nens, nfft = _stepsize(l, nfft, step=step)
     fs = np.float64(fs)
     window = _getwindow(window, nfft)
-    fft_inds = slice(1, int(nfft / 2. + 1))
-    wght = 2. / (window ** 2).sum()
+    fft_inds = slice(1, int(nfft / 2.0 + 1))
+    wght = 2.0 / (window**2).sum()
     s1 = fft(detrend_array(a[0:nfft]) * window)[fft_inds]
     if auto_psd:
         pwr = np.abs(s1) ** 2
@@ -240,18 +253,18 @@ def cpsd_1D(a, b, nfft, fs, window='hann', step=None):
         pwr = s1 * np.conj(fft(detrend_array(b[0:nfft]) * window)[fft_inds])
     if nens - 1:
         for i in range(step, l - nfft + 1, step):
-            s1 = fft(detrend_array(a[i:(i + nfft)]) * window)[fft_inds]
+            s1 = fft(detrend_array(a[i : (i + nfft)]) * window)[fft_inds]
             if auto_psd:
                 pwr += np.abs(s1) ** 2
             else:
-                pwr += s1 * \
-                    np.conj(
-                        fft(detrend_array(b[i:(i + nfft)]) * window)[fft_inds])
+                pwr += s1 * np.conj(
+                    fft(detrend_array(b[i : (i + nfft)]) * window)[fft_inds]
+                )
     pwr *= wght / nens / fs
     return pwr
 
 
-def psd_1D(a, nfft, fs, window='hann', step=None):
+def psd_1D(a, nfft, fs, window="hann", step=None):
     """
     Compute the power spectral density (PSD).
 
@@ -288,7 +301,7 @@ def psd_1D(a, nfft, fs, window='hann', step=None):
 
     Notes
     -----
-    Credit: This function's line of code was copied from JN's fast_psd.m 
+    Credit: This function's line of code was copied from JN's fast_psd.m
     routine.
 
     See Also

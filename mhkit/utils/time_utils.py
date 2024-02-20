@@ -23,7 +23,7 @@ def matlab_to_datetime(matlab_datenum):
     except:
         pass
     if not isinstance(matlab_datenum, np.ndarray):
-        raise TypeError(f'data must be of type np.ndarray. Got: {type(data)}')
+        raise TypeError(f"data must be of type np.ndarray. Got: {type(data)}")
 
     # Pre-allocate
     time = []
@@ -58,9 +58,9 @@ def excel_to_datetime(excel_num):
     except:
         pass
     if not isinstance(excel_num, np.ndarray):
-        raise TypeError(f'excel_num must be of type np.ndarray. Got: {type(excel_num)}')
+        raise TypeError(f"excel_num must be of type np.ndarray. Got: {type(excel_num)}")
 
     # Convert to datetime
-    time = pd.to_datetime('1899-12-30')+pd.to_timedelta(excel_num, 'D')
+    time = pd.to_datetime("1899-12-30") + pd.to_timedelta(excel_num, "D")
 
     return time

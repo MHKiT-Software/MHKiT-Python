@@ -12,7 +12,7 @@ def _fullyear(year):
 
 def epoch2dt64(ep_time):
     """
-    Convert from epoch time (seconds since 1/1/1970 00:00:00) to 
+    Convert from epoch time (seconds since 1/1/1970 00:00:00) to
     numpy.datetime64 array
 
     Parameters
@@ -27,14 +27,14 @@ def epoch2dt64(ep_time):
     """
 
     # assumes t0=1970-01-01 00:00:00
-    out = np.array(ep_time.astype('int')).astype('datetime64[s]')
-    out = out + ((ep_time % 1) * 1e9).astype('timedelta64[ns]')
+    out = np.array(ep_time.astype("int")).astype("datetime64[s]")
+    out = out + ((ep_time % 1) * 1e9).astype("timedelta64[ns]")
     return out
 
 
 def dt642epoch(dt64):
     """
-    Convert numpy.datetime64 array to epoch time 
+    Convert numpy.datetime64 array to epoch time
     (seconds since 1/1/1970 00:00:00)
 
     Parameters
@@ -48,7 +48,7 @@ def dt642epoch(dt64):
       Epoch time (seconds since 1/1/1970 00:00:00)
     """
 
-    return dt64.astype('datetime64[ns]').astype('float') / 1e9
+    return dt64.astype("datetime64[ns]").astype("float") / 1e9
 
 
 def date2dt64(dt):
@@ -66,7 +66,7 @@ def date2dt64(dt):
       Single or array of datetime64 object(s)
     """
 
-    return np.array(dt).astype('datetime64[ns]')
+    return np.array(dt).astype("datetime64[ns]")
 
 
 def dt642date(dt64):
@@ -89,7 +89,7 @@ def dt642date(dt64):
 
 def epoch2date(ep_time, offset_hr=0, to_str=False):
     """
-    Convert from epoch time (seconds since 1/1/1970 00:00:00) to a list 
+    Convert from epoch time (seconds since 1/1/1970 00:00:00) to a list
     of datetime objects
 
     Parameters
@@ -104,12 +104,12 @@ def epoch2date(ep_time, offset_hr=0, to_str=False):
     Returns
     -------
     time : datetime.datetime
-      The converted datetime object or list(strings) 
+      The converted datetime object or list(strings)
 
     Notes
     -----
     The specific time instance is set during deployment, usually sync'd to the
-    deployment computer. The time seen by DOLfYN is in the timezone of the 
+    deployment computer. The time seen by DOLfYN is in the timezone of the
     deployment computer, which is unknown to DOLfYN.
     """
 
@@ -161,7 +161,7 @@ def date2str(dt, format_str=None):
     """
 
     if format_str is None:
-        format_str = '%Y-%m-%d %H:%M:%S.%f'
+        format_str = "%Y-%m-%d %H:%M:%S.%f"
 
     if not isinstance(dt, list):
         dt = [dt]
@@ -208,9 +208,10 @@ def date2matlab(dt):
     time = list()
     for i in range(len(dt)):
         mdn = dt[i] + timedelta(days=366)
-        frac_seconds = (dt[i]-datetime(dt[i].year, dt[i].month,
-                        dt[i].day, 0, 0, 0)).seconds / (24*60*60)
-        frac_microseconds = dt[i].microsecond / (24*60*60*1000000)
+        frac_seconds = (
+            dt[i] - datetime(dt[i].year, dt[i].month, dt[i].day, 0, 0, 0)
+        ).seconds / (24 * 60 * 60)
+        frac_microseconds = dt[i].microsecond / (24 * 60 * 60 * 1000000)
         time.append(mdn.toordinal() + frac_seconds + frac_microseconds)
 
     return time
@@ -238,9 +239,10 @@ def matlab2date(matlab_dn):
         time.append(day + dayfrac)
 
         # Datenum is precise down to 100 microseconds - add difference to round
-        us = int(round(time[i].microsecond/100, 0))*100
-        time[i] = time[i].replace(microsecond=time[i].microsecond) + \
-            timedelta(microseconds=us-time[i].microsecond)
+        us = int(round(time[i].microsecond / 100, 0)) * 100
+        time[i] = time[i].replace(microsecond=time[i].microsecond) + timedelta(
+            microseconds=us - time[i].microsecond
+        )
 
     return time
 
@@ -253,7 +255,7 @@ def _fill_time_gaps(epoch, sample_rate_hz):
     """
 
     # epoch is seconds since 1970
-    dt = 1. / sample_rate_hz
+    dt = 1.0 / sample_rate_hz
     epoch = fillgaps(epoch)
     if np.isnan(epoch[0]):
         i0 = np.nonzero(~np.isnan(epoch))[0][0]
@@ -263,6 +265,6 @@ def _fill_time_gaps(epoch, sample_rate_hz):
         # Search backward through the array to get the 'negative index'
         ie = -np.nonzero(~np.isnan(epoch[::-1]))[0][0] - 1
         delta = np.arange(1, -ie, 1) * dt
-        epoch[(ie + 1):] = epoch[ie] + delta
+        epoch[(ie + 1) :] = epoch[ie] + delta
 
     return epoch

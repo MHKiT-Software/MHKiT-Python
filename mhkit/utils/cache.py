@@ -38,6 +38,7 @@ Module Dependencies:
 Author: ssolson
 Date: 2023-09-26
 """
+
 import hashlib
 import json
 import os
@@ -47,8 +48,14 @@ import pickle
 import pandas as pd
 
 
-def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=None,
-                   clear_cache_file=False):
+def handle_caching(
+    hash_params,
+    cache_dir,
+    data=None,
+    metadata=None,
+    write_json=None,
+    clear_cache_file=False,
+):
     """
     Handles caching of data to avoid redundant network requests or
     computations.
@@ -58,7 +65,7 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
     the `clear_cache_file` parameter is set to `True`, in which case the
     cache file is cleared. If the cache file does not exist and the
     `data` parameter is not `None`, the function will store the
-    provided data in a cache file.    
+    provided data in a cache file.
 
     Parameters
     ----------
@@ -70,7 +77,7 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
         The data to be stored in the cache file. If `None`, the function
         will attempt to load data from the cache file.
     metadata : dict or None
-        Metadata associated with the data. This will be stored in the 
+        Metadata associated with the data. This will be stored in the
         cache file along with the data.
     write_json : str or None
         If specified, the cache file will be copied to a file with this name.
@@ -93,18 +100,20 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
     """
 
     # Check if 'cdip' is in cache_dir, then use .pkl instead of .json
-    file_extension = (".pkl" if "cdip" in cache_dir or
-                      "hindcast" in cache_dir or
-                      "ndbc" in cache_dir
-                      else ".json")
+    file_extension = (
+        ".pkl"
+        if "cdip" in cache_dir or "hindcast" in cache_dir or "ndbc" in cache_dir
+        else ".json"
+    )
 
     # Make cache directory if it doesn't exist
     if not os.path.isdir(cache_dir):
         os.makedirs(cache_dir)
 
     # Create a unique filename based on the function parameters
-    cache_filename = hashlib.md5(
-        hash_params.encode('utf-8')).hexdigest() + file_extension
+    cache_filename = (
+        hashlib.md5(hash_params.encode("utf-8")).hexdigest() + file_extension
+    )
     cache_filepath = os.path.join(cache_dir, cache_filename)
 
     # If clear_cache_file is True, remove the cache file for this request
@@ -115,36 +124,39 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
     # If a cached file exists, load and return the data from the file
     if os.path.isfile(cache_filepath) and data is None:
         if file_extension == ".json":
-            with open(cache_filepath, encoding='utf-8') as f:
+            with open(cache_filepath, encoding="utf-8") as f:
                 jsonData = json.load(f)
 
             # Extract metadata if it exists
-            if 'metadata' in jsonData:
-                metadata = jsonData.pop('metadata', None)
+            if "metadata" in jsonData:
+                metadata = jsonData.pop("metadata", None)
 
             # Check if index is datetime formatted
-            if all(re.match(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", str(dt)) for dt in jsonData['index']):
+            if all(
+                re.match(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", str(dt))
+                for dt in jsonData["index"]
+            ):
                 data = pd.DataFrame(
-                    jsonData['data'],
-                    index=pd.to_datetime(jsonData['index']),
-                    columns=jsonData['columns']
+                    jsonData["data"],
+                    index=pd.to_datetime(jsonData["index"]),
+                    columns=jsonData["columns"],
                 )
             else:
                 data = pd.DataFrame(
-                    jsonData['data'],
-                    index=jsonData['index'],
-                    columns=jsonData['columns']
+                    jsonData["data"],
+                    index=jsonData["index"],
+                    columns=jsonData["columns"],
                 )
 
             # Convert the rest to DataFrame
             data = pd.DataFrame(
-                jsonData['data'],
-                index=pd.to_datetime(jsonData['index']),
-                columns=jsonData['columns']
+                jsonData["data"],
+                index=pd.to_datetime(jsonData["index"]),
+                columns=jsonData["columns"],
             )
 
         elif file_extension == ".pkl":
-            with open(cache_filepath, 'rb') as f:
+            with open(cache_filepath, "rb") as f:
                 data, metadata = pickle.load(f)
 
         if write_json:
@@ -157,20 +169,21 @@ def handle_caching(hash_params, cache_dir, data=None, metadata=None, write_json=
     elif data is not None:
         if file_extension == ".json":
             # Convert DataFrame to python dict
-            pyData = data.to_dict(orient='split')
+            pyData = data.to_dict(orient="split")
             # Add metadata to pyData
-            pyData['metadata'] = metadata
+            pyData["metadata"] = metadata
             # Check if index is datetime indexed
             if isinstance(data.index, pd.DatetimeIndex):
-                pyData['index'] = [dt.strftime(
-                    '%Y-%m-%d %H:%M:%S') for dt in pyData['index']]
+                pyData["index"] = [
+                    dt.strftime("%Y-%m-%d %H:%M:%S") for dt in pyData["index"]
+                ]
             else:
-                pyData['index'] = list(data.index)
-            with open(cache_filepath, 'w', encoding='utf-8') as f:
+                pyData["index"] = list(data.index)
+            with open(cache_filepath, "w", encoding="utf-8") as f:
                 json.dump(pyData, f)
 
         elif file_extension == ".pkl":
-            with open(cache_filepath, 'wb') as f:
+            with open(cache_filepath, "wb") as f:
                 pickle.dump((data, metadata), f)
 
         if write_json:
@@ -185,14 +198,14 @@ def clear_cache(specific_dir=None):
     """
     Clears the cache.
 
-    The function checks if a specific directory or the entire cache directory 
+    The function checks if a specific directory or the entire cache directory
     exists. If it does, the function will remove the directory and recreate it.
     If the directory does not exist, a message indicating is printed.
 
     Parameters
     ----------
     specific_dir : str or None, optional
-        Specific sub-directory to clear. If None, the entire cache is cleared. 
+        Specific sub-directory to clear. If None, the entire cache is cleared.
         Default is None.
 
     Returns
@@ -202,15 +215,16 @@ def clear_cache(specific_dir=None):
     cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit")
 
     # Consider generating this from a system folder search
-    folders = {"river": "river",
-               "tidal": "tidal",
-               "wave": "wave",
-               "usgs": os.path.join('river', 'usgs'),
-               "noaa": os.path.join('tidal', 'noaa'),
-               "ndbc": os.path.join('wave', 'ndbc'),
-               "cdip": os.path.join('wave', 'cdip'),
-               "hindcast": os.path.join('wave', 'hindcast'),
-               }
+    folders = {
+        "river": "river",
+        "tidal": "tidal",
+        "wave": "wave",
+        "usgs": os.path.join("river", "usgs"),
+        "noaa": os.path.join("tidal", "noaa"),
+        "ndbc": os.path.join("wave", "ndbc"),
+        "cdip": os.path.join("wave", "cdip"),
+        "hindcast": os.path.join("wave", "hindcast"),
+    }
 
     # If specific_dir is provided and matches a key in the folders dictionary,
     # use its corresponding value
@@ -218,8 +232,7 @@ def clear_cache(specific_dir=None):
         specific_dir = folders[specific_dir]
 
     # Construct the path to the directory to be cleared
-    path_to_clear = os.path.join(
-        cache_dir, specific_dir) if specific_dir else cache_dir
+    path_to_clear = os.path.join(cache_dir, specific_dir) if specific_dir else cache_dir
 
     # Check if the directory exists
     if os.path.exists(path_to_clear):
