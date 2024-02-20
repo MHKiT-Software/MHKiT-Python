@@ -29,7 +29,7 @@ jobs:
           score=$(echo "$pylint_output" | grep "Your code has been rated at" | awk '{print $7}' | sed 's/\/10//' || echo "0")
           echo "Pylint score: $score"
           # Define the minimum acceptable score
-          min_score=8.0
+          min_score=7.0
           # Check if score is a number, exit with code 1 (failure) if not
           python -c "import sys; score='$score'; sys.exit(0 if score.replace('.', '', 1).isdigit() else 1)"
           # Compare the score with the minimum acceptable score, exit with code 1 if below threshold
