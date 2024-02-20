@@ -22,13 +22,9 @@ jobs:
 
       - name: Run Pylint on mhkit/loads/ and check score
         run: |
-          # Run pylint and capture the output
           pylint_output=$(pylint mhkit/loads/ --output-format=text)
           echo "$pylint_output"
-          # Extract the score from the output
           score=$(echo "$pylint_output" | grep "Your code has been rated at" | awk '{print $7}' | sed 's/\/10//')
           echo "Pylint score: $score"
-          # Define the minimum acceptable score
           min_score=8.0
-          # Compare the score with the minimum acceptable score
           python -c "import sys; sys.exit(0 if $score >= $min_score else 1)"
