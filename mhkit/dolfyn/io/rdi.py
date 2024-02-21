@@ -265,9 +265,7 @@ class _RDIReader:
         self._debug_level = debug_level
         return size
 
-    def read_hdr(
-        self,
-    ):
+    def read_hdr(self):
         fd = self.f
         cfgid = list(fd.read_ui8(2))
         nread = 0
@@ -292,9 +290,7 @@ class _RDIReader:
         self.read_hdrseg()
         return True
 
-    def check_for_double_buffer(
-        self,
-    ):
+    def check_for_double_buffer(self):
         """
         VMDAS will record two buffers in NB or NB/BB mode, so we need to
         figure out if that is happening here
@@ -321,11 +317,6 @@ class _RDIReader:
             elif id == 8192:
                 self._vmdas_search = True
         return found
-
-    def mean(self, dat):
-        if self.n_avg == 1:
-            return dat[..., 0]
-        return np.nanmean(dat, axis=-1)
 
     def load_data(self, nens=None):
         if nens is None:
@@ -360,25 +351,9 @@ class _RDIReader:
                     clock[0, :] += defs.century
 
                 for nm in var:
-                    # If n_cells has increased (WinRiver transects)
-                    ds = defs._get(dat, nm)
-                    bn = self.mean(en[nm])
-                    # Check that
-                    # 1. n_cells has changed,
-                    # 2. nm is a beam variable
-                    # 3. n_cells is greater than any previous
-                    if (
-                        self.flag > 0
-                        and len(ds.shape) == 3
-                        and (ds.shape[0] != bn.shape[0])
-                    ):
-                        # increase the size of original dataset
-                        a = np.empty((self.flag, ds.shape[1], ds.shape[2])) * np.nan
-                        ds = np.append(ds, a, axis=0)
-                        defs._setd(dat, nm, ds)
-                    # Copy the ensemble to the dataset.
-                    ds[..., iens] = bn
-                # reset after all variables run
+                    self.save_profiles(dat, nm, en, iens)
+
+                # reset flag after all variables run
                 self.flag = 0
 
                 try:
@@ -409,9 +384,7 @@ class _RDIReader:
         datbb = self.outdBB if self._bb else None
         return dat, datbb
 
-    def init_data(
-        self,
-    ):
+    def init_data(self):
         outd = {
             "data_vars": {},
             "coords": {},
@@ -445,6 +418,7 @@ class _RDIReader:
             ]
             outdbb["attrs"]["has_imu"] = 0
 
+        # Preallocate variables and data sizes
         for nm in defs.data_defs:
             outd = defs._idata(
                 outd, nm, sz=defs._get_size(nm, self._nens, self.cfg["n_cells"])
@@ -465,9 +439,7 @@ class _RDIReader:
             if self._bb:
                 logging.info("{} ncells, BB".format(self.cfgbb["n_cells"]))
 
-    def read_buffer(
-        self,
-    ):
+    def read_buffer(self):
         fd = self.f
         self.ensemble.k = -1  # so that k+=1 gives 0 on the first loop.
         if self._bb:
@@ -569,9 +541,7 @@ class _RDIReader:
                 )
         return True
 
-    def checkheader(
-        self,
-    ):
+    def checkheader(self):
         if self._debug_level > 1:
             logging.info("  ###In checkheader.")
         fd = self.f
@@ -600,9 +570,7 @@ class _RDIReader:
             logging.info("  ###Leaving checkheader.")
         return valid
 
-    def read_hdrseg(
-        self,
-    ):
+    def read_hdrseg(self):
         fd = self.f
         hdr = self.hdr
         hdr["nbyte"] = fd.read_i16(1)
@@ -611,9 +579,7 @@ class _RDIReader:
         hdr["dat_offsets"] = fd.read_ui16(ndat)
         self._nbyte = 4 + ndat * 2
 
-    def print_progress(
-        self,
-    ):
+    def print_progress(self):
         self.progress = self.f.tell()
         if self._debug_level > 1:
             logging.debug(
@@ -778,22 +744,23 @@ class _RDIReader:
             self.ensemble["n_cells"] != self.cfg["n_cells"]
         ):
             diff = self.cfg["n_cells"] - self.ensemble["n_cells"]
+            self.flag = diff
             if diff > 0:
-                self.flag = diff
                 self.ensemble = defs._ensemble(self.n_avg, self.cfg["n_cells"])
                 # Not concerned if # of cells decreases
                 if self._debug_level >= 1:
                     logging.warning(
-                        "Number of cells changed to {}".format(self.cfg["n_cells"])
+                        f"Maximum number of cells increased to {self.cfg['n_cells']}"
                     )
 
-    def read_fixed_sl(
-        self,
-    ):
+    def read_fixed_sl(self):
         # Surface layer profile
         cfg = self.cfg
         cfg["surface_layer"] = 1
-        cfg["n_cells_sl"] = self.f.read_ui8(1)
+        n_cells = self.f.read_ui8(1)
+        # Only update n_cells if it's greater than what was used in prior profiles
+        if ("n_cells_sl" not in cfg) or (n_cells > cfg["n_cells_sl"]):
+            cfg["n_cells_sl"] = n_cells
         cfg["cell_size_sl"] = self.f.read_ui16(1) * 0.01
         cfg["bin1_dist_m_sl"] = round(self.f.read_ui16(1) * 0.01, 4)
 
@@ -824,7 +791,12 @@ class _RDIReader:
         cfg["n_beams"] = fd.read_ui8(1) + beam5
         cfg["n_cells"] = fd.read_ui8(1)
         cfg["pings_per_ensemble"] = fd.read_ui16(1)
-        cfg["cell_size"] = fd.read_ui16(1) * 0.01
+        cell_size = fd.read_ui16(1) * 0.01
+        # Only update cell_size if it's greater than what was used in prior profiles
+        if ("cell_size" not in cfg) or (cell_size > cfg["cell_size"]):
+            cfg["cell_size"] = cell_size
+            if self._debug_level >= 1:
+                logging.warning(f"Cell size changed to {cfg['cell_size']}")
         cfg["blank_dist"] = fd.read_ui16(1) * 0.01
         cfg["profiling_mode"] = fd.read_ui8(1)
         cfg["min_corr_threshold"] = fd.read_ui8(1)
@@ -1038,9 +1010,7 @@ class _RDIReader:
         if self._debug_level >= 0:
             logging.info("Read Status")
 
-    def read_bottom(
-        self,
-    ):
+    def read_bottom(self):
         self.vars_read += ["dist_bt", "vel_bt", "corr_bt", "amp_bt", "prcnt_gd_bt"]
         fd = self.f
         ens = self.ensemble
@@ -1098,9 +1068,7 @@ class _RDIReader:
         if self._debug_level >= 0:
             logging.info("Read Bottom Track")
 
-    def read_alt(
-        self,
-    ):
+    def read_alt(self):
         """Read altimeter (vertical beam range)"""
         fd = self.f
         ens = self.ensemble
@@ -1114,9 +1082,7 @@ class _RDIReader:
         if self._debug_level >= 0:
             logging.info("Read Altimeter")
 
-    def read_vmdas(
-        self,
-    ):
+    def read_vmdas(self):
         """Read VMDAS Navigation block"""
         fd = self.f
         self.cfg["sourceprog"] = "VMDAS"
@@ -1183,9 +1149,7 @@ class _RDIReader:
             logging.info("Read VMDAS")
         self._read_vmdas = True
 
-    def read_winriver2(
-        self,
-    ):
+    def read_winriver2(self):
         startpos = self.f.tell()
         self._winrivprob = True
         self.cfg["sourceprog"] = "WinRiver2"
@@ -1204,7 +1168,7 @@ class _RDIReader:
                 self.f.seek(2, 1)
             else:  # TRDI rewrites the nmea string into their format if one is found
                 start_string = self.f.reads(6)
-                if type(start_string) != str:
+                if isinstance(start_string, str):
                     if self._debug_level >= 1:
                         logging.warning(
                             f"Invalid GGA string found in ensemble {k}," " skipping..."
@@ -1262,7 +1226,7 @@ class _RDIReader:
                 self.f.seek(2, 1)
             else:
                 start_string = self.f.reads(6)
-                if type(start_string) != str:
+                if isinstance(start_string, str):
                     if self._debug_level >= 1:
                         logging.warning(
                             f"Invalid VTG string found in ensemble {k}," " skipping..."
@@ -1292,7 +1256,7 @@ class _RDIReader:
                 self.f.seek(2, 1)
             else:
                 start_string = self.f.reads(6)
-                if type(start_string) != str:
+                if isinstance(start_string, str):
                     if self._debug_level >= 1:
                         logging.warning(
                             f"Invalid DBT string found in ensemble {k}," " skipping..."
@@ -1317,7 +1281,7 @@ class _RDIReader:
                 self.f.seek(2, 1)
             else:
                 start_string = self.f.reads(6)
-                if type(start_string) != str:
+                if isinstance(start_string, str):
                     if self._debug_level >= 1:
                         logging.warning(
                             f"Invalid HDT string found in ensemble {k}," " skipping..."
@@ -1383,6 +1347,35 @@ class _RDIReader:
         if self._debug_level >= 0:
             logging.debug(f"Skipping ID code {id}\n")
 
+    def save_profiles(self, dat, nm, en, iens):
+        ds = defs._get(dat, nm)
+
+        if self.n_avg == 1:
+            bn = en[nm][..., 0]
+        else:
+            bn = np.nanmean(en[nm], axis=-1)
+
+        # If n_cells has changed (WinRiver transects), check that
+        # 1. nm is a beam variable
+        # 2. n_cells is greater than any previous
+        if len(ds.shape) == 3:
+            # Set bn to current ping size
+            bn = bn[: self.cfg["n_cells"]]
+            # If n_cells increases, we need to increment defs
+            if self.flag > 0:
+                a = np.empty((self.flag, ds.shape[1], ds.shape[2])) * np.nan
+                ds = np.append(ds, a.astype(ds.dtype), axis=0)
+                defs._setd(dat, nm, ds)
+            # If the shape decreases, set extra cells to nan instead
+            # of whatever is stuck in memory
+            if ds.shape[0] != bn.shape[0]:
+                n_cells = ds.shape[0] - bn.shape[0]
+                a = np.empty((n_cells, bn.shape[1])) * np.nan
+                bn = np.append(bn, a.astype(ds.dtype), axis=0)
+
+        # Then copy the ensemble to the dataset.
+        ds[..., iens] = bn
+
     def cleanup(self, cfg, dat):
         dat["coords"]["range"] = (
             cfg["bin1_dist_m"] + np.arange(self.ensemble["n_cells"]) * cfg["cell_size"]
@@ -1404,7 +1397,10 @@ class _RDIReader:
             dat["attrs"]["rotate_vars"].append("vel_sl")
 
     def finalize(self, dat):
-        """Remove the attributes from the data that were never loaded."""
+        """
+        Remove the attributes from the data that were never loaded.
+        """
+
         for nm in set(defs.data_defs.keys()) - self.vars_read:
             defs._pop(dat, nm)
         for nm in self.cfg:
@@ -1427,9 +1423,7 @@ class _RDIReader:
             if len(shp) and shp[0] == "nc" and defs._in_group(dat, nm):
                 defs._setd(dat, nm, np.swapaxes(defs._get(dat, nm), 0, 1))
 
-    def __enter__(
-        self,
-    ):
+    def __enter__(self):
         return self
 
     def __exit__(self, type, value, traceback):
