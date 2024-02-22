@@ -1485,7 +1485,7 @@ class _RDIReader:
         if ("sourceprog" in da) and (
             da["sourceprog"].lower() in ["vmdas", "winriver", "winriver2"]
         ):
-            da["fs"] = round(np.diff(dat["coords"]["time"]).mean() ** -1, 2)
+            da["fs"] = round(1 / np.median(np.diff(dat["coords"]["time"])), 2)
         else:
             da["fs"] = 1 / (da["sec_between_ping_groups"] * da["pings_per_ensemble"])
 
