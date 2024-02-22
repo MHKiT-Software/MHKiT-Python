@@ -1180,7 +1180,7 @@ class _RDIReader:
                 self.f.seek(2, 1)
             else:  # TRDI rewrites the nmea string into their format if one is found
                 start_string = self.f.reads(6)
-                if isinstance(start_string, str):
+                if not isinstance(start_string, str):
                     if self._debug_level >= 1:
                         logging.warning(
                             f"Invalid GGA string found in ensemble {k}," " skipping..."
@@ -1238,7 +1238,7 @@ class _RDIReader:
                 self.f.seek(2, 1)
             else:
                 start_string = self.f.reads(6)
-                if isinstance(start_string, str):
+                if not isinstance(start_string, str):
                     if self._debug_level >= 1:
                         logging.warning(
                             f"Invalid VTG string found in ensemble {k}," " skipping..."
@@ -1268,7 +1268,7 @@ class _RDIReader:
                 self.f.seek(2, 1)
             else:
                 start_string = self.f.reads(6)
-                if isinstance(start_string, str):
+                if not isinstance(start_string, str):
                     if self._debug_level >= 1:
                         logging.warning(
                             f"Invalid DBT string found in ensemble {k}," " skipping..."
@@ -1293,7 +1293,7 @@ class _RDIReader:
                 self.f.seek(2, 1)
             else:
                 start_string = self.f.reads(6)
-                if isinstance(start_string, str):
+                if not isinstance(start_string, str):
                     if self._debug_level >= 1:
                         logging.warning(
                             f"Invalid HDT string found in ensemble {k}," " skipping..."
