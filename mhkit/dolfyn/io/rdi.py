@@ -211,6 +211,7 @@ class _RDIReader:
         self._vmdas_search = vmdas_search
         self._winrivprob = winriver
         self.n_cells_diff = 0
+        self.n_cells_sl = 0
         self.cs_diff = 0
         self.cs = []
         self.cfg = {}
@@ -756,9 +757,11 @@ class _RDIReader:
         cfg = self.cfg
         cfg["surface_layer"] = 1
         n_cells = self.f.read_ui8(1)
-        # Only update n_cells if it's greater than what was used in prior profiles
+        # Check if n_cells is greater than what was used in prior profiles
         if ("n_cells_sl" not in cfg) or (n_cells > cfg["n_cells_sl"]):
-            cfg["n_cells_sl"] = n_cells
+            self.n_cells_sl = n_cells
+        cfg["n_cells_sl"] = n_cells
+        # Assuming surface layer profile cell size never changes
         cfg["cell_size_sl"] = self.f.read_ui16(1) * 0.01
         cfg["bin1_dist_m_sl"] = round(self.f.read_ui16(1) * 0.01, 4)
 
@@ -1364,19 +1367,23 @@ class _RDIReader:
         else:
             bn = np.nanmean(en[nm], axis=-1)
 
-        # If n_cells has changed (WinRiver transects), check that
-        # 1. nm is a beam variable
-        # 2. n_cells is greater than any previous
+        # If n_cells has changed (RiverPro/StreamPro WinRiver transects)
         if len(ds.shape) == 3:
-            # Set bn to current ping size
-            bn = bn[: self.cfg["n_cells"]]
-            # If n_cells increases, we need to increment defs
-            if self.n_cells_diff > 0:
-                a = np.empty((self.n_cells_diff, ds.shape[1], ds.shape[2])) * np.nan
-                ds = np.append(ds, a.astype(ds.dtype), axis=0)
-                defs._setd(dat, nm, ds)
-            # If the shape decreases, set extra cells to nan instead
-            # of whatever is stuck in memory
+            if "_sl" in nm:
+                # This works here b/c the max number of surface layer cells
+                # is smaller than the min number of normal profile cells used.
+                # Extra SL cells created here are trimmed off in self.cleanup.
+                bn = bn[: self.cfg["n_cells_sl"]]
+            else:
+                # Set bn to current ping size
+                bn = bn[: self.cfg["n_cells"]]
+                # If n_cells increases, we need to increment defs
+                if self.n_cells_diff > 0:
+                    a = np.empty((self.n_cells_diff, ds.shape[1], ds.shape[2])) * np.nan
+                    ds = np.append(ds, a.astype(ds.dtype), axis=0)
+                    defs._setd(dat, nm, ds)
+            # If the shape decreases, set extra cells to nan instead of
+            # whatever is stuck in memory
             if ds.shape[0] != bn.shape[0]:
                 n_cells = ds.shape[0] - bn.shape[0]
                 a = np.empty((n_cells, bn.shape[1])) * np.nan
@@ -1389,6 +1396,53 @@ class _RDIReader:
 
         # Then copy the ensemble to the dataset.
         ds[..., iens] = bn
+
+    def cleanup(self, cfg, dat):
+        # Clean up changing cell size, if necessary
+        cs = np.array(self.cs)
+        cell_sizes = cs[:, 1]
+
+        # If cell sizes change, depth-bin average the smaller cell sizes
+        if len(self.cs) > 1:
+            bins_to_merge = (cell_sizes.max() / cell_sizes).astype(int)
+            idx_start = cs[:, 0].astype(int)
+            idx_end = np.append(cs[1:, 0], dat["data_vars"]["number"].size).astype(int)
+
+            dv = dat["data_vars"]
+            for var in dv:
+                if (len(dv[var].shape) == 3) and ("_sl" not in var):
+                    # Create a new NaN var to save data in
+                    new_var = (np.zeros(dv[var].shape) * np.nan).astype(dv[var].dtype)
+                    # For each cell size change, reshape and bin-average
+                    for id1, id2, b in zip(idx_start, idx_end, bins_to_merge):
+                        array = np.transpose(dv[var][..., id1:id2])
+                        bin_arr = np.transpose(
+                            np.mean(self.reshape(array, n_bin=b), axis=-1)
+                        )
+                        new_var[: len(bin_arr), :, id1:id2] = bin_arr
+                    # Reset data. This often leaves nan data at farther ranges
+                    dv[var] = new_var
+
+        # Set cell size and range
+        cfg["cell_size"] = cell_sizes.max()
+        dat["coords"]["range"] = (
+            cfg["bin1_dist_m"] + np.arange(self.ensemble["n_cells"]) * cfg["cell_size"]
+        )
+
+        for nm in cfg:
+            dat["attrs"][nm] = cfg[nm]
+
+        if "surface_layer" in cfg:  # RiverPro/StreamPro
+            dat["coords"]["range_sl"] = (
+                cfg["bin1_dist_m_sl"]
+                + np.arange(0, self.n_cells_sl) * cfg["cell_size_sl"]
+            )
+            # Trim surface layer profile to max cells used
+            dv = dat["data_vars"]
+            for var in dv:
+                if "sl" in var:
+                    dv[var] = dv[var][: self.n_cells_sl]
+            dat["attrs"]["rotate_vars"].append("vel_sl")
 
     def _outshape(self, inshape, n_pad=0, n_bin=None):
         """Returns `outshape` (the 'reshape'd shape) for an `inshape` array."""
@@ -1425,53 +1479,6 @@ class _RDIReader:
             out[..., :-1, -npd1:] = out[..., 1:, npd0 : npd0 + npd1]
 
         return out
-
-    def cleanup(self, cfg, dat):
-        # Clean up changing cell size, if necessary
-        cs = np.array(self.cs)
-        cell_sizes = cs[:, 1]
-
-        # If cell sizes change, depth-bin average the smaller cell sizes
-        if len(self.cs) > 1:
-            bins_to_merge = (cell_sizes.max() / cell_sizes).astype(int)
-            idx_start = cs[:, 0].astype(int)
-            idx_end = np.append(cs[1:, 0], dat["data_vars"]["number"].size).astype(int)
-
-            dv = dat["data_vars"]
-            for var in dv:
-                if (len(dv[var].shape) == 3) and ("_sl" not in var):
-                    # Create a new NaN var to save data in
-                    new_var = (np.zeros(dv[var].shape) * np.nan).astype(dv[var].dtype)
-                    # For each cell size change, reshape and bin-average
-                    for id1, id2, b in zip(idx_start, idx_end, bins_to_merge):
-                        array = np.transpose(dv[var][..., id1:id2])
-                        bin_arr = np.transpose(
-                            np.mean(self.reshape(array, n_bin=b), axis=-1)
-                        )
-                        new_var[: len(bin_arr), :, id1:id2] = bin_arr
-                    # Reset data. This often leaves nan data at farthest ranges
-                    dv[var] = new_var
-
-        # Set cell size and range
-        cfg["cell_size"] = cell_sizes.max()
-        dat["coords"]["range"] = (
-            cfg["bin1_dist_m"] + np.arange(self.ensemble["n_cells"]) * cfg["cell_size"]
-        )
-
-        for nm in cfg:
-            dat["attrs"][nm] = cfg[nm]
-
-        if "surface_layer" in cfg:  # RiverPro/StreamPro
-            dat["coords"]["range_sl"] = (
-                cfg["bin1_dist_m_sl"]
-                + np.arange(self.cfg["n_cells_sl"]) * cfg["cell_size_sl"]
-            )
-            # Trim surface layer profile to length
-            dv = dat["data_vars"]
-            for var in dv:
-                if "sl" in var:
-                    dv[var] = dv[var][: cfg["n_cells_sl"]]
-            dat["attrs"]["rotate_vars"].append("vel_sl")
 
     def finalize(self, dat):
         """
