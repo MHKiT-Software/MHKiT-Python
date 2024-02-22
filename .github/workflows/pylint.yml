@@ -22,4 +22,4 @@ jobs:
 
       - name: Run Pylint on mhkit/loads/
         run: |
-          pylint mhkit/loads/exterme
+          pylint mhkit/loads/extreme/
