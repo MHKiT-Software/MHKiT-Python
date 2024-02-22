@@ -210,7 +210,9 @@ class _RDIReader:
         self._debug_level = debug_level
         self._vmdas_search = vmdas_search
         self._winrivprob = winriver
-        self.flag = 0
+        self.n_cells_diff = 0
+        self.cs_diff = 0
+        self.cs = []
         self.cfg = {}
         self.cfgbb = {}
         self.hdr = {}
@@ -354,7 +356,7 @@ class _RDIReader:
                     self.save_profiles(dat, nm, en, iens)
 
                 # reset flag after all variables run
-                self.flag = 0
+                self.n_cells_diff = 0
 
                 try:
                     dates = tmlib.date2epoch(
@@ -739,15 +741,11 @@ class _RDIReader:
         if self._debug_level >= 0:
             logging.info("Read Fixed")
 
-        # Check if n_cells changed (for winriver transect files)
-        if hasattr(self, "ensemble") and (
-            self.ensemble["n_cells"] != self.cfg["n_cells"]
-        ):
-            diff = self.cfg["n_cells"] - self.ensemble["n_cells"]
-            self.flag = diff
-            if diff > 0:
+        # Check if n_cells has increased (for winriver transect files)
+        if hasattr(self, "ensemble"):
+            self.n_cells_diff = self.cfg["n_cells"] - self.ensemble["n_cells"]
+            if self.n_cells_diff > 0:
                 self.ensemble = defs._ensemble(self.n_avg, self.cfg["n_cells"])
-                # Not concerned if # of cells decreases
                 if self._debug_level >= 1:
                     logging.warning(
                         f"Maximum number of cells increased to {self.cfg['n_cells']}"
@@ -768,7 +766,7 @@ class _RDIReader:
             logging.info("Read Surface Layer Config")
         self._nbyte = 2 + 5
 
-    def read_cfgseg(self, bb=False):
+    def read_cfgseg(self, bb=False):  # TODO
         cfgstart = self.f.tell()
 
         if bb:
@@ -789,14 +787,25 @@ class _RDIReader:
         simflag = ["real", "simulated"][tmp[4]]
         fd.seek(1, 1)
         cfg["n_beams"] = fd.read_ui8(1) + beam5
-        cfg["n_cells"] = fd.read_ui8(1)
+        # Check if number of cells has changed
+        n_cells = fd.read_ui8(1)
+        if ("n_cells" not in cfg) or (n_cells != cfg["n_cells"]):
+            cfg["n_cells"] = n_cells
+            if self._debug_level >= 1:
+                logging.warning(f"Number of cells set to {cfg['n_cells']}")
         cfg["pings_per_ensemble"] = fd.read_ui16(1)
+        # Check if cell size has changed
         cell_size = fd.read_ui16(1) * 0.01
-        # Only update cell_size if it's greater than what was used in prior profiles
-        if ("cell_size" not in cfg) or (cell_size > cfg["cell_size"]):
+        if "cell_size" not in cfg:
+            cfg["cell_size"] = cell_size
+            self.cs_diff = cell_size
+            if self._debug_level >= 1:
+                logging.warning(f"Cell size set to {cfg['cell_size']}")
+        elif cell_size != cfg["cell_size"]:
+            self.cs_diff = cell_size - cfg["cell_size"]
             cfg["cell_size"] = cell_size
             if self._debug_level >= 1:
-                logging.warning(f"Cell size changed to {cfg['cell_size']}")
+                logging.warning(f"Cell size set to {cfg['cell_size']}")
         cfg["blank_dist"] = fd.read_ui16(1) * 0.01
         cfg["profiling_mode"] = fd.read_ui8(1)
         cfg["min_corr_threshold"] = fd.read_ui8(1)
@@ -1362,8 +1371,8 @@ class _RDIReader:
             # Set bn to current ping size
             bn = bn[: self.cfg["n_cells"]]
             # If n_cells increases, we need to increment defs
-            if self.flag > 0:
-                a = np.empty((self.flag, ds.shape[1], ds.shape[2])) * np.nan
+            if self.n_cells_diff > 0:
+                a = np.empty((self.n_cells_diff, ds.shape[1], ds.shape[2])) * np.nan
                 ds = np.append(ds, a.astype(ds.dtype), axis=0)
                 defs._setd(dat, nm, ds)
             # If the shape decreases, set extra cells to nan instead
@@ -1373,10 +1382,78 @@ class _RDIReader:
                 a = np.empty((n_cells, bn.shape[1])) * np.nan
                 bn = np.append(bn, a.astype(ds.dtype), axis=0)
 
+        # Keep track of when the cell size changes
+        if self.cs_diff:
+            self.cs.append([iens, self.cfg["cell_size"]])
+            self.cs_diff = 0
+
         # Then copy the ensemble to the dataset.
         ds[..., iens] = bn
 
+    def _outshape(self, inshape, n_pad=0, n_bin=None):
+        """Returns `outshape` (the 'reshape'd shape) for an `inshape` array."""
+        return list(inshape[:-1]) + [int(inshape[-1] // n_bin), int(n_bin + n_pad)]
+
+    def reshape(self, arr, n_pad=0, n_bin=None):
+        """Reshape the array `arr` to shape (...,n,n_bin+n_pad)."""
+
+        npd0 = int(n_pad // 2)
+        npd1 = int((n_pad + 1) // 2)
+        shp = self._outshape(arr.shape, n_pad=0, n_bin=n_bin)
+        out = np.zeros(
+            self._outshape(arr.shape, n_pad=n_pad, n_bin=n_bin), dtype=arr.dtype
+        )
+        if np.mod(n_bin, 1) == 0:
+            # n_bin needs to be int
+            n_bin = int(n_bin)
+            # If n_bin is an integer, we can do this simply.
+            out[..., npd0 : n_bin + npd0] = (arr[..., : (shp[-2] * shp[-1])]).reshape(
+                shp, order="C"
+            )
+        else:
+            inds = (np.arange(np.prod(shp[-2:])) * n_bin // int(n_bin)).astype(int)
+            # If there are too many indices, drop one bin
+            if inds[-1] >= arr.shape[-1]:
+                inds = inds[: -int(n_bin)]
+                shp[-2] -= 1
+                out = out[..., 1:, :]
+            n_bin = int(n_bin)
+            out[..., npd0 : n_bin + npd0] = (arr[..., inds]).reshape(shp, order="C")
+            n_bin = int(n_bin)
+        if n_pad != 0:
+            out[..., 1:, :npd0] = out[..., :-1, n_bin : n_bin + npd0]
+            out[..., :-1, -npd1:] = out[..., 1:, npd0 : npd0 + npd1]
+
+        return out
+
     def cleanup(self, cfg, dat):
+        # Clean up changing cell size, if necessary
+        cs = np.array(self.cs)
+        cell_sizes = cs[:, 1]
+
+        # If cell sizes change, depth-bin average the smaller cell sizes
+        if len(self.cs) > 1:
+            bins_to_merge = (cell_sizes.max() / cell_sizes).astype(int)
+            idx_start = cs[:, 0].astype(int)
+            idx_end = np.append(cs[1:, 0], dat["data_vars"]["number"].size).astype(int)
+
+            dv = dat["data_vars"]
+            for var in dv:
+                if (len(dv[var].shape) == 3) and ("_sl" not in var):
+                    # Create a new NaN var to save data in
+                    new_var = (np.zeros(dv[var].shape) * np.nan).astype(dv[var].dtype)
+                    # For each cell size change, reshape and bin-average
+                    for id1, id2, b in zip(idx_start, idx_end, bins_to_merge):
+                        array = np.transpose(dv[var][..., id1:id2])
+                        bin_arr = np.transpose(
+                            np.mean(self.reshape(array, n_bin=b), axis=-1)
+                        )
+                        new_var[: len(bin_arr), :, id1:id2] = bin_arr
+                    # Reset data. This often leaves nan data at farthest ranges
+                    dv[var] = new_var
+
+        # Set cell size and range
+        cfg["cell_size"] = cell_sizes.max()
         dat["coords"]["range"] = (
             cfg["bin1_dist_m"] + np.arange(self.ensemble["n_cells"]) * cfg["cell_size"]
         )
