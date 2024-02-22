@@ -56,10 +56,9 @@ def convert_to_dataset(data, name="data"):
         data = data.to_xarray()
 
     if isinstance(data, xr.DataArray):
-        if data.name is None:
-            data.name = (
-                name  # xr.DataArray.to_dataset() breaks if the data variable is unnamed
-            )
+        data.name = (
+            name  # xr.DataArray.to_dataset() breaks if the data variable is unnamed
+        )
         data = data.to_dataset()
 
     return data

@@ -2,6 +2,7 @@ from os.path import abspath, dirname, join, isfile, normpath
 import matplotlib.pylab as plt
 import mhkit.river as river
 import pandas as pd
+import xarray as xr
 import numpy as np
 import unittest
 import os
@@ -66,6 +67,17 @@ class TestResource(unittest.TestCase):
         self.assertEqual(f.min().values, 10.0)
         self.assertEqual(f.max().values, 90.0)
 
+    def test_exceedance_probability_xarray(self):
+        # Create arbitrary discharge between 0 and 8(N=9)
+        Q = xr.DataArray(
+            data=np.arange(9), dims="index", coords={"index": np.arange(9)}
+        )
+        # if N=9, max F = 100((max(Q)+1)/10) =  90%
+        # if N=9, min F = 100((min(Q)+1)/10) =  10%
+        f = river.resource.exceedance_probability(Q)
+        self.assertEqual(f.min().values, 10.0)
+        self.assertEqual(f.max().values, 90.0)
+
     def test_exceedance_probability_type_error(self):
         D = "invalid_type"  # String instead of pd.Series or pd.DataFrame
         with self.assertRaises(TypeError):
@@ -111,6 +123,17 @@ class TestResource(unittest.TestCase):
         V = river.resource.discharge_to_velocity(Q, p)
         self.assertAlmostEqual(np.sum(10 * Q - V["V"]), 0.00, places=2)
 
+    def test_discharge_to_velocity_xarray(self):
+        # Create arbitrary discharge between 0 and 8(N=9)
+        Q = xr.DataArray(
+            data=np.arange(9), dims="index", coords={"index": np.arange(9)}
+        )
+        # Calculate a first order polynomial on an DV_Curve x=y line 10 times greater than the Q values
+        p, r2 = river.resource.polynomial_fit(np.arange(9), 10 * np.arange(9), 1)
+        # Because the polynomial line fits perfect we should expect the V to equal 10*Q
+        V = river.resource.discharge_to_velocity(Q, p, to_pandas=False)
+        self.assertAlmostEqual(np.sum(10 * Q - V["V"]).values, 0.00, places=2)
+
     def test_discharge_to_velocity_D_type_error(self):
         D = "invalid_type"  # String instead of pd.Series or pd.DataFrame
         polynomial_coefficients = np.poly1d([1, 2])
@@ -141,6 +164,31 @@ class TestResource(unittest.TestCase):
         self.assertAlmostEqual(P["P"].iloc[-1], 0.00, places=2)
         # Middle 10x greater than velocity
         self.assertAlmostEqual((P["P"][1:-1] - 10 * V["V"][1:-1]).sum(), 0.00, places=2)
+
+    def test_velocity_to_power_xarray(self):
+        # Calculate a first order polynomial on an DV_Curve x=y line 10 times greater than the Q values
+        p, r2 = river.resource.polynomial_fit(np.arange(9), 10 * np.arange(9), 1)
+        # Because the polynomial line fits perfect we should expect the V to equal 10*Q
+        V = river.resource.discharge_to_velocity(
+            pd.Series(np.arange(9)), p, dimension="", to_pandas=False
+        )
+        # Calculate a first order polynomial on an VP_Curve x=y line 10 times greater than the V values
+        p2, r22 = river.resource.polynomial_fit(np.arange(9), 10 * np.arange(9), 1)
+        # Set cut in/out to exclude 1 bin on either end of V range
+        cut_in = V["V"].values[1]
+        cut_out = V["V"].values[-2]
+        # Power should be 10x greater and exclude the ends of V
+        P = river.resource.velocity_to_power(
+            V["V"], p2, cut_in, cut_out, to_pandas=False
+        )
+        # Cut in power zero
+        self.assertAlmostEqual(P["P"][0], 0.00, places=2)
+        # Cut out power zero
+        self.assertAlmostEqual(P["P"][-1], 0.00, places=2)
+        # Middle 10x greater than velocity
+        self.assertAlmostEqual(
+            (P["P"][1:-1] - 10 * V["V"][1:-1]).sum().values, 0.00, places=2
+        )
 
     def test_velocity_to_power_V_type_error(self):
         V = "invalid_type"  # String instead of pd.Series or pd.DataFrame
@@ -193,6 +241,21 @@ class TestResource(unittest.TestCase):
         mu = 5
         sigma = 1
         power_dist = pd.Series(np.random.normal(mu, sigma, 10000))
+        EP2 = river.resource.energy_produced(power_dist, seconds)
+        self.assertAlmostEqual(EP2, mu * seconds, places=1)
+
+    def test_energy_produced_xarray(self):
+        # If power is always X then energy produced with be x*seconds
+        X = 1
+        seconds = 1
+        P = xr.DataArray(data=X * np.ones(10))
+        EP = river.resource.energy_produced(P, seconds)
+        self.assertAlmostEqual(EP, X * seconds, places=1)
+
+        # for a normal distribution of Power EP = mean *seconds
+        mu = 5
+        sigma = 1
+        power_dist = xr.DataArray(data=np.random.normal(mu, sigma, 10000))
         EP2 = river.resource.energy_produced(power_dist, seconds)
         self.assertAlmostEqual(EP2, mu * seconds, places=1)
 

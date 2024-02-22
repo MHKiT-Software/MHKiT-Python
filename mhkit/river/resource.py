@@ -68,13 +68,13 @@ def exceedance_probability(D, dimension="", to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
+    D = convert_to_dataset(D, name="F")
+
     if dimension == "":
         dimension = list(D.coords)[0]
 
-    D = convert_to_dataset(D)
-
     # Calculate exceedence probability (F)
-    rank = D.rank()
+    rank = D.rank(dim=dimension)
     rank = len(D[dimension]) - rank + 1  # convert to descending rank
     F = 100 * rank / (len(D[dimension]) + 1)
 
@@ -282,9 +282,10 @@ def energy_produced(P, seconds):
         raise TypeError(f"seconds must be of type int or float. Got: {type(seconds)}")
 
     P = convert_to_dataset(P)
+    var = list(P.keys())[0]
 
     # Calculate Histogram of power
-    H, edges = np.histogram(P, 100)
+    H, edges = np.histogram(P[var], 100)
     # Create a distribution
     hist_dist = _rv_histogram([H, edges])
     # Sample range for pdf
