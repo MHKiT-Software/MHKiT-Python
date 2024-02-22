@@ -769,7 +769,7 @@ class _RDIReader:
             logging.info("Read Surface Layer Config")
         self._nbyte = 2 + 5
 
-    def read_cfgseg(self, bb=False):  # TODO
+    def read_cfgseg(self, bb=False):
         cfgstart = self.f.tell()
 
         if bb:
@@ -1404,7 +1404,7 @@ class _RDIReader:
 
         # If cell sizes change, depth-bin average the smaller cell sizes
         if len(self.cs) > 1:
-            bins_to_merge = (cell_sizes.max() / cell_sizes).astype(int)
+            bins_to_merge = cell_sizes.max() / cell_sizes
             idx_start = cs[:, 0].astype(int)
             idx_end = np.append(cs[1:, 0], dat["data_vars"]["number"].size).astype(int)
 
