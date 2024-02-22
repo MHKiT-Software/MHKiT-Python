@@ -1482,7 +1482,7 @@ class _RDIReader:
 
         # VMDAS and WinRiver have different set sampling frequency
         da = dat["attrs"]
-        if hasattr(da, "sourceprog") and (
+        if ("sourceprog" in da) and (
             da["sourceprog"].lower() in ["vmdas", "winriver", "winriver2"]
         ):
             da["fs"] = round(np.diff(dat["coords"]["time"]).mean() ** -1, 2)
