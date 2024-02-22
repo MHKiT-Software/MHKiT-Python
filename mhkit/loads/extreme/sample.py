@@ -47,6 +47,6 @@ def return_year_value(
             f"short_term_period_hr must be of type float or int. Got: {type(short_term_period_hr)}"
         )
 
-    p = 1 / (return_year * 365.25 * 24 / short_term_period_hr)
+    probability_of_exceedance = 1 / (return_year * 365.25 * 24 / short_term_period_hr)
 
-    return ppf(1 - p)
+    return ppf(1 - probability_of_exceedance)

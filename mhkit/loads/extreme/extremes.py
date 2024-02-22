@@ -33,7 +33,7 @@ import numpy as np
 from scipy import stats
 from scipy.stats import rv_continuous
 
-from mhkit.loads import extreme
+import mhkit.loads.extreme.peaks as peaks_distributions
 
 
 def ste_peaks(peaks_distribution: rv_continuous, npeaks: float) -> rv_continuous:
@@ -77,7 +77,9 @@ def ste_peaks(peaks_distribution: rv_continuous, npeaks: float) -> rv_continuous
     return short_term_extreme_peaks
 
 
-def block_maxima(time: np.ndarray, global_peaks: np.ndarray, t_st: float) -> np.ndarray:
+def block_maxima(
+    time: np.ndarray, global_peaks_data: np.ndarray, time_st: float
+) -> np.ndarray:
     """
     Find the block maxima of a time-series.
 
@@ -88,9 +90,9 @@ def block_maxima(time: np.ndarray, global_peaks: np.ndarray, t_st: float) -> np.
     ----------
     time : np.array
         Time array.
-    x : np.array
+    global_peaks_data : np.array
         global peaks timeseries.
-    t_st : float
+    time_st : float
         Short-term period.
 
     Returns
@@ -100,17 +102,19 @@ def block_maxima(time: np.ndarray, global_peaks: np.ndarray, t_st: float) -> np.
     """
     if not isinstance(time, np.ndarray):
         raise TypeError(f"time must be of type np.ndarray. Got: {type(time)}")
-    if not isinstance(global_peaks, np.ndarray):
+    if not isinstance(global_peaks_data, np.ndarray):
         raise TypeError(
-            f"global_peaks must be of type np.ndarray. Got: {type(global_peaks)}"
+            f"global_peaks_data must be of type np.ndarray. Got: {type(global_peaks_data)}"
         )
-    if not isinstance(t_st, float):
-        raise TypeError(f"t_st must be of type float. Got: {type(t_st)}")
+    if not isinstance(time_st, float):
+        raise TypeError(f"time_st must be of type float. Got: {type(time_st)}")
 
-    nblock = int(time[-1] / t_st)
+    nblock = int(time[-1] / time_st)
     block_max = np.zeros(int(nblock))
     for iblock in range(nblock):
-        i_x = global_peaks[(time >= iblock * t_st) & (time < (iblock + 1) * t_st)]
+        i_x = global_peaks_data[
+            (time >= iblock * time_st) & (time < (iblock + 1) * time_st)
+        ]
         block_max[iblock] = np.max(i_x)
     return block_max
 
@@ -214,9 +218,9 @@ def short_term_extreme(
         raise TypeError(f"method must be of type string. Got: {type(method)}")
 
     peaks_methods = {
-        "peaks_weibull": extreme.peaks_distribution_weibull,
-        "peaks_weibull_tail_fit": extreme.peaks_distribution_weibull_tail_fit,
-        "peaks_over_threshold": extreme.peaks_distribution_peaks_over_threshold,
+        "peaks_weibull": peaks_distributions.peaks_distribution_weibull,
+        "peaks_weibull_tail_fit": peaks_distributions.peaks_distribution_weibull_tail_fit,
+        "peaks_over_threshold": peaks_distributions.peaks_distribution_peaks_over_threshold,
     }
     blockmaxima_methods = {
         "block_maxima_gev": ste_block_maxima_gev,
@@ -225,10 +229,10 @@ def short_term_extreme(
 
     if method in peaks_methods:
         fit_peaks = peaks_methods[method]
-        _, peaks = extreme.global_peaks(time, data)
+        _, peaks = peaks_distributions.global_peaks(time, data)
         npeaks = len(peaks)
         time = time[-1] - time[0]
-        nst = extreme.number_of_short_term_peaks(npeaks, time, t_st)
+        nst = peaks_distributions.number_of_short_term_peaks(npeaks, time, t_st)
         peaks_dist = fit_peaks(peaks)
         short_term_extreme_dist = ste_peaks(peaks_dist, nst)
     elif method in blockmaxima_methods:

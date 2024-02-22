@@ -7,7 +7,7 @@ short-term extreme distributions,and performing wave amplitude
 normalization for most likely extreme response analysis.
 """
 
-from .extremes import (
+from mhkit.loads.extreme.extremes import (
     ste_peaks,
     block_maxima,
     ste_block_maxima_gev,
@@ -17,14 +17,14 @@ from .extremes import (
     full_seastate_long_term_extreme,
 )
 
-from .mler import (
+from mhkit.loads.extreme.mler import (
     mler_coefficients,
     mler_simulation,
     mler_wave_amp_normalize,
     mler_export_time_series,
 )
 
-from .peaks import (
+from mhkit.loads.extreme.peaks import (
     _peaks_over_threshold,
     global_peaks,
     number_of_short_term_peaks,
@@ -34,6 +34,6 @@ from .peaks import (
     peaks_distribution_peaks_over_threshold,
 )
 
-from .sample import (
+from mhkit.loads.extreme.sample import (
     return_year_value,
 )
