@@ -32,6 +32,7 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 import fatpack
+from mhkit.utils.type_handling import to_numeric_array
 
 
 def bin_statistics(data, bin_against, bin_edges, data_signal=None, to_pandas=True):
@@ -66,8 +67,8 @@ def bin_statistics(data, bin_against, bin_edges, data_signal=None, to_pandas=Tru
         )
 
     # Use _to_numeric_array to process bin_against and bin_edges
-    bin_against = _to_numeric_array(bin_against, "bin_against")
-    bin_edges = _to_numeric_array(bin_edges, "bin_edges")
+    bin_against = to_numeric_array(bin_against, "bin_against")
+    bin_edges = to_numeric_array(bin_edges, "bin_edges")
 
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
@@ -153,9 +154,9 @@ def blade_moments(blade_coefficients, flap_offset, flap_raw, edge_offset, edge_r
     """
 
     # Convert and validate blade_coefficients, flap_raw, and edge_raw
-    blade_coefficients = _to_numeric_array(blade_coefficients, "blade_coefficients")
-    flap_raw = _to_numeric_array(flap_raw, "flap_raw")
-    edge_raw = _to_numeric_array(edge_raw, "edge_raw")
+    blade_coefficients = to_numeric_array(blade_coefficients, "blade_coefficients")
+    flap_raw = to_numeric_array(flap_raw, "flap_raw")
+    edge_raw = to_numeric_array(edge_raw, "edge_raw")
 
     if not isinstance(flap_offset, (float, int)):
         raise TypeError(
@@ -209,7 +210,7 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
         Damage equivalent load (DEL) of single data signal
     """
 
-    _to_numeric_array(data_signal, "data_signal")
+    to_numeric_array(data_signal, "data_signal")
     if not isinstance(m, (float, int)):
         raise TypeError(f"m must be of type float or int. Got: {type(m)}")
     if not isinstance(bin_num, (float, int)):
@@ -228,21 +229,3 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     del_value = del_s.sum() ** (1 / m)
 
     return del_value
-
-
-# Function to check and convert input to numeric np.ndarray
-def _to_numeric_array(data, name):
-    if isinstance(data, (list, np.ndarray, pd.Series, xr.DataArray)):
-        data = np.asarray(data)
-        if not np.issubdtype(data.dtype, np.number):
-            raise TypeError(
-                (f"{name} must contain numeric data." + f" Got data type: {data.dtype}")
-            )
-    else:
-        raise TypeError(
-            (
-                f"{name} must be a list, np.ndarray, pd.Series,"
-                + f" or xr.DataArray. Got: {type(data)}"
-            )
-        )
-    return data
