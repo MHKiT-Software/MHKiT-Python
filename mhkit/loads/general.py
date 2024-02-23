@@ -5,7 +5,7 @@ import numpy as np
 import fatpack
 
 
-def bin_statistics(data, bin_against, bin_edges, data_signal=[], to_pandas=True):
+def bin_statistics(data, bin_against, bin_edges, data_signal=None, to_pandas=True):
     """
     Bins calculated statistics against data signal (or channel)
     according to IEC TS 62600-3:2020 ED1.
@@ -76,6 +76,8 @@ def bin_statistics(data, bin_against, bin_edges, data_signal=[], to_pandas=True)
     if isinstance(data, pd.DataFrame):
         data = data.to_xarray()
 
+    if data_signal is None:
+        data_signal = []
     # Determine variables to analyze
     if len(data_signal) == 0:  # if not specified, bin all variables
         data_signal = list(data.keys())
