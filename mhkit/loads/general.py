@@ -27,6 +27,7 @@ References:
 - G. Marsh et. al., International Journal of Fatigue, 82 (2016) 757-765.
 """
 
+from typing import Union, List, Tuple, Optional
 from scipy.stats import binned_statistic
 import pandas as pd
 import xarray as xr
@@ -35,7 +36,13 @@ import fatpack
 from mhkit.utils.type_handling import to_numeric_array
 
 
-def bin_statistics(data, bin_against, bin_edges, data_signal=None, to_pandas=True):
+def bin_statistics(
+    data: Union[pd.DataFrame, xr.Dataset],
+    bin_against: np.ndarray,
+    bin_edges: np.ndarray,
+    data_signal: Optional[List[str]] = None,
+    to_pandas: bool = True,
+) -> Tuple[Union[pd.DataFrame, xr.Dataset], Union[pd.DataFrame, xr.Dataset]]:
     """
     Bins calculated statistics against data signal (or channel)
     according to IEC TS 62600-3:2020 ED1.
@@ -128,7 +135,13 @@ def bin_statistics(data, bin_against, bin_edges, data_signal=None, to_pandas=Tru
     return bin_mean, bin_std
 
 
-def blade_moments(blade_coefficients, flap_offset, flap_raw, edge_offset, edge_raw):
+def blade_moments(
+    blade_coefficients: np.ndarray,
+    flap_offset: float,
+    flap_raw: np.ndarray,
+    edge_offset: float,
+    edge_raw: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Transfer function for deriving blade flap and edge moments using blade matrix.
 
@@ -178,7 +191,12 @@ def blade_moments(blade_coefficients, flap_offset, flap_raw, edge_offset, edge_r
     return m_flap, m_edge
 
 
-def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
+def damage_equivalent_load(
+    data_signal: np.ndarray,
+    m: Union[float, int],
+    bin_num: int = 100,
+    data_length: Union[float, int] = 600,
+) -> float:
     """
     Calculates the damage equivalent load of a single data signal (or channel)
     based on IEC TS 62600-3:2020 ED1. 4-point rainflow counting algorithm from
