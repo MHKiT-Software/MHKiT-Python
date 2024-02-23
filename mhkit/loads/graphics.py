@@ -14,13 +14,22 @@ related to a given variable or dataset.
       a specified path.
 """
 
+from typing import Optional, Dict, Any
+import numpy as np
 import matplotlib.pyplot as plt
 
 from mhkit.utils.type_handling import to_numeric_array
 
 
 # pylint: disable=R0914
-def plot_statistics(x, y_mean, y_max, y_min, y_stdev=None, **kwargs):
+def plot_statistics(
+    x: np.ndarray,
+    y_mean: np.ndarray,
+    y_max: np.ndarray,
+    y_min: np.ndarray,
+    y_stdev: Optional[np.ndarray] = None,
+    **kwargs: Dict[str, Any],
+) -> plt.Axes:
     """
     Plot showing standard raw statistics of variable
 
@@ -105,15 +114,15 @@ def plot_statistics(x, y_mean, y_max, y_min, y_stdev=None, **kwargs):
 
 # pylint: disable=R0913
 def plot_bin_statistics(
-    bin_centers,
-    bin_mean,
-    bin_max,
-    bin_min,
-    bin_mean_std,
-    bin_max_std,
-    bin_min_std,
-    **kwargs,
-):
+    bin_centers: np.ndarray,
+    bin_mean: np.ndarray,
+    bin_max: np.ndarray,
+    bin_min: np.ndarray,
+    bin_mean_std: np.ndarray,
+    bin_max_std: np.ndarray,
+    bin_min_std: np.ndarray,
+    **kwargs: Dict[str, Any],
+) -> plt.Axes:
     """
     Plot showing standard binned statistics of single variable
 
