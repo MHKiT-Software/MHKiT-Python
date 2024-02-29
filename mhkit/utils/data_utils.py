@@ -45,11 +45,13 @@ def convert_to_dataset(data, name="data"):
     if not isinstance(data, (pd.DataFrame, pd.Series, xr.DataArray, xr.Dataset)):
         raise TypeError(
             "Input data must be of type pandas.DataFrame, pandas.Series, "
-            "xarray.DataArray, or xarray.Dataset"
+            "xarray.DataArray, or xarray.Dataset."
+            f"Got {type(data)}."
         )
 
     if not isinstance(name, str):
-        raise TypeError("The 'name' parameter must be a string")
+        raise TypeError("The 'name' parameter must be a string"
+                        f"Got {type(name)}.")
 
     # Takes data that could be pd.DataFrame, pd.Series, xr.DataArray, or
     # xr.Dataset and converts it to xr.Dataset
@@ -110,7 +112,7 @@ def convert_to_dataArray(data, name="data"):
         data, (np.ndarray, pd.DataFrame, pd.Series, xr.DataArray, xr.Dataset)
     ):
         raise TypeError(
-            "Input data must be of type pandas.DataFrame, pandas.Series, "
+            "Input data must be of type np.ndarray, pandas.DataFrame, pandas.Series, "
             "xarray.DataArray, or xarray.Dataset"
         )
 
