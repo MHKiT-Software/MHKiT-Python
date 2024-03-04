@@ -191,6 +191,9 @@ def power_curve(
                          dimensions of 'time' (temporal) and 'range' (spatial)."
         )
 
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
+
     # Numeric positive checks
     numeric_params = [
         hub_height,
@@ -391,6 +394,7 @@ def velocity_profiles(
     sampling_frequency,
     window_avg_time=600,
     function="mean",
+    to_pandas=True,
 ):
     """
     Calculates profiles of the mean, root-mean-square (RMS), or standard
@@ -413,6 +417,8 @@ def velocity_profiles(
         Time averaging window in seconds. Defaults to 600.
     func : string
         Function to apply. One of 'mean','rms', or 'std'
+    to_pandas: bool, optional
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     ---------
@@ -429,6 +435,8 @@ def velocity_profiles(
 
     if function not in ["mean", "rms", "std"]:
         raise ValueError("`function` must be one of 'mean', 'rms', or 'std'.")
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     # Streamwise data
     U = velocity
@@ -462,7 +470,10 @@ def velocity_profiles(
     # Forward fill to surface
     iec_profiles = iec_profiles.ffill("range", limit=None)
 
-    return iec_profiles.to_pandas()
+    if to_pandas:
+        iec_profiles = iec_profiles.to_pandas()
+
+    return iec_profiles
 
 
 def device_efficiency(
@@ -513,6 +524,8 @@ def device_efficiency(
             "Velocity should be 2 dimensional and have \
                             dimensions of 'time' (temporal) and 'range' (spatial)."
         )
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     # Streamwise data
     U = abs(velocity)

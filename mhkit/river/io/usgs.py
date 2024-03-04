@@ -52,6 +52,9 @@ def read_usgs_file(file_name, to_pandas=True):
         Data indexed by datetime with columns named according to the parameter's
         variable description
     """
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
+
     with open(file_name) as json_file:
         text = json.load(json_file)
 
@@ -108,6 +111,9 @@ def request_usgs_data(
     """
     if not data_type in ["Daily", "Instantaneous"]:
         raise ValueError(f"data_type must be Daily or Instantaneous. Got: {data_type}")
+        
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     # Define the path to the cache directory
     cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit", "usgs")

@@ -111,6 +111,8 @@ def request_noaa_data(
         raise TypeError(
             f"Expected 'clear_cache' to be of type bool, but got {type(clear_cache)}"
         )
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     # Define the path to the cache directory
     cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit", "noaa")
@@ -258,6 +260,8 @@ def read_noaa_json(filename, to_pandas=True):
         Site metadata. If returning xarray, metadata is instead attached to 
         the data's attributes.
     """
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     with open(filename) as outfile:
         json_data = json.load(outfile)

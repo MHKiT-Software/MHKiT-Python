@@ -163,6 +163,21 @@ class TestResource(unittest.TestCase):
         assert_allclose(df95a.values[1], test_df95a, atol=1e-5)
         assert_allclose(df95b.values[1], test_df95b, atol=1e-5)
 
+    def test_velocity_profiles_xarray(self):
+        df94 = performance.velocity_profiles(
+            velocity=self.ds["vel"].sel(dir="streamwise"),
+            hub_height=4.2,
+            water_depth=10,
+            sampling_frequency=1,
+            window_avg_time=600,
+            function="mean",
+            to_pandas=False
+        )
+
+        test_df94 = np.array([0.32782955, 0.69326691, 1.00948623])
+
+        assert_allclose(df94[1], test_df94, atol=1e-5)
+
     def test_power_efficiency(self):
         df97 = performance.device_efficiency(
             self.power,
