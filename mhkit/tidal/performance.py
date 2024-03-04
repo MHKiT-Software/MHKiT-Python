@@ -297,7 +297,7 @@ def power_curve(
             "P_min": P_bar_min
         }
     )
-    out.rename({"speed_bins": "U_bins"})
+    out = out.rename({"speed_bins": "U_bins"})
 
     if to_pandas:
         out = out.to_pandas()
@@ -551,7 +551,7 @@ def device_efficiency(
             "Efficiency": eta
         }
     )
-    out.rename({"speed_bins": "U_bins"})
+    out = out.rename({"speed_bins": "U_bins"})
 
     if to_pandas:
         out = out.to_pandas()

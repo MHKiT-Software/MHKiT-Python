@@ -39,29 +39,29 @@ class TestIO(unittest.TestCase):
     def tearDownClass(self):
         pass
 
-    # def test_load_noaa_data(self):
-    #     """
-    #     Test that the read_noaa_json function reads data from a
-    #     JSON file and returns a DataFrame and metadata with the
-    #     correct shape and columns.
-    #     """
-    #     file_name = join(datadir, "s08010.json")
-    #     data, metadata = tidal.io.noaa.read_noaa_json(file_name)
-    #     self.assertTrue(np.all(data.columns == ["s", "d", "b"]))
-    #     self.assertEqual(data.shape, (18890, 3))
-    #     self.assertEqual(metadata['id'], 's08010')
+    def test_load_noaa_data(self):
+        """
+        Test that the read_noaa_json function reads data from a
+        JSON file and returns a DataFrame and metadata with the
+        correct shape and columns.
+        """
+        file_name = join(datadir, "s08010.json")
+        data, metadata = tidal.io.noaa.read_noaa_json(file_name)
+        self.assertTrue(np.all(data.columns == ["s", "d", "b"]))
+        self.assertEqual(data.shape, (18890, 3))
+        self.assertEqual(metadata['id'], 's08010')
         
-    # def test_load_noaa_data_xarray(self):
-    #     """
-    #     Test that the read_noaa_json function reads data from a
-    #     JSON file and returns a DataFrame and metadata with the
-    #     correct shape and columns.
-    #     """
-    #     file_name = join(datadir, "s08010.json")
-    #     data = tidal.io.noaa.read_noaa_json(file_name, to_pandas=False)
-    #     self.assertTrue(np.all(list(data.variables) == ["index", "s", "d", "b"]))
-    #     self.assertEqual(len(data['index']), 18890)
-    #     self.assertEqual(data.attrs['id'], 's08010')
+    def test_load_noaa_data_xarray(self):
+        """
+        Test that the read_noaa_json function reads data from a
+        JSON file and returns a DataFrame and metadata with the
+        correct shape and columns.
+        """
+        file_name = join(datadir, "s08010.json")
+        data = tidal.io.noaa.read_noaa_json(file_name, to_pandas=False)
+        self.assertTrue(np.all(list(data.variables) == ["index", "s", "d", "b"]))
+        self.assertEqual(len(data['index']), 18890)
+        self.assertEqual(data.attrs['id'], 's08010')
 
     def test_request_noaa_data_basic(self):
         """

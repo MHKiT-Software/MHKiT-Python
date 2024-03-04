@@ -108,7 +108,7 @@ def principal_flow_directions(directions, width_dir):
     N_dir = int(360 / width_dir)
     # Compute directional histogram
     H1, dir_edges = np.histogram(directions, bins=N_dir, range=[0, 360], density=True)
-    # Convert to perecnt
+    # Convert to percent
     H1 = H1 * 100  # [%]
     # Determine if there are an even or odd number of bins
     odd = bool(N_dir % 2)
@@ -146,7 +146,7 @@ def principal_flow_directions(directions, width_dir):
     # Compute 1D histograms on both semi circles
     Hd1, dir1_edges = np.histogram(d1, bins=n_dir, density=True)
     Hd2, dir2_edges = np.histogram(d2, bins=n_dir, density=True)
-    # Convert to perecnt
+    # Convert to percent
     Hd1 = Hd1 * 100  # [%]
     Hd2 = Hd2 * 100  # [%]
     # Principal Directions average of the 2 bins
