@@ -168,9 +168,9 @@ def discharge_to_velocity(D, polynomial_coefficients, dimension="", to_pandas=Tr
 
     # Calculate velocity using polynomial
     V = xr.DataArray(
-        data = polynomial_coefficients(D),
-        dims = dimension,
-        coords = {dimension: D[dimension]}
+        data=polynomial_coefficients(D),
+        dims=dimension,
+        coords={dimension: D[dimension]},
     )
     V.name = "V"
 
@@ -233,12 +233,8 @@ def velocity_to_power(
     # Power for velocity values outside lower and upper bounds Turbine produces 0 power
     power[V < cut_in] = 0.0
     power[V > cut_out] = 0.0
-    
-    P = xr.DataArray(
-        data = power,
-        dims = dimension,
-        coords = {dimension: V[dimension]}
-    )
+
+    P = xr.DataArray(data=power, dims=dimension, coords={dimension: V[dimension]})
     P.name = "P"
 
     if to_pandas:
@@ -283,4 +279,3 @@ def energy_produced(P, seconds):
     E = seconds * expected_val_of_power
 
     return E
-    

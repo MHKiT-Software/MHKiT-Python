@@ -50,8 +50,7 @@ def convert_to_dataset(data, name="data"):
         )
 
     if not isinstance(name, str):
-        raise TypeError("The 'name' parameter must be a string"
-                        f"Got {type(name)}.")
+        raise TypeError("The 'name' parameter must be a string" f"Got {type(name)}.")
 
     # Takes data that could be pd.DataFrame, pd.Series, xr.DataArray, or
     # xr.Dataset and converts it to xr.Dataset
