@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import warnings
+from mhkit.utils import convert_to_dataArray
 
 from mhkit import dolfyn
 from mhkit.river.performance import (
@@ -132,34 +133,6 @@ def _slice_rectangular_capture_area(height, width, hub_height, doppler_cell_size
     return xr.DataArray(As_slc, coords={"range": A_rng})
 
 
-def _check_dtype(var, var_name):
-    """
-    Checks the datatype of a variable, converting pandas Series to xarray DataArray,
-    or raising an error if the datatype is neither.
-
-    Parameters
-    -------------
-    var: xr.DataArray or pd.Series
-        The variable to be checked.
-
-    var_name: str
-        The name of the variable, used for error message.
-
-    Returns
-    ---------
-    var: xr.DataArray
-        The input variable, converted to xr.DataArray if it was a pd.Series.
-    """
-
-    if isinstance(var, pd.Series):
-        var = var.to_xarray()
-    elif not isinstance(var, xr.DataArray):
-        raise TypeError(
-            var_name.capitalize() + " must be of type xr.DataArray or pd.Series"
-        )
-    return var
-
-
 def power_curve(
     power,
     velocity,
@@ -171,6 +144,7 @@ def power_curve(
     diameter=None,
     height=None,
     width=None,
+    to_pandas=True
 ):
     """
     Calculates power curve and power statistics for a marine energy
@@ -178,9 +152,9 @@ def power_curve(
 
     Parameters
     -------------
-    power: pandas.Series or xarray.DataArray (time)
+    power: numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Device power output timeseries.
-    velocity: pandas.Series or xarray.DataArray ([range,] time)
+    velocity: numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         1D or 2D streamwise sea water velocity or sea water speed.
     hub_height: numeric
         Turbine hub height altitude above the seabed. Assumes ADCP
@@ -199,18 +173,20 @@ def power_curve(
         Required for turbine_profile='rectangular'. Defaults to None.
     width: numeric, optional
         Required for turbine_profile='rectangular'. Defaults to None.
+    to_pandas: bool, optional
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     ---------
-    pandas.DataFrame
+    out: pandas DataFrame or xarray Dataset
         Power-weighted velocity, mean power, power std dev, max and
         min power vs hub-height velocity.
     """
 
     # Velocity should be a 2D xarray or pandas array and have dims (range, time)
     # Power should have a timestamp coordinate/index
-    power = _check_dtype(power, "power")
-    velocity = _check_dtype(velocity, "velocity")
+    power = convert_to_dataArray(power)
+    velocity = convert_to_dataArray(velocity)
     if len(velocity.shape) != 2:
         raise ValueError(
             "Velocity should be 2 dimensional and have \
@@ -313,18 +289,20 @@ def power_curve(
     P_bar_max = P_bar_vel.groupby_bins("speed", U_bins).max()
     P_bar_min = P_bar_vel.groupby_bins("speed", U_bins).min()
 
-    out = pd.DataFrame(
-        (
-            U_hub_mean.to_series(),
-            U_hat_mean.to_series(),
-            P_bar_mean.to_series(),
-            P_bar_std.to_series(),
-            P_bar_max.to_series(),
-            P_bar_min.to_series(),
-        )
-    ).T
-    out.columns = ["U_avg", "U_avg_power_weighted", "P_avg", "P_std", "P_max", "P_min"]
-    out.index.name = "U_bins"
+    out = xr.Dataset(
+        {
+            "U_avg": U_hub_mean,
+            "U_avg_power_weighted": U_hat_mean,
+            "P_avg": P_bar_mean,
+            "P_std": P_bar_std,
+            "P_max": P_bar_max,
+            "P_min": P_bar_min
+        }
+    )
+    out.rename({"speed_bins": "U_bins"})
+
+    if to_pandas:
+        out = out.to_pandas()
 
     return out
 
@@ -424,7 +402,7 @@ def velocity_profiles(
 
     Parameters
     -------------
-    velocity : pandas.Series or xarray.DataArray ([range,] time)
+    velocity : numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         1D or 2D streamwise sea water velocity or sea water speed.
     hub_height : numeric
         Turbine hub height altitude above the seabed. Assumes ADCP depth bins
@@ -444,7 +422,7 @@ def velocity_profiles(
         Average velocity profiles based on ensemble mean velocity.
     """
 
-    velocity = _check_dtype(velocity, "velocity")
+    velocity = convert_to_dataArray(velocity, "velocity")
     if len(velocity.shape) != 2:
         raise ValueError(
             "Velocity should be 2 dimensional and have \
@@ -497,15 +475,16 @@ def device_efficiency(
     hub_height,
     sampling_frequency,
     window_avg_time=600,
+    to_pandas=True
 ):
     """
     Calculates marine energy device efficiency based on IEC/TS 62600-200 Section 9.7.
 
     Parameters
     -------------
-    power : pandas.Series or xarray.DataArray (time)
+    power : numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Device power output timeseries in Watts.
-    velocity : pandas.Series or xarray.DataArray ([range,] time)
+    velocity : numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         1D or 2D streamwise sea water velocity or sea water speed in m/s.
     water_density : float, pandas.Series or xarray.DataArray
         Sea water density in kg/m^3.
@@ -518,6 +497,8 @@ def device_efficiency(
         ADCP sampling frequency in Hz.
     window_avg_time : int, optional
         Time averaging window in seconds. Defaults to 600.
+    to_pandas: bool, optional
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     ---------
@@ -527,8 +508,8 @@ def device_efficiency(
 
     # Velocity should be a 2D xarray or pandas array and have dims (range, time)
     # Power should have a timestamp coordinate/index
-    power = _check_dtype(power, "power")
-    velocity = _check_dtype(velocity, "velocity")
+    power = convert_to_dataArray(power, "power")
+    velocity = convert_to_dataArray(velocity, "velocity")
     if len(velocity.shape) != 2:
         raise ValueError(
             "Velocity should be 2 dimensional and have \
@@ -540,7 +521,8 @@ def device_efficiency(
     time = U["time"].values
 
     # Power: Interpolate to velocity timeseries
-    power = _interpolate_power_to_velocity_timeseries(power, U)
+    # power = _interpolate_power_to_velocity_timeseries(power, U) TODO - REMOVE, dead code?
+    power.interp(time=U["time"], method="linear")
 
     # Create binner
     bnr = dolfyn.VelBinner(
@@ -565,15 +547,17 @@ def device_efficiency(
 
     # Efficiency
     eta = P_vel / P_resource
+    
+    out = xr.Dataset(
+        {
+            "U_avg": vel_hub,
+            "Efficiency": eta
+        }
+    )
+    out.rename({"speed_bins": "U_bins"})
 
-    out = pd.DataFrame(
-        (
-            vel_hub.to_series(),
-            eta.to_series(),
-        )
-    ).T
-    out.columns = ["U_avg", "Efficiency"]
-    out.index.name = "U_bins"
+    if to_pandas:
+        out = out.to_pandas()
 
     return out
 
