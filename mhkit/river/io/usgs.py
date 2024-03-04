@@ -111,7 +111,7 @@ def request_usgs_data(
     """
     if not data_type in ["Daily", "Instantaneous"]:
         raise ValueError(f"data_type must be Daily or Instantaneous. Got: {data_type}")
-        
+
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 

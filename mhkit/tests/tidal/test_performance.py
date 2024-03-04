@@ -76,7 +76,7 @@ class TestResource(unittest.TestCase):
 
         assert_allclose(df93_circ.values[-2], test_circ, atol=1e-5)
         assert_allclose(df93_rect.values[-3], test_rect, atol=1e-5)
-        
+
     def test_power_curve_xarray(self):
         df93_circ = performance.power_curve(
             power=self.power,
@@ -171,7 +171,7 @@ class TestResource(unittest.TestCase):
             sampling_frequency=1,
             window_avg_time=600,
             function="mean",
-            to_pandas=False
+            to_pandas=False,
         )
 
         test_df94 = np.array([0.32782955, 0.69326691, 1.00948623])
@@ -205,7 +205,7 @@ class TestResource(unittest.TestCase):
         )
 
         test_df97 = np.array(24.79197)
-        assert_allclose(df97['Efficiency'][-1], test_df97, atol=1e-5)
+        assert_allclose(df97["Efficiency"][-1], test_df97, atol=1e-5)
 
 
 if __name__ == "__main__":

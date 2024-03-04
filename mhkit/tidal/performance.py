@@ -142,7 +142,7 @@ def power_curve(
     diameter=None,
     height=None,
     width=None,
-    to_pandas=True
+    to_pandas=True,
 ):
     """
     Calculates power curve and power statistics for a marine energy
@@ -297,7 +297,7 @@ def power_curve(
             "P_avg": P_bar_mean,
             "P_std": P_bar_std,
             "P_max": P_bar_max,
-            "P_min": P_bar_min
+            "P_min": P_bar_min,
         }
     )
     out = out.rename({"speed_bins": "U_bins"})
@@ -484,7 +484,7 @@ def device_efficiency(
     hub_height,
     sampling_frequency,
     window_avg_time=600,
-    to_pandas=True
+    to_pandas=True,
 ):
     """
     Calculates marine energy device efficiency based on IEC/TS 62600-200 Section 9.7.
@@ -557,13 +557,8 @@ def device_efficiency(
 
     # Efficiency
     eta = P_vel / P_resource
-    
-    out = xr.Dataset(
-        {
-            "U_avg": vel_hub,
-            "Efficiency": eta
-        }
-    )
+
+    out = xr.Dataset({"U_avg": vel_hub, "Efficiency": eta})
     out = out.rename({"speed_bins": "U_bins"})
 
     if to_pandas:

@@ -79,7 +79,7 @@ def request_noaa_data(
         Data indexed by datetime with columns named according to the parameter's
         variable description
     metadata : dict or None
-        Request metadata. If returning xarray, metadata is instead attached to 
+        Request metadata. If returning xarray, metadata is instead attached to
         the data's attributes.
     """
     # Type check inputs
@@ -257,7 +257,7 @@ def read_noaa_json(filename, to_pandas=True):
     data: DataFrame
         Timeseries Site data of direction and speed
     metadata : dictionary or None
-        Site metadata. If returning xarray, metadata is instead attached to 
+        Site metadata. If returning xarray, metadata is instead attached to
         the data's attributes.
     """
     if not isinstance(to_pandas, bool):
@@ -283,7 +283,7 @@ def read_noaa_json(filename, to_pandas=True):
             index=pd.to_datetime(json_data["index"]),
             columns=json_data["columns"],
         )
-    
+
     if to_pandas:
         return data, metadata
     else:

@@ -134,7 +134,7 @@ def principal_flow_directions(directions, width_dir):
     floodEbbNormalDegree1 = min(floodEbbNormalDegree1, floodEbbNormalDegree2)
     floodEbbNormalDegree2 = floodEbbNormalDegree1 + 180.0
     # Slice directions on the 2 semi circles
-    mask = (directions>=floodEbbNormalDegree1) & (directions<=floodEbbNormalDegree2)
+    mask = (directions >= floodEbbNormalDegree1) & (directions <= floodEbbNormalDegree2)
     d1 = directions[mask]
     d2 = directions[~mask]
     # Shift second set of of directions to not break between 360 and 0
