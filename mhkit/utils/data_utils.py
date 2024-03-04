@@ -146,7 +146,7 @@ def convert_to_dataArray(data, name="data"):
             data=data, dims="index", coords={"index": np.arange(len(data))}
         )
 
-    # If there's not data name, add one to prevent issues calling or converting the dataArray later one
+    # If there's no data name, add one to prevent issues calling or converting the dataArray later one
     if data.name == None:
         data.name = name
 

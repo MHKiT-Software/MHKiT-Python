@@ -21,7 +21,7 @@ class TestMooring(unittest.TestCase):
         fpath = join(datadir, "Test.MD.out")
         inputpath = join(datadir, "TestInput.MD.dat")
         ds = mooring.io.read_moordyn(fpath, input_file=inputpath)
-        isinstance(ds, xr.Dataset)
+        self.assertIsInstance(ds, xr.Dataset)
 
     def test_lay_length(self):
         fpath = join(datadir, "line1_test.nc")
@@ -42,7 +42,7 @@ class TestMooring(unittest.TestCase):
             zlabel="Depth [m]",
             title="Mooring Line Example",
         )
-        isinstance(ani, FuncAnimation)
+        self.assertIsInstance(ani, FuncAnimation)
 
     def test_animate_2d(self):
         dsani = self.ds.sel(Time=slice(0, 10))
@@ -56,7 +56,7 @@ class TestMooring(unittest.TestCase):
             ylabel="Depth [m]",
             title="Mooring Line Example",
         )
-        isinstance(ani2d, FuncAnimation)
+        self.assertIsInstance(ani2d, FuncAnimation)
 
     def test_animate_2d_update(self):
         ani2d = mooring.graphics.animate(
