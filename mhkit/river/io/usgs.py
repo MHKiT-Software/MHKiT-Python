@@ -8,7 +8,7 @@ from mhkit.utils.cache import handle_caching
 
 
 def _read_usgs_json(text, to_pandas=True):
-    data = xr.Dataset
+    data = xr.Dataset()
     for i in range(len(text["value"]["timeSeries"])):
         try:
             site_name = text["value"]["timeSeries"][i]["variable"][
