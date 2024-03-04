@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import bisect
 from scipy.interpolate import interpn as _interpn
 from scipy.interpolate import interp1d
@@ -7,6 +6,7 @@ import matplotlib.pyplot as plt
 from mhkit.river.resource import exceedance_probability
 from mhkit.tidal.resource import _histogram, _flood_or_ebb
 from mhkit.river.graphics import plot_velocity_duration_curve, _xy_plot
+from mhkit.utils import convert_to_dataArray
 
 
 def _initialize_polar(ax=None, metadata=None, flood=None, ebb=None):
@@ -96,15 +96,8 @@ def _check_inputs(directions, velocities, flood, ebb):
         Direction in degrees added to theta ticks
     """
 
-    if not isinstance(velocities, (np.ndarray, pd.Series)):
-        raise TypeError("velocities must be of type np.ndarry or pd.Series")
-    if isinstance(velocities, np.ndarray):
-        velocities = pd.Series(velocities)
-
-    if not isinstance(directions, (np.ndarray, pd.Series)):
-        raise TypeError("directions must be of type np.ndarry or pd.Series")
-    if isinstance(directions, np.ndarray):
-        directions = pd.Series(directions)
+    velocities = convert_to_dataArray(velocities)
+    directions = convert_to_dataArray(directions)
 
     if len(velocities) != len(directions):
         raise ValueError("velocities and directions must have the same length")
