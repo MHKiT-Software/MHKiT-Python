@@ -521,7 +521,6 @@ def device_efficiency(
     time = U["time"].values
 
     # Power: Interpolate to velocity timeseries
-    # power = _interpolate_power_to_velocity_timeseries(power, U) TODO - REMOVE, dead code?
     power.interp(time=U["time"], method="linear")
 
     # Create binner
@@ -560,46 +559,6 @@ def device_efficiency(
         out = out.to_pandas()
 
     return out
-
-
-def _interpolate_power_to_velocity_timeseries(power, U):
-    """
-    Interpolates the power timeseries to match the velocity timeseries time points.
-
-    This function checks if the input power is an xarray DataArray or a pandas Series
-    with a DatetimeIndex and performs interpolation accordingly. If the input power
-    does not match either of these types, a warning is issued and the original power
-    timeseries is returned.
-
-    Parameters
-    -------------
-    power : xarray.DataArray or pandas.Series
-        The device power output timeseries.
-    U : xarray.DataArray
-        2D streamwise sea water velocity or sea water speed.
-
-    Returns
-    ---------
-    xarray.DataArray or pandas.Series
-        Interpolated power timeseries.
-
-    Raises
-    ---------
-    Warning
-        If the input power is not a xarray DataArray or pandas Series with
-        a DatetimeIndex, a warning is issued stating that the function assumes the
-        power timestamps match the velocity timestamps.
-    """
-
-    if "xarray" in type(power).__module__:
-        return power.interp(time=U["time"], method="linear")
-    elif "pandas" in type(power).__module__ and isinstance(
-        power.index, pd.DatetimeIndex
-    ):
-        return power.to_xarray().interp(time=U["time"], method="linear")
-    else:
-        warnings.warn("Assuming `power` timestamps match `velocity` timestamps")
-        return power
 
 
 def _calculate_density(water_density, bnr, mean_hub_vel, time):
