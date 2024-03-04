@@ -43,6 +43,7 @@ def request_noaa_data(
     proxy=None,
     write_json=None,
     clear_cache=False,
+    to_pandas=True,
 ):
     """
     Loads NOAA current data directly from https://tidesandcurrents.noaa.gov/api/
@@ -69,12 +70,17 @@ def request_noaa_data(
         Name of json file to write data
     clear_cache : bool
         If True, the cache for this specific request will be cleared.
+    to_pandas : bool, optional
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     -------
-    data : pandas DataFrame
+    data : pandas DataFrame or xarray Dataset
         Data indexed by datetime with columns named according to the parameter's
         variable description
+    metadata : dict or None
+        Request metadata. If returning xarray, metadata is instead attached to 
+        the data's attributes.
     """
     # Type check inputs
     if not isinstance(station, str):
@@ -120,7 +126,12 @@ def request_noaa_data(
     if cached_data is not None:
         if write_json:
             shutil.copy(cache_filepath, write_json)
-        return cached_data, cached_metadata
+        if to_pandas:
+            return cached_data, cached_metadata
+        else:
+            cached_data = cached_data.to_xarray()
+            cached_data.attrs = cached_metadata
+            return cached_data
     # If no cached data is available, make the API request
     # no coverage bc in coverage runs we have already cached the data/ run this code
     else:  # pragma: no cover
@@ -182,7 +193,12 @@ def request_noaa_data(
         if write_json:
             shutil.copy(cache_filepath, write_json)
 
-        return data, metadata
+        if to_pandas:
+            return data, metadata
+        else:
+            data = data.to_xarray()
+            data.attrs = metadata
+            return data
 
 
 def _xml_to_dataframe(response):
@@ -223,7 +239,7 @@ def _xml_to_dataframe(response):
     return df, metadata
 
 
-def read_noaa_json(filename):
+def read_noaa_json(filename, to_pandas=True):
     """
     Returns site DataFrame and metadata from a json saved from the
     request_noaa_data
@@ -231,12 +247,16 @@ def read_noaa_json(filename):
     ----------
     filename: string
         filename with path of json file to load
+    to_pandas : bool, optional
+        Flag to output pandas instead of xarray. Default = True.
+
     Returns
     -------
     data: DataFrame
         Timeseries Site data of direction and speed
-    metadata: dictionary
-        Site metadata
+    metadata : dictionary or None
+        Site metadata. If returning xarray, metadata is instead attached to 
+        the data's attributes.
     """
 
     with open(filename) as outfile:
@@ -259,4 +279,10 @@ def read_noaa_json(filename):
             index=pd.to_datetime(json_data["index"]),
             columns=json_data["columns"],
         )
-    return data, metadata
+    
+    if to_pandas:
+        return data, metadata
+    else:
+        data = data.to_xarray()
+        data.attrs = metadata
+        return data
