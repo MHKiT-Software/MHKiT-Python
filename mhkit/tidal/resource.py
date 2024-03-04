@@ -1,7 +1,7 @@
 import numpy as np
 import math
-import pandas as pd
 from mhkit.river.resource import exceedance_probability, Froude_number
+from mhkit.utils import convert_to_dataArray
 
 
 def _histogram(directions, velocities, width_dir, width_vel):
@@ -81,7 +81,7 @@ def principal_flow_directions(directions, width_dir):
 
     Parameters
     ----------
-    directions: pandas.Series or numpy.ndarray
+    directions: numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Flow direction in degrees CW from North, from 0 to 360
     width_dir: float
         Width of directional bins for histogram in degrees
@@ -97,8 +97,7 @@ def principal_flow_directions(directions, width_dir):
     ebb based on knowledge of the measurement site.
     """
 
-    if isinstance(directions, np.ndarray):
-        directions = pd.Series(directions)
+    directions = convert_to_dataArray(directions)
     if any(directions < 0) or any(directions > 360):
         violating_values = [d for d in directions if d < 0 or d > 360]
         raise ValueError(
