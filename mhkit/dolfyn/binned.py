@@ -421,7 +421,7 @@ class TimeBinner:
 
         for slc in slice1d_along_axis(dat.shape, -1):
             out[slc] = psd_1D(dat[slc], n_fft, fs, window=window, step=step)
-        if noise != 0:
+        if np.any(noise):
             out -= noise**2 / (fs / 2)
             # Make sure all values of the PSD are >0 (but still small):
             out[out < 0] = np.min(np.abs(out)) / 100

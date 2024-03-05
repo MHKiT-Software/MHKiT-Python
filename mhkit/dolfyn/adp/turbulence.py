@@ -111,8 +111,10 @@ class ADPBinner(VelBinner):
         n_fft_coh : int
           Number of data points to use for coherence and cross-spectra ffts
           Default: `n_fft_coh`=`n_fft`
-        noise : float, list or numpy.ndarray
-          Instrument's doppler noise in same units as velocity
+        noise : float or array-like
+          Instrument noise level in same units as velocity. Typically
+          found from `adp.turbulence.doppler_noise_level`.
+          Default: None.
         orientation : str, default='up'
           Instrument's orientation, either 'up' or 'down'
         diff_style : str, default='centered_extended'
@@ -348,9 +350,10 @@ class ADPBinner(VelBinner):
         N2 = psd.sel(freq=f_range) * psd.freq.sel(freq=f_range)
         noise_level = np.sqrt(N2.mean(dim="freq"))
 
+        time_coord = psd.dims[0]  # no reason this shouldn't be time or time_b5
         return xr.DataArray(
             noise_level.values.astype("float32"),
-            dims=["time"],
+            coords={time_coord: psd.coords[time_coord]},
             attrs={
                 "units": "m s-1",
                 "long_name": "Doppler Noise Level",
@@ -869,7 +872,7 @@ class ADPBinner(VelBinner):
 
         return m, b
 
-    def dissipation_rate_LT83(self, psd, U_mag, freq_range=[0.2, 0.4]):
+    def dissipation_rate_LT83(self, psd, U_mag, freq_range=[0.2, 0.4], noise=None):
         """
         Calculate the TKE dissipation rate from the velocity spectra.
 
@@ -882,6 +885,10 @@ class ADPBinner(VelBinner):
         f_range : iterable(2)
           The range over which to integrate/average the spectrum, in units
           of the psd frequency vector (Hz or rad/s)
+        noise : float or array-like
+          Instrument noise level in same units as velocity. Typically
+          found from `adp.turbulence.doppler_noise_level`.
+          Default: None.
 
         Returns
         -------
@@ -918,6 +925,17 @@ class ADPBinner(VelBinner):
             raise Exception("U_mag should be 1-dimensional (time)")
         if not hasattr(freq_range, "__iter__") or len(freq_range) != 2:
             raise ValueError("`freq_range` must be an iterable of length 2.")
+        if noise is not None:
+            if np.shape(noise)[0] != np.shape(psd)[0]:
+                raise Exception("Noise should have same first dimension as PSD")
+        else:
+            noise = np.array(0)
+
+        # Noise subtraction from binner.TimeBinner._psd_base
+        psd = psd.copy()
+        if noise is not None:
+            psd -= noise**2 / (self.fs / 2)
+            psd = psd.where(psd > 0, np.min(np.abs(psd)) / 100)
 
         freq = psd.freq
         idx = np.where((freq_range[0] < freq) & (freq < freq_range[1]))

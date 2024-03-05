@@ -803,6 +803,60 @@ class VelBinner(TimeBinner):
 
         return da
 
+    def turbulence_intensity(self, U_mag, noise=0, thresh=0, detrend=False):
+        """
+        Calculate noise-corrected turbulence intensity.
+
+        Parameters
+        ----------
+        U_mag : xarray.DataArray
+          Raw velocity magnitude
+        noise : numeric
+          Instrument noise level in same units as velocity. Typically
+          found from `<adv or adp>.turbulence.doppler_noise_level`.
+          Default: None.
+        thresh : numeric
+          Theshold below which TI will not be calculated
+        detrend : bool (default: False)
+          Detrend the velocity data (True), or simply de-mean it
+          (False), prior to computing TI.
+        """
+
+        if "xarray" in type(U_mag).__module__:
+            U = U_mag.values
+        if "xarray" in type(noise).__module__:
+            noise = noise.values
+
+        if detrend:
+            up = self.detrend(U)
+        else:
+            up = self.demean(U)
+
+        # Take RMS and subtract noise
+        u_rms = np.sqrt(np.nanmean(up**2, axis=-1) - noise**2)
+        u_mag = self.mean(U)
+
+        ti = np.ma.masked_where(u_mag < thresh, u_rms / u_mag)
+
+        dims = U_mag.dims
+        coords = {}
+        for nm in U_mag.dims:
+            if "time" in nm:
+                coords[nm] = self.mean(U_mag[nm].values)
+            else:
+                coords[nm] = U_mag[nm].values
+
+        return xr.DataArray(
+            ti.data.astype("float32"),
+            coords=coords,
+            dims=dims,
+            attrs={
+                "units": "% [0,1]",
+                "long_name": "Turbulence Intensity",
+                "comment": f"TI was corrected from a noise level of {noise} m/s",
+            },
+        )
+
     def turbulent_kinetic_energy(self, veldat, noise=None, detrend=True):
         """
         Calculate the turbulent kinetic energy (TKE) (variances
@@ -814,11 +868,12 @@ class VelBinner(TimeBinner):
           Velocity data array from ADV or single beam from ADCP.
           The last dimension is assumed to be time.
         noise : float or array-like
-          A vector of the noise levels of the velocity data with
-          the same first dimension as the velocity vector.
+          Instrument noise level in same units as velocity. Typically
+          found from `<adv or adp>.turbulence.doppler_noise_level`.
+          Default: None.
         detrend : bool (default: False)
           Detrend the velocity data (True), or simply de-mean it
-          (False), prior to computing tke. Note: the psd routines
+          (False), prior to computing TKE. Note: the PSD routines
           use detrend, so if you want to have the same amount of
           variance here as there use ``detrend=True``.
 
@@ -913,10 +968,9 @@ class VelBinner(TimeBinner):
         window : string or array
           Specify the window function.
           Options: 1, None, 'hann', 'hamm'
-        noise : float or array-like
-          A vector of the noise levels of the velocity data with
-          the same first dimension as the velocity vector.
-          Default = 0.
+        noise : numeric or array
+          Instrument noise level in same units as velocity.
+          Default: 0 (ADCP) or [0, 0, 0] (ADV).
         n_bin : int (optional)
           The bin-size. Default: from the binner.
         n_fft : int (optional)
@@ -964,16 +1018,18 @@ class VelBinner(TimeBinner):
         ).astype("float32")
 
         # Spectra, if input is full velocity or a single array
-        if len(vel.shape) == 2:
-            if not vel.shape[0] == 3:
-                raise Exception(
+        if len(vel.shape) >= 2:
+            if vel.shape[0] != 3:
+                raise ValueError(
                     "Function can only handle 1D or 3D arrays."
                     " If ADCP data, please select a specific depth bin."
                 )
-            if (noise is not None) and (np.shape(noise)[0] != 3):
-                raise Exception("Noise should have same first dimension as velocity")
+            if noise is not None:
+                if np.size(noise) != 3:
+                    raise ValueError("Noise is expected to be an array of 3 scalars")
             else:
                 noise = np.array([0, 0, 0])
+
             out = np.empty(
                 self._outshape_fft(vel[:3].shape, n_fft=n_fft, n_bin=n_bin),
                 dtype=np.float32,
@@ -996,10 +1052,11 @@ class VelBinner(TimeBinner):
             }
             dims = ["S", "time", "freq"]
         else:
-            if (noise is not None) and (len(np.shape(noise)) > 1):
-                raise Exception("Noise should have same first dimension as velocity")
+            if noise is not None:
+                if np.size(noise) > 1:
+                    raise ValueError("Noise is expected to be a scalar")
             else:
-                noise = np.array(0)
+                noise = 0
             out = self._psd_base(
                 vel,
                 fs=fs,
