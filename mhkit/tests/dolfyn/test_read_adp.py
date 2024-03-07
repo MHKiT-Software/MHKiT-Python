@@ -92,12 +92,14 @@ class io_adp_testcase(unittest.TestCase):
 
     def test_io_nortek2(self):
         nens = 100
-        td_sig = read("BenchFile01.ad2cp", nens=nens)
-        td_sig_i = read("Sig1000_IMU.ad2cp", userdata=False, nens=nens)
-        td_sig_i_ud = read("Sig1000_IMU.ad2cp", nens=nens)
-        td_sig_ieb = read("VelEchoBT01.ad2cp", nens=nens)
-        td_sig_ie = read("Sig500_Echo.ad2cp", nens=nens)
-        td_sig_tide = read("Sig1000_tidal.ad2cp", nens=nens)
+        td_sig = read("BenchFile01.ad2cp", nens=nens, rebuild_index=True)
+        td_sig_i = read(
+            "Sig1000_IMU.ad2cp", userdata=False, nens=nens, rebuild_index=True
+        )
+        td_sig_i_ud = read("Sig1000_IMU.ad2cp", nens=nens, rebuild_index=True)
+        td_sig_ieb = read("VelEchoBT01.ad2cp", nens=nens, rebuild_index=True)
+        td_sig_ie = read("Sig500_Echo.ad2cp", nens=nens, rebuild_index=True)
+        td_sig_tide = read("Sig1000_tidal.ad2cp", nens=nens, rebuild_index=True)
         # Only need to test 2nd dataset
         td_sig_dp1, td_sig_dp2 = read("dual_profile.ad2cp")
 

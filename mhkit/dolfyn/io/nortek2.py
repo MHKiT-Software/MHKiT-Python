@@ -154,8 +154,14 @@ class _Ad2cpReader:
         self._check_nortek(endian)
         self.f.seek(0, 2)  # Seek to end
         self._eof = self.f.tell()
+        self.start_pos = self._check_header()
         self._index, self._dp = lib.get_index(
-            fname, rebuild=rebuild_index, debug=debug, dp=dual_profile
+            fname,
+            pos=self.start_pos,
+            eof=self._eof,
+            rebuild=rebuild_index,
+            debug=debug,
+            dp=dual_profile,
         )
         self._reopen(bufsize)
         self.filehead_config = self._read_filehead_config_string()
@@ -191,6 +197,24 @@ class _Ad2cpReader:
                     "AD2CP file?"
                 )
         self.endian = endian
+
+    def _check_header(self):
+        def find_all(s, c):
+            idx = s.find(c)
+            while idx != -1:
+                yield idx
+                idx = s.find(c, idx + 1)
+
+        # Open the entire file
+        self._reopen(self._eof)
+        pk = self.f.peek(1)
+        # Search for multiple saved headers
+        found = [i for i in find_all(pk, b"GETCLOCKSTR")]
+        if len(found) < 2:
+            return 0
+        else:
+            start_idx = found[-1] - 11
+            return start_idx
 
     def _reopen(self, bufsize=None):
         if bufsize is None:
