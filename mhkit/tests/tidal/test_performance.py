@@ -126,8 +126,8 @@ class TestResource(unittest.TestCase):
             ]
         )
 
-        assert_allclose(df93_circ.isel(U_bins=-2).to_dataarray(), test_circ, atol=1e-5)
-        assert_allclose(df93_rect.isel(U_bins=-3).to_dataarray(), test_rect, atol=1e-5)
+        assert_allclose(df93_circ.isel(U_bins=-2).to_array(), test_circ, atol=1e-5)
+        assert_allclose(df93_rect.isel(U_bins=-3).to_array(), test_rect, atol=1e-5)
 
     def test_velocity_profiles(self):
         df94 = performance.velocity_profiles(
