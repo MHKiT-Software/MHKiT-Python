@@ -56,10 +56,10 @@ def read_nortek(
 
     userdata = _find_userdata(filename, userdata)
 
-    with _NortekReader(
+    rdr = _NortekReader(
         filename, debug=debug, do_checksum=do_checksum, nens=nens
-    ) as rdr:
-        rdr.readfile()
+    )
+    rdr.readfile()
     rdr.dat2sci()
     dat = rdr.data
 
@@ -300,14 +300,10 @@ class _NortekReader:
         return self._filesz
 
     @property
-    def pos(
-        self,
-    ):
+    def pos(self):
         return self.f.tell()
 
-    def init_ADV(
-        self,
-    ):
+    def init_ADV(self):
         dat = self.data = {
             "data_vars": {},
             "coords": {},
@@ -335,9 +331,7 @@ class _NortekReader:
         self.n_samp_guess = int(self.filesize / dlta + 1)
         self.n_samp_guess *= int(self.config["fs"])
 
-    def init_AWAC(
-        self,
-    ):
+    def init_AWAC(self):
         dat = self.data = {
             "data_vars": {},
             "coords": {},
@@ -392,9 +386,7 @@ class _NortekReader:
             sum += cs
             cs = val
 
-    def read_id(
-        self,
-    ):
+    def read_id(self):
         """Read the next 'ID' from the file."""
         self._thisid_bytes = bts = self.read(2)
         tmp = unpack(self.endian + "BB", bts)
@@ -414,9 +406,7 @@ class _NortekReader:
             return val
         return tmp[1]
 
-    def readnext(
-        self,
-    ):
+    def readnext(self):
         id = "0x%02x" % self.read_id()
         if id in self.fun_map:
             func_name = self.fun_map[id]
@@ -503,9 +493,7 @@ class _NortekReader:
         else:
             self.f.seek(2, 1)
 
-    def read_user_cfg(
-        self,
-    ):
+    def read_user_cfg(self):
         # ID: '0x00 = 00
         if self.debug:
             logging.info(
@@ -607,9 +595,7 @@ class _NortekReader:
             int(Mode1[2])
         ]  # noqa
 
-    def read_head_cfg(
-        self,
-    ):
+    def read_head_cfg(self):
         # ID: '0x04 = 04
         if self.debug:
             logging.info(
@@ -631,9 +617,7 @@ class _NortekReader:
         )
         self.checksum(byts)
 
-    def read_hw_cfg(
-        self,
-    ):
+    def read_hw_cfg(self):
         # ID 0x05 = 05
         if self.debug:
             logging.info(
@@ -700,9 +684,7 @@ class _NortekReader:
                     if va.standard_name:
                         self.data["standard_name"][nm] = va.standard_name
 
-    def read_vec_data(
-        self,
-    ):
+    def read_vec_data(self):
         # ID: 0x10 = 16
         c = self.c
         dat = self.data
@@ -741,9 +723,7 @@ class _NortekReader:
         self.checksum(byts)
         self.c += 1
 
-    def read_vec_checkdata(
-        self,
-    ):
+    def read_vec_checkdata(self):
         # ID: 0x07 = 07
         if self.debug:
             logging.info(
@@ -794,9 +774,7 @@ class _NortekReader:
             if retval is not None:
                 dat[nm] = retval
 
-    def sci_vec_data(
-        self,
-    ):
+    def sci_vec_data(self):
         self._sci_data(nortek_defs.vec_data)
         dat = self.data
 
@@ -814,9 +792,7 @@ class _NortekReader:
         # Apply velocity scaling (1 or 0.1)
         dat["data_vars"]["vel"] *= self.config["vel_scale_mm"]
 
-    def read_vec_hdr(
-        self,
-    ):
+    def read_vec_hdr(self):
         # ID: '0x12 = 18
         if self.debug:
             logging.info(
@@ -846,9 +822,7 @@ class _NortekReader:
                 self.config["data_header"] = [self.config["data_header"]]
             self.config["data_header"] += [hdrnow]
 
-    def read_vec_sysdata(
-        self,
-    ):
+    def read_vec_sysdata(self):
         # ID: 0x11 = 17
         c = self.c
         if self.debug:
@@ -884,9 +858,7 @@ class _NortekReader:
         ) = unpack(self.endian + "2H3hH2BH", byts[8:])
         self.checksum(byts)
 
-    def sci_vec_sysdata(
-        self,
-    ):
+    def sci_vec_sysdata(self):
         """Translate the data in the vec_sysdata structure into
         scientific units.
         """
@@ -937,9 +909,7 @@ class _NortekReader:
         tbx.interpgaps(dv["roll"], t)
         tbx.interpgaps(dv["temp"], t)
 
-    def read_microstrain(
-        self,
-    ):
+    def read_microstrain(self):
         """Read ADV microstrain sensor (IMU) data"""
 
         def update_defs(dat, mag=False, orientmat=False):
@@ -1058,9 +1028,7 @@ class _NortekReader:
         self.checksum(byts0 + byts)
         self.c += 1  # reset the increment
 
-    def sci_microstrain(
-        self,
-    ):
+    def sci_microstrain(self):
         """Rotate orientation data into ADV coordinate system."""
         # MS = MicroStrain
         dv = self.data["data_vars"]
@@ -1085,9 +1053,7 @@ class _NortekReader:
             dv["angrt"] *= self.config["fs"]
             dv["accel"] *= self.config["fs"]
 
-    def read_awac_profile(
-        self,
-    ):
+    def read_awac_profile(self):
         # ID: '0x20' = 32
         dat = self.data
         if self.debug:
@@ -1135,9 +1101,7 @@ class _NortekReader:
         self.checksum(byts)
         self.c += 1
 
-    def sci_awac_profile(
-        self,
-    ):
+    def sci_awac_profile(self):
         self._sci_data(nortek_defs.awac_profile)
         # Calculate the ranges.
         cs_coefs = {2000: 0.0239, 1000: 0.0478, 600: 0.0797, 400: 0.1195}
@@ -1158,9 +1122,7 @@ class _NortekReader:
         self.data["attrs"]["cell_size"] = cs
         self.data["attrs"]["blank_dist"] = bd
 
-    def read_awac_waves_hdr(
-        self,
-    ):
+    def read_awac_waves_hdr(self):
         # ID: '0x31'
         c = self.c
         if self.debug:
@@ -1205,9 +1167,7 @@ class _NortekReader:
                 self.config["data_header"] = [self.config["data_header"]]
             self.config["data_header"] += [hdrnow]
 
-    def read_awac_waves(
-        self,
-    ):
+    def read_awac_waves(self):
         """Read awac wave and suv data"""
         # IDs: 0x30 & 0x36
         c = self.c
@@ -1244,21 +1204,12 @@ class _NortekReader:
         self.checksum(byts)
         self.c += 1
 
-    def dat2sci(
-        self,
-    ):
+    def dat2sci(self):
         for nm in self._dtypes:
             getattr(self, "sci_" + nm)()
         for nm in ["data_header", "checkdata"]:
             if nm in self.config and isinstance(self.config[nm], list):
                 self.config[nm] = _recatenate(self.config[nm])
-
-    def __exit__(self, type, value, trace):
-        self.close()
-
-    def __enter__(self):
-        return self
-
 
 def _crop_data(obj, range, n_lastdim):
     for nm, dat in obj.items():
