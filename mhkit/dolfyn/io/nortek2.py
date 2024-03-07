@@ -134,7 +134,7 @@ class _Ad2cpReader:
         self._eof = self.f.tell()
         self.start_pos = self._check_header()
         self._index = lib.get_index(
-            fname, pos=self.start_pos, reload=rebuild_index, debug=debug
+            fname, pos=self.start_pos, eof=self._eof, reload=rebuild_index, debug=debug
         )
         self._reopen(bufsize)
         self.filehead_config = self._read_filehead_config_string()

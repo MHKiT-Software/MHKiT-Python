@@ -107,7 +107,7 @@ def _calc_time(year, month, day, hour, minute, second, usec, zero_is_bad=True):
     return dt
 
 
-def _create_index(infile, outfile, N_ens, init_pos, debug):
+def _create_index(infile, outfile, init_pos, eof, debug):
     logging = getLogger()
     print("Indexing {}...".format(infile), end="")
     fin = open(_abspath(infile), "rb")
@@ -135,7 +135,8 @@ def _create_index(infile, outfile, N_ens, init_pos, debug):
         35: 40,
         36: 40,
     }
-    while N[21] < N_ens:  # Will fail if velocity ping isn't saved first
+    pos = 0
+    while pos <= eof:
         pos = fin.tell()
         if init_pos and not pos:
             fin.seek(init_pos, 1)
@@ -259,7 +260,7 @@ def _boolarray_firstensemble_ping(index):
     return dens
 
 
-def get_index(infile, pos=0, reload=False, debug=False):
+def get_index(infile, pos=0, eof=2**32, reload=False, debug=False):
     """
     This function reads ad2cp.index files
 
@@ -280,7 +281,7 @@ def get_index(infile, pos=0, reload=False, debug=False):
 
     index_file = infile + ".index"
     if not path.isfile(index_file) or reload:
-        _create_index(infile, index_file, 2**32, pos, debug)
+        _create_index(infile, index_file, pos, eof, debug)
     f = open(_abspath(index_file), "rb")
     file_head = f.read(12)
     if file_head[:10] == b"Index Ver:":
