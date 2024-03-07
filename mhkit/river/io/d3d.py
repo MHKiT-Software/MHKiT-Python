@@ -410,9 +410,9 @@ def create_points(x, y, waterdepth, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    x_array_like = ~isinstance(x, (int, float))
-    y_array_like = ~isinstance(y, (int, float))
-    waterdepth_array_like = ~isinstance(waterdepth, (int, float))
+    x_array_like = not isinstance(x, (int, float))
+    y_array_like = not isinstance(y, (int, float))
+    waterdepth_array_like = not isinstance(waterdepth, (int, float))
 
     if x_array_like and y_array_like and waterdepth_array_like:
         # if all inputs are arrays, grid the coordinate and waterdepth
@@ -420,8 +420,8 @@ def create_points(x, y, waterdepth, to_pandas=True):
         y_grid = y_grid.ravel()
         waterdepth_grid = waterdepth_grid.ravel()
 
-        _, mask = np.where(y == y_grid)
-        x_grid = x[mask]
+        x_grid, _ = np.meshgrid(x, waterdepth)
+        x_grid = x_grid.ravel()
     else:
         # if at least one input is a point, grid all inputs
         x_grid, y_grid, waterdepth_grid = np.meshgrid(x, y, waterdepth)
@@ -454,7 +454,7 @@ def variable_interpolation(
     x_min_lim=float("-inf"),
     y_max_lim=float("inf"),
     y_min_lim=float("-inf"),
-    to_pandas=False,
+    to_pandas=True,
 ):
     """
     Interpolate multiple variables from the Delft3D onto the same points.
@@ -491,8 +491,8 @@ def variable_interpolation(
             f"points must be a string, pd.DataFrame, or xr.Dataset. Got {type(points)}."
         )
 
-    if isinstance(points, pd.DataFrame):
-        points = points.to_xarray()
+    if isinstance(points, xr.Dataset):
+        points = points.to_pandas()
 
     if isinstance(points, str):
         if not (points == "cells" or points == "faces"):
@@ -508,16 +508,15 @@ def variable_interpolation(
 
     data_raw = {}
     for var in variables:
-        var_data = get_all_data_points(data, var, time_index=-1, to_pandas=False)
-        var_data["depth"] = var_data.waterdepth - var_data.waterlevel  # added
-
-        # var_data = var_data.loc[:, var_data.T.duplicated(keep='first')]
-        var_data = var_data.where(var_data.x > x_min_lim, drop=True)
-        var_data = var_data.where(var_data.x < x_max_lim, drop=True)
-        var_data = var_data.where(var_data.y > y_min_lim, drop=True)
-        var_data = var_data.where(var_data.y < y_max_lim, drop=True)
-        data_raw[var] = var_data
-    if isinstance(points, xr.Dataset):
+        var_data_df = get_all_data_points(data, var, time_index=-1, to_pandas=True)
+        var_data_df["depth"] = var_data_df.waterdepth - var_data_df.waterlevel  # added
+        var_data_df = var_data_df.loc[:, ~var_data_df.T.duplicated(keep="first")]
+        var_data_df = var_data_df[var_data_df.x > x_min_lim]
+        var_data_df = var_data_df[var_data_df.x < x_max_lim]
+        var_data_df = var_data_df[var_data_df.y > y_min_lim]
+        var_data_df = var_data_df[var_data_df.y < y_max_lim]
+        data_raw[var] = var_data_df
+    if isinstance(points, pd.DataFrame):
         print("points provided")
     elif points == "faces":
         points = data_raw["ucx"][["x", "y", "waterdepth"]]
@@ -544,8 +543,8 @@ def variable_interpolation(
                         method="nearest",
                     )
 
-    if to_pandas:
-        transformed_data = transformed_data.to_pandas()
+    if not to_pandas:
+        transformed_data = transformed_data.to_dataset()
 
     return transformed_data
 
@@ -677,7 +676,7 @@ def get_all_data_points(data, variable, time_index=-1, to_pandas=True):
     return all_data
 
 
-def turbulent_intensity(data, points="cells", time_index=-1, intermediate_values=False):
+def turbulent_intensity(data, points="cells", time_index=-1, intermediate_values=False, to_pandas=True):
     """
     Calculate the turbulent intensity percentage for a given data set for the
     specified points. Assumes variable names: ucx, ucy, ucz and turkin1.
@@ -700,6 +699,8 @@ def turbulent_intensity(data, points="cells", time_index=-1, intermediate_values
         If false the function will return position and turbulent intensity values.
         If true the function will return position(x,y,z) and values need to calculate
         turbulent intensity (ucx, uxy, uxz and turkin1) in a Dataframe.  Default False.
+    to_pandas : bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     -------
@@ -727,6 +728,12 @@ def turbulent_intensity(data, points="cells", time_index=-1, intermediate_values
 
     if not isinstance(time_index, int):
         raise TypeError("time_index must be an int")
+
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
+
+    if isinstance(points, xr.Dataset):
+        points = points.to_pandas()
 
     max_time_index = data["time"].shape[0] - 1  # to account for zero index
     if abs(time_index) > max_time_index:
@@ -784,8 +791,8 @@ def turbulent_intensity(data, points="cells", time_index=-1, intermediate_values
     )
     zero_ind = neg_index[0][zero_bool]
     non_zero_ind = neg_index[0][~zero_bool]
-    TI_data.where(zero_ind)["turkin1"] = np.zeros(len(zero_ind))
-    TI_data.where(non_zero_ind)["turkin1"] = [np.nan] * len(non_zero_ind)
+    TI_data.loc[zero_ind, "turkin1"] = np.zeros(len(zero_ind))
+    TI_data.loc[non_zero_ind, "turkin1"] = [np.nan] * len(non_zero_ind)
 
     TI_data["turbulent_intensity"] = (
         np.sqrt(2 / 3 * TI_data["turkin1"]) / u_mag * 100
@@ -793,5 +800,8 @@ def turbulent_intensity(data, points="cells", time_index=-1, intermediate_values
 
     if intermediate_values == False:
         TI_data = TI_data.drop(TI_vars, axis=1)
+
+    if not to_pandas:
+        TI_data = TI_data.to_dataset()
 
     return TI_data

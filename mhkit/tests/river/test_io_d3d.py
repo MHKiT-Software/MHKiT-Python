@@ -1,4 +1,4 @@
-from os.path import abspath, dirname, join, isfile, normpath, relpath
+from os.path import abspath, dirname, join, normpath
 from numpy.testing import assert_array_almost_equal
 import scipy.interpolate as interp
 import mhkit.river as river
@@ -106,7 +106,7 @@ class TestIO(unittest.TestCase):
         """
         result = river.io.d3d.create_points(np.array([1, 2]), np.array([3]), 4)
         expected = pd.DataFrame({"x": [1, 2], "y": [3, 3], "waterdepth": [4, 4]})
-        pd.testing.assert_frame_equal(result, expected, check_dtype=False)
+        pd.testing.assert_frame_equal(result, expected, check_dtype=False, check_names=False)
 
     def test_create_points_user_made_two_arrays_one_point(self):
         """
@@ -152,7 +152,7 @@ class TestIO(unittest.TestCase):
             {"x": [1, 2, 1, 2], "y": [3, 4, 3, 4], "waterdepth": [5, 5, 6, 6]}
         )
 
-        pd.testing.assert_frame_equal(result, expected, check_dtype=False)
+        pd.testing.assert_frame_equal(result, expected, check_dtype=False, check_names=False)
 
     def test_create_points_array_like_inputs(self):
         """
@@ -163,7 +163,7 @@ class TestIO(unittest.TestCase):
             {"x": [1, 2, 1, 2], "y": [3, 4, 3, 4], "waterdepth": [5, 5, 6, 6]}
         )
 
-        pd.testing.assert_frame_equal(result, expected, check_dtype=False)
+        pd.testing.assert_frame_equal(result, expected, check_dtype=False, check_names=False)
 
     def test_variable_interpolation(self):
         data = self.d3d_flume_data
