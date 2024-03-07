@@ -203,6 +203,10 @@ def _create_index(infile, outfile, init_pos, eof, debug):
                     )
                 )
         else:
+            if dat[4] < 0:
+                if debug:
+                    logging.info("Invalid skip byte at pos: %10d\n" % (pos))
+                break
             fin.seek(dat[4], 1)
     fin.close()
     fout.close()
