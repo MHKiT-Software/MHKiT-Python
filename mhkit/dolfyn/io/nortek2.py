@@ -178,8 +178,8 @@ class _Ad2cpReader:
                 yield idx
                 idx = s.find(c, idx + 1)
 
-        # Guess that a header won't be longer than 10,000 bytes
-        self._reopen(10000)
+        # Open the entire file
+        self._reopen(self._eof)
         pk = self.f.peek(1)
         # Search for multiple saved headers
         found = [i for i in find_all(pk, b"GETCLOCKSTR")]
