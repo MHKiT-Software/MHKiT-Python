@@ -676,7 +676,9 @@ def get_all_data_points(data, variable, time_index=-1, to_pandas=True):
     return all_data
 
 
-def turbulent_intensity(data, points="cells", time_index=-1, intermediate_values=False, to_pandas=True):
+def turbulent_intensity(
+    data, points="cells", time_index=-1, intermediate_values=False, to_pandas=True
+):
     """
     Calculate the turbulent intensity percentage for a given data set for the
     specified points. Assumes variable names: ucx, ucy, ucz and turkin1.
