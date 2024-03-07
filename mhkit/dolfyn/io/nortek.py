@@ -56,9 +56,7 @@ def read_nortek(
 
     userdata = _find_userdata(filename, userdata)
 
-    rdr = _NortekReader(
-        filename, debug=debug, do_checksum=do_checksum, nens=nens
-    )
+    rdr = _NortekReader(filename, debug=debug, do_checksum=do_checksum, nens=nens)
     rdr.readfile()
     rdr.dat2sci()
     dat = rdr.data
@@ -1210,6 +1208,7 @@ class _NortekReader:
         for nm in ["data_header", "checkdata"]:
             if nm in self.config and isinstance(self.config[nm], list):
                 self.config[nm] = _recatenate(self.config[nm])
+
 
 def _crop_data(obj, range, n_lastdim):
     for nm, dat in obj.items():
