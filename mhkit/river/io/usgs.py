@@ -2,35 +2,32 @@ import os
 import json
 import requests
 import shutil
-import numpy as np
-import xarray as xr
+import pandas as pd
 from mhkit.utils.cache import handle_caching
 
 
 def _read_usgs_json(text, to_pandas=True):
-    data = xr.Dataset()
+    data = pd.DataFrame()
     for i in range(len(text["value"]["timeSeries"])):
         try:
             site_name = text["value"]["timeSeries"][i]["variable"][
                 "variableDescription"
             ]
-            tmp = text["value"]["timeSeries"][i]["values"][0]["value"]
-            v = []
-            t = []
-            for i in range(0, len(tmp)):
-                v.append(tmp[i]["value"])
-                t.append(tmp[i]["dateTime"])
-            v = np.asarray(v).astype(float)
-            t = np.asarray(t).astype(np.datetime64)
-            site_data = xr.Dataset(
-                data_vars={site_name: (["dateTime"], v)}, coords={"dateTime": t}
+            site_data = pd.DataFrame(
+                text["value"]["timeSeries"][i]["values"][0]["value"]
             )
+            site_data.set_index("dateTime", drop=True, inplace=True)
+            site_data.index = pd.to_datetime(site_data.index, utc=True)
+            site_data.rename(columns={"value": site_name}, inplace=True)
+            site_data[site_name] = pd.to_numeric(site_data[site_name])
+            site_data.index.name = None
+            del site_data["qualifiers"]
             data = data.combine_first(site_data)
         except:
             pass
 
-    if to_pandas:
-        data = data.to_pandas()
+    if not to_pandas:
+        data = data.to_dataset()
 
     return data
 
@@ -163,7 +160,8 @@ def request_usgs_data(
     response = requests.get(url=data_url + api_query, proxies=proxy)
     text = json.loads(response.text)
 
-    data = _read_usgs_json(text, to_pandas)
+    # handle_caching is only set-up for pandas, so force this data to output as pandas for now
+    data = _read_usgs_json(text, True)
 
     # After making the API request and processing the response, write the
     #  response to a cache file
@@ -171,5 +169,8 @@ def request_usgs_data(
 
     if write_json:
         shutil.copy(cache_filepath, write_json)
+
+    if not to_pandas:
+        data = data.to_dataset()
 
     return data
