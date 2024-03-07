@@ -135,18 +135,8 @@ def _create_dataset(data):
 
     ds_dict["beam"] = {"dims": ("beam"), "data": beams}
     ds_dict["dir"] = {"dims": ("dir"), "data": beams}
-    ds_dict["earth"] = {"dims": ("earth"), "data": ["E", "N", "U"]}
-    ds_dict["inst"] = {"dims": ("inst"), "data": ["X", "Y", "Z"]}
-
-    data["units"].update({"beam": "1", "dir": "1", "earth": "1", "inst": "1"})
-    data["long_name"].update(
-        {
-            "beam": "Beam Reference Frame",
-            "dir": "Reference Frame",
-            "earth": "Earth Reference Frame",
-            "inst": "Instrument Reference Frame",
-        }
-    )
+    data["units"].update({"beam": "1", "dir": "1"})
+    data["long_name"].update({"beam": "Beam Reference Frame", "dir": "Reference Frame"})
 
     # Iterate through data variables and add them to new dictionary
     for key in data["data_vars"]:
@@ -167,12 +157,22 @@ def _create_dataset(data):
                 else:
                     tg = ""
 
+                ds_dict["earth"] = {"dims": ("earth"), "data": ["E", "N", "U"]}
+                ds_dict["inst"] = {"dims": ("inst"), "data": ["X", "Y", "Z"]}
                 ds_dict[key] = {
                     "dims": ("earth", "inst", "time" + tg),
                     "data": data["data_vars"][key],
                 }
-                data["units"].update({key: data["units"]["orientmat"]})
-                data["long_name"].update({key: data["long_name"]["orientmat"]})
+                data["units"].update(
+                    {"earth": "1", "inst": "1", key: data["units"]["orientmat"]}
+                )
+                data["long_name"].update(
+                    {
+                        "earth": "Earth Reference Frame",
+                        "inst": "Instrument Reference Frame",
+                        key: data["long_name"]["orientmat"],
+                    }
+                )
 
         # quaternion units never change
         elif "quaternions" in key:
