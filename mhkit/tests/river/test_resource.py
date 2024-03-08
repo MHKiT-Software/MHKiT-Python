@@ -178,13 +178,17 @@ class TestResource(unittest.TestCase):
         cut_in = V["V"].values[1]
         cut_out = V["V"].values[-2]
         # Power should be 10x greater and exclude the ends of V
-        P = river.resource.velocity_to_power(V["V"], p2, cut_in, cut_out, to_pandas=False)
+        P = river.resource.velocity_to_power(
+            V["V"], p2, cut_in, cut_out, to_pandas=False
+        )
         # Cut in power zero
         self.assertAlmostEqual(P["P"][0], 0.00, places=2)
         # Cut out power zero
         self.assertAlmostEqual(P["P"][-1], 0.00, places=2)
         # Middle 10x greater than velocity
-        self.assertAlmostEqual((P["P"][1:-1] - 10 * V["V"][1:-1]).sum().values, 0.00, places=2)
+        self.assertAlmostEqual(
+            (P["P"][1:-1] - 10 * V["V"][1:-1]).sum().values, 0.00, places=2
+        )
 
     def test_velocity_to_power_V_type_error(self):
         V = "invalid_type"  # String instead of pd.Series or pd.DataFrame

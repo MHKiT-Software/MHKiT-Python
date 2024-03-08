@@ -73,8 +73,8 @@ def exceedance_probability(D, dimension="", to_pandas=True):
     rank = len(D[dimension]) - rank + 1  # convert to descending rank
     F = 100 * rank / (len(D[dimension]) + 1)
     F.name = "F"
-    
-    F = F.to_dataset() # for matlab
+
+    F = F.to_dataset()  # for matlab
 
     if to_pandas:
         F = F.to_pandas()
@@ -175,8 +175,8 @@ def discharge_to_velocity(D, polynomial_coefficients, dimension="", to_pandas=Tr
         coords={dimension: D[dimension]},
     )
     V.name = "V"
-    
-    V = V.to_dataset() # for matlab
+
+    V = V.to_dataset()  # for matlab
 
     if to_pandas:
         V = V.to_pandas()
@@ -240,7 +240,7 @@ def velocity_to_power(
 
     P = xr.DataArray(data=power, dims=dimension, coords={dimension: V[dimension]})
     P.name = "P"
-    
+
     P = P.to_dataset()
 
     if to_pandas:
