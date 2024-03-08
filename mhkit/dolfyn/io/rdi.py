@@ -219,7 +219,7 @@ class _RDIReader:
         # Check header, double buffer, and get filesize
         self._filesize = getsize(self.fname)
         space = self.code_spacing()  # '0x7F'
-        self._npings = int(self._filesize / (space + 2))
+        self._npings = self._filesize // space * 1.5
         if self._debug_level >= 0:
             logging.info("Done: {}".format(self.cfg))
             logging.info("self._bb {}".format(self._bb))
@@ -259,35 +259,43 @@ class _RDIReader:
             except:
                 break
         # Compute the average of the data size:
-        size = (self._pos - p0) / (i + 1) * 0.995
+        size = (self._pos - p0) / (i + 1)
         self.f = fd
         self._pos = p0
         self._debug_level = debug_level
         return size
 
-    def read_hdr(
-        self,
-    ):
+    def read_hdr(self):
+        """
+        Scan file until 7f7f is found
+        """
         fd = self.f
         cfgid = list(fd.read_ui8(2))
-        nread = 0
+        pos_7f79 = False
         if self._debug_level >= 0:
             logging.info("pos {}".format(self.f.pos))
             logging.info("cfgid0: [{:x}, {:x}]".format(*cfgid))
-        while (cfgid[0] != 127 or cfgid[1] != 127) or not self.checkheader():
-            nextbyte = fd.read_ui8(1)
-            if nextbyte is None:
-                return False
+        while cfgid != [127, 127]:
+            if cfgid == [127, 121]:
+                skipbytes = fd.read_i16(1)
+                fd.seek(skipbytes - 2, 1)
+                cfgid = list(fd.read_ui8(2))
+                pos_7f79 = True
+            else:
+                nextbyte = fd.read_ui8(1)
+                if nextbyte is None:
+                    return False
+                cfgid[1] = cfgid[0]
+                cfgid[0] = nextbyte
             pos = fd.tell()
-            nread += 1
-            cfgid[1] = cfgid[0]
-            cfgid[0] = nextbyte
             if not pos % 1000:
                 if self._debug_level >= 0:
                     logging.info(
                         "  Still looking for valid cfgid at file "
                         "position %d ..." % pos
                     )
+        if pos_7f79 and self._debug_level >= 0:
+            logging.info("Skipped junk data: [{:x}, {:x}]".format(*[127, 121]))
         self._pos = self.f.tell() - 2
         self.read_hdrseg()
         return True
@@ -310,7 +318,7 @@ class _RDIReader:
             id = self.f.read_ui16(1)
             self.id_positions[id] = offset
             if self._debug_level >= 0:
-                logging.info("pos {} id {}".format(offset, id))
+                logging.info("id {} offset {}".format(id, offset))
             if id == 1:
                 self.read_fixed(bb=True)
                 found = True
@@ -542,19 +550,26 @@ class _RDIReader:
         if id is None:
             return False
         id1 = list(id)
+        pos_7f79 = False
         search_cnt = 0
         fd = self.f
         if self._debug_level >= 2:
             logging.info("  -->In search_buffer...")
-        while search_cnt < self._search_num and (
-            (id1[0] != 127 or id1[1] != 127) or not self.checkheader()
-        ):
-            search_cnt += 1
-            nextbyte = fd.read_ui8(1)
-            if nextbyte == None:
-                return False
-            id1[1] = id1[0]
-            id1[0] = nextbyte
+        while search_cnt < self._search_num and ((id1 != [127, 127]) or self.checkheader(id1)):
+            if id1 == [127, 121]:
+                skipbytes = fd.read_i16(1)
+                fd.seek(skipbytes - 2, 1)
+                id1 = list(fd.read_ui8(2))
+                pos_7f79 = True
+            else:
+                search_cnt += 1
+                nextbyte = fd.read_ui8(1)
+                if nextbyte is None:
+                    return False
+                id1[1] = id1[0]
+                id1[0] = nextbyte
+        if pos_7f79 and self._debug_level >= 0:
+            logging.info("Skipped junk data: [{:x}, {:x}]".format(*[127, 121]))
         if search_cnt == self._search_num:
             raise Exception(
                 "Searched {} entries... Bad data encountered. -> {}".format(
@@ -570,34 +585,27 @@ class _RDIReader:
         return True
 
     def checkheader(
-        self,
+        self, id1
     ):
-        if self._debug_level > 1:
-            logging.info("  ###In checkheader.")
+        """Returns True if next header is bad or at end of file"""
         fd = self.f
-        valid = False
-        if self._debug_level >= 0:
-            logging.info("pos {}".format(self.f.pos))
+        valid = True
         numbytes = fd.read_i16(1)
+        # Search for next config id
         if numbytes > 0:
             fd.seek(numbytes - 2, 1)
             cfgid = fd.read_ui8(2)
             if cfgid is None:
                 if self._debug_level > 1:
                     logging.info("EOF")
-                return False
+                return True
+            # Make sure one is found, either 7f7f or 7f79
             if len(cfgid) == 2:
                 fd.seek(-numbytes - 2, 1)
                 if cfgid[0] == 127 and cfgid[1] in [127, 121]:
-                    if cfgid[1] == 121 and self._debug7f79 is None:
-                        self._debug7f79 = True
-                        if self._debug_level > 1:
-                            logging.warning("7f79!!!")
-                    valid = True
+                    valid = False
         else:
             fd.seek(-2, 1)
-        if self._debug_level > 1:
-            logging.info("  ###Leaving checkheader.")
         return valid
 
     def read_hdrseg(
@@ -660,8 +668,10 @@ class _RDIReader:
 
     def read_dat(self, id):
         function_map = {
-            0: (self.read_fixed, []),  # 0000 1st profile fixed leader
-            1: (self.read_fixed, [True]),  # 0001
+            # 0000 1st profile fixed leader
+            0: (self.read_fixed, []),
+            # 0001 2nd profile fixed leader
+            1: (self.read_fixed, [True]),
             # 0010 Surface layer fixed leader (RiverPro & StreamPro)
             16: (self.read_fixed_sl, []),
             # 0080 1st profile variable leader
@@ -1204,7 +1214,7 @@ class _RDIReader:
                 self.f.seek(2, 1)
             else:  # TRDI rewrites the nmea string into their format if one is found
                 start_string = self.f.reads(6)
-                if type(start_string) != str:
+                if not isinstance(start_string, str):
                     if self._debug_level >= 1:
                         logging.warning(
                             f"Invalid GGA string found in ensemble {k}," " skipping..."
@@ -1262,7 +1272,7 @@ class _RDIReader:
                 self.f.seek(2, 1)
             else:
                 start_string = self.f.reads(6)
-                if type(start_string) != str:
+                if not isinstance(start_string, str):
                     if self._debug_level >= 1:
                         logging.warning(
                             f"Invalid VTG string found in ensemble {k}," " skipping..."
@@ -1292,7 +1302,7 @@ class _RDIReader:
                 self.f.seek(2, 1)
             else:
                 start_string = self.f.reads(6)
-                if type(start_string) != str:
+                if not isinstance(start_string, str):
                     if self._debug_level >= 1:
                         logging.warning(
                             f"Invalid DBT string found in ensemble {k}," " skipping..."
@@ -1317,7 +1327,7 @@ class _RDIReader:
                 self.f.seek(2, 1)
             else:
                 start_string = self.f.reads(6)
-                if type(start_string) != str:
+                if not isinstance(start_string, str):
                     if self._debug_level >= 1:
                         logging.warning(
                             f"Invalid HDT string found in ensemble {k}," " skipping..."
