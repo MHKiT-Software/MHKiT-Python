@@ -285,8 +285,8 @@ class _RDIReader:
                 nextbyte = fd.read_ui8(1)
                 if nextbyte is None:
                     return False
-                cfgid[1] = cfgid[0]
-                cfgid[0] = nextbyte
+                cfgid[0] = cfgid[1]
+                cfgid[1] = nextbyte
             pos = fd.tell()
             if not pos % 1000:
                 if self._debug_level >= 0:
@@ -566,8 +566,8 @@ class _RDIReader:
                 nextbyte = fd.read_ui8(1)
                 if nextbyte is None:
                     return False
-                id1[1] = id1[0]
-                id1[0] = nextbyte
+                id1[0] = id1[1]
+                id1[1] = nextbyte
         if pos_7f79 and self._debug_level >= 0:
             logging.info("Skipped junk data: [{:x}, {:x}]".format(*[127, 121]))
         if search_cnt == self._search_num:
