@@ -1,33 +1,26 @@
 root - INFO - pos 2
 root - INFO - cfgid0: [7f, 7f]
-root - INFO -   ###In checkheader.
-root - INFO - pos 2
-root - INFO -   ###Leaving checkheader.
 root - INFO - {'nbyte': 579, 'dat_offsets': array([ 20,  79, 144, 282, 352, 422, 492])}
 root - INFO - pos 20
-root - INFO - pos 20 id 0
+root - INFO - id 0 offset 20
 root - INFO - Read Config
 root - INFO - Read Fixed
-root - INFO - pos 79 id 128
-root - INFO - pos 144 id 256
-root - INFO - pos 282 id 512
-root - INFO - pos 352 id 768
-root - INFO - pos 422 id 1024
-root - INFO - pos 492 id 1536
+root - INFO - id 128 offset 79
+root - INFO - id 256 offset 144
+root - INFO - id 512 offset 282
+root - INFO - id 768 offset 352
+root - INFO - id 1024 offset 422
+root - INFO - id 1536 offset 492
 root - INFO - Done: {'prog_ver': 51.41, 'inst_model': 'Workhorse', 'beam_angle': 20, 'freq': 600, 'beam_pattern': 'convex', 'orientation': 'down', 'n_beams': 4, 'n_cells': 17, 'pings_per_ensemble': 1, 'cell_size': 1.0, 'blank_dist': 0.88, 'profiling_mode': 1, 'min_corr_threshold': 64, 'n_code_reps': 5, 'min_prcnt_gd': 0, 'max_error_vel': 2.0, 'sec_between_ping_groups': 0.5, 'coord_sys': 'earth', 'use_pitchroll': 'yes', 'use_3beam': 'yes', 'bin_mapping': 'yes', 'heading_misalign_deg': 0.0, 'magnetic_var_deg': 0.0, 'sensors_src': '01111101', 'sensors_avail': '00111101', 'bin1_dist_m': 2.09, 'transmit_pulse_m': 1.18, 'water_ref_cells': [1, 5], 'false_target_threshold': 50, 'transmit_lag_m': 0.24, 'bandwidth': 0, 'power_level': 255, 'serialnum': 18655}
 root - INFO - self._bb False
-root - INFO - {}
-root - INFO -   1723 pings estimated in this file
-root - INFO -   taking data from pings 0 - 1723
-root - INFO -   1723 ensembles will be produced.
+root - INFO - self.cfgbb: {}
+root - INFO -   taking data from pings 0 - 1721
+root - INFO -   1721 ensembles will be produced.
 
 root - INFO - 17 ncells, not BB
 root - DEBUG -   pos 0mb/1mb
 
 root - INFO -   -->In search_buffer...
-root - INFO -   ###In checkheader.
-root - INFO - pos 2
-root - INFO -   ###Leaving checkheader.
 root - INFO - Read Header
 root - INFO - n 0: 0 0000
 root - DEBUG -   pos: 22, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
@@ -76,9 +69,6 @@ root - DEBUG -   pos: 581, pos_: 0, nbyte: 85, k: 0, byte_offset: 577
 root - DEBUG -   pos 0mb/1mb
 
 root - INFO -   -->In search_buffer...
-root - INFO -   ###In checkheader.
-root - INFO - pos 583
-root - INFO -   ###Leaving checkheader.
 root - INFO - Read Header
 root - INFO - n 0: 0 0000
 root - DEBUG -   pos: 603, pos_: 0, nbyte: 18, k: -1, byte_offset: -1
@@ -99,3 +89,13 @@ root - DEBUG - Trying to Read 256
 root - INFO -   Reading code 0x100...
 root - INFO - Read Vel
 root - INFO -     success!
+root - INFO - n 3: 512 0200
+root - DEBUG -   pos: 865, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
+root - DEBUG - Trying to Read 512
+root - INFO -   Reading code 0x200...
+root - INFO - Read Corr
+root - INFO -     success!
+root - INFO - n 4: 768 0300
+root - DEBUG -   pos: 935, pos_: 0, nbyte: 70, k: 0, byte_offset: -1
+root - DEBUG - Trying to Read 768
+root - INFO -   Reading code 0x300...
