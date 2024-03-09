@@ -219,11 +219,11 @@ class _RDIReader:
         # Check header, double buffer, and get filesize
         self._filesize = getsize(self.fname)
         space = self.code_spacing()  # '0x7F'
-        self._npings = self._filesize // space * 1.5
+        self._npings = self._filesize // space
         if self._debug_level >= 0:
             logging.info("Done: {}".format(self.cfg))
             logging.info("self._bb {}".format(self._bb))
-            logging.info(self.cfgbb)
+            logging.info("self.cfgbb: {}".format(self.cfgbb))
         self.f.seek(self._pos, 0)
         self.n_avg = navg
 
@@ -234,9 +234,6 @@ class _RDIReader:
         self.vars_read = defs._variable_setlist(["time"])
         if self._bb:
             self.vars_readBB = defs._variable_setlist(["time"])
-
-        if self._debug_level >= 0:
-            logging.info("  %d pings estimated in this file" % self._npings)
 
     def code_spacing(self, iternum=50):
         """
@@ -337,7 +334,10 @@ class _RDIReader:
 
     def load_data(self, nens=None):
         if nens is None:
-            self._nens = int(self._npings / self.n_avg)
+            if self.cfg["coord_sys"] == "ship":
+                self._nens = int(self._filesize / self.hdr["nbyte"] / self.n_avg)
+            else:
+                self._nens = int(self._npings / self.n_avg)
         elif nens.__class__ is tuple or nens.__class__ is list:
             raise Exception("    `nens` must be a integer")
         else:
