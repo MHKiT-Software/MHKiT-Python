@@ -555,7 +555,9 @@ class _RDIReader:
         fd = self.f
         if self._debug_level >= 2:
             logging.info("  -->In search_buffer...")
-        while search_cnt < self._search_num and ((id1 != [127, 127]) or self.checkheader(id1)):
+        while search_cnt < self._search_num and (
+            (id1 != [127, 127]) or self.checkheader(id1)
+        ):
             if id1 == [127, 121]:
                 skipbytes = fd.read_i16(1)
                 fd.seek(skipbytes - 2, 1)
@@ -584,9 +586,7 @@ class _RDIReader:
                 )
         return True
 
-    def checkheader(
-        self, id1
-    ):
+    def checkheader(self, id1):
         """Returns True if next header is bad or at end of file"""
         fd = self.f
         valid = True
