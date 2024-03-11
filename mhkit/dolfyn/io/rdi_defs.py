@@ -407,7 +407,5 @@ class _ensemble:
                 np.zeros(_get_size(nm, n=navg, ncell=n_cells), dtype=data_defs[nm][2]),
             )
 
-    def clean_data(
-        self,
-    ):
+    def clean_data(self):
         self["vel"][self["vel"] == -32.768] = np.NaN
