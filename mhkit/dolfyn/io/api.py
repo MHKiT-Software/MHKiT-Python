@@ -203,7 +203,7 @@ def save(ds, filename, format="NETCDF4", engine="netcdf4", compression=False, **
 
         if compression:
             # New netcdf4-c cannot compress variable length strings
-            if isinstance(ds[ky].data[0], str):
+            if ds[ky].size <= 1 or isinstance(ds[ky].data[0], str):
                 continue
             enc[ky].update(dict(zlib=True, complevel=1))
 

@@ -6,6 +6,8 @@ root - INFO -   ###Leaving checkheader.
 root - INFO - {'nbyte': 579, 'dat_offsets': array([ 20,  79, 144, 282, 352, 422, 492])}
 root - INFO - pos 20
 root - INFO - pos 20 id 0
+root - WARNING - Number of cells set to 17
+root - WARNING - Cell size set to 1.0
 root - INFO - Read Config
 root - INFO - Read Fixed
 root - INFO - pos 79 id 128
@@ -97,5 +99,3 @@ root - INFO - n 2: 256 0100
 root - DEBUG -   pos: 727, pos_: 0, nbyte: 65, k: 0, byte_offset: -1
 root - DEBUG - Trying to Read 256
 root - INFO -   Reading code 0x100...
-root - INFO - Read Vel
-root - INFO -     success!
