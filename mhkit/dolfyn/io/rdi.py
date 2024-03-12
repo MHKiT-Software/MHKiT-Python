@@ -337,7 +337,7 @@ class _RDIReader:
             if self.cfg["coord_sys"] == "ship":
                 self._nens = int(self._filesize / self.hdr["nbyte"] / self.n_avg)
             else:
-                self._nens = int(self._npings / self.n_avg)
+                self._nens = self._npings // self.n_avg
         elif nens.__class__ is tuple or nens.__class__ is list:
             raise Exception("    `nens` must be a integer")
         else:
@@ -586,10 +586,12 @@ class _RDIReader:
                 )
         return True
 
-    def checkheader(self, id1):
-        """Returns True if next header is bad or at end of file"""
+    def checkheader(self):
+        """
+        Returns True if next header is bad or at end of file.
+        """
         fd = self.f
-        valid = True
+        out = True
         numbytes = fd.read_i16(1)
         # Search for next config id
         if numbytes > 0:
@@ -603,10 +605,10 @@ class _RDIReader:
             if len(cfgid) == 2:
                 fd.seek(-numbytes - 2, 1)
                 if cfgid[0] == 127 and cfgid[1] in [127, 121]:
-                    valid = False
+                    out = False
         else:
             fd.seek(-2, 1)
-        return valid
+        return out
 
     def read_hdrseg(
         self,
