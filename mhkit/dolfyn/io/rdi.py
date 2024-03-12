@@ -64,10 +64,10 @@ def read_rdi(
 
     # Reads into a dictionary of dictionaries using netcdf naming conventions
     # Should be easier to debug
-    with _RDIReader(
+    rdr = _RDIReader(
         filename, debug_level=debug_level, vmdas_search=vmdas_search, winriver=winriver
-    ) as ldr:
-        datNB, datBB = ldr.load_data(nens=nens)
+    )
+    datNB, datBB = rdr.load_data(nens=nens)
 
     dats = [dat for dat in [datNB, datBB] if dat is not None]
 
@@ -210,7 +210,10 @@ class _RDIReader:
         self._debug_level = debug_level
         self._vmdas_search = vmdas_search
         self._winrivprob = winriver
-        self.flag = 0
+        self.n_cells_diff = 0
+        self.n_cells_sl = 0
+        self.cs_diff = 0
+        self.cs = []
         self.cfg = {}
         self.cfgbb = {}
         self.hdr = {}
@@ -297,9 +300,16 @@ class _RDIReader:
         self.read_hdrseg()
         return True
 
-    def check_for_double_buffer(
-        self,
-    ):
+    def read_hdrseg(self):
+        fd = self.f
+        hdr = self.hdr
+        hdr["nbyte"] = fd.read_i16(1)
+        spare = fd.read_ui8(1)
+        ndat = fd.read_ui8(1)
+        hdr["dat_offsets"] = fd.read_ui16(ndat)
+        self._nbyte = 4 + ndat * 2
+
+    def check_for_double_buffer(self):
         """
         VMDAS will record two buffers in NB or NB/BB mode, so we need to
         figure out if that is happening here
@@ -327,17 +337,12 @@ class _RDIReader:
                 self._vmdas_search = True
         return found
 
-    def mean(self, dat):
-        if self.n_avg == 1:
-            return dat[..., 0]
-        return np.nanmean(dat, axis=-1)
-
     def load_data(self, nens=None):
         if nens is None:
             if self.cfg["coord_sys"] == "ship":
                 self._nens = int(self._filesize / self.hdr["nbyte"] / self.n_avg)
             else:
-                self._nens = self._npings // self.n_avg
+                self._nens = int(self._npings / self.n_avg)
         elif nens.__class__ is tuple or nens.__class__ is list:
             raise Exception("    `nens` must be a integer")
         else:
@@ -368,26 +373,10 @@ class _RDIReader:
                     clock[0, :] += defs.century
 
                 for nm in var:
-                    # If n_cells has increased (WinRiver transects)
-                    ds = defs._get(dat, nm)
-                    bn = self.mean(en[nm])
-                    # Check that
-                    # 1. n_cells has changed,
-                    # 2. nm is a beam variable
-                    # 3. n_cells is greater than any previous
-                    if (
-                        self.flag > 0
-                        and len(ds.shape) == 3
-                        and (ds.shape[0] != bn.shape[0])
-                    ):
-                        # increase the size of original dataset
-                        a = np.empty((self.flag, ds.shape[1], ds.shape[2])) * np.nan
-                        ds = np.append(ds, a, axis=0)
-                        defs._setd(dat, nm, ds)
-                    # Copy the ensemble to the dataset.
-                    ds[..., iens] = bn
-                # reset after all variables run
-                self.flag = 0
+                    self.save_profiles(dat, nm, en, iens)
+
+                # reset flag after all variables run
+                self.n_cells_diff = 0
 
                 try:
                     dates = tmlib.date2epoch(
@@ -417,9 +406,7 @@ class _RDIReader:
         datbb = self.outdBB if self._bb else None
         return dat, datbb
 
-    def init_data(
-        self,
-    ):
+    def init_data(self):
         outd = {
             "data_vars": {},
             "coords": {},
@@ -453,6 +440,7 @@ class _RDIReader:
             ]
             outdbb["attrs"]["has_imu"] = 0
 
+        # Preallocate variables and data sizes
         for nm in defs.data_defs:
             outd = defs._idata(
                 outd, nm, sz=defs._get_size(nm, self._nens, self.cfg["n_cells"])
@@ -473,9 +461,7 @@ class _RDIReader:
             if self._bb:
                 logging.info("{} ncells, BB".format(self.cfgbb["n_cells"]))
 
-    def read_buffer(
-        self,
-    ):
+    def read_buffer(self):
         fd = self.f
         self.ensemble.k = -1  # so that k+=1 gives 0 on the first loop.
         if self._bb:
@@ -540,6 +526,16 @@ class _RDIReader:
 
         return True
 
+    def print_progress(self):
+        self.progress = self.f.tell()
+        if self._debug_level > 1:
+            logging.debug(
+                "  pos %0.0fmb/%0.0fmb\n"
+                % (self.f.tell() / 1048576.0, self._filesize / 1048576.0)
+            )
+        if (self.f.tell() - self.progress) < 1048576:
+            return
+
     def search_buffer(self):
         """
         Check to see if the next bytes indicate the beginning of a
@@ -556,7 +552,7 @@ class _RDIReader:
         if self._debug_level >= 2:
             logging.info("  -->In search_buffer...")
         while search_cnt < self._search_num and (
-            (id1 != [127, 127]) or self.checkheader(id1)
+            (id1 != [127, 127]) or self.checkheader()
         ):
             if id1 == [127, 121]:
                 skipbytes = fd.read_i16(1)
@@ -610,29 +606,6 @@ class _RDIReader:
             fd.seek(-2, 1)
         return out
 
-    def read_hdrseg(
-        self,
-    ):
-        fd = self.f
-        hdr = self.hdr
-        hdr["nbyte"] = fd.read_i16(1)
-        spare = fd.read_ui8(1)
-        ndat = fd.read_ui8(1)
-        hdr["dat_offsets"] = fd.read_ui16(ndat)
-        self._nbyte = 4 + ndat * 2
-
-    def print_progress(
-        self,
-    ):
-        self.progress = self.f.tell()
-        if self._debug_level > 1:
-            logging.debug(
-                "  pos %0.0fmb/%0.0fmb\n"
-                % (self.f.tell() / 1048576.0, self._filesize / 1048576.0)
-            )
-        if (self.f.tell() - self.progress) < 1048576:
-            return
-
     def print_pos(self, byte_offset=-1):
         """Print the position in the file, used for debugging."""
         if self._debug_level >= 2:
@@ -643,30 +616,6 @@ class _RDIReader:
             logging.debug(
                 f"  pos: {self.f.tell()}, pos_: {self._pos}, nbyte: {self._nbyte}, k: {k}, byte_offset: {byte_offset}"
             )
-
-    def check_offset(self, offset, readbytes):
-        fd = self.f
-        if offset != 4 and self._fixoffset == 0:
-            if self._debug_level > 0:
-                if fd.tell() == self._filesize:
-                    logging.error(
-                        " EOF reached unexpectedly - discarding this last ensemble\n"
-                    )
-                else:
-                    logging.debug(
-                        "  Adjust location by {:d} (readbytes={:d},hdr['nbyte']={:d})\n".format(
-                            offset, readbytes, self.hdr["nbyte"]
-                        )
-                    )
-            self._fixoffset = offset - 4
-        fd.seek(4 + self._fixoffset, 1)
-
-    def remove_end(self, iens):
-        dat = self.outd
-        if self._debug_level > 0:
-            logging.info("  Encountered end of file.  Cleaning up data.")
-        for nm in self.vars_read:
-            defs._setd(dat, nm, defs._get(dat, nm)[..., :iens])
 
     def read_dat(self, id):
         function_map = {
@@ -785,27 +734,27 @@ class _RDIReader:
         if self._debug_level >= 0:
             logging.info("Read Fixed")
 
-        # Check if n_cells changed (for winriver transect files)
-        if hasattr(self, "ensemble") and (
-            self.ensemble["n_cells"] != self.cfg["n_cells"]
-        ):
-            diff = self.cfg["n_cells"] - self.ensemble["n_cells"]
-            if diff > 0:
-                self.flag = diff
+        # Check if n_cells has increased (for winriver transect files)
+        if hasattr(self, "ensemble"):
+            self.n_cells_diff = self.cfg["n_cells"] - self.ensemble["n_cells"]
+            # Increase n_cells if greater than 0
+            if self.n_cells_diff > 0:
                 self.ensemble = defs._ensemble(self.n_avg, self.cfg["n_cells"])
-                # Not concerned if # of cells decreases
                 if self._debug_level >= 1:
                     logging.warning(
-                        "Number of cells changed to {}".format(self.cfg["n_cells"])
+                        f"Maximum number of cells increased to {self.cfg['n_cells']}"
                     )
 
-    def read_fixed_sl(
-        self,
-    ):
+    def read_fixed_sl(self):
         # Surface layer profile
         cfg = self.cfg
         cfg["surface_layer"] = 1
-        cfg["n_cells_sl"] = self.f.read_ui8(1)
+        n_cells = self.f.read_ui8(1)
+        # Check if n_cells is greater than what was used in prior profiles
+        if ("n_cells_sl" not in cfg) or (n_cells > cfg["n_cells_sl"]):
+            self.n_cells_sl = n_cells
+        cfg["n_cells_sl"] = n_cells
+        # Assuming surface layer profile cell size never changes
         cfg["cell_size_sl"] = self.f.read_ui16(1) * 0.01
         cfg["bin1_dist_m_sl"] = round(self.f.read_ui16(1) * 0.01, 4)
 
@@ -834,9 +783,20 @@ class _RDIReader:
         simflag = ["real", "simulated"][tmp[4]]
         fd.seek(1, 1)
         cfg["n_beams"] = fd.read_ui8(1) + beam5
-        cfg["n_cells"] = fd.read_ui8(1)
+        # Check if number of cells has changed
+        n_cells = fd.read_ui8(1)
+        if ("n_cells" not in cfg) or (n_cells != cfg["n_cells"]):
+            cfg["n_cells"] = n_cells
+            if self._debug_level >= 1:
+                logging.warning(f"Number of cells set to {cfg['n_cells']}")
         cfg["pings_per_ensemble"] = fd.read_ui16(1)
-        cfg["cell_size"] = fd.read_ui16(1) * 0.01
+        # Check if cell size has changed
+        cs = fd.read_ui16(1) * 0.01
+        if ("cell_size" not in cfg) or (cs != cfg["cell_size"]):
+            self.cs_diff = cs if "cell_size" not in cfg else (cs - cfg["cell_size"])
+            cfg["cell_size"] = cs
+            if self._debug_level >= 1:
+                logging.warning(f"Cell size set to {cfg['cell_size']}")
         cfg["blank_dist"] = fd.read_ui16(1) * 0.01
         cfg["profiling_mode"] = fd.read_ui8(1)
         cfg["min_corr_threshold"] = fd.read_ui8(1)
@@ -1050,9 +1010,7 @@ class _RDIReader:
         if self._debug_level >= 0:
             logging.info("Read Status")
 
-    def read_bottom(
-        self,
-    ):
+    def read_bottom(self):
         self.vars_read += ["dist_bt", "vel_bt", "corr_bt", "amp_bt", "prcnt_gd_bt"]
         fd = self.f
         ens = self.ensemble
@@ -1110,9 +1068,7 @@ class _RDIReader:
         if self._debug_level >= 0:
             logging.info("Read Bottom Track")
 
-    def read_alt(
-        self,
-    ):
+    def read_alt(self):
         """Read altimeter (vertical beam range)"""
         fd = self.f
         ens = self.ensemble
@@ -1126,9 +1082,7 @@ class _RDIReader:
         if self._debug_level >= 0:
             logging.info("Read Altimeter")
 
-    def read_vmdas(
-        self,
-    ):
+    def read_vmdas(self):
         """Read VMDAS Navigation block"""
         fd = self.f
         self.cfg["sourceprog"] = "VMDAS"
@@ -1195,9 +1149,7 @@ class _RDIReader:
             logging.info("Read VMDAS")
         self._read_vmdas = True
 
-    def read_winriver2(
-        self,
-    ):
+    def read_winriver2(self):
         startpos = self.f.tell()
         self._winrivprob = True
         self.cfg["sourceprog"] = "WinRiver2"
@@ -1247,12 +1199,12 @@ class _RDIReader:
                 ens.fix_gps[k] = self.f.read_ui8(1)  # gps fix type/quality
                 ens.n_sat_gps[k] = self.f.read_ui8(1)  # of satellites
                 # horizontal dilution of precision
-                ens.hdop_gps[k] = self.f.read_float(1)
-                ens.elevation_gps[k] = self.f.read_float(1)  # altitude
+                ens.hdop_gps[k] = self.f.read_f32(1)
+                ens.elevation_gps[k] = self.f.read_f32(1)  # altitude
                 m = self.f.reads(1)  # altitude unit, 'm'
-                h_geoid = self.f.read_float(1)  # height of geoid
+                h_geoid = self.f.read_f32(1)  # height of geoid
                 m2 = self.f.reads(1)  # geoid unit, 'm'
-                ens.rtk_age_gps[k] = self.f.read_float(1)
+                ens.rtk_age_gps[k] = self.f.read_f32(1)
                 station_id = self.f.read_ui16(1)
             self.vars_read += [
                 "time_gps",
@@ -1281,13 +1233,13 @@ class _RDIReader:
                         )
                     return "FAIL"
                 self.f.seek(1, 1)
-                true_track = self.f.read_float(1)
+                true_track = self.f.read_f32(1)
                 t = self.f.reads(1)  # 'T'
-                magn_track = self.f.read_float(1)
+                magn_track = self.f.read_f32(1)
                 m = self.f.reads(1)  # 'M'
-                speed_knot = self.f.read_float(1)
+                speed_knot = self.f.read_f32(1)
                 kts = self.f.reads(1)  # 'N'
-                speed_kph = self.f.read_float(1)
+                speed_kph = self.f.read_f32(1)
                 kph = self.f.reads(1)  # 'K'
                 mode = self.f.reads(1)
                 # knots -> m/s
@@ -1311,11 +1263,11 @@ class _RDIReader:
                         )
                     return "FAIL"
                 self.f.seek(1, 1)
-                depth_ft = self.f.read_float(1)
+                depth_ft = self.f.read_f32(1)
                 ft = self.f.reads(1)  # 'f'
-                depth_m = self.f.read_float(1)
+                depth_m = self.f.read_f32(1)
                 m = self.f.reads(1)  # 'm'
-                depth_fathom = self.f.read_float(1)
+                depth_fathom = self.f.read_f32(1)
                 f = self.f.reads(1)  # 'F'
                 ens.dist_nmea[k] = depth_m
             self.vars_read += ["dist_nmea"]
@@ -1395,28 +1347,150 @@ class _RDIReader:
         if self._debug_level >= 0:
             logging.debug(f"Skipping ID code {id}\n")
 
+    def check_offset(self, offset, readbytes):
+        fd = self.f
+        if offset != 4 and self._fixoffset == 0:
+            if self._debug_level > 0:
+                if fd.tell() == self._filesize:
+                    logging.error(
+                        " EOF reached unexpectedly - discarding this last ensemble\n"
+                    )
+                else:
+                    logging.debug(
+                        "  Adjust location by {:d} (readbytes={:d},hdr['nbyte']={:d})\n".format(
+                            offset, readbytes, self.hdr["nbyte"]
+                        )
+                    )
+            self._fixoffset = offset - 4
+        fd.seek(4 + self._fixoffset, 1)
+
+    def remove_end(self, iens):
+        dat = self.outd
+        if self._debug_level > 0:
+            logging.info("  Encountered end of file.  Cleaning up data.")
+        for nm in self.vars_read:
+            defs._setd(dat, nm, defs._get(dat, nm)[..., :iens])
+
+    def save_profiles(self, dat, nm, en, iens):
+        ds = defs._get(dat, nm)
+
+        if self.n_avg == 1:
+            bn = en[nm][..., 0]
+        else:
+            bn = np.nanmean(en[nm], axis=-1)
+
+        # If n_cells has changed (RiverPro/StreamPro WinRiver transects)
+        if len(ds.shape) == 3:
+            if "_sl" in nm:
+                # This works here b/c the max number of surface layer cells
+                # is smaller than the min number of normal profile cells used.
+                # Extra nan cells created after this if-statement
+                # are trimmed off in self.cleanup.
+                bn = bn[: self.cfg["n_cells_sl"]]
+            else:
+                # Set bn to current ping size
+                bn = bn[: self.cfg["n_cells"]]
+                # If n_cells has increased, we also need to increment defs
+                if self.n_cells_diff > 0:
+                    a = np.empty((self.n_cells_diff, ds.shape[1], ds.shape[2])) * np.nan
+                    ds = np.append(ds, a.astype(ds.dtype), axis=0)
+                    defs._setd(dat, nm, ds)
+            # If the number of cells decreases, set extra cells to nan instead of
+            # whatever is stuck in memory
+            if ds.shape[0] != bn.shape[0]:
+                n_cells = ds.shape[0] - bn.shape[0]
+                a = np.empty((n_cells, bn.shape[1])) * np.nan
+                bn = np.append(bn, a.astype(ds.dtype), axis=0)
+
+        # Keep track of when the cell size changes
+        if self.cs_diff:
+            self.cs.append([iens, self.cfg["cell_size"]])
+            self.cs_diff = 0
+
+        # Then copy the ensemble to the dataset.
+        ds[..., iens] = bn
+
     def cleanup(self, cfg, dat):
+        # Clean up changing cell size, if necessary
+        cs = np.array(self.cs)
+        cell_sizes = cs[:, 1]
+
+        # If cell sizes change, depth-bin average the smaller cell sizes
+        if len(self.cs) > 1:
+            bins_to_merge = cell_sizes.max() / cell_sizes
+            idx_start = cs[:, 0].astype(int)
+            idx_end = np.append(cs[1:, 0], self._nens).astype(int)
+
+            dv = dat["data_vars"]
+            for var in dv:
+                if (len(dv[var].shape) == 3) and ("_sl" not in var):
+                    # Create a new NaN var to save data in
+                    new_var = (np.zeros(dv[var].shape) * np.nan).astype(dv[var].dtype)
+                    # For each cell size change, reshape and bin-average
+                    for id1, id2, b in zip(idx_start, idx_end, bins_to_merge):
+                        array = np.transpose(dv[var][..., id1:id2])
+                        bin_arr = np.transpose(np.mean(self.reshape(array, b), axis=-1))
+                        new_var[: len(bin_arr), :, id1:id2] = bin_arr
+                    # Reset data. This often leaves nan data at farther ranges
+                    dv[var] = new_var
+
+        # Set cell size and range
+        cfg["n_cells"] = self.ensemble["n_cells"]
+        cfg["cell_size"] = cell_sizes.max()
         dat["coords"]["range"] = (
-            cfg["bin1_dist_m"] + np.arange(self.ensemble["n_cells"]) * cfg["cell_size"]
+            cfg["bin1_dist_m"] + np.arange(cfg["n_cells"]) * cfg["cell_size"]
         )
 
+        # Save configuration data as attributes
         for nm in cfg:
             dat["attrs"][nm] = cfg[nm]
 
+        # Clean up surface layer profiles
         if "surface_layer" in cfg:  # RiverPro/StreamPro
             dat["coords"]["range_sl"] = (
                 cfg["bin1_dist_m_sl"]
-                + np.arange(self.cfg["n_cells_sl"]) * cfg["cell_size_sl"]
+                + np.arange(0, self.n_cells_sl) * cfg["cell_size_sl"]
             )
-            # Trim surface layer profile to length
+            # Trim off extra nan data
             dv = dat["data_vars"]
             for var in dv:
                 if "sl" in var:
-                    dv[var] = dv[var][: cfg["n_cells_sl"]]
+                    dv[var] = dv[var][: self.n_cells_sl]
             dat["attrs"]["rotate_vars"].append("vel_sl")
 
+    def reshape(self, arr, n_bin=None):
+        """
+        Reshape the array `arr` to shape (...,n,n_bin).
+        """
+
+        out = np.zeros(
+            list(arr.shape[:-1]) + [int(arr.shape[-1] // n_bin), int(n_bin)],
+            dtype=arr.dtype,
+        )
+        shp = out.shape
+        if np.mod(n_bin, 1) == 0:
+            # n_bin needs to be int
+            n_bin = int(n_bin)
+            # If n_bin is an integer, we can do this simply.
+            out[..., :n_bin] = (arr[..., : (shp[-2] * shp[-1])]).reshape(shp, order="C")
+        else:
+            inds = (np.arange(np.prod(shp[-2:])) * n_bin // int(n_bin)).astype(int)
+            # If there are too many indices, drop one bin
+            if inds[-1] >= arr.shape[-1]:
+                inds = inds[: -int(n_bin)]
+                shp[-2] -= 1
+                out = out[..., 1:, :]
+            n_bin = int(n_bin)
+            out[..., :n_bin] = (arr[..., inds]).reshape(shp, order="C")
+            n_bin = int(n_bin)
+
+        return out
+
     def finalize(self, dat):
-        """Remove the attributes from the data that were never loaded."""
+        """
+        Remove the attributes from the data that were never loaded.
+        """
+
         for nm in set(defs.data_defs.keys()) - self.vars_read:
             defs._pop(dat, nm)
         for nm in self.cfg:
@@ -1424,25 +1498,14 @@ class _RDIReader:
 
         # VMDAS and WinRiver have different set sampling frequency
         da = dat["attrs"]
-        if hasattr(da, "sourceprog") and (
+        if ("sourceprog" in da) and (
             da["sourceprog"].lower() in ["vmdas", "winriver", "winriver2"]
         ):
-            da["fs"] = round(np.diff(dat["coords"]["time"]).mean() ** -1, 2)
+            da["fs"] = round(1 / np.median(np.diff(dat["coords"]["time"])), 2)
         else:
-            da["fs"] = (da["sec_between_ping_groups"] * da["pings_per_ensemble"]) ** (
-                -1
-            )
-        da["n_cells"] = self.ensemble["n_cells"]
+            da["fs"] = 1 / (da["sec_between_ping_groups"] * da["pings_per_ensemble"])
 
         for nm in defs.data_defs:
             shp = defs.data_defs[nm][0]
             if len(shp) and shp[0] == "nc" and defs._in_group(dat, nm):
                 defs._setd(dat, nm, np.swapaxes(defs._get(dat, nm), 0, 1))
-
-    def __enter__(
-        self,
-    ):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self.f.close()
