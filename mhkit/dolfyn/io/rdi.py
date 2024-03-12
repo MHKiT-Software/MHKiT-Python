@@ -339,9 +339,17 @@ class _RDIReader:
 
     def load_data(self, nens=None):
         if nens is None:
-            if self.cfg["coord_sys"] == "ship":
-                self._nens = int(self._filesize / self.hdr["nbyte"] / self.n_avg)
+            # Attempt to overshoot WinRiver2 or *Pro filesize
+            if (self.cfg["coord_sys"] == "ship") or (
+                self.cfg["inst_model"]
+                in [
+                    "RiverPro",
+                    "StreamPro",
+                ]
+            ):
+                self._nens = int(self._filesize / self.hdr["nbyte"] / self.n_avg * 1.1)
             else:
+                # Attempt to overshoot other instrument filesizes
                 self._nens = int(self._npings / self.n_avg)
         elif nens.__class__ is tuple or nens.__class__ is list:
             raise Exception("    `nens` must be a integer")
@@ -751,8 +759,12 @@ class _RDIReader:
         cfg["surface_layer"] = 1
         n_cells = self.f.read_ui8(1)
         # Check if n_cells is greater than what was used in prior profiles
-        if ("n_cells_sl" not in cfg) or (n_cells > cfg["n_cells_sl"]):
+        if n_cells > self.n_cells_sl:
             self.n_cells_sl = n_cells
+            if self._debug_level >= 1:
+                logging.warning(
+                    f"Maximum number of surface layer cells increased to {n_cells}"
+                )
         cfg["n_cells_sl"] = n_cells
         # Assuming surface layer profile cell size never changes
         cfg["cell_size_sl"] = self.f.read_ui16(1) * 0.01
