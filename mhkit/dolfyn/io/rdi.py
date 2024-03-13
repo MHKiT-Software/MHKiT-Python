@@ -550,43 +550,44 @@ class _RDIReader:
         data block.  If not, search for the next data block, up to
         _search_num times.
         """
-        id = self.f.read_ui8(2)
+        fd = self.f
+        id = fd.read_ui8(2)
         if id is None:
             return False
-        id1 = list(id)
+        cfgid = list(id)
         pos_7f79 = False
         search_cnt = 0
-        fd = self.f
+
         if self._debug_level >= 2:
             logging.info("  -->In search_buffer...")
         while search_cnt < self._search_num and (
-            (id1 != [127, 127]) or self.checkheader()
+            (cfgid != [127, 127]) or self.checkheader()
         ):
-            if id1 == [127, 121]:
+            if cfgid == [127, 121]:
                 skipbytes = fd.read_i16(1)
                 fd.seek(skipbytes - 2, 1)
-                id1 = list(fd.read_ui8(2))
+                cfgid = list(fd.read_ui8(2))
                 pos_7f79 = True
             else:
                 search_cnt += 1
                 nextbyte = fd.read_ui8(1)
                 if nextbyte is None:
                     return False
-                id1[0] = id1[1]
-                id1[1] = nextbyte
+                cfgid[0] = cfgid[1]
+                cfgid[1] = nextbyte
         if pos_7f79 and self._debug_level >= 0:
             logging.info("Skipped junk data: [{:x}, {:x}]".format(*[127, 121]))
         if search_cnt == self._search_num:
             raise Exception(
                 "Searched {} entries... Bad data encountered. -> {}".format(
-                    search_cnt, id1
+                    search_cnt, cfgid
                 )
             )
         elif search_cnt > 0:
             if self._debug_level >= 1:
                 logging.info(
                     "  Searched {} bytes to find next "
-                    "valid ensemble start [{:x}, {:x}]\n".format(search_cnt, *id1)
+                    "valid ensemble start [{:x}, {:x}]\n".format(search_cnt, *cfgid)
                 )
         return True
 
