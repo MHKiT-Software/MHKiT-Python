@@ -176,7 +176,7 @@ def power_curve(
 
     Returns
     ---------
-    out: pandas DataFrame or xarray Dataset
+    device_power_curve: pandas DataFrame or xarray Dataset
         Power-weighted velocity, mean power, power std dev, max and
         min power vs hub-height velocity.
     """
@@ -290,7 +290,7 @@ def power_curve(
     P_bar_max = P_bar_vel.groupby_bins("speed", U_bins).max()
     P_bar_min = P_bar_vel.groupby_bins("speed", U_bins).min()
 
-    out = xr.Dataset(
+    device_power_curve = xr.Dataset(
         {
             "U_avg": U_hub_mean,
             "U_avg_power_weighted": U_hat_mean,
@@ -300,12 +300,12 @@ def power_curve(
             "P_min": P_bar_min,
         }
     )
-    out = out.rename({"speed_bins": "U_bins"})
+    device_power_curve = device_power_curve.rename({"speed_bins": "U_bins"})
 
     if to_pandas:
-        out = out.to_pandas()
+        device_power_curve = device_power_curve.to_pandas()
 
-    return out
+    return device_power_curve
 
 
 def _average_velocity_bins(U, U_hub, bin_size):
@@ -324,7 +324,7 @@ def _average_velocity_bins(U, U_hub, bin_size):
 
     Returns
     ---------
-    xarray.DataArray
+    U_binned: xarray.DataArray
         Data grouped into velocity bins.
     """
 
@@ -332,10 +332,10 @@ def _average_velocity_bins(U, U_hub, bin_size):
     U_bins = np.arange(0, np.nanmax(U_hub) + bin_size, bin_size)
 
     # Group time-ensembles into velocity bins based on hub-height velocity and average
-    out = U.assign_coords({"time": U_hub}).rename({"time": "speed"})
-    out = out.groupby_bins("speed", U_bins).mean()
+    U_binned = U.assign_coords({"time": U_hub}).rename({"time": "speed"})
+    U_binned = U_binned.groupby_bins("speed", U_bins).mean()
 
-    return out
+    return U_binned
 
 
 def _apply_function(function, bnr, U):
@@ -511,7 +511,7 @@ def device_efficiency(
 
     Returns
     ---------
-    pandas.Series
+    device_eta : pandas.Series or xarray.DataArray
         Device efficiency (power coefficient) in percent.
     """
 
@@ -558,13 +558,13 @@ def device_efficiency(
     # Efficiency
     eta = P_vel / P_resource
 
-    out = xr.Dataset({"U_avg": vel_hub, "Efficiency": eta})
-    out = out.rename({"speed_bins": "U_bins"})
+    device_eta = xr.Dataset({"U_avg": vel_hub, "Efficiency": eta})
+    device_eta = device_eta.rename({"speed_bins": "U_bins"})
 
     if to_pandas:
-        out = out.to_pandas()
+        device_eta = device_eta.to_pandas()
 
-    return out
+    return device_eta
 
 
 def _calculate_density(water_density, bnr, mean_hub_vel, time):
