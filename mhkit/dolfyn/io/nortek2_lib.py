@@ -261,19 +261,6 @@ def _check_index(idx, infile, fix_hw_ens=False, dp=False):
             hwe[inds[(ib + 1) :]] += 1
             ens[inds[(ib + 1) :]] += 1
 
-    if not dp:
-        # This block fixes skips that originate from before this file.
-        # Check first N id's and correct
-        delta = max(hwe[:N_id]) - hwe[:N_id]
-        for d, id in zip(delta, idx["ID"][:N_id]):
-            if d != 0:
-                FLAG = True
-                hwe[id == idx["ID"]] += d
-                ens[id == idx["ID"]] += d
-
-        if np.any(np.diff(ens) > 1) and FLAG:
-            idx["ens"] = np.unwrap(hwe.astype(np.int64), period=period) - hwe[0]
-
     return dp
 
 
