@@ -422,7 +422,7 @@ def velocity_profiles(
 
     Returns
     ---------
-    pandas.DataFrame
+    iec_profiles: pandas.DataFrame
         Average velocity profiles based on ensemble mean velocity.
     """
 
