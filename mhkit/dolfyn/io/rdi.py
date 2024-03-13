@@ -266,29 +266,8 @@ class _RDIReader:
         """
         Scan file until 7f7f is found
         """
-        fd = self.f
-        cfgid = list(fd.read_ui8(2))
-        if self._debug_level > -1:
-            logging.info("pos {}".format(self.f.pos))
-            logging.info("cfgid0: [{:x}, {:x}]".format(*cfgid))
-        while cfgid != [127, 127]:
-            if cfgid == [127, 121]:
-                skipbytes = fd.read_i16(1)
-                fd.seek(skipbytes - 2, 1)
-                cfgid = list(fd.read_ui8(2))
-            else:
-                nextbyte = fd.read_ui8(1)
-                if nextbyte is None:
-                    return False
-                cfgid[0] = cfgid[1]
-                cfgid[1] = nextbyte
-            pos = fd.tell()
-            if not pos % 1000:
-                if self._debug_level > -1:
-                    logging.info(
-                        "  Still looking for valid cfgid at file "
-                        "position %d ..." % pos
-                    )
+        if not self.search_buffer():
+            return False
         self._pos = self.f.tell() - 2
         self.read_hdrseg()
         return True
@@ -551,8 +530,9 @@ class _RDIReader:
         pos_7f79 = False
         search_cnt = 0
 
-        if self._debug_level > 1:
-            logging.info("  -->In search_buffer...")
+        if self._debug_level > -1:
+            logging.info("pos {}".format(fd.pos))
+            logging.info("cfgid0: [{:x}, {:x}]".format(*cfgid))
         # If not [127, 127] or if the file ends in the next ensemble
         while (cfgid != [127, 127]) or self.check_eof():
             if cfgid == [127, 121]:
@@ -795,7 +775,7 @@ class _RDIReader:
         if ("n_cells" not in cfg) or (n_cells != cfg["n_cells"]):
             cfg["n_cells"] = n_cells
             if self._debug_level > 0:
-                logging.warning(f"Number of cells set to {cfg['n_cells']}")
+                logging.info(f"Number of cells set to {cfg['n_cells']}")
         cfg["pings_per_ensemble"] = fd.read_ui16(1)
         # Check if cell size has changed
         cs = fd.read_ui16(1) * 0.01
@@ -803,7 +783,7 @@ class _RDIReader:
             self.cs_diff = cs if "cell_size" not in cfg else (cs - cfg["cell_size"])
             cfg["cell_size"] = cs
             if self._debug_level > 0:
-                logging.warning(f"Cell size set to {cfg['cell_size']}")
+                logging.info(f"Cell size set to {cfg['cell_size']}")
         cfg["blank_dist"] = fd.read_ui16(1) * 0.01
         cfg["profiling_mode"] = fd.read_ui8(1)
         cfg["min_corr_threshold"] = fd.read_ui8(1)
