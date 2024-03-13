@@ -40,8 +40,8 @@ def read_signature(
       Default = False
     debug : bool
       Logs debugger ouput if true. Default = False
-    dual_profile : bool (default: True)
-      Set to true if instrument is running multiple profiles
+    dual_profile : bool
+      Set to true if instrument is running multiple profiles. Default = False
 
     Returns
     -------
