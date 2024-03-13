@@ -810,7 +810,7 @@ class VelBinner(TimeBinner):
         Parameters
         ----------
         U_mag : xarray.DataArray
-          Raw velocity magnitude
+          Raw horizontal velocity magnitude
         noise : numeric
           Instrument noise level in same units as velocity. Typically
           found from `<adv or adp>.turbulence.doppler_noise_level`.
@@ -947,7 +947,7 @@ class VelBinner(TimeBinner):
         freq_units="rad/s",
         fs=None,
         window="hann",
-        noise=None,
+        noise=0,
         n_bin=None,
         n_fft=None,
         n_pad=None,
@@ -992,8 +992,6 @@ class VelBinner(TimeBinner):
         n_fft = self._parse_nfft(n_fft)
         if "xarray" in type(veldat).__module__:
             vel = veldat.values
-        if "xarray" in type(noise).__module__:
-            noise = noise.values
         if ("rad" not in freq_units) and ("Hz" not in freq_units):
             raise ValueError("`freq_units` should be one of 'Hz' or 'rad/s'")
 
@@ -1024,10 +1022,11 @@ class VelBinner(TimeBinner):
                     "Function can only handle 1D or 3D arrays."
                     " If ADCP data, please select a specific depth bin."
                 )
-            if noise is not None:
+            if np.array(noise).any():
                 if np.size(noise) != 3:
                     raise ValueError("Noise is expected to be an array of 3 scalars")
             else:
+                # Reset default to list of 3 zeros
                 noise = np.array([0, 0, 0])
 
             out = np.empty(
@@ -1052,11 +1051,9 @@ class VelBinner(TimeBinner):
             }
             dims = ["S", "time", "freq"]
         else:
-            if noise is not None:
-                if np.size(noise) > 1:
-                    raise ValueError("Noise is expected to be a scalar")
-            else:
-                noise = 0
+            if np.array(noise).any() and np.size(noise) > 1:
+                raise ValueError("Noise is expected to be a scalar")
+
             out = self._psd_base(
                 vel,
                 fs=fs,
