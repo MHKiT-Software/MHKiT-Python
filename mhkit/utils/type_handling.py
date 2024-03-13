@@ -156,7 +156,9 @@ def convert_to_dataarray(data, name="data"):
             )
         else:
             data = data.to_array()
-            data = data.sel(variable=keys[0]) # removes the variable dimension, further simplifying the dataarray
+            data = data.sel(
+                variable=keys[0]
+            )  # removes the variable dimension, further simplifying the dataarray
 
     # Converts pd.Series to xr.DataArray
     if isinstance(data, pd.Series):
