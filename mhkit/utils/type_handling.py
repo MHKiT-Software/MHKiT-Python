@@ -149,12 +149,14 @@ def convert_to_dataarray(data, name="data"):
 
     # Checks xr.Dataset input and converts to xr.DataArray if possible
     if isinstance(data, xr.Dataset):
-        if len(data.keys()) > 1:
+        keys = list(data.keys())
+        if len(keys) > 1:
             raise ValueError(
                 "If the input data is a pd.DataFrame or xr.Dataset, it must contain one variable. Got {len(data.keys())}"
             )
         else:
             data = data.to_array()
+            data = data.sel(variable=keys[0]) # removes the variable dimension, further simplifying the dataarray
 
     # Converts pd.Series to xr.DataArray
     if isinstance(data, pd.Series):

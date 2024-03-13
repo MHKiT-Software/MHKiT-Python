@@ -163,8 +163,8 @@ class TestGenUtils(unittest.TestCase):
     def test_convert_to_dataarray(self):
         # test data
         a = 5
-        t = np.arange(0, 5, 0.5)
-        i = np.arange(0, 11, 1)
+        t = np.arange(0., 5., 0.5)
+        i = np.arange(0., 10., 1)
         d1 = i**2 / 5.0
         d2 = -d1
 
