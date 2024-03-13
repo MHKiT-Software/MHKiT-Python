@@ -1,9 +1,35 @@
-import matplotlib.pyplot as plt
+"""
+This module provides functionalities for plotting statistical data
+related to a given variable or dataset. 
+
+    - `plot_statistics` is designed to plot raw statistical measures
+      (mean, maximum, minimum, and optional standard deviation) of a
+      variable across a series of x-axis values. It allows for
+      customization of plot labels, title, and saving the plot to a file.
+
+    - `plot_bin_statistics` extends these capabilities to binned data,
+      offering a way to visualize binned statistics (mean, maximum, minimum)
+      along with their respective standard deviations. This function also 
+      supports label and title customization, as well as saving the plot to 
+      a specified path.
+"""
+
+from typing import Optional, Dict, Any
 import numpy as np
-import pandas as pd
+import matplotlib.pyplot as plt
+
+from mhkit.utils.type_handling import to_numeric_array
 
 
-def plot_statistics(x, y_mean, y_max, y_min, y_stdev=[], **kwargs):
+# pylint: disable=R0914
+def plot_statistics(
+    x: np.ndarray,
+    y_mean: np.ndarray,
+    y_max: np.ndarray,
+    y_min: np.ndarray,
+    y_stdev: Optional[np.ndarray] = None,
+    **kwargs: Dict[str, Any],
+) -> plt.Axes:
     """
     Plot showing standard raw statistics of variable
 
@@ -33,20 +59,15 @@ def plot_statistics(x, y_mean, y_max, y_min, y_stdev=[], **kwargs):
     --------
     ax : matplotlib pyplot axes
     """
+    if y_stdev is None:
+        y_stdev = []
 
     input_variables = [x, y_mean, y_max, y_min, y_stdev]
 
-    for i in range(len(input_variables)):
-        var_name = ["x", "y_mean", "y_max", "y_min", "y_stdev"][i]
-        if not isinstance(input_variables[i], (np.ndarray, pd.Series, int, float)):
-            raise TypeError(
-                f"{var_name} must be of type np.ndarray, int, or float. Got: {type(input_variables[i])}"
-            )
-
-        try:
-            input_variables[i] = np.array(input_variables[i])
-        except:
-            pass
+    variable_names = ["x", "y_mean", "y_max", "y_min", "y_stdev"]
+    # Convert each input variable to a numeric array, ensuring all are numeric
+    for i, variable in enumerate(input_variables):
+        input_variables[i] = to_numeric_array(variable, variable_names[i])
 
     x, y_mean, y_max, y_min, y_stdev = input_variables
 
@@ -74,16 +95,16 @@ def plot_statistics(x, y_mean, y_max, y_min, y_stdev=[], **kwargs):
     ax.grid(alpha=0.4)
     ax.legend(loc="best")
 
-    if x_label != None:
+    if x_label:
         ax.set_xlabel(x_label)
-    if y_label != None:
+    if y_label:
         ax.set_ylabel(y_label)
-    if title != None:
+    if title:
         ax.set_title(title)
 
     fig.tight_layout()
 
-    if save_path == None:
+    if save_path is None:
         plt.show()
     else:
         fig.savefig(save_path)
@@ -91,16 +112,17 @@ def plot_statistics(x, y_mean, y_max, y_min, y_stdev=[], **kwargs):
     return ax
 
 
+# pylint: disable=R0913
 def plot_bin_statistics(
-    bin_centers,
-    bin_mean,
-    bin_max,
-    bin_min,
-    bin_mean_std,
-    bin_max_std,
-    bin_min_std,
-    **kwargs,
-):
+    bin_centers: np.ndarray,
+    bin_mean: np.ndarray,
+    bin_max: np.ndarray,
+    bin_min: np.ndarray,
+    bin_mean_std: np.ndarray,
+    bin_max_std: np.ndarray,
+    bin_min_std: np.ndarray,
+    **kwargs: Dict[str, Any],
+) -> plt.Axes:
     """
     Plot showing standard binned statistics of single variable
 
@@ -144,36 +166,23 @@ def plot_bin_statistics(
         bin_max_std,
         bin_min_std,
     ]
+    variable_names = [
+        "bin_centers",
+        "bin_mean",
+        "bin_max",
+        "bin_min",
+        "bin_mean_std",
+        "bin_max_std",
+        "bin_min_std",
+    ]
 
-    for i in range(len(input_variables)):
-        var_name = [
-            "bin_centers",
-            "bin_mean",
-            "bin_max",
-            "bin_min",
-            "bin_mean_std",
-            "bin_max_std",
-            "bin_min_std",
-        ][i]
-        if not isinstance(input_variables[i], (np.ndarray, pd.Series, int, float)):
-            raise TypeError(
-                f"{var_name} must be of type np.ndarray, int, or float. Got: {type(input_variables[i])}"
-            )
+    # Convert each input variable to a numeric array, ensuring all are numeric
+    for i, variable in enumerate(input_variables):
+        input_variables[i] = to_numeric_array(variable, variable_names[i])
 
-        try:
-            input_variables[i] = np.array(input_variables[i])
-        except:
-            pass
-
-    (
-        bin_centers,
-        bin_mean,
-        bin_max,
-        bin_min,
-        bin_mean_std,
-        bin_max_std,
-        bin_min_std,
-    ) = input_variables
+    bin_centers, bin_mean, bin_max, bin_min, bin_mean_std, bin_max_std, bin_min_std = (
+        input_variables
+    )
 
     x_label = kwargs.get("x_label", None)
     y_label = kwargs.get("y_label", None)
@@ -221,16 +230,16 @@ def plot_bin_statistics(
     ax.grid(alpha=0.5)
     ax.legend(loc="best")
 
-    if x_label != None:
+    if x_label:
         ax.set_xlabel(x_label)
-    if y_label != None:
+    if y_label:
         ax.set_ylabel(y_label)
-    if title != None:
+    if title:
         ax.set_title(title)
 
     fig.tight_layout()
 
-    if save_path == None:
+    if save_path is None:
         plt.show()
     else:
         fig.savefig(save_path)
