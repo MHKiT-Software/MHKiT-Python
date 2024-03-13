@@ -160,7 +160,7 @@ class TestGenUtils(unittest.TestCase):
         self.assertTrue(all(theta == phase1))
         self.assertTrue(all(phi == phase2))
 
-    def convert_to_dataArray(self):
+    def test_convert_to_dataArray(self):
         # test data
         a = 5
         t = np.arange(0, 5, 0.5)
