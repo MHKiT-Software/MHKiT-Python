@@ -1,7 +1,7 @@
 import numpy as np
 import math
 from mhkit.river.resource import exceedance_probability, Froude_number
-from mhkit.utils import convert_to_dataArray
+from mhkit.utils import convert_to_dataarray
 
 
 def _histogram(directions, velocities, width_dir, width_vel):
@@ -97,7 +97,7 @@ def principal_flow_directions(directions, width_dir):
     ebb based on knowledge of the measurement site.
     """
 
-    directions = convert_to_dataArray(directions)
+    directions = convert_to_dataarray(directions)
     if any(directions < 0) or any(directions > 360):
         violating_values = [d for d in directions if d < 0 or d > 360]
         raise ValueError(

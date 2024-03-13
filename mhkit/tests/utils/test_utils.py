@@ -160,7 +160,7 @@ class TestGenUtils(unittest.TestCase):
         self.assertTrue(all(theta == phase1))
         self.assertTrue(all(phi == phase2))
 
-    def test_convert_to_dataArray(self):
+    def test_convert_to_dataarray(self):
         # test data
         a = 5
         t = np.arange(0, 5, 0.5)
@@ -190,46 +190,46 @@ class TestGenUtils(unittest.TestCase):
         )
 
         # numpy
-        n = utils.convert_to_dataArray(test_n, "test_data")
+        n = utils.convert_to_dataarray(test_n, "test_data")
         self.assertIsInstance(n, xr.DataArray)
         self.assertTrue(all(n.data == d1))
         self.assertEqual(n.name, "test_data")
 
         # Series
-        s = utils.convert_to_dataArray(test_s)
+        s = utils.convert_to_dataarray(test_s)
         self.assertIsInstance(s, xr.DataArray)
         self.assertTrue(all(s.data == d1))
 
         # DataArray
-        da = utils.convert_to_dataArray(test_da)
+        da = utils.convert_to_dataarray(test_da)
         self.assertIsInstance(da, xr.DataArray)
         self.assertTrue(all(da.data == d1))
 
         # Dataframe
-        df = utils.convert_to_dataArray(test_df)
+        df = utils.convert_to_dataarray(test_df)
         self.assertIsInstance(df, xr.DataArray)
         self.assertTrue(all(df.data == d1))
 
         # Dataset
-        ds = utils.convert_to_dataArray(test_ds)
+        ds = utils.convert_to_dataarray(test_ds)
         self.assertIsInstance(ds, xr.DataArray)
         self.assertTrue(all(ds.data == d1))
 
         # int (error)
         with self.assertRaises(TypeError):
-            utils.convert_to_dataArray(a)
+            utils.convert_to_dataarray(a)
 
         # non-string name (error)
         with self.assertRaises(TypeError):
-            utils.convert_to_dataArray(test_n, 5)
+            utils.convert_to_dataarray(test_n, 5)
 
         # Multivariate Dataframe (error)
         with self.assertRaises(ValueError):
-            utils.convert_to_dataArray(test_df2)
+            utils.convert_to_dataarray(test_df2)
 
         # Multivariate Dataset (error)
         with self.assertRaises(ValueError):
-            utils.convert_to_dataArray(test_ds2)
+            utils.convert_to_dataarray(test_ds2)
 
     def test_convert_to_dataset(self):
         # test data

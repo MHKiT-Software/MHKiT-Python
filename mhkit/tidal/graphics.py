@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from mhkit.river.resource import exceedance_probability
 from mhkit.tidal.resource import _histogram, _flood_or_ebb
 from mhkit.river.graphics import plot_velocity_duration_curve, _xy_plot
-from mhkit.utils import convert_to_dataArray
+from mhkit.utils import convert_to_dataarray
 
 
 def _initialize_polar(ax=None, metadata=None, flood=None, ebb=None):
@@ -96,8 +96,8 @@ def _check_inputs(directions, velocities, flood, ebb):
         Direction in degrees added to theta ticks
     """
 
-    velocities = convert_to_dataArray(velocities)
-    directions = convert_to_dataArray(directions)
+    velocities = convert_to_dataarray(velocities)
+    directions = convert_to_dataarray(directions)
 
     if len(velocities) != len(directions):
         raise ValueError("velocities and directions must have the same length")

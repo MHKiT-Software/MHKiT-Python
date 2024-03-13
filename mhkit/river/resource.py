@@ -2,7 +2,7 @@ import xarray as xr
 import numpy as np
 from scipy.stats import linregress as _linregress
 from scipy.stats import rv_histogram as _rv_histogram
-from mhkit.utils import convert_to_dataArray
+from mhkit.utils import convert_to_dataarray
 
 
 def Froude_number(v, h, g=9.80665):
@@ -63,7 +63,7 @@ def exceedance_probability(D, dimension="", to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    D = convert_to_dataArray(D)
+    D = convert_to_dataarray(D)
 
     if dimension == "":
         dimension = list(D.coords)[0]
@@ -163,7 +163,7 @@ def discharge_to_velocity(D, polynomial_coefficients, dimension="", to_pandas=Tr
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type str. Got: {type(to_pandas)}")
 
-    D = convert_to_dataArray(D)
+    D = convert_to_dataarray(D)
 
     if dimension == "":
         dimension = list(D.coords)[0]
@@ -226,7 +226,7 @@ def velocity_to_power(
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type str. Got: {type(to_pandas)}")
 
-    V = convert_to_dataArray(V)
+    V = convert_to_dataarray(V)
 
     if dimension == "":
         dimension = list(V.coords)[0]
@@ -269,7 +269,7 @@ def energy_produced(P, seconds):
     if not isinstance(seconds, (int, float)):
         raise TypeError(f"seconds must be of type int or float. Got: {type(seconds)}")
 
-    P = convert_to_dataArray(P)
+    P = convert_to_dataarray(P)
 
     # Calculate Histogram of power
     H, edges = np.histogram(P, 100)

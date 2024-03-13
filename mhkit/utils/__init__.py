@@ -8,6 +8,6 @@ from .stat_utils import (
 )
 from .cache import handle_caching, clear_cache
 from .upcrossing import upcrossing, peaks, troughs, heights, periods, custom
-from .type_handling import to_numeric_array, convert_to_dataset, convert_to_dataArray
+from .type_handling import to_numeric_array, convert_to_dataset, convert_to_dataarray
 
 _matlab = False  # Private variable indicating if mhkit is run through matlab

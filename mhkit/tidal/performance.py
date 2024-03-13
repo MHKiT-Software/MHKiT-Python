@@ -1,6 +1,6 @@
 import numpy as np
 import xarray as xr
-from mhkit.utils import convert_to_dataArray
+from mhkit.utils import convert_to_dataarray
 
 from mhkit import dolfyn
 from mhkit.river.performance import (
@@ -183,8 +183,8 @@ def power_curve(
 
     # Velocity should be a 2D xarray or pandas array and have dims (range, time)
     # Power should have a timestamp coordinate/index
-    power = convert_to_dataArray(power)
-    velocity = convert_to_dataArray(velocity)
+    power = convert_to_dataarray(power)
+    velocity = convert_to_dataarray(velocity)
     if len(velocity.shape) != 2:
         raise ValueError(
             "Velocity should be 2 dimensional and have \
@@ -426,7 +426,7 @@ def velocity_profiles(
         Average velocity profiles based on ensemble mean velocity.
     """
 
-    velocity = convert_to_dataArray(velocity, "velocity")
+    velocity = convert_to_dataarray(velocity, "velocity")
     if len(velocity.shape) != 2:
         raise ValueError(
             "Velocity should be 2 dimensional and have \
@@ -517,8 +517,8 @@ def device_efficiency(
 
     # Velocity should be a 2D xarray or pandas array and have dims (range, time)
     # Power should have a timestamp coordinate/index
-    power = convert_to_dataArray(power, "power")
-    velocity = convert_to_dataArray(velocity, "velocity")
+    power = convert_to_dataarray(power, "power")
+    velocity = convert_to_dataarray(velocity, "velocity")
     if len(velocity.shape) != 2:
         raise ValueError(
             "Velocity should be 2 dimensional and have \

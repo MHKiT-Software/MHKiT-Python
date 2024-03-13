@@ -86,7 +86,7 @@ def convert_to_dataset(data, name="data"):
     return data
 
 
-def convert_to_dataArray(data, name="data"):
+def convert_to_dataarray(data, name="data"):
     """
     Converts the given data to an xarray.DataArray.
 
@@ -113,17 +113,17 @@ def convert_to_dataArray(data, name="data"):
     Examples
     --------
     >>> df = pd.DataFrame({'A': [1, 2, 3]})
-    >>> da = convert_to_dataArray(df)
+    >>> da = convert_to_dataarray(df)
     >>> type(da)
     <class 'xarray.core.datarray.DataArray'>
 
     >>> series = pd.Series([1, 2, 3], name='C')
-    >>> da = convert_to_dataArray(series)
+    >>> da = convert_to_dataarray(series)
     >>> type(da)
     <class 'xarray.core.datarray.DataArray'>
 
     >>> data_array = xr.DataArray([1, 2, 3])
-    >>> da = convert_to_dataArray(data_array, name='D')
+    >>> da = convert_to_dataarray(data_array, name='D')
     >>> type(da)
     <class 'xarray.core.datarray.DataArray'>
     """

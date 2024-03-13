@@ -1,7 +1,7 @@
 import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
-from mhkit.utils import convert_to_dataArray
+from mhkit.utils import convert_to_dataarray
 
 
 def _xy_plot(x, y, fmt=".", label=None, xlabel=None, ylabel=None, title=None, ax=None):
@@ -199,7 +199,7 @@ def plot_discharge_timeseries(Q, time_dimension="", label=None, ax=None):
     ax : matplotlib pyplot axes
 
     """
-    Q = convert_to_dataArray(Q)
+    Q = convert_to_dataarray(Q)
 
     if time_dimension == "":
         time_dimension = list(Q.coords)[0]
