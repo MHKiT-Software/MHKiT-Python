@@ -342,22 +342,23 @@ class _RDIReader:
             ens = [self.ensemble]
             vars = [self.vars_read]
             datl = [self.outd]
+            cfgl = [self.cfg]
             if self._bb:
                 ens += [self.ensembleBB]
                 vars += [self.vars_readBB]
                 datl += [self.outdBB]
+                cfgl += [self.cfgbb]
 
             for var, en, dat in zip(vars, ens, datl):
-                clock = en.rtc[:, :]
-                if clock[0, 0] < 100:
-                    clock[0, :] += defs.century
-
                 for nm in var:
-                    self.save_profiles(dat, nm, en, iens)
-
+                    dat = self.save_profiles(dat, nm, en, iens)
                 # reset flag after all variables run
                 self.n_cells_diff = 0
 
+                # Set clock
+                clock = en.rtc[:, :]
+                if clock[0, 0] < 100:
+                    clock[0, :] += defs.century
                 try:
                     dates = tmlib.date2epoch(
                         tmlib.datetime(*clock[:6, 0], microsecond=clock[6, 0] * 10000)
@@ -372,19 +373,15 @@ class _RDIReader:
                 else:
                     dat["coords"]["time"][iens] = np.median(dates)
 
-        self.cleanup(self.cfg, self.outd)
-        if self._bb:
-            self.cleanup(self.cfgbb, self.outdBB)
-
         # Finalize dataset (runs through both nb and bb)
-        for dat in datl:
-            self.finalize(dat)
+        for dat, cfg in zip(datl, cfgl):
+            dat, cfg = self.cleanup(dat, cfg)
+            dat = self.finalize(dat)
             if "vel_bt" in dat["data_vars"]:
                 dat["attrs"]["rotate_vars"].append("vel_bt")
 
-        dat = self.outd
         datbb = self.outdBB if self._bb else None
-        return dat, datbb
+        return self.outd, datbb
 
     def init_data(self):
         outd = {
@@ -1360,7 +1357,6 @@ class _RDIReader:
 
     def save_profiles(self, dat, nm, en, iens):
         ds = defs._get(dat, nm)
-
         if self.n_avg == 1:
             bn = en[nm][..., 0]
         else:
@@ -1396,8 +1392,11 @@ class _RDIReader:
 
         # Then copy the ensemble to the dataset.
         ds[..., iens] = bn
+        defs._setd(dat, nm, ds)
 
-    def cleanup(self, cfg, dat):
+        return dat
+
+    def cleanup(self, dat, cfg):
         # Clean up changing cell size, if necessary
         cs = np.array(self.cs)
         cell_sizes = cs[:, 1]
@@ -1444,6 +1443,8 @@ class _RDIReader:
                 if "sl" in var:
                     dv[var] = dv[var][: self.n_cells_sl]
             dat["attrs"]["rotate_vars"].append("vel_sl")
+
+        return dat, cfg
 
     def reshape(self, arr, n_bin=None):
         """
@@ -1496,3 +1497,5 @@ class _RDIReader:
             shp = defs.data_defs[nm][0]
             if len(shp) and shp[0] == "nc" and defs._in_group(dat, nm):
                 defs._setd(dat, nm, np.swapaxes(defs._get(dat, nm), 0, 1))
+
+        return dat
