@@ -26,20 +26,8 @@ class bin_reader:
     }
 
     @property
-    def pos(
-        self,
-    ):
+    def pos(self):
         return self.f.tell()
-
-    def __enter__(
-        self,
-    ):
-        return self
-
-    def __exit__(
-        self,
-    ):
-        self.close()
 
     def __init__(self, fname, endian="<", checksum_size=None, debug_level=0):
         """
@@ -59,9 +47,7 @@ class bin_reader:
             self.cs = checksum_size
         self.debug_level = debug_level
 
-    def checksum(
-        self,
-    ):
+    def checksum(self):
         """
         The next byte(s) are the expected checksum.  Perform the checksum.
         """
@@ -71,9 +57,7 @@ class bin_reader:
         else:
             raise Exception("CheckSum not requested for this file")
 
-    def tell(
-        self,
-    ):
+    def tell(self):
         return self.f.tell()
 
     def seek(self, pos, rel=1):
@@ -106,14 +90,11 @@ class bin_reader:
     def read_ui8(self, n):
         return self.read(n, "B")
 
-    def read_float(self, n):
+    def read_f32(self, n):
         return self.read(n, "f")
 
-    def read_double(self, n):
+    def read_f64(self, n):
         return self.read(n, "d")
-
-    read_f32 = read_float
-    read_f64 = read_double
 
     def read_i8(self, n):
         return self.read(n, "b")

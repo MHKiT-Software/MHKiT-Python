@@ -47,7 +47,7 @@ class io_adp_testcase(unittest.TestCase):
         td_os = read("vmdas02_os.ENR", nens=nens)
         td_wr1 = read("winriver01.PD0")
         td_wr2 = read("winriver02.PD0")
-        td_rp = read("RiverPro_test01.PD0", nens=nens)
+        td_rp = read("RiverPro_test01.PD0")
         td_transect = read("winriver02_transect.PD0", nens=nens)
 
         if make_data:

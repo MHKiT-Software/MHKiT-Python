@@ -272,7 +272,7 @@ class TestLoads(unittest.TestCase):
         # Test invalid data types one at a time
         with self.assertRaises(TypeError):
             loads.graphics.plot_bin_statistics(
-                [1, 2, 3],  # Invalid bin_centers (list instead of np.ndarray)
+                ["a", 2, 3],  # Invalid bin_centers
                 bin_mean,
                 bin_max,
                 bin_min,
@@ -284,7 +284,7 @@ class TestLoads(unittest.TestCase):
         with self.assertRaises(TypeError):
             loads.graphics.plot_bin_statistics(
                 bin_centers,
-                [10, 20, 30],  # Invalid bin_mean (list instead of np.ndarray)
+                ["a", 20, 30],  # Invalid bin_mean
                 bin_max,
                 bin_min,
                 bin_mean_std,
@@ -296,7 +296,7 @@ class TestLoads(unittest.TestCase):
             loads.graphics.plot_bin_statistics(
                 bin_centers,
                 bin_mean,
-                [15, 25, 35],  # Invalid bin_max (list instead of np.ndarray)
+                ["a", 25, 35],  # Invalid bin_max
                 bin_min,
                 bin_mean_std,
                 bin_max_std,
@@ -308,7 +308,7 @@ class TestLoads(unittest.TestCase):
                 bin_centers,
                 bin_mean,
                 bin_max,
-                [5, 15, 25],  # Invalid bin_min (list instead of np.ndarray)
+                ["a", 15, 25],  # Invalid bin_min
                 bin_mean_std,
                 bin_max_std,
                 bin_min_std,
@@ -320,7 +320,7 @@ class TestLoads(unittest.TestCase):
                 bin_mean,
                 bin_max,
                 bin_min,
-                [1, 2, 3],  # Invalid bin_mean_std (list instead of np.ndarray)
+                ["a", 2, 3],  # Invalid bin_mean_std
                 bin_max_std,
                 bin_min_std,
             )
@@ -332,7 +332,7 @@ class TestLoads(unittest.TestCase):
                 bin_max,
                 bin_min,
                 bin_mean_std,
-                [0.5, 1.5, 2.5],  # Invalid bin_max_std (list instead of np.ndarray)
+                ["a", 1.5, 2.5],  # Invalid bin_max_std
                 bin_min_std,
             )
 
@@ -344,7 +344,7 @@ class TestLoads(unittest.TestCase):
                 bin_min,
                 bin_mean_std,
                 bin_max_std,
-                [0.8, 1.8, 2.8],  # Invalid bin_min_std (list instead of np.ndarray)
+                ["a", 1.8, 2.8],  # Invalid bin_min_std
             )
 
 
