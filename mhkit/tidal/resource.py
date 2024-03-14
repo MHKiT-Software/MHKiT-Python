@@ -1,7 +1,7 @@
 import numpy as np
 import math
-import pandas as pd
 from mhkit.river.resource import exceedance_probability, Froude_number
+from mhkit.utils import convert_to_dataarray
 
 
 def _histogram(directions, velocities, width_dir, width_vel):
@@ -81,7 +81,7 @@ def principal_flow_directions(directions, width_dir):
 
     Parameters
     ----------
-    directions: pandas.Series or numpy.ndarray
+    directions: numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Flow direction in degrees CW from North, from 0 to 360
     width_dir: float
         Width of directional bins for histogram in degrees
@@ -97,8 +97,7 @@ def principal_flow_directions(directions, width_dir):
     ebb based on knowledge of the measurement site.
     """
 
-    if isinstance(directions, np.ndarray):
-        directions = pd.Series(directions)
+    directions = convert_to_dataarray(directions)
     if any(directions < 0) or any(directions > 360):
         violating_values = [d for d in directions if d < 0 or d > 360]
         raise ValueError(
@@ -109,7 +108,7 @@ def principal_flow_directions(directions, width_dir):
     N_dir = int(360 / width_dir)
     # Compute directional histogram
     H1, dir_edges = np.histogram(directions, bins=N_dir, range=[0, 360], density=True)
-    # Convert to perecnt
+    # Convert to percent
     H1 = H1 * 100  # [%]
     # Determine if there are an even or odd number of bins
     odd = bool(N_dir % 2)
@@ -135,10 +134,11 @@ def principal_flow_directions(directions, width_dir):
     floodEbbNormalDegree1 = min(floodEbbNormalDegree1, floodEbbNormalDegree2)
     floodEbbNormalDegree2 = floodEbbNormalDegree1 + 180.0
     # Slice directions on the 2 semi circles
-    d1 = directions[directions.between(floodEbbNormalDegree1, floodEbbNormalDegree2)]
-    d2 = directions[~directions.between(floodEbbNormalDegree1, floodEbbNormalDegree2)]
+    mask = (directions >= floodEbbNormalDegree1) & (directions <= floodEbbNormalDegree2)
+    d1 = directions[mask]
+    d2 = directions[~mask]
     # Shift second set of of directions to not break between 360 and 0
-    d2 -= 180.0
+    d2 -= 180
     # Renormalize the points (gets rid of negatives)
     d2 = _normalize_angle(d2)
     # Number of bins for semi-circle
@@ -146,7 +146,7 @@ def principal_flow_directions(directions, width_dir):
     # Compute 1D histograms on both semi circles
     Hd1, dir1_edges = np.histogram(d1, bins=n_dir, density=True)
     Hd2, dir2_edges = np.histogram(d2, bins=n_dir, density=True)
-    # Convert to perecnt
+    # Convert to percent
     Hd1 = Hd1 * 100  # [%]
     Hd2 = Hd2 * 100  # [%]
     # Principal Directions average of the 2 bins

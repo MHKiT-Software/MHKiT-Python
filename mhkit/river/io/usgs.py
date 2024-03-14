@@ -6,7 +6,7 @@ import pandas as pd
 from mhkit.utils.cache import handle_caching
 
 
-def _read_usgs_json(text):
+def _read_usgs_json(text, to_pandas=True):
     data = pd.DataFrame()
     for i in range(len(text["value"]["timeSeries"])):
         try:
@@ -26,10 +26,13 @@ def _read_usgs_json(text):
         except:
             pass
 
+    if not to_pandas:
+        data = data.to_dataset()
+
     return data
 
 
-def read_usgs_file(file_name):
+def read_usgs_file(file_name, to_pandas=True):
     """
     Reads a USGS JSON data file (from https://waterdata.usgs.gov/nwis)
 
@@ -37,17 +40,22 @@ def read_usgs_file(file_name):
     ----------
     file_name : str
         Name of USGS JSON data file
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     -------
-    data : pandas DataFrame
+    data : pandas DataFrame or xarray Dataset
         Data indexed by datetime with columns named according to the parameter's
         variable description
     """
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
+
     with open(file_name) as json_file:
         text = json.load(json_file)
 
-    data = _read_usgs_json(text)
+    data = _read_usgs_json(text, to_pandas)
 
     return data
 
@@ -61,6 +69,7 @@ def request_usgs_data(
     proxy=None,
     write_json=None,
     clear_cache=False,
+    to_pandas=True,
 ):
     """
     Loads USGS data directly from https://waterdata.usgs.gov/nwis using a
@@ -88,15 +97,20 @@ def request_usgs_data(
         Name of json file to write data
     clear_cache : bool
         If True, the cache for this specific request will be cleared.
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     -------
-    data : pandas DataFrame
+    data : pandas DataFrame or xarray Dataset
         Data indexed by datetime with columns named according to the parameter's
         variable description
     """
     if not data_type in ["Daily", "Instantaneous"]:
         raise ValueError(f"data_type must be Daily or Instantaneous. Got: {data_type}")
+
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     # Define the path to the cache directory
     cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit", "usgs")
@@ -146,7 +160,8 @@ def request_usgs_data(
     response = requests.get(url=data_url + api_query, proxies=proxy)
     text = json.loads(response.text)
 
-    data = _read_usgs_json(text)
+    # handle_caching is only set-up for pandas, so force this data to output as pandas for now
+    data = _read_usgs_json(text, True)
 
     # After making the API request and processing the response, write the
     #  response to a cache file
@@ -154,5 +169,8 @@ def request_usgs_data(
 
     if write_json:
         shutil.copy(cache_filepath, write_json)
+
+    if not to_pandas:
+        data = data.to_dataset()
 
     return data

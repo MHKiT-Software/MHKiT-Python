@@ -1,6 +1,7 @@
 import numpy as np
-import pandas as pd
+import xarray as xr
 import matplotlib.pyplot as plt
+from mhkit.utils import convert_to_dataarray
 
 
 def _xy_plot(x, y, fmt=".", label=None, xlabel=None, ylabel=None, title=None, ax=None):
@@ -74,8 +75,8 @@ def plot_flow_duration_curve(D, F, label=None, ax=None):
 
     """
     # Sort by F
-    temp = pd.DataFrame({"D": D, "F": F})
-    temp.sort_values("F", ascending=False, kind="mergesort", inplace=True)
+    temp = xr.Dataset(data_vars={"D": D, "F": F})
+    temp.sortby("F", ascending=False)
 
     ax = _xy_plot(
         temp["D"],
@@ -116,8 +117,8 @@ def plot_velocity_duration_curve(V, F, label=None, ax=None):
 
     """
     # Sort by F
-    temp = pd.DataFrame({"V": V, "F": F})
-    temp.sort_values("F", ascending=False, kind="mergesort", inplace=True)
+    temp = xr.Dataset(data_vars={"V": V, "F": F})
+    temp.sortby("F", ascending=False)
 
     ax = _xy_plot(
         temp["V"],
@@ -157,8 +158,8 @@ def plot_power_duration_curve(P, F, label=None, ax=None):
 
     """
     # Sort by F
-    temp = pd.DataFrame({"P": P, "F": F})
-    temp.sort_values("F", ascending=False, kind="mergesort", inplace=True)
+    temp = xr.Dataset(data_vars={"P": P, "F": F})
+    temp.sortby("F", ascending=False)
 
     ax = _xy_plot(
         temp["P"],
@@ -173,7 +174,7 @@ def plot_power_duration_curve(P, F, label=None, ax=None):
     return ax
 
 
-def plot_discharge_timeseries(Q, label=None, ax=None):
+def plot_discharge_timeseries(Q, time_dimension="", label=None, ax=None):
     """
     Plots discharge time-series
 
@@ -181,6 +182,10 @@ def plot_discharge_timeseries(Q, label=None, ax=None):
     ------------
     Q: array-like
         Discharge [m3/s] indexed by time
+
+    time_dimension: string (optional)
+        Name of the xarray dimension corresponding to time. If not supplied,
+        defaults to the first dimension.
 
     label: string
        Label to use in the legend
@@ -194,8 +199,13 @@ def plot_discharge_timeseries(Q, label=None, ax=None):
     ax : matplotlib pyplot axes
 
     """
+    Q = convert_to_dataarray(Q)
+
+    if time_dimension == "":
+        time_dimension = list(Q.coords)[0]
+
     ax = _xy_plot(
-        Q.index,
+        Q.coords[time_dimension].values,
         Q,
         fmt="-",
         label=label,
@@ -213,10 +223,10 @@ def plot_discharge_vs_velocity(D, V, polynomial_coeff=None, label=None, ax=None)
 
     Parameters
     ------------
-    D : pandas Series
+    D : array-like
         Discharge [m/s] indexed by time
 
-    V : pandas Series
+    V : array-like
         Velocity [m/s] indexed by time
 
     polynomial_coeff: numpy polynomial
@@ -263,10 +273,10 @@ def plot_velocity_vs_power(V, P, polynomial_coeff=None, label=None, ax=None):
 
     Parameters
     ------------
-    V : pandas Series
+    V : array-like
         Velocity [m/s] indexed by time
 
-    P: pandas Series
+    P: array-like
         Power [W] indexed by time
 
     polynomial_coeff: numpy polynomial

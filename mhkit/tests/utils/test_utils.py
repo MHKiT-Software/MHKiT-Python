@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import unittest
 import json
+import xarray as xr
 
 
 testdir = dirname(abspath(__file__))
@@ -158,6 +159,132 @@ class TestGenUtils(unittest.TestCase):
         self.assertTrue(all(mag == magnitude))
         self.assertTrue(all(theta == phase1))
         self.assertTrue(all(phi == phase2))
+
+    def test_convert_to_dataarray(self):
+        # test data
+        a = 5
+        t = np.arange(0.0, 5.0, 0.5)
+        i = np.arange(0.0, 10.0, 1)
+        d1 = i**2 / 5.0
+        d2 = -d1
+
+        # test data formats
+        test_n = d1
+        test_s = pd.Series(d1, t)
+        test_df = pd.DataFrame({"d1": d1}, index=t)
+        test_df2 = pd.DataFrame({"d1": d1, "d1_duplicate": d1}, index=t)
+        test_da = xr.DataArray(
+            data=d1,
+            dims="time",
+            coords=dict(time=t),
+        )
+        test_ds = xr.Dataset(
+            data_vars={"d1": (["time"], d1)}, coords={"time": t, "index": i}
+        )
+        test_ds2 = xr.Dataset(
+            data_vars={
+                "d1": (["time"], d1),
+                "d2": (["ind"], d2),
+            },
+            coords={"time": t, "index": i},
+        )
+
+        # numpy
+        n = utils.convert_to_dataarray(test_n, "test_data")
+        self.assertIsInstance(n, xr.DataArray)
+        self.assertTrue(all(n.data == d1))
+        self.assertEqual(n.name, "test_data")
+
+        # Series
+        s = utils.convert_to_dataarray(test_s)
+        self.assertIsInstance(s, xr.DataArray)
+        self.assertTrue(all(s.data == d1))
+
+        # DataArray
+        da = utils.convert_to_dataarray(test_da)
+        self.assertIsInstance(da, xr.DataArray)
+        self.assertTrue(all(da.data == d1))
+
+        # Dataframe
+        df = utils.convert_to_dataarray(test_df)
+        self.assertIsInstance(df, xr.DataArray)
+        self.assertTrue(all(df.data == d1))
+
+        # Dataset
+        ds = utils.convert_to_dataarray(test_ds)
+        self.assertIsInstance(ds, xr.DataArray)
+        self.assertTrue(all(ds.data == d1))
+
+        # int (error)
+        with self.assertRaises(TypeError):
+            utils.convert_to_dataarray(a)
+
+        # non-string name (error)
+        with self.assertRaises(TypeError):
+            utils.convert_to_dataarray(test_n, 5)
+
+        # Multivariate Dataframe (error)
+        with self.assertRaises(ValueError):
+            utils.convert_to_dataarray(test_df2)
+
+        # Multivariate Dataset (error)
+        with self.assertRaises(ValueError):
+            utils.convert_to_dataarray(test_ds2)
+
+    def test_convert_to_dataset(self):
+        # test data
+        a = 5
+        t = np.arange(0, 5, 0.5)
+        i = np.arange(0, 10, 1)
+        d1 = i**2 / 5.0
+        d2 = -d1
+
+        # test data formats
+        test_n = d1
+        test_s = pd.Series(d1, t)
+        test_df2 = pd.DataFrame({"d1": d1, "d2": d2}, index=t)
+        test_da = xr.DataArray(
+            data=d1,
+            dims="time",
+            coords=dict(time=t),
+        )
+        test_ds2 = xr.Dataset(
+            data_vars={
+                "d1": (["time"], d1),
+                "d2": (["ind"], d2),
+            },
+            coords={"time": t, "index": i},
+        )
+
+        # Series
+        s = utils.convert_to_dataset(test_s)
+        self.assertIsInstance(s, xr.Dataset)
+        self.assertTrue(all(s["data"].data == d1))
+
+        # DataArray with custom name
+        da = utils.convert_to_dataset(test_da, "test_name")
+        self.assertIsInstance(da, xr.Dataset)
+        self.assertTrue(all(da["test_name"].data == d1))
+
+        # Dataframe
+        df = utils.convert_to_dataset(test_df2)
+        self.assertIsInstance(df, xr.Dataset)
+        self.assertTrue(all(df["d1"].data == d1))
+        self.assertTrue(all(df["d2"].data == d2))
+
+        # Dataset
+        ds = utils.convert_to_dataset(test_ds2)
+        self.assertIsInstance(ds, xr.Dataset)
+        self.assertTrue(all(ds["d1"].data == d1))
+        self.assertTrue(all(ds["d2"].data == d2))
+
+        # int (error)
+        with self.assertRaises(TypeError):
+            utils.convert_to_dataset(a)
+
+        # non-string name (error)
+        with self.assertRaises(TypeError):
+            utils.convert_to_dataset(test_n, 5)
 
 
 if __name__ == "__main__":
