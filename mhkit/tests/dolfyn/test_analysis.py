@@ -92,21 +92,28 @@ class analysis_testcase(unittest.TestCase):
         dat = tv.dat.copy(deep=True)
         bnr = avm.ADVBinner(n_bin=20.0, fs=dat.fs)
         tdat = bnr(dat)
-        acov = bnr.autocovariance(dat.vel)
+        acov = bnr.autocovariance(dat["vel"])
 
         assert_identical(tdat, avm.turbulence_statistics(dat, n_bin=20.0, fs=dat.fs))
 
-        tdat["stress_detrend"] = bnr.reynolds_stress(dat.vel)
-        tdat["stress_demean"] = bnr.reynolds_stress(dat.vel, detrend=False)
+        tdat["stress_detrend"] = bnr.reynolds_stress(dat["vel"])
+        tdat["stress_demean"] = bnr.reynolds_stress(dat["vel"], detrend=False)
         tdat["csd"] = bnr.cross_spectral_density(
-            dat.vel, freq_units="rad", window="hamm", n_fft_coh=10
+            dat["vel"], freq_units="rad", window="hamm", n_fft_coh=10
         )
-        tdat["LT83"] = bnr.dissipation_rate_LT83(tdat.psd, tdat.velds.U_mag)
-        tdat["SF"] = bnr.dissipation_rate_SF(dat.vel[0], tdat.velds.U_mag)
+        tdat["LT83"] = bnr.dissipation_rate_LT83(tdat["psd"], tdat.velds.U_mag)
+        tdat["noise"] = bnr.doppler_noise_level(tdat["psd"], pct_fN=0.8)
+        tdat["LT83_noise"] = bnr.dissipation_rate_LT83(
+            tdat["psd"], tdat.velds.U_mag, noise=tdat["noise"]
+        )
+        tdat["SF"] = bnr.dissipation_rate_SF(dat["vel"][0], tdat.velds.U_mag)
         tdat["TE01"] = bnr.dissipation_rate_TE01(dat, tdat)
         tdat["L"] = bnr.integral_length_scales(acov, tdat.velds.U_mag)
         slope_check = bnr.check_turbulence_cascade_slope(
             tdat["psd"][-1].mean("time"), freq_range=[10, 100]
+        )
+        tdat["psd_noise"] = bnr.power_spectral_density(
+            dat["vel"], freq_units="rad", noise=[0.06, 0.04, 0.01]
         )
 
         if make_data:
@@ -117,13 +124,22 @@ class analysis_testcase(unittest.TestCase):
         assert_allclose(tdat, load("vector_data01_bin.nc"), atol=1e-6)
 
     def test_adcp_turbulence(self):
-        dat = tr.dat_sig_i.copy(deep=True)
+        dat = tr.dat_sig_tide.copy(deep=True)
+        dat.velds.rotate2("earth")
+        dat.attrs["principal_heading"] = apm.calc_principal_heading(
+            dat.vel.mean("range")
+        )
         bnr = apm.ADPBinner(n_bin=20.0, fs=dat.fs, diff_style="centered")
         tdat = bnr.bin_average(dat)
-        tdat["dudz"] = bnr.dudz(tdat.vel)
-        tdat["dvdz"] = bnr.dvdz(tdat.vel)
-        tdat["dwdz"] = bnr.dwdz(tdat.vel)
-        tdat["tau2"] = bnr.shear_squared(tdat.vel)
+
+        tdat["dudz"] = bnr.dudz(tdat["vel"])
+        tdat["dvdz"] = bnr.dvdz(tdat["vel"])
+        tdat["dwdz"] = bnr.dwdz(tdat["vel"])
+        tdat["tau2"] = bnr.shear_squared(tdat["vel"])
+        tdat["I"] = tdat.velds.I
+        tdat["ti"] = bnr.turbulence_intensity(dat.velds.U_mag, detrend=False)
+        dat.velds.rotate2("beam")
+
         tdat["psd"] = bnr.power_spectral_density(
             dat["vel"].isel(dir=2, range=len(dat.range) // 2), freq_units="Hz"
         )
@@ -137,12 +153,21 @@ class analysis_testcase(unittest.TestCase):
         tdat["tke"] = bnr.total_turbulent_kinetic_energy(
             dat, noise=tdat["noise"], orientation="up", beam_angle=25
         )
+        tdat["ti_noise"] = bnr.turbulence_intensity(
+            dat.velds.U_mag, detrend=False, noise=tdat["noise"]
+        )
         # This is "negative" for this code check
         tdat["wpwp"] = bnr.turbulent_kinetic_energy(dat["vel_b5"], noise=tdat["noise"])
         tdat["dissipation_rate_LT83"] = bnr.dissipation_rate_LT83(
             tdat["psd"],
             tdat.velds.U_mag.isel(range=len(dat.range) // 2),
             freq_range=[0.2, 0.4],
+        )
+        tdat["dissipation_rate_LT83_noise"] = bnr.dissipation_rate_LT83(
+            tdat["psd"],
+            tdat.velds.U_mag.isel(range=len(dat.range) // 2),
+            freq_range=[0.2, 0.4],
+            noise=tdat["noise"],
         )
         (
             tdat["dissipation_rate_SF"],
@@ -155,10 +180,22 @@ class analysis_testcase(unittest.TestCase):
         slope_check = bnr.check_turbulence_cascade_slope(
             tdat["psd"].mean("time"), freq_range=[0.4, 4]
         )
+        tdat["psd_noise"] = bnr.power_spectral_density(
+            dat["vel"].isel(dir=2, range=len(dat.range) // 2),
+            freq_units="Hz",
+            noise=0.01,
+        )
 
         if make_data:
-            save(tdat, "Sig1000_IMU_bin.nc")
+            save(tdat, "Sig1000_tidal_bin.nc")
             return
 
+        with pytest.raises(Exception):
+            bnr.calc_psd(dat["vel"], freq_units="Hz", noise=0.01)
+
+        with pytest.raises(Exception):
+            bnr.calc_psd(dat["vel"][0], freq_units="Hz", noise=0.01)
+
         assert np.round(slope_check[0].values, 4), -1.0682
-        assert_allclose(tdat, load("Sig1000_IMU_bin.nc"), atol=1e-6)
+
+        assert_allclose(tdat, load("Sig1000_tidal_bin.nc"), atol=1e-6)
