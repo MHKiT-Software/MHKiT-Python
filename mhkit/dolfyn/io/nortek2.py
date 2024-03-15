@@ -15,7 +15,13 @@ from ..time import epoch2dt64, _fill_time_gaps
 
 
 def read_signature(
-    filename, userdata=True, nens=None, rebuild_index=False, debug=False, **kwargs
+    filename,
+    userdata=True,
+    nens=None,
+    rebuild_index=False,
+    debug=False,
+    dual_profile=False,
+    **kwargs
 ):
     """
     Read a Nortek Signature (.ad2cp) datafile
@@ -34,6 +40,8 @@ def read_signature(
       Default = False
     debug : bool
       Logs debugger ouput if true. Default = False
+    dual_profile : bool
+      Set to true if instrument is running multiple profiles. Default = False
 
     Returns
     -------
@@ -68,9 +76,13 @@ def read_signature(
 
     userdata = _find_userdata(filename, userdata)
 
-    rdr = _Ad2cpReader(filename, rebuild_index=rebuild_index, debug=debug)
+    rdr = _Ad2cpReader(
+        filename, rebuild_index=rebuild_index, debug=debug, dual_profile=dual_profile
+    )
     d = rdr.readfile(nens[0], nens[1])
     rdr.sci_data(d)
+    if rdr._dp:
+        _clean_dp_skips(d)
     out = _reorg(d)
     _reduce(out)
 
@@ -120,12 +132,22 @@ def read_signature(
             logging.root.removeHandler(handler)
             handler.close()
 
-    return ds
+    # Return two datasets if dual profile
+    if rdr._dp:
+        return split_dp_datasets(ds)
+    else:
+        return ds
 
 
 class _Ad2cpReader:
     def __init__(
-        self, fname, endian=None, bufsize=None, rebuild_index=False, debug=False
+        self,
+        fname,
+        endian=None,
+        bufsize=None,
+        rebuild_index=False,
+        debug=False,
+        dual_profile=False,
     ):
         self.fname = fname
         self.debug = debug
@@ -133,8 +155,13 @@ class _Ad2cpReader:
         self.f.seek(0, 2)  # Seek to end
         self._eof = self.f.tell()
         self.start_pos = self._check_header()
-        self._index = lib.get_index(
-            fname, pos=self.start_pos, eof=self._eof, reload=rebuild_index, debug=debug
+        self._index, self._dp = lib.get_index(
+            fname,
+            pos=self.start_pos,
+            eof=self._eof,
+            rebuild=rebuild_index,
+            debug=debug,
+            dp=dual_profile,
         )
         self._reopen(bufsize)
         self.filehead_config = self._read_filehead_config_string()
@@ -257,18 +284,23 @@ class _Ad2cpReader:
         outdat = {}
         nens = int(ens_stop - ens_start)
 
-        # ID 26 usually only recorded in first ensemble
-        n26 = (
-            (self._index["ID"] == 26)
-            & (self._index["ens"] >= ens_start)
-            & (self._index["ens"] < ens_stop)
-        ).sum()
-        if not n26 and 26 in self._burst_readers:
+        # ID 26 and 31 recorded infrequently
+        def n_id(id):
+            return (
+                (self._index["ID"] == id)
+                & (self._index["ens"] >= ens_start)
+                & (self._index["ens"] < ens_stop)
+            ).sum()
+
+        n_altraw = {26: n_id(26), 31: n_id(31)}
+        if not n_altraw[26] and 26 in self._burst_readers:
             self._burst_readers.pop(26)
+        if not n_altraw[31] and 31 in self._burst_readers:
+            self._burst_readers.pop(31)
 
         for ky in self._burst_readers:
-            if ky == 26:
-                n = n26
+            if (ky == 26) or (ky == 31):
+                n = n_altraw[ky]
                 ens = np.zeros(n, dtype="uint32")
             else:
                 ens = np.arange(ens_start, ens_stop).astype("uint32")
@@ -310,7 +342,7 @@ class _Ad2cpReader:
         outdat["filehead_config"] = self.filehead_config
         print("Reading file %s ..." % self.fname)
         c = 0
-        c26 = 0
+        c_altraw = {26: 0, 31: 0}
         self.f.seek(self._ens_pos[ens_start], 0)
         while True:
             try:
@@ -322,9 +354,9 @@ class _Ad2cpReader:
                 # "avg data record" (vel_avg + ast_avg), "bottom track data record" (bt),
                 # "interleaved burst data record" (vel_b5), "echosounder record" (echo)
                 self._read_burst(id, outdat[id], c)
-            elif id in [26]:
-                # "burst altimeter raw record" (alt_raw) - recorded on nens==0
-                rdr = self._burst_readers[26]
+            elif id in [26, 31]:
+                # "burst altimeter raw record" (_altraw), "avg altimeter raw record" (_altraw_avg)
+                rdr = self._burst_readers[id]
                 if not hasattr(rdr, "_nsamp_index"):
                     first_pass = True
                     tmp_idx = rdr._nsamp_index = rdr._names.index("nsamp_alt")
@@ -350,8 +382,8 @@ class _Ad2cpReader:
                         "<" + "{}H".format(int(rdr.nbyte // 2))
                     )
                     # Initialize the array
-                    outdat[26]["samp_alt"] = defs._nans(
-                        [rdr._N[tmp_idx], len(outdat[26]["samp_alt"])], dtype=np.uint16
+                    outdat[id]["samp_alt"] = defs._nans(
+                        [rdr._N[tmp_idx], len(outdat[id]["samp_alt"])], dtype=np.uint16
                     )
                 else:
                     if sz != rdr._N[tmp_idx]:
@@ -359,12 +391,12 @@ class _Ad2cpReader:
                             "The number of samples in this 'Altimeter Raw' "
                             "burst is different from prior bursts."
                         )
-                self._read_burst(id, outdat[id], c26)
-                outdat[id]["ensemble"][c26] = c
-                c26 += 1
+                self._read_burst(id, outdat[id], c_altraw[id])
+                outdat[id]["ensemble"][c_altraw[id]] = c
+                c_altraw[id] += 1
 
-            elif id in [27, 29, 30, 31, 35, 36]:  # unknown how to handle
-                # "bottom track record", DVL, "altimeter record", "avg altimeter raw record",
+            elif id in [27, 29, 30, 35, 36]:  # unknown how to handle
+                # "bottom track record", DVL, "altimeter record",
                 # "raw echosounder data record", "raw echosounder transmit data record"
                 if self.debug:
                     logging.debug("Skipped ID: 0x{:02X} ({:02d})\n".format(id, id))
@@ -430,18 +462,37 @@ class _Ad2cpReader:
                     "float32"
                 )
 
-    def __exit__(
-        self,
-        type,
-        value,
-        trace,
-    ):
-        self.f.close()
 
-    def __enter__(
-        self,
-    ):
-        return self
+def _altraw_reorg(outdat, tag=""):
+    """Submethod for `_reorg` particular to raw altimeter pings (ID 26 and 31)"""
+    for ky in list(outdat["data_vars"]):
+        if ky.endswith("raw" + tag) and not ky.endswith("_altraw" + tag):
+            outdat["data_vars"].pop(ky)
+    outdat["coords"]["time_altraw" + tag] = outdat["coords"].pop("timeraw" + tag)
+    # convert "signed fractional" to float
+    outdat["data_vars"]["samp_altraw" + tag] = (
+        outdat["data_vars"]["samp_altraw" + tag].astype("float32") / 2**8
+    )
+
+    # Read altimeter status
+    outdat["data_vars"].pop("status_altraw" + tag)
+    status_alt = lib._alt_status2data(outdat["data_vars"]["status_alt" + tag])
+    for ky in status_alt:
+        outdat["attrs"][ky + tag] = lib._collapse(
+            status_alt[ky].astype("uint8"), name=ky
+        )
+    outdat["data_vars"].pop("status_alt" + tag)
+
+    # Power level index
+    power = {0: "high", 1: "med-high", 2: "med-low", 3: "low"}
+    outdat["attrs"]["power_level_alt" + tag] = power[
+        outdat["attrs"].pop("power_level_idx_alt" + tag)
+    ]
+
+    # Other attrs
+    for ky in list(outdat["attrs"]):
+        if ky.endswith("raw" + tag):
+            outdat["attrs"][ky.split("raw")[0] + "_alt" + tag] = outdat["attrs"].pop(ky)
 
 
 def _reorg(dat):
@@ -473,6 +524,7 @@ def _reorg(dat):
         (24, "_b5"),
         (26, "raw"),
         (28, "_echo"),
+        (31, "raw_avg"),
     ]:
         if id in [24, 26]:
             collapse_exclude = [0]
@@ -503,7 +555,7 @@ def _reorg(dat):
             lib._collapse(
                 dnow["beam_config"], exclude=collapse_exclude, name="beam_config"
             ),
-            21,
+            21,  # always 21 here
         )
         cfg["n_cells" + tag] = tmp["n_cells"]
         cfg["coord_sys_axes" + tag] = tmp["cy"]
@@ -575,26 +627,9 @@ def _reorg(dat):
 
     # Move 'altimeter raw' data to its own down-sampled structure
     if 26 in dat:
-        for ky in list(outdat["data_vars"]):
-            if ky.endswith("raw") and not ky.endswith("_altraw"):
-                outdat["data_vars"].pop(ky)
-        outdat["coords"]["time_altraw"] = outdat["coords"].pop("timeraw")
-        outdat["data_vars"]["samp_altraw"] = (
-            outdat["data_vars"]["samp_altraw"].astype("float32") / 2**8
-        )  # convert "signed fractional" to float
-
-        # Read altimeter status
-        outdat["data_vars"].pop("status_altraw")
-        status_alt = lib._alt_status2data(outdat["data_vars"]["status_alt"])
-        for ky in status_alt:
-            outdat["attrs"][ky] = lib._collapse(status_alt[ky].astype("uint8"), name=ky)
-        outdat["data_vars"].pop("status_alt")
-
-        # Power level index
-        power = {0: "high", 1: "med-high", 2: "med-low", 3: "low"}
-        outdat["attrs"]["power_level_alt"] = power[
-            outdat["attrs"].pop("power_level_idx_alt")
-        ]
+        _altraw_reorg(outdat)
+    if 31 in dat:
+        _altraw_reorg(outdat, tag="_avg")
 
     # Read status data
     status0_vars = [x for x in outdat["data_vars"] if "status0" in x]
@@ -641,7 +676,7 @@ def _reorg(dat):
     for ky in status0_data:
         outdat["attrs"][ky] = lib._collapse(status0_data[ky].astype("uint8"), name=ky)
 
-    # Remove status0 variables - keep status variables as they useful for finding missing pings
+    # Remove status0 variables - keep status variables as they are useful for finding missing pings
     [outdat["data_vars"].pop(var) for var in status0_vars]
 
     # Set coordinate system
@@ -668,8 +703,25 @@ def _reorg(dat):
     return outdat
 
 
+def _clean_dp_skips(data):
+    """
+    Removes zeros from interwoven measurements taken in a dual profile
+    configuration.
+    """
+
+    for id in data:
+        if id == "filehead_config":
+            continue
+        # Check where 'ver' is zero (should be 1 (for bt) or 3 (everything else))
+        skips = np.where(data[id]["ver"] != 0)
+        for var in data[id]:
+            if var not in ["units", "long_name", "standard_name"]:
+                data[id][var] = np.squeeze(data[id][var][..., skips], axis=-2)
+
+
 def _reduce(data):
-    """This function takes the output from `reorg`, and further simplifies the
+    """
+    This function takes the output from `reorg`, and further simplifies the
     data. Mostly this is combining system, environmental, and orientation data
     --- from different data structures within the same ensemble --- by
     averaging.
@@ -697,13 +749,15 @@ def _reduce(data):
         dc["range_avg"] = (np.arange(dv["vel_avg"].shape[1]) + 1) * da[
             "cell_size_avg"
         ] + da["blank_dist_avg"]
-        dv["orientmat"] = dv.pop("orientmat_avg")
+        if "orientmat" not in dv:
+            dv["orientmat"] = dv.pop("orientmat_avg")
         tmat = da["filehead_config"]["XFAVG"]
         da["fs"] = da["filehead_config"]["PLAN"]["MIAVG"]
         da["avg_interval_sec"] = da["filehead_config"]["AVG"]["AI"]
         da["bandwidth"] = da["filehead_config"]["AVG"]["BW"]
     if "vel_b5" in dv:
-        dc["range_b5"] = (np.arange(dv["vel_b5"].shape[1]) + 1) * da[
+        # vel_b5 is sometimes shape 2 and sometimes shape 3
+        dc["range_b5"] = (np.arange(dv["vel_b5"].shape[-2]) + 1) * da[
             "cell_size_b5"
         ] + da["blank_dist_b5"]
     if "echo_echo" in dv:
@@ -736,3 +790,65 @@ def _reduce(data):
             if "time" in val:
                 time = val
         dc["time"] = dc[time]
+
+
+def split_dp_datasets(ds):
+    """
+    Splits a dataset containing dual profiles into individual profiles
+    """
+
+    # Figure out which variables belong to which profile based on length of time variables
+    t_dict = {}
+    for t in ds.coords:
+        if "time" in t:
+            t_dict[t] = ds[t].size
+
+    other_coords = []
+    for key, val in t_dict.items():
+        if val != t_dict["time"]:
+            if key.endswith("altraw"):
+                # altraw goes with burst, altraw_avg goes with avg
+                continue
+            other_coords.append(key)
+    # Fetch variables, coordinates, and attrs for second profiling configuration
+    other_vars = [
+        v for v in ds.data_vars if any(x in ds[v].coords for x in other_coords)
+    ]
+    other_tags = [s.split("_")[-1] for s in other_coords]
+    other_coords += [v for v in ds.coords if any(x in v for x in other_tags)]
+    other_attrs = [s for s in ds.attrs if any(x in s for x in other_tags)]
+    critical_attrs = [
+        "inst_model",
+        "inst_make",
+        "inst_type",
+        "fs",
+        "orientation",
+        "orient_status",
+        "has_imu",
+        "beam_angle",
+    ]
+
+    # Create second dataset
+    ds2 = type(ds)()
+    for a in other_attrs + critical_attrs:
+        ds2.attrs[a] = ds.attrs[a]
+    for v in other_vars:
+        ds2[v] = ds[v]
+    # Set rotate_vars
+    rotate_vars2 = [v for v in ds.attrs["rotate_vars"] if v in other_vars]
+    ds2.attrs["rotate_vars"] = rotate_vars2
+    # Set orientation matricies
+    ds2["beam2inst_orientmat"] = ds["beam2inst_orientmat"]
+    ds2 = ds2.rename({"orientmat_" + other_tags[0]: "orientmat"})
+    # Set original coordinate system
+    cy = ds2.attrs["coord_sys_axes_" + other_tags[0]]
+    ds2.attrs["coord_sys"] = {"XYZ": "inst", "ENU": "earth", "beam": "beam"}[cy]
+    ds2 = _set_coords(ds2, ref_frame=ds2.coord_sys)
+
+    # Clean up first dataset
+    [ds.attrs.pop(ky) for ky in other_attrs]
+    ds = ds.drop_vars(other_vars + other_coords)
+    for itm in rotate_vars2:
+        ds.attrs["rotate_vars"].remove(itm)
+
+    return ds, ds2
