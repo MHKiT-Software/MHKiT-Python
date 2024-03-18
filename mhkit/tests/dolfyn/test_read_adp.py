@@ -14,6 +14,7 @@ save = tb.save_netcdf
 
 dat_rdi = load("RDI_test01.nc")
 dat_rdi_7f79 = load("RDI_7f79.nc")
+dat_rdi_7f79_2 = load("RDI_7f79_2.nc")
 dat_rdi_bt = load("RDI_withBT.nc")
 dat_vm_ws = load("vmdas01_wh.nc")
 dat_vm_os = load("vmdas02_os.nc")
@@ -43,6 +44,7 @@ class io_adp_testcase(unittest.TestCase):
         nens = 100
         td_rdi = read("RDI_test01.000")
         td_7f79 = read("RDI_7f79.000")
+        td_7f79_2 = read("RDI_7f79_2.000")
         td_rdi_bt = read("RDI_withBT.000", nens=nens)
         td_vm = read("vmdas01_wh.ENX", nens=nens)
         td_os = read("vmdas02_os.ENR", nens=nens)
@@ -54,6 +56,7 @@ class io_adp_testcase(unittest.TestCase):
         if make_data:
             save(td_rdi, "RDI_test01.nc")
             save(td_7f79, "RDI_7f79.nc")
+            save(td_7f79_2, "RDI_7f79_2.nc")
             save(td_rdi_bt, "RDI_withBT.nc")
             save(td_vm, "vmdas01_wh.nc")
             save(td_os, "vmdas02_os.nc")
@@ -65,6 +68,7 @@ class io_adp_testcase(unittest.TestCase):
 
         assert_allclose(td_rdi, dat_rdi, atol=1e-6)
         assert_allclose(td_7f79, dat_rdi_7f79, atol=1e-6)
+        assert_allclose(td_7f79_2, dat_rdi_7f79_2, atol=1e-6)
         assert_allclose(td_rdi_bt, dat_rdi_bt, atol=1e-6)
         assert_allclose(td_vm, dat_vm_ws, atol=1e-6)
         assert_allclose(td_os, dat_vm_os, atol=1e-6)
