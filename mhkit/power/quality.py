@@ -1,3 +1,35 @@
+"""
+This module contains functions for calculating various aspects of power quality, 
+particularly focusing on the analysis of harmonics and interharmonics in electrical 
+power systems. These functions are designed to assist in power quality assessments 
+by providing tools to analyze voltage and current signals for their harmonic 
+and interharmonic components based on the guidelines and methodologies 
+outlined in IEC 61000-4-7.
+
+Functions in this module include:
+
+- harmonics: Calculates the harmonics from time series of voltage or current. 
+  This function returns the amplitude of the time-series data harmonics indexed by 
+  the harmonic frequency, aiding in the identification of harmonic distortions 
+  within the power system.
+
+- harmonic_subgroups: Computes the harmonic subgroups as per IEC 61000-4-7 standards. 
+  Harmonic subgroups provide insights into the distribution of power across 
+  different harmonic frequencies, which is crucial for understanding the behavior 
+  of non-linear loads and their impact on the power quality.
+
+- total_harmonic_current_distortion (THCD): Determines the total harmonic current 
+  distortion, offering a summary metric that quantifies the overall level of 
+  harmonic distortion present in the current waveform. This metric is essential 
+  for assessing compliance with power quality standards and guidelines.
+
+- interharmonics: Identifies and calculates the interharmonics present in the 
+  power system. Interharmonics, which are frequencies that occur between the 
+  fundamental and harmonic frequencies, can arise from various sources and 
+  potentially lead to power quality issues.
+"""
+
+from typing import Union
 import pandas as pd
 import numpy as np
 from scipy import fftpack
@@ -5,14 +37,18 @@ import xarray as xr
 from mhkit.utils import convert_to_dataset
 
 
-# This group of functions are to be used for power quality assessments
-def harmonics(x, freq, grid_freq, to_pandas=True):
+def harmonics(
+    signal_data: Union[pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset],
+    freq: Union[float, int],
+    grid_freq: int,
+    to_pandas: bool = True,
+) -> Union[pd.DataFrame, xr.Dataset]:
     """
     Calculates the harmonics from time series of voltage or current based on IEC 61000-4-7.
 
     Parameters
     -----------
-    x: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
+    signal_data: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Time-series of voltage [V] or current [A]
 
     freq: float or Int
@@ -26,14 +62,14 @@ def harmonics(x, freq, grid_freq, to_pandas=True):
 
     Returns
     --------
-    harmonics: pandas DataFrame or xarray Dataset
+    harmonic_amplitudes: pandas DataFrame or xarray Dataset
         Amplitude of the time-series data harmonics indexed by the harmonic
         frequency with signal name columns
     """
-    if not isinstance(x, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
+    if not isinstance(signal_data, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise TypeError(
-            "x must be of type pd.Series, pd.DataFrame, "
-            + f"xr.DataArray, or xr.Dataset. Got {type(x)}"
+            "signal_data must be of type pd.Series, pd.DataFrame, "
+            + f"xr.DataArray, or xr.Dataset. Got {type(signal_data)}"
         )
 
     if not isinstance(freq, (float, int)):
@@ -46,44 +82,57 @@ def harmonics(x, freq, grid_freq, to_pandas=True):
         raise TypeError(f"to_pandas must be of type bool. Got {type(to_pandas)}")
 
     # Convert input to xr.Dataset
-    x = convert_to_dataset(x, "data")
+    signal_data = convert_to_dataset(signal_data, "data")
 
     sample_spacing = 1.0 / freq
 
-    # Loop through all variables in x
-    harmonics = xr.Dataset()
-    for var in x.data_vars:
-        dataarray = x[var]
+    # Loop through all variables in signal_data
+    harmonic_amplitudes = xr.Dataset()
+    for var in signal_data.data_vars:
+        dataarray = signal_data[var]
         dataarray = dataarray.to_numpy()
 
         frequency_bin_centers = fftpack.fftfreq(len(dataarray), d=sample_spacing)
         harmonics_amplitude = np.abs(np.fft.fft(dataarray, axis=0))
 
-        harmonics = harmonics.assign({var: (["frequency"], harmonics_amplitude)})
-        harmonics = harmonics.assign_coords({"frequency": frequency_bin_centers})
-    harmonics = harmonics.sortby("frequency")
+        harmonic_amplitudes = harmonic_amplitudes.assign(
+            {var: (["frequency"], harmonics_amplitude)}
+        )
+        harmonic_amplitudes = harmonic_amplitudes.assign_coords(
+            {"frequency": frequency_bin_centers}
+        )
+    harmonic_amplitudes = harmonic_amplitudes.sortby("frequency")
 
     if grid_freq == 60:
-        hz = np.arange(0, 3060, 5)
+        hertz = np.arange(0, 3060, 5)
     elif grid_freq == 50:
-        hz = np.arange(0, 2570, 5)
+        hertz = np.arange(0, 2570, 5)
 
-    harmonics = harmonics.reindex({"frequency": hz}, method="nearest")
-    harmonics = harmonics / len(x[var]) * 2
+    harmonic_amplitudes = harmonic_amplitudes.reindex(
+        {"frequency": hertz}, method="nearest"
+    )
+    harmonic_amplitudes = (
+        harmonic_amplitudes / len(signal_data[list(signal_data.dims)[0]]) * 2
+    )
 
     if to_pandas:
-        harmonics = harmonics.to_pandas()
+        harmonic_amplitudes = harmonic_amplitudes.to_pandas()
 
-    return harmonics
+    return harmonic_amplitudes
 
 
-def harmonic_subgroups(harmonics, grid_freq, frequency_dimension="", to_pandas=True):
+def harmonic_subgroups(
+    harmonic_amplitudes: Union[pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset],
+    grid_freq: int,
+    frequency_dimension: str = "",
+    to_pandas: bool = True,
+) -> Union[pd.DataFrame, xr.Dataset]:
     """
     Calculates the harmonic subgroups based on IEC 61000-4-7
 
     Parameters
     ----------
-    harmonics: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
+    harmonic_amplitudes: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Harmonic amplitude indexed by the harmonic frequency
 
     grid_freq: int
@@ -98,14 +147,16 @@ def harmonic_subgroups(harmonics, grid_freq, frequency_dimension="", to_pandas=T
 
     Returns
     --------
-    harmonic_subgroups: pandas DataFrame or xarray Dataset
+    subgroup_results: pandas DataFrame or xarray Dataset
         Harmonic subgroups indexed by harmonic frequency
         with signal name columns
     """
-    if not isinstance(harmonics, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
+    if not isinstance(
+        harmonic_amplitudes, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)
+    ):
         raise TypeError(
-            "harmonics must be of type pd.Series, pd.DataFrame, "
-            + f"xr.DataArray, or xr.Dataset. Got {type(harmonics)}"
+            "harmonic_amplitudes must be of type pd.Series, pd.DataFrame, "
+            + f"xr.DataArray, or xr.Dataset. Got {type(harmonic_amplitudes)}"
         )
 
     if grid_freq not in [50, 60]:
@@ -120,49 +171,54 @@ def harmonic_subgroups(harmonics, grid_freq, frequency_dimension="", to_pandas=T
         )
 
     # Convert input to xr.Dataset
-    harmonics = convert_to_dataset(harmonics, "harmonics")
+    harmonic_amplitudes = convert_to_dataset(harmonic_amplitudes, "harmonic_amplitudes")
 
-    if frequency_dimension != "" and frequency_dimension not in harmonics.coords:
+    if (
+        frequency_dimension != ""
+        and frequency_dimension not in harmonic_amplitudes.coords
+    ):
         raise ValueError(
             "frequency_dimension was supplied but is not a dimension "
-            + f"of harmonics. Got {frequency_dimension}"
+            + f"of harmonic_amplitudes. Got {frequency_dimension}"
         )
 
     if grid_freq == 60:
-        hz = np.arange(0, 3060, 60)
+        hertz = np.arange(0, 3060, 60)
     else:
-        hz = np.arange(0, 2550, 50)
+        hertz = np.arange(0, 2550, 50)
 
     # Sort input data index
     if frequency_dimension == "":
-        frequency_dimension = list(harmonics.dims)[0]
-    harmonics = harmonics.sortby(frequency_dimension)
+        frequency_dimension = list(harmonic_amplitudes.dims)[0]
+    harmonic_amplitudes = harmonic_amplitudes.sortby(frequency_dimension)
 
     # Loop through all variables in harmonics
-    harmonic_subgroups = xr.Dataset()
-    for var in harmonics.data_vars:
-        dataarray = harmonics[var]
-        subgroup = np.zeros(np.size(hz))
+    subgroup_results = xr.Dataset()
+    for var in harmonic_amplitudes.data_vars:
+        dataarray = harmonic_amplitudes[var]
+        subgroup = np.zeros(np.size(hertz))
 
-        for ihz in np.arange(0, len(hz)):
-            n = hz[ihz]
-            ind = dataarray.indexes[frequency_dimension].get_loc(n)
+        for ihz in np.arange(0, len(hertz)):
+            current_frequency = hertz[ihz]
+            ind = dataarray.indexes[frequency_dimension].get_loc(current_frequency)
 
             data_subset = dataarray.isel({frequency_dimension: [ind - 1, ind, ind + 1]})
             subgroup[ihz] = (data_subset**2).sum() ** 0.5
 
-        harmonic_subgroups = harmonic_subgroups.assign({var: (["frequency"], subgroup)})
-        harmonic_subgroups = harmonic_subgroups.assign_coords({"frequency": hz})
+        subgroup_results = subgroup_results.assign({var: (["frequency"], subgroup)})
+        subgroup_results = subgroup_results.assign_coords({"frequency": hertz})
 
     if to_pandas:
-        harmonic_subgroups = harmonic_subgroups.to_pandas()
+        subgroup_results = subgroup_results.to_pandas()
 
-    return harmonic_subgroups
+    return subgroup_results
 
 
 def total_harmonic_current_distortion(
-    harmonics_subgroup, frequency_dimension="", to_pandas=True
-):
+    harmonics_subgroup: Union[pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset],
+    frequency_dimension: str = "",
+    to_pandas: bool = True,
+) -> Union[pd.DataFrame, xr.Dataset]:
     """
     Calculates the total harmonic current distortion (THC) based on IEC/TS 62600-30
 
@@ -175,12 +231,12 @@ def total_harmonic_current_distortion(
         Name of the xarray dimension corresponding to frequency. If not supplied,
         defaults to the first dimension. Does not affect pandas input.
 
-    to_pandas: bool (Optional)
+    to_pandas: bool (optional)
         Flag to save output to pandas instead of xarray. Default = True.
 
     Returns
     --------
-    THCD: pd.DataFrame or xarray Dataset
+    thcd_result: pd.DataFrame or xarray Dataset
         Total harmonic current distortion indexed by signal name with THCD column
     """
     if not isinstance(
@@ -200,9 +256,12 @@ def total_harmonic_current_distortion(
         )
 
     # Convert input to xr.Dataset
-    harmonics_subgroup = convert_to_dataset(harmonics_subgroup, "harmonics")
+    harmonics_subgroup = convert_to_dataset(harmonics_subgroup, "harmonics_subgroup")
 
-    if frequency_dimension != "" and frequency_dimension not in harmonics.coords:
+    if (
+        frequency_dimension != ""
+        and frequency_dimension not in harmonics_subgroup.coords
+    ):
         raise ValueError(
             "frequency_dimension was supplied but is not a dimension "
             + f"of harmonics. Got {frequency_dimension}"
@@ -213,26 +272,31 @@ def total_harmonic_current_distortion(
     harmonics_sq = harmonics_subgroup.isel({frequency_dimension: slice(2, 50)}) ** 2
     harmonics_sum = harmonics_sq.sum()
 
-    THCD = (
+    thcd_result = (
         np.sqrt(harmonics_sum) / harmonics_subgroup.isel({frequency_dimension: 1})
     ) * 100
 
-    if isinstance(THCD, xr.DataArray):
-        THCD.name = ["THCD"]
+    if isinstance(thcd_result, xr.DataArray):
+        thcd_result.name = ["THCD"]
 
     if to_pandas:
-        THCD = THCD.to_pandas()
+        thcd_result = thcd_result.to_pandas()
 
-    return THCD
+    return thcd_result
 
 
-def interharmonics(harmonics, grid_freq, frequency_dimension="", to_pandas=True):
+def interharmonics(
+    harmonic_amplitudes: Union[pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset],
+    grid_freq: int,
+    frequency_dimension: str = "",
+    to_pandas: bool = True,
+) -> Union[pd.DataFrame, xr.Dataset]:
     """
-    Calculates the interharmonics from the harmonics of current
+    Calculates the interharmonics from the harmonic_amplitudes of current
 
     Parameters
     -----------
-    harmonics: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
+    harmonic_amplitudes: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Harmonic amplitude indexed by the harmonic frequency
 
     grid_freq: int
@@ -247,13 +311,15 @@ def interharmonics(harmonics, grid_freq, frequency_dimension="", to_pandas=True)
 
     Returns
     -------
-    interharmonics: pandas DataFrame or xarray Dataset
+    interharmonic_groups: pandas DataFrame or xarray Dataset
         Interharmonics groups
     """
-    if not isinstance(harmonics, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
+    if not isinstance(
+        harmonic_amplitudes, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)
+    ):
         raise TypeError(
-            "harmonics must be of type pd.Series, pd.DataFrame, "
-            + f"xr.DataArray, or xr.Dataset. Got {type(harmonics)}"
+            "harmonic_amplitudes must be of type pd.Series, pd.DataFrame, "
+            + f"xr.DataArray, or xr.Dataset. Got {type(harmonic_amplitudes)}"
         )
 
     if grid_freq not in [50, 60]:
@@ -263,33 +329,36 @@ def interharmonics(harmonics, grid_freq, frequency_dimension="", to_pandas=True)
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     # Convert input to xr.Dataset
-    harmonics = convert_to_dataset(harmonics, "harmonics")
+    harmonic_amplitudes = convert_to_dataset(harmonic_amplitudes, "harmonic_amplitudes")
 
-    if frequency_dimension != "" and frequency_dimension not in harmonics.coords:
+    if (
+        frequency_dimension != ""
+        and frequency_dimension not in harmonic_amplitudes.coords
+    ):
         raise ValueError(
             "frequency_dimension was supplied but is not a dimension "
-            + f"of harmonics. Got {frequency_dimension}"
+            + f"of harmonic_amplitudes. Got {frequency_dimension}"
         )
 
     if grid_freq == 60:
-        hz = np.arange(0, 3060, 60)
+        hertz = np.arange(0, 3060, 60)
     elif grid_freq == 50:
-        hz = np.arange(0, 2550, 50)
+        hertz = np.arange(0, 2550, 50)
 
     # Sort input data index
     if frequency_dimension == "":
-        frequency_dimension = list(harmonics.dims)[0]
-    harmonics = harmonics.sortby(frequency_dimension)
+        frequency_dimension = list(harmonic_amplitudes.dims)[0]
+    harmonic_amplitudes = harmonic_amplitudes.sortby(frequency_dimension)
 
-    # Loop through all variables in harmonics
-    interharmonics = xr.Dataset()
-    for var in harmonics.data_vars:
-        dataarray = harmonics[var]
-        subset = np.zeros(np.size(hz))
+    # Loop through all variables in harmonic_amplitudes
+    interharmonic_groups = xr.Dataset()
+    for var in harmonic_amplitudes.data_vars:
+        dataarray = harmonic_amplitudes[var]
+        subset = np.zeros(np.size(hertz))
 
-        for ihz in np.arange(0, len(hz)):
-            n = hz[ihz]
-            ind = dataarray.indexes[frequency_dimension].get_loc(n)
+        for ihz in np.arange(0, len(hertz)):
+            current_frequency = hertz[ihz]
+            ind = dataarray.indexes[frequency_dimension].get_loc(current_frequency)
 
             if grid_freq == 60:
                 data = dataarray.isel({frequency_dimension: slice(ind + 1, ind + 11)})
@@ -298,10 +367,12 @@ def interharmonics(harmonics, grid_freq, frequency_dimension="", to_pandas=True)
                 data = dataarray.isel({frequency_dimension: slice(ind + 1, ind + 7)})
                 subset[ihz] = (data**2).sum() ** 0.5
 
-        interharmonics = interharmonics.assign({var: (["frequency"], subset)})
-        interharmonics = interharmonics.assign_coords({"frequency": hz})
+        interharmonic_groups = interharmonic_groups.assign(
+            {var: (["frequency"], subset)}
+        )
+        interharmonic_groups = interharmonic_groups.assign_coords({"frequency": hertz})
 
     if to_pandas:
-        interharmonics = interharmonics.to_pandas()
+        interharmonic_groups = interharmonic_groups.to_pandas()
 
-    return interharmonics
+    return interharmonic_groups
