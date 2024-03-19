@@ -1,11 +1,48 @@
+"""
+This module provides tools for analyzing and processing data signals
+related to turbine blade performance and fatigue analysis. It implements
+methodologies based on standards such as IEC TS 62600-3:2020 ED1,
+incorporating statistical binning, moment calculations, and fatigue 
+damage estimation using the rainflow counting algorithm. Key
+functionalities include:
+
+    - `bin_statistics`: Bins time-series data against a specified signal,
+      such as wind speed, to calculate mean and standard deviation statistics
+      for each bin, following IEC TS 62600-3:2020 ED1 guidelines. It supports
+      output in both pandas DataFrame and xarray Dataset formats.
+
+    - `blade_moments`: Calculates the flapwise and edgewise moments of turbine 
+      blades using derived calibration coefficients and raw strain signals. 
+      This function is crucial for understanding the loading and performance
+      characteristics of turbine blades.
+
+    - `damage_equivalent_load`: Estimates the damage equivalent load (DEL)
+      of a single data signal using a 4-point rainflow counting algorithm.
+      This method is vital for assessing fatigue life and durability of
+      materials under variable amplitude loading.
+
+References:
+- C. Amzallag et. al., International Journal of Fatigue, 16 (1994) 287-293.
+- ISO 12110-2, Metallic materials - Fatigue testing - Variable amplitude fatigue testing.
+- G. Marsh et. al., International Journal of Fatigue, 82 (2016) 757-765.
+"""
+
+from typing import Union, List, Tuple, Optional
 from scipy.stats import binned_statistic
 import pandas as pd
 import xarray as xr
 import numpy as np
 import fatpack
+from mhkit.utils.type_handling import to_numeric_array
 
 
-def bin_statistics(data, bin_against, bin_edges, data_signal=[], to_pandas=True):
+def bin_statistics(
+    data: Union[pd.DataFrame, xr.Dataset],
+    bin_against: np.ndarray,
+    bin_edges: np.ndarray,
+    data_signal: Optional[List[str]] = None,
+    to_pandas: bool = True,
+) -> Tuple[Union[pd.DataFrame, xr.Dataset], Union[pd.DataFrame, xr.Dataset]]:
     """
     Bins calculated statistics against data signal (or channel)
     according to IEC TS 62600-3:2020 ED1.
@@ -36,38 +73,9 @@ def bin_statistics(data, bin_against, bin_edges, data_signal=[], to_pandas=True)
             f"data must be of type pd.DataFrame or xr.Dataset. Got: {type(data)}"
         )
 
-    if isinstance(bin_against, str):
-        raise TypeError(
-            f"bin_against must be numeric, not a string. Got: {bin_against}"
-        )
-
-    if not isinstance(bin_against, (list, xr.DataArray, pd.Series, np.ndarray)):
-        raise TypeError(
-            f"bin_against must be of type list, xr.DataArray, pd.Series, or np.ndarray. Got: {type(bin_against)}"
-        )
-
-    if not isinstance(bin_against, np.ndarray):
-        try:
-            bin_against = np.asarray(bin_against)
-        except:
-            raise TypeError(
-                f"bin_against must be of type np.ndarray. Got: {type(bin_against)}"
-            )
-
-    # Check if bin_edges is a string and raise an error if it is
-    if isinstance(bin_edges, str):
-        raise TypeError(f"bin_edges must not be a string. Got: {bin_edges}")
-
-    # Check if bin_edges is one of the expected types, and convert if necessary
-    if isinstance(bin_edges, (list, xr.DataArray, pd.Series)):
-        try:
-            bin_edges = np.asarray(bin_edges)
-        except:
-            pass
-
-    # Check if bin_edges is now a NumPy array, and raise an error if it's not
-    if not isinstance(bin_edges, np.ndarray):
-        raise TypeError(f"bin_edges must be of type np.ndarray. Got: {type(bin_edges)}")
+    # Use _to_numeric_array to process bin_against and bin_edges
+    bin_against = to_numeric_array(bin_against, "bin_against")
+    bin_edges = to_numeric_array(bin_edges, "bin_edges")
 
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
@@ -76,6 +84,8 @@ def bin_statistics(data, bin_against, bin_edges, data_signal=[], to_pandas=True)
     if isinstance(data, pd.DataFrame):
         data = data.to_xarray()
 
+    if data_signal is None:
+        data_signal = []
     # Determine variables to analyze
     if len(data_signal) == 0:  # if not specified, bin all variables
         data_signal = list(data.keys())
@@ -125,7 +135,13 @@ def bin_statistics(data, bin_against, bin_edges, data_signal=[], to_pandas=True)
     return bin_mean, bin_std
 
 
-def blade_moments(blade_coefficients, flap_offset, flap_raw, edge_offset, edge_raw):
+def blade_moments(
+    blade_coefficients: np.ndarray,
+    flap_offset: float,
+    flap_raw: np.ndarray,
+    edge_offset: float,
+    edge_raw: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Transfer function for deriving blade flap and edge moments using blade matrix.
 
@@ -150,20 +166,10 @@ def blade_moments(blade_coefficients, flap_offset, flap_raw, edge_offset, edge_r
         Blade edgewise moment in SI units
     """
 
-    try:
-        blade_coefficients = np.asarray(blade_coefficients)
-    except:
-        raise TypeError(
-            f"blade_coefficients must be of type np.ndarray. Got: {type(blade_coefficients)}"
-        )
-    try:
-        flap_raw = np.asarray(flap_raw)
-    except:
-        raise TypeError(f"flap_raw must be of type np.ndarray. Got: {type(flap_raw)}")
-    try:
-        edge_raw = np.asarray(edge_raw)
-    except:
-        raise TypeError(f"edge_raw must be of type np.ndarray. Got: {type(edge_raw)}")
+    # Convert and validate blade_coefficients, flap_raw, and edge_raw
+    blade_coefficients = to_numeric_array(blade_coefficients, "blade_coefficients")
+    flap_raw = to_numeric_array(flap_raw, "flap_raw")
+    edge_raw = to_numeric_array(edge_raw, "edge_raw")
 
     if not isinstance(flap_offset, (float, int)):
         raise TypeError(
@@ -179,13 +185,18 @@ def blade_moments(blade_coefficients, flap_offset, flap_raw, edge_offset, edge_r
     edge_signal = edge_raw - edge_offset
 
     # apply matrix to get load signals
-    M_flap = blade_coefficients[0] * flap_signal + blade_coefficients[1] * edge_signal
-    M_edge = blade_coefficients[2] * flap_signal + blade_coefficients[3] * edge_signal
+    m_flap = blade_coefficients[0] * flap_signal + blade_coefficients[1] * edge_signal
+    m_edge = blade_coefficients[2] * flap_signal + blade_coefficients[3] * edge_signal
 
-    return M_flap, M_edge
+    return m_flap, m_edge
 
 
-def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
+def damage_equivalent_load(
+    data_signal: np.ndarray,
+    m: Union[float, int],
+    bin_num: int = 100,
+    data_length: Union[float, int] = 600,
+) -> float:
     """
     Calculates the damage equivalent load of a single data signal (or channel)
     based on IEC TS 62600-3:2020 ED1. 4-point rainflow counting algorithm from
@@ -217,12 +228,7 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
         Damage equivalent load (DEL) of single data signal
     """
 
-    try:
-        data_signal = np.array(data_signal)
-    except:
-        raise TypeError(
-            f"data_signal must be of type np.ndarray. Got: {type(data_signal)}"
-        )
+    to_numeric_array(data_signal, "data_signal")
     if not isinstance(m, (float, int)):
         raise TypeError(f"m must be of type float or int. Got: {type(m)}")
     if not isinstance(bin_num, (float, int)):
@@ -235,9 +241,9 @@ def damage_equivalent_load(data_signal, m, bin_num=100, data_length=600):
     rainflow_ranges = fatpack.find_rainflow_ranges(data_signal, k=256)
 
     # Range count and bin
-    Nrf, Srf = fatpack.find_range_count(rainflow_ranges, bin_num)
+    n_rf, s_rf = fatpack.find_range_count(rainflow_ranges, bin_num)
 
-    DELs = Srf**m * Nrf / data_length
-    DEL = DELs.sum() ** (1 / m)
+    del_s = s_rf**m * n_rf / data_length
+    del_value = del_s.sum() ** (1 / m)
 
-    return DEL
+    return del_value

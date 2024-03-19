@@ -24,8 +24,10 @@ class ADVBinner(VelBinner):
     n_fft_coh : int
       Number of data points to use for coherence and cross-spectra fft's.
       Optional, default `n_fft_coh` = `n_fft`
-    noise : float, list or numpy.ndarray
-      Instrument's doppler noise in same units as velocity
+        noise : float or array-like
+          Instrument noise level in same units as velocity. Typically
+          found from `adv.turbulence.doppler_noise_level`.
+          Default: None.
     """
 
     def __call__(self, ds, freq_units="rad/s", window="hann"):
@@ -263,7 +265,7 @@ class ADVBinner(VelBinner):
 
         return xr.DataArray(
             noise_level.values.astype("float32"),
-            dims=["dir", "time"],
+            coords={"S": psd["S"], "time": psd["time"]},
             attrs={
                 "units": "m/s",
                 "long_name": "Doppler Noise Level",
@@ -337,7 +339,7 @@ class ADVBinner(VelBinner):
 
         return m, b
 
-    def dissipation_rate_LT83(self, psd, U_mag, freq_range=[6.28, 12.57]):
+    def dissipation_rate_LT83(self, psd, U_mag, freq_range=[6.28, 12.57], noise=None):
         """
         Calculate the dissipation rate from the PSD
 
@@ -351,6 +353,10 @@ class ADVBinner(VelBinner):
           The range over which to integrate/average the spectrum, in units
           of the psd frequency vector (Hz or rad/s).
           Default = [6.28, 12.57] rad/s
+        noise : float or array-like
+          Instrument noise level in same units as velocity. Typically
+          found from `adv.turbulence.calc_doppler_noise`.
+          Default: None.
 
         Returns
         -------
@@ -389,6 +395,18 @@ class ADVBinner(VelBinner):
             raise Exception("`U_mag` should be from ensembled-averaged dataset")
         if not hasattr(freq_range, "__iter__") or len(freq_range) != 2:
             raise ValueError("`freq_range` must be an iterable of length 2.")
+
+        if noise is not None:
+            if np.shape(noise)[0] != 3:
+                raise Exception("Noise should have same first dimension as velocity")
+        else:
+            noise = np.array([0, 0, 0])[:, None, None]
+
+        # Noise subtraction from binner.TimeBinner.calc_psd_base
+        psd = psd.copy()
+        if noise is not None:
+            psd -= noise**2 / (self.fs / 2)
+            psd = psd.where(psd > 0, np.min(np.abs(psd)) / 100)
 
         freq = psd.freq
         idx = np.where((freq_range[0] < freq) & (freq < freq_range[1]))
