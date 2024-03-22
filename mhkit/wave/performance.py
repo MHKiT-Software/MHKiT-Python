@@ -1,40 +1,47 @@
 import numpy as np
 import pandas as pd
-import xarray
+import xarray as xr
 import types
 from scipy.stats import binned_statistic_2d as _binned_statistic_2d
 from mhkit import wave
 import matplotlib.pylab as plt
 from os.path import join
+from mhkit.utils import convert_to_dataarray, convert_to_dataset
 
 
-def capture_length(P, J):
+def capture_length(P, J, to_pandas=True):
     """
     Calculates the capture length (often called capture width).
 
     Parameters
     ------------
-    P: numpy array or pandas Series
+    P: numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Power [W]
-    J: numpy array or pandas Series
+    J: numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Omnidirectional wave energy flux [W/m]
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     ---------
-    L: numpy array or pandas Series
+    L: pandas Series or xarray DataArray
         Capture length [m]
     """
-    if not isinstance(P, (np.ndarray, pd.Series)):
-        raise TypeError(f"P must be of type np.ndarray or pd.Series. Got: {type(P)}")
-    if not isinstance(J, (np.ndarray, pd.Series)):
-        raise TypeError(f"J must be of type np.ndarray or pd.Series. Got: {type(J)}")
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
+    P = convert_to_dataarray(P)
+    J = convert_to_dataarray(J)
+    
     L = P / J
+    
+    if to_pandas:
+        L = L.to_pandas()
 
     return L
 
 
-def statistics(X):
+def statistics(X, to_pandas=True):
     """
     Calculates statistics, including count, mean, standard
     deviation (std), min, percentiles (25%, 50%, 75%), and max.
@@ -44,19 +51,33 @@ def statistics(X):
 
     Parameters
     ------------
-    X: numpy array or pandas Series
+    X: numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Data
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     ---------
-    stats: pandas Series
+    stats: pandas Series or xarray DataArray
         Statistics
     """
-    if not isinstance(X, (np.ndarray, pd.Series)):
-        raise TypeError(f"X must be of type np.ndarray or pd.Series. Got: {type(X)}")
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    stats = pd.Series(X).describe()
-    stats["std"] = _std_ddof1(X)
+    X = convert_to_dataarray(X)
+
+    count = X.count().item()
+    mean = X.mean().item()
+    std = _std_ddof1(X)
+    q = X.quantile([0., 0.25, 0.5, 0.75, 1.0]).values
+    variables = ['count','mean','std','min','25%','50%','75%','max']
+
+    stats = xr.DataArray(data=[count, mean, std, q[0], q[1], q[2], q[3], q[4]],
+                         dims='index',
+                         coords={'index': variables})
+
+    if to_pandas:
+        stats = stats.to_pandas()
 
     return stats
 
@@ -98,12 +119,15 @@ def _performance_matrix(X, Y, Z, statistic, x_centers, y_centers):
         X, Y, Z, statistic, bins=[xi, yi], expand_binnumbers=False
     )
 
-    M = pd.DataFrame(zi, index=x_centers, columns=y_centers)
+
+    M = xr.DataArray(data=zi,
+                      dims=['x_centers','y_centers'],
+                      coords={'x_centers':x_centers,'y_centers':y_centers})
 
     return M
 
 
-def capture_length_matrix(Hm0, Te, L, statistic, Hm0_bins, Te_bins):
+def capture_length_matrix(Hm0, Te, L, statistic, Hm0_bins, Te_bins, to_pandas=True):
     """
     Generates a capture length matrix for a given statistic
 
@@ -112,11 +136,11 @@ def capture_length_matrix(Hm0, Te, L, statistic, Hm0_bins, Te_bins):
 
     Parameters
     ------------
-    Hm0: numpy array or pandas Series
+    Hm0: numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Significant wave height from spectra [m]
-    Te: numpy array or pandas Series
+    Te: numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Energy period from spectra [s]
-    L : numpy array or pandas Series
+    L : numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Capture length [m]
     statistic: string
         Statistic for each bin, options include: 'mean', 'std', 'median',
@@ -126,22 +150,20 @@ def capture_length_matrix(Hm0, Te, L, statistic, Hm0_bins, Te_bins):
         Bin centers for Hm0 [m]
     Te_bins: numpy array
         Bin centers for Te [s]
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     ---------
-    LM: pandas DataFrames
+    LM: pandas DataFrame or xarray DataArray
         Capture length matrix with index equal to Hm0_bins and columns
         equal to Te_bins
 
     """
-    if not isinstance(Hm0, (np.ndarray, pd.Series)):
-        raise TypeError(
-            f"Hm0 must be of type np.ndarray or pd.Series. Got: {type(Hm0)}"
-        )
-    if not isinstance(Te, (np.ndarray, pd.Series)):
-        raise TypeError(f"Te must be of type np.ndarray or pd.Series. Got: {type(Te)}")
-    if not isinstance(L, (np.ndarray, pd.Series)):
-        raise TypeError(f"L must be of type np.ndarray or pd.Series. Got: {type(L)}")
+    Hm0 = convert_to_dataarray(Hm0)
+    Te = convert_to_dataarray(Te)
+    L = convert_to_dataarray(L)
+
     if not isinstance(statistic, (str, types.FunctionType)):
         raise TypeError(
             f"statistic must be of type str or callable. Got: {type(statistic)}"
@@ -150,23 +172,28 @@ def capture_length_matrix(Hm0, Te, L, statistic, Hm0_bins, Te_bins):
         raise TypeError(f"Hm0_bins must be of type np.ndarray. Got: {type(Hm0_bins)}")
     if not isinstance(Te_bins, np.ndarray):
         raise TypeError(f"Te_bins must be of type np.ndarray. Got: {type(Te_bins)}")
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     LM = _performance_matrix(Hm0, Te, L, statistic, Hm0_bins, Te_bins)
+
+    if to_pandas:
+        LM = LM.to_pandas()
 
     return LM
 
 
-def wave_energy_flux_matrix(Hm0, Te, J, statistic, Hm0_bins, Te_bins):
+def wave_energy_flux_matrix(Hm0, Te, J, statistic, Hm0_bins, Te_bins, to_pandas=True):
     """
     Generates a wave energy flux matrix for a given statistic
 
     Parameters
     ------------
-    Hm0: numpy array or pandas Series
+    Hm0: numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Significant wave height from spectra [m]
-    Te: numpy array or pandas Series
+    Te: numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Energy period from spectra [s]
-    J : numpy array or pandas Series
+    J : numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Wave energy flux from spectra [W/m]
     statistic: string
         Statistic for each bin, options include: 'mean', 'std', 'median',
@@ -176,22 +203,19 @@ def wave_energy_flux_matrix(Hm0, Te, J, statistic, Hm0_bins, Te_bins):
         Bin centers for Hm0 [m]
     Te_bins: numpy array
         Bin centers for Te [s]
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     ---------
-    JM: pandas DataFrames
+    JM: pandas DataFrame or xarray DataArray
         Wave energy flux matrix with index equal to Hm0_bins and columns
         equal to Te_bins
 
     """
-    if not isinstance(Hm0, (np.ndarray, pd.Series)):
-        raise TypeError(
-            f"Hm0 must be of type np.ndarray or pd.Series. Got: {type(Hm0)}"
-        )
-    if not isinstance(Te, (np.ndarray, pd.Series)):
-        raise TypeError(f"Te must be of type np.ndarray or pd.Series. Got: {type(Te)}")
-    if not isinstance(J, (np.ndarray, pd.Series)):
-        raise TypeError(f"J must be of type np.ndarray or pd.Series. Got: {type(J)}")
+    Hm0 = convert_to_dataarray(Hm0)
+    Te = convert_to_dataarray(Te)
+    J = convert_to_dataarray(J)
     if not isinstance(statistic, (str, callable)):
         raise TypeError(
             f"statistic must be of type str or callable. Got: {type(statistic)}"
@@ -200,8 +224,13 @@ def wave_energy_flux_matrix(Hm0, Te, J, statistic, Hm0_bins, Te_bins):
         raise TypeError(f"Hm0_bins must be of type np.ndarray. Got: {type(Hm0_bins)}")
     if not isinstance(Te_bins, np.ndarray):
         raise TypeError(f"Te_bins must be of type np.ndarray. Got: {type(Te_bins)}")
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     JM = _performance_matrix(Hm0, Te, J, statistic, Hm0_bins, Te_bins)
+
+    if to_pandas:
+        JM = JM.to_pandas()
 
     return JM
 
@@ -213,21 +242,21 @@ def power_matrix(LM, JM):
 
     Parameters
     ------------
-    LM: pandas DataFrame
+    LM: pandas DataFrame or xarray Dataset
         Capture length matrix
-    JM: pandas DataFrame
+    JM: pandas DataFrame or xarray Dataset
         Wave energy flux matrix
 
     Returns
     ---------
-    PM: pandas DataFrames
+    PM: pandas DataFrame or xarray Dataset
         Power matrix
 
     """
-    if not isinstance(LM, pd.DataFrame):
-        raise TypeError(f"LM must be of type pd.DataFrame. Got: {type(LM)}")
-    if not isinstance(JM, pd.DataFrame):
-        raise TypeError(f"JM must be of type pd.DataFrame. Got: {type(JM)}")
+    if not isinstance(LM, (pd.DataFrame, xr.Dataset)):
+        raise TypeError(f"LM must be of type pd.DataFrame or xr.Dataset. Got: {type(LM)}")
+    if not isinstance(JM, (pd.DataFrame, xr.Dataset)):
+        raise TypeError(f"JM must be of type pd.DataFrame or xr.Dataset. Got: {type(JM)}")
 
     PM = LM * JM
 
@@ -240,9 +269,9 @@ def mean_annual_energy_production_timeseries(L, J):
 
     Parameters
     ------------
-    L: numpy array or pandas Series
+    L: numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Capture length
-    J: numpy array or pandas Series
+    J: numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Wave energy flux
 
     Returns
@@ -251,15 +280,13 @@ def mean_annual_energy_production_timeseries(L, J):
         Mean annual energy production
 
     """
-    if not isinstance(L, (np.ndarray, pd.Series)):
-        raise TypeError(f"L must be of type np.ndarray or pd.Series. Got: {type(L)}")
-    if not isinstance(J, (np.ndarray, pd.Series)):
-        raise TypeError(f"J must be of type np.ndarray or pd.Series. Got: {type(J)}")
+    L = convert_to_dataarray(L)
+    J = convert_to_dataarray(J)
 
     T = 8766  # Average length of a year (h)
     n = len(L)
 
-    maep = T / n * np.sum(L * J)
+    maep = T / n * (L * J).sum().item()
 
     return maep
 
@@ -271,11 +298,11 @@ def mean_annual_energy_production_matrix(LM, JM, frequency):
 
     Parameters
     ------------
-    LM: pandas DataFrame
+    LM: pandas DataFrame or xarray Dataset
         Capture length
-    JM: pandas DataFrame
+    JM: pandas DataFrame or xarray Dataset
         Wave energy flux
-    frequency: pandas DataFrame
+    frequency: pandas DataFrame or xarray Dataset
         Data frequency for each bin
 
     Returns
@@ -284,17 +311,14 @@ def mean_annual_energy_production_matrix(LM, JM, frequency):
         Mean annual energy production
 
     """
-    if not isinstance(LM, pd.DataFrame):
-        raise TypeError(f"LM must be of type pd.DataFrame. Got: {type(LM)}")
-    if not isinstance(JM, pd.DataFrame):
-        raise TypeError(f"JM must be of type pd.DataFrame. Got: {type(JM)}")
-    if not isinstance(frequency, pd.DataFrame):
-        raise TypeError(
-            f"frequency must be of type pd.DataFrame. Got: {type(frequency)}"
-        )
+    LM = convert_to_dataarray(LM)
+    JM = convert_to_dataarray(JM)
+    frequency = convert_to_dataarray(frequency)
+    
     if not LM.shape == JM.shape == frequency.shape:
         raise ValueError("LM, JM, and frequency must be of the same size")
-    # if not frequency.sum().sum() == 1
+    if not np.abs(frequency.sum() - 1) < 1e-6:
+        raise ValueError('Frequency components must sum to one.')
 
     T = 8766  # Average length of a year (h)
     maep = T * np.nansum(LM * JM * frequency)
@@ -389,7 +413,7 @@ def power_performance_workflow(
     J = J["J"]
 
     # Calculate capture length from power and energy flux
-    L = wave.performance.capture_length(P, J)
+    L = wave.performance.capture_length(P, J, to_pandas=False)
 
     # Generate bins for Hm0 and Te, input format (start, stop, step_size)
     Hm0_bins = np.arange(0, Hm0.values.max() + 0.5, 0.5)
@@ -397,38 +421,38 @@ def power_performance_workflow(
 
     # Create capture length matrices for each statistic based on IEC/TS 62600-100
     # Median, sum, frequency additionally provided
-    LM = xarray.Dataset()
+    LM = xr.Dataset()
     LM["mean"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "mean", Hm0_bins, Te_bins
+        Hm0, Te, L, "mean", Hm0_bins, Te_bins, to_pandas=False
     )
     LM["std"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "std", Hm0_bins, Te_bins
+        Hm0, Te, L, "std", Hm0_bins, Te_bins, to_pandas=False
     )
     LM["median"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "median", Hm0_bins, Te_bins
+        Hm0, Te, L, "median", Hm0_bins, Te_bins, to_pandas=False
     )
     LM["count"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "count", Hm0_bins, Te_bins
+        Hm0, Te, L, "count", Hm0_bins, Te_bins, to_pandas=False
     )
     LM["sum"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "sum", Hm0_bins, Te_bins
+        Hm0, Te, L, "sum", Hm0_bins, Te_bins, to_pandas=False
     )
     LM["min"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "min", Hm0_bins, Te_bins
+        Hm0, Te, L, "min", Hm0_bins, Te_bins, to_pandas=False
     )
     LM["max"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "max", Hm0_bins, Te_bins
+        Hm0, Te, L, "max", Hm0_bins, Te_bins, to_pandas=False
     )
     LM["freq"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "frequency", Hm0_bins, Te_bins
+        Hm0, Te, L, "frequency", Hm0_bins, Te_bins, to_pandas=False
     )
 
     # Create wave energy flux matrix using mean
-    JM = wave.performance.wave_energy_flux_matrix(Hm0, Te, J, "mean", Hm0_bins, Te_bins)
+    JM = wave.performance.wave_energy_flux_matrix(Hm0, Te, J, "mean", Hm0_bins, Te_bins, to_pandas=False)
 
     # Calculate maep from matrix
     maep_matrix = wave.performance.mean_annual_energy_production_matrix(
-        LM["mean"].to_pandas(), JM, LM["freq"].to_pandas()
+        LM["mean"], JM, LM["freq"]
     )
 
     # Plot capture length matrices using statistic
@@ -439,7 +463,7 @@ def power_performance_workflow(
         plt.figure(figsize=(12, 12), num="Capture Length Matrix " + str)
         ax = plt.gca()
         wave.graphics.plot_matrix(
-            LM[str].to_pandas(),
+            LM[str],
             xlabel="Te (s)",
             ylabel="Hm0 (m)",
             zlabel=str + " of Capture Length",
