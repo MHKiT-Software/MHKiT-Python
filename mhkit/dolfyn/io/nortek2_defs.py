@@ -218,7 +218,7 @@ _burst_hdr = [
     ),
     (
         "heading",
-        "h",
+        "H",
         [],
         _LinFunc(0.01, dtype=dt32),
         "degree",
@@ -318,7 +318,7 @@ _bt_hdr = [
     ),
     (
         "heading",
-        "h",
+        "H",
         [],
         _LinFunc(0.01, dtype=dt32),
         "degree",

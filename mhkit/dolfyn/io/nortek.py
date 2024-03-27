@@ -853,7 +853,7 @@ class _NortekReader:
             dv["error"][c],
             dv["status"][c],
             ds["AnaIn"][c],
-        ) = unpack(self.endian + "2H4h2BH", byts[8:])
+        ) = unpack(self.endian + "3H3h2BH", byts[8:])
         self.checksum(byts)
 
     def sci_vec_sysdata(self):
@@ -1085,7 +1085,7 @@ class _NortekReader:
             dv["status"][c],
             p_lsw,
             dv["temp"][c],
-        ) = unpack(self.endian + "4H3hBBHh", byts[8:28])
+        ) = unpack(self.endian + "5H2hBBHh", byts[8:28])
         dv["pressure"][c] = 65536 * p_msb + p_lsw
         # The nortek system integrator manual specifies an 88byte 'spare'
         # field, therefore we start at 116.
