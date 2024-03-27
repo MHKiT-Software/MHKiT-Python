@@ -1,23 +1,10 @@
 from os.path import abspath, dirname, join, isfile, normpath, relpath
-from pandas.testing import assert_frame_equal
-from numpy.testing import assert_allclose
-from scipy.interpolate import interp1d
-from random import seed, randint
 import matplotlib.pylab as plt
-from datetime import datetime
 import xarray.testing as xrt
 import mhkit.wave as wave
-from io import StringIO
 import pandas as pd
 import numpy as np
-import contextlib
 import unittest
-import netCDF4
-import inspect
-import pickle
-import time
-import json
-import sys
 import os
 
 
@@ -144,7 +131,6 @@ class TestPerformance(unittest.TestCase):
         show_values = True
         h = 60
         expected = 401239.4822345051
-        x = self.S.T
         CM, MAEP = wave.performance.power_performance_workflow(
             self.S, h, P, statistic, savepath=savepath, show_values=show_values
         )
