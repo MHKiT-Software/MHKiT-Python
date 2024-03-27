@@ -861,7 +861,7 @@ class _RDIReader:
         ens.builtin_test_fail[k] = fd.read_ui16(1)
         ens.c_sound[k] = fd.read_ui16(1)
         ens.depth[k] = fd.read_ui16(1) * 0.1
-        ens.heading[k] = fd.read_ui16(1) * 0.01
+        ens.heading[k] = fd.read_i16(1) * 0.01
         ens.pitch[k] = fd.read_i16(1) * 0.01
         ens.roll[k] = fd.read_i16(1) * 0.01
         ens.salinity[k] = fd.read_i16(1)
