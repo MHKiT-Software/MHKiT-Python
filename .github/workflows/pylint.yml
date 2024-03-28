@@ -24,3 +24,7 @@ jobs:
       - name: Run Pylint on mhkit/loads/
         run: |
           pylint mhkit/loads/
+
+      - name: Run Pylint on mhkit/power/
+        run: |
+          pylint mhkit/power/
