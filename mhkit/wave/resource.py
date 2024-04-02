@@ -73,7 +73,7 @@ def elevation_spectrum(
     for var in eta.data_vars:
         data = eta[var]
         if detrend:
-            data = _signal.detrend(data.dropna(), axis=-1, type="linear", bp=0)
+            data = _signal.detrend(data.dropna(dim=time_dimension), axis=-1, type="linear", bp=0)
         [f, wave_spec_measured] = _signal.welch(
             data,
             fs=sample_rate,
@@ -82,9 +82,8 @@ def elevation_spectrum(
             nfft=nnft,
             noverlap=noverlap,
         )
-        S[var] = (['frequency'], wave_spec_measured)
-        # TODO - frequency dimension not being set-up correctly here
-    S = S.assign_coords({'frequency': f})
+        S[var] = (['Frequency'], wave_spec_measured)
+    S = S.assign_coords({'Frequency': f})
     
     if to_pandas:
         S = S.to_dataframe()
@@ -92,7 +91,7 @@ def elevation_spectrum(
     return S
 
 
-def pierson_moskowitz_spectrum(f, Tp, Hs, to_pandas=False):
+def pierson_moskowitz_spectrum(f, Tp, Hs, to_pandas=True):
     """
     Calculates Pierson-Moskowitz Spectrum from IEC TS 62600-2 ED2 Annex C.2 (2019)
 
@@ -109,7 +108,7 @@ def pierson_moskowitz_spectrum(f, Tp, Hs, to_pandas=False):
 
     Returns
     ---------
-    S: pandas Series or xarray DataArray
+    S: xarray Dataset
         Spectral density [m^2/Hz] indexed frequency [Hz]
 
     """
@@ -136,11 +135,10 @@ def pierson_moskowitz_spectrum(f, Tp, Hs, to_pandas=False):
 
     Sf[inds] = A_PM * f[inds] ** (-5) * np.exp(-B_PM * f[inds] ** (-4))
 
-    S = xr.DataArray(data=Sf,
-                     dims='Frequency',
-                     coords={'Frequency': f}
-                     )
-    S.name = "Pierson-Moskowitz (" + str(Tp) + "s)"
+    name = "Pierson-Moskowitz (" + str(Tp) + "s)"
+    S = xr.Dataset(data_vars = {name: (['Frequency'], Sf)},
+                   coords={'Frequency': f}
+                   )
     
     if to_pandas:
         S = S.to_pandas()
@@ -219,10 +217,10 @@ def jonswap_spectrum(f, Tp, Hs, gamma=None, to_pandas=True):
     C = 1 - 0.287 * np.log(gamma)
     Sf = C * S_f * Gf
 
-    S = xr.DataArray(data = Sf,
-                     dims = 'Frequency',
-                     coords = {'Frequency': f})
-    S.name = "JONSWAP (" + str(Hs) + "m," + str(Tp) + "s)"
+    name = "JONSWAP (" + str(Hs) + "m," + str(Tp) + "s)"
+    S = xr.Dataset(data_vars = {name: (['Frequency'], Sf)},
+                   coords={'Frequency': f}
+                   )
     
     if to_pandas:
         S = S.to_pandas()
@@ -384,7 +382,7 @@ def frequency_moment(S, N, frequency_bins=None, to_pandas=True):
     m: pandas DataFrame or xarray Dataset
         Nth Frequency Moment indexed by S.columns
     """
-    S = convert_to_dataset(S,name="S")
+    S = convert_to_dataset(S)
     if not isinstance(N, int):
         raise TypeError(f"N must be of type int. Got: {type(N)}")
     if not isinstance(to_pandas, bool):
@@ -406,13 +404,14 @@ def frequency_moment(S, N, frequency_bins=None, to_pandas=True):
     else:
         delta_f = xr.DataArray(
             data=convert_to_dataarray(frequency_bins),
-            dims='Frequency',
-            coords={'Frequency': f}
+            dims=frequency_dimension,
+            coords={frequency_dimension: f}
             )
 
     m = S*fn*delta_f
     m = m.sum(dim=frequency_dimension)
-    TODO - handle this aggregation properly. What should the placeholder dimension/index given to m be?
+
+    m = _transform_dataset(m, "m"+str(N))
 
     if to_pandas:
         m = m.to_dataframe()
@@ -443,7 +442,7 @@ def significant_wave_height(S, frequency_bins=None, to_pandas=True):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     # Eq 12 in IEC 62600-101
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins)
+    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, to_pandas=False).rename({"m0":"Hm0"})
     Hm0 = 4 * np.sqrt(m0)
 
     if to_pandas:
@@ -475,11 +474,10 @@ def average_zero_crossing_period(S, frequency_bins=None, to_pandas=True):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     # Eq 15 in IEC 62600-101
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins)
-    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins)
+    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, to_pandas=False).rename({"m0":"Tz"})
+    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins, to_pandas=False).rename({"m2":"Tz"})
 
     Tz = np.sqrt(m0 / m2)
-    # Tz = pd.DataFrame(Tz, index=S.columns, columns=["Tz"])
 
     if to_pandas:
         Tz = Tz.to_dataframe()
@@ -510,11 +508,10 @@ def average_crest_period(S, frequency_bins=None, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins)
-    m4 = frequency_moment(S, 4, frequency_bins=frequency_bins)
+    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins, to_pandas=False).rename({"m2":"Tavg"})
+    m4 = frequency_moment(S, 4, frequency_bins=frequency_bins, to_pandas=False).rename({"m4":"Tavg"})
 
     Tavg = np.sqrt(m2 / m4)
-    # Tavg = pd.DataFrame(Tavg, index=S.columns, columns=["Tavg"])
 
     if to_pandas:
         Tavg = Tavg.to_dataframe()
@@ -544,11 +541,10 @@ def average_wave_period(S, frequency_bins=None, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins)
-    m1 = frequency_moment(S, 1, frequency_bins=frequency_bins)
+    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, to_pandas=False).rename({"m0":"Tm"})
+    m1 = frequency_moment(S, 1, frequency_bins=frequency_bins, to_pandas=False).rename({"m1":"Tm"})
 
     Tm = np.sqrt(m0 / m1)
-    Tm = pd.DataFrame(Tm, index=S.columns, columns=["Tm"])
 
     if to_pandas:
         Tm = Tm.to_dataframe()
@@ -576,11 +572,13 @@ def peak_period(S, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    # Eq 14 in IEC 62600-101
-    fp = S.idxmax(axis=0)  # Hz
+    frequency_dimension = list(S.coords)[0]
 
+    # Eq 14 in IEC 62600-101
+    fp = S.idxmax(dim=frequency_dimension)  # Hz
     Tp = 1 / fp
-    # Tp = pd.DataFrame(Tp, index=S.columns, columns=["Tp"])
+    
+    Tp = _transform_dataset(Tp, "Tp")
 
     if to_pandas:
         Tp = Tp.to_dataframe()
@@ -610,8 +608,8 @@ def energy_period(S, frequency_bins=None, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    mn1 = frequency_moment(S, -1, frequency_bins=frequency_bins)
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins)
+    mn1 = frequency_moment(S, -1, frequency_bins=frequency_bins, to_pandas=False).rename({"m-1":"Te"})
+    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, to_pandas=False).rename({"m0":"Te"})
 
     # Eq 13 in IEC 62600-101
     Te = mn1 / m0
@@ -644,12 +642,11 @@ def spectral_bandwidth(S, frequency_bins=None, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins)
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins)
-    m4 = frequency_moment(S, 4, frequency_bins=frequency_bins)
+    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins, to_pandas=False).rename({"m2":"e"})
+    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, to_pandas=False).rename({"m0":"e"})
+    m4 = frequency_moment(S, 4, frequency_bins=frequency_bins, to_pandas=False).rename({"m4":"e"})
 
     e = np.sqrt(1 - (m2**2) / (m0 / m4))
-    # e = pd.DataFrame(e, index=S.columns, columns=["e"])
 
     if to_pandas:
         e = e.to_dataframe()
@@ -679,13 +676,12 @@ def spectral_width(S, frequency_bins=None, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    mn2 = frequency_moment(S, -2, frequency_bins=frequency_bins)
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins)
-    mn1 = frequency_moment(S, -1, frequency_bins=frequency_bins)
+    mn2 = frequency_moment(S, -2, frequency_bins=frequency_bins, to_pandas=False).rename({"m-2":"v"})
+    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, to_pandas=False).rename({"m0":"v"})
+    mn1 = frequency_moment(S, -1, frequency_bins=frequency_bins, to_pandas=False).rename({"m-1":"v"})
 
     # Eq 16 in IEC 62600-101
     v = np.sqrt((m0 * mn2 / np.power(mn1, 2)) - 1)
-    # v = pd.DataFrame(v, index=S.columns, columns=["v"])
 
     if to_pandas:
         v = v.to_dataframe()
@@ -739,16 +735,12 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2, to_pandas=True):
 
     if deep:
         # Eq 8 in IEC 62600-100, deep water simplification
-        Te = energy_period(S)
-        Hm0 = significant_wave_height(S)
+        Te = energy_period(S, to_pandas=False).rename({"Te":"J"})
+        Hm0 = significant_wave_height(S, to_pandas=False).rename({"Hm0":"J"})
 
         coeff = rho * (g**2) / (64 * np.pi)
 
         J = coeff * (Hm0 ** 2) * Te
-        # if isinstance(S, pd.Series):
-        #     J = pd.DataFrame(J, index=[0], columns=["J"])
-        # else:
-        #     J = pd.DataFrame(J, S.columns, columns=["J"])
 
     else:
         # deep water flag is false
@@ -758,7 +750,7 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2, to_pandas=True):
         k = wave_number(f, h, rho, g)
 
         # wave celerity (group velocity)
-        Cg = wave_celerity(k, h, g, depth_check=True, ratio=ratio).squeeze()
+        Cg = wave_celerity(k, h, g, depth_check=True, ratio=ratio, to_pandas=False)
 
         # Calculating the wave energy flux, Eq 9 in IEC 62600-101
         delta_f = f.diff(dim=frequency_dimension)
@@ -766,14 +758,11 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2, to_pandas=True):
         delta_f0 = delta_f0.assign_coords({frequency_dimension:f[0]})
         delta_f = xr.concat([delta_f0, delta_f],dim=frequency_dimension)
 
-        CgSdelF = S*delta_f*Cg
+        var = list(S.data_vars)[0]
+        CgSdelF = S*delta_f*convert_to_dataarray(Cg)
 
-        J = rho * g * CgSdelF.sum(axis=0)
-
-        # if isinstance(S, pd.Series):
-        #     J = pd.DataFrame(J, index=[0], columns=["J"])
-        # else:
-        #     J = pd.DataFrame(J, S.columns, columns=["J"])
+        J = rho * g * CgSdelF.sum(dim=frequency_dimension)
+        J = _transform_dataset(J, "J")
 
     if to_pandas:
         J = J.to_dataframe()
@@ -806,8 +795,12 @@ def energy_period_to_peak_period(Te, gamma):
         raise TypeError(f"gamma must be of type float or int. Got: {type(gamma)}")
 
     factor = 0.8255 + 0.03852 * gamma - 0.005537 * gamma**2 + 0.0003154 * gamma**3
+    
+    Tp = Te / factor
+    if isinstance(Tp, xr.Dataset):
+        Tp.rename({"Te":"Tp"})
 
-    return Te / factor
+    return Tp
 
 
 def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2, to_pandas=True):
@@ -835,7 +828,7 @@ def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2, to_pandas=True):
     Cg: pandas DataFrame or xarray Dataset
         Water celerity [m/s] indexed by frequency [Hz]
     """
-    k = convert_to_dataset(k)
+    k = convert_to_dataarray(k)
     if not isinstance(h, (int, float)):
         raise TypeError(f"h must be of type int or float. Got: {type(h)}")
     if not isinstance(g, (int, float)):
@@ -847,7 +840,8 @@ def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    f = k.index
+    frequency_dimension = list(k.coords)[0]
+    f = k[frequency_dimension]
     k = k.values
 
     if depth_check:
@@ -862,20 +856,35 @@ def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2, to_pandas=True):
 
         # deep water approximation
         dCg = np.pi * df / dk
-        dCg = pd.DataFrame(dCg, index=df, columns=["Cg"])
+        dCg = xr.DataArray(data=dCg,
+                           dims=frequency_dimension,
+                           coords={frequency_dimension: df}
+                           )
+        dCg.name = "Cg"
 
         # shallow frequencies
         sf = f[~dr]
         sk = k[~dr]
         sCg = (np.pi * sf / sk) * (1 + (2 * h * sk) / np.sinh(2 * h * sk))
-        sCg = pd.DataFrame(sCg, index=sf, columns=["Cg"])
+        sCg = xr.DataArray(data=sCg,
+                           dims=frequency_dimension,
+                           coords={frequency_dimension: sf}
+                           )
+        sCg.name = "Cg"
 
-        Cg = pd.concat([dCg, sCg]).sort_index()
+        Cg = xr.concat([dCg, sCg],dim=frequency_dimension).sortby(frequency_dimension)
+        Cg.name = "Cg"
 
     else:
         # Eq 10 in IEC 62600-101
         Cg = (np.pi * f / k) * (1 + (2 * h * k) / np.sinh(2 * h * k))
-        Cg = pd.DataFrame(Cg, index=f, columns=["Cg"])
+        Cg = xr.DataArray(data=Cg,
+                           dims=frequency_dimension,
+                           coords={frequency_dimension: f}
+                           )
+        Cg.name = "Cg"
+    
+    Cg = Cg.to_dataset()
 
     if to_pandas:
         Cg = Cg.to_dataframe()
@@ -890,7 +899,7 @@ def wave_length(k):
 
     Parameters
     -------------
-    k: pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
+    k: int, float, numpy ndarray, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Wave number [1/m] indexed by frequency
 
     Returns
@@ -966,7 +975,9 @@ def wave_number(f, h, rho=1025, g=9.80665, to_pandas=True):
             raise ValueError("Wave number not found. " + mesg)
         k0[mask] = k
 
-    k = pd.DataFrame(k0, index=f, columns=["k"])
+    k = xr.Dataset(data_vars={"k": (['Frequency'],k0)},
+                   coords={"Frequency":f}
+                   )
 
     if to_pandas:
         k = k.to_dataframe()
@@ -997,10 +1008,10 @@ def depth_regime(l, h, ratio=2):
 
     Returns
     -------
-    depth_reg: boolean or boolean array
+    depth_reg: boolean or boolean array-like
         Boolean True if deep water, False otherwise
     """
-    if not isinstance(l, (int, float, list, np.ndarray, pd.DataFrame, pd.Series, xr.DataArray, xr.Dataset)):
+    if not isinstance(l, (int, float, np.ndarray, pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise TypeError(
             f"l must be of type int, float, list, np.ndarray, pd.DataFrame, pd.Series, xr.DataArray, or xr.Dataset. Got: {type(l)}"
         )
@@ -1010,3 +1021,14 @@ def depth_regime(l, h, ratio=2):
     depth_reg = h / l > ratio
 
     return depth_reg
+
+def _transform_dataset(data,name):
+    # Converting data from a Dataset into a DataArray will turn the variables 
+    # columns into a 'variable' dimension.
+    # Converting it back to a dataset will keep this concise variable dimension 
+    # but in the expected xr.Dataset/pd.DataFrame format
+    data = data.to_array()
+    data = convert_to_dataset(data, name=name)
+    data = data.rename({"variable":"index"})
+    return data
+
