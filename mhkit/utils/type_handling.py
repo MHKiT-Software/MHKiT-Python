@@ -74,8 +74,15 @@ def convert_to_dataset(data, name="data"):
 
     # Takes data that could be pd.DataFrame, pd.Series, xr.DataArray, or
     # xr.Dataset and converts it to xr.Dataset
-    if isinstance(data, (pd.DataFrame, pd.Series)):
-        data = data.to_xarray()
+    if isinstance(data, pd.DataFrame):
+        # xr.Dataset(data) is drastically faster (1e1 - 1e2x faster) than using pd.DataFrame.to_xarray()
+        data = xr.Dataset(data)
+
+    if isinstance(data, pd.Series):
+        # Converting to a DataArray then to a dataset makes the variable and 
+        # dimension naming cleaner than going straight to a Dataset with 
+        # xr.Dataset(pd.Series)
+        data = xr.DataArray(data)
 
     if isinstance(data, xr.DataArray):
         # xr.DataArray.to_dataset() breaks if the data variable is unnamed
