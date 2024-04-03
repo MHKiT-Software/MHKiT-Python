@@ -30,7 +30,7 @@ def plot_spectrum(S, ax=None):
 
     frequency_dimension = list(S.dims)[0]
     f = S[frequency_dimension]
-    for var in S.data_vars():
+    for var in S.data_vars:
         ax = _xy_plot(
             f * 2 * np.pi,
             S[var] / (2 * np.pi),
