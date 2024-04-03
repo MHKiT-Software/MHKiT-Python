@@ -139,11 +139,11 @@ def convert_to_dataarray(data, name="data"):
     ):
         raise TypeError(
             "Input data must be of type np.ndarray, pandas.DataFrame, pandas.Series, "
-            "xarray.DataArray, or xarray.Dataset"
+            f"xarray.DataArray, or xarray.Dataset. Got {type(data)}"
         )
 
     if not isinstance(name, str):
-        raise TypeError("The 'name' parameter must be a string")
+        raise TypeError(f"The 'name' parameter must be a string. Got {type(name)}")
 
     # Checks pd.DataFrame input and converts to pd.Series if possible
     if isinstance(data, pd.DataFrame):
