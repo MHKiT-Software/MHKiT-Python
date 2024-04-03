@@ -758,7 +758,6 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2, to_pandas=True):
         delta_f0 = delta_f0.assign_coords({frequency_dimension:f[0]})
         delta_f = xr.concat([delta_f0, delta_f],dim=frequency_dimension)
 
-        var = list(S.data_vars)[0]
         CgSdelF = S*delta_f*convert_to_dataarray(Cg)
 
         J = rho * g * CgSdelF.sum(dim=frequency_dimension)

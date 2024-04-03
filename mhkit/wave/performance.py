@@ -401,15 +401,15 @@ def power_performance_workflow(
         raise TypeError(f"ratio must be of type int or float. Got: {type(ratio)}")
 
     # Compute the enegy periods from the spectra data
-    Te = wave.resource.energy_period(S, frequency_bins=frequency_bins)
+    Te = wave.resource.energy_period(S, frequency_bins=frequency_bins, to_pandas=False)
     Te = Te["Te"]
 
     # Compute the significant wave height from the NDBC spectra data
-    Hm0 = wave.resource.significant_wave_height(S, frequency_bins=frequency_bins)
+    Hm0 = wave.resource.significant_wave_height(S, frequency_bins=frequency_bins, to_pandas=False)
     Hm0 = Hm0["Hm0"]
 
     # Compute the energy flux from spectra data and water depth
-    J = wave.resource.energy_flux(S, h, deep=deep, rho=rho, g=g, ratio=ratio)
+    J = wave.resource.energy_flux(S, h, deep=deep, rho=rho, g=g, ratio=ratio, to_pandas=False)
     J = J["J"]
 
     # Calculate capture length from power and energy flux
