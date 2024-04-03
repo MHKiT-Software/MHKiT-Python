@@ -32,7 +32,7 @@ def convert_to_dataset(data, name="data"):
 
     Parameters
     ----------
-    data: pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
+    data: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         The data to be converted.
 
     name: str (Optional)

@@ -359,8 +359,6 @@ def PCA_contour(x1, x2, fit, kwargs):
     """
     x1 = to_numeric_array(x1,"x1")
     x2 = to_numeric_array(x2,"x2")
-    except ValueError:
-        raise ValueError("x2 must contain numeric values.")
     if not isinstance(x1, np.ndarray) or x1.ndim == 0:
         raise TypeError(f"x1 must be a non-scalar array. Got: {type(x1)}")
     if not isinstance(x2, np.ndarray) or x2.ndim == 0:
@@ -1962,8 +1960,11 @@ def _generate_sample_data(
     beta_lines = to_numeric_array(beta_lines,"beta_lines")
     rho_zeroline = to_numeric_array(rho_zeroline,"rho_zeroline")
     theta_zeroline = to_numeric_array(theta_zeroline,"theta_zeroline")
-    points_per_interval = to_numeric_array(points_per_interval,"points_per_interval")
     contour_probs = to_numeric_array(contour_probs,"contour_probs")
+    if not isinstance(points_per_interval, int):
+        raise TypeError(
+            f"points_per_interval must be of type int. Got: {type(points_per_interval)}"
+        )
 
     num_samples = (len(beta_lines) - 1) * points_per_interval
     alpha_bounds = np.zeros((len(beta_lines) - 1, 2))
