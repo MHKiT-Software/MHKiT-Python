@@ -1,6 +1,6 @@
 from mhkit.river.resource import exceedance_probability
 from mhkit.river.graphics import _xy_plot
-from mhkit.utils import convert_to_dataset, to_numeric_array
+from mhkit.utils import convert_to_dataset
 import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
@@ -63,7 +63,7 @@ def plot_elevation_timeseries(eta, ax=None):
     time_dimension = list(eta.dims)[0]
     t = eta[time_dimension]
 
-    for var in eta.data_vars():
+    for var in eta.data_vars:
         ax = _xy_plot(
             t, eta[var], fmt="-", xlabel="Time", ylabel="$\eta$ [m]", ax=ax
         )
@@ -638,7 +638,7 @@ def monthly_cumulative_distribution(J):
     ax: axes
         Figure of monthly cumulative distribution
     """
-    J = convert_to_dataarray(J)
+    J = pd.Series(J)
     cumSum = {}
     months = J.index.month.unique()
     for month in months:
