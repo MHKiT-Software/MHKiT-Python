@@ -345,11 +345,11 @@ def power_performance_workflow(
 
     Parameters
     ------------
-    S: pandas DataFrame or Series
+    S:  pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Spectral density [m^2/Hz] indexed by frequency [Hz]
     h: float
         Water depth [m]
-    P: numpy array or pandas Series
+    P: numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Power [W]
     statistic: string or list of strings
         Statistics for plotting capture length matrices,
@@ -385,12 +385,10 @@ def power_performance_workflow(
     maep_matrix: float
         Mean annual energy production
     """
-    if not isinstance(S, (pd.DataFrame, pd.Series)):
-        raise TypeError(f"S must be of type pd.DataFrame or pd.Series. Got: {type(S)}")
+    S = convert_to_dataset(S)
     if not isinstance(h, (int, float)):
         raise TypeError(f"h must be of type int or float. Got: {type(h)}")
-    if not isinstance(P, (np.ndarray, pd.Series)):
-        raise TypeError(f"P must be of type np.ndarray or pd.Series. Got: {type(P)}")
+    P = convert_to_dataarray(P)
     if not isinstance(deep, bool):
         raise TypeError(f"deep must be of type bool. Got: {type(deep)}")
     if not isinstance(rho, (int, float)):

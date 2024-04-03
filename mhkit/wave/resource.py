@@ -747,10 +747,10 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2, to_pandas=True):
         frequency_dimension = list(S.coords)[0]
         f = S[frequency_dimension]
 
-        k = wave_number(f, h, rho, g)
+        k = wave_number(f, h, rho, g, to_pandas=False)
 
         # wave celerity (group velocity)
-        Cg = wave_celerity(k, h, g, depth_check=True, ratio=ratio, to_pandas=False)
+        Cg = wave_celerity(k, h, g, depth_check=True, ratio=ratio, to_pandas=False)['Cg']
 
         # Calculating the wave energy flux, Eq 9 in IEC 62600-101
         delta_f = f.diff(dim=frequency_dimension)
@@ -758,7 +758,7 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2, to_pandas=True):
         delta_f0 = delta_f0.assign_coords({frequency_dimension:f[0]})
         delta_f = xr.concat([delta_f0, delta_f],dim=frequency_dimension)
 
-        CgSdelF = S*delta_f*convert_to_dataarray(Cg)
+        CgSdelF = S*delta_f*Cg
 
         J = rho * g * CgSdelF.sum(dim=frequency_dimension)
         J = _transform_dataset(J, "J")
@@ -779,7 +779,7 @@ def energy_period_to_peak_period(Te, gamma):
 
     Parameters
     ----------
-    Te: numeric or array-like
+    Te: int, float, np.ndarray, pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset
     gamma: float or int
         Peak enhancement factor for JONSWAP spectrum
 
@@ -923,7 +923,7 @@ def wave_number(f, h, rho=1025, g=9.80665, to_pandas=True):
 
     Parameters
     -----------
-    f: numpy array
+    f: numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset 
         Frequency [Hz]
     h: float
         Water depth [m]
@@ -939,12 +939,7 @@ def wave_number(f, h, rho=1025, g=9.80665, to_pandas=True):
     k: pandas DataFrame or xarray Dataset
         Wave number [1/m] indexed by frequency [Hz]
     """
-    try:
-        f = np.atleast_1d(np.array(f))
-    except:
-        pass
-    if not isinstance(f, np.ndarray):
-        raise TypeError(f"f must be of type np.ndarray. Got: {type(f)}")
+    f = convert_to_dataarray(f)
     if not isinstance(h, (int, float)):
         raise TypeError(f"h must be of type int or float. Got: {type(h)}")
     if not isinstance(rho, (int, float)):
@@ -974,9 +969,8 @@ def wave_number(f, h, rho=1025, g=9.80665, to_pandas=True):
             raise ValueError("Wave number not found. " + mesg)
         k0[mask] = k
 
-    k = xr.Dataset(data_vars={"k": (['Frequency'],k0)},
-                   coords={"Frequency":f}
-                   )
+    k0.name = "k"
+    k = k0.to_dataset()
 
     if to_pandas:
         k = k.to_dataframe()
@@ -998,7 +992,7 @@ def depth_regime(l, h, ratio=2):
 
     Parameters
     ----------
-    l: array-like
+    l: int, float, np.ndarray, pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset
         wavelength [m]
     h: float or int
         water column depth [m]
@@ -1012,7 +1006,7 @@ def depth_regime(l, h, ratio=2):
     """
     if not isinstance(l, (int, float, np.ndarray, pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise TypeError(
-            f"l must be of type int, float, list, np.ndarray, pd.DataFrame, pd.Series, xr.DataArray, or xr.Dataset. Got: {type(l)}"
+            f"l must be of type int, float, np.ndarray, pd.DataFrame, pd.Series, xr.DataArray, or xr.Dataset. Got: {type(l)}"
         )
     if not isinstance(h, (int, float)):
         raise TypeError(f"h must be of type int or float. Got: {type(h)}")
