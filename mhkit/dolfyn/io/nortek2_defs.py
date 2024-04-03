@@ -200,7 +200,7 @@ _burst_hdr = [
     ),
     (
         "temp",
-        "H",
+        "h",
         [],
         _LinFunc(0.01, dtype=dt32),
         "degree_C",
@@ -233,7 +233,7 @@ _burst_hdr = [
     ("nominal_corr", "B", [], None, "%"),
     (
         "temp_press",
-        "B",
+        "b",
         [],
         _LinFunc(0.2, -20, dtype=dt32),
         "degree_C",
@@ -300,7 +300,7 @@ _bt_hdr = [
     ),
     (
         "temp",
-        "H",
+        "h",
         [],
         _LinFunc(0.01, dtype=dt32),
         "degree_C",
