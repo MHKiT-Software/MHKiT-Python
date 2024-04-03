@@ -32,9 +32,9 @@ def capture_length(P, J, to_pandas=True):
 
     P = convert_to_dataarray(P)
     J = convert_to_dataarray(J)
-    
+
     L = P / J
-    
+
     if to_pandas:
         L = L.to_pandas()
 
@@ -69,12 +69,14 @@ def statistics(X, to_pandas=True):
     count = X.count().item()
     mean = X.mean().item()
     std = _std_ddof1(X)
-    q = X.quantile([0., 0.25, 0.5, 0.75, 1.0]).values
-    variables = ['count','mean','std','min','25%','50%','75%','max']
+    q = X.quantile([0.0, 0.25, 0.5, 0.75, 1.0]).values
+    variables = ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]
 
-    stats = xr.DataArray(data=[count, mean, std, q[0], q[1], q[2], q[3], q[4]],
-                         dims='index',
-                         coords={'index': variables})
+    stats = xr.DataArray(
+        data=[count, mean, std, q[0], q[1], q[2], q[3], q[4]],
+        dims="index",
+        coords={"index": variables},
+    )
 
     if to_pandas:
         stats = stats.to_pandas()
@@ -119,10 +121,11 @@ def _performance_matrix(X, Y, Z, statistic, x_centers, y_centers):
         X, Y, Z, statistic, bins=[xi, yi], expand_binnumbers=False
     )
 
-
-    M = xr.DataArray(data=zi,
-                      dims=['x_centers','y_centers'],
-                      coords={'x_centers':x_centers,'y_centers':y_centers})
+    M = xr.DataArray(
+        data=zi,
+        dims=["x_centers", "y_centers"],
+        coords={"x_centers": x_centers, "y_centers": y_centers},
+    )
 
     return M
 
@@ -254,9 +257,13 @@ def power_matrix(LM, JM):
 
     """
     if not isinstance(LM, (pd.DataFrame, xr.Dataset)):
-        raise TypeError(f"LM must be of type pd.DataFrame or xr.Dataset. Got: {type(LM)}")
+        raise TypeError(
+            f"LM must be of type pd.DataFrame or xr.Dataset. Got: {type(LM)}"
+        )
     if not isinstance(JM, (pd.DataFrame, xr.Dataset)):
-        raise TypeError(f"JM must be of type pd.DataFrame or xr.Dataset. Got: {type(JM)}")
+        raise TypeError(
+            f"JM must be of type pd.DataFrame or xr.Dataset. Got: {type(JM)}"
+        )
 
     PM = LM * JM
 
@@ -314,11 +321,11 @@ def mean_annual_energy_production_matrix(LM, JM, frequency):
     LM = convert_to_dataarray(LM)
     JM = convert_to_dataarray(JM)
     frequency = convert_to_dataarray(frequency)
-    
+
     if not LM.shape == JM.shape == frequency.shape:
         raise ValueError("LM, JM, and frequency must be of the same size")
     if not np.abs(frequency.sum() - 1) < 1e-6:
-        raise ValueError('Frequency components must sum to one.')
+        raise ValueError("Frequency components must sum to one.")
 
     T = 8766  # Average length of a year (h)
     maep = T * np.nansum(LM * JM * frequency)
@@ -403,11 +410,15 @@ def power_performance_workflow(
     Te = Te["Te"]
 
     # Compute the significant wave height from the NDBC spectra data
-    Hm0 = wave.resource.significant_wave_height(S, frequency_bins=frequency_bins, to_pandas=False)
+    Hm0 = wave.resource.significant_wave_height(
+        S, frequency_bins=frequency_bins, to_pandas=False
+    )
     Hm0 = Hm0["Hm0"]
 
     # Compute the energy flux from spectra data and water depth
-    J = wave.resource.energy_flux(S, h, deep=deep, rho=rho, g=g, ratio=ratio, to_pandas=False)
+    J = wave.resource.energy_flux(
+        S, h, deep=deep, rho=rho, g=g, ratio=ratio, to_pandas=False
+    )
     J = J["J"]
 
     # Calculate capture length from power and energy flux
@@ -446,7 +457,9 @@ def power_performance_workflow(
     )
 
     # Create wave energy flux matrix using mean
-    JM = wave.performance.wave_energy_flux_matrix(Hm0, Te, J, "mean", Hm0_bins, Te_bins, to_pandas=False)
+    JM = wave.performance.wave_energy_flux_matrix(
+        Hm0, Te, J, "mean", Hm0_bins, Te_bins, to_pandas=False
+    )
 
     # Calculate maep from matrix
     maep_matrix = wave.performance.mean_annual_energy_production_matrix(

@@ -111,7 +111,7 @@ class TestResourceMetrics(unittest.TestCase):
         self.assertLess(error, 1e-6)
 
     def test_wave_length(self):
-        k_array = np.asarray([1., 2., 10., 3.])
+        k_array = np.asarray([1.0, 2.0, 10.0, 3.0])
 
         k_int = int(k_array[0])
         k_float = k_array[0]
@@ -120,31 +120,31 @@ class TestResourceMetrics(unittest.TestCase):
 
         for l in [k_array, k_int, k_float, k_df, k_series]:
             l_calculated = wave.resource.wave_length(l)
-            self.assertTrue(np.all(2.0*np.pi/l == l_calculated))
+            self.assertTrue(np.all(2.0 * np.pi / l == l_calculated))
 
     def test_depth_regime(self):
         h = 10
-        
+
         # non-array like formats
         l_int = 1
-        l_float = 1.
+        l_float = 1.0
         expected = True
         for l in [l_int, l_float]:
             calculated = wave.resource.depth_regime(l, h)
             self.assertTrue(np.all(expected == calculated))
-        
+
         # array-like formats
         l_array = np.array([1, 2, 10, 3])
         l_df = pd.DataFrame(l_array, index=[1, 2, 3, 4])
         l_series = l_df[0]
         l_da = xr.DataArray(l_series)
-        l_da.name = 'data'
+        l_da.name = "data"
         l_ds = l_da.to_dataset()
         expected = [True, True, False, True]
         for l in [l_array, l_series, l_da, l_ds]:
             calculated = wave.resource.depth_regime(l, h)
             self.assertTrue(np.all(expected == calculated))
-        
+
         # special formatting for pd.DataFrame
         for l in [l_df]:
             calculated = wave.resource.depth_regime(l, h)
@@ -174,10 +174,10 @@ class TestResourceMetrics(unittest.TestCase):
         self.assertTrue(all(np.pi * f / k.squeeze().values == cg.squeeze().values))
 
     def test_energy_flux_deep(self):
-        S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)        
+        S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
         Te = wave.resource.energy_period(S)
         Hm0 = wave.resource.significant_wave_height(S)
-        
+
         rho = 1025
         g = 9.80665
         coeff = rho * (g**2) / (64 * np.pi)
@@ -189,10 +189,10 @@ class TestResourceMetrics(unittest.TestCase):
         self.assertTrue(J_calc.squeeze() == J)
 
     def test_energy_flux_shallow(self):
-        S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)        
+        S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
         Te = wave.resource.energy_period(S)
         Hm0 = wave.resource.significant_wave_height(S)
-        
+
         rho = 1025
         g = 9.80665
         coeff = rho * (g**2) / (64 * np.pi)

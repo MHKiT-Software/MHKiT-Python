@@ -79,8 +79,8 @@ def convert_to_dataset(data, name="data"):
         data = xr.Dataset(data)
 
     if isinstance(data, pd.Series):
-        # Converting to a DataArray then to a dataset makes the variable and 
-        # dimension naming cleaner than going straight to a Dataset with 
+        # Converting to a DataArray then to a dataset makes the variable and
+        # dimension naming cleaner than going straight to a Dataset with
         # xr.Dataset(pd.Series)
         data = xr.DataArray(data)
 

@@ -78,8 +78,8 @@ def environmental_contours(x1, x2, sea_state_duration, return_period, method, **
     copulas: Dictionary
         Dictionary of x1 and x2 copula components for each copula method
     """
-    x1 = to_numeric_array(x1,"x1")
-    x2 = to_numeric_array(x2,"x2")
+    x1 = to_numeric_array(x1, "x1")
+    x2 = to_numeric_array(x2, "x2")
     if not isinstance(x1, np.ndarray) or x1.ndim == 0:
         raise TypeError(f"x1 must be a non-scalar array. Got: {type(x1)}")
     if not isinstance(x2, np.ndarray) or x2.ndim == 0:
@@ -357,8 +357,8 @@ def PCA_contour(x1, x2, fit, kwargs):
         'sigma_param'   : fit to _sig_fits
 
     """
-    x1 = to_numeric_array(x1,"x1")
-    x2 = to_numeric_array(x2,"x2")
+    x1 = to_numeric_array(x1, "x1")
+    x2 = to_numeric_array(x2, "x2")
     if not isinstance(x1, np.ndarray) or x1.ndim == 0:
         raise TypeError(f"x1 must be a non-scalar array. Got: {type(x1)}")
     if not isinstance(x2, np.ndarray) or x2.ndim == 0:
@@ -1774,8 +1774,8 @@ def samples_full_seastate(
             "Full sea state sampling is currently only implemented using "
             + "the 'PCA' method."
         )
-    x1 = to_numeric_array(x1,"x1")
-    x2 = to_numeric_array(x2,"x2")
+    x1 = to_numeric_array(x1, "x1")
+    x2 = to_numeric_array(x2, "x2")
     if not isinstance(points_per_interval, int):
         raise TypeError(
             f"points_per_interval must be of int. Got: {type(points_per_interval)}"
@@ -1902,9 +1902,9 @@ def samples_contour(t_samples, t_contour, hs_contour):
     hs_samples : np.ndarray
         points sampled along return contour
     """
-    t_samples = to_numeric_array(t_samples,"t_samples")
-    t_contour = to_numeric_array(t_contour,"t_contour")
-    hs_contour = to_numeric_array(hs_contour,"hs_contour")
+    t_samples = to_numeric_array(t_samples, "t_samples")
+    t_contour = to_numeric_array(t_contour, "t_contour")
+    hs_contour = to_numeric_array(hs_contour, "hs_contour")
 
     # finds minimum and maximum energy period values
     amin = np.argmin(t_contour)
@@ -1957,10 +1957,10 @@ def _generate_sample_data(
     weight_points: np.array
         Array of weights for each point.
     """
-    beta_lines = to_numeric_array(beta_lines,"beta_lines")
-    rho_zeroline = to_numeric_array(rho_zeroline,"rho_zeroline")
-    theta_zeroline = to_numeric_array(theta_zeroline,"theta_zeroline")
-    contour_probs = to_numeric_array(contour_probs,"contour_probs")
+    beta_lines = to_numeric_array(beta_lines, "beta_lines")
+    rho_zeroline = to_numeric_array(rho_zeroline, "rho_zeroline")
+    theta_zeroline = to_numeric_array(theta_zeroline, "theta_zeroline")
+    contour_probs = to_numeric_array(contour_probs, "contour_probs")
     if not isinstance(points_per_interval, int):
         raise TypeError(
             f"points_per_interval must be of type int. Got: {type(points_per_interval)}"

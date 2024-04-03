@@ -64,9 +64,7 @@ def plot_elevation_timeseries(eta, ax=None):
     t = eta[time_dimension]
 
     for var in eta.data_vars:
-        ax = _xy_plot(
-            t, eta[var], fmt="-", xlabel="Time", ylabel="$\eta$ [m]", ax=ax
-        )
+        ax = _xy_plot(t, eta[var], fmt="-", xlabel="Time", ylabel="$\eta$ [m]", ax=ax)
 
     return ax
 
@@ -189,7 +187,9 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
         raise TypeError(
             f"H must be of type float, int, np.int64, np.ndarray, pd.Series, or xr.DataArray. Got: {type(H)}"
         )
-    if not isinstance(lambda_w, (np.ndarray, float, int, np.int64, pd.Series, xr.DataArray)):
+    if not isinstance(
+        lambda_w, (np.ndarray, float, int, np.int64, pd.Series, xr.DataArray)
+    ):
         raise TypeError(
             f"lambda_w must be of type float, int, np.int64, np.ndarray, pd.Series, or xr.DataArray. Got: {type(lambda_w)}"
         )
