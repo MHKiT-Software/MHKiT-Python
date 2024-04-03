@@ -93,25 +93,25 @@ class TestResourceSpectrum(unittest.TestCase):
 
         assert_frame_equal(eta_xr, eta_pd)
 
-    # def test_surface_elevation_frequency_bins_np_and_pd(self):
-    #     S0 = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
-    #     S1 = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs * 1.1)
-    #     S = pd.concat([S0, S1], axis=1)
+    def test_surface_elevation_frequency_bins_np_and_pd(self):
+        S0 = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
+        S1 = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs * 1.1)
+        S = pd.concat([S0, S1], axis=1)
 
-    #     eta0 = wave.resource.surface_elevation(S, self.t, seed=1)
+        eta0 = wave.resource.surface_elevation(S, self.t, seed=1)
 
-    #     f_bins_np = np.array([np.diff(S.index)[0]] * len(S))
-    #     f_bins_pd = pd.DataFrame(f_bins_np, index=S.index, columns=["df"])
+        f_bins_np = np.array([np.diff(S.index)[0]] * len(S))
+        f_bins_pd = pd.DataFrame(f_bins_np, index=S.index, columns=["df"])
 
-    #     eta_np = wave.resource.surface_elevation(
-    #         S, self.t, frequency_bins=f_bins_np, seed=1
-    #     )
-    #     eta_pd = wave.resource.surface_elevation(
-    #         S, self.t, frequency_bins=f_bins_pd, seed=1
-    #     )
+        eta_np = wave.resource.surface_elevation(
+            S, self.t, frequency_bins=f_bins_np, seed=1
+        )
+        eta_pd = wave.resource.surface_elevation(
+            S, self.t, frequency_bins=f_bins_pd, seed=1
+        )
 
-    #     assert_frame_equal(eta0, eta_np)
-    #     assert_frame_equal(eta_np, eta_pd)
+        assert_frame_equal(eta0, eta_np)
+        assert_frame_equal(eta_np, eta_pd)
 
     def test_surface_elevation_moments(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)

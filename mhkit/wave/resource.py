@@ -269,8 +269,6 @@ def surface_elevation(
     S = convert_to_dataset(S)
     if not isinstance(seed, (type(None), int)):
         raise TypeError(f"If specified, seed must be of type int. Got: {type(seed)}")
-    if not isinstance(frequency_bins, type(None)):
-        frequency_bins = convert_to_dataarray(frequency_bins)
     if not isinstance(phases, type(None)):
         phases = convert_to_dataset(phases)
     if not isinstance(method, str):
@@ -280,7 +278,13 @@ def surface_elevation(
 
     frequency_dimension = list(S.coords)[0]
     f = S[frequency_dimension]
-
+    
+    if not isinstance(frequency_bins, (type(None), np.ndarray)):
+        frequency_bins = convert_to_dataarray(frequency_bins)
+    elif isinstance(frequency_bins, np.ndarray):
+        frequency_bins = xr.DataArray(data=frequency_bins,
+                                      dims=frequency_dimension,
+                                      coords={frequency_dimension: f})
     if frequency_bins is not None:
         if not frequency_bins.squeeze().shape == f.shape:
             raise ValueError("shape of frequency_bins must match shape of S")
@@ -307,7 +311,7 @@ def surface_elevation(
                 + "frequency spacing for S."
             )
     else:
-        if not len(frequency_bins.shape) == 1:
+        if not len(frequency_bins.squeeze().shape) == 1:
             raise ValueError("frequency_bins must only contain 1 column")
         delta_f = frequency_bins
         method = "sum_of_sines"
