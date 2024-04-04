@@ -13,9 +13,10 @@ import xarray as xr
 
 from bs4 import BeautifulSoup
 from mhkit.utils.cache import handle_caching
+from mhkit.utils import convert_to_dataset, convert_to_dataarray, convert_nested_dict_and_pandas
 
 
-def read_file(file_name, missing_values=["MM", 9999, 999, 99]):
+def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
     """
     Reads a NDBC wave buoy data file (from https://www.ndbc.noaa.gov).
 
@@ -38,9 +39,12 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99]):
     missing_value: list of values
         List of values that denote missing data
 
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
+
     Returns
     ---------
-    data: pandas DataFrame
+    data: pandas DataFrame or xarray Dataset
         Data indexed by datetime with columns named according to header row
 
     metadata: dict or None
@@ -53,6 +57,8 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99]):
         raise TypeError(
             f"If specified, missing_values must be of type list. Got: {type(missing_values)}"
         )
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     # Open file and get header rows
     f = open(file_name, "r")
@@ -128,10 +134,13 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99]):
     # Replace indicated missing values with nan
     data.replace(missing_values, np.nan, inplace=True)
 
+    if not to_pandas:
+        data = convert_to_dataset(data)
+
     return data, metadata
 
 
-def available_data(parameter, buoy_number=None, proxy=None, clear_cache=False):
+def available_data(parameter, buoy_number=None, proxy=None, clear_cache=False, to_pandas=True):
     """
     For a given parameter this will return a DataFrame of years,
     station IDs and file names that contain that parameter data.
@@ -154,9 +163,12 @@ def available_data(parameter, buoy_number=None, proxy=None, clear_cache=False):
         Proxy dict passed to python requests,
         (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})
 
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
+
     Returns
     -------
-    available_data: DataFrame
+    available_data: pandas DataFrame or xarray Dataset
         DataFrame with station ID, years, and NDBC file names.
     """
     if not isinstance(parameter, str):
@@ -181,6 +193,8 @@ def available_data(parameter, buoy_number=None, proxy=None, clear_cache=False):
                     "Each value in the buoy_number list must be a 5-character"
                     f"alpha-numeric station identifier. Got: {buoy_number}"
                 )
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     # Generate a unique hash_params based on the function parameters
     hash_params = f"parameter:{parameter}_buoy_number:{buoy_number}_proxy:{proxy}"
@@ -229,6 +243,10 @@ def available_data(parameter, buoy_number=None, proxy=None, clear_cache=False):
         handle_caching(hash_params, cache_dir, data=available_data)
     else:
         available_data = data
+    
+    if not to_pandas:
+        available_data = convert_to_dataset(available_data)
+
     return available_data
 
 
@@ -284,7 +302,7 @@ def _parse_filenames(parameter, filenames):
     return buoys
 
 
-def request_data(parameter, filenames, proxy=None, clear_cache=False):
+def request_data(parameter, filenames, proxy=None, clear_cache=False, to_pandas=True):
     """
     Requests data by filenames and returns a dictionary of DataFrames
     for each filename passed. If filenames for a single buoy are passed
@@ -304,30 +322,31 @@ def request_data(parameter, filenames, proxy=None, clear_cache=False):
         'stdmet':   'Standard Meteorological Current Year Historical Data'
         'cwind' :   'Continuous Winds Current Year Historical Data'
 
-    filenames: pandas Series or DataFrame
+    filenames: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
             Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
 
     proxy: dict
             Proxy dict passed to python requests,
         (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})
 
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
+
     Returns
     -------
     ndbc_data: dict
-        Dictionary of DataFrames indexed by buoy and year.
+        Dictionary of DataFrames/Datasets indexed by buoy and year.
     """
-    if not isinstance(filenames, (pd.Series, pd.DataFrame)):
-        raise TypeError(
-            f"filenames must be of type pd.Series or pd.DataFrame. Got: {type(filenames)}"
-        )
+    filenames = convert_to_dataarray(filenames)
+    filenames = pd.Series(filenames)
     if not isinstance(parameter, str):
         raise TypeError(f"parameter must be a string. Got: {type(parameter)}")
     if not isinstance(proxy, (dict, type(None))):
         raise TypeError(f"If specified, proxy must be a dict. Got: {type(proxy)}")
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     _supported_params(parameter)
-    if isinstance(filenames, pd.DataFrame):
-        filenames = pd.Series(filenames.squeeze())
     if not len(filenames) > 0:
         raise ValueError("At least 1 filename must be passed")
 
@@ -395,10 +414,13 @@ def request_data(parameter, filenames, proxy=None, clear_cache=False):
     if buoy_id and len(ndbc_data) == 1:
         ndbc_data = ndbc_data[buoy_id]
 
+    if not to_pandas:
+        ndbc_data = convert_nested_dict_and_pandas(ndbc_data)
+
     return ndbc_data
 
 
-def to_datetime_index(parameter, ndbc_data):
+def to_datetime_index(parameter, ndbc_data, to_pandas=True):
     """
     Converts the NDBC date and time information reported in separate
     columns into a DateTime index and removed the NDBC date & time
@@ -415,21 +437,28 @@ def to_datetime_index(parameter, ndbc_data):
         'stdmet': 'Standard Meteorological Current Year Historical Data'
         'cwind': 'Continuous Winds Current Year Historical Data'
 
-    ndbc_data: DataFrame
+    ndbc_data: pandas DataFrame or xarray Dataset
         NDBC data in dataframe with date and time columns to be converted
+
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     -------
-        df_datetime: DataFrame
+        df_datetime: pandas DataFrame or xarray Dataset
             Dataframe with NDBC date columns removed, and datetime index
     """
 
     if not isinstance(parameter, str):
         raise TypeError(f"parameter must be a string. Got: {type(parameter)}")
+    if isinstance(ndbc_data, xr.Dataset):
+        ndbc_data = ndbc_data.to_pandas()
     if not isinstance(ndbc_data, pd.DataFrame):
         raise TypeError(
             f"ndbc_data must be of type pd.DataFrame. Got: {type(ndbc_data)}"
         )
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     df_datetime = ndbc_data.copy(deep=True)
     df_datetime["date"], ndbc_date_cols = dates_to_datetime(
@@ -440,18 +469,21 @@ def to_datetime_index(parameter, ndbc_data):
     if parameter in ["swden", "swdir", "swdir2", "swr1", "swr2"]:
         df_datetime.columns = df_datetime.columns.astype(float)
 
+    if not to_pandas:
+        df_datetime = convert_to_dataset(df_datetime)
+
     return df_datetime
 
 
-def dates_to_datetime(data, return_date_cols=False, return_as_dataframe=False):
+def dates_to_datetime(data, return_date_cols=False, return_as_dataframe=False, to_pandas=True):
     """
-    Takes a DataFrame and converts the NDBC date columns
-        (e.g. "#YY  MM DD hh mm") to datetime. Returns a DataFrame with the
+    Takes a DataFrame/Dataset and converts the NDBC date columns
+        (e.g. "#YY  MM DD hh mm") to datetime. Returns a DataFrame/Dataset with the
         removed NDBC date columns a new ['date'] columns with DateTime Format.
 
     Parameters
     ----------
-    data: DataFrame
+    data: pandas DataFrame or xarray Dataset
         Dataframe with headers (e.g. ['YY', 'MM', 'DD', 'hh', {'mm'}])
 
     return_date_col: Bool (optional)
@@ -460,22 +492,29 @@ def dates_to_datetime(data, return_date_cols=False, return_as_dataframe=False):
     return_as_dataFrame: bool
         Results returned as a DataFrame (useful for MHKiT-MATLAB)
 
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
+
     Returns
     -------
-    date: Series
+    date: pandas Series or xarray DataArray
         Series with NDBC dates dropped and new ['date']
         column in DateTime format
 
     ndbc_date_cols: list (optional)
-        List of the DataFrame columns headers for dates as provided by
+        List of the DataFrame/Dataset columns headers for dates as provided by
         NDBC
     """
+    if isinstance(data, xr.Dataset):
+        data = pd.DataFrame(data)
     if not isinstance(data, pd.DataFrame):
         raise TypeError(f"data must be of type pd.DataFrame. Got: {type(data)}")
     if not isinstance(return_date_cols, bool):
         raise TypeError(
             f"return_date_cols must be of type bool. Got: {type(return_date_cols)}"
         )
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     df = data.copy(deep=True)
     cols = df.columns.values.tolist()
@@ -516,12 +555,18 @@ def dates_to_datetime(data, return_date_cols=False, return_as_dataframe=False):
 
     if return_as_dataframe:
         date = pd.DataFrame(date)
+        if not to_pandas:
+            date = convert_to_dataset(date)
+    elif not to_pandas:
+        date = convert_to_dataarray(date)
+
     if return_date_cols:
         if minutes:
             ndbc_date_cols = [year_string, "MM", "DD", "hh", "mm"]
         else:
             ndbc_date_cols = [year_string, "MM", "DD", "hh"]
         return date, ndbc_date_cols
+    
 
     return date
 
