@@ -182,3 +182,16 @@ def convert_to_dataarray(data, name="data"):
         data.name = name
 
     return data
+
+def convert_nested_dict_and_pandas(data):
+    """
+    Recursively searches inside nested dictionaries for pandas DataFrames to 
+    convert to xarray Datasets.
+    """
+    for key in data.keys():
+        if isinstance(data[key], pd.DataFrame):
+            data[key] = convert_to_dataset(data[key])
+        elif isinstance(data[key], dict):
+            data[key] = convert_nested_dict_and_pandas(data[key])
+    
+    return data

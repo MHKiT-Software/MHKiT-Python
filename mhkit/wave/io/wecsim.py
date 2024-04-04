@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import scipy.io as sio
+from os.path import isfile
+from mhkit.utils import convert_nested_dict_and_pandas
 
 
 def read_output(file_name, to_pandas=True):
@@ -26,7 +28,8 @@ def read_output(file_name, to_pandas=True):
     """
     if not isinstance(file_name, str):
         raise TypeError(f"file_name must be of type str. Got: {type(file_name)}")
-
+    if not isfile(file_name):
+        raise ValueError(f"File not found: {file_name}")
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
@@ -479,11 +482,6 @@ def read_output(file_name, to_pandas=True):
     # each WEC-Sim object (body(1), body(2), constraint, wave, etc) is a Dataset
     # and the dof is a new dimension
     if not to_pandas:
-        for key in ws_output.keys():
-            if isinstance(ws_output[key], pd.DataFrame):
-                ws_output[key] = ws_output[key].to_xarray()
-            elif isinstance(ws_output[key], dict):
-                for key2 in ws_output[key].keys():
-                    ws_output[key][key2] = ws_output[key][key2].to_xarray()
+        ws_output = convert_nested_dict_and_pandas(ws_output)
 
     return ws_output

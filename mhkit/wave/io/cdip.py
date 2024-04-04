@@ -1,11 +1,11 @@
 import os
 import pandas as pd
-import xarray as xr
 import numpy as np
 import datetime
 import netCDF4
 import pytz
 from mhkit.utils.cache import handle_caching
+from mhkit.utils import convert_nested_dict_and_pandas
 
 
 def _validate_date(date_text):
@@ -380,13 +380,7 @@ def request_parse_workflow(
             pass
 
     if not to_pandas:
-        for key in data['data'].keys():
-            if isinstance(data['data'][key], pd.DataFrame):
-                data['data'][key] = data['data'][key].to_xarray()
-            elif isinstance(data['data'][key], dict):
-                for key2 in data['data'][key].keys():
-                    data['data'][key][key2] = data['data'][key][key2].to_xarray()
-
+        data = convert_nested_dict_and_pandas(data)
 
     return data
 
@@ -585,12 +579,7 @@ def get_netcdf_variables(
     results["metadata"]["name"] = buoy_name
     
     if not to_pandas:
-        for key in results['data'].keys():
-            if isinstance(results['data'][key], pd.DataFrame):
-                results['data'][key] = results['data'][key].to_xarray()
-            elif isinstance(results['data'][key], dict):
-                for key2 in results['data'][key].keys():
-                    results['data'][key][key2] = results['data'][key][key2].to_xarray()
+        results = convert_nested_dict_and_pandas(results)
 
     return results
 
