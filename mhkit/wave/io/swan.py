@@ -1,11 +1,13 @@
 from scipy.io import loadmat
 from os.path import isfile
 import pandas as pd
+import xarray as xr
 import numpy as np
 import re
+from mhkit.utils import convert_to_dataset, convert_nested_dict_and_pandas
 
 
-def read_table(swan_file):
+def read_table(swan_file, to_pandas=True):
     """
     Reads in SWAN table format output
 
@@ -13,10 +15,12 @@ def read_table(swan_file):
     ----------
     swan_file: str
         filename to import
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     -------
-    swan_data: DataFrame
+    swan_data: pandas DataFrame or xarray Dataset
         Dataframe of swan output
     metaDict: Dictionary
         Dictionary of metaData
@@ -25,6 +29,8 @@ def read_table(swan_file):
         raise TypeError(f"swan_file must be of type str. Got: {type(swan_file)}")
     if not isfile(swan_file):
         raise ValueError(f"File not found: {swan_file}")
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     f = open(swan_file, "r")
     header_line_number = 4
@@ -45,23 +51,29 @@ def read_table(swan_file):
     f.close()
 
     swan_data = pd.read_csv(swan_file, sep="\s+", comment="%", names=metaDict["header"])
+    
+    if not to_pandas:
+        swan_data = convert_to_dataset(swan_data)
+
     return swan_data, metaDict
 
 
-def read_block(swan_file):
+def read_block(swan_file, to_pandas=True):
     """
     Reads in SWAN block output with headers and creates a dictionary
-    of DataFrames for each SWAN output variable in the output file.
+    of DataFrames or Datasets for each SWAN output variable in the output file.
 
     Parameters
     ----------
     swan_file: str
         swan block file to import
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     -------
     data: Dictionary
-        Dictionary of DataFrame of swan output variables
+        Dictionary of DataFrames or Datasets of swan output variables
     metaDict: Dictionary
         Dictionary of metaData dependent on file type
     """
@@ -69,6 +81,8 @@ def read_block(swan_file):
         raise TypeError(f"swan_file must be of type str. Got: {type(swan_file)}")
     if not isfile(swan_file):
         raise ValueError(f"File not found: {swan_file}")
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     extension = swan_file.split(".")[1].lower()
     if extension == "mat":
@@ -76,6 +90,10 @@ def read_block(swan_file):
         metaData = {"filetype": "mat", "variables": [var for var in dataDict.keys()]}
     else:
         dataDict, metaData = _read_block_txt(swan_file)
+
+    if not to_pandas:
+        dataDict = convert_nested_dict_and_pandas(dataDict)
+        
     return dataDict, metaData
 
 
@@ -230,11 +248,11 @@ def _parse_line_metadata(line):
     return metaDict
 
 
-def dictionary_of_block_to_table(dictionary_of_DataFrames, names=None):
+def dictionary_of_block_to_table(dictionary_of_DataFrames, names=None, to_pandas=True):
     """
     Converts a dictionary of structured 2D grid SWAN block format
     x (columns),y (index) to SWAN table format x (column),y (column),
-    values (column)  DataFrame.
+    values (column) DataFrame or Dataset.
 
     Parameters
     ----------
@@ -242,10 +260,13 @@ def dictionary_of_block_to_table(dictionary_of_DataFrames, names=None):
         Dictionary of DataFrames in with columns as X indicie and Y as index.
     names: List (Optional)
         Name of data column in returned table. Default=Dictionary.keys()
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
+
     Returns
     -------
-    swanTables: DataFrame
-        DataFrame with columns x,y,values where values = Dictionary.keys()
+    swanTables: pandas DataFrame or xarray Dataset
+        DataFrame/Dataset with columns x,y,values where values = Dictionary.keys()
         or names
     """
     if not isinstance(dictionary_of_DataFrames, dict):
@@ -274,6 +295,8 @@ def dictionary_of_block_to_table(dictionary_of_DataFrames, names=None):
             raise ValueError(
                 "If specified, names must the same length as dictionary_of_DataFrames"
             )
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     if names == None:
         variables = [var for var in dictionary_of_DataFrames.keys()]
@@ -286,10 +309,13 @@ def dictionary_of_block_to_table(dictionary_of_DataFrames, names=None):
         tmp_dat = block_to_table(dictionary_of_DataFrames[var], name=var)
         swanTables[var] = tmp_dat[var]
 
+    if not to_pandas:
+        swanTables = convert_to_dataset(swanTables)
+
     return swanTables
 
 
-def block_to_table(data, name="values"):
+def block_to_table(data, name="values", to_pandas=True):
     """
     Converts structured 2D grid SWAN block format x (columns), y (index)
     to SWAN table format x (column),y (column), values (column)
@@ -301,18 +327,28 @@ def block_to_table(data, name="values"):
         DataFrame in with columns as X indicie and Y as index.
     name: string (Optional)
         Name of data column in returned table. Default='values'
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
+
     Returns
     -------
-    table: DataFrame
+    table: pandas DataFrame or xarray Dataset
         DataFrame with columns x,y,values
     """
+    if isinstance(data, xr.Dataset):
+        data = pd.DataFrame(data)
     if not isinstance(data, pd.DataFrame):
         raise TypeError(f"data must be of type pd.DataFrame. Got: {type(data)}")
     if not isinstance(name, str):
         raise TypeError(f"If specified, name must be of type str. Got: {type(name)}")
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     table = data.unstack().reset_index(name=name)
     table = table.rename(columns={"level_0": "x", "level_1": "y"})
     table.sort_values(["x", "y"], ascending=[True, True], inplace=True)
+
+    if not to_pandas:
+        table = convert_to_dataset(table)
 
     return table
