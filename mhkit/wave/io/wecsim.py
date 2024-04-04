@@ -3,7 +3,7 @@ import numpy as np
 import scipy.io as sio
 
 
-def read_output(file_name):
+def read_output(file_name, to_pandas=True):
     """
     Loads the wecSim response class once 'output' has been saved to a `.mat`
     structure.
@@ -15,14 +15,21 @@ def read_output(file_name):
     ------------
     file_name: string
         Name of wecSim output file saved as a `.mat` structure
-
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     ---------
     ws_output: dict
-        Dictionary of pandas DataFrames, indexed by time (s)
+        Dictionary of pandas DataFrames or xarray Datasets, indexed by time (s)
 
     """
+    if not isinstance(file_name, str):
+        raise TypeError(f"file_name must be of type str. Got: {type(file_name)}")
+
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
+
 
     ws_data = sio.loadmat(file_name)
     output = ws_data["output"]
@@ -454,9 +461,9 @@ def read_output(file_name):
         print("cable class not used")
         cable_output = []
 
-    ######################################
-    ## create wecSim output DataFrame of Dict
-    ######################################
+    ############################################
+    ## create wecSim output - Dict of DataFrames
+    ############################################
     ws_output = {
         "wave": wave_output,
         "bodies": body_output,
@@ -467,4 +474,16 @@ def read_output(file_name):
         "ptosim": ptosim_output,
         "cables": cable_output,
     }
+    
+    # TODO - in xarray, this data would be better represented as a Dict where 
+    # each WEC-Sim object (body(1), body(2), constraint, wave, etc) is a Dataset
+    # and the dof is a new dimension
+    if not to_pandas:
+        for key in ws_output.keys():
+            if isinstance(ws_output[key], pd.DataFrame):
+                ws_output[key] = ws_output[key].to_xarray()
+            elif isinstance(ws_output[key], dict):
+                for key2 in ws_output[key].keys():
+                    ws_output[key][key2] = ws_output[key][key2].to_xarray()
+
     return ws_output
