@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import xarray as xr
 import numpy as np
 import datetime
 import netCDF4
@@ -194,6 +195,7 @@ def request_parse_workflow(
     data_type="historic",
     all_2D_variables=False,
     silent=False,
+    to_pandas=True,
 ):
     """
     Parses a passed CDIP netCDF file or requests a station number
@@ -231,27 +233,30 @@ def request_parse_workflow(
     silent: boolean
         Set to True to prevent the print statement that announces when 2D
         variable processing begins. Default False.
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     -------
     data: dictionary
-        'vars1D': DataFrame
-            1D variables indexed by time
+        'data': dictionary of variables
+            'vars': pandas DataFrame or xarray Dataset
+                1D variables indexed by time
+            'vars2D': dictionary of DataFrames or Datasets, optional
+                If 2D-vars are passed in the 'parameters key' or if run
+                with all_2D_variables=True, then this key will appear
+                with a dictonary of DataFrames of 2D variables.
         'metadata': dictionary
             Anything not of length time
-        'vars2D': dictionary of DataFrames, optional
-            If 2D-vars are passed in the 'parameters key' or if run
-            with all_2D_variables=True, then this key will appear
-            with a dictonary of DataFrames of 2D variables.
     """
     if not isinstance(station_number, (str, type(None))):
-        raise ValueError(
-            f"station_number must be of type string. Got: {station_number}"
+        raise TypeError(
+            f"station_number must be of type string. Got: {type(station_number)}"
         )
 
     if not isinstance(parameters, (str, type(None), list)):
-        raise ValueError(
-            "parameters must be of type str or list of strings. Got: {parameters}"
+        raise TypeError(
+            f"parameters must be of type str or list of strings. Got: {type(parameters)}"
         )
 
     if start_date is not None:
@@ -263,7 +268,7 @@ def request_parse_workflow(
             except ValueError as exc:
                 raise ValueError("Incorrect data format, should be YYYY-MM-DD") from exc
         else:
-            raise ValueError("start_date must be of type str. Got: {start_date}")
+            raise TypeError(f"start_date must be of type str. Got: {type(start_date)}")
 
     if end_date is not None:
         if isinstance(end_date, str):
@@ -274,19 +279,22 @@ def request_parse_workflow(
             except ValueError as exc:
                 raise ValueError("Incorrect data format, should be YYYY-MM-DD") from exc
         else:
-            raise ValueError("end_date must be of type str. Got: {end_date}")
+            raise TypeError(f"end_date must be of type str. Got: {type(end_date)}")
 
     if not isinstance(years, (type(None), int, list)):
-        raise ValueError("years must be of type int or list of ints. Got: {years}")
+        raise TypeError(f"years must be of type int or list of ints. Got: {type(years)}")
 
     if not isinstance(data_type, str):
-        raise ValueError("data_type must be of type string. Got: {data_type}")
+        raise TypeError(f"data_type must be of type string. Got: {type(data_type)}")
 
     if data_type not in ["historic", "realtime"]:
-        raise ValueError('data_type must be "historic" or "realtime". Got: {data_type}')
+        raise ValueError(f'data_type must be "historic" or "realtime". Got: {data_type}')
 
     if not any([nc, station_number]):
         raise ValueError("Must provide either a CDIP netCDF file or a station number.")
+
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     if not nc:
         nc = request_netCDF(station_number, data_type)
@@ -371,6 +379,15 @@ def request_parse_workflow(
         except:
             pass
 
+    if not to_pandas:
+        for key in data['data'].keys():
+            if isinstance(data['data'][key], pd.DataFrame):
+                data['data'][key] = data['data'][key].to_xarray()
+            elif isinstance(data['data'][key], dict):
+                for key2 in data['data'][key].keys():
+                    data['data'][key][key2] = data['data'][key][key2].to_xarray()
+
+
     return data
 
 
@@ -381,6 +398,7 @@ def get_netcdf_variables(
     parameters=None,
     all_2D_variables=False,
     silent=False,
+    to_pandas=True,
 ):
     """
     Iterates over and extracts variables from CDIP bouy data. See
@@ -406,22 +424,25 @@ def get_netcdf_variables(
     silent: boolean
         Set to True to prevent the print statement that announces when 2D
         variable processing begins. Default False.
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     -------
     results: dictionary
-        'vars1D': DataFrame
-            1D variables indexed by time
+        'data': dictionary of variables
+            'vars': pandas DataFrame or xarray Dataset
+                1D variables indexed by time
+            'vars2D': dictionary of DataFrames or Datasets, optional
+                If 2D-vars are passed in the 'parameters key' or if run
+                with all_2D_variables=True, then this key will appear
+                with a dictonary of DataFrames/Datasets of 2D variables.
         'metadata': dictionary
             Anything not of length time
-        'vars2D': dictionary of DataFrames, optional
-            If 2D-vars are passed in the 'parameters key' or if run
-            with all_2D_variables=True, then this key will appear
-            with a dictonary of DataFrames of 2D variables.
     """
 
     if not isinstance(nc, netCDF4.Dataset):
-        raise ValueError("nc must be netCDF4 dataset. Got: {nc}")
+        raise TypeError("nc must be netCDF4 dataset. Got: {type(nc)}")
 
     if start_date and isinstance(start_date, str):
         start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d")
@@ -430,19 +451,22 @@ def get_netcdf_variables(
         end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d")
 
     if not isinstance(parameters, (str, type(None), list)):
-        raise ValueError(
-            "parameters must be of type str or list of strings. Got: {parameters}"
+        raise TypeError(
+            "parameters must be of type str or list of strings. Got: {type(parameters)}"
         )
 
     if not isinstance(all_2D_variables, bool):
-        raise ValueError("all_2D_variables must be a boolean. Got: {all_2D_variables}")
+        raise TypeError("all_2D_variables must be a boolean. Got: {type(all_2D_variables)}")
 
     if parameters:
         if isinstance(parameters, str):
             parameters = [parameters]
         for param in parameters:
             if not isinstance(param, str):
-                raise ValueError("All elements of parameters must be strings.")
+                raise TypeError("All elements of parameters must be strings.")
+
+    if not isinstance(to_pandas, bool):
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     buoy_name = (
         nc.variables["metaStationName"][:].compressed().tobytes().decode("utf-8")
@@ -559,6 +583,14 @@ def get_netcdf_variables(
                 vars2D[var] = variable
             results["data"]["wave2D"] = vars2D
     results["metadata"]["name"] = buoy_name
+    
+    if not to_pandas:
+        for key in results['data'].keys():
+            if isinstance(results['data'][key], pd.DataFrame):
+                results['data'][key] = results['data'][key].to_xarray()
+            elif isinstance(results['data'][key], dict):
+                for key2 in results['data'][key].keys():
+                    results['data'][key][key2] = results['data'][key][key2].to_xarray()
 
     return results
 
