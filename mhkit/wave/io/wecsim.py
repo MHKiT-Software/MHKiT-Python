@@ -33,7 +33,6 @@ def read_output(file_name, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-
     ws_data = sio.loadmat(file_name)
     output = ws_data["output"]
 
@@ -477,8 +476,8 @@ def read_output(file_name, to_pandas=True):
         "ptosim": ptosim_output,
         "cables": cable_output,
     }
-    
-    # TODO - in xarray, this data would be better represented as a Dict where 
+
+    # TODO - in xarray, this data would be better represented as a Dict where
     # each WEC-Sim object (body(1), body(2), constraint, wave, etc) is a Dataset
     # and the dof is a new dimension
     if not to_pandas:

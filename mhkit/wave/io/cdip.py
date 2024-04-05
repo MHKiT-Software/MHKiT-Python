@@ -282,13 +282,17 @@ def request_parse_workflow(
             raise TypeError(f"end_date must be of type str. Got: {type(end_date)}")
 
     if not isinstance(years, (type(None), int, list)):
-        raise TypeError(f"years must be of type int or list of ints. Got: {type(years)}")
+        raise TypeError(
+            f"years must be of type int or list of ints. Got: {type(years)}"
+        )
 
     if not isinstance(data_type, str):
         raise TypeError(f"data_type must be of type string. Got: {type(data_type)}")
 
     if data_type not in ["historic", "realtime"]:
-        raise ValueError(f'data_type must be "historic" or "realtime". Got: {data_type}')
+        raise ValueError(
+            f'data_type must be "historic" or "realtime". Got: {data_type}'
+        )
 
     if not any([nc, station_number]):
         raise ValueError("Must provide either a CDIP netCDF file or a station number.")
@@ -450,7 +454,9 @@ def get_netcdf_variables(
         )
 
     if not isinstance(all_2D_variables, bool):
-        raise TypeError("all_2D_variables must be a boolean. Got: {type(all_2D_variables)}")
+        raise TypeError(
+            "all_2D_variables must be a boolean. Got: {type(all_2D_variables)}"
+        )
 
     if parameters:
         if isinstance(parameters, str):
@@ -577,7 +583,7 @@ def get_netcdf_variables(
                 vars2D[var] = variable
             results["data"]["wave2D"] = vars2D
     results["metadata"]["name"] = buoy_name
-    
+
     if not to_pandas:
         results = convert_nested_dict_and_pandas(results)
 

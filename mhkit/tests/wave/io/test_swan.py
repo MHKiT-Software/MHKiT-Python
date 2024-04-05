@@ -64,7 +64,9 @@ class TestSWAN(unittest.TestCase):
         self.assertAlmostEqual(self.expected_table["Hsig"].sum(), sumSum, places=-2)
 
     def test_read_block_txt_xarray(self):
-        swanBlockTxt, metaData = wave.io.swan.read_block(self.swan_block_txt_file, to_pandas=False)
+        swanBlockTxt, metaData = wave.io.swan.read_block(
+            self.swan_block_txt_file, to_pandas=False
+        )
         self.assertEqual(len(swanBlockTxt), 4)
         sumSum = swanBlockTxt["Significant wave height"].sum().sum()
         self.assertAlmostEqual(self.expected_table["Hsig"].sum(), sumSum, places=-2)

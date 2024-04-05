@@ -120,7 +120,7 @@ class TestIOndbc(unittest.TestCase):
     def test_ndbc_read_spectral(self):
         data, units = wave.io.ndbc.read_file(join(datadir, "data.txt"), to_pandas=False)
         self.assertEqual(len(data.data_vars), 47)
-        self.assertEqual(len(data['dim_0']), 743)
+        self.assertEqual(len(data["dim_0"]), 743)
         self.assertEqual(units, None)
 
     # Continuous wind data

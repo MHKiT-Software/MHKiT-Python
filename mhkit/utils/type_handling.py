@@ -152,8 +152,8 @@ def convert_to_dataarray(data, name="data"):
                 "If the input data is a pd.DataFrame or xr.Dataset, it must contain one variable. Got {data.shape[1]}"
             )
         else:
-            # use iloc instead of squeeze. For DataFrames/Series with only a 
-            # single value, squeeze returns a scalar, which is unexpected. 
+            # use iloc instead of squeeze. For DataFrames/Series with only a
+            # single value, squeeze returns a scalar, which is unexpected.
             # iloc will return a Series as expected
             data = data.iloc[0]
 
@@ -186,9 +186,10 @@ def convert_to_dataarray(data, name="data"):
 
     return data
 
+
 def convert_nested_dict_and_pandas(data):
     """
-    Recursively searches inside nested dictionaries for pandas DataFrames to 
+    Recursively searches inside nested dictionaries for pandas DataFrames to
     convert to xarray Datasets.
     """
     for key in data.keys():
@@ -196,5 +197,5 @@ def convert_nested_dict_and_pandas(data):
             data[key] = convert_to_dataset(data[key])
         elif isinstance(data[key], dict):
             data[key] = convert_nested_dict_and_pandas(data[key])
-    
+
     return data

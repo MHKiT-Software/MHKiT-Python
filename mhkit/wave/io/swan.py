@@ -51,7 +51,7 @@ def read_table(swan_file, to_pandas=True):
     f.close()
 
     swan_data = pd.read_csv(swan_file, sep="\s+", comment="%", names=metaDict["header"])
-    
+
     if not to_pandas:
         swan_data = convert_to_dataset(swan_data)
 
@@ -93,7 +93,7 @@ def read_block(swan_file, to_pandas=True):
 
     if not to_pandas:
         dataDict = convert_nested_dict_and_pandas(dataDict)
-        
+
     return dataDict, metaData
 
 

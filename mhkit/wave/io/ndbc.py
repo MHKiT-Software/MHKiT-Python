@@ -13,7 +13,11 @@ import xarray as xr
 
 from bs4 import BeautifulSoup
 from mhkit.utils.cache import handle_caching
-from mhkit.utils import convert_to_dataset, convert_to_dataarray, convert_nested_dict_and_pandas
+from mhkit.utils import (
+    convert_to_dataset,
+    convert_to_dataarray,
+    convert_nested_dict_and_pandas,
+)
 
 
 def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
@@ -140,7 +144,9 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
     return data, metadata
 
 
-def available_data(parameter, buoy_number=None, proxy=None, clear_cache=False, to_pandas=True):
+def available_data(
+    parameter, buoy_number=None, proxy=None, clear_cache=False, to_pandas=True
+):
     """
     For a given parameter this will return a DataFrame of years,
     station IDs and file names that contain that parameter data.
@@ -243,7 +249,7 @@ def available_data(parameter, buoy_number=None, proxy=None, clear_cache=False, t
         handle_caching(hash_params, cache_dir, data=available_data)
     else:
         available_data = data
-    
+
     if not to_pandas:
         available_data = convert_to_dataset(available_data)
 
@@ -475,7 +481,9 @@ def to_datetime_index(parameter, ndbc_data, to_pandas=True):
     return df_datetime
 
 
-def dates_to_datetime(data, return_date_cols=False, return_as_dataframe=False, to_pandas=True):
+def dates_to_datetime(
+    data, return_date_cols=False, return_as_dataframe=False, to_pandas=True
+):
     """
     Takes a DataFrame/Dataset and converts the NDBC date columns
         (e.g. "#YY  MM DD hh mm") to datetime. Returns a DataFrame/Dataset with the
@@ -566,7 +574,6 @@ def dates_to_datetime(data, return_date_cols=False, return_as_dataframe=False, t
         else:
             ndbc_date_cols = [year_string, "MM", "DD", "hh"]
         return date, ndbc_date_cols
-    
 
     return date
 
