@@ -323,7 +323,7 @@ def block_to_table(data, name="values", to_pandas=True):
 
     Parameters
     ----------
-    data: DataFrame
+    data: pandas DataFrame or xarray Dataset
         DataFrame in with columns as X indicie and Y as index.
     name: string (Optional)
         Name of data column in returned table. Default='values'
@@ -336,7 +336,7 @@ def block_to_table(data, name="values", to_pandas=True):
         DataFrame with columns x,y,values
     """
     if isinstance(data, xr.Dataset):
-        data = pd.DataFrame(data)
+        data = data.to_pandas()
     if not isinstance(data, pd.DataFrame):
         raise TypeError(f"data must be of type pd.DataFrame. Got: {type(data)}")
     if not isinstance(name, str):

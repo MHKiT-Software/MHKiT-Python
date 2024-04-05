@@ -9,6 +9,7 @@ import xarray.testing as xrt
 import mhkit.wave as wave
 from io import StringIO
 import pandas as pd
+import xarray as xr
 import numpy as np
 import contextlib
 import unittest
@@ -58,6 +59,12 @@ class TestSWAN(unittest.TestCase):
 
     def test_read_block_txt(self):
         swanBlockTxt, metaData = wave.io.swan.read_block(self.swan_block_txt_file)
+        self.assertEqual(len(swanBlockTxt), 4)
+        sumSum = swanBlockTxt["Significant wave height"].sum().sum()
+        self.assertAlmostEqual(self.expected_table["Hsig"].sum(), sumSum, places=-2)
+
+    def test_read_block_txt_xarray(self):
+        swanBlockTxt, metaData = wave.io.swan.read_block(self.swan_block_txt_file, to_pandas=False)
         self.assertEqual(len(swanBlockTxt), 4)
         sumSum = swanBlockTxt["Significant wave height"].sum().sum()
         self.assertAlmostEqual(self.expected_table["Hsig"].sum(), sumSum, places=-2)
