@@ -155,7 +155,7 @@ def convert_to_dataarray(data, name="data"):
             # use iloc instead of squeeze. For DataFrames/Series with only a
             # single value, squeeze returns a scalar, which is unexpected.
             # iloc will return a Series as expected
-            data = data.iloc[:,0]
+            data = data.iloc[:, 0]
 
     # Checks xr.Dataset input and converts to xr.DataArray if possible
     if isinstance(data, xr.Dataset):
