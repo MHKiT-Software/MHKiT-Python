@@ -152,7 +152,10 @@ def convert_to_dataarray(data, name="data"):
                 "If the input data is a pd.DataFrame or xr.Dataset, it must contain one variable. Got {data.shape[1]}"
             )
         else:
-            data = data.squeeze()
+            # use iloc instead of squeeze. For DataFrames/Series with only a 
+            # single value, squeeze returns a scalar, which is unexpected. 
+            # iloc will return a Series as expected
+            data = data.iloc[0]
 
     # Checks xr.Dataset input and converts to xr.DataArray if possible
     if isinstance(data, xr.Dataset):
