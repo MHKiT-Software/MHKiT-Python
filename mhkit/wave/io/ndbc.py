@@ -148,7 +148,7 @@ def available_data(
     parameter, buoy_number=None, proxy=None, clear_cache=False, to_pandas=True
 ):
     """
-    For a given parameter this will return a DataFrame of years,
+    For a given parameter this will return a DataFrame or Dataset of years,
     station IDs and file names that contain that parameter data.
 
     Parameters
@@ -310,7 +310,7 @@ def _parse_filenames(parameter, filenames):
 
 def request_data(parameter, filenames, proxy=None, clear_cache=False, to_pandas=True):
     """
-    Requests data by filenames and returns a dictionary of DataFrames
+    Requests data by filenames and returns a dictionary of DataFrames or dictionary of Datasets
     for each filename passed. If filenames for a single buoy are passed
     then the yearly DataFrames in the returned dictionary (ndbc_data) are
     indexed by year (e.g. ndbc_data['2014']). If multiple buoy ids are
