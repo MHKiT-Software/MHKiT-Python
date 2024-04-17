@@ -190,7 +190,17 @@ def convert_to_dataarray(data, name="data"):
 def convert_nested_dict_and_pandas(data):
     """
     Recursively searches inside nested dictionaries for pandas DataFrames to
-    convert to xarray Datasets.
+    convert to xarray Datasets. Typically called by wave.io functions that read
+    SWAN, WEC-Sim, CDIP, NDBC data.
+
+    Parameters
+    ----------
+    data: dictionary of dictionaries and pandas DataFrames
+
+    Returns
+    -------
+    data : dictionary of dictionaries and xarray Datasets
+
     """
     for key in data.keys():
         if isinstance(data[key], pd.DataFrame):
