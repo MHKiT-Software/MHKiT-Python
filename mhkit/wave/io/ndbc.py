@@ -336,7 +336,8 @@ def request_data(parameter, filenames, proxy=None, clear_cache=False, to_pandas=
         (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})
 
     to_pandas: bool (optional)
-        Flag to output pandas instead of xarray. Default = True.
+        Flag to output a dictionary of pandas objects instead of a dictionary 
+        of xarray objects. Default = True.
 
     Returns
     -------
