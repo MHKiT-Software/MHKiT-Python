@@ -293,7 +293,7 @@ def surface_elevation(
         )
     if frequency_bins is not None:
         if not frequency_bins.squeeze().shape == f.shape:
-            raise ValueError("shape of frequency_bins must match shape of S")
+            raise ValueError("shape of frequency_bins must match shape of the frequency dimension of S")
     if phases is not None:
         if not list(phases.data_vars) == list(S.data_vars):
             raise ValueError("phases must have the same variable names as S")
