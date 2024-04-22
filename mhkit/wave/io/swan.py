@@ -68,7 +68,7 @@ def read_block(swan_file, to_pandas=True):
     swan_file: str
         swan block file to import
     to_pandas: bool (optional)
-        Flag to output a dictionary of pandas objects instead of a dictionary 
+        Flag to output a dictionary of pandas objects instead of a dictionary
         of xarray objects. Default = True.
 
     Returns

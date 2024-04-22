@@ -18,7 +18,7 @@ def read_output(file_name, to_pandas=True):
     file_name: string
         Name of wecSim output file saved as a `.mat` structure
     to_pandas: bool (optional)
-        Flag to output a dictionary of pandas objects instead of a dictionary 
+        Flag to output a dictionary of pandas objects instead of a dictionary
         of xarray objects. Default = True.
 
     Returns

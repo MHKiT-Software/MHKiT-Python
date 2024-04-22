@@ -8,7 +8,14 @@ from mhkit.utils import to_numeric_array, convert_to_dataarray, convert_to_datas
 
 ### Spectrum
 def elevation_spectrum(
-    eta, sample_rate, nnft, window="hann", detrend=True, noverlap=None, time_dimension="", to_pandas=True
+    eta,
+    sample_rate,
+    nnft,
+    window="hann",
+    detrend=True,
+    noverlap=None,
+    time_dimension="",
+    to_pandas=True,
 ):
     """
     Calculates the wave energy spectrum from wave elevation time-series
@@ -67,7 +74,9 @@ def elevation_spectrum(
         time_dimension = list(eta.dims)[0]
     else:
         if time_dimension not in list(eta.dims):
-            raise ValueError(f'time_dimension is not a dimension of eta ({list(eta.dims)}). Got: {time_dimension}.')
+            raise ValueError(
+                f"time_dimension is not a dimension of eta ({list(eta.dims)}). Got: {time_dimension}."
+            )
     time = eta[time_dimension]
     delta_t = time.values[1] - time.values[0]
     if not np.allclose(time.diff(dim=time_dimension)[1:], delta_t):
@@ -294,7 +303,9 @@ def surface_elevation(
     if frequency_dimension == "":
         frequency_dimension = list(S.coords)[0]
     elif frequency_dimension not in list(S.dims):
-        raise ValueError(f'frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}.')
+        raise ValueError(
+            f"frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}."
+        )
     f = S[frequency_dimension]
 
     if not isinstance(frequency_bins, (type(None), np.ndarray)):
@@ -307,13 +318,17 @@ def surface_elevation(
         )
     if frequency_bins is not None:
         if not frequency_bins.squeeze().shape == f.shape:
-            raise ValueError("shape of frequency_bins must match shape of the frequency dimension of S")
+            raise ValueError(
+                "shape of frequency_bins must match shape of the frequency dimension of S"
+            )
     if phases is not None:
         if not list(phases.data_vars) == list(S.data_vars):
             raise ValueError("phases must have the same variable names as S")
         for var in phases.data_vars:
             if not phases[var].shape == S[var].shape:
-                raise ValueError("shape of variables in phases must match shape of variables in S")
+                raise ValueError(
+                    "shape of variables in phases must match shape of variables in S"
+                )
     if method is not None:
         if not (method == "ifft" or method == "sum_of_sines"):
             raise ValueError(f"Method must be 'ifft' or 'sum_of_sines'. Got: {method}")
@@ -423,12 +438,14 @@ def frequency_moment(S, N, frequency_bins=None, frequency_dimension="", to_panda
     if frequency_dimension == "":
         frequency_dimension = list(S.coords)[0]
     elif frequency_dimension not in list(S.dims):
-        raise ValueError(f'frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}.')
+        raise ValueError(
+            f"frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}."
+        )
     f = S[frequency_dimension]
 
     # Eq 8 in IEC 62600-101
     S = S.sel({frequency_dimension: slice(1e-12, f.max())})  # omit frequency of 0
-    f = S[frequency_dimension] # reset frequency_dimension without the 0 frequency
+    f = S[frequency_dimension]  # reset frequency_dimension without the 0 frequency
 
     fn = np.power(f, N)
     if frequency_bins is None:
@@ -627,7 +644,9 @@ def peak_period(S, frequency_dimension="", to_pandas=True):
     if frequency_dimension == "":
         frequency_dimension = list(S.coords)[0]
     elif frequency_dimension not in list(S.dims):
-        raise ValueError(f'frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}.')
+        raise ValueError(
+            f"frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}."
+        )
 
     # Eq 14 in IEC 62600-101
     fp = S.idxmax(dim=frequency_dimension)  # Hz
@@ -760,7 +779,16 @@ def spectral_width(S, frequency_bins=None, to_pandas=True):
     return v
 
 
-def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2, frequency_dimension="", to_pandas=True):
+def energy_flux(
+    S,
+    h,
+    deep=False,
+    rho=1025,
+    g=9.80665,
+    ratio=2,
+    frequency_dimension="",
+    to_pandas=True,
+):
     """
     Calculates the omnidirectional wave energy flux of the spectra
 
@@ -810,9 +838,11 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2, frequency_dimens
     if frequency_dimension == "":
         frequency_dimension = list(S.coords)[0]
     elif frequency_dimension not in list(S.dims):
-        raise ValueError(f'frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}.')
+        raise ValueError(
+            f"frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}."
+        )
     f = S[frequency_dimension]
-    
+
     if deep:
         # Eq 8 in IEC 62600-100, deep water simplification
         Te = energy_period(S, to_pandas=False).rename({"Te": "J"})
@@ -885,7 +915,9 @@ def energy_period_to_peak_period(Te, gamma):
     return Tp
 
 
-def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2, frequency_dimension="", to_pandas=True):
+def wave_celerity(
+    k, h, g=9.80665, depth_check=False, ratio=2, frequency_dimension="", to_pandas=True
+):
     """
     Calculates wave celerity (group velocity)
 
@@ -928,7 +960,9 @@ def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2, frequency_dimensi
     if frequency_dimension == "":
         frequency_dimension = list(k.coords)[0]
     elif frequency_dimension not in list(k.dims):
-        raise ValueError(f'frequency_dimension is not a dimension of k ({list(k.dims)}). Got: {frequency_dimension}.')
+        raise ValueError(
+            f"frequency_dimension is not a dimension of k ({list(k.dims)}). Got: {frequency_dimension}."
+        )
     f = k[frequency_dimension]
     k = k.values
 

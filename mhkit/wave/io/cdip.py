@@ -234,9 +234,9 @@ def request_parse_workflow(
         Set to True to prevent the print statement that announces when 2D
         variable processing begins. Default False.
     to_pandas: bool (optional)
-        Flag to output a dictionary of pandas objects instead of a dictionary 
+        Flag to output a dictionary of pandas objects instead of a dictionary
         of xarray objects. Default = True.
-        
+
 
     Returns
     -------
@@ -425,7 +425,7 @@ def get_netcdf_variables(
         Set to True to prevent the print statement that announces when 2D
         variable processing begins. Default False.
     to_pandas: bool (optional)
-        Flag to output a dictionary of pandas objects instead of a dictionary 
+        Flag to output a dictionary of pandas objects instead of a dictionary
         of xarray objects. Default = True.
 
 
