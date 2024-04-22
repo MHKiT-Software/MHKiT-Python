@@ -949,8 +949,8 @@ def wave_length(k):
 
     Returns
     ---------
-    l: input type
-        Wave length [m] indexed by frequency
+    l: int, float, numpy ndarray, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
+        Wave length [m] indexed by frequency. Output type is identical to the type of k.
     """
     if not isinstance(
         k, (int, float, np.ndarray, pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)
