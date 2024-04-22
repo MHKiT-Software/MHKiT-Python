@@ -8,7 +8,7 @@ from mhkit.utils import to_numeric_array, convert_to_dataarray, convert_to_datas
 
 ### Spectrum
 def elevation_spectrum(
-    eta, sample_rate, nnft, window="hann", detrend=True, noverlap=None, to_pandas=True
+    eta, sample_rate, nnft, window="hann", detrend=True, noverlap=None, time_dimension="", to_pandas=True
 ):
     """
     Calculates the wave energy spectrum from wave elevation time-series
@@ -30,6 +30,9 @@ def elevation_spectrum(
     noverlap: int, optional
         Number of points to overlap between segments. If None,
         ``noverlap = nperseg / 2``.  Defaults to None.
+    time_dimension: string (optional)
+        Name of the xarray dimension corresponding to time. If not supplied,
+        defaults to the first dimension. Does not affect pandas input.
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
@@ -60,7 +63,11 @@ def elevation_spectrum(
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    time_dimension = list(eta.dims)[0]
+    if time_dimension == "":
+        time_dimension = list(eta.dims)[0]
+    else:
+        if time_dimension not in list(eta.dims):
+            raise ValueError(f'time_dimension is not a dimension of eta ({list(eta.dims)}). Got: {time_dimension}.')
     time = eta[time_dimension]
     delta_t = time.values[1] - time.values[0]
     if not np.allclose(time.diff(dim=time_dimension)[1:], delta_t):
@@ -234,6 +241,7 @@ def surface_elevation(
     frequency_bins=None,
     phases=None,
     method="ifft",
+    frequency_dimension="",
     to_pandas=True,
 ):
     """
@@ -260,6 +268,9 @@ def surface_elevation(
         'sum_of_sines' explicitly sums each frequency component
         and used by default if frequency_bins are provided.
         The 'ifft' method is significantly faster.
+    frequency_dimension: string (optional)
+        Name of the xarray dimension corresponding to frequency. If not supplied,
+        defaults to the first dimension. Does not affect pandas input.
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
@@ -280,7 +291,10 @@ def surface_elevation(
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    frequency_dimension = list(S.coords)[0]
+    if frequency_dimension == "":
+        frequency_dimension = list(S.coords)[0]
+    elif frequency_dimension not in list(S.dims):
+        raise ValueError(f'frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}.')
     f = S[frequency_dimension]
 
     if not isinstance(frequency_bins, (type(None), np.ndarray)):
@@ -375,7 +389,7 @@ def surface_elevation(
     return eta
 
 
-def frequency_moment(S, N, frequency_bins=None, to_pandas=True):
+def frequency_moment(S, N, frequency_bins=None, frequency_dimension="", to_pandas=True):
     """
     Calculates the Nth frequency moment of the spectrum
 
@@ -387,6 +401,9 @@ def frequency_moment(S, N, frequency_bins=None, to_pandas=True):
         Moment (0 for 0th, 1 for 1st ....)
     frequency_bins: numpy array or pandas Series (optional)
         Bin widths for frequency of S. Required for unevenly sized bins
+    frequency_dimension: string (optional)
+        Name of the xarray dimension corresponding to frequency. If not supplied,
+        defaults to the first dimension. Does not affect pandas input.
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
@@ -401,12 +418,15 @@ def frequency_moment(S, N, frequency_bins=None, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    frequency_dimension = list(S.coords)[0]
+    if frequency_dimension == "":
+        frequency_dimension = list(S.coords)[0]
+    elif frequency_dimension not in list(S.dims):
+        raise ValueError(f'frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}.')
     f = S[frequency_dimension]
 
     # Eq 8 in IEC 62600-101
     S = S.sel({frequency_dimension: slice(1e-12, f.max())})  # omit frequency of 0
-    f = S[frequency_dimension]
+    f = S[frequency_dimension] # reset frequency_dimension without the 0 frequency
 
     fn = np.power(f, N)
     if frequency_bins is None:
@@ -579,7 +599,7 @@ def average_wave_period(S, frequency_bins=None, to_pandas=True):
     return Tm
 
 
-def peak_period(S, to_pandas=True):
+def peak_period(S, frequency_dimension="", to_pandas=True):
     """
     Calculates wave peak period from spectra
 
@@ -587,6 +607,9 @@ def peak_period(S, to_pandas=True):
     ------------
     S: pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_dimension: string (optional)
+        Name of the xarray dimension corresponding to frequency. If not supplied,
+        defaults to the first dimension. Does not affect pandas input.
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
@@ -599,7 +622,10 @@ def peak_period(S, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    frequency_dimension = list(S.coords)[0]
+    if frequency_dimension == "":
+        frequency_dimension = list(S.coords)[0]
+    elif frequency_dimension not in list(S.dims):
+        raise ValueError(f'frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}.')
 
     # Eq 14 in IEC 62600-101
     fp = S.idxmax(dim=frequency_dimension)  # Hz
@@ -732,7 +758,7 @@ def spectral_width(S, frequency_bins=None, to_pandas=True):
     return v
 
 
-def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2, to_pandas=True):
+def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2, frequency_dimension="", to_pandas=True):
     """
     Calculates the omnidirectional wave energy flux of the spectra
 
@@ -754,6 +780,9 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2, to_pandas=True):
     ratio: float or int (optional)
         Only applied if depth=False. If h/l > ratio,
         water depth will be set to deep. Default ratio = 2.
+    frequency_dimension: string (optional)
+        Name of the xarray dimension corresponding to frequency. If not supplied,
+        defaults to the first dimension. Does not affect pandas input.
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
@@ -776,6 +805,12 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
+    if frequency_dimension == "":
+        frequency_dimension = list(S.coords)[0]
+    elif frequency_dimension not in list(S.dims):
+        raise ValueError(f'frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}.')
+    f = S[frequency_dimension]
+    
     if deep:
         # Eq 8 in IEC 62600-100, deep water simplification
         Te = energy_period(S, to_pandas=False).rename({"Te": "J"})
@@ -787,9 +822,6 @@ def energy_flux(S, h, deep=False, rho=1025, g=9.80665, ratio=2, to_pandas=True):
 
     else:
         # deep water flag is false
-        frequency_dimension = list(S.coords)[0]
-        f = S[frequency_dimension]
-
         k = wave_number(f, h, rho, g, to_pandas=False)
 
         # wave celerity (group velocity)
@@ -851,7 +883,7 @@ def energy_period_to_peak_period(Te, gamma):
     return Tp
 
 
-def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2, to_pandas=True):
+def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2, frequency_dimension="", to_pandas=True):
     """
     Calculates wave celerity (group velocity)
 
@@ -868,6 +900,9 @@ def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2, to_pandas=True):
     ratio: float or int (optional)
         Only applied if depth_check=True. If h/l > ratio,
         water depth will be set to deep. Default ratio = 2
+    frequency_dimension: string (optional)
+        Name of the xarray dimension corresponding to frequency. If not supplied,
+        defaults to the first dimension. Does not affect pandas input.
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
@@ -888,7 +923,10 @@ def wave_celerity(k, h, g=9.80665, depth_check=False, ratio=2, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    frequency_dimension = list(k.coords)[0]
+    if frequency_dimension == "":
+        frequency_dimension = list(k.coords)[0]
+    elif frequency_dimension not in list(k.dims):
+        raise ValueError(f'frequency_dimension is not a dimension of k ({list(k.dims)}). Got: {frequency_dimension}.')
     f = k[frequency_dimension]
     k = k.values
 
