@@ -311,7 +311,9 @@ def surface_elevation(
     if phases is not None:
         if not list(phases.data_vars) == list(S.data_vars):
             raise ValueError("phases must have the same variable names as S")
-
+        for var in phases.data_vars:
+            if not phases[var].shape == S[var].shape:
+                raise ValueError("shape of variables in phases must match shape of variables in S")
     if method is not None:
         if not (method == "ifft" or method == "sum_of_sines"):
             raise ValueError(f"Method must be 'ifft' or 'sum_of_sines'. Got: {method}")
