@@ -180,9 +180,15 @@ def plot_bin_statistics(
     for i, variable in enumerate(input_variables):
         input_variables[i] = to_numeric_array(variable, variable_names[i])
 
-    bin_centers, bin_mean, bin_max, bin_min, bin_mean_std, bin_max_std, bin_min_std = (
-        input_variables
-    )
+    (
+        bin_centers,
+        bin_mean,
+        bin_max,
+        bin_min,
+        bin_mean_std,
+        bin_max_std,
+        bin_min_std,
+    ) = input_variables
 
     x_label = kwargs.get("x_label", None)
     y_label = kwargs.get("y_label", None)

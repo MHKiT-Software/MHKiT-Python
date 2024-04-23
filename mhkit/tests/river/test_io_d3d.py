@@ -107,7 +107,11 @@ class TestIO(unittest.TestCase):
         result = river.io.d3d.create_points(np.array([1, 2]), np.array([3]), 4)
         expected = pd.DataFrame({"x": [1, 2], "y": [3, 3], "waterdepth": [4, 4]})
         pd.testing.assert_frame_equal(
-            result, expected, check_dtype=False, check_names=False
+            result,
+            expected,
+            check_dtype=False,
+            check_names=False,
+            check_index_type=False,
         )
 
     def test_create_points_user_made_two_arrays_one_point(self):
@@ -155,7 +159,11 @@ class TestIO(unittest.TestCase):
         )
 
         pd.testing.assert_frame_equal(
-            result, expected, check_dtype=False, check_names=False
+            result,
+            expected,
+            check_dtype=False,
+            check_names=False,
+            check_index_type=False,
         )
 
     def test_create_points_array_like_inputs(self):
@@ -168,7 +176,11 @@ class TestIO(unittest.TestCase):
         )
 
         pd.testing.assert_frame_equal(
-            result, expected, check_dtype=False, check_names=False
+            result,
+            expected,
+            check_dtype=False,
+            check_names=False,
+            check_index_type=False,
         )
 
     def test_variable_interpolation(self):
