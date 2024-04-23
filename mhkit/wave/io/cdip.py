@@ -264,9 +264,8 @@ def request_parse_workflow(
     if start_date is not None:
         if isinstance(start_date, str):
             try:
-                start_date = datetime.datetime.strptime(
-                    start_date, "%Y-%m-%d", tzinfo=pytz.UTC
-                )
+                start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+                start_date = start_date.replace(tzinfo=pytz.UTC)
             except ValueError as exc:
                 raise ValueError("Incorrect data format, should be YYYY-MM-DD") from exc
         else:
@@ -275,9 +274,8 @@ def request_parse_workflow(
     if end_date is not None:
         if isinstance(end_date, str):
             try:
-                end_date = datetime.datetime.strptime(
-                    end_date, "%Y-%m-%d", tzinfo=pytz.UTC
-                )
+                end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+                end_date = end_date.replace(tzinfo=pytz.UTC)
             except ValueError as exc:
                 raise ValueError("Incorrect data format, should be YYYY-MM-DD") from exc
         else:
