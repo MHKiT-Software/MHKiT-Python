@@ -158,6 +158,25 @@ class TestResourceSpectrum(unittest.TestCase):
 
         assert_allclose(eta_ifft, eta_sos)
 
+    def test_surface_elevation_auto_vs_sum_of_sines(self):
+        f = np.linspace(1 / 30, 1 / 2, 32)
+        S = wave.resource.jonswap_spectrum(f, self.Tp, self.Hs)
+
+        eta_auto = wave.resource.surface_elevation(S, self.t, seed=1)
+        eta_sos = wave.resource.surface_elevation(
+            S, self.t, seed=1, method="sum_of_sines"
+        )
+
+        assert_allclose(eta_auto, eta_sos)
+
+    def test_surface_elevation_auto_vs_ifft(self):
+        S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
+
+        eta_auto = wave.resource.surface_elevation(S, self.t, seed=1)
+        eta_ifft = wave.resource.surface_elevation(S, self.t, seed=1, method="ifft")
+
+        assert_allclose(eta_auto, eta_ifft)
+
     def test_plot_spectrum(self):
         filename = abspath(join(plotdir, "wave_plot_spectrum.png"))
         if isfile(filename):
