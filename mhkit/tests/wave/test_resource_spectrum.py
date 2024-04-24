@@ -158,6 +158,15 @@ class TestResourceSpectrum(unittest.TestCase):
 
         assert_allclose(eta_ifft, eta_sos)
 
+    def test_surface_elevation_auto_warns_user_if_auto_and_zero_frequency_not_defined(
+        self,
+    ):
+        f = np.linspace(1 / 30, 1 / 2, 32)
+        S = wave.resource.jonswap_spectrum(f, self.Tp, self.Hs)
+
+        with pytest.warns(UserWarning):
+            wave.resource.surface_elevation(S, self.t, seed=1, method="auto")
+
     def test_surface_elevation_auto_vs_sum_of_sines(self):
         f = np.linspace(1 / 30, 1 / 2, 32)
         S = wave.resource.jonswap_spectrum(f, self.Tp, self.Hs)
