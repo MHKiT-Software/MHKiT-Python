@@ -84,7 +84,9 @@ class TestIOcdip(unittest.TestCase):
         self.assertEqual(end_dt, end_date)
 
     def test_get_netcdf_variables_all2Dvars(self):
-        data = wave.io.cdip.get_netcdf_variables(self.test_nc, all_2D_variables=True)
+        data = wave.io.cdip.get_netcdf_variables(
+            self.test_nc, all_2D_variables=True, to_pandas=False
+        )
         returned_keys = [key for key in data["data"]["wave2D"].keys()]
         self.assertTrue(set(returned_keys) == set(self.vars2D))
 

@@ -5,6 +5,7 @@ from datetime import datetime
 import mhkit.wave as wave
 from io import StringIO
 import pandas as pd
+import xarray as xr
 import numpy as np
 import contextlib
 import unittest
@@ -117,8 +118,9 @@ class TestIOndbc(unittest.TestCase):
 
     # Spectral data
     def test_ndbc_read_spectral(self):
-        data, units = wave.io.ndbc.read_file(join(datadir, "data.txt"))
-        self.assertEqual(data.shape, (743, 47))
+        data, units = wave.io.ndbc.read_file(join(datadir, "data.txt"), to_pandas=False)
+        self.assertEqual(len(data.data_vars), 47)
+        self.assertEqual(len(data["dim_0"]), 743)
         self.assertEqual(units, None)
 
     # Continuous wind data
@@ -157,8 +159,8 @@ class TestIOndbc(unittest.TestCase):
 
     def test_ndbc_request_data(self):
         filenames = pd.Series(self.filenames[0])
-        ndbc_data = wave.io.ndbc.request_data("swden", filenames)
-        self.assertTrue(self.swden.equals(ndbc_data["1996"]))
+        ndbc_data = wave.io.ndbc.request_data("swden", filenames, to_pandas=False)
+        self.assertTrue(xr.Dataset(self.swden).equals(ndbc_data["1996"]))
 
     def test_ndbc_request_data_from_dataframe(self):
         filenames = pd.DataFrame(pd.Series(data=self.filenames[0]))
