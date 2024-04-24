@@ -209,7 +209,7 @@ def jonswap_spectrum(f, Tp, Hs, gamma=None):
 
 ### Metrics
 def surface_elevation(
-    S, time_index, seed=None, frequency_bins=None, phases=None, method="ifft"
+    S, time_index, seed=None, frequency_bins=None, phases=None, method="auto"
 ):
     """
     Calculates wave elevation time-series from spectrum
@@ -229,11 +229,12 @@ def surface_elevation(
         Explicit phases for frequency components (overrides seed)
         for example, phases = np.random.rand(len(S)) * 2 * np.pi
     method: str (optional)
-        Method used to calculate the surface elevation. 'ifft'
-        (Inverse Fast Fourier Transform) used by default if the
-        given frequency_bins==None.
-        'sum_of_sines' explicitly sums each frequency component
-        and used by default if frequency_bins are provided.
+        Method used to calculate the surface elevation. 'auto' chooses the most
+        computationally efficient method based on the input spectrum. 'ifft'
+        (Inverse Fast Fourier Transform) is the most computationally efficient
+        method if a zero frequency is defined, frequency bin widths are evenly
+        sized, and frequency_bins==None. 'sum_of_sines' explicitly sums each
+        frequency component and used by default if frequency_bins are provided.
         The 'ifft' method is significantly faster.
 
     Returns
@@ -270,14 +271,22 @@ def surface_elevation(
             raise ValueError("shape of phases must match shape of S")
 
     if method is not None:
-        if not (method == "ifft" or method == "sum_of_sines"):
-            raise ValueError(f"Method must be 'ifft' or 'sum_of_sines'. Got: {method}")
+        if not (method == "auto" or method == "ifft" or method == "sum_of_sines"):
+            raise ValueError(
+                f"Method must be 'auto', 'ifft' or 'sum_of_sines'. Got: {method}"
+            )
 
     if method == "ifft":
         if not S.index.values[0] == 0:
             raise ValueError(
                 f"ifft method must have zero frequency defined. Lowest frequency is: {S.index.values[0]}"
             )
+
+    if method == "auto" and frequency_bins is None:
+        if not S.index.values[0] == 0:
+            method = "sum_of_sines"
+        else:
+            method = "ifft"
 
     f = pd.Series(S.index)
     f.index = f
