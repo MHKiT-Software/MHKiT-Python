@@ -273,12 +273,11 @@ def surface_elevation(
         Explicit phases for frequency components (overrides seed)
         for example, phases = np.random.rand(len(S)) * 2 * np.pi
     method: str (optional)
-        Method used to calculate the surface elevation. 'auto' chooses the most
-        computationally efficient method based on the input spectrum. 'ifft'
-        (Inverse Fast Fourier Transform) is the most computationally efficient
-        method if a zero frequency is defined, frequency bin widths are evenly
-        sized, and frequency_bins==None. 'sum_of_sines' explicitly sums each
-        frequency component and used by default if frequency_bins are provided.
+        Method used to calculate the surface elevation. 'ifft'
+        (Inverse Fast Fourier Transform) used by default if the
+        given frequency_bins==None.
+        'sum_of_sines' explicitly sums each frequency component
+        and used by default if frequency_bins are provided.
         The 'ifft' method is significantly faster.
     frequency_dimension: string (optional)
         Name of the xarray dimension corresponding to frequency. If not supplied,
@@ -333,25 +332,21 @@ def surface_elevation(
                     "shape of variables in phases must match shape of variables in S"
                 )
     if method is not None:
-        if not (method == "auto" or method == "ifft" or method == "sum_of_sines"):
-            raise ValueError(
-                f"Method must be 'auto', 'ifft' or 'sum_of_sines'. Got: {method}"
-            )
+        if not (method == "ifft" or method == "sum_of_sines"):
+            raise ValueError(f"Method must be 'ifft' or 'sum_of_sines'. Got: {method}")
 
     if method == "ifft":
-        if not f[0] == 0:
-            raise ValueError(
-                f"ifft method must have zero frequency defined. Lowest frequency is: {S.index.values[0]}"
-            )
-
-    if method == "auto" and frequency_bins is None:
-        if not S.index.values[0] == 0:
-            warnings.warn(
-                "Input wave spectrum does not have a zero frequency defined, defaulting to less efficient `sum_of_sines` method to calculate surface elevation"
-            )
-            method = "sum_of_sines"
+        if frequency_bins is None:
+            if not S.index.values[0] == 0:
+                warnings.warn(
+                    "Input wave spectrum does not have a zero frequency defined, defaulting to less efficient `sum_of_sines` method to calculate surface elevation"
+                )
+                method = "sum_of_sines"
         else:
-            method = "ifft"
+            if not S.index.values[0] == 0:
+                raise ValueError(
+                    f"ifft method must have zero frequency defined. Lowest frequency is: {S.index.values[0]}"
+                )
 
     f = pd.Series(S.index)
     f.index = f
