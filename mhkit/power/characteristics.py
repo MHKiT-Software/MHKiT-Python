@@ -229,11 +229,11 @@ def ac_power_three_phase(
     current = convert_to_dataset(current, "current")
 
     # Check that sizes are the same
-    if not len(voltage.data_vars) == 3:
+    if len(voltage.data_vars) != 3:
         raise ValueError("voltage must have three columns")
-    if not len(current.data_vars) == 3:
+    if len(current.data_vars) != 3:
         raise ValueError("current must have three columns")
-    if not current.sizes == voltage.sizes:
+    if current.sizes != voltage.sizes:
         raise ValueError("current and voltage must be of the same size")
 
     power = dc_power(voltage, current, to_pandas=False)["Gross"]

@@ -32,7 +32,7 @@ def convert_to_dataset(data, name="data"):
 
     Parameters
     ----------
-    data: pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
+    data: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         The data to be converted.
 
     name: str (Optional)
@@ -74,8 +74,15 @@ def convert_to_dataset(data, name="data"):
 
     # Takes data that could be pd.DataFrame, pd.Series, xr.DataArray, or
     # xr.Dataset and converts it to xr.Dataset
-    if isinstance(data, (pd.DataFrame, pd.Series)):
-        data = data.to_xarray()
+    if isinstance(data, pd.DataFrame):
+        # xr.Dataset(data) is drastically faster (1e1 - 1e2x faster) than using pd.DataFrame.to_xarray()
+        data = xr.Dataset(data)
+
+    if isinstance(data, pd.Series):
+        # Converting to a DataArray then to a dataset makes the variable and
+        # dimension naming cleaner than going straight to a Dataset with
+        # xr.Dataset(pd.Series)
+        data = xr.DataArray(data)
 
     if isinstance(data, xr.DataArray):
         # xr.DataArray.to_dataset() breaks if the data variable is unnamed
@@ -132,11 +139,11 @@ def convert_to_dataarray(data, name="data"):
     ):
         raise TypeError(
             "Input data must be of type np.ndarray, pandas.DataFrame, pandas.Series, "
-            "xarray.DataArray, or xarray.Dataset"
+            f"xarray.DataArray, or xarray.Dataset. Got {type(data)}"
         )
 
     if not isinstance(name, str):
-        raise TypeError("The 'name' parameter must be a string")
+        raise TypeError(f"The 'name' parameter must be a string. Got {type(name)}")
 
     # Checks pd.DataFrame input and converts to pd.Series if possible
     if isinstance(data, pd.DataFrame):
@@ -145,7 +152,10 @@ def convert_to_dataarray(data, name="data"):
                 "If the input data is a pd.DataFrame or xr.Dataset, it must contain one variable. Got {data.shape[1]}"
             )
         else:
-            data = data.squeeze()
+            # use iloc instead of squeeze. For DataFrames/Series with only a
+            # single value, squeeze returns a scalar, which is unexpected.
+            # iloc will return a Series as expected
+            data = data.iloc[:, 0]
 
     # Checks xr.Dataset input and converts to xr.DataArray if possible
     if isinstance(data, xr.Dataset):
@@ -173,5 +183,29 @@ def convert_to_dataarray(data, name="data"):
     # If there's no data name, add one to prevent issues calling or converting the dataArray later one
     if data.name == None:
         data.name = name
+
+    return data
+
+
+def convert_nested_dict_and_pandas(data):
+    """
+    Recursively searches inside nested dictionaries for pandas DataFrames to
+    convert to xarray Datasets. Typically called by wave.io functions that read
+    SWAN, WEC-Sim, CDIP, NDBC data.
+
+    Parameters
+    ----------
+    data: dictionary of dictionaries and pandas DataFrames
+
+    Returns
+    -------
+    data : dictionary of dictionaries and xarray Datasets
+
+    """
+    for key in data.keys():
+        if isinstance(data[key], pd.DataFrame):
+            data[key] = convert_to_dataset(data[key])
+        elif isinstance(data[key], dict):
+            data[key] = convert_nested_dict_and_pandas(data[key])
 
     return data

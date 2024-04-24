@@ -167,7 +167,7 @@ def harmonic_subgroups(
 
     if not isinstance(frequency_dimension, str):
         raise TypeError(
-            f"frequency_dimension must be of type bool. Got: {type(frequency_dimension)}"
+            f"frequency_dimension must be of type str. Got: {type(frequency_dimension)}"
         )
 
     # Convert input to xr.Dataset
