@@ -165,33 +165,25 @@ class TestResourceSpectrum(unittest.TestCase):
 
         assert_allclose(eta_ifft, eta_sos)
 
-    def test_surface_elevation_auto_warns_user_if_auto_and_zero_frequency_not_defined(
+    def test_surface_elevation_warn_user_if_zero_frequency_not_defined_and_using_ifft(
         self,
     ):
         f = np.linspace(1 / 30, 1 / 2, 32)
         S = wave.resource.jonswap_spectrum(f, self.Tp, self.Hs)
 
         with pytest.warns(UserWarning):
-            wave.resource.surface_elevation(S, self.t, seed=1, method="auto")
+            wave.resource.surface_elevation(S, self.t, seed=1, method="ifft")
 
-    def test_surface_elevation_auto_vs_sum_of_sines(self):
+    def test_surface_elevation_uses_sum_of_sines_if_zero_frequency_is_not_defined(self):
         f = np.linspace(1 / 30, 1 / 2, 32)
         S = wave.resource.jonswap_spectrum(f, self.Tp, self.Hs)
 
-        eta_auto = wave.resource.surface_elevation(S, self.t, seed=1)
+        eta_ifft = wave.resource.surface_elevation(S, self.t, seed=1, method="ifft")
         eta_sos = wave.resource.surface_elevation(
             S, self.t, seed=1, method="sum_of_sines"
         )
 
-        assert_allclose(eta_auto, eta_sos)
-
-    def test_surface_elevation_auto_vs_ifft(self):
-        S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
-
-        eta_auto = wave.resource.surface_elevation(S, self.t, seed=1)
-        eta_ifft = wave.resource.surface_elevation(S, self.t, seed=1, method="ifft")
-
-        assert_allclose(eta_auto, eta_ifft)
+        assert_allclose(eta_ifft, eta_sos)
 
     def test_plot_spectrum(self):
         filename = abspath(join(plotdir, "wave_plot_spectrum.png"))
