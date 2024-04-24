@@ -176,7 +176,7 @@ class TestWPTOhindcast(unittest.TestCase):
         parameters = "significant_wave_height"
 
         wave_multiyear, meta = wave.io.hindcast.hindcast.request_wpto_point_data(
-            data_type, parameters, lat_lon, years, as_xarray=True
+            data_type, parameters, lat_lon, years, to_pandas=False
         )
         wave_multiyear_df = (
             wave_multiyear["significant_wave_height_0"]
