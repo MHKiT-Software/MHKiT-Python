@@ -1,3 +1,5 @@
+import warnings
+
 from scipy.optimize import fsolve as _fsolve
 from scipy import signal as _signal
 import pandas as pd
