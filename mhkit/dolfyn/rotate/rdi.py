@@ -31,15 +31,16 @@ def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
     """
 
     csin = adcpo.coord_sys.lower()
-    cs_allowed = ['inst', 'ship']
+    cs_allowed = ["inst", "ship"]
     if reverse:
-        cs_allowed = ['earth']
+        cs_allowed = ["earth"]
     if not force and csin not in cs_allowed:
-        raise ValueError("Invalid rotation for data in {}-frame "
-                         "coordinate system.".format(csin))
+        raise ValueError(
+            "Invalid rotation for data in {}-frame " "coordinate system.".format(csin)
+        )
 
-    if 'orientmat' in adcpo:
-        omat = adcpo['orientmat']
+    if "orientmat" in adcpo:
+        omat = adcpo["orientmat"]
     else:
         omat = _calc_orientmat(adcpo)
 
@@ -52,11 +53,11 @@ def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
     # view (not a new array)
     rotmat = np.rollaxis(omat.data, 1)
     if reverse:
-        cs_new = 'inst'
-        sumstr = 'jik,j...k->i...k'
+        cs_new = "inst"
+        sumstr = "jik,j...k->i...k"
     else:
-        cs_new = 'earth'
-        sumstr = 'ijk,j...k->i...k'
+        cs_new = "earth"
+        sumstr = "ijk,j...k->i...k"
 
     # Only operate on the first 3-components, b/c the 4th is err_vel
     for nm in rotate_vars:
@@ -91,18 +92,17 @@ def _calc_beam_orientmat(theta=20, convex=True, degrees=True):
         c = -1
     else:
         c = 1
-    a = 1 / (2. * np.sin(theta))
-    b = 1 / (4. * np.cos(theta))
-    d = a / (2. ** 0.5)
-    return np.array([[c * a, -c * a, 0, 0],
-                     [0, 0, -c * a, c * a],
-                     [b, b, b, b],
-                     [d, d, -d, -d]])
+    a = 1 / (2.0 * np.sin(theta))
+    b = 1 / (4.0 * np.cos(theta))
+    d = a / (2.0**0.5)
+    return np.array(
+        [[c * a, -c * a, 0, 0], [0, 0, -c * a, c * a], [b, b, b, b], [d, d, -d, -d]]
+    )
 
 
 def _calc_orientmat(adcpo):
     """
-    Calculate the orientation matrix using the raw 
+    Calculate the orientation matrix using the raw
     heading, pitch, roll values from the RDI binary file.
 
     Parameters
@@ -123,12 +123,12 @@ def _calc_orientmat(adcpo):
     (Tilt 1) is recorded in the variable leader. P is set to 0 if the
     "use tilt" bit of the EX command is not set."""
 
-    r = np.deg2rad(adcpo['roll'].values)
-    p = np.arctan(np.tan(np.deg2rad(adcpo['pitch'].values)) * np.cos(r))
-    h = np.deg2rad(adcpo['heading'].values)
+    r = np.deg2rad(adcpo["roll"].values)
+    p = np.arctan(np.tan(np.deg2rad(adcpo["pitch"].values)) * np.cos(r))
+    h = np.deg2rad(adcpo["heading"].values)
 
-    if 'rdi' in adcpo.inst_make.lower():
-        if adcpo.orientation == 'up':
+    if "rdi" in adcpo.inst_make.lower():
+        if adcpo.orientation == "up":
             """
             ## RDI-ADCP-MANUAL (Jan 08, section 5.6 page 18)
             Since the roll describes the ship axes rather than the
@@ -139,7 +139,7 @@ def _calc_orientmat(adcpo):
             to 0 if the "use tilt" bit of the EX command is not set.
             """
             r += np.pi
-        if (adcpo.coord_sys == 'ship' and adcpo.use_pitchroll == 'yes'):
+        if adcpo.coord_sys == "ship" and adcpo.use_pitchroll == "yes":
             r[:] = 0
             p[:] = 0
 
@@ -163,14 +163,29 @@ def _calc_orientmat(adcpo):
     # The 'orientation matrix' is the transpose of the 'rotation matrix'.
     omat = np.rollaxis(rotmat, 1)
 
-    earth = xr.DataArray(['E', 'N', 'U'], dims=['earth'], name='earth', attrs={
-        'units': '1', 'long_name': 'Earth Reference Frame', 'coverage_content_type': 'coordinate'})
-    inst = xr.DataArray(['X', 'Y', 'Z'], dims=['inst'], name='inst', attrs={
-        'units': '1', 'long_name': 'Instrument Reference Frame', 'coverage_content_type': 'coordinate'})
-    return xr.DataArray(omat,
-                        coords={'earth': earth,
-                                'inst': inst,
-                                'time': adcpo.time},
-                        dims=['earth', 'inst', 'time'],
-                        attrs={'units': '1',
-                               'long_name': 'Orientation Matrix'})
+    earth = xr.DataArray(
+        ["E", "N", "U"],
+        dims=["earth"],
+        name="earth",
+        attrs={
+            "units": "1",
+            "long_name": "Earth Reference Frame",
+            "coverage_content_type": "coordinate",
+        },
+    )
+    inst = xr.DataArray(
+        ["X", "Y", "Z"],
+        dims=["inst"],
+        name="inst",
+        attrs={
+            "units": "1",
+            "long_name": "Instrument Reference Frame",
+            "coverage_content_type": "coordinate",
+        },
+    )
+    return xr.DataArray(
+        omat,
+        coords={"earth": earth, "inst": inst, "time": adcpo.time},
+        dims=["earth", "inst", "time"],
+        attrs={"units": "1", "long_name": "Orientation Matrix"},
+    )

@@ -11,12 +11,13 @@ from mhkit import mooring
 
 # Register datetime converter for a matplotlib plotting methods
 from pandas.plotting import register_matplotlib_converters as _rmc
+
 _rmc()
 
 # Ignore future warnings
-_warn.simplefilter(action='ignore', category=FutureWarning)
+_warn.simplefilter(action="ignore", category=FutureWarning)
 
-__version__ = 'v0.7.0'
+__version__ = "v0.7.0"
 
 __copyright__ = """
 Copyright 2019, Alliance for Sustainable Energy, LLC under the terms of 
