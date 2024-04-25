@@ -336,7 +336,7 @@ def surface_elevation(
             raise ValueError(f"Method must be 'ifft' or 'sum_of_sines'. Got: {method}")
 
     if method == "ifft":
-        first_frequency_index = S.coords["Frequency"].values[0]
+        first_frequency_index = f[0]
         if frequency_bins is None:
             if not first_frequency_index == 0:
                 warnings.warn(
