@@ -94,7 +94,7 @@ def request_wpto_point_data(
     str_decode=True,
     hsds=True,
     path=None,
-    to_pandas=False,
+    to_pandas=True,
 ):
     """
     Returns data from the WPTO wave hindcast hosted on AWS at the
