@@ -340,7 +340,7 @@ def surface_elevation(
         if frequency_bins is None:
             if not first_frequency_index == 0:
                 warnings.warn(
-                    "Input wave spectrum does not have a zero frequency defined, defaulting to less efficient `sum_of_sines` method to calculate surface elevation"
+                    "Input wave spectrum does not have a zero frequency defined! Using `sum_of_sines` method to calculate surface elevation"
                 )
                 method = "sum_of_sines"
         else:
