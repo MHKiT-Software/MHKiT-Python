@@ -34,7 +34,7 @@ jobs:
 
       - name: Check for changes in wave/io/hindcast
         id: changes
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@v3
         with:
           filters: |
             wave_io_hindcast:
