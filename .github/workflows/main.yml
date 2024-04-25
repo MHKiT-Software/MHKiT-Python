@@ -85,12 +85,16 @@ jobs:
           pytest mhkit/tests/tidal/test_io.py
           pytest mhkit/tests/wave/io/test_cdip.py
 
-      - name: Prepare Hindcast data
+      - name: Prepare Wave Hindcast data
         if: (needs.check-changes.outputs.should-run-hindcast == 'true')
         run: |
-          # pytest tests/test_specific_file.py::TestClass::test_function
           source activate TEST
           pytest mhkit/tests/wave/io/hindcast/test_hindcast.py
+
+      - name: Prepare Wave Hindcast data
+        if: (needs.check-changes.outputs.should-run-hindcast == 'true')
+        run: |
+          source activate TEST
           pytest mhkit/tests/wave/io/hindcast/test_wind_toolkit.py
 
       - name: Upload data as artifact
