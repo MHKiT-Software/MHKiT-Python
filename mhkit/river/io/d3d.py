@@ -215,52 +215,8 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1, to_pandas=True
         v = np.ma.getdata(var[time_index, :], False)
 
     # waterdepth
-    if "mesh2d" in variable:
-        cords_to_layers = {
-            "mesh2d_face_x mesh2d_face_y": {
-                "name": "mesh2d_nLayers",
-                "coords": data.variables["mesh2d_layer_sigma"][:],
-            },
-            "mesh2d_edge_x mesh2d_edge_y": {
-                "name": "mesh2d_nInterfaces",
-                "coords": data.variables["mesh2d_interface_sigma"][:],
-            },
-        }
-        bottom_depth = np.ma.getdata(
-            data.variables["mesh2d_waterdepth"][time_index, :], False
-        )
-        waterlevel = np.ma.getdata(data.variables["mesh2d_s1"][time_index, :], False)
-        coords = str(data.variables["waterdepth"].coordinates).split()
-
-    elif str(data.variables[variable].coordinates) == "FlowElem_xcc FlowElem_ycc":
-        cords_to_layers = {
-            "FlowElem_xcc FlowElem_ycc": {
-                "name": "laydim",
-                "coords": data.variables["LayCoord_cc"][:],
-            },
-            "FlowLink_xu FlowLink_yu": {
-                "name": "wdim",
-                "coords": data.variables["LayCoord_w"][:],
-            },
-        }
-        bottom_depth = np.ma.getdata(data.variables["waterdepth"][time_index, :], False)
-        waterlevel = np.ma.getdata(data.variables["s1"][time_index, :], False)
-        coords = str(data.variables["waterdepth"].coordinates).split()
-    else:
-        cords_to_layers = {
-            "FlowElem_xcc FlowElem_ycc LayCoord_cc LayCoord_cc": {
-                "name": "laydim",
-                "coords": data.variables["LayCoord_cc"][:],
-            },
-            "FlowLink_xu FlowLink_yu": {
-                "name": "wdim",
-                "coords": data.variables["LayCoord_w"][:],
-            },
-        }
-        bottom_depth = np.ma.getdata(data.variables["waterdepth"][time_index, :], False)
-        waterlevel = np.ma.getdata(data.variables["s1"][time_index, :], False)
-        coords = str(data.variables["waterdepth"].coordinates).split()
-
+    cords_to_layers, bottom_depth, waterlevel, coords= _get_cords_to_layers(data, variable, time_index, depth=True)
+    
     layer_dim = str(data.variables[variable].coordinates)
 
     cord_sys = cords_to_layers[layer_dim]["coords"]
@@ -289,19 +245,47 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1, to_pandas=True
             water_level_wdim[i] = interp.griddata(
                 points_laydim, waterlevel, points_wdim[i], method="nearest"
             )
+    elif layer_dim == "mesh2d_edge_x mesh2d_edge_y":
+        # interpolate
+        x_face = np.ma.getdata(data.variables[coords[0]][:], False)
+        y_face = np.ma.getdata(data.variables[coords[1]][:], False)
+        points_face = np.array([[x, y] for x, y in zip(x_face, y_face)])
 
+        coords_request = str(data.variables[variable].coordinates).split()
+        x_edge = np.ma.getdata(data.variables[coords_request[0]][:], False)
+        y_edge = np.ma.getdata(data.variables[coords_request[1]][:], False)
+        points_edge = np.array([[x, y] for x, y in zip(x_edge, y_edge)])
+
+        bottom_depth_edge = interp.griddata( points_face, bottom_depth, points_edge)
+        water_level_edge = interp.griddata( points_face, waterlevel, points_edge)
+
+        idx_bd = np.where(np.isnan(bottom_depth_edge))
+
+        for i in idx_bd:
+            bottom_depth_edge[i] = interp.griddata(
+                points_edge, bottom_depth, points_edge[i], method="nearest"
+            )
+            water_level_edge[i] = interp.griddata(
+                points_edge, waterlevel, points_edge[i], method="nearest"
+            )
     waterdepth = []
 
     if dimensions == 2:
         if layer_dim == "FlowLink_xu FlowLink_yu":
             z = [bottom_depth_wdim]
             waterlevel = water_level_wdim
+        elif layer_dim == "mesh2d_edge_x mesh2d_edge_y":
+            z = [bottom_depth_edge]
+            waterlevel = water_level_edge
         else:
             z = [bottom_depth]
     else:
         if layer_dim == "FlowLink_xu FlowLink_yu":
             z = [bottom_depth_wdim * layer_percentages[layer_index]]
             waterlevel = water_level_wdim
+        elif layer_dim == "mesh2d_edge_x mesh2d_edge_y":
+            z = [bottom_depth_edge * layer_percentages[layer_index]]
+            waterlevel = water_level_edge
         else:
             z = [bottom_depth * layer_percentages[layer_index]]
     waterdepth = np.append(waterdepth, z)
@@ -594,46 +578,13 @@ def get_all_data_points(data, variable, time_index=-1, to_pandas=True):
         raise ValueError(
             f"time_index must be less than the max time index {max_time_index}"
         )
-
-    if "mesh2d" in variable:
-        cords_to_layers = {
-            "mesh2d_face_x mesh2d_face_y": {
-                "name": "mesh2d_nLayers",
-                "coords": data.variables["mesh2d_layer_sigma"][:],
-            },
-            "mesh2d_edge_x mesh2d_edge_y": {
-                "name": "mesh2d_nInterfaces",
-                "coords": data.variables["mesh2d_interface_sigma"][:],
-            },
-        }
-
-    elif str(data.variables[variable].coordinates) == "FlowElem_xcc FlowElem_ycc":
-        cords_to_layers = {
-            "FlowElem_xcc FlowElem_ycc": {
-                "name": "laydim",
-                "coords": data.variables["LayCoord_cc"][:],
-            },
-            "FlowLink_xu FlowLink_yu": {
-                "name": "wdim",
-                "coords": data.variables["LayCoord_w"][:],
-            },
-        }
-    else:
-        cords_to_layers = {
-            "FlowElem_xcc FlowElem_ycc LayCoord_cc LayCoord_cc": {
-                "name": "laydim",
-                "coords": data.variables["LayCoord_cc"][:],
-            },
-            "FlowLink_xu FlowLink_yu": {
-                "name": "wdim",
-                "coords": data.variables["LayCoord_w"][:],
-            },
-        }
+    
+    cords_to_layers= _get_cords_to_layers(data, variable, time_index)
 
     layer_dim = str(data.variables[variable].coordinates)
 
     try:
-        cord_sys = cords_to_layers[layer_dim]["coords"]
+         cord_sys = cords_to_layers[layer_dim]["coords"]
     except:
         raise Exception("Coordinates not recognized.")
     else:
@@ -675,6 +626,90 @@ def get_all_data_points(data, variable, time_index=-1, to_pandas=True):
 
     return all_data
 
+def _get_cords_to_layers (data, variable, time_index =-1, depth = False):
+    """
+    Get the corrdinates in a dictionary 'cords_to_layers' for different corrdinate 
+    name. 
+
+    Parameters
+    ----------
+    data: Netcdf4 object
+       A NetCDF4 object that contains spatial data, e.g. velocity or shear
+       stress, generated by running a Delft3D model.
+    variable: string
+        Delft3D variable. The full list can be of variables can be
+        found using "data.variables.keys()" in the console.
+    time_index: int
+        An integer to pull the time step from the dataset.
+        Default is last time step, found with the input -1.
+    depth : bool (optional)
+        Flag to output bottom_depth, waterlevel, and coords calculations.
+        Default = False.
+
+    Returns
+    -------
+    cords_to_layers: dictionary
+       Dictionary with the z coordinates for various Delft3D coordinate systems.
+            data.varaible.coordinates:
+                name: z coordinate name
+                coords: z coordinates
+    bottom_depth: np.array (optional) 
+        water depth of the data point based.
+    waterlevel: np.array (optional)
+        water level of data points, retrived using it's specific variable name
+    coords: np.array (optional)
+        Name of z coodinate system.
+
+    """
+    if "mesh2d" in variable:
+        cords_to_layers = {
+            "mesh2d_face_x mesh2d_face_y": {
+                "name": "mesh2d_nLayers",
+                "coords": data.variables["mesh2d_layer_sigma"][:],
+            },
+            "mesh2d_face_x mesh2d_face_y mesh2d_layer_sigma": {
+                "name": "mesh2d_nLayers",
+                "coords": data.variables["mesh2d_layer_sigma"][:],
+            },
+            "mesh2d_edge_x mesh2d_edge_y": {
+                "name": "mesh2d_nInterfaces",
+                "coords": data.variables["mesh2d_interface_sigma"][:],
+            }
+        }
+        if depth == True: 
+            bottom_depth = np.ma.getdata(
+                data.variables["mesh2d_waterdepth"][time_index, :], False
+            )
+            waterlevel = np.ma.getdata(data.variables["mesh2d_s1"][time_index, :], False)
+            coords = str(data.variables["mesh2d_waterdepth"].coordinates).split()
+    else:
+        cords_to_layers = {
+            "FlowElem_xcc FlowElem_ycc LayCoord_cc LayCoord_cc": {
+                "name": "laydim",
+                "coords": data.variables["LayCoord_cc"][:],
+            },
+            "FlowLink_xu FlowLink_yu LayCoord_w": {
+                "name": "wdim",
+                "coords": data.variables["LayCoord_w"][:],
+            },
+            "FlowElem_xcc FlowElem_ycc": {
+                "name": "laydim",
+                "coords": data.variables["LayCoord_cc"][:],
+            },
+            "FlowLink_xu FlowLink_yu": {
+                "name": "wdim",
+                "coords": data.variables["LayCoord_w"][:],
+            }
+        }
+        if depth == True:
+            bottom_depth = np.ma.getdata(data.variables["waterdepth"][time_index, :], False)
+            waterlevel = np.ma.getdata(data.variables["s1"][time_index, :], False)
+            coords = str(data.variables["waterdepth"].coordinates).split()
+
+    if depth == True:
+        return cords_to_layers, bottom_depth, waterlevel, coords
+    else:
+        return cords_to_layers
 
 def turbulent_intensity(
     data, points="cells", time_index=-1, intermediate_values=False, to_pandas=True
