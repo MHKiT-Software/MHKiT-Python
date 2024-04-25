@@ -38,7 +38,7 @@ jobs:
         with:
           filters: |
             wave_io_hindcast:
-              - 'mhkit/tests/wave/io/hindcast/**'
+              - 'mhkit/wave/io/hindcast/**'
 
       - id: hindcast-logic
         run: |
