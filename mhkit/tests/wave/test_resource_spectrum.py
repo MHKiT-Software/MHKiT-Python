@@ -2,22 +2,12 @@ from os.path import abspath, dirname, join, isfile, normpath, relpath
 from pandas.testing import assert_frame_equal
 from numpy.testing import assert_allclose
 from scipy.interpolate import interp1d
-from random import seed, randint
 import matplotlib.pylab as plt
-from datetime import datetime
-import xarray.testing as xrt
+import xarray as xr
 import mhkit.wave as wave
-from io import StringIO
 import pandas as pd
 import numpy as np
-import contextlib
 import unittest
-import netCDF4
-import inspect
-import pickle
-import time
-import json
-import sys
 import os
 
 
@@ -89,18 +79,19 @@ class TestResourceSpectrum(unittest.TestCase):
         self.assertEqual(S_zero.values.squeeze()[0], 0.0)
         self.assertGreater(S_nonzero.values.squeeze()[0], 0.0)
 
-    def test_surface_elevation_phases_np_and_pd(self):
+    def test_surface_elevation_phases_xr_and_pd(self):
         S0 = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
         S1 = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs * 1.1)
         S = pd.concat([S0, S1], axis=1)
 
         phases_np = np.random.rand(S.shape[0], S.shape[1]) * 2 * np.pi
         phases_pd = pd.DataFrame(phases_np, index=S.index, columns=S.columns)
+        phases_xr = xr.Dataset(phases_pd)
 
-        eta_np = wave.resource.surface_elevation(S, self.t, phases=phases_np, seed=1)
+        eta_xr = wave.resource.surface_elevation(S, self.t, phases=phases_xr, seed=1)
         eta_pd = wave.resource.surface_elevation(S, self.t, phases=phases_pd, seed=1)
 
-        assert_frame_equal(eta_np, eta_pd)
+        assert_frame_equal(eta_xr, eta_pd)
 
     def test_surface_elevation_frequency_bins_np_and_pd(self):
         S0 = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
@@ -151,7 +142,8 @@ class TestResourceSpectrum(unittest.TestCase):
         )
 
         fSn = interp1d(Sn.index.values, Sn.values, axis=0)
-        rmse = (S.values - fSn(S.index.values)) ** 2
+        Sn_interp = fSn(S.index.values).squeeze()
+        rmse = (S.values.squeeze() - Sn_interp) ** 2
         rmse_sum = (np.sum(rmse) / len(rmse)) ** 0.5
 
         self.assertLess(rmse_sum, 0.02)

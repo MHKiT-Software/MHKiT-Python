@@ -37,6 +37,7 @@ import xarray as xr
 import numpy as np
 from rex import MultiYearWaveX, WaveX
 from mhkit.utils.cache import handle_caching
+from mhkit.utils.type_handling import convert_to_dataset
 
 
 def region_selection(lat_lon):
@@ -93,7 +94,7 @@ def request_wpto_point_data(
     str_decode=True,
     hsds=True,
     path=None,
-    as_xarray=False,
+    to_pandas=True,
 ):
     """
     Returns data from the WPTO wave hindcast hosted on AWS at the
@@ -147,12 +148,12 @@ def request_wpto_point_data(
     path : string (optional)
         Optionally override with a custom .h5 filepath. Useful when setting
         `hsds=False`.
-    as_xarray : bool (optional)
-        Boolean flag to return data as an xarray Dataset. Default = False
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     ---------
-    data: DataFrame
+    data: pandas DataFrame or xarray Dataset
         Data indexed by datetime with columns named for parameter
         and cooresponding metadata index
     meta: DataFrame
@@ -182,14 +183,14 @@ def request_wpto_point_data(
         raise TypeError(f"If specified, hsds must be bool type. Got: {type(hsds)}")
     if not isinstance(path, (str, type(None))):
         raise TypeError(f"If specified, path must be a string. Got: {type(path)}")
-    if not isinstance(as_xarray, bool):
+    if not isinstance(to_pandas, bool):
         raise TypeError(
-            f"If specified, as_xarray must be bool type. Got: {type(as_xarray)}"
+            f"If specified, to_pandas must be bool type. Got: {type(to_pandas)}"
         )
 
     # Attempt to load data from cache
     # Construct a string representation of the function parameters
-    hash_params = f"{data_type}_{parameter}_{lat_lon}_{years}_{tree}_{unscale}_{str_decode}_{hsds}_{path}_{as_xarray}"
+    hash_params = f"{data_type}_{parameter}_{lat_lon}_{years}_{tree}_{unscale}_{str_decode}_{hsds}_{path}_{to_pandas}"
     cache_dir = _get_cache_dir()
     data, meta, _ = handle_caching(hash_params, cache_dir)
 
@@ -257,8 +258,8 @@ def request_wpto_point_data(
             gid = rex_waves.lat_lon_gid(lat_lon)
             meta["gid"] = gid
 
-            if as_xarray:
-                data = data.to_xarray()
+            if not to_pandas:
+                data = convert_to_dataset(data)
                 data["time_index"] = pd.to_datetime(data.time_index)
 
                 if isinstance(parameter, list):
@@ -335,7 +336,7 @@ def request_wpto_directional_spectrum(
 
     Returns
     ---------
-    data: xarray
+    data: xarray Dataset
         Coordinates as datetime, frequency, and direction for data at
         specified location(s)
     meta: DataFrame

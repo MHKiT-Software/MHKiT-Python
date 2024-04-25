@@ -61,6 +61,7 @@ import pandas as pd
 from rex import MultiYearWindX
 import matplotlib.pyplot as plt
 from mhkit.utils.cache import handle_caching
+from mhkit.utils.type_handling import convert_to_dataset
 
 
 def region_selection(lat_lon, preferred_region=""):
@@ -307,6 +308,7 @@ def request_wtk_point_data(
     str_decode=True,
     hsds=True,
     clear_cache=False,
+    to_pandas=True,
 ):
     """
     Returns data from the WIND Toolkit offshore wind hindcast hosted on
@@ -375,6 +377,8 @@ def request_wtk_point_data(
     clear_cache : bool (optional)
         Boolean flag to clear the cache related to this specific request.
         Default is False.
+    to_pandas: bool (optional)
+        Flag to output pandas instead of xarray. Default = True.
 
     Returns
     ---------
@@ -416,6 +420,10 @@ def request_wtk_point_data(
     data, meta, _ = handle_caching(hash_params, cache_dir, clear_cache_file=clear_cache)
 
     if data is not None and meta is not None:
+        if not to_pandas:
+            data = convert_to_dataset(data)
+            data.attrs = meta
+
         return data, meta  # Return cached data and meta if available
     else:
         # check for multiple region selection
@@ -471,5 +479,9 @@ def request_wtk_point_data(
 
         # Save the retrieved data and metadata to cache.
         handle_caching(hash_params, cache_dir, data=data, metadata=meta)
+
+        if not to_pandas:
+            data = convert_to_dataset(data)
+            data.attrs = meta
 
         return data, meta

@@ -68,7 +68,7 @@ class TestContours(unittest.TestCase):
     def test_environmental_contours_invalid_inputs(self):
         # Invalid x1 tests
         x1_non_numeric = "not an array"
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             wave.contours.environmental_contours(
                 x1_non_numeric, self.wdrt_Te, 3600, 50, "PCA"
             )
@@ -81,7 +81,7 @@ class TestContours(unittest.TestCase):
 
         # Invalid x2 tests
         x2_non_numeric = "not an array"
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             wave.contours.environmental_contours(
                 self.wdrt_Hm0, x2_non_numeric, 3600, 50, "PCA"
             )
@@ -264,7 +264,7 @@ class TestContours(unittest.TestCase):
 
         # Invalid x1 tests
         x1_non_numeric = "not an array"
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             wave.contours.PCA_contour(
                 x1_non_numeric, self.wdrt_Te, copula["PCA_fit"], PCA_args
             )
@@ -277,7 +277,7 @@ class TestContours(unittest.TestCase):
 
         # Invalid x2 tests
         x2_non_numeric = "not an array"
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             wave.contours.PCA_contour(
                 self.wdrt_Hm0, x2_non_numeric, copula["PCA_fit"], PCA_args
             )

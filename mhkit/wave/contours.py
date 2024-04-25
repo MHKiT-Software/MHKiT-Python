@@ -7,6 +7,7 @@ import scipy.stats as stats
 import scipy.interpolate as interp
 import numpy as np
 import warnings
+from mhkit.utils import to_numeric_array
 
 import matplotlib
 
@@ -24,9 +25,9 @@ def environmental_contours(x1, x2, sea_state_duration, return_period, method, **
 
     Parameters
     ----------
-    x1: array
+    x1: list, np.ndarray, pd.Series, xr.DataArray
         Component 1 data
-    x2: array
+    x2: list, np.ndarray, pd.Series, xr.DataArray
         Component 2 data
     sea_state_duration : int or float
         `x1` and `x2` averaging period in seconds
@@ -77,14 +78,8 @@ def environmental_contours(x1, x2, sea_state_duration, return_period, method, **
     copulas: Dictionary
         Dictionary of x1 and x2 copula components for each copula method
     """
-    try:
-        x1 = np.asarray(x1, dtype=float)
-    except ValueError:
-        raise ValueError("x1 must contain numeric values.")
-    try:
-        x2 = np.asarray(x2, dtype=float)
-    except ValueError:
-        raise ValueError("x2 must contain numeric values.")
+    x1 = to_numeric_array(x1, "x1")
+    x2 = to_numeric_array(x2, "x2")
     if not isinstance(x1, np.ndarray) or x1.ndim == 0:
         raise TypeError(f"x1 must be a non-scalar array. Got: {type(x1)}")
     if not isinstance(x2, np.ndarray) or x2.ndim == 0:
@@ -322,9 +317,9 @@ def PCA_contour(x1, x2, fit, kwargs):
 
     Parameters
     ----------
-    x1: numpy array
+    x1: list, np.ndarray, pd.Series, xr.DataArray
         Component 1 data
-    x2: numpy array
+    x2: list, np.ndarray, pd.Series, xr.DataArray
         Component 2 data
     fit: dict
         Dictionary of the iso-probability results. May additionally
@@ -362,14 +357,8 @@ def PCA_contour(x1, x2, fit, kwargs):
         'sigma_param'   : fit to _sig_fits
 
     """
-    try:
-        x1 = np.asarray(x1, dtype=float)
-    except ValueError:
-        raise ValueError("x1 must contain numeric values.")
-    try:
-        x2 = np.asarray(x2, dtype=float)
-    except ValueError:
-        raise ValueError("x2 must contain numeric values.")
+    x1 = to_numeric_array(x1, "x1")
+    x2 = to_numeric_array(x2, "x2")
     if not isinstance(x1, np.ndarray) or x1.ndim == 0:
         raise TypeError(f"x1 must be a non-scalar array. Got: {type(x1)}")
     if not isinstance(x2, np.ndarray) or x2.ndim == 0:
@@ -1753,9 +1742,9 @@ def samples_full_seastate(
 
     Parameters
     ----------
-    x1: np.array
+    x1: list, np.ndarray, pd.Series, xr.DataArray
         Component 1 data
-    x2: np.array
+    x2: list, np.ndarray, pd.Series, xr.DataArray
         Component 2 data
     points_per_interval : int
         Number of sample points to be calculated per contour interval.
@@ -1785,10 +1774,8 @@ def samples_full_seastate(
             "Full sea state sampling is currently only implemented using "
             + "the 'PCA' method."
         )
-    if not isinstance(x1, np.ndarray):
-        raise TypeError(f"x1 must be of type np.ndarray. Got: {type(x1)}")
-    if not isinstance(x2, np.ndarray):
-        raise TypeError(f"x2 must be of type np.ndarray. Got: {type(x2)}")
+    x1 = to_numeric_array(x1, "x1")
+    x2 = to_numeric_array(x2, "x2")
     if not isinstance(points_per_interval, int):
         raise TypeError(
             f"points_per_interval must be of int. Got: {type(points_per_interval)}"
@@ -1903,26 +1890,21 @@ def samples_contour(t_samples, t_contour, hs_contour):
 
     Parameters
     ----------
-    t_samples : np.array
+    t_samples : list, np.ndarray, pd.Series, xr.DataArray
         Points for sampling along return contour
-    t_contour : np.array
+    t_contour : list, np.ndarray, pd.Series, xr.DataArray
         T values along contour
-    hs_contour : np.array
+    hs_contour : list, np.ndarray, pd.Series, xr.DataArray
         Hs values along contour
 
     Returns
     -------
-    hs_samples : nparray
+    hs_samples : np.ndarray
         points sampled along return contour
     """
-    if not isinstance(t_samples, np.ndarray):
-        raise TypeError(f"t_samples must be of type np.ndarray. Got: {type(t_samples)}")
-    if not isinstance(t_contour, np.ndarray):
-        raise TypeError(f"t_contour must be of type np.ndarray. Got: {type(t_contour)}")
-    if not isinstance(hs_contour, np.ndarray):
-        raise TypeError(
-            f"hs_contour must be of type np.ndarray. Got: {type(hs_contour)}"
-        )
+    t_samples = to_numeric_array(t_samples, "t_samples")
+    t_contour = to_numeric_array(t_contour, "t_contour")
+    hs_contour = to_numeric_array(hs_contour, "hs_contour")
 
     # finds minimum and maximum energy period values
     amin = np.argmin(t_contour)
@@ -1958,13 +1940,13 @@ def _generate_sample_data(
 
     Parameters
     ----------
-    beta_lines: np.array
+    beta_lines: list, np.ndarray, pd.Series, xr.DataArray
         Array of mu fitting function parameters.
-    rho_zeroline: np.array
+    rho_zeroline: list, np.ndarray, pd.Series, xr.DataArray
         Array of radii
-    theta_zeroline: np.array
+    theta_zeroline: list, np.ndarray, pd.Series, xr.DataArray
     points_per_interval: int
-    contour_probs: np.array
+    contour_probs: list, np.ndarray, pd.Series, xr.DataArray
 
     Returns
     -------
@@ -1975,25 +1957,13 @@ def _generate_sample_data(
     weight_points: np.array
         Array of weights for each point.
     """
-    if not isinstance(beta_lines, np.ndarray):
-        raise TypeError(
-            f"beta_lines must be of type np.ndarray. Got: {type(beta_lines)}"
-        )
-    if not isinstance(rho_zeroline, np.ndarray):
-        raise TypeError(
-            f"rho_zeroline must be of type np.ndarray. Got: {type(rho_zeroline)}"
-        )
-    if not isinstance(theta_zeroline, np.ndarray):
-        raise TypeError(
-            f"theta_zeroline must be of type np.ndarray. Got: {type(theta_zeroline)}"
-        )
+    beta_lines = to_numeric_array(beta_lines, "beta_lines")
+    rho_zeroline = to_numeric_array(rho_zeroline, "rho_zeroline")
+    theta_zeroline = to_numeric_array(theta_zeroline, "theta_zeroline")
+    contour_probs = to_numeric_array(contour_probs, "contour_probs")
     if not isinstance(points_per_interval, int):
         raise TypeError(
             f"points_per_interval must be of type int. Got: {type(points_per_interval)}"
-        )
-    if not isinstance(contour_probs, np.ndarray):
-        raise TypeError(
-            f"contour_probs must be of type np.ndarray. Got: {type(contour_probs)}"
         )
 
     num_samples = (len(beta_lines) - 1) * points_per_interval
