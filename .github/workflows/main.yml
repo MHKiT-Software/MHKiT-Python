@@ -91,7 +91,7 @@ jobs:
           source activate TEST
           pytest mhkit/tests/wave/io/hindcast/test_hindcast.py
 
-      - name: Prepare Wave Hindcast data
+      - name: Prepare Wind Hindcast data
         if: (needs.check-changes.outputs.should-run-hindcast == 'true')
         run: |
           source activate TEST
