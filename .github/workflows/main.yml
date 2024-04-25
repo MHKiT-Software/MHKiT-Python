@@ -30,7 +30,7 @@ jobs:
       should-run-hindcast: ${{ steps.hindcast-logic.outputs.should-run-hindcast }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Check for changes in wave/io/hindcast
         id: changes
