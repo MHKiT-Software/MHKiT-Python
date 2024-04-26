@@ -48,7 +48,7 @@ jobs:
             echo "should-run-hindcast=false" >> "$GITHUB_OUTPUT"
           fi
 
-  prepare-cache:
+  prepare-nonhindcast-cache:
     needs: [check-changes]
     runs-on: ubuntu-latest
     env:
@@ -68,7 +68,7 @@ jobs:
         run: |
           conda create --name TEST python=${{ env.PYTHON_VER }} numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
           source activate TEST
-          export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH" # so setup.py finds nc-config
+          export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH"
           pip install -e . --no-deps --force-reinstall
 
       - name: Install dependencies
@@ -78,24 +78,12 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install coverage pytest coveralls .
 
-      - name: Prepare data
+      - name: Prepare non-hindcast API data
         run: |
           source activate TEST
           pytest mhkit/tests/river/test_io_usgs.py
           pytest mhkit/tests/tidal/test_io.py
           pytest mhkit/tests/wave/io/test_cdip.py
-
-      - name: Prepare Wave Hindcast data
-        if: (needs.check-changes.outputs.should-run-hindcast == 'true')
-        run: |
-          source activate TEST
-          pytest mhkit/tests/wave/io/hindcast/test_hindcast.py
-
-      - name: Prepare Wind Hindcast data
-        if: (needs.check-changes.outputs.should-run-hindcast == 'true')
-        run: |
-          source activate TEST
-          pytest mhkit/tests/wave/io/hindcast/test_wind_toolkit.py
 
       - name: Upload data as artifact
         uses: actions/upload-artifact@v3
@@ -103,9 +91,79 @@ jobs:
           name: data
           path: ~/.cache/mhkit
 
+  prepare-wave-hindcast-cache:
+    needs: [check-changes]
+    runs-on: ubuntu-latest
+    env:
+      PYTHON_VER: 3.9
+    if: (needs.check-changes.outputs.should-run-hindcast == 'true')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Conda
+        uses: s-weigand/setup-conda@v1
+        with:
+          activate-conda: false
+          conda-channels: conda-forge
+
+      - name: Python setup
+        shell: bash -l {0}
+        run: |
+          conda create --name TEST python=${{ env.PYTHON_VER }} numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
+          source activate TEST
+          export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH"
+          pip install -e . --no-deps --force-reinstall
+
+      - name: Prepare Wave Hindcast data
+        run: |
+          source activate TEST
+          pytest mhkit/tests/wave/io/hindcast/test_hindcast.py
+
+      - name: Upload Wave Hindcast data as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: wave-hindcast-data
+          path: ~/.cache/mhkit
+
+  prepare-wind-hindcast-cache:
+    needs: [check-changes]
+    runs-on: ubuntu-latest
+    env:
+      PYTHON_VER: 3.9
+    if: (needs.check-changes.outputs.should-run-hindcast == 'true')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Conda
+        uses: s-weigand/setup-conda@v1
+        with:
+          activate-conda: false
+          conda-channels: conda-forge
+
+      - name: Python setup
+        shell: bash -l {0}
+        run: |
+          conda create --name TEST python=${{ env.PYTHON_VER }} numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
+          source activate TEST
+          export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH"
+          pip install -e . --no-deps --force-reinstall
+
+      - name: Prepare Wind Hindcast data
+        run: |
+          source activate TEST
+          pytest mhkit/tests/wave/io/hindcast/test_wind_toolkit.py
+
+      - name: Upload Wind Hindcast data as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: wind-hindcast-data
+          path: ~/.cache/mhkit
+
   conda-build:
     name: conda-${{ matrix.os }}/${{ matrix.python-version }}
-    needs: [set-os, prepare-cache]
+    needs: [set-os, prepare-nonhindcast-cache]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -163,7 +221,7 @@ jobs:
 
   pip-build:
     name: pip-${{ matrix.os }}/${{ matrix.python-version }}
-    needs: [set-os, prepare-cache]
+    needs: [set-os, prepare-nonhindcast-cache]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -206,7 +264,13 @@ jobs:
 
   hindcast-calls:
     name: hindcast-${{ matrix.os }}/${{ matrix.python-version }}
-    needs: [check-changes, prepare-cache, set-os]
+    needs:
+      [
+        check-changes,
+        prepare-wave-hindcast-cache,
+        prepare-wind-hindcast-cache,
+        set-os,
+      ]
     if: (needs.check-changes.outputs.should-run-hindcast == 'true')
 
     runs-on: ${{ matrix.os }}
