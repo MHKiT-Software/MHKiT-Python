@@ -298,11 +298,24 @@ jobs:
           export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH" # so setup.py finds nc-config
           pip install -e . --no-deps --force-reinstall
 
-      - name: Download data from artifact
+      - name: Download Wave Hindcast data from artifact
         uses: actions/download-artifact@v3
         with:
-          name: data
-          path: ~/.cache/mhkit
+          name: wave-hindcast-data
+          path: ~/.cache/mhkit/wave-hindcast
+
+      - name: Download Wind Hindcast data from artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: wind-hindcast-data
+          path: ~/.cache/mhkit/wind-hindcast
+
+      - name: Consolidate hindcast data
+        run: |
+          mkdir -p ~/.cache/mhkit/hindcast
+          mv ~/.cache/mhkit/wave-hindcast/* ~/.cache/mhkit/hindcast/
+          mv ~/.cache/mhkit/wind-hindcast/* ~/.cache/mhkit/hindcast/
+        shell: bash
 
       - name: Install MHKiT and run pytest
         shell: bash -l {0}
