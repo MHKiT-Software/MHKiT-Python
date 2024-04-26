@@ -49,7 +49,6 @@ jobs:
           fi
 
   prepare-nonhindcast-cache:
-    needs: [check-changes]
     runs-on: ubuntu-latest
     env:
       PYTHON_VER: 3.9
