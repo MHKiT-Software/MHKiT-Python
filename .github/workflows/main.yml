@@ -326,8 +326,8 @@ jobs:
       - name: Consolidate hindcast data
         run: |
           mkdir -p ~/.cache/mhkit/hindcast
-          mv ~/.cache/mhkit/wave-hindcast/* ~/.cache/mhkit/hindcast/
-          mv ~/.cache/mhkit/wind-hindcast/* ~/.cache/mhkit/hindcast/
+          mv ~/.cache/mhkit/wave-hindcast/hindcast/* ~/.cache/mhkit/hindcast/
+          mv ~/.cache/mhkit/wind-hindcast/hindcast/* ~/.cache/mhkit/hindcast/
         shell: bash
 
       - name: Install MHKiT and run pytest
