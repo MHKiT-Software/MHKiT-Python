@@ -197,7 +197,6 @@ jobs:
           auto-update-conda: true
           activate-environment: TEST
           python-version: ${{ matrix.python-version }}
-          environment-file: environment.yml
           use-only-tar-bz2: true
 
       - name: Create and setup Conda environment
