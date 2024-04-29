@@ -105,7 +105,7 @@ def request_wpto_point_data(
 
     Note: To access the WPTO hindcast data, you will need to configure
     h5pyd for data access on HSDS. Please see the WPTO_hindcast_example
-    notebook for more information.
+    notebook for setup instructions.
 
     Parameters
     ----------
