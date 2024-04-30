@@ -123,6 +123,7 @@ jobs:
           pip install coverage pytest coveralls .
 
       - name: Prepare Wave Hindcast data
+        shell: bash -l {0}
         run: |
           pytest mhkit/tests/wave/io/hindcast/test_hindcast.py
 
@@ -164,6 +165,7 @@ jobs:
           pip install coverage pytest coveralls .
 
       - name: Prepare Wind Hindcast data
+        shell: bash -l {0}
         run: |
           pytest mhkit/tests/wave/io/hindcast/test_wind_toolkit.py
 
@@ -257,11 +259,13 @@ jobs:
           path: ~/.cache/mhkit
 
       - name: Update and install packages
+        shell: bash -l {0}
         run: |
           python -m pip install --upgrade pip wheel
           pip install coverage pytest coveralls .
 
       - name: Run pytest
+        shell: bash -l {0}
         run: |
           coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/  -m pytest -c .github/workflows/pytest.ini
 
@@ -301,7 +305,7 @@ jobs:
           auto-update-conda: true
           activate-environment: TEST
           python-version: ${{ matrix.python-version }}
-          use-only-tar-bz2: true # Optional: use if you want to only download .tar.bz2 packages
+          use-only-tar-bz2: true
 
       - name: Setup Conda environment
         shell: bash -l {0}
