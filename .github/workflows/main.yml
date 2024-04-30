@@ -57,30 +57,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Conda
-        uses: s-weigand/setup-conda@v1
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          activate-conda: false
-          conda-channels: conda-forge
+          miniconda-version: 'latest'
+          auto-update-conda: true
+          python-version: ${{ env.PYTHON_VER }}
+          activate-environment: TESTconda
+          use-only-tar-bz2: true
 
-      - name: Python setup
+      - name: Setup Conda environment
         shell: bash -l {0}
         run: |
-          conda create --name TEST python=${{ env.PYTHON_VER }} numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
-          source activate TEST
-          export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH"
-          pip install -e . --no-deps --force-reinstall
+          conda install numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
+          pip install -e . --force-reinstall
 
       - name: Install dependencies
         shell: bash -l {0}
         run: |
-          source activate TEST
           python -m pip install --upgrade pip wheel
           pip install coverage pytest coveralls .
 
       - name: Prepare non-hindcast API data
+        shell: bash -l {0}
         run: |
-          source activate TEST
           pytest mhkit/tests/river/test_io_usgs.py
           pytest mhkit/tests/tidal/test_io.py
           pytest mhkit/tests/wave/io/test_cdip.py
@@ -101,30 +101,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Conda
-        uses: s-weigand/setup-conda@v1
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          activate-conda: false
-          conda-channels: conda-forge
+          miniconda-version: 'latest'
+          auto-update-conda: true
+          activate-environment: TEST
+          python-version: ${{ matrix.python-version }}
+          use-only-tar-bz2: true
 
-      - name: Python setup
+      - name: Setup Conda environment
         shell: bash -l {0}
         run: |
-          conda create --name TEST python=${{ env.PYTHON_VER }} numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
-          source activate TEST
-          export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH"
+          conda install numpy cython pip pytest hdf5 libnetcdf cftime netcdf4 coverage --strict-channel-priority
           pip install -e . --no-deps --force-reinstall
 
       - name: Install dependencies
         shell: bash -l {0}
         run: |
-          source activate TEST
           python -m pip install --upgrade pip wheel
           pip install coverage pytest coveralls .
 
       - name: Prepare Wave Hindcast data
+        shell: bash -l {0}
         run: |
-          source activate TEST
           pytest mhkit/tests/wave/io/hindcast/test_hindcast.py
 
       - name: Upload Wave Hindcast data as artifact
@@ -143,30 +143,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Conda
-        uses: s-weigand/setup-conda@v1
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          activate-conda: false
-          conda-channels: conda-forge
+          miniconda-version: 'latest'
+          auto-update-conda: true
+          activate-environment: TEST
+          python-version: ${{ matrix.python-version }}
+          use-only-tar-bz2: true
 
-      - name: Python setup
+      - name: Setup Conda environment
         shell: bash -l {0}
         run: |
-          conda create --name TEST python=${{ env.PYTHON_VER }} numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
-          source activate TEST
-          export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH"
+          conda install numpy cython pip pytest hdf5 libnetcdf cftime netcdf4 coverage --strict-channel-priority
           pip install -e . --no-deps --force-reinstall
 
       - name: Install dependencies
         shell: bash -l {0}
         run: |
-          source activate TEST
           python -m pip install --upgrade pip wheel
           pip install coverage pytest coveralls .
 
       - name: Prepare Wind Hindcast data
+        shell: bash -l {0}
         run: |
-          source activate TEST
           pytest mhkit/tests/wave/io/hindcast/test_wind_toolkit.py
 
       - name: Upload Wind Hindcast data as artifact
@@ -190,24 +190,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Conda
-        uses: s-weigand/setup-conda@v1
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          activate-conda: false
-          conda-channels: conda-forge
+          miniconda-version: 'latest'
+          auto-update-conda: true
+          activate-environment: TEST
+          python-version: ${{ matrix.python-version }}
+          use-only-tar-bz2: true
 
-      - name: Python ${{ matrix.python-version }}
+      - name: Create and setup Conda environment
         shell: bash -l {0}
         run: |
-          conda create --name TEST python=${PYTHON_VER} numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
-          source activate TEST
-          export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH" # so setup.py finds nc-config
+          conda install numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
           pip install -e . --no-deps --force-reinstall
 
       - name: Install dependencies
         shell: bash -l {0}
         run: |
-          source activate TEST
           python -m pip install --upgrade pip wheel
           pip install coverage pytest coveralls .
 
@@ -220,13 +220,11 @@ jobs:
       - name: Run pytest
         shell: bash -l {0}
         run: |
-          source activate TEST
           coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/ -m pytest -c .github/workflows/pytest.ini
 
       - name: Upload coverage data to coveralls.io
         shell: bash -l {0}
         run: |
-          source activate TEST
           coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -261,11 +259,13 @@ jobs:
           path: ~/.cache/mhkit
 
       - name: Update and install packages
+        shell: bash -l {0}
         run: |
           python -m pip install --upgrade pip wheel
           pip install coverage pytest coveralls .
 
       - name: Run pytest
+        shell: bash -l {0}
         run: |
           coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/  -m pytest -c .github/workflows/pytest.ini
 
@@ -298,18 +298,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Conda
-        uses: s-weigand/setup-conda@v1
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          activate-conda: false
-          conda-channels: conda-forge
+          miniconda-version: 'latest'
+          auto-update-conda: true
+          activate-environment: TEST
+          python-version: ${{ matrix.python-version }}
+          use-only-tar-bz2: true
 
-      - name: Python ${{ matrix.python-version }}
+      - name: Setup Conda environment
         shell: bash -l {0}
         run: |
-          conda create --name TEST python=${{ matrix.python-version }} numpy cython pip pytest hdf5 libnetcdf cftime netcdf4 coverage --strict-channel-priority
-          source activate TEST
-          export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH" # so setup.py finds nc-config
+          conda install numpy cython pip pytest hdf5 libnetcdf cftime netcdf4 coverage --strict-channel-priority
           pip install -e . --no-deps --force-reinstall
 
       - name: Download Wave Hindcast data from artifact
@@ -334,15 +335,13 @@ jobs:
       - name: Install MHKiT and run pytest
         shell: bash -l {0}
         run: |
-          source activate TEST
           python -m pip install --upgrade pip wheel
           pip install coveralls .
-          coverage run --rcfile=.github/workflows/.coveragehindcastrc -m  pytest -c  .github/workflows/pytest-hindcast.ini
+          coverage run --rcfile=.github/workflows/.coveragehindcastrc -m pytest -c .github/workflows/pytest-hindcast.ini
 
       - name: Upload coverage data to coveralls.io
         shell: bash -l {0}
         run: |
-          source activate TEST
           coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
