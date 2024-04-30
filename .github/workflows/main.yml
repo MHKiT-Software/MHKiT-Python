@@ -69,6 +69,7 @@ jobs:
       - name: Setup Conda environment
         shell: bash -l {0}
         run: |
+          source activate TEST
           conda install numpy cython pip pytest hdf5 libnetcdf cftime netcdf4 coverage --strict-channel-priority
           pip install -e . --force-reinstall
 
