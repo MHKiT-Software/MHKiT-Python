@@ -79,6 +79,7 @@ jobs:
           pip install coverage pytest coveralls .
 
       - name: Prepare non-hindcast API data
+        shell: bash -l {0}
         run: |
           pytest mhkit/tests/river/test_io_usgs.py
           pytest mhkit/tests/tidal/test_io.py
