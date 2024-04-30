@@ -70,6 +70,7 @@ jobs:
         run: |
           conda create --name TEST python=${{ env.PYTHON_VER }} numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
           source activate TEST
+          export PATH="${CONDA_PREFIX}/bin:${CONDA_PREFIX}/Library/bin:$PATH"
           pip install -e . --force-reinstall
 
       - name: Install dependencies
