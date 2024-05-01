@@ -255,6 +255,7 @@ jobs:
       - name: Update and install packages
         shell: bash -l {0}
         run: |
+          python -m pip install --upgrade pip wheel
           pip install coverage pytest coveralls .
 
       - name: Run pytest
