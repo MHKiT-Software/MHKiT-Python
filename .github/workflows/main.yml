@@ -195,6 +195,7 @@ jobs:
         with:
           miniconda-version: 'latest'
           auto-update-conda: true
+          environment-file: environment.yml
           activate-environment: TEST
           python-version: ${{ matrix.python-version }}
           use-only-tar-bz2: false
@@ -202,7 +203,7 @@ jobs:
       - name: Create and setup Conda environment
         shell: bash -l {0}
         run: |
-          conda install -c conda-forge numpy cython hdf5 libnetcdf cftime netcdf4 pytest coverage=7.5.0 coveralls --strict-channel-priority
+          conda install -c conda-forge pytest coverage=7.5.0 coveralls --strict-channel-priority
           pip install -e . --force-reinstall
 
       - name: Download data from artifact
