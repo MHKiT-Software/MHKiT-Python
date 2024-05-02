@@ -228,6 +228,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: ${{ matrix.python-version }}
           parallel: true
+          path-to-lcov: ./coverage.lcov
 
   pip-build:
     name: pip-${{ matrix.os }}/${{ matrix.python-version }}
