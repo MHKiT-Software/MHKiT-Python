@@ -197,12 +197,12 @@ jobs:
           auto-update-conda: true
           activate-environment: TEST
           python-version: ${{ matrix.python-version }}
-          use-only-tar-bz2: true
+          use-only-tar-bz2: false
 
       - name: Create and setup Conda environment
         shell: bash -l {0}
         run: |
-          conda install numpy cython hdf5 libnetcdf cftime netcdf4 pytest coverage=7.5.0 coveralls --strict-channel-priority
+          conda install -c conda-forge numpy cython hdf5 libnetcdf cftime netcdf4 pytest coverage=7.5.0 coveralls --strict-channel-priority
           pip install -e . --force-reinstall
 
       - name: Download data from artifact
