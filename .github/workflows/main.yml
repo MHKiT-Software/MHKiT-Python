@@ -202,7 +202,7 @@ jobs:
       - name: Create and setup Conda environment
         shell: bash -l {0}
         run: |
-          conda install numpy cython hdf5 libnetcdf cftime netcdf4 pytest coverage coveralls --strict-channel-priority
+          conda install numpy cython hdf5 libnetcdf cftime netcdf4 pytest coverage=7.5.0 coveralls --strict-channel-priority
           pip install -e . --force-reinstall
 
       - name: Download data from artifact
