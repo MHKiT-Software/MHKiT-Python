@@ -215,6 +215,7 @@ jobs:
         shell: bash -l {0}
         run: |
           coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/ -m pytest -c .github/workflows/pytest.ini
+          coverage lcov
 
       - name: Upload coverage data to coveralls.io
         uses: coverallsapp/github-action@master
