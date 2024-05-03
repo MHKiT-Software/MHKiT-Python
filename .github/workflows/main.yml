@@ -212,7 +212,7 @@ jobs:
           name: data
           path: ~/.cache/mhkit
 
-      - name: Run pytest
+      - name: Run pytest & generate coverage report
         shell: bash -l {0}
         run: |
           coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/ -m pytest -c .github/workflows/pytest.ini
@@ -274,17 +274,19 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install coverage pytest coveralls .
 
-      - name: Run pytest
+      - name: Run pytest & generate coverage report
         shell: bash -l {0}
         run: |
-          coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/  -m pytest -c .github/workflows/pytest.ini
+          coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/ -m pytest -c .github/workflows/pytest.ini
+          coverage lcov
 
       - name: Upload coverage data to coveralls.io
-        run: coveralls --service=github
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
-          COVERALLS_PARALLEL: true
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          flag-name: ${{ matrix.python-version }}
+          parallel: true
+          path-to-lcov: ./coverage.lcov
 
   hindcast-calls:
     name: hindcast-${{ matrix.os }}/${{ matrix.python-version }}
@@ -348,15 +350,15 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install coveralls .
           coverage run --rcfile=.github/workflows/.coveragehindcastrc -m pytest -c .github/workflows/pytest-hindcast.ini
+          coverage lcov
 
       - name: Upload coverage data to coveralls.io
-        shell: bash -l {0}
-        run: |
-          coveralls --service=github
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
-          COVERALLS_PARALLEL: true
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          flag-name: ${{ matrix.python-version }}
+          parallel: true
+          path-to-lcov: ./coverage.lcov
 
   coveralls:
     name: Indicate completion to coveralls.io
