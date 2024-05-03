@@ -248,11 +248,16 @@ jobs:
         if: startsWith(runner.os, 'macOS') && matrix.python-version == '3.8'
         run: brew install hdf5
 
-      - name: Set HDF5 environment variables (macOS with Python 3.8)
+      - name: Install NetCDF (macOS with Python 3.8)
+        if: startsWith(runner.os, 'macOS') && matrix.python-version == '3.8'
+        run: brew install netcdf
+
+      - name: Set environment variables (macOS with Python 3.8)
         if: startsWith(runner.os, 'macOS') && matrix.python-version == '3.8'
         run: |
           echo "HDF5_DIR=$(brew --prefix hdf5)" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$(brew --prefix hdf5)/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+          echo "NETCDF4_DIR=$(brew --prefix netcdf)" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$(brew --prefix hdf5)/lib/pkgconfig:$(brew --prefix netcdf)/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
 
       - name: Set up Git repository
         uses: actions/checkout@v4
