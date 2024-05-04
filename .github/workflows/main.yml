@@ -297,7 +297,7 @@ jobs:
         prepare-wind-hindcast-cache,
         set-os,
       ]
-    if: (needs.check-changes.outputs.should-run-hindcast == 'true')
+    # if: (needs.check-changes.outputs.should-run-hindcast == 'true')
 
     runs-on: ${{ matrix.os }}
     strategy:
