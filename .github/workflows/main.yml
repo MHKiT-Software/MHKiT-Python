@@ -18,7 +18,7 @@ jobs:
       - id: set-matrix
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "develop" ]]; then
-            echo "matrix_os=[\"ubuntu-latest\"]" >> $GITHUB_OUTPUT
+            echo "matrix_os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_OUTPUT
           else
             echo "matrix_os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_OUTPUT
           fi
@@ -96,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHON_VER: 3.9
-    if: (needs.check-changes.outputs.should-run-hindcast == 'true')
+    # if: (needs.check-changes.outputs.should-run-hindcast == 'true')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -138,7 +138,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHON_VER: 3.9
-    if: (needs.check-changes.outputs.should-run-hindcast == 'true')
+    # if: (needs.check-changes.outputs.should-run-hindcast == 'true')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
