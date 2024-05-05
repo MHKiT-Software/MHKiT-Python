@@ -134,7 +134,7 @@ jobs:
           path: ~/.cache/mhkit
 
   prepare-wind-hindcast-cache:
-    needs: [check-changes]
+    needs: [check-changes, prepare-wave-hindcast-cache]
     runs-on: ubuntu-latest
     env:
       PYTHON_VER: 3.9
