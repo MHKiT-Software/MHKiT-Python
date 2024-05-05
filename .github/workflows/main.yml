@@ -96,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHON_VER: 3.9
-    # if: (needs.check-changes.outputs.should-run-hindcast == 'true')
+    if: (needs.check-changes.outputs.should-run-hindcast == 'true')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -138,7 +138,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHON_VER: 3.9
-    # if: (needs.check-changes.outputs.should-run-hindcast == 'true')
+    if: (needs.check-changes.outputs.should-run-hindcast == 'true')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -297,7 +297,7 @@ jobs:
         prepare-wind-hindcast-cache,
         set-os,
       ]
-    # if: (needs.check-changes.outputs.should-run-hindcast == 'true')
+    if: (needs.check-changes.outputs.should-run-hindcast == 'true')
 
     runs-on: ${{ matrix.os }}
     strategy:
