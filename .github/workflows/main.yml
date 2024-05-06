@@ -371,7 +371,7 @@ jobs:
     container: python:3-slim
     steps:
       - name: Coveralls Finished
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@master
         with:
           parallel-finished: true
         env:
