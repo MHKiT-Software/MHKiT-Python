@@ -18,7 +18,7 @@ jobs:
       - id: set-matrix
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "develop" ]]; then
-            echo "matrix_os=[\"ubuntu-latest\"]" >> $GITHUB_OUTPUT
+            echo "matrix_os=[ \"ubuntu-latest\"]" >> $GITHUB_OUTPUT
           else
             echo "matrix_os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_OUTPUT
           fi
@@ -134,7 +134,7 @@ jobs:
           path: ~/.cache/mhkit
 
   prepare-wind-hindcast-cache:
-    needs: [check-changes]
+    needs: [check-changes, prepare-wave-hindcast-cache]
     runs-on: ubuntu-latest
     env:
       PYTHON_VER: 3.9
@@ -315,15 +315,16 @@ jobs:
         with:
           miniconda-version: 'latest'
           auto-update-conda: true
+          environment-file: environment.yml
           activate-environment: TEST
           python-version: ${{ matrix.python-version }}
-          use-only-tar-bz2: true
+          use-only-tar-bz2: false
 
       - name: Setup Conda environment
         shell: bash -l {0}
         run: |
-          conda install numpy cython pip pytest hdf5 libnetcdf cftime netcdf4 coverage --strict-channel-priority
-          pip install -e . --no-deps --force-reinstall
+          conda install -c conda-forge pytest coverage=7.5.0 coveralls --strict-channel-priority
+          pip install -e . --force-reinstall
 
       - name: Download Wave Hindcast data from artifact
         uses: actions/download-artifact@v4
@@ -347,8 +348,6 @@ jobs:
       - name: Install MHKiT and run pytest
         shell: bash -l {0}
         run: |
-          python -m pip install --upgrade pip wheel
-          pip install coveralls .
           coverage run --rcfile=.github/workflows/.coveragehindcastrc -m pytest -c .github/workflows/pytest-hindcast.ini
           coverage lcov
 
