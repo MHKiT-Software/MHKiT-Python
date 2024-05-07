@@ -222,7 +222,7 @@ jobs:
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: ${{ matrix.python-version }}
+          flag-name: conda-${{ runner.os }}-py${{ matrix.python-version }}
           parallel: true
           path-to-lcov: ./coverage.lcov
 
@@ -284,7 +284,7 @@ jobs:
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: ${{ matrix.python-version }}
+          flag-name: pip-${{ runner.os }}-py${{ matrix.python-version }}
           parallel: true
           path-to-lcov: ./coverage.lcov
 
@@ -355,7 +355,7 @@ jobs:
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: ${{ matrix.python-version }}
+          flag-name: hindcast-${{ runner.os }}-py${{ matrix.python-version }}
           parallel: true
           path-to-lcov: ./coverage.lcov
 
@@ -370,9 +370,9 @@ jobs:
     runs-on: ubuntu-latest
     container: python:3-slim
     steps:
-      - name: Finished
-        run: |
-          pip3 install --upgrade coveralls
-          coveralls --finish
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@master
+        with:
+          parallel-finished: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

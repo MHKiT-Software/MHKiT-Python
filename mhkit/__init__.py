@@ -17,7 +17,7 @@ _rmc()
 # Ignore future warnings
 _warn.simplefilter(action="ignore", category=FutureWarning)
 
-__version__ = "v0.7.0"
+__version__ = "v0.8.0"
 
 __copyright__ = """
 Copyright 2019, Alliance for Sustainable Energy, LLC under the terms of 
