@@ -1,3 +1,5 @@
+import warnings
+
 from scipy.optimize import fsolve as _fsolve
 from scipy import signal as _signal
 import pandas as pd
@@ -334,10 +336,18 @@ def surface_elevation(
             raise ValueError(f"Method must be 'ifft' or 'sum_of_sines'. Got: {method}")
 
     if method == "ifft":
-        if not f[0] == 0:
-            raise ValueError(
-                f"ifft method must have zero frequency defined. Lowest frequency is: {S.index.values[0]}"
-            )
+        first_frequency_index = f[0]
+        if frequency_bins is None:
+            if not first_frequency_index == 0:
+                warnings.warn(
+                    "Input wave spectrum does not have a zero frequency defined! Using `sum_of_sines` method to calculate surface elevation"
+                )
+                method = "sum_of_sines"
+        else:
+            if not first_frequency_index == 0:
+                raise ValueError(
+                    f"ifft method must have zero frequency defined. Lowest frequency is: {first_frequency_index}"
+                )
 
     if frequency_bins is None:
         delta_f = f.values[1] - f.values[0]
