@@ -3,19 +3,19 @@ import warnings
 from .tools.fft import fft_frequency, psd_1D, cpsd_1D, cpsd_quasisync_1D
 from .tools.misc import slice1d_along_axis, detrend_array
 from .time import epoch2dt64, dt642epoch
-warnings.simplefilter('ignore', RuntimeWarning)
+
+warnings.simplefilter("ignore", RuntimeWarning)
 
 
 class TimeBinner:
-    def __init__(self, n_bin, fs, n_fft=None, n_fft_coh=None,
-                 noise=[0, 0, 0]):
+    def __init__(self, n_bin, fs, n_fft=None, n_fft_coh=None, noise=[0, 0, 0]):
         """
         Initialize an averaging object
 
         Parameters
         ----------
         n_bin : int
-          Number of data points to include in a 'bin' (ensemble), not the 
+          Number of data points to include in a 'bin' (ensemble), not the
           number of bins
         fs : int
           Instrument sampling frequency in Hz
@@ -38,14 +38,15 @@ class TimeBinner:
             self.n_fft = n_bin
         elif n_fft > n_bin:
             self.n_fft = n_bin
-            warnings.warn(
-                "n_fft must be smaller than n_bin, setting n_fft = n_bin")
+            warnings.warn("n_fft must be smaller than n_bin, setting n_fft = n_bin")
         if n_fft_coh is None:
             self.n_fft_coh = int(self.n_fft)
         elif n_fft_coh > n_bin:
             self.n_fft_coh = int(n_bin)
-            warnings.warn("n_fft_coh must be smaller than or equal to n_bin, "
-                          "setting n_fft_coh = n_bin")
+            warnings.warn(
+                "n_fft_coh must be smaller than or equal to n_bin, "
+                "setting n_fft_coh = n_bin"
+            )
 
     def _outshape(self, inshape, n_pad=0, n_bin=None):
         """
@@ -77,8 +78,7 @@ class TimeBinner:
             return self.n_fft
         if n_fft > self.n_bin:
             n_fft = self.n_bin
-            warnings.warn(
-                "n_fft must be smaller than n_bin, setting n_fft = n_bin")
+            warnings.warn("n_fft must be smaller than n_bin, setting n_fft = n_bin")
         return n_fft
 
     def _parse_nfft_coh(self, n_fft_coh=None):
@@ -86,8 +86,10 @@ class TimeBinner:
             return self.n_fft_coh
         if n_fft_coh > self.n_bin:
             n_fft_coh = int(self.n_bin)
-            warnings.warn("n_fft_coh must be smaller than or equal to n_bin, "
-                          "setting n_fft_coh = n_bin")
+            warnings.warn(
+                "n_fft_coh must be smaller than or equal to n_bin, "
+                "setting n_fft_coh = n_bin"
+            )
         return n_fft_coh
 
     def _check_ds(self, raw_ds, out_ds):
@@ -109,17 +111,22 @@ class TimeBinner:
 
         for v in raw_ds.data_vars:
             if np.any(np.array(raw_ds[v].shape) == 0):
-                raise RuntimeError(f"{v} cannot be averaged "
-                                   "because it is empty.")
-        if 'DutyCycle_NBurst' in raw_ds.attrs and \
-                raw_ds.attrs['DutyCycle_NBurst'] < self.n_bin:
-            warnings.warn(f"The averaging interval (n_bin = {self.n_bin})"
-                          "is larger than the burst interval "
-                          "(NBurst = {dat.attrs['DutyCycle_NBurst']})")
+                raise RuntimeError(f"{v} cannot be averaged " "because it is empty.")
+        if (
+            "DutyCycle_NBurst" in raw_ds.attrs
+            and raw_ds.attrs["DutyCycle_NBurst"] < self.n_bin
+        ):
+            warnings.warn(
+                f"The averaging interval (n_bin = {self.n_bin})"
+                "is larger than the burst interval "
+                "(NBurst = {dat.attrs['DutyCycle_NBurst']})"
+            )
         if raw_ds.fs != self.fs:
-            raise Exception(f"The input data sample rate ({raw_ds.fs}) does not "
-                            "match the sample rate of this binning-object "
-                            "({self.fs})")
+            raise Exception(
+                f"The input data sample rate ({raw_ds.fs}) does not "
+                "match the sample rate of this binning-object "
+                "({self.fs})"
+            )
 
         if out_ds is None:
             out_ds = type(raw_ds)()
@@ -127,11 +134,12 @@ class TimeBinner:
         o_attrs = out_ds.attrs
 
         props = {}
-        props['fs'] = self.fs
-        props['n_bin'] = self.n_bin
-        props['n_fft'] = self.n_fft
-        props['description'] = 'Binned averages calculated from ' \
-            'ensembles of size "n_bin"'
+        props["fs"] = self.fs
+        props["n_bin"] = self.n_bin
+        props["n_fft"] = self.n_fft
+        props["description"] = (
+            "Binned averages calculated from " 'ensembles of size "n_bin"'
+        )
         props.update(raw_ds.attrs)
 
         for ky in props:
@@ -140,24 +148,25 @@ class TimeBinner:
                 # plus those defined above)
                 raise AttributeError(
                     "The attribute '{}' of `out_ds` is inconsistent "
-                    "with this `VelBinner` or the input data (`raw_ds`)".format(ky))
+                    "with this `VelBinner` or the input data (`raw_ds`)".format(ky)
+                )
             else:
                 o_attrs[ky] = props[ky]
         return out_ds
 
     def _new_coords(self, array):
         """
-        Function for setting up a new xarray.DataArray regardless of how 
+        Function for setting up a new xarray.DataArray regardless of how
         many dimensions the input data-array has
         """
         dims = array.dims
         dims_list = []
         coords_dict = {}
-        if len(array.shape) == 1 & ('dir' in array.coords):
-            array = array.drop_vars('dir')
+        if len(array.shape) == 1 & ("dir" in array.coords):
+            array = array.drop_vars("dir")
         for ky in dims:
             dims_list.append(ky)
-            if 'time' in ky:
+            if "time" in ky:
                 coords_dict[ky] = self.mean(array.time.values)
             else:
                 coords_dict[ky] = array.coords[ky].values
@@ -198,34 +207,33 @@ class TimeBinner:
 
         n_bin = self._parse_nbin(n_bin)
         if arr.shape[-1] < n_bin:
-            raise Exception('n_bin is larger than length of input array')
+            raise Exception("n_bin is larger than length of input array")
         npd0 = int(n_pad // 2)
         npd1 = int((n_pad + 1) // 2)
         shp = self._outshape(arr.shape, n_pad=0, n_bin=n_bin)
         out = np.zeros(
-            self._outshape(arr.shape, n_pad=n_pad, n_bin=n_bin),
-            dtype=arr.dtype)
+            self._outshape(arr.shape, n_pad=n_pad, n_bin=n_bin), dtype=arr.dtype
+        )
         if np.mod(n_bin, 1) == 0:
             # n_bin needs to be int
             n_bin = int(n_bin)
             # If n_bin is an integer, we can do this simply.
-            out[..., npd0: n_bin + npd0] = (
-                arr[..., :(shp[-2] * shp[-1])]).reshape(shp, order='C')
+            out[..., npd0 : n_bin + npd0] = (arr[..., : (shp[-2] * shp[-1])]).reshape(
+                shp, order="C"
+            )
         else:
-            inds = (np.arange(np.prod(shp[-2:])) * n_bin // int(n_bin)
-                    ).astype(int)
+            inds = (np.arange(np.prod(shp[-2:])) * n_bin // int(n_bin)).astype(int)
             # If there are too many indices, drop one bin
             if inds[-1] >= arr.shape[-1]:
-                inds = inds[:-int(n_bin)]
+                inds = inds[: -int(n_bin)]
                 shp[-2] -= 1
                 out = out[..., 1:, :]
             n_bin = int(n_bin)
-            out[..., npd0:n_bin + npd0] = (arr[..., inds]
-                                           ).reshape(shp, order='C')
+            out[..., npd0 : n_bin + npd0] = (arr[..., inds]).reshape(shp, order="C")
             n_bin = int(n_bin)
         if n_pad != 0:
-            out[..., 1:, :npd0] = out[..., :-1, n_bin:n_bin + npd0]
-            out[..., :-1, -npd1:] = out[..., 1:, npd0:npd0 + npd1]
+            out[..., 1:, :npd0] = out[..., :-1, n_bin : n_bin + npd0]
+            out[..., :-1, -npd1:] = out[..., 1:, npd0 : npd0 + npd1]
 
         return out
 
@@ -336,7 +344,7 @@ class TimeBinner:
     def standard_deviation(self, arr, axis=-1, n_bin=None):
         """
         Reshape the array `arr` to shape (...,n,n_bin+n_pad)
-        and take the standard deviation of each bin along the 
+        and take the standard deviation of each bin along the
         specified `axis`.
 
         Parameters
@@ -354,8 +362,17 @@ class TimeBinner:
 
         return np.nanstd(self.reshape(arr, n_bin=n_bin), axis=axis, dtype=np.float32)
 
-    def _psd_base(self, dat, fs=None, window='hann', noise=0,
-                  n_bin=None, n_fft=None, n_pad=None, step=None):
+    def _psd_base(
+        self,
+        dat,
+        fs=None,
+        window="hann",
+        noise=0,
+        n_bin=None,
+        n_fft=None,
+        n_pad=None,
+        step=None,
+    ):
         """
         Calculate power spectral density of `dat`
 
@@ -371,10 +388,10 @@ class TimeBinner:
           The white-noise level of the measurement (in the same units
           as `dat`).
         n_bin : int
-          n_bin of veldat2, number of elements per bin if 'None' is taken 
+          n_bin of veldat2, number of elements per bin if 'None' is taken
           from VelBinner
         n_fft : int
-          n_fft of veldat2, number of elements per bin if 'None' is taken 
+          n_fft of veldat2, number of elements per bin if 'None' is taken
           from VelBinner
         n_pad : int (optional)
           The number of values to pad with zero. Default = 0
@@ -403,36 +420,34 @@ class TimeBinner:
         dat = self.reshape(dat, n_pad=n_pad)
 
         for slc in slice1d_along_axis(dat.shape, -1):
-            out[slc] = psd_1D(dat[slc], n_fft, fs,
-                              window=window, step=step)
-        if noise != 0:
-            out -= noise**2 / (fs/2)
+            out[slc] = psd_1D(dat[slc], n_fft, fs, window=window, step=step)
+        if np.any(noise):
+            out -= noise**2 / (fs / 2)
             # Make sure all values of the PSD are >0 (but still small):
             out[out < 0] = np.min(np.abs(out)) / 100
         return out
 
-    def _csd_base(self, dat1, dat2, fs=None, window='hann',
-                  n_fft=None, n_bin=None):
+    def _csd_base(self, dat1, dat2, fs=None, window="hann", n_fft=None, n_bin=None):
         """
         Calculate the cross power spectral density of `dat`.
 
         Parameters
         ----------
         dat1 : numpy.ndarray
-          The first (shorter, if applicable) raw dataArray of which to 
+          The first (shorter, if applicable) raw dataArray of which to
           calculate the cpsd.
         dat2 : numpy.ndarray
-          The second (the shorter, if applicable) raw dataArray of which to 
+          The second (the shorter, if applicable) raw dataArray of which to
           calculate the cpsd.
         fs : float (optional)
           The sample rate (Hz).
         window : str
           String indicating the window function to use. Default is 'hanning'
         n_fft : int
-          n_fft of veldat2, number of elements per bin if 'None' is taken 
+          n_fft of veldat2, number of elements per bin if 'None' is taken
           from VelBinner
         n_bin : int
-          n_bin of veldat2, number of elements per bin if 'None' is taken 
+          n_bin of veldat2, number of elements per bin if 'None' is taken
           from VelBinner
 
         Returns
@@ -444,7 +459,7 @@ class TimeBinner:
         -----
         PSD's are calculated based on sample rate units
 
-        The two velocity inputs do not have to be perfectly synchronized, but 
+        The two velocity inputs do not have to be perfectly synchronized, but
         they should have the same start and end timestamps
         """
 
@@ -453,7 +468,7 @@ class TimeBinner:
             n_fft = self.n_fft_coh
         # want each slice to carry the same timespan
         n_bin2 = self._parse_nbin(n_bin)  # bins for shorter array
-        n_bin1 = int(dat1.shape[-1]/(dat2.shape[-1]/n_bin2))
+        n_bin1 = int(dat1.shape[-1] / (dat2.shape[-1] / n_bin2))
 
         oshp = self._outshape_fft(dat1.shape, n_fft=n_fft, n_bin=n_bin1)
         oshp[-2] = np.min([oshp[-2], int(dat2.shape[-1] // n_bin2)])
@@ -461,17 +476,16 @@ class TimeBinner:
         # The data is detrended in psd, so we don't need to do it here:
         dat1 = self.reshape(dat1, n_pad=n_fft)
         dat2 = self.reshape(dat2, n_pad=n_fft)
-        out = np.empty(oshp, dtype='c{}'.format(dat1.dtype.itemsize * 2))
+        out = np.empty(oshp, dtype="c{}".format(dat1.dtype.itemsize * 2))
         if dat1.shape == dat2.shape:
             cross = cpsd_1D
         else:
             cross = cpsd_quasisync_1D
         for slc in slice1d_along_axis(out.shape, -1):
-            out[slc] = cross(dat1[slc], dat2[slc], n_fft,
-                             fs, window=window)
+            out[slc] = cross(dat1[slc], dat2[slc], n_fft, fs, window=window)
         return out
 
-    def _fft_freq(self, fs=None, units='Hz', n_fft=None, coh=False):
+    def _fft_freq(self, fs=None, units="Hz", n_fft=None, coh=False):
         """
         Wrapper to calculate the ordinary or radial frequency vector
 
@@ -486,7 +500,7 @@ class TimeBinner:
           (default: False) i.e. use self.n_fft_coh instead of
           self.n_fft.
         n_fft : int
-          n_fft of veldat2, number of elements per bin if 'None' is taken 
+          n_fft of veldat2, number of elements per bin if 'None' is taken
           from VelBinner
 
         Returns
@@ -502,11 +516,13 @@ class TimeBinner:
 
         fs = self._parse_fs(fs)
 
-        if ('Hz' not in units) and ('rad' not in units):
-            raise Exception('Valid fft frequency vector units are Hz \
-                            or rad/s')
+        if ("Hz" not in units) and ("rad" not in units):
+            raise Exception(
+                "Valid fft frequency vector units are Hz \
+                            or rad/s"
+            )
 
-        if 'rad' in units:
-            return fft_frequency(n_fft, 2*np.pi*fs)
+        if "rad" in units:
+            return fft_frequency(n_fft, 2 * np.pi * fs)
         else:
             return fft_frequency(n_fft, fs)

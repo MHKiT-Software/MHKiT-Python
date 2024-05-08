@@ -1,0 +1,8 @@
+# To run Black formating every time you commit:
+# pip install pre-commit
+# pre-commit install
+repos:
+  - repo: https://github.com/psf/black
+    rev: stable
+    hooks:
+      - id: black

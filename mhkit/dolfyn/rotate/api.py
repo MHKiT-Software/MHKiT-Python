@@ -9,20 +9,20 @@ import warnings
 
 
 # The 'rotation chain'
-rc = ['beam', 'inst', 'earth', 'principal']
+rc = ["beam", "inst", "earth", "principal"]
 
 rot_module_dict = {
     # Nortek instruments
-    'vector': r_vec,
-    'awac': r_awac,
-    'signature': r_sig,
-    'ad2cp': r_sig,
-
+    "vector": r_vec,
+    "awac": r_awac,
+    "signature": r_sig,
+    "ad2cp": r_sig,
     # TRDI instruments
-    'rdi': r_rdi}
+    "rdi": r_rdi,
+}
 
 
-def rotate2(ds, out_frame='earth', inplace=True):
+def rotate2(ds, out_frame="earth", inplace=True):
     """
     Rotate a dataset to a new coordinate system.
 
@@ -46,8 +46,8 @@ def rotate2(ds, out_frame='earth', inplace=True):
     -----
     - This function rotates all variables in ``ds.attrs['rotate_vars']``.
 
-    - In order to rotate to the 'principal' frame, a value should exist for 
-      ``ds.attrs['principal_heading']``. The function 
+    - In order to rotate to the 'principal' frame, a value should exist for
+      ``ds.attrs['principal_heading']``. The function
       :func:`calc_principal_heading <dolfyn.calc_principal_heading>`
       is recommended for this purpose, e.g.:
 
@@ -62,18 +62,19 @@ def rotate2(ds, out_frame='earth', inplace=True):
         ds = ds.copy(deep=True)
 
     csin = ds.coord_sys.lower()
-    if csin == 'ship':
-        csin = 'inst'
+    if csin == "ship":
+        csin = "inst"
 
     # Returns True/False if head2inst_rotmat has been set/not-set.
     r_vec._check_inst2head_rotmat(ds)
 
-    if out_frame == 'principal' and csin != 'earth':
+    if out_frame == "principal" and csin != "earth":
         warnings.warn(
             "You are attempting to rotate into the 'principal' "
             "coordinate system, but the dataset is in the {} "
             "coordinate system. Be sure that 'principal_heading' is "
-            "defined based on the earth coordinate system.".format(csin))
+            "defined based on the earth coordinate system.".format(csin)
+        )
 
     rmod = None
     for ky in rot_module_dict:
@@ -81,22 +82,26 @@ def rotate2(ds, out_frame='earth', inplace=True):
             rmod = rot_module_dict[ky]
             break
     if rmod is None:
-        raise ValueError("Rotations are not defined for "
-                         "instrument '{}'.".format(_make_model(ds)))
+        raise ValueError(
+            "Rotations are not defined for " "instrument '{}'.".format(_make_model(ds))
+        )
 
     # Get the 'indices' of the rotation chain
     try:
         iframe_in = rc.index(csin)
     except ValueError:
-        raise Exception("The coordinate system of the input "
-                        "dataset, '{}', is invalid."
-                        .format(ds.coord_sys))
+        raise Exception(
+            "The coordinate system of the input "
+            "dataset, '{}', is invalid.".format(ds.coord_sys)
+        )
     try:
         iframe_out = rc.index(out_frame.lower())
     except ValueError:
-        raise Exception("The specified output coordinate system "
-                        "is invalid, please select one of: 'beam', 'inst', "
-                        "'earth', 'principal'.")
+        raise Exception(
+            "The specified output coordinate system "
+            "is invalid, please select one of: 'beam', 'inst', "
+            "'earth', 'principal'."
+        )
 
     if iframe_out == iframe_in:
         print("Data is already in the {} coordinate system".format(out_frame))
@@ -108,13 +113,13 @@ def rotate2(ds, out_frame='earth', inplace=True):
 
     while ds.coord_sys.lower() != out_frame.lower():
         csin = ds.coord_sys
-        if csin == 'ship':
-            csin = 'inst'
+        if csin == "ship":
+            csin = "inst"
         inow = rc.index(csin)
         if reverse:
-            func = getattr(rmod, '_' + rc[inow - 1] + '2' + rc[inow])
+            func = getattr(rmod, "_" + rc[inow - 1] + "2" + rc[inow])
         else:
-            func = getattr(rmod, '_' + rc[inow] + '2' + rc[inow + 1])
+            func = getattr(rmod, "_" + rc[inow] + "2" + rc[inow + 1])
         ds = func(ds, reverse=reverse)
 
     if not inplace:
@@ -130,7 +135,7 @@ def calc_principal_heading(vel, tidal_mode=True):
     vel : np.ndarray (2,...,Nt), or (3,...,Nt)
       The 2D or 3D velocity array (3rd-dim is ignored in this calculation)
     tidal_mode : bool
-      If true, range is set from 0 to +/-180 degrees. If false, range is 0 to 
+      If true, range is set from 0 to +/-180 degrees. If false, range is 0 to
       360 degrees. Default = True
 
     Returns
@@ -165,8 +170,7 @@ def calc_principal_heading(vel, tidal_mode=True):
         dt = np.ma.masked_invalid(dt)
         # Divide the angle by 2 to remove the doubling done on the previous
         # line.
-        pang = np.angle(
-            np.nanmean(dt, -1, dtype=np.complex128)) / 2
+        pang = np.angle(np.nanmean(dt, -1, dtype=np.complex128)) / 2
     else:
         pang = np.angle(np.nanmean(dt, -1))
 
@@ -225,8 +229,8 @@ def set_declination(ds, declin, inplace=True):
     if not inplace:
         ds = ds.copy(deep=True)
 
-    if 'declination' in ds.attrs:
-        angle = declin - ds.attrs.pop('declination')
+    if "declination" in ds.attrs:
+        angle = declin - ds.attrs.pop("declination")
     else:
         angle = declin
     cd = np.cos(-np.deg2rad(angle))
@@ -234,28 +238,28 @@ def set_declination(ds, declin, inplace=True):
 
     # The ordering is funny here because orientmat is the
     # transpose of the inst->earth rotation matrix:
-    Rdec = np.array([[cd, -sd, 0],
-                     [sd, cd, 0],
-                     [0, 0, 1]])
+    Rdec = np.array([[cd, -sd, 0], [sd, cd, 0], [0, 0, 1]])
 
-    if ds.coord_sys == 'earth':
+    if ds.coord_sys == "earth":
         rotate2earth = True
-        rotate2(ds, 'inst', inplace=True)
+        rotate2(ds, "inst", inplace=True)
     else:
         rotate2earth = False
 
-    ds['orientmat'].values = np.einsum('kj...,ij->ki...',
-                                       ds['orientmat'].values,
-                                       Rdec, )
-    if 'heading' in ds:
-        ds['heading'] += angle
+    ds["orientmat"].values = np.einsum(
+        "kj...,ij->ki...",
+        ds["orientmat"].values,
+        Rdec,
+    )
+    if "heading" in ds:
+        ds["heading"] += angle
     if rotate2earth:
-        rotate2(ds, 'earth', inplace=True)
-    if 'principal_heading' in ds.attrs:
-        ds.attrs['principal_heading'] += angle
+        rotate2(ds, "earth", inplace=True)
+    if "principal_heading" in ds.attrs:
+        ds.attrs["principal_heading"] += angle
 
-    ds.attrs['declination'] = declin
-    ds.attrs['declination_in_orientmat'] = 1  # logical
+    ds.attrs["declination"] = declin
+    ds.attrs["declination_in_orientmat"] = 1  # logical
 
     if not inplace:
         return ds
@@ -295,31 +299,32 @@ def set_inst2head_rotmat(ds, rotmat, inplace=True):
     if not inplace:
         ds = ds.copy(deep=True)
 
-    if not ds.inst_model.lower() == 'vector':
-        raise Exception("Setting 'inst2head_rotmat' is only supported "
-                        "for Nortek Vector ADVs.")
-    if ds.get('inst2head_rotmat', None) is not None:
+    if not ds.inst_model.lower() == "vector":
+        raise Exception(
+            "Setting 'inst2head_rotmat' is only supported " "for Nortek Vector ADVs."
+        )
+    if ds.get("inst2head_rotmat", None) is not None:
         raise Exception(
             "You are setting 'inst2head_rotmat' after it has already "
-            "been set. You can only set it once.")
+            "been set. You can only set it once."
+        )
 
     csin = ds.coord_sys
-    if csin not in ['inst', 'beam']:
-        rotate2(ds, 'inst', inplace=True)
+    if csin not in ["inst", "beam"]:
+        rotate2(ds, "inst", inplace=True)
 
-    ds['inst2head_rotmat'] = xr.DataArray(np.array(rotmat),
-                                          dims=['x1', 'x2'],
-                                          coords={'x1': [1, 2, 3],
-                                                  'x2': [1, 2, 3]})
+    ds["inst2head_rotmat"] = xr.DataArray(
+        np.array(rotmat), dims=["x1", "x2"], coords={"x1": [1, 2, 3], "x2": [1, 2, 3]}
+    )
 
-    ds.attrs['inst2head_rotmat_was_set'] = 1  # logical
+    ds.attrs["inst2head_rotmat_was_set"] = 1  # logical
     # Note that there is no validation that the user doesn't
     # change `ds.attrs['inst2head_rotmat']` after calling this
     # function.
 
-    if not csin == 'beam':  # csin not 'beam', then we're in inst
+    if not csin == "beam":  # csin not 'beam', then we're in inst
         ds = r_vec._rotate_inst2head(ds)
-    if csin not in ['inst', 'beam']:
+    if csin not in ["inst", "beam"]:
         rotate2(ds, csin, inplace=True)
 
     if not inplace:
