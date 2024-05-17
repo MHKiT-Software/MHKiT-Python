@@ -433,7 +433,7 @@ def request_wpto_directional_spectrum(
                 else:
                     break
 
-            ax1 = np.product(data_array.shape[:3])
+            ax1 = np.prod(data_array.shape[:3])
             ax2 = data_array.shape[-1] if len(data_array.shape) == 4 else 1
             datas[i] = pd.DataFrame(
                 data_array.reshape(ax1, ax2), columns=columns, index=idx
