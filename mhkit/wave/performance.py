@@ -219,7 +219,7 @@ def wave_energy_flux_matrix(Hm0, Te, J, statistic, Hm0_bins, Te_bins, to_pandas=
     Hm0 = convert_to_dataarray(Hm0)
     Te = convert_to_dataarray(Te)
     J = convert_to_dataarray(J)
-    
+
     if not (isinstance(statistic, str) or callable(statistic)):
         raise TypeError(
             f"statistic must be of type str or callable. Got: {type(statistic)}"
