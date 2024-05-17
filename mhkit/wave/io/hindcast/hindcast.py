@@ -239,7 +239,7 @@ def request_wpto_point_data(
                     gid = rex_waves.lat_lon_gid(lat_lon)
                     cols = temp_data.columns[:]
                     for i, col in zip(range(len(cols)), cols):
-                        temp = f"{param}_{gid}"
+                        temp = f"{param}_{i}"
                         temp_data = temp_data.rename(columns={col: temp})
 
                     data_list.append(temp_data)
@@ -263,7 +263,7 @@ def request_wpto_point_data(
                 data["time_index"] = pd.to_datetime(data.time_index)
 
                 if isinstance(parameter, list):
-                    param_coords = [f"{param}_{gid}" for param in parameter]
+                    param_coords = [f"{param}_{i}" for param in parameter]
                     data.coords["parameter"] = xr.DataArray(
                         param_coords, dims="parameter"
                     )
