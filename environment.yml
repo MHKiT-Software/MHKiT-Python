@@ -18,10 +18,10 @@ dependencies:
   - xarray
   - h5py>=3.6.0
   - netcdf4>=1.5.8
-  - notebook
   - pip:
       - pecos>=0.3.0
       - fatpack
       - NREL-rex>=0.2.63
       - h5pyd>=0.7.0
       - six>=1.13.0
+      - notebook
