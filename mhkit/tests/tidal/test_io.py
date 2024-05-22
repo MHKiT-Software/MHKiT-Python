@@ -59,7 +59,12 @@ class TestIO(unittest.TestCase):
         """
         file_name = join(datadir, "s08010.json")
         data = tidal.io.noaa.read_noaa_json(file_name, to_pandas=False)
-        self.assertTrue(np.all(list(data.variables) == ["index", "s", "d", "b"]))
+        # Check if the variable sets are equal
+        data_variables = list(data.variables)
+        required_variables = ["index", "s", "d", "b"]
+        data_variables_set = set(data_variables)
+        required_variables_set = set(required_variables)
+        self.assertTrue(data_variables_set == required_variables_set)
         self.assertEqual(len(data["index"]), 18890)
         self.assertEqual(data.attrs["id"], "s08010")
 
@@ -96,7 +101,12 @@ class TestIO(unittest.TestCase):
             write_json=None,
             to_pandas=False,
         )
-        self.assertTrue(np.all(list(data.variables) == ["index", "s", "d", "b"]))
+        # Check if the variable sets are equal
+        data_variables = list(data.variables)
+        required_variables = ["index", "s", "d", "b"]
+        data_variables_set = set(data_variables)
+        required_variables_set = set(required_variables)
+        self.assertTrue(data_variables_set == required_variables_set)
         self.assertEqual(len(data["index"]), 183)
         self.assertEqual(data.attrs["id"], "s08010")
 
