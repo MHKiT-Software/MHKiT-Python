@@ -39,10 +39,28 @@ def _fast_fourier_transform(fs, x):
 # fmax = 192000 / 2  # Nyquist frequency
 
 
-def spectral_density(P, fs, window_size=1, overlap=0.5, Vo2=1):
+def sound_pressure_spectral_density(P, fs, window_size=1, overlap=0.5):
     """
-    Calculate sound pressure level from the power spectral density of sound
-    samples split into windows with a specific overlap.
+    Calculates the mean square sound pressure spectral density from audio
+    samples split into FFTs with a specified window_size in seconds and
+    a specified percent overlap.
+
+    Parameters
+    ----------
+    P: xarray.DataArray (time, frequency)
+        Sound pressure in Pascals.
+    fs: integer
+        Data collection sampling rate [Hz]
+    window_size: string (optional)
+        Length of time in seconds to create FFTs. Default is 1 s.
+    overlap: numeric
+        Percent overlap between neighboring FFTs. Default is 50%.
+
+    Returns
+    -------
+    out: xarray.DataArray
+        Spectral density [Pa^2/Hz] indexed by time[s] and frequency [Hz]
+
     """
     # window length of each time series
     win = window_size * fs
@@ -80,8 +98,8 @@ def spectral_density(P, fs, window_size=1, overlap=0.5, Vo2=1):
         psd_adj.T,
         coords={"time": ts, "freq": freq},
         attrs={
-            "units": "Pa^2 / Hz",
-            "long_name": "Mean-Squared Sound Pressure Spectral Density",
+            "units": "Pa^2/Hz",
+            "long_name": "Mean Square Sound Pressure Spectral Density",
             "fs": fs,
             "window": win,
             "overlap": overlap,
@@ -93,43 +111,79 @@ def spectral_density(P, fs, window_size=1, overlap=0.5, Vo2=1):
     return out
 
 
-def spectral_density_level(psd, Po2=1e-12):
+def sound_pressure_spectral_density_level(spsd):
     """
-    Mean-squared sound pressure spectral density level
-    """
-    # mean-squared sound pressure spectral density level
-    Lpf = 10 * np.log10(psd.values / Po2)
+    Calculates the sound pressure spectral density level from
+    the mean square sound pressure spectral density.
 
-    SPL = xr.DataArray(
-        Lpf,
-        coords={"time": psd["time"], "freq": psd["freq"]},
+    Parameters
+    ----------
+    spsd: xarray DataArray (time, freq)
+        Mean square sound pressure spectral density in uPa^2/Hz
+
+    Returns
+    -------
+    out: xarray.DataArray
+        Sound pressure spectral density level [dB re 1 uPa^2/Hz]
+        indexed by time [s] and frequency
+    """
+    # Reference value of sound pressure
+    P2_ref = 1e-12  # Pa^2/Hz, = 1 uPa^2/Hz
+
+    # Sound pressure spectral density level from mean square values
+    lpf = 10 * np.log10(spsd.values / P2_ref)
+
+    out = xr.DataArray(
+        lpf,
+        coords={"time": spsd["time"], "freq": spsd["freq"]},
         attrs={
-            "units": "dB re 1 uPa",
-            "long_name": "Mean-Squared Sound Pressure Spectral Density Level",
+            "units": "dB re 1 uPa^2/Hz",
+            "long_name": "Sound Pressure Spectral Density Level",
         },
     )
 
-    return SPL
+    return out
 
 
-def sound_pressure_level(psd, Po2=1e-12, fmin=20, fmax=192000 / 2):
+def sound_pressure_level(spsd, fmin=20, fmax=192000 // 2):
     """
-    Sound pressure level in a band for marine energy converter
+    Calculates the sound pressure level in a specified frequency band
+    from the mean square sound pressure spectral density.
+
+    Parameters
+    ----------
+    psd: xarray DataArray (time, freq)
+        Mean square sound pressure spectral density.
+    fmin: integer
+        Lower frequency band limit (lower limit of the hydrophone)
+    fmax: integer
+        Upper frequency band limit (Nyquist frequency)
+
+    Returns
+    -------
+    out: xarray.DataArray
+        Sound pressure level [dB re 1 uPa] indexed by time [s]
     """
-    df = psd.attrs["fs"] / psd.attrs["nfft"]
+    # Reference value of sound pressure
+    P2_ref = 1e-12  # Pa^2, = 1 uPa^2
+
+    df = spsd.attrs["fs"] / spsd.attrs["nfft"]
     nfmin = fmin // df
     nfmax = fmax // df
 
-    # marine energy converter sound pressure level in a band
-    mspl = 10 * np.log10(np.sum(psd.sel(freq=slice(nfmin, nfmax)), axis=0) * df / Po2)
+    # Sound pressure level in a specified frequency band from mean square values
+    P2 = spsd.sel(freq=slice(nfmin, nfmax)).sum('freq').values * df  # mean square sound pressure
+    mspl = 10 * np.log10(P2 / P2_ref)
 
-    MSPL = xr.DataArray(
+    out = xr.DataArray(
         mspl,
-        coords={"time": psd["time"]},
+        coords={"time": spsd["time"]},
         attrs={
             "units": "dB re 1 uPa",
-            "long_name": "Mean-Squared Sound Pressure Level",
+            "long_name": "Sound Pressure Level",
+            "freq_band_min": fmin,
+            "freq_band_max": fmax
         },
     )
 
-    return MSPL
+    return out
