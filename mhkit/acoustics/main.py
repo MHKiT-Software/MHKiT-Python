@@ -65,19 +65,19 @@ def sound_pressure_spectral_density(P, fs, window_size=1, overlap=0.5):
     # window length of each time series
     win = window_size * fs
     # overlap between each window
-    step = overlap * fs
+    step = int(overlap * fs)
     # number of time series samples
-    ns = np.floor((len(P) - win) / step)
+    ns = int(np.floor((len(P) - win) / step))
     # number of fft points
-    nfft = 2 * 2.0 ** (np.ceil(np.log(win) / np.log(2)))
+    nfft = int(2 * 2.0 ** (np.ceil(np.log(win) / np.log(2))))
     # frequency resolution
     df = fs / nfft
     # Next highest power of 2 greater than length(x).
-    nfreq = np.ceil((nfft + 1) / 2)
+    nfreq = int(np.ceil((nfft + 1) / 2))
     # mean-squared sound pressure spectral density
     Pf2 = np.zeros((nfreq, ns))
 
-    # Should be able to do this with a reshape
+    # Takes too long
     for i in range(ns):
         sample = P[i * step : i * step + win]
         sample = sample - np.mean(sample)
@@ -172,7 +172,9 @@ def sound_pressure_level(spsd, fmin=20, fmax=192000 // 2):
     nfmax = fmax // df
 
     # Sound pressure level in a specified frequency band from mean square values
-    P2 = spsd.sel(freq=slice(nfmin, nfmax)).sum('freq').values * df  # mean square sound pressure
+    P2 = (
+        spsd.sel(freq=slice(nfmin, nfmax)).sum("freq").values * df
+    )  # mean square sound pressure
     mspl = 10 * np.log10(P2 / P2_ref)
 
     out = xr.DataArray(
@@ -182,7 +184,7 @@ def sound_pressure_level(spsd, fmin=20, fmax=192000 // 2):
             "units": "dB re 1 uPa",
             "long_name": "Sound Pressure Level",
             "freq_band_min": fmin,
-            "freq_band_max": fmax
+            "freq_band_max": fmax,
         },
     )
 
