@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from scipy.io import wavfile
-from datetime import datetime
 
 
 def read_iclisten(filename, Sf=None, gain=0):
@@ -117,8 +116,9 @@ def read_iclisten(filename, Sf=None, gain=0):
     if bits_per_sample == 16:
         mx_count = 2 ** (16 - 1)  # 16 bit
     elif bits_per_sample <= 32:
-        mx_count = 2 ** (32 - 1)  # 24 (can't read 24 bit numbers) or 32 bit
-    raw_V = raw.astype(np.float32) / mx_count * peak_V
+        mx_count = 2 ** (32 - 1)  # 24 (computer doesn't read 24 bit numbers) or 32 bit
+    # Use 64 bit float for decimal accuracy
+    raw_V = raw.astype(float) / mx_count * peak_V
 
     # Min resolution
     min_res = peak_V / mx_count / Sf  # uPa
@@ -129,9 +129,9 @@ def read_iclisten(filename, Sf=None, gain=0):
     pressure = raw_V / Sf  # uPa
     pressure = pressure / 1e6  # Pa
 
-    # Sanity check - check total average sound pressure level
-    rms_V = np.sqrt(np.mean(raw_V**2))
-    spl_avg = 20 * np.log10(rms_V / Sf)
+    # # Sanity check - check total average sound pressure level
+    # rms_V = np.sqrt(np.mean(raw_V**2))
+    # spl_avg = 20 * np.log10(rms_V / Sf)
 
     # Get time
     start_time = np.datetime64(icrd)
@@ -144,6 +144,7 @@ def read_iclisten(filename, Sf=None, gain=0):
         attrs={
             "units": "Pa",
             "resolution": np.round(min_res / 1e6, 9),
+            "valid_min": np.round(-max_sat / 1e6, 6,),
             "valid_max": np.round(max_sat / 1e6, 6),
             "fs": fs,
             "serial_num": iart,
