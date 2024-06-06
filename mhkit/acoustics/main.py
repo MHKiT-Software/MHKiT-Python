@@ -118,9 +118,7 @@ def sound_pressure_level(spsd, fmin=20, fmax=192000 // 2):
     nfmax = fmax // df
 
     # Mean square sound pressure in a specified frequency band from mean square values
-    P2 = (
-        spsd.sel(freq=slice(nfmin, nfmax)).sum("freq").values * df
-    )
+    P2 = spsd.sel(freq=slice(nfmin, nfmax)).sum("freq").values * df
     # Mean square sound pressure level
     mspl = 10 * np.log10(P2 / P2_ref)
 
