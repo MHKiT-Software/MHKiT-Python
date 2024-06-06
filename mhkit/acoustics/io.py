@@ -154,9 +154,7 @@ def read_soundtrap(filename, Sf=None, gain=0):
     )
 
     # Soundtrap uses a peak voltage of 1 V
-    out = read_hydrophone(
-        filename, peak_V=1, Sf=Sf, gain=gain, start_time=start_time
-    )
+    out = read_hydrophone(filename, peak_V=1, Sf=Sf, gain=gain, start_time=start_time)
     out.attrs["make"] = "SoundTrap"
 
     return out

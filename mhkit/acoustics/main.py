@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 import xarray as xr
 
@@ -110,6 +111,15 @@ def sound_pressure_level(spsd, fmin=20, fmax=192000 // 2):
     out: xarray.DataArray
         Sound pressure level [dB re 1 uPa] indexed by time [s]
     """
+
+    fn = spsd.attrs["fs"] // 2
+    if fmax > fn:
+        warnings.warn(
+            "`fmax` = {fmax} is greater than the Nyquist frequency. Setting"
+            "fmax = {fn}"
+        )
+        fmax = fn
+
     # Reference value of sound pressure
     P2_ref = 1e-12  # Pa^2, = 1 uPa^2
 
