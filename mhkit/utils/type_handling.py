@@ -172,7 +172,7 @@ def convert_to_dataarray(data, name="data"):
 
     # Converts pd.Series to xr.DataArray
     if isinstance(data, pd.Series):
-        data = data.to_xarray()
+        data = xr.DataArray(data)
 
     # Converts np.ndarray to xr.DataArray. Assigns a simple 0-based dimension named index
     if isinstance(data, np.ndarray):
