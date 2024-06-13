@@ -1,3 +1,4 @@
+import wave
 import warnings
 import numpy as np
 import xarray as xr
@@ -144,3 +145,60 @@ def sound_pressure_level(spsd, fmin=20, fmax=192000 // 2):
     )
 
     return out
+
+
+def band_average(spsdl, min_band=10, max_band=192000 // 2, method="mean", method_arg=None):
+    """Reorganizes and averages spectral density level frequency
+    vector into third octave bands
+    """
+
+    fn = spsdl["freq"].max().values
+    if max_band > fn:
+        warnings.warn(
+            "`fmax` = {fmax} is greater than the Nyquist frequency. Setting"
+            "fmax = {fn}"
+        )
+        max_band = fn
+
+    third_octave_band = 2 ** (1 / 3)
+    sixth_octave_band = 2 ** (1 / 6)
+    center_freq = 10 ** np.arange(
+        np.log10(min_band),
+        np.log10(max_band * third_octave_band),
+        step=np.log10(third_octave_band),
+    )
+    lower_limit = center_freq / sixth_octave_band
+    upper_limit = center_freq * sixth_octave_band
+    third_octave_bins = np.append(lower_limit, upper_limit[-1])
+
+    # Use xarray binning methods
+    spsdl_group = spsdl.groupby_bins("freq", third_octave_bins, labels=center_freq)
+    func = getattr(spsdl_group, method.lower())
+    out = func(method_arg)
+    out.attrs["comment"] = f"Third octave frequency band {method}"
+
+    return out
+
+
+def time_average(spsdl, method="mean", method_arg=None):
+
+    return out
+
+
+def export_audio(P, gain=10):
+    """Creates human-scaled audio file from underwater recording.
+    """
+    # Convert from Pascals to UPa
+    uPa = P.values.T * 1e6
+    # Change to voltage waveform
+    V = uPa * 10 ** (P.sensitivity / 20)  # in V
+    # Normalize
+    V = V / max(abs(V)) * gain
+    # Convert to (little-endian) 16 bit integers.
+    audio = (V * (2 ** 16 - 1)).astype("<h")
+
+    with wave.open("sound1.wav", "w") as f:
+        f.setnchannels(1)
+        f.setsampwidth(2)
+        f.setframerate(P.fs)
+        f.writeframes(audio.tobytes())

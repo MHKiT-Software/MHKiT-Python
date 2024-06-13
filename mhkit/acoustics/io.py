@@ -68,30 +68,31 @@ def read_hydrophone(
     fs, raw = wavfile.read(filename)
     length = raw.shape[0] // fs  # length of recording in seconds
 
-    # Need to cross-check with wavfile.read datatype?
     if bits_per_sample == 16:
         max_count = 2 ** (16 - 1)  # 16 bit
+    elif bits_per_sample == 24:
+        max_count = 2 ** (32 - 1) - 2**8  # 24 bit read in as 32 bit
     elif bits_per_sample <= 32:
-        max_count = 2 ** (32 - 1)  # 24 (computer doesn't read 24 bit numbers) or 32 bit
+        max_count = 2 ** (32 - 1)  # 32 bit
 
     # Subtract gain
     # hydrophone with sensitivity of -177 dB and gain of -3 dB = sensitivity of 174 dB
     if gain:
         Sf -= gain
     # Convert calibration from dB rel 1 V/uPa into ratio
-    Sf = 10 ** (Sf / 20)  # V/uPa
+    sensitivity = 10 ** (Sf / 20)  # V/uPa
 
     # Use 64 bit float for decimal accuracy
     raw_V = raw.astype(float) / max_count * peak_V
 
     # Sound pressure
-    pressure = raw_V / Sf  # uPa
+    pressure = raw_V / sensitivity  # uPa
     pressure = pressure / 1e6  # Pa
 
     # Min resolution
-    min_res = peak_V / max_count / Sf  # uPa
+    min_res = peak_V / max_count / sensitivity  # uPa
     # Pressure at which sensor is saturated
-    max_sat = peak_V / Sf  # uPa
+    max_sat = peak_V / sensitivity  # uPa
 
     # Get time
     end_time = np.datetime64(start_time) + np.timedelta64(length, "s")
@@ -102,6 +103,7 @@ def read_hydrophone(
         coords={"time": time[:-1]},
         attrs={
             "units": "Pa",
+            "sensitivity": Sf,
             "resolution": np.round(min_res / 1e6, 9),
             "valid_min": np.round(
                 -max_sat / 1e6,
@@ -247,7 +249,7 @@ def read_iclisten(filename):
             "software_ver": isft,
             "filename": inam + ".wav",
             "peak_voltage": peak_voltage,
-            "sensitivity": hphone_sensitivity,
+            "sensitivity": Sf,
             "humidity": humidity,
             "temperature": temp,
             "accelerometer": accel,

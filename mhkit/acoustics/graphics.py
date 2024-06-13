@@ -6,7 +6,7 @@ from cmocean.cm import thermal
 import matplotlib.dates as mdates
 
 
-def plot_spectogram(spsdl, fmin=20, fmax=512000 // 2, vmin=0, vmax=100):
+def plot_spectogram(spsdl, fmin=20, fmax=512000 // 2, fig=None, ax=None, vmin=0, vmax=100):
 
     fn = spsdl["freq"].max()
     if fmax > fn:
@@ -18,8 +18,9 @@ def plot_spectogram(spsdl, fmin=20, fmax=512000 // 2, vmin=0, vmax=100):
 
     spsdl = spsdl.sel(freq=slice(fmin, fmax))
 
-    fig, ax = plt.subplots(figsize=(6, 5), subplot_kw={"yscale": "log"})
-    fig.subplots_adjust(left=0.1, right=0.95, top=0.97, bottom=0.11)
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(6, 5), subplot_kw={"yscale": "log"})
+        fig.subplots_adjust(left=0.1, right=0.95, top=0.97, bottom=0.11)
     h = ax.pcolormesh(
         spsdl["time"].values,
         spsdl["freq"].values,
@@ -36,9 +37,10 @@ def plot_spectogram(spsdl, fmin=20, fmax=512000 // 2, vmin=0, vmax=100):
     return fig, ax
 
 
-def plot_spectrum(spsdl, fmin=20, fmax=512000 // 4):
+def plot_spectrum(spsdl, fmin=20, fmax=512000 // 4, fig=None, ax=None):
 
-    fn = spsdl["freq"].max()
+    freq = spsdl.dims[-1]
+    fn = spsdl[freq].max()
     if fmax > fn:
         warnings.warn(
             "`fmax` = {fmax} is greater than the Nyquist frequency. Setting"
@@ -46,13 +48,14 @@ def plot_spectrum(spsdl, fmin=20, fmax=512000 // 4):
         )
         fmax = fn
 
-    spsdl = spsdl.sel(freq=slice(fmin, fmax)).mean("time")
+    spsdl = spsdl.sel({freq: slice(fmin, fmax)}).mean("time")
 
-    fig, ax = plt.subplots(figsize=(6, 5))
-    fig.subplots_adjust(
-        left=0.1, right=0.95, top=0.85, bottom=0.2, hspace=0.3, wspace=0.15
-    )
-    ax.loglog(spsdl["freq"], spsdl.T)
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(6, 5))
+        fig.subplots_adjust(
+            left=0.1, right=0.95, top=0.85, bottom=0.2, hspace=0.3, wspace=0.15
+        )
+    ax.loglog(spsdl[freq], spsdl.T)
     ax.set(xlim=(fmin, fmax), xlabel="Frequency [Hz]", ylabel="dB re 1 uPa^2/Hz")
 
     return fig, ax
