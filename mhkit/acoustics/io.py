@@ -2,6 +2,7 @@ import struct
 import numpy as np
 import pandas as pd
 import xarray as xr
+import wave
 from scipy.io import wavfile
 
 
@@ -82,6 +83,7 @@ def read_hydrophone(
     # Convert calibration from dB rel 1 V/uPa into ratio
     sensitivity = 10 ** (Sf / 20)  # V/uPa
 
+    # Normalize and then scale to peak voltage
     # Use 64 bit float for decimal accuracy
     raw_V = raw.astype(float) / max_count * peak_V
 
@@ -229,8 +231,12 @@ def read_iclisten(filename):
             hphone_sensitivity = fields[1].lstrip()
             humidity = fields[2].lstrip()
             temp = fields[3].lstrip()
-            accel = ",".join(fields[4:7]).lstrip()
-            mag = ",".join(fields[7:10]).lstrip()
+            if len(fields) > 6:
+                accel = ",".join(fields[4:7]).lstrip()
+                mag = ",".join(fields[7:10]).lstrip()
+            else:
+                accel = []
+                mag = []
             count_at_peak_V = fields[-2].lstrip()
             n_sequence = fields[-1].lstrip()
         else:
@@ -260,3 +266,21 @@ def read_iclisten(filename):
     )
 
     return out
+
+
+def export_audio(P, gain=1):
+    """Creates human-scaled audio file from underwater recording."""
+    # Convert from Pascals to UPa
+    uPa = P.values.T * 1e6
+    # Change to voltage waveform
+    V = uPa * 10 ** (P.sensitivity / 20)  # in V
+    # Normalize
+    V = V / max(abs(V)) * gain
+    # Convert to (little-endian) 16 bit integers.
+    audio = (V * (2**16 - 1)).astype("<h")
+
+    with wave.open("sound1.wav", "w") as f:
+        f.setnchannels(1)
+        f.setsampwidth(2)
+        f.setframerate(P.fs)
+        f.writeframes(audio.tobytes())
