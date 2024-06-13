@@ -86,7 +86,7 @@ class TestMooring(unittest.TestCase):
         y_data = self.dsani[nodes_y[0]].isel(Time=frame).values
 
         # Manually set the data for the line object
-        line.set_data(x_data, y_data)
+        line.set_data([x_data], [y_data])
 
         # Extract updated data from the line object
         updated_x, updated_y = line.get_data()
@@ -126,7 +126,7 @@ class TestMooring(unittest.TestCase):
         z_data = self.dsani[nodes_z[0]].isel(Time=frame).values
 
         # Manually set the data for the line object
-        line.set_data(x_data, y_data)
+        line.set_data([x_data], [y_data])
         line.set_3d_properties(z_data)
 
         # Extract updated data from the line object
