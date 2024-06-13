@@ -319,9 +319,9 @@ def mean_annual_energy_production_matrix(LM, JM, frequency):
         Mean annual energy production
 
     """
-    LM = convert_to_dataset(LM).to_array()
-    JM = convert_to_dataset(JM).to_array()
-    frequency = convert_to_dataset(frequency).to_array()
+    LM = convert_to_dataarray(LM)
+    JM = convert_to_dataarray(JM)
+    frequency = convert_to_dataarray(frequency)
 
     if not LM.shape == JM.shape == frequency.shape:
         raise ValueError("LM, JM, and frequency must be of the same size")
