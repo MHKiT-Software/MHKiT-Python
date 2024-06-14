@@ -10,7 +10,6 @@ $ cat .gitignore
 *.tws
 *~
 *.png
-*.wav
 
 # Directories
 **/__pycache__/

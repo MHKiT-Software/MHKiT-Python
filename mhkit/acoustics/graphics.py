@@ -3,6 +3,31 @@ import matplotlib.pyplot as plt
 
 
 def plot_spectogram(spsdl, fmin=10, fmax=96000, fig=None, ax=None, kwargs={}):
+    """
+    Plots the spectogram of the sound pressure spectral density level.
+
+    Parameters
+    ----------
+    spsdl: xarray DataArray (time, freq)
+        Mean square sound pressure spectral density level in dB rel 1 uPa^2/Hz
+    fmin: int
+        Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
+    fmax: int
+        Upper frequency band limit (Nyquist frequency). Default: 96000 Hz
+    fig: matplotlib.pyplot.figure
+        Figure handle to plot on
+    ax: matplotlib.pyplot.axis
+        Figure axis containing plot objects
+    kwargs: dict
+        Dictionary of matplotlib function keyword arguments
+
+    Returns
+    -------
+    fig: matplotlib.pyplot.figure
+        Figure handle of plot
+    ax: matplotlib.pyplot.axis
+        Figure plot axis
+    """
 
     fn = spsdl["freq"].max()
     if fmax > fn:
@@ -27,7 +52,31 @@ def plot_spectogram(spsdl, fmin=10, fmax=96000, fig=None, ax=None, kwargs={}):
 
 
 def plot_spectra(spsdl, fmin=10, fmax=96000, fig=None, ax=None, kwargs={}):
-    """Plots pressure spectra"""
+    """
+    Plots spectral density. X axis is log-transformed.
+
+    Parameters
+    ----------
+    spsdl: xarray DataArray (time, freq)
+        Mean square sound pressure spectral density level in dB rel 1 uPa^2/Hz
+    fmin: int
+        Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
+    fmax: int
+        Upper frequency band limit (Nyquist frequency). Default: 96000 Hz
+    fig: matplotlib.pyplot.figure
+        Figure handle to plot on
+    ax: matplotlib.pyplot.axis
+        Figure axis containing plot objects
+    kwargs: dict
+        Dictionary of matplotlib function keyword arguments
+
+    Returns
+    -------
+    fig: matplotlib.pyplot.figure
+        Figure handle of plot
+    ax: matplotlib.pyplot.axis
+        Figure plot axis
+    """
 
     freq = spsdl.dims[-1]
     fn = spsdl[freq].max()
