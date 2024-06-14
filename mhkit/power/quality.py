@@ -107,6 +107,8 @@ def harmonics(
         hertz = np.arange(0, 3060, 5)
     elif grid_freq == 50:
         hertz = np.arange(0, 2570, 5)
+    else:
+        raise ValueError(f"grid_freq must be either 50 or 60. Got {grid_freq}")
 
     harmonic_amplitudes = harmonic_amplitudes.reindex(
         {"frequency": hertz}, method="nearest"
@@ -322,7 +324,11 @@ def interharmonics(
             + f"xr.DataArray, or xr.Dataset. Got {type(harmonic_amplitudes)}"
         )
 
-    if grid_freq not in [50, 60]:
+    if grid_freq == 60:
+        hertz = np.arange(0, 3060, 60)
+    elif grid_freq == 50:
+        hertz = np.arange(0, 2550, 50)
+    else:
         raise ValueError(f"grid_freq must be either 50 or 60. Got {grid_freq}")
 
     if not isinstance(to_pandas, bool):
@@ -339,11 +345,6 @@ def interharmonics(
             "frequency_dimension was supplied but is not a dimension "
             + f"of harmonic_amplitudes. Got {frequency_dimension}"
         )
-
-    if grid_freq == 60:
-        hertz = np.arange(0, 3060, 60)
-    elif grid_freq == 50:
-        hertz = np.arange(0, 2550, 50)
 
     # Sort input data index
     if frequency_dimension == "":

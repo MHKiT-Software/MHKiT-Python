@@ -241,6 +241,7 @@ def short_term_extreme(
         short_term_extreme_dist = fit_maxima(maxima)
     else:
         print("Passed `method` not found.")
+        short_term_extreme_dist = None
     return short_term_extreme_dist
 
 

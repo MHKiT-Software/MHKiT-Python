@@ -239,7 +239,7 @@ def request_wpto_point_data(
                     gid = rex_waves.lat_lon_gid(lat_lon)
                     cols = temp_data.columns[:]
                     for i, col in zip(range(len(cols)), cols):
-                        temp = f"{param}_{gid}"
+                        temp = f"{param}_{i}"
                         temp_data = temp_data.rename(columns={col: temp})
 
                     data_list.append(temp_data)
@@ -263,7 +263,7 @@ def request_wpto_point_data(
                 data["time_index"] = pd.to_datetime(data.time_index)
 
                 if isinstance(parameter, list):
-                    param_coords = [f"{param}_{gid}" for param in parameter]
+                    param_coords = [f"{param}_{i}" for param in parameter]
                     data.coords["parameter"] = xr.DataArray(
                         param_coords, dims="parameter"
                     )
@@ -433,7 +433,7 @@ def request_wpto_directional_spectrum(
                 else:
                     break
 
-            ax1 = np.product(data_array.shape[:3])
+            ax1 = np.prod(data_array.shape[:3])
             ax2 = data_array.shape[-1] if len(data_array.shape) == 4 else 1
             datas[i] = pd.DataFrame(
                 data_array.reshape(ax1, ax2), columns=columns, index=idx
