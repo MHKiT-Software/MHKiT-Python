@@ -25,10 +25,13 @@ jobs:
           echo "::set-output name=matrix::$(cat matrix.json)"
 
   test-notebooks:
+    needs: setup-matrix
     runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.setup-matrix.outputs.matrix) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -59,28 +62,20 @@ jobs:
           path: ~/.cache/mhkit
 
       - name: Download wave hindcast data artifact
-        if: github.event.client_payload.should_run_hindcast == 'true'
+        if: matrix.condition == 'true' && github.event.client_payload.should_run_hindcast == 'true'
         uses: actions/download-artifact@v4
         with:
           name: wave-hindcast-data
           path: ~/.cache/mhkit/wave-hindcast
 
       - name: Download wind hindcast data artifact
-        if: github.event.client_payload.should_run_hindcast == 'true'
+        if: matrix.condition == 'true' && github.event.client_payload.should_run_hindcast == 'true'
         uses: actions/download-artifact@v4
         with:
           name: wind-hindcast-data
           path: ~/.cache/mhkit/wind-hindcast
 
-      - name: Run non-hindcast notebooks
+      - name: Run notebook
+        if: matrix.condition == 'false' || github.event.client_payload.should_run_hindcast == 'true'
         run: |
-          find examples -name "*.ipynb" -not -name "metocean_example.ipynb" -not -name "WPTO_hindcast_example.ipynb" | while read notebook; do
-              jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=600 "$notebook"
-          done
-
-      - name: Run hindcast notebooks
-        if: github.event.client_payload.should_run_hindcast == 'true'
-        run: |
-          for notebook in examples/metocean_example.ipynb examples/WPTO_hindcast_example.ipynb; do
-              jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=600 "$notebook"
-          done
+          jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=600 "${{ matrix.notebook }}"
