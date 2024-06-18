@@ -361,7 +361,13 @@ jobs:
 
   notebook-tests:
     runs-on: ubuntu-latest
-    needs: [conda-build, pip-build, hindcast-calls]
+    needs:
+      [
+        check-changes,
+        prepare-nonhindcast-cache,
+        prepare-wave-hindcast-cache,
+        prepare-wind-hindcast-cache,
+      ]
     if: |
       always() &&
       (
