@@ -1,4 +1,3 @@
-import wave
 import warnings
 import numpy as np
 import xarray as xr
@@ -183,14 +182,18 @@ def time_average(spsdl, window=60, method="median", method_arg=None):
         indexed by time and frequency
     """
 
-    size = spsdl["time"].size
-    windows = size // window  # number of windows
-
-    time_bins = np.reshape(spsdl["time"].values, (windows, window))
-    time_labels = epoch2dt64(np.mean(dt642epoch(time_bins), axis=-1))
+    window = np.timedelta64(window, "s")
+    time_bins_lower = np.arange(
+        spsdl["time"][0].values, spsdl["time"][-1].values, window
+    )
+    time_bins_upper = time_bins_lower + window
+    time_bins = np.append(time_bins_lower, time_bins_upper[-1])
+    center_time = epoch2dt64(
+        0.5 * (dt642epoch(time_bins_lower) + dt642epoch(time_bins_upper))
+    )
 
     # Use xarray binning methods
-    spsdl_group = spsdl.groupby_bins("time", windows, labels=time_labels)
+    spsdl_group = spsdl.groupby_bins("time", time_bins, labels=center_time)
     func = getattr(spsdl_group, method.lower())
     out = func(method_arg)
     out.attrs["units"] = spsdl.units
