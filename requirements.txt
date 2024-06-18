@@ -16,3 +16,4 @@ xarray
 statsmodels
 bottleneck
 beautifulsoup4
+notebook

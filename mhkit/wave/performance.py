@@ -167,7 +167,7 @@ def capture_length_matrix(Hm0, Te, L, statistic, Hm0_bins, Te_bins, to_pandas=Tr
     Te = convert_to_dataarray(Te)
     L = convert_to_dataarray(L)
 
-    if not isinstance(statistic, (str, types.FunctionType)):
+    if not (isinstance(statistic, str) or callable(statistic)):
         raise TypeError(
             f"statistic must be of type str or callable. Got: {type(statistic)}"
         )
@@ -219,7 +219,8 @@ def wave_energy_flux_matrix(Hm0, Te, J, statistic, Hm0_bins, Te_bins, to_pandas=
     Hm0 = convert_to_dataarray(Hm0)
     Te = convert_to_dataarray(Te)
     J = convert_to_dataarray(J)
-    if not isinstance(statistic, (str, callable)):
+
+    if not (isinstance(statistic, str) or callable(statistic)):
         raise TypeError(
             f"statistic must be of type str or callable. Got: {type(statistic)}"
         )
