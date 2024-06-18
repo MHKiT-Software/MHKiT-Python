@@ -296,21 +296,24 @@ def third_octave_sound_pressure_level(spsd, fmin=10, fmax=96000):
     upper_limit = center_freq * half_bandwidth
     octave_bins = np.append(lower_limit, upper_limit[-1])
 
-    # Mean square sound pressure in a specified frequency band from mean square values
-    spsd_group = spsd.groupby_bins("freq", octave_bins, labels=center_freq)
     # Manual trapezoidal rule to get Pa^2
-    P2 = 0.5 * (spsd_group.last() + spsd_group.first()) * np.diff(octave_bins)
+    P2 = xr.DataArray(
+        coords={"time": spsd["time"], "freq_bins": center_freq},
+        dims=["time", "freq_bins"],
+    )
+    for i, key in enumerate(center_freq):
+        band_min = octave_bins[i]
+        band_max = octave_bins[i + 1]
+        P2.loc[dict(freq_bins=key)] = np.trapz(
+            spsd.sel(freq=slice(band_min, band_max)),
+            spsd["freq"].sel(freq=slice(band_min, band_max)),
+        )
 
     # Mean square sound pressure level in dB rel 1 uPa
     mspl = 10 * np.log10(P2 / P2_ref)
+    mspl.attrs = {
+        "units": "dB re 1 uPa",
+        "long_name": "Third Octave Sound Pressure Level",
+    }
 
-    out = xr.DataArray(
-        mspl,
-        coords={"time": spsd["time"], "freq_bins": P2["freq_bins"]},
-        attrs={
-            "units": "dB re 1 uPa",
-            "long_name": "Third Octave Sound Pressure Level",
-        },
-    )
-
-    return out
+    return mspl
