@@ -366,18 +366,14 @@ jobs:
       always() &&
       (
         (
-          needs.conda-build.result == 'success' &&
-          needs.pip-build.result == 'success' &&
+          needs.prepare-nonhindcast-cache.result == 'success' &&
           needs.prepare-wave-hindcast-cache.result == 'skipped' &&
-          needs.prepare-wind-hindcast-cache.result == 'skipped' &&
-          needs.hindcast-calls.result == 'skipped'
+          needs.prepare-wind-hindcast-cache.result == 'skipped'     
         ) ||
         (
-          needs.conda-build.result == 'success' &&
-          needs.pip-build.result == 'success' &&
+          needs.prepare-nonhindcast-cache.result == 'success' &&
           needs.prepare-wave-hindcast-cache.result == 'success' &&
-          needs.prepare-wind-hindcast-cache.result == 'success' &&
-          needs.hindcast-calls.result == 'success'
+          needs.prepare-wind-hindcast-cache.result == 'success'
         )
       )
     steps:
