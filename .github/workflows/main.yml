@@ -361,13 +361,7 @@ jobs:
 
   notebook-tests:
     runs-on: ubuntu-latest
-    needs:
-      [
-        check-changes,
-        prepare-nonhindcast-cache,
-        prepare-wave-hindcast-cache,
-        prepare-wind-hindcast-cache,
-      ]
+    needs: [check-changes, prepare-nonhindcast-cache]
     if: |
       always() &&
       (
