@@ -1,8 +1,14 @@
 name: Test Jupyter Notebooks
 
 on:
-  repository_dispatch:
-    types: [test-notebooks]
+  workflow_dispatch:
+    inputs:
+      should_run_hindcast:
+        description: 'Should run hindcast notebooks'
+        required: true
+        default: 'false'
+  # repository_dispatch:
+  #   types: [test-notebooks]
 
 jobs:
   setup-matrix:
