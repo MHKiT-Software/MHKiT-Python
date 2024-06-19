@@ -1,14 +1,10 @@
 name: Test Jupyter Notebooks
 
 on:
-  workflow_dispatch:
-    inputs:
-      should_run_hindcast:
-        description: 'Should run hindcast notebooks'
-        required: true
-        default: 'false'
-  # repository_dispatch:
-  #   types: [test-notebooks]
+  workflow_run:
+    workflows: ['Py 3.8, 3.9, 3.10, 3.11 | Windows Mac Linux']
+    types:
+      - completed
 
 jobs:
   setup-matrix:
@@ -68,20 +64,20 @@ jobs:
           path: ~/.cache/mhkit
 
       - name: Download wave hindcast data artifact
-        if: matrix.condition == 'true' && github.event.client_payload.should_run_hindcast == 'true'
+        if: matrix.condition == 'true' && github.event.inputs.should_run_hindcast == 'true'
         uses: actions/download-artifact@v4
         with:
           name: wave-hindcast-data
           path: ~/.cache/mhkit/wave-hindcast
 
       - name: Download wind hindcast data artifact
-        if: matrix.condition == 'true' && github.event.client_payload.should_run_hindcast == 'true'
+        if: matrix.condition == 'true' && github.event.inputs.should_run_hindcast == 'true'
         uses: actions/download-artifact@v4
         with:
           name: wind-hindcast-data
           path: ~/.cache/mhkit/wind-hindcast
 
       - name: Run notebook
-        if: matrix.condition == 'false' || github.event.client_payload.should_run_hindcast == 'true'
+        if: matrix.condition == 'false' || github.event.inputs.should_run_hindcast == 'true'
         run: |
           jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=600 "${{ matrix.notebook }}"

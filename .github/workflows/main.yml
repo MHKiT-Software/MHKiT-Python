@@ -382,9 +382,6 @@ jobs:
           needs.prepare-wind-hindcast-cache.result == 'success'
         )
       )
-    permissions:
-      contents: read
-      actions: write
     steps:
       - name: Trigger notebook testing workflow
         run: |
