@@ -1,10 +1,12 @@
 name: Test Jupyter Notebooks
 
 on:
-  workflow_run:
-    workflows: ['Py 3.8, 3.9, 3.10, 3.11 | Windows Mac Linux']
-    types:
-      - completed
+  workflow_dispatch:
+    inputs:
+      should_run_hindcast:
+        description: 'Should run hindcast tests'
+        required: true
+        default: 'false'
 
 jobs:
   setup-matrix:
