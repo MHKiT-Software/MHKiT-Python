@@ -165,7 +165,7 @@ def request_noaa_data(
                 api_query += "&datum=MLLW"
             data_url = f"https://tidesandcurrents.noaa.gov/api/datagetter?{api_query}"
 
-            print("Data request URL: ", data_url)
+            print(f"Data request URL: {data_url}\n")
 
             # Get response
             try:
@@ -173,11 +173,19 @@ def request_noaa_data(
                 response.raise_for_status()
                 # Catch non-exception errors
                 if "error" in response.content.decode():
-                    raise Exception(response.content)
+                    raise Exception(response.content.decode())
             except Exception as err:
-                print(f"Requests error occurred: {err}")
-                print(f"Error content: {response.content}")
-                continue
+                if err.__class__ == requests.exceptions.HTTPError:
+                    print(f"HTTP error occurred: {err}")
+                    print(f"Error message: {response.content.decode()}\n")
+                    continue
+                elif err.__class__ == requests.exceptions.RequestException:
+                    print(f"Requests error occurred: {err}")
+                    print(f"Error message: {response.content.decode()}\n")
+                    continue
+                else:
+                    print(f"Requests error occurred: {err}\n")
+                    continue
 
             # Convert to DataFrame and save in data_frames list
             df, metadata = _xml_to_dataframe(response)
