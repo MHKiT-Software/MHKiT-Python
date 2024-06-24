@@ -471,7 +471,7 @@ def frequency_moment(S, N, frequency_bins=None, frequency_dimension="", to_panda
     return m
 
 
-def significant_wave_height(S, frequency_bins=None, to_pandas=True):
+def significant_wave_height(S, frequency_dimension="", frequency_bins=None, to_pandas=True):
     """
     Calculates wave height from spectra
 
@@ -479,6 +479,9 @@ def significant_wave_height(S, frequency_bins=None, to_pandas=True):
     ------------
     S: pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_dimension: string (optional)
+        Name of the xarray dimension corresponding to frequency. If not supplied,
+        defaults to the first dimension. Does not affect pandas input.
     frequency_bins: numpy array or pandas Series (optional)
         Bin widths for frequency of S. Required for unevenly sized bins
     to_pandas: bool (optional)
@@ -494,7 +497,7 @@ def significant_wave_height(S, frequency_bins=None, to_pandas=True):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     # Eq 12 in IEC 62600-101
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, to_pandas=False).rename(
+    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
         {"m0": "Hm0"}
     )
     Hm0 = 4 * np.sqrt(m0)
@@ -505,7 +508,7 @@ def significant_wave_height(S, frequency_bins=None, to_pandas=True):
     return Hm0
 
 
-def average_zero_crossing_period(S, frequency_bins=None, to_pandas=True):
+def average_zero_crossing_period(S, frequency_dimension="", frequency_bins=None, to_pandas=True):
     """
     Calculates wave average zero crossing period from spectra
 
@@ -513,6 +516,9 @@ def average_zero_crossing_period(S, frequency_bins=None, to_pandas=True):
     ------------
     S: pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_dimension: string (optional)
+        Name of the xarray dimension corresponding to frequency. If not supplied,
+        defaults to the first dimension. Does not affect pandas input.
     frequency_bins: numpy array or pandas Series (optional)
         Bin widths for frequency of S. Required for unevenly sized bins
     to_pandas: bool (optional)
@@ -528,10 +534,10 @@ def average_zero_crossing_period(S, frequency_bins=None, to_pandas=True):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     # Eq 15 in IEC 62600-101
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, to_pandas=False).rename(
+    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
         {"m0": "Tz"}
     )
-    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins, to_pandas=False).rename(
+    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
         {"m2": "Tz"}
     )
 
@@ -543,7 +549,7 @@ def average_zero_crossing_period(S, frequency_bins=None, to_pandas=True):
     return Tz
 
 
-def average_crest_period(S, frequency_bins=None, to_pandas=True):
+def average_crest_period(S, frequency_dimension="", frequency_bins=None, to_pandas=True):
     """
     Calculates wave average crest period from spectra
 
@@ -551,6 +557,9 @@ def average_crest_period(S, frequency_bins=None, to_pandas=True):
     ------------
     S: pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_dimension: string (optional)
+        Name of the xarray dimension corresponding to frequency. If not supplied,
+        defaults to the first dimension. Does not affect pandas input.
     frequency_bins: numpy array or pandas Series (optional)
         Bin widths for frequency of S. Required for unevenly sized bins
     to_pandas: bool (optional)
@@ -566,10 +575,10 @@ def average_crest_period(S, frequency_bins=None, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins, to_pandas=False).rename(
+    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
         {"m2": "Tavg"}
     )
-    m4 = frequency_moment(S, 4, frequency_bins=frequency_bins, to_pandas=False).rename(
+    m4 = frequency_moment(S, 4, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
         {"m4": "Tavg"}
     )
 
@@ -581,7 +590,7 @@ def average_crest_period(S, frequency_bins=None, to_pandas=True):
     return Tavg
 
 
-def average_wave_period(S, frequency_bins=None, to_pandas=True):
+def average_wave_period(S, frequency_dimension="", frequency_bins=None, to_pandas=True):
     """
     Calculates mean wave period from spectra
 
@@ -589,6 +598,9 @@ def average_wave_period(S, frequency_bins=None, to_pandas=True):
     ------------
     S: pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_dimension: string (optional)
+        Name of the xarray dimension corresponding to frequency. If not supplied,
+        defaults to the first dimension. Does not affect pandas input.
     frequency_bins: numpy array or pandas Series (optional)
         Bin widths for frequency of S. Required for unevenly sized bins
     to_pandas: bool (optional)
@@ -603,10 +615,10 @@ def average_wave_period(S, frequency_bins=None, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, to_pandas=False).rename(
+    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
         {"m0": "Tm"}
     )
-    m1 = frequency_moment(S, 1, frequency_bins=frequency_bins, to_pandas=False).rename(
+    m1 = frequency_moment(S, 1, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
         {"m1": "Tm"}
     )
 
@@ -660,7 +672,7 @@ def peak_period(S, frequency_dimension="", to_pandas=True):
     return Tp
 
 
-def energy_period(S, frequency_bins=None, to_pandas=True):
+def energy_period(S, frequency_dimension="", frequency_bins=None, to_pandas=True):
     """
     Calculates wave energy period from spectra
 
@@ -668,6 +680,9 @@ def energy_period(S, frequency_bins=None, to_pandas=True):
     ------------
     S: pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_dimension: string (optional)
+        Name of the xarray dimension corresponding to frequency. If not supplied,
+        defaults to the first dimension. Does not affect pandas input.
     frequency_bins: numpy array or pandas Series (optional)
         Bin widths for frequency of S. Required for unevenly sized bins
     to_pandas: bool (optional)
@@ -683,9 +698,9 @@ def energy_period(S, frequency_bins=None, to_pandas=True):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     mn1 = frequency_moment(
-        S, -1, frequency_bins=frequency_bins, to_pandas=False
+        S, -1, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False
     ).rename({"m-1": "Te"})
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, to_pandas=False).rename(
+    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
         {"m0": "Te"}
     )
 
@@ -698,7 +713,7 @@ def energy_period(S, frequency_bins=None, to_pandas=True):
     return Te
 
 
-def spectral_bandwidth(S, frequency_bins=None, to_pandas=True):
+def spectral_bandwidth(S, frequency_dimension="", frequency_bins=None, to_pandas=True):
     """
     Calculates bandwidth from spectra
 
@@ -706,6 +721,9 @@ def spectral_bandwidth(S, frequency_bins=None, to_pandas=True):
     ------------
     S: pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_dimension: string (optional)
+        Name of the xarray dimension corresponding to frequency. If not supplied,
+        defaults to the first dimension. Does not affect pandas input.
     frequency_bins: numpy array or pandas Series (optional)
         Bin widths for frequency of S. Required for unevenly sized bins
     to_pandas: bool (optional)
@@ -720,13 +738,13 @@ def spectral_bandwidth(S, frequency_bins=None, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins, to_pandas=False).rename(
+    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
         {"m2": "e"}
     )
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, to_pandas=False).rename(
+    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
         {"m0": "e"}
     )
-    m4 = frequency_moment(S, 4, frequency_bins=frequency_bins, to_pandas=False).rename(
+    m4 = frequency_moment(S, 4, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
         {"m4": "e"}
     )
 
@@ -738,7 +756,7 @@ def spectral_bandwidth(S, frequency_bins=None, to_pandas=True):
     return e
 
 
-def spectral_width(S, frequency_bins=None, to_pandas=True):
+def spectral_width(S, frequency_dimension="", frequency_bins=None, to_pandas=True):
     """
     Calculates wave spectral width from spectra
 
@@ -746,6 +764,9 @@ def spectral_width(S, frequency_bins=None, to_pandas=True):
     ------------
     S: pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Spectral density [m^2/Hz] indexed by frequency [Hz]
+    frequency_dimension: string (optional)
+        Name of the xarray dimension corresponding to frequency. If not supplied,
+        defaults to the first dimension. Does not affect pandas input.
     frequency_bins: numpy array or pandas Series (optional)
         Bin widths for frequency of S. Required for unevenly sized bins
     to_pandas: bool (optional)
@@ -761,13 +782,13 @@ def spectral_width(S, frequency_bins=None, to_pandas=True):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     mn2 = frequency_moment(
-        S, -2, frequency_bins=frequency_bins, to_pandas=False
+        S, -2, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False
     ).rename({"m-2": "v"})
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, to_pandas=False).rename(
+    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
         {"m0": "v"}
     )
     mn1 = frequency_moment(
-        S, -1, frequency_bins=frequency_bins, to_pandas=False
+        S, -1, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False
     ).rename({"m-1": "v"})
 
     # Eq 16 in IEC 62600-101
