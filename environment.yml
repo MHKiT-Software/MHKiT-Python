@@ -6,8 +6,7 @@ dependencies:
   - python>=3.8,<3.12
   - pip
   - pandas>=1.0.0
-  - numpy>=2.0.0s
-  - scipy>=1.14.0
+  - numpy>=2.0.0
   - matplotlib
   - requests
   - lxml
@@ -19,6 +18,7 @@ dependencies:
   - h5py>=3.6.0
   - netcdf4>=1.5.8
   - pip:
+      - scipy>=1.14.0
       - pecos>=0.3.0
       - fatpack
       - NREL-rex>=0.2.63
