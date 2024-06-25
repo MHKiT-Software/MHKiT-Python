@@ -6,8 +6,8 @@ dependencies:
   - python>=3.8,<3.12
   - pip
   - pandas>=1.0.0
-  - numpy>=1.21.0
-  - scipy
+  - numpy>=2.0.0s
+  - scipy>=1.14.0
   - matplotlib
   - requests
   - lxml
