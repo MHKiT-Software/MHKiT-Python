@@ -395,6 +395,82 @@ jobs:
           echo "HTTP Status: $response"
           cat response.json
 
+  setup-matrix:
+    runs-on: ubuntu-latest
+    needs:
+      [
+        check-changes,
+        prepare-nonhindcast-cache,
+        prepare-wave-hindcast-cache,
+        prepare-wind-hindcast-cache,
+      ]
+    if: |
+      always() &&
+      (
+        (
+          needs.prepare-nonhindcast-cache.result == 'success' &&
+          needs.prepare-wave-hindcast-cache.result == 'skipped' &&
+          needs.prepare-wind-hindcast-cache.result == 'skipped'     
+        ) ||
+        (
+          needs.prepare-nonhindcast-cache.result == 'success' &&
+          needs.prepare-wave-hindcast-cache.result == 'success' &&
+          needs.prepare-wind-hindcast-cache.result == 'success'
+        )
+      )
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Generate matrix
+        id: set-matrix
+        run: |
+          python .github/workflows/generate_notebook_matrix.py > matrix.json
+          echo "::set-output name=matrix::$(cat matrix.json)"
+
+  test-notebooks:
+    needs: [setup-matrix, check-changes]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.setup-matrix.outputs.matrix) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: 'latest'
+          auto-update-conda: true
+          python-version: '3.9'
+          activate-environment: TESTconda
+          use-only-tar-bz2: true
+
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+          conda install numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
+          pip install -e . --force-reinstall
+          python -m pip install --upgrade pip wheel
+          pip install nbval jupyter
+
+      - name: Run notebook
+        if: matrix.condition == 'false'|| needs.check-changes.outputs.should-run-hindcast == 'true'
+        run: |
+          jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=600 "${{ matrix.notebook }}"
+
   coveralls:
     name: Indicate completion to coveralls.io
     needs:
