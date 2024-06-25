@@ -1055,7 +1055,7 @@ class ADPBinner(VelBinner):
 
                 # have to insert 0/nan in first bin to match length
                 spaces = np.empty((i,))
-                spaces[:] = np.NaN
+                spaces[:] = np.nan
                 D[:, i - 1, idx] = np.concatenate((spaces, d))
 
         # find best fit line y = mx + b (aka D(z,r) = A*r^2/3 + N) to solve

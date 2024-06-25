@@ -464,7 +464,7 @@ def peaks_distribution_peaks_over_threshold(
 
             # Use the instance's threshold attribute instead of passing as a parameter
             below_threshold = data_points < self.threshold
-            out[below_threshold] = np.NaN
+            out[below_threshold] = np.nan
 
             above_threshold_indices = ~below_threshold
             if np.any(above_threshold_indices):

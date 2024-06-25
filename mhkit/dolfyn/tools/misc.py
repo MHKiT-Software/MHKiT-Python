@@ -350,7 +350,7 @@ def medfiltnan(a, kernel, thresh=0):
     if thresh > 0:
         out[
             convolve2d(np.isnan(a), np.ones(kernel) / np.prod(kernel), "same") > thresh
-        ] = np.NaN
+        ] = np.nan
     if flag_1D:
         return out[0]
     return out
