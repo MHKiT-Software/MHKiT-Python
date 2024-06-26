@@ -19,8 +19,8 @@ CLASSIFIERS = [
 ]
 DEPENDENCIES = [
     "pandas>=1.0.0",
-    "numpy>=1.21.0",
-    "scipy",
+    "numpy>=2.0.0",
+    "scipy>=1.14.0",
     "matplotlib",
     "requests",
     "pecos>=0.3.0",

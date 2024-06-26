@@ -13,7 +13,7 @@ cs0 = int("0xb58c", 0)
 def _nans(*args, **kwargs):
     out = np.empty(*args, **kwargs)
     if out.dtype.kind == "f":
-        out[:] = np.NaN
+        out[:] = np.nan
     else:
         out[:] = 0
     return out
