@@ -77,7 +77,7 @@ def read_hydrophone(
         max_count = 2 ** (32 - 1)  # 32 bit
 
     # Subtract gain
-    # hydrophone with sensitivity of -177 dB and gain of -3 dB = sensitivity of 174 dB
+    # hydrophone with sensitivity of -177 dB and gain of -3 dB = sensitivity of -174 dB
     if gain:
         Sf -= gain
     # Convert calibration from dB rel 1 V/uPa into ratio

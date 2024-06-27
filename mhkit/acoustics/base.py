@@ -6,6 +6,20 @@ from mhkit.dolfyn import VelBinner
 from mhkit.dolfyn.time import epoch2dt64, dt642epoch
 
 
+def minimum_frequency(water_depth, c=1500, c_seabed=1700):
+    """
+    Estimate the shallow water cutoff frequency based on the speed of
+    sound in the water columna and the speed of sound in the seabed
+    material (generally ranges from 1450 - 1800 m/s)
+
+    Jennings 2011 - Computational Ocean Acoustics, 2nd ed
+    """
+
+    f_min = c / (4 * water_depth * np.sqrt(1 - (c / c_seabed) ** 2))
+
+    return f_min
+
+
 def sound_pressure_spectral_density(P, fs, window=1):
     """
     Calculates the mean square sound pressure spectral density from audio
@@ -96,7 +110,7 @@ def sound_pressure_spectral_density_level(spsd):
 
 
 def band_average(
-    spsdl, octave=3, fmin=10, fmax=96000, method="median", method_arg=None
+    spsdl, octave=3, fmin=10, fmax=100000, method="median", method_arg=None
 ):
     """
     Reorganizes spectral density level frequency tensor into
@@ -111,7 +125,7 @@ def band_average(
     fmin: int
         Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
     fmax: int
-        Upper frequency band limit (Nyquist frequency). Default: 96000 Hz
+        Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
     method: str
         Xarray DataArray method to run on the binned data. Default: "median".
         Options: [median, mean, min, max, sum, quantile, std, var, count]
@@ -202,7 +216,7 @@ def time_average(spsdl, window=60, method="median", method_arg=None):
     return out
 
 
-def sound_pressure_level(spsd, fmin=10, fmax=96000):
+def sound_pressure_level(spsd, fmin=10, fmax=100000):
     """
     Calculates the sound pressure level in a specified frequency band
     from the mean square sound pressure spectral density.
@@ -214,7 +228,7 @@ def sound_pressure_level(spsd, fmin=10, fmax=96000):
     fmin: int
         Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
     fmax: int
-        Upper frequency band limit (Nyquist frequency). Default: 96000 Hz
+        Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
 
     Returns
     -------
@@ -255,7 +269,7 @@ def sound_pressure_level(spsd, fmin=10, fmax=96000):
     return out
 
 
-def third_octave_sound_pressure_level(spsd, fmin=10, fmax=96000):
+def third_octave_sound_pressure_level(spsd, fmin=10, fmax=100000):
     """
     Calculates the sound pressure level in third octave bands directly
     from the mean square sound pressure spectral density.
@@ -267,7 +281,7 @@ def third_octave_sound_pressure_level(spsd, fmin=10, fmax=96000):
     fmin: int
         Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
     fmax: int
-        Upper frequency band limit (Nyquist frequency). Default: 96000 Hz
+        Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
 
     Returns
     -------

@@ -2,7 +2,7 @@ import warnings
 import matplotlib.pyplot as plt
 
 
-def plot_spectogram(spsdl, fmin=10, fmax=96000, fig=None, ax=None, kwargs={}):
+def plot_spectogram(spsdl, fmin=10, fmax=100000, fig=None, ax=None, kwargs={}):
     """
     Plots the spectogram of the sound pressure spectral density level.
 
@@ -13,7 +13,7 @@ def plot_spectogram(spsdl, fmin=10, fmax=96000, fig=None, ax=None, kwargs={}):
     fmin: int
         Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
     fmax: int
-        Upper frequency band limit (Nyquist frequency). Default: 96000 Hz
+        Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
     fig: matplotlib.pyplot.figure
         Figure handle to plot on
     ax: matplotlib.pyplot.axis
@@ -51,7 +51,7 @@ def plot_spectogram(spsdl, fmin=10, fmax=96000, fig=None, ax=None, kwargs={}):
     return fig, ax
 
 
-def plot_spectra(spsdl, fmin=10, fmax=96000, fig=None, ax=None, kwargs={}):
+def plot_spectra(spsdl, fmin=10, fmax=100000, fig=None, ax=None, kwargs={}):
     """
     Plots spectral density. X axis is log-transformed.
 
@@ -62,7 +62,7 @@ def plot_spectra(spsdl, fmin=10, fmax=96000, fig=None, ax=None, kwargs={}):
     fmin: int
         Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
     fmax: int
-        Upper frequency band limit (Nyquist frequency). Default: 96000 Hz
+        Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
     fig: matplotlib.pyplot.figure
         Figure handle to plot on
     ax: matplotlib.pyplot.axis
