@@ -471,7 +471,9 @@ def frequency_moment(S, N, frequency_bins=None, frequency_dimension="", to_panda
     return m
 
 
-def significant_wave_height(S, frequency_dimension="", frequency_bins=None, to_pandas=True):
+def significant_wave_height(
+    S, frequency_dimension="", frequency_bins=None, to_pandas=True
+):
     """
     Calculates wave height from spectra
 
@@ -497,9 +499,13 @@ def significant_wave_height(S, frequency_dimension="", frequency_bins=None, to_p
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     # Eq 12 in IEC 62600-101
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
-        {"m0": "Hm0"}
-    )
+    m0 = frequency_moment(
+        S,
+        0,
+        frequency_bins=frequency_bins,
+        frequency_dimension=frequency_dimension,
+        to_pandas=False,
+    ).rename({"m0": "Hm0"})
     Hm0 = 4 * np.sqrt(m0)
 
     if to_pandas:
@@ -508,7 +514,9 @@ def significant_wave_height(S, frequency_dimension="", frequency_bins=None, to_p
     return Hm0
 
 
-def average_zero_crossing_period(S, frequency_dimension="", frequency_bins=None, to_pandas=True):
+def average_zero_crossing_period(
+    S, frequency_dimension="", frequency_bins=None, to_pandas=True
+):
     """
     Calculates wave average zero crossing period from spectra
 
@@ -534,12 +542,20 @@ def average_zero_crossing_period(S, frequency_dimension="", frequency_bins=None,
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     # Eq 15 in IEC 62600-101
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
-        {"m0": "Tz"}
-    )
-    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
-        {"m2": "Tz"}
-    )
+    m0 = frequency_moment(
+        S,
+        0,
+        frequency_bins=frequency_bins,
+        frequency_dimension=frequency_dimension,
+        to_pandas=False,
+    ).rename({"m0": "Tz"})
+    m2 = frequency_moment(
+        S,
+        2,
+        frequency_bins=frequency_bins,
+        frequency_dimension=frequency_dimension,
+        to_pandas=False,
+    ).rename({"m2": "Tz"})
 
     Tz = np.sqrt(m0 / m2)
 
@@ -549,7 +565,9 @@ def average_zero_crossing_period(S, frequency_dimension="", frequency_bins=None,
     return Tz
 
 
-def average_crest_period(S, frequency_dimension="", frequency_bins=None, to_pandas=True):
+def average_crest_period(
+    S, frequency_dimension="", frequency_bins=None, to_pandas=True
+):
     """
     Calculates wave average crest period from spectra
 
@@ -575,12 +593,20 @@ def average_crest_period(S, frequency_dimension="", frequency_bins=None, to_pand
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
-        {"m2": "Tavg"}
-    )
-    m4 = frequency_moment(S, 4, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
-        {"m4": "Tavg"}
-    )
+    m2 = frequency_moment(
+        S,
+        2,
+        frequency_bins=frequency_bins,
+        frequency_dimension=frequency_dimension,
+        to_pandas=False,
+    ).rename({"m2": "Tavg"})
+    m4 = frequency_moment(
+        S,
+        4,
+        frequency_bins=frequency_bins,
+        frequency_dimension=frequency_dimension,
+        to_pandas=False,
+    ).rename({"m4": "Tavg"})
 
     Tavg = np.sqrt(m2 / m4)
 
@@ -615,12 +641,20 @@ def average_wave_period(S, frequency_dimension="", frequency_bins=None, to_panda
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
-        {"m0": "Tm"}
-    )
-    m1 = frequency_moment(S, 1, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
-        {"m1": "Tm"}
-    )
+    m0 = frequency_moment(
+        S,
+        0,
+        frequency_bins=frequency_bins,
+        frequency_dimension=frequency_dimension,
+        to_pandas=False,
+    ).rename({"m0": "Tm"})
+    m1 = frequency_moment(
+        S,
+        1,
+        frequency_bins=frequency_bins,
+        frequency_dimension=frequency_dimension,
+        to_pandas=False,
+    ).rename({"m1": "Tm"})
 
     Tm = np.sqrt(m0 / m1)
 
@@ -698,11 +732,19 @@ def energy_period(S, frequency_dimension="", frequency_bins=None, to_pandas=True
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     mn1 = frequency_moment(
-        S, -1, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False
+        S,
+        -1,
+        frequency_bins=frequency_bins,
+        frequency_dimension=frequency_dimension,
+        to_pandas=False,
     ).rename({"m-1": "Te"})
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
-        {"m0": "Te"}
-    )
+    m0 = frequency_moment(
+        S,
+        0,
+        frequency_bins=frequency_bins,
+        frequency_dimension=frequency_dimension,
+        to_pandas=False,
+    ).rename({"m0": "Te"})
 
     # Eq 13 in IEC 62600-101
     Te = mn1 / m0
@@ -738,15 +780,27 @@ def spectral_bandwidth(S, frequency_dimension="", frequency_bins=None, to_pandas
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    m2 = frequency_moment(S, 2, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
-        {"m2": "e"}
-    )
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
-        {"m0": "e"}
-    )
-    m4 = frequency_moment(S, 4, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
-        {"m4": "e"}
-    )
+    m2 = frequency_moment(
+        S,
+        2,
+        frequency_bins=frequency_bins,
+        frequency_dimension=frequency_dimension,
+        to_pandas=False,
+    ).rename({"m2": "e"})
+    m0 = frequency_moment(
+        S,
+        0,
+        frequency_bins=frequency_bins,
+        frequency_dimension=frequency_dimension,
+        to_pandas=False,
+    ).rename({"m0": "e"})
+    m4 = frequency_moment(
+        S,
+        4,
+        frequency_bins=frequency_bins,
+        frequency_dimension=frequency_dimension,
+        to_pandas=False,
+    ).rename({"m4": "e"})
 
     e = np.sqrt(1 - (m2**2) / (m0 / m4))
 
@@ -782,13 +836,25 @@ def spectral_width(S, frequency_dimension="", frequency_bins=None, to_pandas=Tru
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     mn2 = frequency_moment(
-        S, -2, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False
+        S,
+        -2,
+        frequency_bins=frequency_bins,
+        frequency_dimension=frequency_dimension,
+        to_pandas=False,
     ).rename({"m-2": "v"})
-    m0 = frequency_moment(S, 0, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False).rename(
-        {"m0": "v"}
-    )
+    m0 = frequency_moment(
+        S,
+        0,
+        frequency_bins=frequency_bins,
+        frequency_dimension=frequency_dimension,
+        to_pandas=False,
+    ).rename({"m0": "v"})
     mn1 = frequency_moment(
-        S, -1, frequency_bins=frequency_bins, frequency_dimension=frequency_dimension, to_pandas=False
+        S,
+        -1,
+        frequency_bins=frequency_bins,
+        frequency_dimension=frequency_dimension,
+        to_pandas=False,
     ).rename({"m-1": "v"})
 
     # Eq 16 in IEC 62600-101
