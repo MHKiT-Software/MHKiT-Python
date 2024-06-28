@@ -31,7 +31,7 @@ DEPENDENCIES = [
     "six>=1.13.0",
     "h5py>=3.6.0",
     "h5pyd >=0.7.0",
-    "netCDF4",
+    "netCDF4>=1.5.8, <=1.6.5",
     "xarray",
     "statsmodels",
     "pytz",
