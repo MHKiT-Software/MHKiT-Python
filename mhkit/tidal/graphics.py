@@ -331,7 +331,7 @@ def plot_current_timeseries(
 
     if not isinstance(principal_direction, (int, float)):
         raise TypeError("principal_direction must be of type int or float")
-    if (principal_direction < 0) and (principal_direction > 360):
+    if (principal_direction < 0) or (principal_direction > 360):
         raise ValueError("principal_direction must be between 0 and 360 degrees")
 
     # Rotate coordinate system by supplied principal_direction

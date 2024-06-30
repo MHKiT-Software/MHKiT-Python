@@ -3,7 +3,7 @@ noaa.py
 
 This module provides functions to fetch, process, and read NOAA (National
 Oceanic and Atmospheric Administration) current data directly from the
-NOAA Tides and Currents API (https://tidesandcurrents.noaa.gov/api/). It
+NOAA Tides and Currents API (https://api.tidesandcurrents.noaa.gov/api/prod/). It
 supports loading data into a pandas DataFrame, handling data in XML and 
 JSON formats, and writing data to a JSON file.
 
@@ -46,9 +46,9 @@ def request_noaa_data(
     to_pandas=True,
 ):
     """
-    Loads NOAA current data directly from https://tidesandcurrents.noaa.gov/api/
+    Loads NOAA current data directly from https://api.tidesandcurrents.noaa.gov/api/prod/
     into a pandas DataFrame. NOAA sets max of 31 days between start and end date.
-    See https://co-ops.nos.noaa.gov/api/ for options. All times are reported as
+    See https://api.tidesandcurrents.noaa.gov/api/prod/ for options. All times are reported as
     GMT and metric units are returned for data. Uses cached data if available.
 
     The request URL prints to the screen.

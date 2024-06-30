@@ -1,6 +1,4 @@
 """
-io.py
-
 This module provides functions to read and parse MoorDyn output files.
 
 The main function read_moordyn takes as input the path to a MoorDyn output file and optionally
