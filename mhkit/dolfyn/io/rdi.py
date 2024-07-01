@@ -361,7 +361,7 @@ class _RDIReader:
                     clock[0, :] += defs.century
                 try:
                     dates = tmlib.date2epoch(
-                        tmlib.datetime(*clock[:6, 0], microsecond=clock[6, 0] * 10000)
+                        tmlib.datetime(*clock[:6, 0], microsecond=int(clock[6, 0] * float(10000)))
                     )[0]
                 except ValueError:
                     warnings.warn(
@@ -781,27 +781,27 @@ class _RDIReader:
             cfg["cell_size"] = cs
             if self._debug_level > 0:
                 logging.info(f"Cell size set to {cfg['cell_size']}")
-        cfg["blank_dist"] = fd.read_ui16(1) * np.float32(0.01)
+        cfg["blank_dist"] = round(fd.read_ui16(1) * np.float32(0.01), 2)
         cfg["profiling_mode"] = fd.read_ui8(1)
         cfg["min_corr_threshold"] = fd.read_ui8(1)
         cfg["n_code_reps"] = fd.read_ui8(1)
         cfg["min_prcnt_gd"] = fd.read_ui8(1)
         cfg["max_error_vel"] = fd.read_ui16(1) / np.float32(1000)
-        cfg["sec_between_ping_groups"] = np.sum(
-            np.array(fd.read_ui8(3)) * np.array([60.0, 1.0, 0.01], dtype=np.float16)
-        )
+        cfg["sec_between_ping_groups"] = round(np.sum(
+            np.array(fd.read_ui8(3)) * np.array([60.0, 1.0, 0.01], dtype=np.float32)
+        ), 3)
         coord_sys = fd.read_ui8(1)
         cfg["coord_sys"] = ["beam", "inst", "ship", "earth"][((coord_sys >> 3) & 3)]
         cfg["use_pitchroll"] = ["no", "yes"][(coord_sys & 4) == 4]
         cfg["use_3beam"] = ["no", "yes"][(coord_sys & 2) == 2]
         cfg["bin_mapping"] = ["no", "yes"][(coord_sys & 1) == 1]
         cfg["heading_misalign_deg"] = fd.read_i16(1) * np.float32(0.01)
-        cfg["magnetic_var_deg"] = fd.read_i16(1) * np.float32(0.01)
+        cfg["magnetic_var_deg"] = fd.read_i16(1) * np.float64(0.01)
         cfg["sensors_src"] = np.binary_repr(fd.read_ui8(1), 8)
         cfg["sensors_avail"] = np.binary_repr(fd.read_ui8(1), 8)
         cfg["bin1_dist_m"] = round(fd.read_ui16(1) * np.float32(0.01), 4)
-        cfg["transmit_pulse_m"] = fd.read_ui16(1) * np.float32(0.01)
-        cfg["water_ref_cells"] = list(fd.read_ui8(2))  # list for attrs
+        cfg["transmit_pulse_m"] = round(fd.read_ui16(1) * np.float32(0.01), 2)
+        cfg["water_ref_cells"] = list(fd.read_ui8(2).astype(np.int32))  # list for attrs
         cfg["false_target_threshold"] = fd.read_ui8(1)
         fd.seek(1, 1)
         cfg["transmit_lag_m"] = fd.read_ui16(1) * np.float32(0.01)
@@ -1097,7 +1097,7 @@ class _RDIReader:
         # This byte is in hundredths of seconds (10s of milliseconds):
         utc_time_first_fix = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) / 10)))
         ens.clock_offset_UTC_gps[k] = (
-            fd.read_i32(1) / np.float32(1000)
+            fd.read_i32(1) / np.float64(1000)
         )  # "PC clock offset from UTC" in ms
         latitude_first_gps = fd.read_i32(1) * self._cfac
         longitude_first_gps = fd.read_i32(1) * self._cfac
@@ -1164,7 +1164,7 @@ class _RDIReader:
                     hours=int(gga_time[0:2]),
                     minutes=int(gga_time[2:4]),
                     seconds=int(gga_time[4:6]),
-                    milliseconds=int(float(gga_time[6:]) * 1000),
+                    milliseconds=int(float(gga_time[6:]) * float(1000)),
                 )
                 clock = self.ensemble.rtc[:, :]
                 if clock[0, 0] < 100:
@@ -1422,7 +1422,7 @@ class _RDIReader:
 
         # Set cell size and range
         cfg["n_cells"] = self.ensemble["n_cells"]
-        cfg["cell_size"] = cell_sizes.max()
+        cfg["cell_size"] = round(cell_sizes.max(), 3)
         dat["coords"]["range"] = (
             cfg["bin1_dist_m"] + np.arange(cfg["n_cells"]) * cfg["cell_size"]
         ).astype(np.float32)
@@ -1491,7 +1491,7 @@ class _RDIReader:
         ):
             da["fs"] = round(1 / np.median(np.diff(dat["coords"]["time"])), 2)
         else:
-            da["fs"] = round(1 / np.float32(da["sec_between_ping_groups"] * da["pings_per_ensemble"]), 2)
+            da["fs"] = 1 / (da["sec_between_ping_groups"] * da["pings_per_ensemble"])
 
         for nm in defs.data_defs:
             shp = defs.data_defs[nm][0]
