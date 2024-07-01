@@ -410,7 +410,7 @@ jobs:
           pip install -e . --force-reinstall
           python -m pip install --upgrade pip wheel
           pip install nbval jupyter
-          pip install utm
+          pip install utm folium
 
       - name: Ensure Conda environment is activated
         shell: bash -l {0}
