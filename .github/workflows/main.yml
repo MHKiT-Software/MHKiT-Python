@@ -380,45 +380,45 @@ jobs:
           echo "HTTP Status: $response"
           cat response.json
 
-  setup-matrix:
-    runs-on: ubuntu-latest
-    needs:
-      [
-        check-changes,
-        prepare-nonhindcast-cache,
-        prepare-wave-hindcast-cache,
-        prepare-wind-hindcast-cache,
-      ]
-    if: |
-      always() &&
+setup-matrix:
+  runs-on: ubuntu-latest
+  needs:
+    [
+      check-changes,
+      prepare-nonhindcast-cache,
+      prepare-wave-hindcast-cache,
+      prepare-wind-hindcast-cache,
+    ]
+  if: |
+    always() &&
+    (
       (
-        (
-          needs.prepare-nonhindcast-cache.result == 'success' &&
-          needs.prepare-wave-hindcast-cache.result == 'skipped' &&
-          needs.prepare-wind-hindcast-cache.result == 'skipped'     
-        ) ||
-        (
-          needs.prepare-nonhindcast-cache.result == 'success' &&
-          needs.prepare-wave-hindcast-cache.result == 'success' &&
-          needs.prepare-wind-hindcast-cache.result == 'success'
-        )
+        needs.prepare-nonhindcast-cache.result == 'success' &&
+        needs.prepare-wave-hindcast-cache.result == 'skipped' &&
+        needs.prepare-wind-hindcast-cache.result == 'skipped'     
+      ) ||
+      (
+        needs.prepare-nonhindcast-cache.result == 'success' &&
+        needs.prepare-wave-hindcast-cache.result == 'success' &&
+        needs.prepare-wind-hindcast-cache.result == 'success'
       )
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    )
+  outputs:
+    matrix: ${{ steps.set-matrix.outputs.matrix }}
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.11'
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11'
 
-      - name: Generate matrix
-        id: set-matrix
-        run: |
-          python .github/workflows/generate_notebook_matrix.py > matrix.json
-          cat matrix.json >> $GITHUB_OUTPUT
+    - name: Generate matrix
+      id: set-matrix
+      run: |
+        matrix_json=$(python .github/workflows/generate_notebook_matrix.py)
+        echo "$matrix_json" >> $GITHUB_OUTPUT
 
   test-notebooks:
     needs: [setup-matrix, check-changes]

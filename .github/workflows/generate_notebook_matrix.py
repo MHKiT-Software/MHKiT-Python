@@ -21,4 +21,6 @@ for notebook in notebooks:
     else:
         matrix["include"].append({"notebook": notebook, "condition": False})
 
-print(json.dumps(matrix))
+# Print the matrix as a properly formatted JSON string
+matrix_json = json.dumps(matrix)
+print(f"matrix={matrix_json}")
