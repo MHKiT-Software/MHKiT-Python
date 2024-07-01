@@ -71,11 +71,11 @@ class TestWPTOhindcast(unittest.TestCase):
         cls.mp = pd.read_csv(
             join(datadir, "hindcast/multiparm.csv"),
             index_col="time_index",
-            names=["time_index", "energy_period_87", "mean_zero-crossing_period_87"],
+            names=["time_index", "energy_period_0", "mean_zero-crossing_period_0"],
             header=0,
             dtype={
-                "energy_period_87": "float32",
-                "mean_zero-crossing_period_87": "float32",
+                "energy_period_0": "float32",
+                "mean_zero-crossing_period_0": "float32",
             },
         )
         cls.mp.index = pd.to_datetime(cls.mp.index)
