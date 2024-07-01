@@ -453,7 +453,6 @@ jobs:
           pip install nbval jupyter
 
       - name: Run notebook
-        if: matrix.condition == 'false'|| needs.check-changes.outputs.should-run-hindcast == 'true'
         run: |
           jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=600 "${{ matrix.notebook }}"
 
