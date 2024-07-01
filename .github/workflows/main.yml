@@ -418,13 +418,14 @@ jobs:
         id: set-matrix
         run: |
           python .github/workflows/generate_notebook_matrix.py > matrix.json
-          echo "::set-output name=matrix::$(cat matrix.json)"
+          cat matrix.json >> $GITHUB_OUTPUT
 
   test-notebooks:
     needs: [setup-matrix, check-changes]
     runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJson(needs.setup-matrix.outputs.matrix) }}
+    if: always()
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
