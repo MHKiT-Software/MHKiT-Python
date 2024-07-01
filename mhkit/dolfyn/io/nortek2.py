@@ -543,7 +543,7 @@ def _reorg(dat):
             lib._collapse(dnow["config"], exclude=collapse_exclude, name="config")
         )
         outdat["coords"]["time" + tag] = lib._calc_time(
-            dnow["year"] + 1900,
+            dnow["year"] + np.uint16(1900),
             dnow["month"],
             dnow["day"],
             dnow["hour"],
