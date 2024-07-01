@@ -423,7 +423,7 @@ jobs:
         shell: bash -l {0}
         run: |
           if [[ "${{ matrix.notebook }}" == "examples/metocean_example.ipynb" || "${{ matrix.notebook }}" == "examples/WPTO_hindcast_example.ipynb" ]]; then
-            echo "Skipping ${matrix.notebook}"
+            echo "Skipping ${{matrix.notebook}}"
           else
             jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=600 "${{ matrix.notebook }}"
           fi
