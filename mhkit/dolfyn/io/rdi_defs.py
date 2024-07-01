@@ -1,6 +1,6 @@
 import numpy as np
 
-century = 2000
+century = np.uint16(2000)
 adcp_type = {
     4: "Broadband",
     5: "Broadband",
