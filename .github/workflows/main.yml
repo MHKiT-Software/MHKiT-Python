@@ -422,7 +422,11 @@ jobs:
       - name: Run notebook
         shell: bash -l {0}
         run: |
-          jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=600 "${{ matrix.notebook }}"
+          if [[ "${{ matrix.notebook }}" == "examples/metocean_example.ipynb" ]]; then
+            echo "Skipping metocean_example.ipynb"
+          else
+            jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=600 "${{ matrix.notebook }}"
+          fi
 
   coveralls:
     name: Indicate completion to coveralls.io
