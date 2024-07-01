@@ -237,7 +237,8 @@ def load(filename):
     # Convert numpy arrays and strings back to lists
     for nm in ds.attrs:
         if isinstance(ds.attrs[nm], np.ndarray) and ds.attrs[nm].size > 1:
-            ds.attrs[nm] = list(ds.attrs[nm])
+            # Convert list items from numpy to generic python type
+            ds.attrs[nm] = list(ds.attrs[nm].astype(list))
         elif isinstance(ds.attrs[nm], str) and nm in ["rotate_vars"]:
             ds.attrs[nm] = [ds.attrs[nm]]
 

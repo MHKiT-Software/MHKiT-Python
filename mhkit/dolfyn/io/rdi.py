@@ -801,7 +801,7 @@ class _RDIReader:
         cfg["sensors_avail"] = np.binary_repr(fd.read_ui8(1), 8)
         cfg["bin1_dist_m"] = round(fd.read_ui16(1) * np.float32(0.01), 4)
         cfg["transmit_pulse_m"] = round(fd.read_ui16(1) * np.float32(0.01), 2)
-        cfg["water_ref_cells"] = list(fd.read_ui8(2).astype(np.int32))  # list for attrs
+        cfg["water_ref_cells"] = list(fd.read_ui8(2).astype(list))  # list for attrs
         cfg["false_target_threshold"] = fd.read_ui8(1)
         fd.seek(1, 1)
         cfg["transmit_lag_m"] = fd.read_ui16(1) * np.float32(0.01)
