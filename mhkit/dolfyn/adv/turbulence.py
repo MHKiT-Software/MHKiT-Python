@@ -54,7 +54,7 @@ class ADVBinner(VelBinner):
     def reynolds_stress(self, veldat, detrend=True):
         """
         Calculate the specific Reynolds stresses
-        (cross-covariances of u,v,w in m^2/s^2)
+        (covariances of u,v,w in m^2/s^2)
 
         Parameters
         ----------
@@ -76,7 +76,7 @@ class ADVBinner(VelBinner):
         if not isinstance(veldat, xr.DataArray):
             raise TypeError("`veldat` must be an instance of `xarray.DataArray`.")
 
-        time = self.mean(veldat.time.values)
+        time = self.mean(veldat["time"].values)
         vel = veldat.values
 
         out = np.empty(self._outshape(vel[:3].shape)[:-1], dtype=np.float32)
@@ -144,7 +144,7 @@ class ADVBinner(VelBinner):
 
         fs_in = self._parse_fs(fs)
         n_fft = self._parse_nfft_coh(n_fft_coh)
-        time = self.mean(veldat.time.values)
+        time = self.mean(veldat["time"].values)
         veldat = veldat.values
         if len(np.shape(veldat)) != 2:
             raise Exception(
@@ -391,7 +391,7 @@ class ADVBinner(VelBinner):
             raise TypeError("`psd` must be an instance of `xarray.DataArray`.")
         if len(U_mag.shape) != 1:
             raise Exception("U_mag should be 1-dimensional (time)")
-        if len(psd.time) != len(U_mag.time):
+        if len(psd["time"]) != len(U_mag["time"]):
             raise Exception("`U_mag` should be from ensembled-averaged dataset")
         if not hasattr(freq_range, "__iter__") or len(freq_range) != 2:
             raise ValueError("`freq_range` must be an iterable of length 2.")
@@ -459,7 +459,7 @@ class ADVBinner(VelBinner):
 
         if not isinstance(vel_raw, xr.DataArray):
             raise TypeError("`vel_raw` must be an instance of `xarray.DataArray`.")
-        if len(vel_raw.time) == len(U_mag.time):
+        if len(vel_raw["time"]) == len(U_mag["time"]):
             raise Exception("`U_mag` should be from ensembled-averaged dataset")
         if not hasattr(freq_range, "__iter__") or len(freq_range) != 2:
             raise ValueError("`freq_range` must be an iterable of length 2.")
@@ -586,8 +586,8 @@ class ADVBinner(VelBinner):
 
         # Index data to be used
         inds = (freq_range[0] < freq) & (freq < freq_range[1])
-        psd = dat_avg.psd[..., inds].values
-        freq = freq[inds].reshape([1] * (dat_avg.psd.ndim - 2) + [sum(inds)])
+        psd = dat_avg["psd"][..., inds].values
+        freq = freq[inds].reshape([1] * (dat_avg["psd"].ndim - 2) + [sum(inds)])
 
         # Estimate values
         # u & v components (equation 6)
@@ -606,7 +606,7 @@ class ADVBinner(VelBinner):
 
         return xr.DataArray(
             out.astype("float32"),
-            coords={"time": dat_avg.psd.time},
+            coords={"time": dat_avg["psd"]["time"]},
             dims="time",
             attrs={
                 "units": "m2 s-3",
@@ -645,7 +645,7 @@ class ADVBinner(VelBinner):
 
         if not isinstance(a_cov, xr.DataArray):
             raise TypeError("`a_cov` must be an instance of `xarray.DataArray`.")
-        if len(a_cov.time) != len(U_mag.time):
+        if len(a_cov["time"]) != len(U_mag["time"]):
             raise Exception("`U_mag` should be from ensembled-averaged dataset")
 
         acov = a_cov.values
@@ -656,7 +656,7 @@ class ADVBinner(VelBinner):
 
         return xr.DataArray(
             L_int.astype("float32"),
-            coords={"dir": a_cov.dir, "time": a_cov.time},
+            coords={"dir": a_cov["dir"], "time": a_cov["time"]},
             attrs={
                 "units": "m",
                 "long_name": "Integral Length Scale",

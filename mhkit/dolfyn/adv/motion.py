@@ -2,7 +2,7 @@ import numpy as np
 import xarray as xr
 import warnings
 import scipy.signal as ss
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid
 
 from ..rotate import vector as rot
 from ..rotate.api import _make_model, rotate2
@@ -188,7 +188,7 @@ class CalcMotion:
         dat = np.concatenate(
             (
                 np.zeros(list(hp.shape[:-1]) + [1]),
-                cumtrapz(hp, dx=1 / samp_freq, axis=-1),
+                cumulative_trapezoid(hp, dx=1 / samp_freq, axis=-1),
             ),
             axis=-1,
         )
