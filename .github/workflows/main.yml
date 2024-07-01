@@ -384,44 +384,44 @@ jobs:
           matrix_json=$(python .github/workflows/generate_notebook_matrix.py)
           echo "$matrix_json" >> $GITHUB_OUTPUT
 
-test-notebooks:
-  needs: [notebook-matrix, check-changes]
-  runs-on: ubuntu-latest
-  strategy:
-    matrix: ${{ fromJson(needs.notebook-matrix.outputs.matrix) }}
-  if: always()
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+  test-notebooks:
+    needs: [notebook-matrix, check-changes]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.notebook-matrix.outputs.matrix) }}
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Miniconda
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        miniconda-version: 'latest'
-        auto-update-conda: true
-        python-version: '3.11'
-        activate-environment: TESTconda
-        use-only-tar-bz2: true
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: 'latest'
+          auto-update-conda: true
+          python-version: '3.11'
+          activate-environment: TESTconda
+          use-only-tar-bz2: true
 
-    - name: Install dependencies
-      shell: bash -l {0}
-      run: |
-        conda install numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
-        pip install -e . --force-reinstall
-        python -m pip install --upgrade pip wheel
-        pip install nbval jupyter
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+          conda install numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
+          pip install -e . --force-reinstall
+          python -m pip install --upgrade pip wheel
+          pip install nbval jupyter
 
-    - name: Ensure Conda environment is activated
-      shell: bash -l {0}
-      run: |
-        echo "source ~/miniconda3/etc/profile.d/conda.sh" >> ~/.bashrc
-        echo "conda activate TESTconda" >> ~/.bashrc
-        source ~/.bashrc
+      - name: Ensure Conda environment is activated
+        shell: bash -l {0}
+        run: |
+          echo "source ~/miniconda3/etc/profile.d/conda.sh" >> ~/.bashrc
+          echo "conda activate TESTconda" >> ~/.bashrc
+          source ~/.bashrc
 
-    - name: Run notebook
-      shell: bash -l {0}
-      run: |
-        jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=600 "${{ matrix.notebook }}"
+      - name: Run notebook
+        shell: bash -l {0}
+        run: |
+          jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=600 "${{ matrix.notebook }}"
 
   coveralls:
     name: Indicate completion to coveralls.io
