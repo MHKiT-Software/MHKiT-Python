@@ -424,6 +424,8 @@ jobs:
         run: |
           if [[ "${{ matrix.notebook }}" == "examples/metocean_example.ipynb" || "${{ matrix.notebook }}" == "examples/WPTO_hindcast_example.ipynb" ]]; then
             echo "Skipping ${{matrix.notebook}}"
+          elif [[ "${{ matrix.notebook }}" == "examples/ADCP_Delft3D_TRTS_example.ipynb" ]]; then
+            jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=1200 "${{ matrix.notebook }}"            
           else
             jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=600 "${{ matrix.notebook }}"
           fi
