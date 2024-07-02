@@ -150,8 +150,8 @@ class TestWINDToolkit(unittest.TestCase):
     def test_multi_year(self):
         data_type = "1-hour"
         years = [2018, 2019]
-        lat_lon = (44.624076, -124.280097)  # NW_Pacific
-        parameters = "pressure_200m"
+        lat_lon = (40.748, -124.527)  # Offshore_CA
+        parameters = "winddirection_10m"
         wtk_multiyear, meta = wtk.request_wtk_point_data(
             data_type, parameters, lat_lon, years
         )
@@ -160,25 +160,24 @@ class TestWINDToolkit(unittest.TestCase):
 
     def test_multi_loc(self):
         data_type = "1-hour"
-        years = [2001]
-        lat_lon = ((39.33, -67.21), (41.3, -75.9))  # Mid-Atlantic
+        years = [2019]
+        lat_lon = ((41.5, -123.527),(40.748, -124.527))  # Offshore_CA
         parameters = "windspeed_10m"
         wtk_multiloc, meta = wtk.request_wtk_point_data(
-            data_type, parameters, lat_lon, years
+            data_type, parameters, lat_lon, years,
+            preferred_region="Offshore_CA"
         )
         assert_frame_equal(self.ml, wtk_multiloc)
         assert_frame_equal(self.ml_meta, meta)
 
     def test_multi_parm(self):
         data_type = "1-hour"
-        years = [2012]
-        lat_lon = (17.2, -156.5)  # Hawaii
-
+        years = [2018]
+        lat_lon = (40.748, -124.527)  # Offshore_CA
         parameters = ["temperature_20m", "temperature_40m"]
         wtk_multiparm, meta = wtk.request_wtk_point_data(
             data_type, parameters, lat_lon, years
         )
-
         assert_frame_equal(self.mp, wtk_multiparm)
         assert_frame_equal(self.mp_meta, meta)
 
