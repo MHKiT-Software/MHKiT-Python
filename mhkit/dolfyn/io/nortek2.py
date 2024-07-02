@@ -91,7 +91,7 @@ def read_signature(
     t_list = [t for t in coords if "time" in t]
     for ky in t_list:
         tdat = coords[ky]
-        tdat[tdat == 0] = np.NaN
+        tdat[tdat == 0] = np.nan
         if np.isnan(tdat).any():
             tag = ky.lstrip("time")
             warnings.warn(
