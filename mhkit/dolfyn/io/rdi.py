@@ -361,7 +361,9 @@ class _RDIReader:
                     clock[0, :] += defs.century
                 try:
                     dates = tmlib.date2epoch(
-                        tmlib.datetime(*clock[:6, 0], microsecond=int(clock[6, 0] * float(10000)))
+                        tmlib.datetime(
+                            *clock[:6, 0], microsecond=int(clock[6, 0] * float(10000))
+                        )
                     )[0]
                 except ValueError:
                     warnings.warn(
@@ -787,9 +789,12 @@ class _RDIReader:
         cfg["n_code_reps"] = fd.read_ui8(1)
         cfg["min_prcnt_gd"] = fd.read_ui8(1)
         cfg["max_error_vel"] = fd.read_ui16(1) / np.float32(1000)
-        cfg["sec_between_ping_groups"] = round(np.sum(
-            np.array(fd.read_ui8(3)) * np.array([60.0, 1.0, 0.01], dtype=np.float32)
-        ), 3)
+        cfg["sec_between_ping_groups"] = round(
+            np.sum(
+                np.array(fd.read_ui8(3)) * np.array([60.0, 1.0, 0.01], dtype=np.float32)
+            ),
+            3,
+        )
         coord_sys = fd.read_ui8(1)
         cfg["coord_sys"] = ["beam", "inst", "ship", "earth"][((coord_sys >> 3) & 3)]
         cfg["use_pitchroll"] = ["no", "yes"][(coord_sys & 4) == 4]
@@ -938,7 +943,9 @@ class _RDIReader:
         n_cells = cfg["n_cells" + tg]
 
         k = ens.k
-        vel = np.array(self.f.read_i16(4 * n_cells)).reshape((n_cells, 4)) * np.float32(0.001)
+        vel = np.array(self.f.read_i16(4 * n_cells)).reshape((n_cells, 4)) * np.float32(
+            0.001
+        )
         ens["vel" + tg][:n_cells, :, k] = vel
         self._nbyte = 2 + 4 * n_cells * 2
         if self._debug_level > -1:
@@ -1060,7 +1067,9 @@ class _RDIReader:
         self.vars_read += ["alt_dist", "alt_rssi", "alt_eval", "alt_status"]
         ens.alt_eval[k] = fd.read_ui8(1)  # evaluation amplitude
         ens.alt_rssi[k] = fd.read_ui8(1)  # RSSI amplitude
-        ens.alt_dist[k] = fd.read_ui32(1) / np.float32(1000)  # range to surface/seafloor
+        ens.alt_dist[k] = fd.read_ui32(1) / np.float32(
+            1000
+        )  # range to surface/seafloor
         ens.alt_status[k] = fd.read_ui8(1)  # status bit flags
         self._nbyte = 7 + 2
         if self._debug_level > -1:
@@ -1096,8 +1105,8 @@ class _RDIReader:
         # 1st lat/lon position after previous ADCP ping
         # This byte is in hundredths of seconds (10s of milliseconds):
         utc_time_first_fix = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) / 10)))
-        ens.clock_offset_UTC_gps[k] = (
-            fd.read_i32(1) / np.float64(1000)
+        ens.clock_offset_UTC_gps[k] = fd.read_i32(1) / np.float64(
+            1000
         )  # "PC clock offset from UTC" in ms
         latitude_first_gps = fd.read_i32(1) * self._cfac
         longitude_first_gps = fd.read_i32(1) * self._cfac

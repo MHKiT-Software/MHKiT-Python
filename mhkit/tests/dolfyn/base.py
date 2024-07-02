@@ -36,9 +36,7 @@ def assert_allclose(dat0, dat1, *args, **kwargs):
         if str(dat0.attrs[nm]) != str(dat1.attrs[nm]):
             mismatch.append(nm)
     if mismatch:
-        raise ValueError(
-            f"The following attributes do not match: {mismatch}."
-        )
+        raise ValueError(f"The following attributes do not match: {mismatch}.")
     # If test debugging
     for v in names:
         dat0[v] = time.epoch2dt64(dat0[v])

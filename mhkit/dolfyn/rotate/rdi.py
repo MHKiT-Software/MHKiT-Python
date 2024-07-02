@@ -97,7 +97,7 @@ def _calc_beam_orientmat(theta=20, convex=True, degrees=True):
     d = a / (2.0**0.5)
     return np.array(
         [[c * a, -c * a, 0, 0], [0, 0, -c * a, c * a], [b, b, b, b], [d, d, -d, -d]],
-        dtype=np.float32
+        dtype=np.float32,
     )
 
 
