@@ -378,7 +378,7 @@ class _NortekReader:
             func2 = _bitshift8
         while True:
             val = unpack(self.endian + "H", self.read(2))[0]
-            if func(val) == 165 and (not do_cs or cs == np.uint16(sum)):
+            if np.array(val).astype(func) == 165 and (not do_cs or cs == sum):
                 self.f.seek(-2, 1)
                 return hex(func2(val))
             sum += cs
