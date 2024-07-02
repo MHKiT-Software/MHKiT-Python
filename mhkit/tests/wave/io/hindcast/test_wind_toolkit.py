@@ -161,11 +161,13 @@ class TestWINDToolkit(unittest.TestCase):
     def test_multi_loc(self):
         data_type = "1-hour"
         years = [2019]
-        lat_lon = ((41.5, -123.527),(40.748, -124.527))  # Offshore_CA. 2nd lat-lon also tests region selection in an overlap region
+        lat_lon = (
+            (41.5, -123.527),
+            (40.748, -124.527),
+        )  # Offshore_CA. 2nd lat-lon also tests region selection in an overlap region
         parameters = "windspeed_10m"
         wtk_multiloc, meta = wtk.request_wtk_point_data(
-            data_type, parameters, lat_lon, years,
-            preferred_region="Offshore_CA"
+            data_type, parameters, lat_lon, years, preferred_region="Offshore_CA"
         )
         assert_frame_equal(self.ml, wtk_multiloc)
         assert_frame_equal(self.ml_meta, meta)
