@@ -381,9 +381,9 @@ def load_mat(filename, datenum=True):
     for nm in ds.attrs:
         if isinstance(ds.attrs[nm], np.ndarray) and ds.attrs[nm].size > 1:
             try:
-                ds.attrs[nm] = [x.strip(" ") for x in list(ds.attrs[nm])]
+                ds.attrs[nm] = [x.strip(" ") for x in list(ds.attrs[nm].astype(list))]
             except:
-                ds.attrs[nm] = list(ds.attrs[nm])
+                ds.attrs[nm] = list(ds.attrs[nm].astype(list))
         elif isinstance(ds.attrs[nm], str) and nm in [
             "time_coords",
             "time_data_vars",

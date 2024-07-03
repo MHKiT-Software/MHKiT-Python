@@ -741,8 +741,8 @@ class _RDIReader:
                 )
         cfg["n_cells_sl"] = n_cells
         # Assuming surface layer profile cell size never changes
-        cfg["cell_size_sl"] = self.f.read_ui16(1) * np.float32(0.01)
-        cfg["bin1_dist_m_sl"] = round(self.f.read_ui16(1) * np.float32(0.01), 4)
+        cfg["cell_size_sl"] = float(self.f.read_ui16(1) * 0.01)
+        cfg["bin1_dist_m_sl"] = round(float(self.f.read_ui16(1) * 0.01), 4)
 
         if self._debug_level > -1:
             logging.info("Read Surface Layer Config")
@@ -758,7 +758,7 @@ class _RDIReader:
         fd = self.f
         tmp = fd.read_ui8(5)
         prog_ver0 = tmp[0]
-        cfg["prog_ver"] = tmp[0] + tmp[1] / np.float32(100)
+        cfg["prog_ver"] = float(tmp[0] + tmp[1] / 100)
         cfg["inst_model"] = defs.adcp_type.get(tmp[0], "unrecognized firmware version")
         config = tmp[2:4]
         cfg["beam_angle"] = [15, 20, 30][(config[1] & 3)]
@@ -777,39 +777,36 @@ class _RDIReader:
                 logging.info(f"Number of cells set to {cfg['n_cells']}")
         cfg["pings_per_ensemble"] = fd.read_ui16(1)
         # Check if cell size has changed
-        cs = fd.read_ui16(1) * np.float32(0.01)
+        cs = float(fd.read_ui16(1) * 0.01)
         if ("cell_size" not in cfg) or (cs != cfg["cell_size"]):
             self.cs_diff = cs if "cell_size" not in cfg else (cs - cfg["cell_size"])
             cfg["cell_size"] = cs
             if self._debug_level > 0:
                 logging.info(f"Cell size set to {cfg['cell_size']}")
-        cfg["blank_dist"] = round(fd.read_ui16(1) * np.float32(0.01), 2)
+        cfg["blank_dist"] = round(float(fd.read_ui16(1) * 0.01), 2)
         cfg["profiling_mode"] = fd.read_ui8(1)
         cfg["min_corr_threshold"] = fd.read_ui8(1)
         cfg["n_code_reps"] = fd.read_ui8(1)
         cfg["min_prcnt_gd"] = fd.read_ui8(1)
-        cfg["max_error_vel"] = fd.read_ui16(1) / np.float32(1000)
+        cfg["max_error_vel"] = float(fd.read_ui16(1) / 1000)
         cfg["sec_between_ping_groups"] = round(
-            np.sum(
-                np.array(fd.read_ui8(3)) * np.array([60.0, 1.0, 0.01], dtype=np.float32)
-            ),
-            3,
+            float(np.sum(np.array(fd.read_ui8(3)) * [60.0, 1.0, 0.01])), 3
         )
         coord_sys = fd.read_ui8(1)
         cfg["coord_sys"] = ["beam", "inst", "ship", "earth"][((coord_sys >> 3) & 3)]
         cfg["use_pitchroll"] = ["no", "yes"][(coord_sys & 4) == 4]
         cfg["use_3beam"] = ["no", "yes"][(coord_sys & 2) == 2]
         cfg["bin_mapping"] = ["no", "yes"][(coord_sys & 1) == 1]
-        cfg["heading_misalign_deg"] = fd.read_i16(1) * np.float32(0.01)
-        cfg["magnetic_var_deg"] = fd.read_i16(1) * np.float64(0.01)
+        cfg["heading_misalign_deg"] = float(fd.read_i16(1) * 0.01)
+        cfg["magnetic_var_deg"] = float(fd.read_i16(1) * 0.01)
         cfg["sensors_src"] = np.binary_repr(fd.read_ui8(1), 8)
         cfg["sensors_avail"] = np.binary_repr(fd.read_ui8(1), 8)
-        cfg["bin1_dist_m"] = round(fd.read_ui16(1) * np.float32(0.01), 4)
-        cfg["transmit_pulse_m"] = round(fd.read_ui16(1) * np.float32(0.01), 2)
+        cfg["bin1_dist_m"] = round(float(fd.read_ui16(1) * 0.01), 4)
+        cfg["transmit_pulse_m"] = round(float(fd.read_ui16(1) * 0.01), 2)
         cfg["water_ref_cells"] = list(fd.read_ui8(2).astype(list))  # list for attrs
         cfg["false_target_threshold"] = fd.read_ui8(1)
         fd.seek(1, 1)
-        cfg["transmit_lag_m"] = fd.read_ui16(1) * np.float32(0.01)
+        cfg["transmit_lag_m"] = float(fd.read_ui16(1) * 0.01)
         self._nbyte = 40
 
         if cfg["prog_ver"] >= 8.14:

@@ -478,9 +478,7 @@ def _altraw_reorg(outdat, tag=""):
     outdat["data_vars"].pop("status_altraw" + tag)
     status_alt = lib._alt_status2data(outdat["data_vars"]["status_alt" + tag])
     for ky in status_alt:
-        outdat["attrs"][ky + tag] = lib._collapse(
-            status_alt[ky].astype("uint8"), name=ky
-        )
+        outdat["attrs"][ky + tag] = int(lib._collapse(status_alt[ky], name=ky))
     outdat["data_vars"].pop("status_alt" + tag)
 
     # Power level index
@@ -557,19 +555,29 @@ def _reorg(dat):
             ),
             21,  # always 21 here
         )
-        cfg["n_cells" + tag] = tmp["n_cells"]
+        cfg["n_cells" + tag] = int(tmp["n_cells"])
         cfg["coord_sys_axes" + tag] = tmp["cy"]
-        cfg["n_beams" + tag] = tmp["n_beams"]
-        cfg["ambig_vel" + tag] = lib._collapse(dnow["ambig_vel"], name="ambig_vel")
+        cfg["n_beams" + tag] = int(tmp["n_beams"])
+        cfg["ambig_vel" + tag] = round(
+            float(lib._collapse(dnow["ambig_vel"], name="ambig_vel")), 3
+        )
 
         for ky in [
             "SerialNum",
+            "nominal_corr",
+        ]:
+            cfg[ky + tag] = int(
+                lib._collapse(dnow[ky], exclude=collapse_exclude, name=ky)
+            )
+
+        for ky in [
             "cell_size",
             "blank_dist",
-            "nominal_corr",
             "power_level_dB",
         ]:
-            cfg[ky + tag] = lib._collapse(dnow[ky], exclude=collapse_exclude, name=ky)
+            cfg[ky + tag] = float(
+                lib._collapse(dnow[ky], exclude=collapse_exclude, name=ky)
+            )
 
         for ky in [
             "c_sound",
@@ -674,7 +682,7 @@ def _reorg(dat):
 
     # Processor idle state - need to save as 1/0 per netcdf attribute limitations
     for ky in status0_data:
-        outdat["attrs"][ky] = lib._collapse(status0_data[ky].astype("uint8"), name=ky)
+        outdat["attrs"][ky] = int(lib._collapse(status0_data[ky], name=ky))
 
     # Remove status0 variables - keep status variables as they are useful for finding missing pings
     [outdat["data_vars"].pop(var) for var in status0_vars]
