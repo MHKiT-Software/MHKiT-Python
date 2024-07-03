@@ -201,15 +201,16 @@ class _RDIReader:
         self._debug_level = debug_level
         self._vmdas_search = vmdas_search
         self._winrivprob = winriver
-        self._vm_source = int(0)
-        self._pos = int(0)
-        self.progress = int(0)
-        self._cfac = np.float32(180 / 2**31)
-        self._fixoffset = int(0)
-        self._nbyte = int(0)
-        self.n_cells_diff = np.float32(0)
-        self.n_cells_sl = np.float32(0)
-        self.cs_diff = np.float32(0)
+        self._vm_source = 0
+        self._pos = 0
+        self.progress = 0
+        self._cfac32 = np.float32(180 / 2**31)  # signed 32 to float
+        self._cfac16 = np.float32(180 / 2**15)  # unsigned16 to float
+        self._fixoffset = 0
+        self._nbyte = 0
+        self.n_cells_diff = 0
+        self.n_cells_sl = 0
+        self.cs_diff = 0
         self.cs = []
         self.cfg = {}
         self.cfgbb = {}
@@ -362,7 +363,7 @@ class _RDIReader:
                 try:
                     dates = tmlib.date2epoch(
                         tmlib.datetime(
-                            *clock[:6, 0], microsecond=int(clock[6, 0] * float(10000))
+                            *clock[:6, 0], microsecond=int(float(clock[6, 0]) * 10000)
                         )
                     )[0]
                 except ValueError:
@@ -510,7 +511,7 @@ class _RDIReader:
         if self._debug_level > 1:
             logging.debug(
                 "  pos %0.0fmb/%0.0fmb\n"
-                % (self.f.tell() / 1048576.0, self._filesize / 1048576.0)
+                % (self.f.tell() / 1048576, self._filesize / 1048576)
             )
         if (self.f.tell() - self.progress) < 1048576:
             return
@@ -758,7 +759,7 @@ class _RDIReader:
         fd = self.f
         tmp = fd.read_ui8(5)
         prog_ver0 = tmp[0]
-        cfg["prog_ver"] = float(tmp[0] + tmp[1] / 100)
+        cfg["prog_ver"] = float(tmp[0] + tmp[1] * 0.01)
         cfg["inst_model"] = defs.adcp_type.get(tmp[0], "unrecognized firmware version")
         config = tmp[2:4]
         cfg["beam_angle"] = [15, 20, 30][(config[1] & 3)]
@@ -788,7 +789,7 @@ class _RDIReader:
         cfg["min_corr_threshold"] = fd.read_ui8(1)
         cfg["n_code_reps"] = fd.read_ui8(1)
         cfg["min_prcnt_gd"] = fd.read_ui8(1)
-        cfg["max_error_vel"] = float(fd.read_ui16(1) / 1000)
+        cfg["max_error_vel"] = float(fd.read_ui16(1) * 0.001)
         cfg["sec_between_ping_groups"] = round(
             float(np.sum(np.array(fd.read_ui8(3)) * [60.0, 1.0, 0.01])), 3
         )
@@ -863,11 +864,11 @@ class _RDIReader:
         ens.builtin_test_fail[k] = fd.read_ui16(1)
         ens.c_sound[k] = fd.read_ui16(1)
         ens.depth[k] = fd.read_ui16(1) * 0.1
-        ens.heading[k] = fd.read_ui16(1) * np.float32(0.01)
-        ens.pitch[k] = fd.read_i16(1) * np.float32(0.01)
-        ens.roll[k] = fd.read_i16(1) * np.float32(0.01)
+        ens.heading[k] = fd.read_ui16(1) * 0.01
+        ens.pitch[k] = fd.read_i16(1) * 0.01
+        ens.roll[k] = fd.read_i16(1) * 0.01
         ens.salinity[k] = fd.read_i16(1)
-        ens.temp[k] = fd.read_i16(1) * np.float32(0.01)
+        ens.temp[k] = fd.read_i16(1) * 0.01
         ens.min_preping_wait[k] = (fd.read_ui8(3) * np.array([60, 1, 0.01])).sum()
         ens.heading_std[k] = fd.read_ui8(1)
         ens.pitch_std[k] = fd.read_ui8(1) * 0.1
@@ -896,8 +897,8 @@ class _RDIReader:
             if cfg["prog_ver"] >= 8.13:
                 # Added pressure sensor stuff in 8.13
                 fd.seek(2, 1)
-                ens.pressure[k] = fd.read_ui32(1) / 1000  # dPa to dbar
-                ens.pressure_std[k] = fd.read_ui32(1) / 1000
+                ens.pressure[k] = fd.read_ui32(1) * 0.001  # dPa to dbar
+                ens.pressure_std[k] = fd.read_ui32(1) * 0.001
                 self._nbyte += 10
             if cfg["prog_ver"] >= 8.24:
                 # Spare byte added 8.24
@@ -940,9 +941,7 @@ class _RDIReader:
         n_cells = cfg["n_cells" + tg]
 
         k = ens.k
-        vel = np.array(self.f.read_i16(4 * n_cells)).reshape((n_cells, 4)) * np.float32(
-            0.001
-        )
+        vel = np.array(self.f.read_i16(4 * n_cells)).reshape((n_cells, 4)) * 0.001
         ens["vel" + tg][:n_cells, :, k] = vel
         self._nbyte = 2 + 4 * n_cells * 2
         if self._debug_level > -1:
@@ -1009,19 +1008,19 @@ class _RDIReader:
             fd.seek(2, 1)
             long1 = fd.read_ui16(1)
             fd.seek(6, 1)
-            ens.latitude_gps[k] = fd.read_i32(1) * self._cfac
+            ens.latitude_gps[k] = fd.read_i32(1) * self._cfac32
             if ens.latitude_gps[k] == 0:
                 ens.latitude_gps[k] = np.nan
         else:
             fd.seek(14, 1)
-        ens.dist_bt[:, k] = fd.read_ui16(4) * np.float32(0.01)
-        ens.vel_bt[:, k] = fd.read_i16(4) * np.float32(0.001)
+        ens.dist_bt[:, k] = fd.read_ui16(4) * 0.01
+        ens.vel_bt[:, k] = fd.read_i16(4) * 0.001
         ens.corr_bt[:, k] = fd.read_ui8(4)
         ens.amp_bt[:, k] = fd.read_ui8(4)
         ens.prcnt_gd_bt[:, k] = fd.read_ui8(4)
         if self._vm_source == 2:
             fd.seek(2, 1)
-            ens.longitude_gps[k] = (long1 + 65536 * fd.read_ui16(1)) * self._cfac
+            ens.longitude_gps[k] = (long1 + 65536 * fd.read_ui16(1)) * self._cfac32
             if ens.longitude_gps[k] > 180:
                 ens.longitude_gps[k] = ens.longitude_gps[k] - 360
             if ens.longitude_gps[k] == 0:
@@ -1044,7 +1043,7 @@ class _RDIReader:
             self._nbyte = 2 + 68
         if cfg["prog_ver"] >= 5.3:
             fd.seek(7, 1)  # skip to rangeMsb bytes
-            ens.dist_bt[:, k] = ens.dist_bt[:, k] + fd.read_ui8(4) * np.float32(655.36)
+            ens.dist_bt[:, k] = ens.dist_bt[:, k] + fd.read_ui8(4) * 655.36
             self._nbyte += 11
         if cfg["prog_ver"] >= 16.2 and (cfg.get("sourceprog") != "WINRIVER"):
             fd.seek(4, 1)  # not documented
@@ -1064,9 +1063,7 @@ class _RDIReader:
         self.vars_read += ["alt_dist", "alt_rssi", "alt_eval", "alt_status"]
         ens.alt_eval[k] = fd.read_ui8(1)  # evaluation amplitude
         ens.alt_rssi[k] = fd.read_ui8(1)  # RSSI amplitude
-        ens.alt_dist[k] = fd.read_ui32(1) / np.float32(
-            1000
-        )  # range to surface/seafloor
+        ens.alt_dist[k] = fd.read_ui32(1) * 0.001  # range to surface/seafloor
         ens.alt_status[k] = fd.read_ui8(1)  # status bit flags
         self._nbyte = 7 + 2
         if self._debug_level > -1:
@@ -1101,24 +1098,22 @@ class _RDIReader:
 
         # 1st lat/lon position after previous ADCP ping
         # This byte is in hundredths of seconds (10s of milliseconds):
-        utc_time_first_fix = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) / 10)))
-        ens.clock_offset_UTC_gps[k] = fd.read_i32(1) / np.float64(
-            1000
-        )  # "PC clock offset from UTC" in ms
-        latitude_first_gps = fd.read_i32(1) * self._cfac
-        longitude_first_gps = fd.read_i32(1) * self._cfac
+        utc_time_first_fix = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) * 0.1)))
+        ens.clock_offset_UTC_gps[k] = fd.read_i32(1) * 0.001  # "PC clock offset from UTC" in ms
+        latitude_first_gps = fd.read_i32(1) * self._cfac32
+        longitude_first_gps = fd.read_i32(1) * self._cfac32
 
         # Last lat/lon position prior to current ADCP ping
-        utc_time_fix = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) / 10)))
+        utc_time_fix = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) * 0.1)))
         ens.time_gps[k] = tmlib.date2epoch(date_utc + utc_time_fix)[0]
-        ens.latitude_gps[k] = fd.read_i32(1) * self._cfac
-        ens.longitude_gps[k] = fd.read_i32(1) * self._cfac
+        ens.latitude_gps[k] = fd.read_i32(1) * self._cfac32
+        ens.longitude_gps[k] = fd.read_i32(1) * self._cfac32
 
-        ens.avg_speed_gps[k] = fd.read_ui16(1) / np.float32(1000)
-        ens.avg_dir_gps[k] = fd.read_ui16(1) * np.float32(180 / 2**15)  # avg true track
+        ens.avg_speed_gps[k] = fd.read_ui16(1) * 0.001
+        ens.avg_dir_gps[k] = fd.read_ui16(1) * self._cfac16  # avg true track
         fd.seek(2, 1)  # avg magnetic track
-        ens.speed_made_good_gps[k] = fd.read_ui16(1) / np.float32(1000)
-        ens.dir_made_good_gps[k] = fd.read_ui16(1) * np.float32(180 / 2**15)
+        ens.speed_made_good_gps[k] = fd.read_ui16(1) * 0.001
+        ens.dir_made_good_gps[k] = fd.read_ui16(1) * self._cfac16
         fd.seek(2, 1)  # reserved
         ens.flags_gps[k] = int(np.binary_repr(fd.read_ui16(1)))
         fd.seek(6, 1)  # reserved, ADCP ensemble #
@@ -1126,11 +1121,11 @@ class _RDIReader:
         # ADCP date time
         utim = fd.read_ui8(4)
         date_adcp = tmlib.datetime(utim[0] + utim[1] * 256, utim[3], utim[2])
-        time_adcp = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) / 10)))
+        time_adcp = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) * 0.1)))
 
-        ens.pitch_gps[k] = fd.read_ui16(1) * np.float32(180 / 2**15)
-        ens.roll_gps[k] = fd.read_ui16(1) * np.float32(180 / 2**15)
-        ens.heading_gps[k] = fd.read_ui16(1) * np.float32(180 / 2**15)
+        ens.pitch_gps[k] = fd.read_ui16(1) * self._cfac16
+        ens.roll_gps[k] = fd.read_ui16(1) * self._cfac16
+        ens.heading_gps[k] = fd.read_ui16(1) * self._cfac16
 
         fd.seek(10, 1)
         self._nbyte = 2 + 76
@@ -1233,7 +1228,7 @@ class _RDIReader:
                 kph = self.f.reads(1)  # 'K'
                 mode = self.f.reads(1)
                 # knots -> m/s
-                ens.speed_over_grnd_gps[k] = speed_knot / np.float32(1.944)
+                ens.speed_over_grnd_gps[k] = speed_knot / 1.944
                 ens.dir_over_grnd_gps[k] = true_track
             self.vars_read += ["speed_over_grnd_gps", "dir_over_grnd_gps"]
             self._nbyte = self.f.tell() - startpos + 2
@@ -1468,7 +1463,7 @@ class _RDIReader:
             # If n_bin is an integer, we can do this simply.
             out[..., :n_bin] = (arr[..., : (shp[-2] * shp[-1])]).reshape(shp, order="C")
         else:
-            inds = (np.arange(np.prod(shp[-2:])) * n_bin // int(n_bin)).astype(int)
+            inds = np.arange(np.prod(shp[-2:])) * n_bin // int(n_bin)
             # If there are too many indices, drop one bin
             if inds[-1] >= arr.shape[-1]:
                 inds = inds[: -int(n_bin)]
