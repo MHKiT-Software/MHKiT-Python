@@ -1099,7 +1099,9 @@ class _RDIReader:
         # 1st lat/lon position after previous ADCP ping
         # This byte is in hundredths of seconds (10s of milliseconds):
         utc_time_first_fix = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) * 0.1)))
-        ens.clock_offset_UTC_gps[k] = fd.read_i32(1) * 0.001  # "PC clock offset from UTC" in ms
+        ens.clock_offset_UTC_gps[k] = (
+            fd.read_i32(1) * 0.001
+        )  # "PC clock offset from UTC" in ms
         latitude_first_gps = fd.read_i32(1) * self._cfac32
         longitude_first_gps = fd.read_i32(1) * self._cfac32
 
