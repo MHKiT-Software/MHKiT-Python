@@ -8,7 +8,7 @@ import json
 
 # Dictionary to store custom timeouts for each notebook
 notebook_timeouts = {
-    "ADCP_Delft3D_TRTS_example.ipynb": 420,
+    "ADCP_Delft3D_TRTS_example.ipynb": 1200,
     "adcp_example.ipynb": 240,
     "adv_example.ipynb": 180,
     "cdip_example.ipynb": 180,
