@@ -397,6 +397,8 @@ jobs:
       ]
     strategy:
       matrix: ${{ fromJson(needs.notebook-matrix.outputs.matrix) }}
+    if: |
+      always()
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
