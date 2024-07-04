@@ -397,25 +397,6 @@ jobs:
       ]
     strategy:
       matrix: ${{ fromJson(needs.notebook-matrix.outputs.matrix) }}
-    if: |
-      always() &&
-      (
-        (
-          needs.prepare-nonhindcast-cache.result == 'success' &&
-          needs.prepare-wave-hindcast-cache.result == 'skipped' &&
-          needs.prepare-wind-hindcast-cache.result == 'skipped' &&
-          needs.check-changes.outputs.should-run-hindcast == 'false' &&
-          needs.notebook-matrix.outputs.matrix.condition == 'false'   
-        ) ||
-        (
-          needs.prepare-nonhindcast-cache.result == 'success' &&
-          needs.prepare-wave-hindcast-cache.result == 'success' &&
-          needs.prepare-wind-hindcast-cache.result == 'success' &&
-          needs.check-changes.outputs.should-run-hindcast == 'true' &&
-          needs.notebook-matrix.outputs.matrix.condition == 'true'
-
-        )
-      )
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
