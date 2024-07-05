@@ -47,13 +47,8 @@ for notebook in notebooks:
     timeout = notebook_timeouts.get(
         os.path.basename(notebook), notebook_timeouts["default"]
     )
-    condition = os.path.basename(notebook) in [
-        "metocean_example.ipynb",
-        "WPTO_hindcast_example.ipynb",
-    ]
-    matrix["include"].append(
-        {"notebook": notebook, "condition": condition, "timeout": timeout}
-    )
+
+    matrix["include"].append({"notebook": notebook, "timeout": timeout})
 
 
 # Print the matrix as a properly formatted JSON string
