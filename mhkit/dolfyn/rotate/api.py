@@ -252,7 +252,10 @@ def set_declination(ds, declin, inplace=True):
         Rdec,
     ).astype(np.float32)
     if "heading" in ds:
-        ds["heading"] += angle
+        heading = ds["heading"] + angle
+        heading[heading > 180] -= 360
+        ds["heading"].values = heading
+
     if rotate2earth:
         rotate2(ds, "earth", inplace=True)
     if "principal_heading" in ds.attrs:
