@@ -433,7 +433,11 @@ jobs:
         shell: bash -l {0}
         run: |
           if [[ "${{ matrix.notebook }}" == "examples/metocean_example.ipynb" || "${{ matrix.notebook }}" == "examples/WPTO_hindcast_example.ipynb" ]]; then
-            echo "Skipping ${{matrix.notebook}}"
+            if [[ "${{ needs.check-changes.outputs.should-run-hindcast }}" == 'true' ]]; then
+              jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=${{ matrix.timeout }} "${{ matrix.notebook }}"
+            else
+              echo "Skipping ${{ matrix.notebook }}"
+            fi
           else
             jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=${{ matrix.timeout }} "${{ matrix.notebook }}"
           fi
