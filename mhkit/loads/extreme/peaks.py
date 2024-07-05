@@ -199,7 +199,7 @@ def number_of_short_term_peaks(n_peaks: int, time: float, time_st: float) -> flo
     return n_peaks * time_st / time
 
 
-def peaks_distribution_weibull(peaks_data: NDArray[np.float64]) -> rv_continuous:
+def peaks_distribution_weibull(peaks_data: NDArray[np.float_]) -> rv_continuous:
     """
     Estimate the peaks distribution by fitting a Weibull
     distribution to the peaks of the response.
@@ -209,7 +209,7 @@ def peaks_distribution_weibull(peaks_data: NDArray[np.float64]) -> rv_continuous
 
     Parameters
     ----------
-    peaks_data : NDArray[np.float64]
+    peaks_data : NDArray[np.float_]
         Global peaks.
 
     Returns
@@ -234,7 +234,7 @@ def peaks_distribution_weibull(peaks_data: NDArray[np.float64]) -> rv_continuous
 
 # pylint: disable=R0914
 def peaks_distribution_weibull_tail_fit(
-    peaks_data: NDArray[np.float64],
+    peaks_data: NDArray[np.float_],
 ) -> rv_continuous:
     """
     Estimate the peaks distribution using the Weibull tail fit
@@ -298,7 +298,7 @@ def peaks_distribution_weibull_tail_fit(
 
 # pylint: disable=R0914
 def automatic_hs_threshold(
-    peaks: NDArray[np.float64],
+    peaks: NDArray[np.float_],
     sampling_rate: float,
     initial_threshold_range: Tuple[float, float, float] = (0.990, 0.995, 0.001),
     max_refinement: int = 5,
@@ -324,7 +324,7 @@ def automatic_hs_threshold(
 
     Parameters
     ----------
-    peaks: NDArray[np.float64]
+    peaks: NDArray[np.float_]
         Peak values of the response time-series.
     sampling_rate: float
         Sampling rate in hours.
@@ -396,7 +396,7 @@ def automatic_hs_threshold(
 
 
 def peaks_distribution_peaks_over_threshold(
-    peaks_data: NDArray[np.float64], threshold: Optional[float] = None
+    peaks_data: NDArray[np.float_], threshold: Optional[float] = None
 ) -> rv_continuous:
     """
     Estimate the peaks distribution using the peaks over threshold
@@ -412,7 +412,7 @@ def peaks_distribution_peaks_over_threshold(
 
     Parameters
     ----------
-    peaks_data : NDArray[np.float64]
+    peaks_data : NDArray[np.float_]
         Global peaks.
     threshold : Optional[float]
         Threshold value. Only peaks above this value will be used.
@@ -457,14 +457,14 @@ def peaks_distribution_peaks_over_threshold(
             super().__init__(*args, **kwargs)
 
         # pylint: disable=arguments-differ
-        def _cdf(self, data_points, *args, **kwds) -> NDArray[np.float64]:
+        def _cdf(self, data_points, *args, **kwds) -> NDArray[np.float_]:
             # Convert data_points to a NumPy array if it's not already
             data_points = np.atleast_1d(data_points)
             out = np.zeros_like(data_points)
 
             # Use the instance's threshold attribute instead of passing as a parameter
             below_threshold = data_points < self.threshold
-            out[below_threshold] = np.nan
+            out[below_threshold] = np.NaN
 
             above_threshold_indices = ~below_threshold
             if np.any(above_threshold_indices):

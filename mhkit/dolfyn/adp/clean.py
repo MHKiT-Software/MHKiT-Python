@@ -99,11 +99,11 @@ def find_surface(ds, thresh=10, nfilt=None):
     for ip in range(ds.vel.shape[1]):
         itmp = np.min(inds[:, ip])
         if (edf[itmp:, :, ip] < thresh).all():
-            d[ip] = np.nan
+            d[ip] = np.NaN
 
     if nfilt:
         dfilt = medfiltnan(d, nfilt, thresh=4)
-        dfilt[dfilt == 0] = np.nan
+        dfilt[dfilt == 0] = np.NaN
         d = dfilt
 
     ds["depth"] = xr.DataArray(

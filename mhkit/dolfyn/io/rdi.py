@@ -369,7 +369,7 @@ class _RDIReader:
                             int(self.ensemble.number[0])
                         )
                     )
-                    dat["coords"]["time"][iens] = np.nan
+                    dat["coords"]["time"][iens] = np.NaN
                 else:
                     dat["coords"]["time"][iens] = np.median(dates)
 
@@ -1007,7 +1007,7 @@ class _RDIReader:
             fd.seek(6, 1)
             ens.latitude_gps[k] = fd.read_i32(1) * self._cfac
             if ens.latitude_gps[k] == 0:
-                ens.latitude_gps[k] = np.nan
+                ens.latitude_gps[k] = np.NaN
         else:
             fd.seek(14, 1)
         ens.dist_bt[:, k] = fd.read_ui16(4) * 0.01
@@ -1021,7 +1021,7 @@ class _RDIReader:
             if ens.longitude_gps[k] > 180:
                 ens.longitude_gps[k] = ens.longitude_gps[k] - 360
             if ens.longitude_gps[k] == 0:
-                ens.longitude_gps[k] = np.nan
+                ens.longitude_gps[k] = np.NaN
             fd.seek(16, 1)
             qual = fd.read_ui8(1)
             if qual == 0:
@@ -1030,8 +1030,8 @@ class _RDIReader:
                         "  qual==%d,%f %f"
                         % (qual, ens.latitude_gps[k], ens.longitude_gps[k])
                     )
-                ens.latitude_gps[k] = np.nan
-                ens.longitude_gps[k] = np.nan
+                ens.latitude_gps[k] = np.NaN
+                ens.longitude_gps[k] = np.NaN
             fd.seek(71 - 45 - 16 - 17, 1)
             self._nbyte = 2 + 68
         else:

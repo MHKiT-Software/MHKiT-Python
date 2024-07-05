@@ -362,7 +362,7 @@ def _idata(dat, nm, sz):
     standard_name = data_defs[nm][5]
     arr = np.empty(sz, dtype=dtype)
     if dtype.startswith("float"):
-        arr[:] = np.nan
+        arr[:] = np.NaN
     dat[group][nm] = arr
     dat["units"][nm] = units
     dat["long_name"][nm] = long_name
@@ -408,4 +408,4 @@ class _ensemble:
             )
 
     def clean_data(self):
-        self["vel"][self["vel"] == -32.768] = np.nan
+        self["vel"][self["vel"] == -32.768] = np.NaN

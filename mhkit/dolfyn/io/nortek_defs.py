@@ -82,7 +82,7 @@ class _VarAtts:
     def _empty_array(self, **kwargs):
         out = np.zeros(self.shape(**kwargs), dtype=self.dtype)
         try:
-            out[:] = np.nan
+            out[:] = np.NaN
         except:
             pass
         if self.view_type is not None:

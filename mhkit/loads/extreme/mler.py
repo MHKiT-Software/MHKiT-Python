@@ -82,7 +82,7 @@ def _calculate_spectral_values(
 
 
 def mler_coefficients(
-    rao: Union[NDArray[np.float64], pd.Series, List[float], List[int], xr.DataArray],
+    rao: Union[NDArray[np.float_], pd.Series, List[float], List[int], xr.DataArray],
     wave_spectrum: Union[pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset],
     response_desired: Union[int, float],
     frequency_dimension: str = "",
@@ -269,7 +269,7 @@ def mler_wave_amp_normalize(
     wave_amp: float,
     mler: Union[pd.DataFrame, xr.Dataset],
     sim: SimulationParameters,
-    k: Union[NDArray[np.float64], List[float], pd.Series],
+    k: Union[NDArray[np.float_], List[float], pd.Series],
     **kwargs: Any,
 ) -> Union[pd.DataFrame, xr.Dataset]:
     """
@@ -363,10 +363,10 @@ def mler_wave_amp_normalize(
 
 
 def mler_export_time_series(
-    rao: Union[NDArray[np.float64], List[float], pd.Series],
+    rao: Union[NDArray[np.float_], List[float], pd.Series],
     mler: Union[pd.DataFrame, xr.Dataset],
     sim: SimulationParameters,
-    k: Union[NDArray[np.float64], List[float], pd.Series],
+    k: Union[NDArray[np.float_], List[float], pd.Series],
     **kwargs: Any,
 ) -> Union[pd.DataFrame, xr.Dataset]:
     """
