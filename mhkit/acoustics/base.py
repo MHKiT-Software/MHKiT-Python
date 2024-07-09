@@ -12,7 +12,7 @@ def minimum_frequency(water_depth, c=1500, c_seabed=1700):
     sound in the water columna and the speed of sound in the seabed
     material (generally ranges from 1450 - 1800 m/s)
 
-    Jennings 2011 - Computational Ocean Acoustics, 2nd ed
+    Jennings 2011 - Computational Ocean Acoustics, 2nd ed.
     """
 
     f_min = c / (4 * water_depth * np.sqrt(1 - (c / c_seabed) ** 2))
@@ -29,7 +29,7 @@ def sound_pressure_spectral_density(P, fs, window=1):
     Parameters
     ----------
     P: xarray.DataArray (time)
-        Sound pressure in [Pa]
+        Sound pressure in [Pa] or volts [V]
     fs: int
         Data collection sampling rate [Hz]
     window: string (optional)
@@ -62,7 +62,7 @@ def sound_pressure_spectral_density(P, fs, window=1):
         psd_adj,
         coords={"time": psd_adj["time"], "freq": psd_adj["freq"]},
         attrs={
-            "units": "Pa^2/Hz",
+            "units": P.units + "^2/Hz",
             "long_name": "Mean Square Sound Pressure Spectral Density",
             "fs": fs,
             "window": str(window) + "s",
@@ -74,6 +74,36 @@ def sound_pressure_spectral_density(P, fs, window=1):
     return out
 
 
+def apply_calibration(spsd, sensitivity_curve, fill_nan):
+    """Applies custom calibration to spectral density values
+
+    Parameters
+    ----------
+    spsd: xarray.DataArray (time, freq)
+        Mean square sound pressure spectral density in V^2/Hz.
+    sensitivity_curve: xarray.DataArray (freq)
+        Calibrated sensitivity curve in units of dB rel 1 V^2/uPa^2.
+    fill_nan: numeric
+        Value with which to fill values missing from calibration curve,
+        in units of dB rel 1 V^2/uPa^2.
+    """
+
+    # Read calibration curve
+    freq = sensitivity_curve.dims[0]
+    # Interpolate calibration curve to desired value
+    calibration = sensitivity_curve.interp({freq: spsd["freq"]}).drop(freq)
+    # Fill missing with provided value
+    calibration = calibration.fillna(fill_nan)
+
+    # Subtract from sound pressure spectral density
+    Sf_ratio = 10 ** (calibration / 10)  # V^2/uPa^2
+    spsd /= Sf_ratio  # uPa^2/Hz
+    spsd /= 1e12   # Pa^2/Hz
+    spsd.attrs['units'] = "Pa^2/Hz"
+
+    return spsd
+
+
 def sound_pressure_spectral_density_level(spsd):
     """
     Calculates the sound pressure spectral density level from
@@ -81,8 +111,8 @@ def sound_pressure_spectral_density_level(spsd):
 
     Parameters
     ----------
-    spsd: xarray DataArray (time, freq)
-        Mean square sound pressure spectral density in uPa^2/Hz
+    spsd: xarray.DataArray (time, freq)
+        Mean square sound pressure spectral density in Pa^2/Hz
 
     Returns
     -------
@@ -92,7 +122,7 @@ def sound_pressure_spectral_density_level(spsd):
     """
 
     # Reference value of sound pressure
-    P2_ref = 1e-12  # Pa^2/Hz, = 1 uPa^2/Hz
+    P2_ref = 1e-12  # Pa^2 to 1 uPa^2
 
     # Sound pressure spectral density level from mean square values
     lpf = 10 * np.log10(spsd.values / P2_ref)
@@ -118,7 +148,7 @@ def band_average(
 
     Parameters
     ----------
-    spsdl: xarray DataArray (time, freq)
+    spsdl: xarray.DataArray (time, freq)
         Mean square sound pressure spectral density level in dB rel 1 uPa^2/Hz
     octave: int
         Octave to subdivide spectral density level by. Default = 3 (third octave)
@@ -127,7 +157,7 @@ def band_average(
     fmax: int
         Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
     method: str
-        Xarray DataArray method to run on the binned data. Default: "median".
+        xarray.DataArray method to run on the binned data. Default: "median".
         Options: [median, mean, min, max, sum, quantile, std, var, count]
     method_arg: numeric
         Optional argument for `method`. Only required for "quantile" function.
@@ -179,12 +209,12 @@ def time_average(spsdl, window=60, method="median", method_arg=None):
 
     Parameters
     ----------
-    spsdl: xarray DataArray (time, freq)
+    spsdl: xarray.DataArray (time, freq)
         Mean square sound pressure spectral density level in dB rel 1 uPa^2/Hz
     window: int
         Time in seconds to subdivide spectral density level into. Default: 60 s.
     method: str
-        Xarray DataArray method to run on the binned data. Default: "median".
+        xarray.DataArray method to run on the binned data. Default: "median".
         Options: [median, mean, min, max, sum, quantile, std, var, count]
     method_arg: numeric
         Optional argument for `method`. Only required for "quantile" function.
@@ -223,7 +253,7 @@ def sound_pressure_level(spsd, fmin=10, fmax=100000):
 
     Parameters
     ----------
-    psd: xarray DataArray (time, freq)
+    psd: xarray.DataArray (time, freq)
         Mean square sound pressure spectral density in [Pa^2/Hz]
     fmin: int
         Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
@@ -276,7 +306,7 @@ def third_octave_sound_pressure_level(spsd, fmin=10, fmax=100000):
 
     Parameters
     ----------
-    psd: xarray DataArray (time, freq)
+    psd: xarray.DataArray (time, freq)
         Mean square sound pressure spectral density.
     fmin: int
         Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz

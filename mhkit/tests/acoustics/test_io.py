@@ -27,7 +27,7 @@ class TestIO(unittest.TestCase):
         file_name = join(datadir, "RBW_6661_20240601_053114.wav")
         td1 = acoustics.io.read_iclisten(file_name)
         td2 = acoustics.io.read_hydrophone(
-            file_name, peak_V=3, Sf=-177, start_time="2024-06-01T05:31:14"
+            file_name, peak_V=3, sensitivity=-177, start_time="2024-06-01T05:31:14"
         )
         # Check time coordinate
         cc = np.array(
@@ -50,9 +50,9 @@ class TestIO(unittest.TestCase):
 
     def test_read_soundtrap(self):
         file_name = join(datadir, "6247.230204150508.wav")
-        td1 = acoustics.io.read_soundtrap(file_name, Sf=-177)
+        td1 = acoustics.io.read_soundtrap(file_name, sensitivity=-177)
         td2 = acoustics.io.read_hydrophone(
-            file_name, peak_V=1, Sf=-177, start_time="2023-02-04T15:05:08"
+            file_name, peak_V=1, sensitivity=-177, start_time="2023-02-04T15:05:08"
         )
         # Check time coordinate
         cc = np.array(

@@ -1,4 +1,5 @@
 import struct
+import warnings
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -7,10 +8,11 @@ from scipy.io import wavfile
 
 
 def read_hydrophone(
-    filename, peak_V=None, Sf=None, gain=0, start_time="2024-06-06T00:00:00"
+    filename, peak_V=None, sensitivity=None, gain=0, start_time="2024-06-06T00:00:00"
 ):
     """
-    Read .wav file from a hydrophone.
+    Read .wav file from a hydrophone. Returns voltage timeseries if sensitivity not
+    provided, returns pressure timeseries if it is provided.
 
     Parameters
     ----------
@@ -21,22 +23,20 @@ def read_hydrophone(
         (Or 1/2 of the peak to peak voltage).
     Sf: numeric
         Hydrophone calibration sensitivity in dB re 1 V/uPa.
-        Should be negative.
+        Should be negative. Default: None.
     gain: numeric
         Amplifier gain in dB re 1 V/uPa. Default 0.
 
     Returns
     -------
     out: numpy.array
-        Sound pressure [Pa] indexed by time[s]
+        Sound pressure [Pa] or Voltage [V] indexed by time[s]
     """
     if peak_V is None:
         raise ValueError(
             "Please provide the peak voltage of the hydrophone's ADC `peak_V`."
         )
-    if Sf is None:
-        raise ValueError("Please provide the hydrophone's calibrated sensitivity `Sf`.")
-    elif Sf > 0:
+    if (sensitivity is not None) and (sensitivity > 0):
         raise ValueError(
             "Hydrophone calibrated sensitivity should be entered as a negative number."
         )
@@ -76,53 +76,75 @@ def read_hydrophone(
     elif bits_per_sample <= 32:
         max_count = 2 ** (32 - 1)  # 32 bit
 
-    # Subtract gain
-    # hydrophone with sensitivity of -177 dB and gain of -3 dB = sensitivity of -174 dB
-    if gain:
-        Sf -= gain
-    # Convert calibration from dB rel 1 V/uPa into ratio
-    sensitivity = 10 ** (Sf / 20)  # V/uPa
-
     # Normalize and then scale to peak voltage
     # Use 64 bit float for decimal accuracy
     raw_V = raw.astype(float) / max_count * peak_V
-
-    # Sound pressure
-    pressure = raw_V / sensitivity  # uPa
-    pressure = pressure / 1e6  # Pa
-
-    # Min resolution
-    min_res = peak_V / max_count / sensitivity  # uPa
-    # Pressure at which sensor is saturated
-    max_sat = peak_V / sensitivity  # uPa
 
     # Get time
     end_time = np.datetime64(start_time) + np.timedelta64(length, "s")
     time = pd.date_range(start_time, end_time, raw.size + 1)
 
-    out = xr.DataArray(
-        pressure,
-        coords={"time": time[:-1]},
-        attrs={
-            "units": "Pa",
-            "sensitivity": Sf,
-            "resolution": np.round(min_res / 1e6, 9),
-            "valid_min": np.round(
-                -max_sat / 1e6,
-                6,
-            ),
-            "valid_max": np.round(max_sat / 1e6, 6),
-            "fs": fs,
-            "filename": filename.replace("\\", "/").split("/")[-1],
-        },
-    )
+    if sensitivity:
+        # Subtract gain
+        # hydrophone with sensitivity of -177 dB and gain of -3 dB = sensitivity of -174 dB
+        if gain:
+            sensitivity -= gain
+        # Convert calibration from dB rel 1 V/uPa into ratio
+        Sf = 10 ** (sensitivity / 20)  # V/uPa
+
+        # Sound pressure
+        pressure = raw_V / Sf  # uPa
+        pressure = pressure / 1e6  # Pa
+
+        # Min resolution
+        min_res = peak_V / max_count / Sf  # uPa
+        # Pressure at which sensor is saturated
+        max_sat = peak_V / Sf  # uPa
+
+        out = xr.DataArray(
+            pressure,
+            coords={"time": time[:-1]},
+            attrs={
+                "units": "Pa",
+                "sensitivity": Sf,
+                "resolution": np.round(min_res / 1e6, 9),
+                "valid_min": np.round(
+                    -max_sat / 1e6,
+                    6,
+                ),
+                "valid_max": np.round(max_sat / 1e6, 6),
+                "fs": fs,
+                "filename": filename.replace("\\", "/").split("/")[-1],
+            },
+        )
+
+    else:
+        # Voltage min resolution
+        min_res = peak_V / max_count  # V
+        # Voltage at which sensor is saturated
+        max_sat = peak_V  # V
+
+        out = xr.DataArray(
+            raw_V,
+            coords={"time": time[:-1]},
+            attrs={
+                "units": "V",
+                "resolution": np.round(min_res, 6),
+                "valid_min": -max_sat,
+                "valid_max": max_sat,
+                "fs": fs,
+                "filename": filename.replace("\\", "/").split("/")[-1],
+            },
+        )
 
     return out
 
 
-def read_soundtrap(filename, Sf=None, gain=0):
+def read_soundtrap(filename, sensitivity=None, gain=0):
     """
     Read .wav file from an Ocean Instruments SoundTrap hydrophone.
+    Returns voltage timeseries if sensitivity not provided, returns pressure
+    timeseries if it is provided.
 
     Parameters
     ----------
@@ -137,7 +159,7 @@ def read_soundtrap(filename, Sf=None, gain=0):
     Returns
     -------
     out: numpy.array
-        Sound pressure [Pa] indexed by time[s]
+        Sound pressure [Pa] or Voltage [V] indexed by time[s]
     """
 
     # Get time from filename
@@ -158,15 +180,19 @@ def read_soundtrap(filename, Sf=None, gain=0):
     )
 
     # Soundtrap uses a peak voltage of 1 V
-    out = read_hydrophone(filename, peak_V=1, Sf=Sf, gain=gain, start_time=start_time)
+    out = read_hydrophone(
+        filename, peak_V=1, sensitivity=sensitivity, gain=gain, start_time=start_time
+    )
     out.attrs["make"] = "SoundTrap"
 
     return out
 
 
-def read_iclisten(filename):
+def read_iclisten(filename, sensitivity=None, use_metadata=True):
     """
     Read .wav file from an Ocean Sonics icListen "Smart" hydrophone.
+    Returns voltage timeseries if sensitivity not provided, returns pressure
+    timeseries if it is provided.
 
     Parameters
     ----------
@@ -242,10 +268,21 @@ def read_iclisten(filename):
         else:
             f.seek(f.tell() - 4)
 
-    Sf = int(hphone_sensitivity.split(" ")[0])
     peak_V = float(peak_voltage.split(" ")[0])
+    Sf = int(hphone_sensitivity.split(" ")[0])
+    if use_metadata:
+        sensitivity = Sf
+    # else:
+    #     warnings.warn(
+    #         f"Overriding manufacturer sensitivity {Sf} with user-defined sensitivity {sensitivity}."
+    #     )
+
     out = read_hydrophone(
-        filename, peak_V=peak_V, Sf=Sf, gain=0, start_time=np.datetime64(icrd)
+        filename,
+        peak_V=peak_V,
+        sensitivity=sensitivity,
+        gain=0,
+        start_time=np.datetime64(icrd),
     )
 
     out.attrs.update(
@@ -255,7 +292,7 @@ def read_iclisten(filename):
             "software_ver": isft,
             "filename": inam + ".wav",
             "peak_voltage": peak_voltage,
-            "sensitivity": Sf,
+            "sensitivity": sensitivity,
             "humidity": humidity,
             "temperature": temp,
             "accelerometer": accel,
