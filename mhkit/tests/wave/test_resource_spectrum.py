@@ -148,6 +148,17 @@ class TestResourceSpectrum(unittest.TestCase):
 
         self.assertLess(rmse_sum, 0.02)
 
+    def test_spectrum_without_frequency_index_name_defined(self):
+        S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
+        S.index.name = None
+
+        eta_ifft = wave.resource.surface_elevation(S, self.t, seed=1, method="ifft")
+        eta_sos = wave.resource.surface_elevation(
+            S, self.t, seed=1, method="sum_of_sines"
+        )
+
+        assert_allclose(eta_ifft, eta_sos)
+
     def test_ifft_sum_of_sines(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
 
