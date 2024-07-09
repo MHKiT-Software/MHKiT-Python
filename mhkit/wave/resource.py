@@ -302,6 +302,12 @@ def surface_elevation(
 
     if frequency_dimension == "":
         frequency_dimension = list(S.coords)[0]
+
+        # If the first dimension name is not set rename it to "Frequency"
+        if frequency_dimension == "dim_0":
+            S = S.rename({"dim_0": "Frequency"})
+            frequency_dimension = list(S.coords)[0]
+
     elif frequency_dimension not in list(S.dims):
         raise ValueError(
             f"frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}."
