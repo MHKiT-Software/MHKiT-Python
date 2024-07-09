@@ -338,7 +338,7 @@ def surface_elevation(
     if method == "ifft":
         if not f[0] == 0:
             warnings.warn(
-                f"ifft method must have zero frequency defined. Lowest frequency is: {S.index.values[0]}. Setting method to less efficient `sum_of_sines` method."
+                f"ifft method must have zero frequency defined. Lowest frequency is: {f[0].values}. Setting method to less efficient `sum_of_sines` method."
             )
             method = "sum_of_sines"
 
