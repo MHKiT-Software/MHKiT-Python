@@ -8,6 +8,7 @@ import mhkit.wave as wave
 import pandas as pd
 import numpy as np
 import unittest
+import pytest
 import os
 
 
@@ -157,6 +158,36 @@ class TestResourceSpectrum(unittest.TestCase):
         )
 
         assert_allclose(eta_ifft, eta_sos)
+
+    def test_surface_elevation_uses_sum_of_sines_when_input_frequency_index_does_not_have_zero(
+        self,
+    ):
+        f = np.linspace(1 / 30, 1 / 2, 32)
+        S = wave.resource.jonswap_spectrum(f, self.Tp, self.Hs)
+
+        eta_default = wave.resource.surface_elevation(S, self.t, seed=1)
+        eta_sos = wave.resource.surface_elevation(
+            S, self.t, seed=1, method="sum_of_sines"
+        )
+
+        assert_allclose(eta_default, eta_sos)
+
+    def test_surface_elevation_warn_user_if_zero_frequency_not_defined_and_using_ifft(
+        self,
+    ):
+        f = np.linspace(1 / 30, 1 / 2, 32)
+        S = wave.resource.jonswap_spectrum(f, self.Tp, self.Hs)
+
+        with pytest.warns(UserWarning):
+            wave.resource.surface_elevation(S, self.t, seed=1, method="ifft")
+
+    def test_surface_elevation_uses_ifft_when_input_frequency_index_has_zero(self):
+        S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
+
+        eta_default = wave.resource.surface_elevation(S, self.t, seed=1)
+        eta_ifft = wave.resource.surface_elevation(S, self.t, seed=1, method="ifft")
+
+        assert_allclose(eta_default, eta_ifft)
 
     def test_plot_spectrum(self):
         filename = abspath(join(plotdir, "wave_plot_spectrum.png"))
