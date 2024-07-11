@@ -58,7 +58,7 @@ def request_noaa_data(
     station : str
         NOAA current station number (e.g. 'cp0101', "s08010", "9446484")
     parameter : str
-        NOAA paramter (e.g. "currents", "salinity", "water_level", "water_temperature",
+        NOAA parameter (e.g. "currents", "salinity", "water_level", "water_temperature",
         "air_temperature", "wind", "air_pressure")
         https://api.tidesandcurrents.noaa.gov/api/prod/
     start_date : str
@@ -66,8 +66,8 @@ def request_noaa_data(
     end_date : str
         End date in the format yyyyMMdd
     proxy : dict or None
-         To request data from behind a firewall, define a dictionary of proxy
-         settings, for example {"http": 'localhost:8080'}
+        To request data from behind a firewall, define a dictionary of proxy
+        settings, for example {"http": 'localhost:8080'}
     write_json : str or None
         Name of json file to write data
     clear_cache : bool
