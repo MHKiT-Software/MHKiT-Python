@@ -98,8 +98,8 @@ def apply_calibration(spsd, sensitivity_curve, fill_nan):
     # Subtract from sound pressure spectral density
     Sf_ratio = 10 ** (calibration / 10)  # V^2/uPa^2
     spsd /= Sf_ratio  # uPa^2/Hz
-    spsd /= 1e12   # Pa^2/Hz
-    spsd.attrs['units'] = "Pa^2/Hz"
+    spsd /= 1e12  # Pa^2/Hz
+    spsd.attrs["units"] = "Pa^2/Hz"
 
     return spsd
 
