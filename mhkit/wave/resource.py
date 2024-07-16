@@ -394,11 +394,8 @@ def surface_elevation(
             )
 
             # wave elevation
-            # eta = xr.DataArray(columns=S.columns, index=time_index)
-            # for mcol in eta.columns:
             C = np.cos(B + phase)
-            # C = xr.DataArray(data=C, index=time_index, columns=omega.index)
-            eta[var] = (C * A).sum(axis=1)
+            eta[var] = (C * A).sum(dim=frequency_dimension)
 
     if to_pandas:
         eta = eta.to_dataframe()
