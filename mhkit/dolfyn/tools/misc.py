@@ -47,7 +47,7 @@ def detrend_array(arr, axis=-1, in_place=False):
         arr = arr.copy()
     sz = np.ones(arr.ndim, dtype=int)
     sz[axis] = arr.shape[axis]
-    x = np.arange(sz[axis], dtype=np.float_).reshape(sz)
+    x = np.arange(sz[axis], dtype=np.float64).reshape(sz)
     x -= np.nanmean(x, axis=axis, keepdims=True)
     arr -= np.nanmean(arr, axis=axis, keepdims=True)
     b = np.nanmean((x * arr), axis=axis, keepdims=True) / np.nanmean(
@@ -350,7 +350,7 @@ def medfiltnan(a, kernel, thresh=0):
     if thresh > 0:
         out[
             convolve2d(np.isnan(a), np.ones(kernel) / np.prod(kernel), "same") > thresh
-        ] = np.NaN
+        ] = np.nan
     if flag_1D:
         return out[0]
     return out

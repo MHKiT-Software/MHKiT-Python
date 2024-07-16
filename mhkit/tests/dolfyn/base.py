@@ -30,10 +30,13 @@ def assert_allclose(dat0, dat1, *args, **kwargs):
     # Check coords and data_vars
     _assert_allclose(dat0, dat1, *args, **kwargs)
     # Check attributes
+    mismatch = []
     for nm in dat0.attrs:
-        assert dat0.attrs[nm] == dat1.attrs[nm], (
-            "The " + nm + " attribute does not match."
-        )
+        # Ignore datatype
+        if str(dat0.attrs[nm]) != str(dat1.attrs[nm]):
+            mismatch.append(nm)
+    if mismatch:
+        raise ValueError(f"The following attributes do not match: {mismatch}.")
     # If test debugging
     for v in names:
         dat0[v] = time.epoch2dt64(dat0[v])

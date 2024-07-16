@@ -69,7 +69,7 @@ def read_nortek(
     t_list = [t for t in coords if "time" in t]
     for ky in t_list:
         tdat = coords[ky]
-        tdat[tdat == 0] = np.NaN
+        tdat[tdat == 0] = np.nan
         if np.isnan(tdat).any():
             tag = ky.lstrip("time")
             warnings.warn(
@@ -378,7 +378,7 @@ class _NortekReader:
             func2 = _bitshift8
         while True:
             val = unpack(self.endian + "H", self.read(2))[0]
-            if func(val) == 165 and (not do_cs or cs == np.uint16(sum)):
+            if np.array(val).astype(func) == 165 and (not do_cs or cs == sum):
                 self.f.seek(-2, 1)
                 return hex(func2(val))
             sum += cs
@@ -514,13 +514,13 @@ class _NortekReader:
         cfg_u["time_between_bursts"] = tmp[4]  # counts
         cfg_u["adv"]["n_pings_per_burst"] = tmp[5]
         cfg_u["awac"]["avg_interval"] = tmp[6]
-        cfg_u["usr"]["n_beams"] = tmp[7]
-        TimCtrlReg = _int2binarray(tmp[8], 16).astype(int)
+        cfg_u["usr"]["n_beams"] = int(tmp[7])
+        TimCtrlReg = _int2binarray(tmp[8], 16)
         # From the nortek system integrator manual
         # (note: bit numbering is zero-based)
         cfg_u["usr"]["profile_mode"] = ["single", "continuous"][TimCtrlReg[1]]
         cfg_u["usr"]["burst_mode"] = str(bool(~TimCtrlReg[2]))
-        cfg_u["usr"]["power_level"] = TimCtrlReg[5] + 2 * TimCtrlReg[6] + 1
+        cfg_u["usr"]["power_level"] = int(TimCtrlReg[5] + 2 * TimCtrlReg[6] + 1)
         cfg_u["usr"]["sync_out_pos"] = [
             "middle",
             "end",
@@ -1117,8 +1117,8 @@ class _NortekReader:
 
         r = (np.float32(np.arange(self.config["usr"]["n_bins"])) + 1) * cs + bd
         self.data["coords"]["range"] = r
-        self.data["attrs"]["cell_size"] = cs
-        self.data["attrs"]["blank_dist"] = bd
+        self.data["attrs"]["cell_size"] = float(cs)
+        self.data["attrs"]["blank_dist"] = float(bd)
 
     def read_awac_waves_hdr(self):
         # ID: '0x31'

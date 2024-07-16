@@ -8,7 +8,7 @@ class tools_testcase(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.array = np.arange(10, dtype=float)
-        self.nan = np.zeros(3) * np.NaN
+        self.nan = np.zeros(3) * np.nan
 
     @classmethod
     def tearDownClass(self):

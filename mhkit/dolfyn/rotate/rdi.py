@@ -96,7 +96,8 @@ def _calc_beam_orientmat(theta=20, convex=True, degrees=True):
     b = 1 / (4.0 * np.cos(theta))
     d = a / (2.0**0.5)
     return np.array(
-        [[c * a, -c * a, 0, 0], [0, 0, -c * a, c * a], [b, b, b, b], [d, d, -d, -d]]
+        [[c * a, -c * a, 0, 0], [0, 0, -c * a, c * a], [b, b, b, b], [d, d, -d, -d]],
+        dtype=np.float32,
     )
 
 
@@ -184,7 +185,7 @@ def _calc_orientmat(adcpo):
         },
     )
     return xr.DataArray(
-        omat,
+        omat.astype(np.float32),
         coords={"earth": earth, "inst": inst, "time": adcpo.time},
         dims=["earth", "inst", "time"],
         attrs={"units": "1", "long_name": "Orientation Matrix"},
