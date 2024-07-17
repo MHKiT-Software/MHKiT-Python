@@ -329,10 +329,10 @@ def request_data(parameter, filenames, proxy=None, clear_cache=False, to_pandas=
         'cwind' :   'Continuous Winds Current Year Historical Data'
 
     filenames: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
-            Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
+        Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
 
     proxy: dict
-            Proxy dict passed to python requests,
+        Proxy dict passed to python requests,
         (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})
 
     to_pandas: bool (optional)
@@ -631,7 +631,7 @@ def parameter_units(parameter=""):
     If no parameter is passed then an ordered dictionary of all NDBC
     parameterz specified unites is returned. If a parameter is specified
     then only the units associated with that parameter are returned.
-    Note that many NDBC paramters report multiple measurements and in
+    Note that many NDBC parameters report multiple measurements and in
     that case the returned dictionary will contain the NDBC measurement
     name and associated unit for all the measurements associated with
     the specified parameter. Optional parameter values are given below.

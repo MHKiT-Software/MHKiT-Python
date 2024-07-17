@@ -4,14 +4,14 @@ noaa.py
 This module provides functions to fetch, process, and read NOAA (National
 Oceanic and Atmospheric Administration) current data directly from the
 NOAA Tides and Currents API (https://api.tidesandcurrents.noaa.gov/api/prod/). It
-supports loading data into a pandas DataFrame, handling data in XML and 
+supports loading data into a pandas DataFrame, handling data in XML and
 JSON formats, and writing data to a JSON file.
 
 Functions:
 ----------
-request_noaa_data(station, parameter, start_date, end_date, proxy=None, 
+request_noaa_data(station, parameter, start_date, end_date, proxy=None,
   write_json=None):
-    Loads NOAA current data from the API into a pandas DataFrame, 
+    Loads NOAA current data from the API into a pandas DataFrame,
     with optional support for proxy settings and writing data to a JSON
     file.
 
@@ -56,16 +56,18 @@ def request_noaa_data(
     Parameters
     ----------
     station : str
-        NOAA current station number (e.g. 'cp0101')
+        NOAA current station number (e.g. 'cp0101', "s08010", "9446484")
     parameter : str
-        NOAA paramter (e.g. '' for Discharge, cubic feet per second)
+        NOAA parameter (e.g. "currents", "salinity", "water_level", "water_temperature",
+        "air_temperature", "wind", "air_pressure")
+        https://api.tidesandcurrents.noaa.gov/api/prod/
     start_date : str
         Start date in the format yyyyMMdd
     end_date : str
         End date in the format yyyyMMdd
     proxy : dict or None
-         To request data from behind a firewall, define a dictionary of proxy
-         settings, for example {"http": 'localhost:8080'}
+        To request data from behind a firewall, define a dictionary of proxy
+        settings, for example {"http": 'localhost:8080'}
     write_json : str or None
         Name of json file to write data
     clear_cache : bool
@@ -158,26 +160,42 @@ def request_noaa_data(
             end_date = date_list[i + 1].strftime("%Y%m%d")
 
             api_query = f"begin_date={start_date}&end_date={end_date}&station={station}&product={parameter}&units=metric&time_zone=gmt&application=web_services&format=xml"
+            # Add datum to water level inquiries
+            if parameter == "water_level":
+                api_query += "&datum=MLLW"
             data_url = f"https://tidesandcurrents.noaa.gov/api/datagetter?{api_query}"
 
-            print("Data request URL: ", data_url)
+            print(f"Data request URL: {data_url}\n")
 
             # Get response
             try:
                 response = requests.get(url=data_url, proxies=proxy)
                 response.raise_for_status()
-            except requests.exceptions.HTTPError as err:
-                print(f"HTTP error occurred: {err}")
-                continue
-            except requests.exceptions.RequestException as err:
-                print(f"Error occurred: {err}")
-                continue
+                # Catch non-exception errors
+                if "error" in response.content.decode():
+                    raise Exception(response.content.decode())
+            except Exception as err:
+                if err.__class__ == requests.exceptions.HTTPError:
+                    print(f"HTTP error occurred: {err}")
+                    print(f"Error message: {response.content.decode()}\n")
+                    continue
+                elif err.__class__ == requests.exceptions.RequestException:
+                    print(f"Requests error occurred: {err}")
+                    print(f"Error message: {response.content.decode()}\n")
+                    continue
+                else:
+                    print(f"Requests error occurred: {err}\n")
+                    continue
+
             # Convert to DataFrame and save in data_frames list
             df, metadata = _xml_to_dataframe(response)
             data_frames.append(df)
 
         # Concatenate all DataFrames
-        data = pd.concat(data_frames, ignore_index=False)
+        if data_frames:
+            data = pd.concat(data_frames, ignore_index=False)
+        else:
+            raise ValueError("No data retrieved.")
 
         # Remove duplicated date values
         data = data.loc[~data.index.duplicated()]
@@ -236,7 +254,12 @@ def _xml_to_dataframe(response):
     df.drop_duplicates(inplace=True)
 
     # Convert data to float
-    df[["d", "s"]] = df[["d", "s"]].apply(pd.to_numeric)
+    cols = list(df.columns)
+    for var in cols:
+        try:
+            df[var] = df[var].apply(pd.to_numeric)
+        except ValueError:
+            pass
 
     return df, metadata
 
