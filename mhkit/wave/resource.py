@@ -303,11 +303,6 @@ def surface_elevation(
     if frequency_dimension == "":
         frequency_dimension = list(S.coords)[0]
 
-        # If the first dimension name is not set rename it to "Frequency"
-        if frequency_dimension == "dim_0":
-            S = S.rename({"dim_0": "Frequency"})
-            frequency_dimension = list(S.coords)[0]
-
     elif frequency_dimension not in list(S.dims):
         raise ValueError(
             f"frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}."
@@ -369,8 +364,8 @@ def surface_elevation(
             np.random.seed(seed)
             phase = xr.DataArray(
                 data=2 * np.pi * np.random.rand(S[var].size),
-                dims="Frequency",
-                coords={"Frequency": f},
+                dims=frequency_dimension,
+                coords={frequency_dimension: f},
             )
         else:
             phase = phases[var]
@@ -395,8 +390,8 @@ def surface_elevation(
             B = B.reshape((len(time_index), len(omega)))
             B = xr.DataArray(
                 data=B,
-                dims=["Time", "Frequency"],
-                coords={"Time": time_index, "Frequency": f},
+                dims=["Time", frequency_dimension],
+                coords={"Time": time_index, frequency_dimension: f},
             )
 
             # wave elevation
