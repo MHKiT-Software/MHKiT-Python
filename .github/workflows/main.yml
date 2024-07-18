@@ -429,6 +429,11 @@ jobs:
           echo "conda activate TESTconda" >> ~/.bashrc
           source ~/.bashrc
 
+      - name: Copy .hscfg file to examples directory
+        shell: bash -l {0}
+        run: |
+          cp .hscfg examples/
+
       - name: Run notebook
         shell: bash -l {0}
         run: |
