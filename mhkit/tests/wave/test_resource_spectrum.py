@@ -148,16 +148,26 @@ class TestResourceSpectrum(unittest.TestCase):
 
         self.assertLess(rmse_sum, 0.02)
 
-    def test_spectrum_without_frequency_index_name_defined(self):
+    def test_mhkit_spectrum_without_frequency_index_name_defined(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
         S.index.name = None
 
-        eta_ifft = wave.resource.surface_elevation(S, self.t, seed=1, method="ifft")
-        eta_sos = wave.resource.surface_elevation(
+        eta_ifft_xr = wave.resource.surface_elevation(S, self.t, seed=1, method="ifft")
+        eta_sos_xr = wave.resource.surface_elevation(
             S, self.t, seed=1, method="sum_of_sines"
         )
 
-        assert_allclose(eta_ifft, eta_sos)
+        assert_allclose(eta_ifft_xr, eta_sos_xr)
+
+    def test_user_spectrum_without_frequency_index_name_defined(self):
+        spectra = pd.DataFrame({"magnitude": [1.0, 2.0, 3.0]}, index=[0.0, 1.0, 2.0])
+        time = [0.0, 1.0, 2.0]
+
+        result = wave.resource.surface_elevation(spectra, time, seed=1)
+
+        expected_magnitude = [-0.983917, 1.274248, -2.129812]
+
+        assert_allclose(result["magnitude"], expected_magnitude, atol=1e-6)
 
     def test_ifft_sum_of_sines(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
