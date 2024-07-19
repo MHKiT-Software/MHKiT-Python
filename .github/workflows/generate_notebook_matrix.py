@@ -19,7 +19,7 @@ notebook_timeouts = {
     "extreme_response_full_sea_state_example.ipynb": 420,
     "extreme_response_MLER_example.ipynb": 650,
     "loads_example.ipynb": 180,
-    "metocean_example.ipynb": 240,
+    "metocean_example.ipynb": 1200,
     "mooring_example.ipynb": 300,
     "PacWave_resource_characterization_example.ipynb": 780,
     "power_example.ipynb": 180,
