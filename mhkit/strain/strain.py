@@ -12,10 +12,6 @@ import numpy as np
 import xarray as xr
 from mhkit.utils import convert_to_dataset
 
-
-def load_strain():
-    a = 1
-
 def calculate_primary_strains(ec, eb, ea, gauge_type):
     if gauge_type == 90:
         axial_strain = ec
@@ -31,7 +27,7 @@ def calculate_primary_strains(ec, eb, ea, gauge_type):
  
 def theoretical_loads(rosette1, rosette2, elastic_modulus, shear_modulus, shear_width, transverse_width, radius):
     normal = 0.5 * (rosette1['axial_strain'] + rosette2['axial_strain']) * \
-             elastic_modulus * (shear_width * transverse_width - np.pi * radius * radius)
+             elastic_modulus * (shear_width * transverse_width - np.pi * radius**2)
     moment = (rosette1['axial_strain'] - rosette2['axial_strain'])/shear_width * \
              elastic_modulus * (transverse_width*shear_width**3 / 12 - np.pi*radius**4 / 4)
     torsion1 = theoretical_torsion(rosette1['coupled_strain'], shear_modulus, shear_width, transverse_width, radius)
@@ -40,7 +36,7 @@ def theoretical_loads(rosette1, rosette2, elastic_modulus, shear_modulus, shear_
     return normal, moment, torsion1, torsion2
 
 def theoretical_torsion(coupled_strain, shear_modulus, shear_width, transverse_width, radius):
-    torsion = coupled_strain * shear_modulus / (shear_width/2) * \
-               ((shear_width**3*transverse_width + shear_width*transverse_width**3)/12 - np.pi*radius**4 / 2)
+    geometry_factor = ((shear_width**3*transverse_width + shear_width*transverse_width**3)/12 - np.pi*radius**4 / 2) / (shear_width/2)
+    torsion = coupled_strain * shear_modulus * geometry_factor
 
     return torsion
