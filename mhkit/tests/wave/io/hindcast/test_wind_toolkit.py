@@ -172,7 +172,18 @@ class TestWINDToolkit(unittest.TestCase):
         assert_frame_equal(self.ml, wtk_multiloc)
         assert_frame_equal(self.ml_meta, meta)
 
-    def test_multi_parm(self):
+    def test_multi_parm_wind(self):
+        data_type = "1-hour"
+        years = [2018]
+        lat_lon = (40.748, -124.527)  # Offshore_CA
+        parameters = ["windspeed_10m", "winddirection_10m"]
+        wtk_multiparm, meta = wtk.request_wtk_point_data(
+            data_type, parameters, lat_lon, years
+        )
+        # assert_frame_equal(self.mp, wtk_multiparm)
+        # assert_frame_equal(self.mp_meta, meta)
+
+    def test_multi_parm_temperature(self):
         data_type = "1-hour"
         years = [2018]
         lat_lon = (40.748, -124.527)  # Offshore_CA
