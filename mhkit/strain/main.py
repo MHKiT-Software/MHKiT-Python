@@ -65,10 +65,9 @@ def calculate_loads(
 def calculate_torsion(
     shear_strain, shear_modulus, shear_width, transverse_width, radius
 ):
-    geometry_factor = (
-        (shear_width**3 * transverse_width + shear_width * transverse_width**3) / 12
-        - np.pi * radius**4 / 2
-    ) / (shear_width / 2)
-    torsion = shear_strain * shear_modulus * geometry_factor
+    polar_moment_of_inertia = (
+        shear_width**3 * transverse_width + shear_width * transverse_width**3
+    ) / 12 - np.pi * radius**4 / 2
+    torsion = shear_strain * shear_modulus * polar_moment_of_inertia / (shear_width / 2)
 
     return torsion
