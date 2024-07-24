@@ -351,9 +351,7 @@ class TestWINDToolkit(unittest.TestCase):
     # test plot_region()
     def test_plot_region(self):
         fig, ax1 = plt.subplots()
-        ax1 = wtk.plot_region("Mid_Atlantic", ax=ax1)
-
-        ax2 = wtk.plot_region("NW_Pacific")
+        ax1 = wtk.plot_region("Offshore_CA", lat_lon=(40.748, -124.527), ax=ax1)
 
     # test elevation_to_string()
     def test_elevation_to_string(self):
