@@ -37,9 +37,8 @@ def sound_pressure_spectral_density(P, fs, window=1):
 
     Returns
     -------
-    out: xarray.DataArray (time, freq)
+    spsd: xarray.DataArray (time, freq)
         Spectral density [Pa^2/Hz] indexed by time and frequency
-
     """
 
     # window length of each time series
@@ -75,7 +74,8 @@ def sound_pressure_spectral_density(P, fs, window=1):
 
 
 def apply_calibration(spsd, sensitivity_curve, fill_nan):
-    """Applies custom calibration to spectral density values
+    """
+    Applies custom calibration to spectral density values
 
     Parameters
     ----------
@@ -86,6 +86,11 @@ def apply_calibration(spsd, sensitivity_curve, fill_nan):
     fill_nan: numeric
         Value with which to fill values missing from calibration curve,
         in units of dB rel 1 V^2/uPa^2.
+
+    Returns
+    -------
+    spsd: xarray.DataArray (time, freq)
+        Spectral density [Pa^2/Hz] indexed by time and frequency
     """
 
     # Read calibration curve
@@ -116,7 +121,7 @@ def sound_pressure_spectral_density_level(spsd):
 
     Returns
     -------
-    out: xarray.DataArray (time, freq)
+    spsdl: xarray.DataArray (time, freq)
         Sound pressure spectral density level [dB re 1 uPa^2/Hz]
         indexed by time and frequency
     """
@@ -262,7 +267,7 @@ def sound_pressure_level(spsd, fmin=10, fmax=100000):
 
     Returns
     -------
-    out: xarray.DataArray (time)
+    spl: xarray.DataArray (time)
         Sound pressure level [dB re 1 uPa] indexed by time
     """
 
@@ -299,26 +304,7 @@ def sound_pressure_level(spsd, fmin=10, fmax=100000):
     return out
 
 
-def third_octave_sound_pressure_level(spsd, fmin=10, fmax=100000):
-    """
-    Calculates the sound pressure level in third octave bands directly
-    from the mean square sound pressure spectral density.
-
-    Parameters
-    ----------
-    psd: xarray.DataArray (time, freq)
-        Mean square sound pressure spectral density.
-    fmin: int
-        Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
-    fmax: int
-        Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
-
-    Returns
-    -------
-    out: xarray.DataArray (time, freq_bins)
-        Sound pressure level [dB re 1 uPa] indexed by time and third octave bands
-    """
-
+def _band_sound_pressure_level(spsd, bandwidth, half_bandwidth, fmin, fmax):
     fn = spsd.attrs["fs"] // 2
     if fmax > fn:
         warnings.warn(
@@ -329,10 +315,6 @@ def third_octave_sound_pressure_level(spsd, fmin=10, fmax=100000):
 
     # Reference value of sound pressure
     P2_ref = 1e-12  # Pa^2, = 1 uPa^2
-
-    # Third octave bin frequencies
-    bandwidth = 2 ** (1 / 3)
-    half_bandwidth = 2 ** (1 / 6)
 
     center_freq = 10 ** np.arange(
         np.log10(fmin),
@@ -358,9 +340,71 @@ def third_octave_sound_pressure_level(spsd, fmin=10, fmax=100000):
 
     # Mean square sound pressure level in dB rel 1 uPa
     mspl = 10 * np.log10(P2 / P2_ref)
+
+    return mspl
+
+
+def third_octave_sound_pressure_level(spsd, fmin=10, fmax=100000):
+    """
+    Calculates the sound pressure level in third octave bands directly
+    from the mean square sound pressure spectral density.
+
+    Parameters
+    ----------
+    psd: xarray.DataArray (time, freq)
+        Mean square sound pressure spectral density.
+    fmin: int
+        Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
+    fmax: int
+        Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
+
+    Returns
+    -------
+    out: xarray.DataArray (time, freq_bins)
+        Sound pressure level [dB re 1 uPa] indexed by time and third octave bands
+    """
+
+    # Third octave bin frequencies
+    bandwidth = 2 ** (1 / 3)
+    half_bandwidth = 2 ** (1 / 6)
+
+    mspl = _band_sound_pressure_level(spsd, bandwidth, half_bandwidth, fmin, fmax)
     mspl.attrs = {
         "units": "dB re 1 uPa",
         "long_name": "Third Octave Sound Pressure Level",
+    }
+
+    return mspl
+
+
+def decidecade_sound_pressure_level(spsd, fmin=10, fmax=100000):
+    """
+    Calculates the sound pressure level in decidecade bands directly
+    from the mean square sound pressure spectral density.
+
+    Parameters
+    ----------
+    psd: xarray.DataArray (time, freq)
+        Mean square sound pressure spectral density.
+    fmin: int
+        Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
+    fmax: int
+        Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
+
+    Returns
+    -------
+    out: xarray.DataArray (time, freq_bins)
+        Sound pressure level [dB re 1 uPa] indexed by time and third octave bands
+    """
+
+    # Decidecade bin frequencies
+    bandwidth = 2 ** (1 / 10)
+    half_bandwidth = 2 ** (1 / 20)
+
+    mspl = _band_sound_pressure_level(spsd, bandwidth, half_bandwidth, fmin, fmax)
+    mspl.attrs = {
+        "units": "dB re 1 uPa",
+        "long_name": "Decidecade Sound Pressure Level",
     }
 
     return mspl
