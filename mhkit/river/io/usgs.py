@@ -82,7 +82,7 @@ def request_usgs_data(
     station : str
         USGS station number (e.g. '08313000')
     parameter : str
-        USGS paramter ID (e.g. '00060' for Discharge, cubic feet per second)
+        USGS parameter ID (e.g. '00060' for Discharge, cubic feet per second)
     start_date : str
         Start date in the format 'YYYY-MM-DD' (e.g. '2018-01-01')
     end_date : str
@@ -91,8 +91,8 @@ def request_usgs_data(
         Data type, options include 'Daily' (return the mean daily value) and
         'Instantaneous'.
     proxy : dict or None
-         To request data from behind a firewall, define a dictionary of proxy settings,
-         for example {"http": 'localhost:8080'}
+        To request data from behind a firewall, define a dictionary of proxy settings,
+        for example {"http": 'localhost:8080'}
     write_json : str or None
         Name of json file to write data
     clear_cache : bool
@@ -106,7 +106,7 @@ def request_usgs_data(
         Data indexed by datetime with columns named according to the parameter's
         variable description
     """
-    if not data_type in ["Daily", "Instantaneous"]:
+    if data_type not in ["Daily", "Instantaneous"]:
         raise ValueError(f"data_type must be Daily or Instantaneous. Got: {data_type}")
 
     if not isinstance(to_pandas, bool):
