@@ -47,87 +47,124 @@ class TestWPTOhindcast(unittest.TestCase):
         """
         Intitialize the WPTO hindcast test with expected data
         """
-        cls.my_swh = pd.read_csv(
-            join(datadir, "hindcast/multi_year_hindcast.csv"),
+        cls.sy_swh = pd.read_csv(
+            join(datadir, "hindcast/single_year_hindcast.csv"),
             index_col="time_index",
             names=["time_index", "significant_wave_height_0"],
             header=0,
             dtype={"significant_wave_height_0": "float32"},
         )
-        cls.my_swh.index = pd.to_datetime(cls.my_swh.index)
+        cls.sy_swh.index = pd.to_datetime(cls.sy_swh.index)
+
+        cls.sy_meta = pd.read_csv(
+            join(datadir, "hindcast/single_year_meta.csv"),
+            names=[
+                "water_depth",
+                "latitude",
+                "longitude",
+                "distance_to_shore",
+                "timezone",
+                "jurisdiction",
+                "gid",
+            ],
+            header=0,
+            dtype={
+                "water_depth": "float32",
+                "latitude": "float32",
+                "longitude": "float32",
+                "distance_to_shore": "float32",
+                "timezone": "int16",
+                "gid": "int64",
+            },
+        )
+
+        cls.my_odwp = pd.read_csv(
+            join(datadir, "hindcast/multi_year_hindcast.csv"),
+            index_col="time_index",
+            names=["time_index", "omni-directional_wave_power_0"],
+            header=0,
+            dtype={"omni-directional_wave_power_0": "float32"},
+        )
+        cls.my_odwp.index = pd.to_datetime(cls.my_odwp.index)
+
+        cls.my_odwp_meta = pd.read_csv(
+            join(datadir, "hindcast/multi_year_hindcast_meta.csv"),
+            names=[
+                "water_depth",
+                "latitude",
+                "longitude",
+                "distance_to_shore",
+                "timezone",
+                "jurisdiction",
+                "gid",
+            ],
+            header=0,
+            dtype={
+                "water_depth": "float32",
+                "latitude": "float32",
+                "longitude": "float32",
+                "distance_to_shore": "float32",
+                "timezone": "int16",
+                "gid": "int64",
+            },
+        )
 
         cls.ml = pd.read_csv(
             join(datadir, "hindcast/single_year_hindcast_multiloc.csv"),
             index_col="time_index",
-            names=["time_index", "mean_absolute_period_0", "mean_absolute_period_1"],
+            names=["time_index", "energy_period_0", "energy_period_1"],
             header=0,
             dtype={
-                "mean_absolute_period_0": "float32",
-                "mean_absolute_period_1": "float32",
+                "energy_period_0": "float32",
+                "energy_period_1": "float32",
             },
         )
         cls.ml.index = pd.to_datetime(cls.ml.index)
 
-        cls.mp = pd.read_csv(
-            join(datadir, "hindcast/multiparm.csv"),
-            index_col="time_index",
-            names=["time_index", "energy_period_0", "mean_zero-crossing_period_0"],
+        cls.ml_meta = pd.read_csv(
+            join(datadir, "hindcast/single_year_hindcast_multiloc_meta.csv"),
+            index_col=0,
+            names=[
+                None,
+                "water_depth",
+                "latitude",
+                "longitude",
+                "distance_to_shore",
+                "timezone",
+                "jurisdiction",
+                "gid",
+            ],
             header=0,
             dtype={
-                "energy_period_0": "float32",
-                "mean_zero-crossing_period_0": "float32",
+                "water_depth": "float32",
+                "latitude": "float32",
+                "longitude": "float32",
+                "distance_to_shore": "float32",
+                "timezone": "int16",
+                "gid": "int64",
+            },
+        )
+
+        cls.mp = pd.read_csv(
+            join(datadir, "hindcast/single_year_hindcast_multiparam.csv"),
+            index_col="time_index",
+            names=[
+                "time_index",
+                "significant_wave_height_0",
+                "peak_period_0",
+                "mean_wave_direction_0",
+            ],
+            header=0,
+            dtype={
+                "significant_wave_height_0": "float32",
+                "peak_period_0": "float32",
+                "mean_wave_direction_0": "float32",
             },
         )
         cls.mp.index = pd.to_datetime(cls.mp.index)
 
-        cls.ml_meta = pd.read_csv(
-            join(datadir, "hindcast/multiloc_meta.csv"),
-            index_col=0,
-            names=[
-                None,
-                "water_depth",
-                "latitude",
-                "longitude",
-                "distance_to_shore",
-                "timezone",
-                "jurisdiction",
-                "gid",
-            ],
-            header=0,
-            dtype={
-                "water_depth": "float32",
-                "latitude": "float32",
-                "longitude": "float32",
-                "distance_to_shore": "float32",
-                "timezone": "int16",
-                "gid": "int64",
-            },
-        )
-
-        cls.my_meta = pd.read_csv(
-            join(datadir, "hindcast/multi_year_meta.csv"),
-            names=[
-                "water_depth",
-                "latitude",
-                "longitude",
-                "distance_to_shore",
-                "timezone",
-                "jurisdiction",
-                "gid",
-            ],
-            header=0,
-            dtype={
-                "water_depth": "float32",
-                "latitude": "float32",
-                "longitude": "float32",
-                "distance_to_shore": "float32",
-                "timezone": "int16",
-                "gid": "int64",
-            },
-        )
-
         cls.mp_meta = pd.read_csv(
-            join(datadir, "hindcast/multiparm_meta.csv"),
+            join(datadir, "hindcast/single_year_hindcast_multiparam_meta.csv"),
             index_col=0,
             names=[
                 None,
@@ -150,12 +187,20 @@ class TestWPTOhindcast(unittest.TestCase):
             },
         )
 
-        cls.multi_year_dir_spectra = xr.open_dataset(
-            join(datadir, "hindcast/multi_year_dir_spectra.nc")
-        )
-
-        cls.multi_year_dir_spectra_meta = pd.read_csv(
-            join(datadir, "hindcast/multi_year_dir_spectra_meta.csv"),
+        cls.dir_spectra_meta = pd.read_csv(
+            join(datadir, "hindcast/dir_spectra_meta.csv"),
+            index_col=0,
+            names=[
+                None,
+                "water_depth",
+                "latitude",
+                "longitude",
+                "distance_to_shore",
+                "timezone",
+                "jurisdiction",
+                "gid",
+            ],
+            header=0,
             dtype={
                 "water_depth": "float32",
                 "latitude": "float32",
@@ -165,6 +210,8 @@ class TestWPTOhindcast(unittest.TestCase):
                 "gid": "int64",
             },
         )
+
+        cls.dir_spectra = xr.open_dataset(join(datadir, "hindcast/dir_spectra.nc"))
 
     def test_point_data(self):
         """
@@ -178,14 +225,9 @@ class TestWPTOhindcast(unittest.TestCase):
         Hs, meta = wave.io.hindcast.hindcast.request_wpto_point_data(
             data_type, parameter, lat_lon, years
         )
-        # wave_multiyear_df = (
-        #     wave_multiyear["significant_wave_height_0"]
-        #     .to_dataframe()
-        #     .tz_localize("UTC")
-        # )
 
-        # assert_frame_equal(self.my_swh, wave_multiyear_df)
-        # assert_frame_equal(self.my_meta, meta)
+        assert_frame_equal(self.sy_swh, Hs)
+        assert_frame_equal(self.sy_meta, meta)
 
     def test_multi_loc(self):
         """
@@ -199,25 +241,8 @@ class TestWPTOhindcast(unittest.TestCase):
         wave_multiloc, meta = wave.io.hindcast.hindcast.request_wpto_point_data(
             data_type, parameters, lat_lon, years
         )
-        # (
-        #     dir_multiyear,
-        #     meta_dir,
-        # ) = wave.io.hindcast.hindcast.request_wpto_directional_spectrum(
-        #     lat_lon, year=str(years[0])
-        # )
-
-        # dir_multiyear = dir_multiyear.sel(
-        #     time_index=slice(dir_multiyear.time_index[0], dir_multiyear.time_index[99])
-        # )
-        # Convert to effcient range index
-        # meta_dir.index = pd.RangeIndex(start=0, stop=len(meta_dir.index))
-
-        # assert_frame_equal(self.ml, wave_multiloc)
-        # assert_frame_equal(self.ml_meta, meta)
-        # xrt.assert_allclose(self.multi_year_dir_spectra, dir_multiyear)
-        # assert_frame_equal(
-        #     self.multi_year_dir_spectra_meta, meta_dir, check_dtype=False
-        # )
+        assert_frame_equal(self.ml, wave_multiloc)
+        assert_frame_equal(self.ml_meta, meta)
 
     def test_multi_year(self):
         """
@@ -234,14 +259,9 @@ class TestWPTOhindcast(unittest.TestCase):
             lat_lon,
             years,
         )
-        # wave_multiyear_df = (
-        #     wave_multiyear["significant_wave_height_0"]
-        #     .to_dataframe()
-        #     .tz_localize("UTC")
-        # )
 
-        # assert_frame_equal(self.my_swh, wave_multiyear_df)
-        # assert_frame_equal(self.my_meta, meta)
+        assert_frame_equal(self.my_odwp, wave_multiyear)
+        assert_frame_equal(self.my_odwp_meta, meta)
 
     def test_multi_parm(self):
         """
@@ -255,8 +275,8 @@ class TestWPTOhindcast(unittest.TestCase):
             data_type, parameters, lat_lon, years
         )
 
-        # assert_frame_equal(self.mp, wave_multiparm)
-        # assert_frame_equal(self.mp_meta, meta)
+        assert_frame_equal(self.mp, wave_multiparm)
+        assert_frame_equal(self.mp_meta, meta)
 
     def test_request_directional_spectrum(self):
         """
@@ -270,8 +290,10 @@ class TestWPTOhindcast(unittest.TestCase):
             lat_lon, year
         )
 
-        # assert_frame_equal(self.mp, wave_multiparm)
-        # assert_frame_equal(self.mp_meta, meta)
+        assert dir_spectra.equals(
+            dir_spectra
+        ), "The directional spectrum datasets are not equal"
+        assert_frame_equal(self.dir_spectra_meta, meta)
 
 
 if __name__ == "__main__":
