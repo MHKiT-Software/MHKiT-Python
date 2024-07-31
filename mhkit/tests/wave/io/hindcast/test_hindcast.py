@@ -290,6 +290,13 @@ class TestWPTOhindcast(unittest.TestCase):
             lat_lon, year
         )
 
+        # Down sample
+        dir_spectra.isel(
+            time_index=slice(0, 100),  # Select the first 100 time steps
+            frequency=slice(0, 10),  # Select the first 10 frequencies
+            direction=slice(0, 8),  # Select the first 8 directions
+        )
+
         assert dir_spectra.equals(
             dir_spectra
         ), "The directional spectrum datasets are not equal"
