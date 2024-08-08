@@ -1,2 +1,2 @@
-,latitude,longitude,country,state,county,timezone,elevation,offshore
-0,44.62472,-124.28879,United States,None,None,-8,0.0,1
+,latitude,longitude,timezone,elevation,offshore,country,state,county
+0,40.742405,-124.53485,-8,0.0,1,United States,None,None
