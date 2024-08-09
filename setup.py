@@ -21,7 +21,7 @@ DEPENDENCIES = [
     "pandas>=1.0.0",
     "numpy>=1.21.0, <2.0.0",
     "scipy<=1.13.1",
-    "matplotlib",
+    "matplotlib>=3.8.0",
     "requests",
     "pecos>=0.3.0",
     "fatpack",
