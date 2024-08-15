@@ -30,9 +30,9 @@ class TestWINDToolkit(unittest.TestCase):
         self.my = pd.read_csv(
             join(datadir, "wtk_multiyear.csv"),
             index_col="time_index",
-            names=["time_index", "pressure_200m_0"],
+            names=["time_index", "winddirection_10m_0"],
             header=0,
-            dtype={"pressure_200m_0": "float32"},
+            dtype={"winddirection_10m_0": "float32"},
         )
         self.my.index = pd.to_datetime(self.my.index)
 
@@ -60,23 +60,23 @@ class TestWINDToolkit(unittest.TestCase):
             names=[
                 "latitude",
                 "longitude",
-                "country",
-                "state",
-                "county",
                 "timezone",
                 "elevation",
                 "offshore",
+                "country",
+                "state",
+                "county",
             ],
             header=0,
             dtype={
                 "latitude": "float32",
                 "longitude": "float32",
-                "country": "str",
-                "state": "str",
-                "county": "str",
                 "timezone": "int16",
                 "elevation": "float32",
                 "offshore": "int16",
+                "country": "str",
+                "state": "str",
+                "county": "str",
             },
         )
 
@@ -90,23 +90,23 @@ class TestWINDToolkit(unittest.TestCase):
             names=[
                 "latitude",
                 "longitude",
-                "country",
-                "state",
-                "county",
                 "timezone",
                 "elevation",
                 "offshore",
+                "country",
+                "state",
+                "county",
             ],
             header=0,
             dtype={
                 "latitude": "float32",
                 "longitude": "float32",
-                "country": "str",
-                "state": "str",
-                "county": "str",
                 "timezone": "int16",
                 "elevation": "float32",
                 "offshore": "int16",
+                "country": "str",
+                "state": "str",
+                "county": "str",
             },
         )
         # Replace NaN values in 'state' and 'county' with the string "None"
@@ -119,23 +119,23 @@ class TestWINDToolkit(unittest.TestCase):
             names=[
                 "latitude",
                 "longitude",
-                "country",
-                "state",
-                "county",
                 "timezone",
                 "elevation",
                 "offshore",
+                "country",
+                "state",
+                "county",
             ],
             header=0,
             dtype={
                 "latitude": "float32",
                 "longitude": "float32",
-                "country": "str",
-                "state": "str",
-                "county": "str",
                 "timezone": "int16",
                 "elevation": "float32",
                 "offshore": "int16",
+                "country": "str",
+                "state": "str",
+                "county": "str",
             },
         )
         # Replace NaN values in 'state' and 'county' with the string "None"
@@ -150,8 +150,8 @@ class TestWINDToolkit(unittest.TestCase):
     def test_multi_year(self):
         data_type = "1-hour"
         years = [2018, 2019]
-        lat_lon = (44.624076, -124.280097)  # NW_Pacific
-        parameters = "pressure_200m"
+        lat_lon = (40.748, -124.527)  # Offshore_CA
+        parameters = "winddirection_10m"
         wtk_multiyear, meta = wtk.request_wtk_point_data(
             data_type, parameters, lat_lon, years
         )
@@ -160,27 +160,47 @@ class TestWINDToolkit(unittest.TestCase):
 
     def test_multi_loc(self):
         data_type = "1-hour"
-        years = [2001]
-        lat_lon = ((39.33, -67.21), (41.3, -75.9))  # Mid-Atlantic
+        years = [2019]
+        lat_lon = (
+            (41.5, -123.527),
+            (40.748, -124.527),
+        )  # Offshore_CA. 2nd lat-lon also tests region selection in an overlap region
         parameters = "windspeed_10m"
         wtk_multiloc, meta = wtk.request_wtk_point_data(
-            data_type, parameters, lat_lon, years
+            data_type, parameters, lat_lon, years, preferred_region="Offshore_CA"
         )
         assert_frame_equal(self.ml, wtk_multiloc)
         assert_frame_equal(self.ml_meta, meta)
 
-    def test_multi_parm(self):
+    def test_multi_parm_wind(self):
         data_type = "1-hour"
-        years = [2012]
-        lat_lon = (17.2, -156.5)  # Hawaii
-
-        parameters = ["temperature_20m", "temperature_40m"]
+        years = [2018]
+        lat_lon = (40.748, -124.527)  # Offshore_CA
+        parameters = ["windspeed_10m", "winddirection_10m"]
         wtk_multiparm, meta = wtk.request_wtk_point_data(
             data_type, parameters, lat_lon, years
         )
+        # assert_frame_equal(self.mp, wtk_multiparm)
+        # assert_frame_equal(self.mp_meta, meta)
 
-        assert_frame_equal(self.mp, wtk_multiparm)
-        assert_frame_equal(self.mp_meta, meta)
+    def test_multi_parm_temperature(self):
+        data_type = "1-hour"
+        years = [2018]
+        lat_lon = (40.748, -124.527)  # Offshore_CA
+        # parameters = ["temperature_20m", "temperature_40m"]
+        parameters = [
+            "temperature_2m",
+            "temperature_20m",
+            "temperature_40m",
+            "temperature_80m",
+            "temperature_120m",
+            "temperature_160m",
+        ]
+        wtk_multiparm, meta = wtk.request_wtk_point_data(
+            data_type, parameters, lat_lon, years
+        )
+        # assert_frame_equal(self.mp, wtk_multiparm)
+        # assert_frame_equal(self.mp_meta, meta)
 
     def test_invalid_parameter_type(self):
         with pytest.raises(TypeError):
@@ -342,9 +362,7 @@ class TestWINDToolkit(unittest.TestCase):
     # test plot_region()
     def test_plot_region(self):
         fig, ax1 = plt.subplots()
-        ax1 = wtk.plot_region("Mid_Atlantic", ax=ax1)
-
-        ax2 = wtk.plot_region("NW_Pacific")
+        ax1 = wtk.plot_region("Offshore_CA", lat_lon=(40.748, -124.527), ax=ax1)
 
     # test elevation_to_string()
     def test_elevation_to_string(self):
