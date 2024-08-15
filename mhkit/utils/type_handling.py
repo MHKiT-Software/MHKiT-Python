@@ -165,12 +165,18 @@ def convert_to_dataarray(data, name="data"):
     # Checks xr.Dataset input and converts to xr.DataArray if possible
     if isinstance(data, xr.Dataset):
         keys = list(data.keys())
-        data = data.to_array()
-        if len(data.variable) == 1:
-            # if only one variable, remove that dimension and rename the DataArray to simplify
+        if len(keys) == 1:
+            # if only one variable, remove the "variable" dimension and rename the DataArray to simplify
+            data = data.to_array()
             data = data.sel(variable=keys[0])
             data.name = keys[0]
-            data.drop('variable')
+            data.drop_vars('variable')
+        else:
+            # Allow multiple variables if they have the same dimensions
+            if all([data[keys[0]].dims == data[key].dims for key in keys]):
+                data = data.to_array()
+            else:
+                raise ValueError('Multivariate Datasets can only be input if all variables have the same dimensions.')
 
     # Converts pd.Series to xr.DataArray
     if isinstance(data, pd.Series):
