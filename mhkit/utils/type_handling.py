@@ -97,10 +97,12 @@ def convert_to_dataarray(data, name="data"):
     """
     Converts the given data to an xarray.DataArray.
 
-    This function is designed to handle inputs that can be either a numpy ndarray, pandas Series,
-    or an xarray DataArray. For convenience, pandas DataFrame and xarray Dataset can also be input
-    but may only contain a single variable. The function ensures that the output is consistently
-    an xarray.DataArray.
+    This function takes in a numpy ndarray, pandas Series, pandas Dataframe, or xarray Dataset
+    and outputs an equivalent xarray DataArray. DataArrays can be passed through with no changes.
+
+    Multivariate pandas Dataframes become 2D DataArrays, which is especially useful when IO 
+    functions return Dataframes with an extremely large number of variable. Use the function
+    convert_to_dataset to change a multivariate Dataframe into a multivariate Dataset.
 
     Parameters
     ----------
@@ -138,7 +140,7 @@ def convert_to_dataarray(data, name="data"):
         data, (np.ndarray, pd.DataFrame, pd.Series, xr.DataArray, xr.Dataset)
     ):
         raise TypeError(
-            "Input data must be of type np.ndarray, pandas.DataFrame, pandas.Series, "
+            "Input data must be of type np.ndarray, pandas.Series, pandas.DataFrame, "
             f"xarray.DataArray, or xarray.Dataset. Got {type(data)}"
         )
 
@@ -147,40 +149,46 @@ def convert_to_dataarray(data, name="data"):
 
     # Checks pd.DataFrame input and converts to pd.Series if possible
     if isinstance(data, pd.DataFrame):
-        if data.shape[1] > 1:
-            raise ValueError(
-                "If the input data is a pd.DataFrame or xr.Dataset, it must contain one variable. Got {data.shape[1]}"
-            )
-        else:
-            # use iloc instead of squeeze. For DataFrames/Series with only a
-            # single value, squeeze returns a scalar, which is unexpected.
-            # iloc will return a Series as expected
+        if data.shape[1] == 1:
+            # Convert the 1D, univariate case to a Series, which will be caught by the Series conversion below.
+            # This eliminates an unnecessary variable dimension and names the DataArray with the DataFrame variable name.
+            # 
+            # Use iloc instead of squeeze. For DataFrames/Series with only a
+            # single value, squeeze returns a scalar which is unexpected.
+            # iloc returns a Series with one value as expected.
             data = data.iloc[:, 0]
+        else:
+            index = data.index.values
+            columns = data.columns.values
+            data = xr.DataArray(data = data.T, dims=("variable","index"), coords={"variable": columns, "index": index})
 
     # Checks xr.Dataset input and converts to xr.DataArray if possible
     if isinstance(data, xr.Dataset):
         keys = list(data.keys())
-        if len(keys) > 1:
-            raise ValueError(
-                "If the input data is a pd.DataFrame or xr.Dataset, it must contain one variable. Got {len(data.keys())}"
-            )
-        else:
+        if len(keys) == 1:
+            # if only one variable, remove the "variable" dimension and rename the DataArray to simplify
             data = data.to_array()
-            data = data.sel(
-                variable=keys[0]
-            )  # removes the variable dimension, further simplifying the dataarray
+            data = data.sel(variable=keys[0])
+            data.name = keys[0]
+            data.drop_vars('variable')
+        else:
+            # Allow multiple variables if they have the same dimensions
+            if all([data[keys[0]].dims == data[key].dims for key in keys]):
+                data = data.to_array()
+            else:
+                raise ValueError('Multivariate Datasets can only be input if all variables have the same dimensions.')
 
     # Converts pd.Series to xr.DataArray
     if isinstance(data, pd.Series):
         data = data.to_xarray()
 
-    # Converts np.ndarray to xr.DataArray. Assigns a simple 0-based dimension named index
+    # Converts np.ndarray to xr.DataArray. Assigns a simple 0-based dimension named index to match how pandas converts to xarray
     if isinstance(data, np.ndarray):
         data = xr.DataArray(
             data=data, dims="index", coords={"index": np.arange(len(data))}
         )
 
-    # If there's no data name, add one to prevent issues calling or converting the dataArray later one
+    # If there's no data name, add one to prevent issues calling or converting to a Dataset later on
     if data.name == None:
         data.name = name
 
