@@ -216,25 +216,25 @@ class TestGenUtils(unittest.TestCase):
         df_1d = utils.convert_to_dataarray(test_df_1d)
         self.assertIsInstance(df_1d, xr.DataArray)
         self.assertTrue(all(df_1d.data == d1))
-        self.assertTrue('variable' not in df_1d.dims)
+        self.assertTrue("variable" not in df_1d.dims)
 
         # Multivariate Dataframe
         df_2d = utils.convert_to_dataarray(test_df_2d)
         self.assertIsInstance(df_2d, xr.DataArray)
-        self.assertTrue(all(df_2d.sel(variable='d1').data == d1))
-        self.assertTrue(all(df_2d.sel(variable='d1_duplicate').data == d1))
+        self.assertTrue(all(df_2d.sel(variable="d1").data == d1))
+        self.assertTrue(all(df_2d.sel(variable="d1_duplicate").data == d1))
 
         # 1D Dataset
         ds_1d_1v = utils.convert_to_dataarray(test_ds_1d_1v)
         self.assertIsInstance(ds_1d_1v, xr.DataArray)
         self.assertTrue(all(ds_1d_1v.data == d1))
-        self.assertTrue('variable' not in ds_1d_1v.dims)
+        self.assertTrue("variable" not in ds_1d_1v.dims)
 
         # Multivariate 1D Dataset
         ds_2d_1v = utils.convert_to_dataarray(test_ds_2d_1v)
         self.assertIsInstance(ds_2d_1v, xr.DataArray)
-        self.assertTrue(all(ds_2d_1v.sel(variable='d1').data == d1))
-        self.assertTrue(all(ds_2d_1v.sel(variable='d1_duplicate').data == d1))
+        self.assertTrue(all(ds_2d_1v.sel(variable="d1").data == d1))
+        self.assertTrue(all(ds_2d_1v.sel(variable="d1_duplicate").data == d1))
 
         # Multivariate 2D Dataset (error)
         with self.assertRaises(ValueError):
