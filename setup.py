@@ -35,7 +35,7 @@ DEPENDENCIES = [
     "NREL-rex>=0.2.63",
     "six>=1.13.0",
     "pytz",
-    "bottleneck",
+    "bottleneck>=1.4.0",
     "beautifulsoup4",
 ]
 
