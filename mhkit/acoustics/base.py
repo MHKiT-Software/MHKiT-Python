@@ -73,7 +73,7 @@ def sound_pressure_spectral_density(P, fs, window=1):
     return out
 
 
-def apply_calibration(spsd, sensitivity_curve, fill_nan):
+def apply_calibration(spsd, sensitivity_curve, fill_value):
     """
     Applies custom calibration to spectral density values
 
@@ -83,7 +83,7 @@ def apply_calibration(spsd, sensitivity_curve, fill_nan):
         Mean square sound pressure spectral density in V^2/Hz.
     sensitivity_curve: xarray.DataArray (freq)
         Calibrated sensitivity curve in units of dB rel 1 V^2/uPa^2.
-    fill_nan: numeric
+    fill_value: numeric
         Value with which to fill values missing from calibration curve,
         in units of dB rel 1 V^2/uPa^2.
 
@@ -96,9 +96,11 @@ def apply_calibration(spsd, sensitivity_curve, fill_nan):
     # Read calibration curve
     freq = sensitivity_curve.dims[0]
     # Interpolate calibration curve to desired value
-    calibration = sensitivity_curve.interp({freq: spsd["freq"]}).drop(freq)
+    calibration = sensitivity_curve.interp({freq: spsd["freq"]}, method="linear").drop(
+        freq
+    )
     # Fill missing with provided value
-    calibration = calibration.fillna(fill_nan)
+    calibration = calibration.fillna(fill_value)
 
     # Subtract from sound pressure spectral density
     Sf_ratio = 10 ** (calibration / 10)  # V^2/uPa^2
@@ -247,6 +249,10 @@ def time_average(spsdl, window=60, method="median", method_arg=None):
     out = func(method_arg)
     out.attrs["units"] = spsdl.units
     out.attrs["comment"] = f"Time average {method}"
+
+    # This coordinate hangs on for some reason
+    if method == "quantile":
+        out = out.drop_vars("quantile")
 
     return out
 

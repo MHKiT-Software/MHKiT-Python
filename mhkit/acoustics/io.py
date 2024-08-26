@@ -133,7 +133,7 @@ def read_hydrophone(
                 "valid_min": -max_sat,
                 "valid_max": max_sat,
                 "fs": fs,
-                "filename": filename.replace("\\", "/").split("/")[-1],
+                "filename": str(filename).replace("\\", "/").split("/")[-1],
             },
         )
 
@@ -272,10 +272,6 @@ def read_iclisten(filename, sensitivity=None, use_metadata=True):
     Sf = int(hphone_sensitivity.split(" ")[0])
     if use_metadata:
         sensitivity = Sf
-    # else:
-    #     warnings.warn(
-    #         f"Overriding manufacturer sensitivity {Sf} with user-defined sensitivity {sensitivity}."
-    #     )
 
     out = read_hydrophone(
         filename,
