@@ -100,6 +100,8 @@ def convert_to_dataarray(data, name="data"):
     This function takes in a numpy ndarray, pandas Series, pandas Dataframe, or xarray Dataset
     and outputs an equivalent xarray DataArray. DataArrays can be passed through with no changes.
 
+    Xarray datasets can only be input when all variable have the same dimensions. 
+
     Multivariate pandas Dataframes become 2D DataArrays, which is especially useful when IO
     functions return Dataframes with an extremely large number of variable. Use the function
     convert_to_dataset to change a multivariate Dataframe into a multivariate Dataset.
