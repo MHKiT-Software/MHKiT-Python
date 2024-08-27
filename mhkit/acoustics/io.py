@@ -21,17 +21,20 @@ def read_hydrophone(
     peak_V: numeric
         Peak voltage supplied to the analog to digital converter (ADC) in V.
         (Or 1/2 of the peak to peak voltage).
-    Sf: numeric
+    sensitivity: numeric
         Hydrophone calibration sensitivity in dB re 1 V/uPa.
         Should be negative. Default: None.
     gain: numeric
         Amplifier gain in dB re 1 V/uPa. Default 0.
+    start_time: str
+        Start time in the format yyyy-mm-ddTHH:MM:SS
 
     Returns
     -------
     out: numpy.array
         Sound pressure [Pa] or Voltage [V] indexed by time[s]
     """
+
     if peak_V is None:
         raise ValueError(
             "Please provide the peak voltage of the hydrophone's ADC `peak_V`."
@@ -150,7 +153,7 @@ def read_soundtrap(filename, sensitivity=None, gain=0):
     ----------
     filename: string
         Input filename
-    Sf: numeric
+    sensitivity: numeric
         Hydrophone calibration sensitivity in dB re 1 V/uPa.
         Should be negative.
     gain: numeric
@@ -198,16 +201,17 @@ def read_iclisten(filename, sensitivity=None, use_metadata=True):
     ----------
     filename: string
         Input filename
-    Sf: numeric
+    sensitivity: numeric
         Hydrophone calibration sensitivity in dB re 1 V/uPa.
-        Should be negative.
-    gain: numeric
-        Amplifier gain in dB re 1 V/uPa. Default 0.
+        Should be negative. Default: None.
+    use_metadata: bool
+        If True and `sensitivity` = None, applies sensitivity value stored in .wav file LIST block.
+        If False and `sensitivity` = None, a sensitivity value isn't applied
 
     Returns
     -------
     out: numpy.array
-        Sound pressure [Pa] indexed by time[s]
+        Sound pressure [Pa] or [V] indexed by time[s]
     """
 
     # Read icListen metadata from file header
