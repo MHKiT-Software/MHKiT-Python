@@ -432,7 +432,7 @@ def request_wtk_point_data(
         else:
             reglist = []
             for loc in lat_lon:
-                reglist.append(region_selection(loc))
+                reglist.append(region_selection(loc, preferred_region))
             if reglist.count(reglist[0]) == len(lat_lon):
                 region = reglist[0]
             else:

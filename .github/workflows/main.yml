@@ -1,4 +1,4 @@
-name: Py 3.8, 3.9, 3.10, 3.11 | Windows Mac Linux
+name: Py 3.10, 3.11 | Windows Mac Linux
 
 on:
   push:
@@ -9,6 +9,7 @@ on:
     branches:
       - master
       - develop
+
 jobs:
   set-os:
     runs-on: ubuntu-latest
@@ -52,7 +53,7 @@ jobs:
   prepare-nonhindcast-cache:
     runs-on: ubuntu-latest
     env:
-      PYTHON_VER: 3.9
+      PYTHON_VER: 3.11
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -95,7 +96,7 @@ jobs:
     needs: [check-changes]
     runs-on: ubuntu-latest
     env:
-      PYTHON_VER: 3.9
+      PYTHON_VER: 3.11
     if: (needs.check-changes.outputs.should-run-hindcast == 'true')
     steps:
       - name: Checkout code
@@ -137,7 +138,7 @@ jobs:
     needs: [check-changes, prepare-wave-hindcast-cache]
     runs-on: ubuntu-latest
     env:
-      PYTHON_VER: 3.9
+      PYTHON_VER: 3.11
     if: (needs.check-changes.outputs.should-run-hindcast == 'true')
     steps:
       - name: Checkout code
@@ -183,7 +184,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.10', '3.11']
     env:
       PYTHON_VER: ${{ matrix.python-version }}
 
@@ -234,7 +235,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.10', '3.11']
 
     steps:
       - uses: conda-incubator/setup-miniconda@v3
@@ -243,21 +244,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Install HDF5 (macOS with Python 3.8)
-        if: startsWith(runner.os, 'macOS') && matrix.python-version == '3.8'
-        run: brew install hdf5
-
-      - name: Install NetCDF (macOS with Python 3.8)
-        if: startsWith(runner.os, 'macOS') && matrix.python-version == '3.8'
-        run: brew install netcdf
-
-      - name: Set environment variables (macOS with Python 3.8)
-        if: startsWith(runner.os, 'macOS') && matrix.python-version == '3.8'
-        run: |
-          echo "HDF5_DIR=$(brew --prefix hdf5)" >> $GITHUB_ENV
-          echo "NETCDF4_DIR=$(brew --prefix netcdf)" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$(brew --prefix hdf5)/lib/pkgconfig:$(brew --prefix netcdf)/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
 
       - name: Set up Git repository
         uses: actions/checkout@v4
@@ -305,7 +291,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.10', '3.11']
 
     steps:
       - uses: actions/checkout@v4
@@ -358,6 +344,137 @@ jobs:
           flag-name: hindcast-${{ runner.os }}-py${{ matrix.python-version }}
           parallel: true
           path-to-lcov: ./coverage.lcov
+
+  notebook-matrix:
+    runs-on: ubuntu-latest
+    needs:
+      [
+        check-changes,
+        prepare-nonhindcast-cache,
+        prepare-wave-hindcast-cache,
+        prepare-wind-hindcast-cache,
+      ]
+    if: |
+      always() &&
+      (
+        (
+          needs.prepare-nonhindcast-cache.result == 'success' &&
+          needs.prepare-wave-hindcast-cache.result == 'skipped' &&
+          needs.prepare-wind-hindcast-cache.result == 'skipped' &&
+          needs.check-changes.outputs.should-run-hindcast == 'false'    
+        ) ||
+        (
+          needs.prepare-nonhindcast-cache.result == 'success' &&
+          needs.prepare-wave-hindcast-cache.result == 'success' &&
+          needs.prepare-wind-hindcast-cache.result == 'success' &&
+          needs.check-changes.outputs.should-run-hindcast == 'true' 
+        )
+      )
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+
+      - name: Generate matrix
+        id: set-matrix
+        run: |
+          matrix_json=$(python .github/workflows/generate_notebook_matrix.py)
+          echo "$matrix_json" >> $GITHUB_OUTPUT
+
+  test-notebooks:
+    needs:
+      [
+        notebook-matrix,
+        check-changes,
+        prepare-nonhindcast-cache,
+        prepare-wave-hindcast-cache,
+        prepare-wind-hindcast-cache,
+      ]
+    strategy:
+      matrix: ${{ fromJson(needs.notebook-matrix.outputs.matrix) }}
+    if: |
+      always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: 'latest'
+          auto-update-conda: true
+          python-version: '3.11'
+          activate-environment: TESTconda
+          use-only-tar-bz2: true
+
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+          conda install numpy cython pip hdf5 libnetcdf cftime netcdf4 --strict-channel-priority
+          pip install -e . --force-reinstall
+          python -m pip install --upgrade pip wheel
+          pip install nbval jupyter
+          pip install utm folium
+
+      - name: Ensure Conda environment is activated
+        shell: bash -l {0}
+        run: |
+          echo "source ~/miniconda3/etc/profile.d/conda.sh" >> ~/.bashrc
+          echo "conda activate TESTconda" >> ~/.bashrc
+          source ~/.bashrc
+
+      - name: Download non-hindcast data
+        uses: actions/download-artifact@v4
+        with:
+          name: data
+          path: ~/.cache/mhkit
+
+      - name: Download Wave Hindcast data (if available)
+        if: (needs.check-changes.outputs.should-run-hindcast == 'true')
+        uses: actions/download-artifact@v4
+        with:
+          name: wave-hindcast-data
+          path: ~/.cache/mhkit/wave-hindcast
+
+      - name: Download Wind Hindcast data (if available)
+        if: (needs.check-changes.outputs.should-run-hindcast == 'true')
+        uses: actions/download-artifact@v4
+        with:
+          name: wind-hindcast-data
+          path: ~/.cache/mhkit/wind-hindcast
+
+      - name: Consolidate hindcast data
+        if: (needs.check-changes.outputs.should-run-hindcast == 'true')
+        run: |
+          mkdir -p ~/.cache/mhkit/hindcast
+          mv ~/.cache/mhkit/wave-hindcast/hindcast/* ~/.cache/mhkit/hindcast/
+          mv ~/.cache/mhkit/wind-hindcast/hindcast/* ~/.cache/mhkit/hindcast/
+        shell: bash
+
+      - name: Copy .hscfg file to examples directory
+        shell: bash -l {0}
+        run: |
+          cp .hscfg examples/
+
+      - name: Run notebook
+        shell: bash -l {0}
+        run: |
+          if [[ "${{ matrix.notebook }}" == "examples/metocean_example.ipynb" || "${{ matrix.notebook }}" == "examples/WPTO_hindcast_example.ipynb" ]]; then
+            if [[ "${{ needs.check-changes.outputs.should-run-hindcast }}" == 'true' ]]; then
+              jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=${{ matrix.timeout }} "${{ matrix.notebook }}"
+            else
+              echo "Skipping ${{ matrix.notebook }}"
+            fi
+          else
+            jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=${{ matrix.timeout }} "${{ matrix.notebook }}"
+          fi
 
   coveralls:
     name: Indicate completion to coveralls.io
