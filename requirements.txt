@@ -6,7 +6,7 @@ xarray>=2024.6.0
 matplotlib>=3.9.1
 scikit-learn>=1.5.1
 h5py>=3.11.0
-h5pyd >=0.18.0
+h5pyd>=0.18.0
 netCDF4>=1.7.1.post1
 statsmodels>=0.14.2
 requests
