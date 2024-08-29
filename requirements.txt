@@ -15,3 +15,4 @@ NREL-rex>=0.2.63
 beautifulsoup4
 notebook
 numexpr>=2.10.0
+lxml
