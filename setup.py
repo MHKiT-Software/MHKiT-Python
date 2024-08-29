@@ -34,7 +34,7 @@ DEPENDENCIES = [
     "NREL-rex>=0.2.63",
     "pytz",
     "beautifulsoup4",
-    "numexpr>=2.10.1",
+    "numexpr>=2.10.0",
 ]
 
 LONG_DESCRIPTION = """
