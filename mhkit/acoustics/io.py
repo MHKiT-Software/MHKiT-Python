@@ -87,7 +87,7 @@ def read_hydrophone(
     end_time = np.datetime64(start_time) + np.timedelta64(length, "s")
     time = pd.date_range(start_time, end_time, raw.size + 1)
 
-    if sensitivity:
+    if sensitivity is not None:
         # Subtract gain
         # hydrophone with sensitivity of -177 dB and gain of -3 dB = sensitivity of -174 dB
         if gain:
@@ -274,7 +274,9 @@ def read_iclisten(filename, sensitivity=None, use_metadata=True):
 
     peak_V = float(peak_voltage.split(" ")[0])
     Sf = int(hphone_sensitivity.split(" ")[0])
-    if use_metadata:
+
+    # Use stored sensitivity
+    if use_metadata and (sensitivity is None):
         sensitivity = Sf
 
     out = read_hydrophone(
@@ -305,7 +307,7 @@ def read_iclisten(filename, sensitivity=None, use_metadata=True):
     return out
 
 
-def export_audio(P, gain=1):
+def export_audio(filename, P, gain=1):
     """Creates human-scaled audio file from underwater recording."""
     # Convert from Pascals to UPa
     uPa = P.values.T * 1e6
@@ -316,7 +318,7 @@ def export_audio(P, gain=1):
     # Convert to (little-endian) 16 bit integers.
     audio = (V * (2**16 - 1)).astype("<h")
 
-    with wave.open("sound1.wav", "w") as f:
+    with wave.open(f"{filename}.wav", "w") as f:
         f.setnchannels(1)
         f.setsampwidth(2)
         f.setframerate(P.fs)

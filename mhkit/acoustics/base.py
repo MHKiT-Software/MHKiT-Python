@@ -9,7 +9,7 @@ from mhkit.dolfyn.time import epoch2dt64, dt642epoch
 def minimum_frequency(water_depth, c=1500, c_seabed=1700):
     """
     Estimate the shallow water cutoff frequency based on the speed of
-    sound in the water columna and the speed of sound in the seabed
+    sound in the water column and the speed of sound in the seabed
     material (generally ranges from 1450 - 1800 m/s)
 
     Jennings 2011 - Computational Ocean Acoustics, 2nd ed.
@@ -24,7 +24,8 @@ def sound_pressure_spectral_density(P, fs, window=1):
     """
     Calculates the mean square sound pressure spectral density from audio
     samples split into FFTs with a specified window_size in seconds and
-    at least a 50% overlap.
+    at least a 50% overlap. The amplitude of the PSD is adjusted
+    according to Parseval's theorem.
 
     Parameters
     ----------
