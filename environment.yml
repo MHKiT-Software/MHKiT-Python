@@ -17,6 +17,7 @@ dependencies:
   - lxml
   - bottleneck>=1.4.0
   - beautifulsoup4
+  - numexpr>=2.10.1
   - pip:
       - netCDF4>=1.7.1.post1
       - matplotlib>=3.9.1

@@ -37,6 +37,7 @@ DEPENDENCIES = [
     "pytz",
     "bottleneck>=1.4.0",
     "beautifulsoup4",
+    "numexpr>=2.10.1",
 ]
 
 LONG_DESCRIPTION = """
@@ -57,7 +58,7 @@ See the [MHKiT documentation](https://mhkit-software.github.io/MHKiT) for more i
 
 Installation
 ------------------------
-MHKiT-Python requires Python (3.8, 3.9, 3.10, or 3.11) along with several Python 
+MHKiT-Python requires Python (3.10, or 3.11) along with several Python 
 package dependencies.  MHKiT-Python can be installed from PyPI using the command ``pip install mhkit``.
 See [installation instructions](https://mhkit-software.github.io/MHKiT/installation.html) for more information.
 
