@@ -31,11 +31,8 @@ DEPENDENCIES = [
     "requests",
     "pecos>=0.3.0",
     "fatpack",
-    "lxml",
     "NREL-rex>=0.2.63",
-    "six>=1.13.0",
     "pytz",
-    "bottleneck>=1.4.0",
     "beautifulsoup4",
     "numexpr>=2.10.1",
 ]

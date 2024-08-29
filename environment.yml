@@ -14,8 +14,6 @@ dependencies:
   - h5pyd>=0.18.0
   - statsmodels>=0.14.2
   - requests
-  - lxml
-  - bottleneck>=1.4.0
   - beautifulsoup4
   - numexpr>=2.10.1
   - pip:
@@ -24,5 +22,4 @@ dependencies:
       - pecos>=0.3.0
       - fatpack
       - NREL-rex>=0.2.63
-      - six>=1.13.0
       - notebook
