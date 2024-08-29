@@ -36,6 +36,7 @@ DEPENDENCIES = [
     "beautifulsoup4",
     "numexpr>=2.10.0",
     "lxml",
+    "bottleneck",
 ]
 
 LONG_DESCRIPTION = """
