@@ -34,7 +34,8 @@ def read_hydrophone(
     out: numpy.array
         Sound pressure [Pa] or Voltage [V] indexed by time[s]
     """
-
+    if not isinstance(filename, str):
+        raise TypeError("Filename should be a string.")
     if peak_V is None:
         raise ValueError(
             "Please provide the peak voltage of the hydrophone's ADC `peak_V`."

@@ -29,7 +29,11 @@ def plot_spectogram(spsdl, fmin=10, fmax=100000, fig=None, ax=None, kwargs={}):
         Figure plot axis
     """
 
-    fn = spsdl["freq"].max()
+    # Set dimension names
+    time = spsdl.dims[0]
+    freq = spsdl.dims[-1]
+
+    fn = spsdl[freq].max()
     if fmax > fn:
         warnings.warn(
             "`fmax` = {fmax} is greater than the Nyquist frequency. Setting"
@@ -37,13 +41,13 @@ def plot_spectogram(spsdl, fmin=10, fmax=100000, fig=None, ax=None, kwargs={}):
         )
         fmax = fn
 
-    spsdl = spsdl.sel(freq=slice(fmin, fmax))
+    spsdl = spsdl.sel({freq: slice(fmin, fmax)})
 
     if ax is None:
         fig, ax = plt.subplots(figsize=(6, 5), subplot_kw={"yscale": "log"})
         fig.subplots_adjust(left=0.1, right=0.95, top=0.97, bottom=0.11)
     h = ax.pcolormesh(
-        spsdl["time"].values, spsdl["freq"].values, spsdl.T, shading="nearest", **kwargs
+        spsdl[time].values, spsdl[freq].values, spsdl.T, shading="nearest", **kwargs
     )
     fig.colorbar(h, ax=ax, label="dB re 1 uPa^2/Hz")
     ax.set(xlabel="Time", ylabel="Frequency [Hz]")
@@ -78,7 +82,9 @@ def plot_spectra(spsdl, fmin=10, fmax=100000, fig=None, ax=None, kwargs={}):
         Figure plot axis
     """
 
+    # Set dimension names
     freq = spsdl.dims[-1]
+
     fn = spsdl[freq].max()
     if fmax > fn:
         warnings.warn(
