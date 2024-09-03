@@ -17,4 +17,3 @@ statsmodels
 bottleneck
 beautifulsoup4
 notebook
-cmocean
