@@ -1,4 +1,4 @@
-name: Py 3.10, 3.11 | Windows Mac Linux
+name: Py 3.10, 3.11, 3.12 | Windows Mac Linux
 
 on:
   push:
@@ -184,7 +184,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11']
+        python-version: ['3.10', '3.11', '3.12']
     env:
       PYTHON_VER: ${{ matrix.python-version }}
 
@@ -235,7 +235,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11']
+        python-version: ['3.10', '3.11', '3.12']
 
     steps:
       - uses: conda-incubator/setup-miniconda@v3
@@ -291,7 +291,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11']
+        python-version: ['3.10', '3.11', '3.12']
 
     steps:
       - uses: actions/checkout@v4
