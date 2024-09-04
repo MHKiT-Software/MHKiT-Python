@@ -101,6 +101,6 @@ def plot_spectra(spsdl, fmin=10, fmax=100000, fig=None, ax=None, kwargs={}):
             left=0.1, right=0.95, top=0.85, bottom=0.2, hspace=0.3, wspace=0.15
         )
     ax.plot(spsdl[freq], spsdl.T, **kwargs)
-    ax.set(xlim=(fmin, fmax), xlabel="Frequency [Hz]", ylabel="dB re 1 uPa^2/Hz")
+    ax.set(xlim=(fmin, fmax), xlabel="Frequency [Hz]", ylabel="$dB\ re \ 1 \ uPa^2/Hz$")
 
     return fig, ax
