@@ -324,7 +324,11 @@ def request_parse_workflow(
     if not multiyear:
         # Check the cache first
         hash_params = f"{station_number}-{parameters}-{start_date}-{end_date}"
-        data = handle_caching(hash_params, cache_dir)
+        data, _, _ = handle_caching(
+            hash_params,
+            cache_dir,
+            cache_content={"data": None, "metadata": None, "write_json": None},
+        )
 
         if data[:2] == (None, None):
             data = get_netcdf_variables(
@@ -335,7 +339,11 @@ def request_parse_workflow(
                 all_2D_variables=all_2D_variables,
                 silent=silent,
             )
-            handle_caching(hash_params, cache_dir, data=data)
+            handle_caching(
+                hash_params,
+                cache_dir,
+                cache_content={"data": data, "metadata": None, "write_json": None},
+            )
         else:
             data = data[0]
 
@@ -348,7 +356,11 @@ def request_parse_workflow(
 
             # Check the cache for each individual year
             hash_params = f"{station_number}-{parameters}-{start_date}-{end_date}"
-            year_data = handle_caching(hash_params, cache_dir)
+            year_data, _, _ = handle_caching(
+                hash_params,
+                cache_dir,
+                cache_content={"data": None, "metadata": None, "write_json": None},
+            )
             if year_data[:2] == (None, None):
                 year_data = get_netcdf_variables(
                     nc,
@@ -359,7 +371,15 @@ def request_parse_workflow(
                     silent=silent,
                 )
                 # Cache the individual year's data
-                handle_caching(hash_params, cache_dir, data=year_data)
+                handle_caching(
+                    hash_params,
+                    cache_dir,
+                    cache_content={
+                        "data": year_data,
+                        "metadata": None,
+                        "write_json": None,
+                    },
+                )
             else:
                 year_data = year_data[0]
             multiyear_data[year] = year_data["data"]

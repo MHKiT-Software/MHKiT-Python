@@ -42,18 +42,163 @@ Date: 2023-09-26
 import hashlib
 import json
 import os
-import re
+
+# import re
 import shutil
 import pickle
 import pandas as pd
 
 
+# def old_handle_caching(
+#     hash_params,
+#     cache_dir,
+#     data=None,
+#     metadata=None,
+#     write_json=None,
+#     clear_cache_file=False,
+# ):
+#     """
+#     Handles caching of data to avoid redundant network requests or
+#     computations.
+
+#     The function checks if a cache file exists for the given parameters.
+#     If it does, the function will load data from the cache file, unless
+#     the `clear_cache_file` parameter is set to `True`, in which case the
+#     cache file is cleared. If the cache file does not exist and the
+#     `data` parameter is not `None`, the function will store the
+#     provided data in a cache file.
+
+#     Parameters
+#     ----------
+#     hash_params : str
+#         The parameters to be hashed and used as the filename for the cache file.
+#     cache_dir : str
+#         The directory where the cache files are stored.
+#     data : pandas DataFrame or None
+#         The data to be stored in the cache file. If `None`, the function
+#         will attempt to load data from the cache file.
+#     metadata : dict or None
+#         Metadata associated with the data. This will be stored in the
+#         cache file along with the data.
+#     write_json : str or None
+#         If specified, the cache file will be copied to a file with this name.
+#     clear_cache_file : bool
+#         If `True`, the cache file for the given parameters will be cleared.
+
+#     Returns
+#     -------
+#     data : pandas DataFrame or None
+#         The data loaded from the cache file. If data was provided as a
+#         parameter, the same data will be returned. If the cache file
+#         does not exist and no data was provided, `None` will be returned.
+#     metadata : dict or None
+#         The metadata loaded from the cache file. If metadata was provided
+#         as a parameter, the same metadata will be returned. If the cache
+#         file does not exist and no metadata was provided, `None` will be
+#         returned.
+#     cache_filepath : str
+#         The path to the cache file.
+#     """
+
+#     # Check if 'cdip' is in cache_dir, then use .pkl instead of .json
+#     file_extension = (
+#         ".pkl"
+#         if "cdip" in cache_dir or "hindcast" in cache_dir or "ndbc" in cache_dir
+#         else ".json"
+#     )
+
+#     # Make cache directory if it doesn't exist
+#     if not os.path.isdir(cache_dir):
+#         os.makedirs(cache_dir)
+
+#     # Create a unique filename based on the function parameters
+#     cache_filename = (
+#         hashlib.md5(hash_params.encode("utf-8")).hexdigest() + file_extension
+#     )
+#     cache_filepath = os.path.join(cache_dir, cache_filename)
+
+#     # If clear_cache_file is True, remove the cache file for this request
+#     if clear_cache_file and os.path.isfile(cache_filepath):
+#         os.remove(cache_filepath)
+#         print(f"Cleared cache for {cache_filepath}")
+
+#     # If a cached file exists, load and return the data from the file
+#     if os.path.isfile(cache_filepath) and data is None:
+#         if file_extension == ".json":
+#             with open(cache_filepath, encoding="utf-8") as f:
+#                 json_data = json.load(f)
+
+#             # Extract metadata if it exists
+#             if "metadata" in json_data:
+#                 metadata = json_data.pop("metadata", None)
+
+#             # Check if index is datetime formatted
+#             if all(
+#                 re.match(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", str(dt))
+#                 for dt in json_data["index"]
+#             ):
+#                 data = pd.DataFrame(
+#                     json_data["data"],
+#                     index=pd.to_datetime(json_data["index"]),
+#                     columns=json_data["columns"],
+#                 )
+#             else:
+#                 data = pd.DataFrame(
+#                     json_data["data"],
+#                     index=json_data["index"],
+#                     columns=json_data["columns"],
+#                 )
+
+#             # Convert the rest to DataFrame
+#             data = pd.DataFrame(
+#                 json_data["data"],
+#                 index=pd.to_datetime(json_data["index"]),
+#                 columns=json_data["columns"],
+#             )
+
+#         elif file_extension == ".pkl":
+#             with open(cache_filepath, "rb") as f:
+#                 data, metadata = pickle.load(f)
+
+#         if write_json:
+#             shutil.copy(cache_filepath, write_json)
+
+#         return data, metadata, cache_filepath
+
+#     # If a cached file does not exist and data is provided,
+#     # store the data in a cache file
+#     if data is not None:
+#         if file_extension == ".json":
+#             # Convert DataFrame to python dict
+#             py_data = data.to_dict(orient="split")
+#             # Add metadata to py_data
+#             py_data["metadata"] = metadata
+#             # Check if index is datetime indexed
+#             if isinstance(data.index, pd.DatetimeIndex):
+#                 py_data["index"] = [
+#                     dt.strftime("%Y-%m-%d %H:%M:%S") for dt in py_data["index"]
+#                 ]
+#             else:
+#                 py_data["index"] = list(data.index)
+#             with open(cache_filepath, "w", encoding="utf-8") as f:
+#                 json.dump(py_data, f)
+
+#         elif file_extension == ".pkl":
+#             with open(cache_filepath, "wb") as f:
+#                 pickle.dump((data, metadata), f)
+
+#         if write_json:
+#             shutil.copy(cache_filepath, write_json)
+
+#         return data, metadata, cache_filepath
+#     # If data is not provided and the cache file doesn't exist, return cache_filepath
+#     return None, None, cache_filepath
+
+
 def handle_caching(
     hash_params,
     cache_dir,
-    data=None,
-    metadata=None,
-    write_json=None,
+    cache_content=None,
     clear_cache_file=False,
 ):
     """
@@ -73,14 +218,10 @@ def handle_caching(
         The parameters to be hashed and used as the filename for the cache file.
     cache_dir : str
         The directory where the cache files are stored.
-    data : pandas DataFrame or None
-        The data to be stored in the cache file. If `None`, the function
+    cache_content : dict or None
+        Dictionary containing 'data' (pandas DataFrame or None), 'metadata'
+        (dict or None), and 'write_json' (str or None). If `None`, the function
         will attempt to load data from the cache file.
-    metadata : dict or None
-        Metadata associated with the data. This will be stored in the
-        cache file along with the data.
-    write_json : str or None
-        If specified, the cache file will be copied to a file with this name.
     clear_cache_file : bool
         If `True`, the cache file for the given parameters will be cleared.
 
@@ -99,98 +240,92 @@ def handle_caching(
         The path to the cache file.
     """
 
-    # Check if 'cdip' is in cache_dir, then use .pkl instead of .json
-    file_extension = (
-        ".pkl"
-        if "cdip" in cache_dir or "hindcast" in cache_dir or "ndbc" in cache_dir
-        else ".json"
-    )
+    # Initialize data and metadata to None to avoid pylint errors
+    data = None
+    metadata = None
 
-    # Make cache directory if it doesn't exist
-    if not os.path.isdir(cache_dir):
-        os.makedirs(cache_dir)
+    def _generate_cache_filepath():
+        """Generates the cache file path based on the hashed parameters."""
+        file_extension = (
+            ".pkl"
+            if "cdip" in cache_dir or "hindcast" in cache_dir or "ndbc" in cache_dir
+            else ".json"
+        )
+        cache_filename = (
+            hashlib.md5(hash_params.encode("utf-8")).hexdigest() + file_extension
+        )
+        return os.path.join(cache_dir, cache_filename), file_extension
 
-    # Create a unique filename based on the function parameters
-    cache_filename = (
-        hashlib.md5(hash_params.encode("utf-8")).hexdigest() + file_extension
-    )
-    cache_filepath = os.path.join(cache_dir, cache_filename)
+    def _clear_cache(cache_filepath):
+        """Clear the cache file if requested."""
+        if clear_cache_file and os.path.isfile(cache_filepath):
+            os.remove(cache_filepath)
+            print(f"Cleared cache for {cache_filepath}")
 
-    # If clear_cache_file is True, remove the cache file for this request
-    if clear_cache_file and os.path.isfile(cache_filepath):
-        os.remove(cache_filepath)
-        print(f"Cleared cache for {cache_filepath}")
-
-    # If a cached file exists, load and return the data from the file
-    if os.path.isfile(cache_filepath) and data is None:
+    def _load_cache(file_extension, cache_filepath):
+        """Load data from the cache file based on its extension."""
+        nonlocal data, metadata  # Specify that these are outer variables
         if file_extension == ".json":
             with open(cache_filepath, encoding="utf-8") as f:
-                jsonData = json.load(f)
+                json_data = json.load(f)
 
-            # Extract metadata if it exists
-            if "metadata" in jsonData:
-                metadata = jsonData.pop("metadata", None)
+            metadata = json_data.pop("metadata", None)
 
-            # Check if index is datetime formatted
-            if all(
-                re.match(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", str(dt))
-                for dt in jsonData["index"]
-            ):
-                data = pd.DataFrame(
-                    jsonData["data"],
-                    index=pd.to_datetime(jsonData["index"]),
-                    columns=jsonData["columns"],
-                )
-            else:
-                data = pd.DataFrame(
-                    jsonData["data"],
-                    index=jsonData["index"],
-                    columns=jsonData["columns"],
-                )
-
-            # Convert the rest to DataFrame
             data = pd.DataFrame(
-                jsonData["data"],
-                index=pd.to_datetime(jsonData["index"]),
-                columns=jsonData["columns"],
+                json_data["data"],
+                index=pd.to_datetime(json_data["index"]),
+                columns=json_data["columns"],
             )
-
         elif file_extension == ".pkl":
             with open(cache_filepath, "rb") as f:
                 data, metadata = pickle.load(f)
 
-        if write_json:
-            shutil.copy(cache_filepath, write_json)
+        return data, metadata
 
-        return data, metadata, cache_filepath
-
-    # If a cached file does not exist and data is provided,
-    # store the data in a cache file
-    elif data is not None:
+    def _write_cache(data, metadata, file_extension, cache_filepath):
+        """Store data in the cache file based on the extension."""
         if file_extension == ".json":
-            # Convert DataFrame to python dict
-            pyData = data.to_dict(orient="split")
-            # Add metadata to pyData
-            pyData["metadata"] = metadata
-            # Check if index is datetime indexed
+            py_data = data.to_dict(orient="split")
+            py_data["metadata"] = metadata
             if isinstance(data.index, pd.DatetimeIndex):
-                pyData["index"] = [
-                    dt.strftime("%Y-%m-%d %H:%M:%S") for dt in pyData["index"]
+                py_data["index"] = [
+                    dt.strftime("%Y-%m-%d %H:%M:%S") for dt in py_data["index"]
                 ]
             else:
-                pyData["index"] = list(data.index)
+                py_data["index"] = list(data.index)
             with open(cache_filepath, "w", encoding="utf-8") as f:
-                json.dump(pyData, f)
-
+                json.dump(py_data, f)
         elif file_extension == ".pkl":
             with open(cache_filepath, "wb") as f:
                 pickle.dump((data, metadata), f)
 
-        if write_json:
-            shutil.copy(cache_filepath, write_json)
+    # Create the cache directory if it doesn't exist
+    if not os.path.isdir(cache_dir):
+        os.makedirs(cache_dir)
 
-        return data, metadata, cache_filepath
-    # If data is not provided and the cache file doesn't exist, return cache_filepath
+    # Generate cache filepath and extension
+    cache_filepath, file_extension = _generate_cache_filepath()
+
+    # Clear cache if requested
+    _clear_cache(cache_filepath)
+
+    # Check if cache file exists and load if no data provided
+    if os.path.isfile(cache_filepath) and cache_content is None:
+        return _load_cache(file_extension, cache_filepath) + (cache_filepath,)
+
+    # Store data in cache if provided
+    if cache_content and cache_content["data"] is not None:
+        _write_cache(
+            cache_content["data"],
+            cache_content["metadata"],
+            file_extension,
+            cache_filepath,
+        )
+        if cache_content["write_json"]:
+            shutil.copy(cache_filepath, cache_content["write_json"])
+
+        return cache_content["data"], cache_content["metadata"], cache_filepath
+
     return None, None, cache_filepath
 
 
