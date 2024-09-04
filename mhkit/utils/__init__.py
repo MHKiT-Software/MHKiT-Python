@@ -1,3 +1,9 @@
+"""
+This module initializes and imports the essential utility functions for data 
+conversion, statistical analysis, caching, and event detection for the 
+MHKiT library.
+"""
+
 from .time_utils import matlab_to_datetime, excel_to_datetime, index_to_datetime
 from .stat_utils import (
     get_statistics,
@@ -15,4 +21,5 @@ from .type_handling import (
     convert_nested_dict_and_pandas,
 )
 
+# pylint: disable=invalid-name
 _matlab = False  # Private variable indicating if mhkit is run through matlab
