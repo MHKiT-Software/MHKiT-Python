@@ -6,6 +6,7 @@ MHKiT library.
 
 from .time_utils import matlab_to_datetime, excel_to_datetime, index_to_datetime
 from .stat_utils import (
+    _calculate_statistics,
     get_statistics,
     vector_statistics,
     unwrap_vector,
