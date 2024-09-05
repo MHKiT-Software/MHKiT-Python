@@ -75,15 +75,15 @@ def upcrossing(t, data):
         raise ValueError("only 1D data supported, try calling squeeze()")
 
     # eliminate zeros
-    zeroMask = data == 0
-    data[zeroMask] = 0.5 * np.min(np.abs(data))
+    zero_mask = data == 0
+    data[zero_mask] = 0.5 * np.min(np.abs(data))
 
     # zero up-crossings
     diff = np.diff(np.sign(data))
-    zeroUpCrossings_mask = (diff == 2) | (diff == 1)
-    zeroUpCrossings_index = np.where(zeroUpCrossings_mask)[0]
+    zero_upcrossings_mask = (diff == 2) | (diff == 1)
+    zero_upcrossings_index = np.where(zero_upcrossings_mask)[0]
 
-    return zeroUpCrossings_index
+    return zero_upcrossings_index
 
 
 def peaks(t, data, inds=None):
