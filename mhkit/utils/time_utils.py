@@ -12,6 +12,9 @@ import datetime as dt
 import pandas as pd
 import numpy as np
 
+# pylint: disable=unused-import
+from pecos.utils import index_to_datetime
+
 
 def matlab_to_datetime(matlab_datenum):
     """
