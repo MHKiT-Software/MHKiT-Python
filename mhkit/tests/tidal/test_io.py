@@ -103,11 +103,11 @@ class TestIO(unittest.TestCase):
         )
         # Check if the variable sets are equal
         data_variables = list(data.variables)
-        required_variables = ["index", "s", "d", "b"]
+        required_variables = ["t", "s", "d", "b"]
         data_variables_set = set(data_variables)
         required_variables_set = set(required_variables)
         self.assertTrue(data_variables_set == required_variables_set)
-        self.assertEqual(len(data["index"]), 183)
+        self.assertEqual(len(data["t"]), 183)
         self.assertEqual(data.attrs["id"], "s08010")
 
     def test_request_noaa_data_write_json(self):
