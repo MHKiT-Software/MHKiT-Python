@@ -204,40 +204,6 @@ def handle_caching(
     """
     Handles caching of data to avoid redundant network requests or
     computations.
-
-    The function checks if a cache file exists for the given parameters.
-    If it does, the function will load data from the cache file, unless
-    the `clear_cache_file` parameter is set to `True`, in which case the
-    cache file is cleared. If the cache file does not exist and the
-    `data` parameter is not `None`, the function will store the
-    provided data in a cache file.
-
-    Parameters
-    ----------
-    hash_params : str
-        The parameters to be hashed and used as the filename for the cache file.
-    cache_dir : str
-        The directory where the cache files are stored.
-    cache_content : dict or None
-        Dictionary containing 'data' (pandas DataFrame or None), 'metadata'
-        (dict or None), and 'write_json' (str or None). If `None`, the function
-        will attempt to load data from the cache file.
-    clear_cache_file : bool
-        If `True`, the cache file for the given parameters will be cleared.
-
-    Returns
-    -------
-    data : pandas DataFrame or None
-        The data loaded from the cache file. If data was provided as a
-        parameter, the same data will be returned. If the cache file
-        does not exist and no data was provided, `None` will be returned.
-    metadata : dict or None
-        The metadata loaded from the cache file. If metadata was provided
-        as a parameter, the same metadata will be returned. If the cache
-        file does not exist and no metadata was provided, `None` will be
-        returned.
-    cache_filepath : str
-        The path to the cache file.
     """
 
     # Initialize data and metadata to None to avoid pylint errors
@@ -309,8 +275,10 @@ def handle_caching(
     # Clear cache if requested
     _clear_cache(cache_filepath)
 
-    # Check if cache file exists and load if no data provided
-    if os.path.isfile(cache_filepath) and cache_content is None:
+    # If cache file exists and cache_content["data"] is None, load from cache
+    if os.path.isfile(cache_filepath) and (
+        cache_content is None or cache_content["data"] is None
+    ):
         return _load_cache(file_extension, cache_filepath) + (cache_filepath,)
 
     # Store data in cache if provided
