@@ -344,8 +344,6 @@ def request_parse_workflow(
                 cache_dir,
                 cache_content={"data": data, "metadata": None, "write_json": None},
             )
-        else:
-            data = data[0]
 
     else:
         data = {"data": {}, "metadata": {}}
@@ -380,8 +378,6 @@ def request_parse_workflow(
                         "write_json": None,
                     },
                 )
-            else:
-                year_data = year_data[0]
             multiyear_data[year] = year_data["data"]
 
         for data_key in year_data["data"].keys():
