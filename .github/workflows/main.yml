@@ -260,6 +260,10 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install coverage pytest coveralls .
 
+      - name: Install setuptools for Python 3.12
+        if: matrix.python-version == '3.12'
+        run: pip install setuptools
+
       - name: Run pytest & generate coverage report
         shell: bash -l {0}
         run: |
