@@ -58,7 +58,6 @@ def handle_caching(
     computations.
     """
 
-    # Initialize data and metadata to None to avoid pylint errors
     data = None
     metadata = None
 
