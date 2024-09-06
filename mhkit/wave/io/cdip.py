@@ -330,7 +330,7 @@ def request_parse_workflow(
             cache_content={"data": None, "metadata": None, "write_json": None},
         )
 
-        if data[:2] == (None, None):
+        if data is None:
             data = get_netcdf_variables(
                 nc,
                 start_date=start_date,
@@ -361,7 +361,7 @@ def request_parse_workflow(
                 cache_dir,
                 cache_content={"data": None, "metadata": None, "write_json": None},
             )
-            if year_data[:2] == (None, None):
+            if year_data is None:
                 year_data = get_netcdf_variables(
                     nc,
                     start_date=start_date,
