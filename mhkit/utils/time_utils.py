@@ -8,6 +8,7 @@ Functions:
 - excel_to_datetime: Converts Excel datenum format to Python datetime.
 """
 
+from typing import Union
 import datetime as dt
 import pandas as pd
 import numpy as np
@@ -16,7 +17,9 @@ import numpy as np
 from pecos.utils import index_to_datetime
 
 
-def matlab_to_datetime(matlab_datenum):
+def matlab_to_datetime(
+    matlab_datenum: Union[np.ndarray, list, float, int]
+) -> pd.DatetimeIndex:
     """
     Convert MATLAB datenum format to Python datetime
 
@@ -51,7 +54,9 @@ def matlab_to_datetime(matlab_datenum):
     return time
 
 
-def excel_to_datetime(excel_num):
+def excel_to_datetime(
+    excel_num: Union[np.ndarray, list, float, int]
+) -> pd.DatetimeIndex:
     """
     Convert Excel datenum format to Python datetime
 

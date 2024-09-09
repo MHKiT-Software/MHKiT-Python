@@ -39,6 +39,7 @@ Author: ssolson
 Date: 2023-09-26
 """
 
+from typing import Optional, Tuple, Dict, Any
 import hashlib
 import json
 import os
@@ -48,14 +49,30 @@ import pandas as pd
 
 
 def handle_caching(
-    hash_params,
-    cache_dir,
-    cache_content=None,
-    clear_cache_file=False,
-):
+    hash_params: str,
+    cache_dir: str,
+    cache_content: Optional[Dict[str, Any]] = None,
+    clear_cache_file: bool = False,
+) -> Tuple[Optional[pd.DataFrame], Optional[Dict[str, Any]], str]:
     """
     Handles caching of data to avoid redundant network requests or
     computations.
+
+    Parameters
+    ----------
+    hash_params : str
+        Parameters to generate the cache file hash.
+    cache_dir : str
+        Directory where cache files are stored.
+    cache_content : Optional[Dict[str, Any]], optional
+        Content to be cached. Should contain 'data', 'metadata', and 'write_json'.
+    clear_cache_file : bool
+        Whether to clear the existing cache.
+
+    Returns
+    -------
+    Tuple[Optional[pd.DataFrame], Optional[Dict[str, Any]], str]
+        Cached data, metadata, and cache file path.
     """
 
     data = None
@@ -148,7 +165,7 @@ def handle_caching(
     return None, None, cache_filepath
 
 
-def clear_cache(specific_dir=None):
+def clear_cache(specific_dir: Optional[str] = None) -> None:
     """
     Clears the cache.
 

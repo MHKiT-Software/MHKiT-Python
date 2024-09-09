@@ -15,12 +15,15 @@ Functions:
 - unorm: Computes root mean squared value of 3D vectors.
 """
 
+from typing import List, Dict, Optional, Tuple, Union
 import pandas as pd
 import numpy as np
 from mhkit import qc
 
 
-def _calculate_statistics(datachunk, vector_channels):
+def _calculate_statistics(
+    datachunk: pd.DataFrame, vector_channels: List[str]
+) -> Dict[str, Union[pd.Series, float]]:
     """
     Calculate the mean, max, min, and standard deviation for the given datachunk.
     Also calculate vector statistics for vector_channels.
@@ -51,7 +54,12 @@ def _calculate_statistics(datachunk, vector_channels):
     return {"means": means, "maxs": maxs, "mins": mins, "stdevs": stdevs}
 
 
-def get_statistics(data, freq, period=600, vector_channels=None):
+def get_statistics(
+    data: pd.DataFrame,
+    freq: Union[float, int],
+    period: Union[float, int] = 600,
+    vector_channels: Optional[Union[str, List[str]]] = None,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Calculate mean, max, min and stdev statistics of continuous data for a
     given statistical window. Default length of statistical window (period) is
@@ -135,7 +143,9 @@ def get_statistics(data, freq, period=600, vector_channels=None):
     return means, maxs, mins, stdevs
 
 
-def vector_statistics(data):
+def vector_statistics(
+    data: Union[pd.Series, np.ndarray, list]
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Function used to calculate statistics for vector/directional channels based on
     routine from Campbell data logger and Yamartino algorithm
@@ -181,7 +191,7 @@ def vector_statistics(data):
     return vector_avg, vector_std
 
 
-def unwrap_vector(data):
+def unwrap_vector(data: Union[pd.Series, np.ndarray, list]) -> np.ndarray:
     """
     Function used to unwrap vectors into 0-360 deg range
 
@@ -216,7 +226,14 @@ def unwrap_vector(data):
     return data
 
 
-def magnitude_phase(x, y, z=None):
+def magnitude_phase(
+    x: Union[float, int, np.ndarray],
+    y: Union[float, int, np.ndarray],
+    z: Optional[Union[float, int, np.ndarray]] = None,
+) -> Union[
+    Tuple[Union[float, np.ndarray], Union[float, np.ndarray]],
+    Tuple[Union[float, np.ndarray], Union[float, np.ndarray], Union[float, np.ndarray]],
+]:
     """
     Retuns magnitude and phase in two or three dimensions.
 
@@ -267,7 +284,11 @@ def magnitude_phase(x, y, z=None):
     return mag, theta
 
 
-def unorm(x, y, z):
+def unorm(
+    x: Union[np.ndarray, np.float64, pd.Series],
+    y: Union[np.ndarray, np.float64, pd.Series],
+    z: Union[np.ndarray, np.float64, pd.Series],
+) -> Union[np.ndarray, np.float64]:
     """
     Calculates the root mean squared value given three arrays.
 

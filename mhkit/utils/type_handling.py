@@ -13,12 +13,15 @@ Functions:
   in nested dictionaries to xarray Datasets.
 """
 
+from typing import Union, Dict, Any
 import numpy as np
 import pandas as pd
 import xarray as xr
 
 
-def to_numeric_array(data, name):
+def to_numeric_array(
+    data: Union[list, np.ndarray, pd.Series, xr.DataArray], name: str
+) -> np.ndarray:
     """
     Convert input data to a numeric array, ensuring all elements are numeric.
     """
@@ -38,7 +41,9 @@ def to_numeric_array(data, name):
     return data
 
 
-def convert_to_dataset(data, name="data"):
+def convert_to_dataset(
+    data: Union[pd.DataFrame, pd.Series, xr.DataArray, xr.Dataset], name: str = "data"
+) -> xr.Dataset:
     """
     Converts the given data to an xarray.Dataset.
 
@@ -112,7 +117,10 @@ def convert_to_dataset(data, name="data"):
     return data
 
 
-def convert_to_dataarray(data, name="data"):
+def convert_to_dataarray(
+    data: Union[np.ndarray, pd.DataFrame, pd.Series, xr.DataArray, xr.Dataset],
+    name: str = "data",
+) -> xr.DataArray:
     """
     Converts the given data to an xarray.DataArray.
 
@@ -233,7 +241,9 @@ def convert_to_dataarray(data, name="data"):
     return data
 
 
-def convert_nested_dict_and_pandas(data):
+def convert_nested_dict_and_pandas(
+    data: Dict[str, Union[pd.DataFrame, Dict[str, Any]]]
+) -> Dict[str, Union[xr.Dataset, Dict[str, Any]]]:
     """
     Recursively searches inside nested dictionaries for pandas DataFrames to
     convert to xarray Datasets. Typically called by wave.io functions that read
