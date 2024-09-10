@@ -1,14 +1,25 @@
+"""
+This submodule includes the main passive acoustics I/O functions.
+`read_hydrophone` is the main function, with a number of wrapper
+functions for specific manufacturers. The `export_audio` function
+exists to improve audio if one is difficult to listen to.
+"""
+
 import struct
-import warnings
+import wave
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import xarray as xr
-import wave
 from scipy.io import wavfile
 
 
 def read_hydrophone(
-    filename, peak_V=None, sensitivity=None, gain=0, start_time="2024-06-06T00:00:00"
+    filename,
+    peak_voltage=None,
+    sensitivity=None,
+    gain=0,
+    start_time="2024-06-06T00:00:00",
 ):
     """
     Read .wav file from a hydrophone. Returns voltage timeseries if sensitivity not
@@ -16,9 +27,9 @@ def read_hydrophone(
 
     Parameters
     ----------
-    filename: string
+    filename: str or pathlib.Path
         Input filename
-    peak_V: numeric
+    peak_voltage: numeric
         Peak voltage supplied to the analog to digital converter (ADC) in V.
         (Or 1/2 of the peak to peak voltage).
     sensitivity: numeric
@@ -34,11 +45,12 @@ def read_hydrophone(
     out: numpy.array
         Sound pressure [Pa] or Voltage [V] indexed by time[s]
     """
-    if not isinstance(filename, str):
+
+    if (not isinstance(filename, str)) and (not isinstance(filename.as_posix(), str)):
         raise TypeError("Filename should be a string.")
-    if peak_V is None:
+    if peak_voltage is None:
         raise ValueError(
-            "Please provide the peak voltage of the hydrophone's ADC `peak_V`."
+            "Please provide the peak voltage of the hydrophone's ADC `peak_voltage`."
         )
     if (sensitivity is not None) and (sensitivity > 0):
         raise ValueError(
@@ -46,9 +58,9 @@ def read_hydrophone(
         )
 
     with open(filename, "rb") as f:
-        riff_key = f.read(4)
-        file_size = struct.unpack("<I", f.read(4))[0]
-        wave_key = f.read(4)
+        f.read(4)  # riff_key
+        f.read(4)  # file_size "<I"
+        f.read(4)  # wave_key
         list_key = f.read(4)
 
         # Skip metadata if it exits (don't know how to parse)
@@ -59,13 +71,13 @@ def read_hydrophone(
             f.seek(f.tell() - 4)
 
         # Read this to get the bits/sample
-        fmt_key = f.read(4)
+        f.read(4)  # fmt_key
         fmt_size = struct.unpack("<I", f.read(4))[0]
-        compression_code = struct.unpack("<H", f.read(2))[0]
-        n_channels = struct.unpack("<H", f.read(2))[0]
-        sample_rate = struct.unpack("<I", f.read(4))[0]
-        bytes_per_sec = struct.unpack("<I", f.read(4))[0]
-        block_align = struct.unpack("<H", f.read(2))[0]
+        f.read(2)  # compression_code "<H"
+        f.read(2)  # n_channels "<H"
+        f.read(4)  # sample_rate "<I"
+        f.read(4)  # bytes_per_sec "<I"
+        f.read(2)  # block_align "<H"
         bits_per_sample = struct.unpack("<H", f.read(2))[0]
         f.seek(f.tell() + fmt_size - 16)
 
@@ -73,16 +85,21 @@ def read_hydrophone(
     fs, raw = wavfile.read(filename)
     length = raw.shape[0] // fs  # length of recording in seconds
 
-    if bits_per_sample == 16:
-        max_count = 2 ** (16 - 1)  # 16 bit
+    if bits_per_sample in [16, 32]:
+        max_count = 2 ** (bits_per_sample - 1)
+    elif bits_per_sample == 12:
+        max_count = 2 ** (16 - 1) - 2**4  # 12 bit read in as 16 bit
     elif bits_per_sample == 24:
         max_count = 2 ** (32 - 1) - 2**8  # 24 bit read in as 32 bit
-    elif bits_per_sample <= 32:
-        max_count = 2 ** (32 - 1)  # 32 bit
+    else:
+        raise ValueError(
+            f"Unknown how to read {bits_per_sample} bit ADC."
+            "Please notify MHKiT team."
+        )
 
     # Normalize and then scale to peak voltage
     # Use 64 bit float for decimal accuracy
-    raw_V = raw.astype(float) / max_count * peak_V
+    raw_voltage = raw.astype(float) / max_count * peak_voltage
 
     # Get time
     end_time = np.datetime64(start_time) + np.timedelta64(length, "s")
@@ -94,23 +111,23 @@ def read_hydrophone(
         if gain:
             sensitivity -= gain
         # Convert calibration from dB rel 1 V/uPa into ratio
-        Sf = 10 ** (sensitivity / 20)  # V/uPa
+        sensitivity = 10 ** (sensitivity / 20)  # V/uPa
 
         # Sound pressure
-        pressure = raw_V / Sf  # uPa
+        pressure = raw_voltage / sensitivity  # uPa
         pressure = pressure / 1e6  # Pa
 
         # Min resolution
-        min_res = peak_V / max_count / Sf  # uPa
+        min_res = peak_voltage / max_count / sensitivity  # uPa
         # Pressure at which sensor is saturated
-        max_sat = peak_V / Sf  # uPa
+        max_sat = peak_voltage / sensitivity  # uPa
 
         out = xr.DataArray(
             pressure,
             coords={"time": time[:-1]},
             attrs={
                 "units": "Pa",
-                "sensitivity": Sf,
+                "sensitivity": sensitivity,
                 "resolution": np.round(min_res / 1e6, 9),
                 "valid_min": np.round(
                     -max_sat / 1e6,
@@ -118,18 +135,18 @@ def read_hydrophone(
                 ),
                 "valid_max": np.round(max_sat / 1e6, 6),
                 "fs": fs,
-                "filename": filename.replace("\\", "/").split("/")[-1],
+                "filename": Path(filename).stem,
             },
         )
 
     else:
         # Voltage min resolution
-        min_res = peak_V / max_count  # V
+        min_res = peak_voltage / max_count  # V
         # Voltage at which sensor is saturated
-        max_sat = peak_V  # V
+        max_sat = peak_voltage  # V
 
         out = xr.DataArray(
-            raw_V,
+            raw_voltage,
             coords={"time": time[:-1]},
             attrs={
                 "units": "V",
@@ -137,7 +154,7 @@ def read_hydrophone(
                 "valid_min": -max_sat,
                 "valid_max": max_sat,
                 "fs": fs,
-                "filename": str(filename).replace("\\", "/").split("/")[-1],
+                "filename": Path(filename).stem,
             },
         )
 
@@ -185,7 +202,11 @@ def read_soundtrap(filename, sensitivity=None, gain=0):
 
     # Soundtrap uses a peak voltage of 1 V
     out = read_hydrophone(
-        filename, peak_V=1, sensitivity=sensitivity, gain=gain, start_time=start_time
+        filename,
+        peak_voltage=1,
+        sensitivity=sensitivity,
+        gain=gain,
+        start_time=start_time,
     )
     out.attrs["make"] = "SoundTrap"
 
@@ -217,72 +238,70 @@ def read_iclisten(filename, sensitivity=None, use_metadata=True):
 
     # Read icListen metadata from file header
     with open(filename, "rb") as f:
-        riff_key = f.read(4)
-        file_size = struct.unpack("<I", f.read(4))[0]
-        wave_key = f.read(4)
-        list_key = f.read(4)
+        # Read header keys
+        f.read(4)  # riff_key
+        f.read(4)  # file_size "<I"
+        f.read(4)  # wave_key
+        f.read(4)  # list_key
 
-        # Read metadata if available
-        if "LIST" in list_key.decode():
-            list_size = struct.unpack("<I", f.read(4))[0]
-            info_key = f.read(4)
+        # Read metadata keys
+        f.read(4)  # list_size "<I"
+        f.read(4)  # info_key
 
-            # Hydrophone make and SN
-            iart_key = f.read(4)
-            iart_size = struct.unpack("<I", f.read(4))[0]
-            iart = f.read(iart_size).decode().rstrip("\x00")
+        # Hydrophone make and SN
+        f.read(4)  # iart_key
+        iart_size = struct.unpack("<I", f.read(4))[0]
+        iart = f.read(iart_size).decode().rstrip("\x00")
 
-            # Hydrophone model
-            iprd_key = f.read(4)
-            iprd_size = struct.unpack("<I", f.read(4))[0]
-            iprd = f.read(iprd_size).decode().rstrip("\x00")
+        # Hydrophone model
+        f.read(4)  # iprd_key
+        iprd_size = struct.unpack("<I", f.read(4))[0]
+        iprd = f.read(iprd_size).decode().rstrip("\x00")
 
-            # File creation date
-            icrd_key = f.read(4)
-            icrd_size = struct.unpack("<I", f.read(4))[0]
-            icrd = f.read(icrd_size).decode().rstrip("\x00")
+        # File creation date
+        f.read(4)  # icrd_key
+        icrd_size = struct.unpack("<I", f.read(4))[0]
+        icrd = f.read(icrd_size).decode().rstrip("\x00")
 
-            # Hydrophone make and software version
-            isft_key = f.read(4)
-            isft_size = struct.unpack("<I", f.read(4))[0]
-            isft = f.read(isft_size).decode().rstrip("\x00")
+        # Hydrophone make and software version
+        f.read(4)  # isft_key
+        isft_size = struct.unpack("<I", f.read(4))[0]
+        isft = f.read(isft_size).decode().rstrip("\x00")
 
-            # Original filename
-            inam_key = f.read(4)
-            inam_size = struct.unpack("<I", f.read(4))[0]
-            inam = f.read(inam_size).decode().rstrip("\x00")
+        # Original filename
+        f.read(4)  # inam_key
+        inam_size = struct.unpack("<I", f.read(4))[0]
+        inam = f.read(inam_size).decode().rstrip("\x00")
 
-            # Additional comments
-            icmt_key = f.read(4)
-            icmt_size = struct.unpack("<I", f.read(4))[0]
-            icmt = f.read(icmt_size).decode().rstrip("\x00")
+        # Additional comments
+        f.read(4)  # icmt_key
+        icmt_size = struct.unpack("<I", f.read(4))[0]
+        icmt = f.read(icmt_size).decode().rstrip("\x00")
 
-            fields = icmt.split(",")
-            peak_voltage = fields[0]
-            hphone_sensitivity = fields[1].lstrip()
-            humidity = fields[2].lstrip()
-            temp = fields[3].lstrip()
-            if len(fields) > 6:
-                accel = ",".join(fields[4:7]).lstrip()
-                mag = ",".join(fields[7:10]).lstrip()
-            else:
-                accel = []
-                mag = []
-            count_at_peak_V = fields[-2].lstrip()
-            n_sequence = fields[-1].lstrip()
+        fields = icmt.split(",")
+        peak_voltage = fields[0]
+        stored_sensitivity = fields[1].lstrip()
+        humidity = fields[2].lstrip()
+        temp = fields[3].lstrip()
+        if len(fields) > 6:
+            accel = ",".join(fields[4:7]).lstrip()
+            mag = ",".join(fields[7:10]).lstrip()
         else:
-            f.seek(f.tell() - 4)
+            accel = []
+            mag = []
+        count_at_peak_voltage = fields[-2].lstrip()
+        n_sequence = fields[-1].lstrip()
 
-    peak_V = float(peak_voltage.split(" ")[0])
-    Sf = int(hphone_sensitivity.split(" ")[0])
+    peak_voltage = float(peak_voltage.split(" ")[0])
+    stored_sensitivity = int(stored_sensitivity.split(" ")[0])
 
     # Use stored sensitivity
     if use_metadata and (sensitivity is None):
-        sensitivity = Sf
+        sensitivity = stored_sensitivity
 
     out = read_hydrophone(
         filename,
-        peak_V=peak_V,
+        peak_voltage=peak_voltage,
         sensitivity=sensitivity,
         gain=0,
         start_time=np.datetime64(icrd),
@@ -300,7 +319,7 @@ def read_iclisten(filename, sensitivity=None, use_metadata=True):
             "temperature": temp,
             "accelerometer": accel,
             "magnetometer": mag,
-            "count_at_peak_voltage": count_at_peak_V,
+            "count_at_peak_voltage": count_at_peak_voltage,
             "sequence_num": n_sequence,
         }
     )
@@ -308,19 +327,31 @@ def read_iclisten(filename, sensitivity=None, use_metadata=True):
     return out
 
 
-def export_audio(filename, P, gain=1):
-    """Creates human-scaled audio file from underwater recording."""
+def export_audio(filename, pressure, gain=1):
+    """
+    Creates human-scaled audio file from underwater recording.
+
+    Parameters
+    ----------
+    filename: string
+        Input filename
+    out: numpy.array
+        Sound pressure [Pa] indexed by time[s]
+    gain: numeric
+        Gain to multiply original timeseries by. Default 1.
+    """
+
     # Convert from Pascals to UPa
-    uPa = P.values.T * 1e6
+    upa = pressure.values.T * 1e6
     # Change to voltage waveform
-    V = uPa * 10 ** (P.sensitivity / 20)  # in V
+    v = upa * 10 ** (pressure.sensitivity / 20)  # in V
     # Normalize
-    V = V / max(abs(V)) * gain
+    v = v / max(abs(v)) * gain
     # Convert to (little-endian) 16 bit integers.
-    audio = (V * (2**16 - 1)).astype("<h")
+    audio = (v * (2**16 - 1)).astype("<h")
 
     with wave.open(f"{filename}.wav", "w") as f:
         f.setnchannels(1)
         f.setsampwidth(2)
-        f.setframerate(P.fs)
+        f.setframerate(pressure.fs)
         f.writeframes(audio.tobytes())

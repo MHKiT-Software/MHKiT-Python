@@ -1,8 +1,14 @@
-import warnings
+"""
+This submodule includes the main passive acoustics plotting functions. All
+functions allow passthrough of matplotlib functionality and commands
+to make them fully customizable.
+"""
+
 import matplotlib.pyplot as plt
+from .base import _fmax_warning
 
 
-def plot_spectogram(spsdl, fmin=10, fmax=100000, fig=None, ax=None, kwargs={}):
+def plot_spectogram(spsdl, fmin=10, fmax=100000, fig=None, ax=None, **kwargs):
     """
     Plots the spectogram of the sound pressure spectral density level.
 
@@ -32,15 +38,10 @@ def plot_spectogram(spsdl, fmin=10, fmax=100000, fig=None, ax=None, kwargs={}):
     # Set dimension names
     time = spsdl.dims[0]
     freq = spsdl.dims[-1]
-
+    # Check fmax
     fn = spsdl[freq].max()
-    if fmax > fn:
-        warnings.warn(
-            "`fmax` = {fmax} is greater than the Nyquist frequency. Setting"
-            "fmax = {fn}"
-        )
-        fmax = fn
-
+    fmax = _fmax_warning(fn, fmax)
+    # select frequency range
     spsdl = spsdl.sel({freq: slice(fmin, fmax)})
 
     if ax is None:
@@ -55,7 +56,7 @@ def plot_spectogram(spsdl, fmin=10, fmax=100000, fig=None, ax=None, kwargs={}):
     return fig, ax
 
 
-def plot_spectra(spsdl, fmin=10, fmax=100000, fig=None, ax=None, kwargs={}):
+def plot_spectra(spsdl, fmin=10, fmax=100000, fig=None, ax=None, **kwargs):
     """
     Plots spectral density. X axis is log-transformed.
 
@@ -84,15 +85,10 @@ def plot_spectra(spsdl, fmin=10, fmax=100000, fig=None, ax=None, kwargs={}):
 
     # Set dimension names
     freq = spsdl.dims[-1]
-
+    # Check fmax
     fn = spsdl[freq].max()
-    if fmax > fn:
-        warnings.warn(
-            "`fmax` = {fmax} is greater than the Nyquist frequency. Setting"
-            "fmax = {fn}"
-        )
-        fmax = fn
-
+    fmax = _fmax_warning(fn, fmax)
+    # select frequency range
     spsdl = spsdl.sel({freq: slice(fmin, fmax)})
 
     if ax is None:
@@ -101,6 +97,6 @@ def plot_spectra(spsdl, fmin=10, fmax=100000, fig=None, ax=None, kwargs={}):
             left=0.1, right=0.95, top=0.85, bottom=0.2, hspace=0.3, wspace=0.15
         )
     ax.plot(spsdl[freq], spsdl.T, **kwargs)
-    ax.set(xlim=(fmin, fmax), xlabel="Frequency [Hz]", ylabel="$dB\ re \ 1 \ uPa^2/Hz$")
+    ax.set(xlim=(fmin, fmax), xlabel="Frequency [Hz]", ylabel="$dB re 1 uPa^2/Hz$")
 
     return fig, ax

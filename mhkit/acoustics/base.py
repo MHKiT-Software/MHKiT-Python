@@ -1,9 +1,30 @@
+"""
+This file includes the main passive acoustics analysis functions. They
+are designed to function on top of one another, starting from reading
+in wav files from the io submodule.
+"""
+
 import warnings
 import numpy as np
 import xarray as xr
 
 from mhkit.dolfyn import VelBinner
 from mhkit.dolfyn.time import epoch2dt64, dt642epoch
+
+
+def _fmax_warning(fn, fmax):
+    """
+    Check that max frequency limit isn't greater than Nyquist frequency
+    """
+
+    if fmax > fn:
+        warnings.warn(
+            "`fmax` = {fmax} is greater than the Nyquist frequency. Setting"
+            "fmax = {fn}"
+        )
+        fmax = fn
+
+    return fmax
 
 
 def minimum_frequency(water_depth, c=1500, c_seabed=1700):
@@ -20,7 +41,7 @@ def minimum_frequency(water_depth, c=1500, c_seabed=1700):
     return f_min
 
 
-def sound_pressure_spectral_density(P, fs, window=1):
+def sound_pressure_spectral_density(pressure, fs, window=1):
     """
     Calculates the mean square sound pressure spectral density from audio
     samples split into FFTs with a specified window_size in seconds and
@@ -29,7 +50,7 @@ def sound_pressure_spectral_density(P, fs, window=1):
 
     Parameters
     ----------
-    P: xarray.DataArray (time)
+    pressure: xarray.DataArray (time)
         Sound pressure in [Pa] or volts [V]
     fs: int
         Data collection sampling rate [Hz]
@@ -49,8 +70,8 @@ def sound_pressure_spectral_density(P, fs, window=1):
     binner = VelBinner(n_bin=win, fs=fs, n_fft=win)
     # Always 50% overlap if numbers reshape perfectly
     # Mean square sound pressure
-    psd = binner.power_spectral_density(P, freq_units="Hz")
-    samples = binner.reshape(P.values) - binner.mean(P.values)[:, None]
+    psd = binner.power_spectral_density(pressure, freq_units="Hz")
+    samples = binner.reshape(pressure.values) - binner.mean(pressure.values)[:, None]
     # Power in time domain
     t_power = np.sum(samples**2, axis=1) / win
     # Power in frequency domain
@@ -62,7 +83,7 @@ def sound_pressure_spectral_density(P, fs, window=1):
         psd_adj,
         coords={"time": psd_adj["time"], "freq": psd_adj["freq"]},
         attrs={
-            "units": P.units + "^2/Hz",
+            "units": pressure.units + "^2/Hz",
             "long_name": "Mean Square Sound Pressure Spectral Density",
             "fs": fs,
             "window": str(window) + "s",
@@ -104,8 +125,8 @@ def apply_calibration(spsd, sensitivity_curve, fill_value):
     calibration = calibration.fillna(fill_value)
 
     # Subtract from sound pressure spectral density
-    Sf_ratio = 10 ** (calibration / 10)  # V^2/uPa^2
-    spsd /= Sf_ratio  # uPa^2/Hz
+    sensitivity_ratio = 10 ** (calibration / 10)  # V^2/uPa^2
+    spsd /= sensitivity_ratio  # uPa^2/Hz
     spsd /= 1e12  # Pa^2/Hz
     spsd.attrs["units"] = "Pa^2/Hz"
 
@@ -130,10 +151,10 @@ def sound_pressure_spectral_density_level(spsd):
     """
 
     # Reference value of sound pressure
-    P2_ref = 1e-12  # Pa^2 to 1 uPa^2
+    reference = 1e-12  # Pa^2 to 1 uPa^2
 
     # Sound pressure spectral density level from mean square values
-    lpf = 10 * np.log10(spsd.values / P2_ref)
+    lpf = 10 * np.log10(spsd.values / reference)
 
     out = xr.DataArray(
         lpf,
@@ -177,13 +198,9 @@ def band_average(
         indexed by time and frequency
     """
 
+    # Check fmax
     fn = spsdl["freq"].max().values
-    if fmax > fn:
-        warnings.warn(
-            "`fmax` = {fmax} is greater than the Nyquist frequency. Setting"
-            "fmax = {fn}"
-        )
-        fmax = fn
+    fmax = _fmax_warning(fn, fmax)
 
     bandwidth = 2 ** (1 / octave)
     half_bandwidth = 2 ** (1 / (octave * 2))
@@ -278,24 +295,20 @@ def sound_pressure_level(spsd, fmin=10, fmax=100000):
         Sound pressure level [dB re 1 uPa] indexed by time
     """
 
+    # Check fmax
     fn = spsd.attrs["fs"] // 2
-    if fmax > fn:
-        warnings.warn(
-            "`fmax` = {fmax} is greater than the Nyquist frequency. Setting"
-            "fmax = {fn}"
-        )
-        fmax = fn
+    fmax = _fmax_warning(fn, fmax)
 
     # Reference value of sound pressure
-    P2_ref = 1e-12  # Pa^2, = 1 uPa^2
+    reference = 1e-12  # Pa^2, = 1 uPa^2
 
     # Mean square sound pressure in a specified frequency band from mean square values
-    P2 = np.trapz(
+    pressure_squared = np.trapz(
         spsd.sel(freq=slice(fmin, fmax)), spsd["freq"].sel(freq=slice(fmin, fmax))
     )
 
     # Mean square sound pressure level
-    mspl = 10 * np.log10(P2 / P2_ref)
+    mspl = 10 * np.log10(pressure_squared / reference)
 
     out = xr.DataArray(
         mspl,
@@ -312,16 +325,34 @@ def sound_pressure_level(spsd, fmin=10, fmax=100000):
 
 
 def _band_sound_pressure_level(spsd, bandwidth, half_bandwidth, fmin, fmax):
+    """
+    Calculates band-averaged sound pressure levels
+
+    Parameters
+    ----------
+    spsd: xarray.DataArray (time, freq)
+        Mean square sound pressure spectral density.
+    bandwidth: int
+        Bandwidth to average over
+    half_bandwidth: int
+        Half-bandwidth, used to set upper and lower bandwidth limits
+    fmin: int
+        Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
+    fmax: int
+        Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
+
+    Returns
+    -------
+    out: xarray.DataArray (time, freq_bins)
+        Sound pressure level [dB re 1 uPa] indexed by time and frequency of specified bandwidth
+    """
+
+    # Check fmax
     fn = spsd.attrs["fs"] // 2
-    if fmax > fn:
-        warnings.warn(
-            "`fmax` = {fmax} is greater than the Nyquist frequency. Setting"
-            "fmax = {fn}"
-        )
-        fmax = fn
+    fmax = _fmax_warning(fn, fmax)
 
     # Reference value of sound pressure
-    P2_ref = 1e-12  # Pa^2, = 1 uPa^2
+    reference = 1e-12  # Pa^2, = 1 uPa^2
 
     center_freq = 10 ** np.arange(
         np.log10(fmin),
@@ -333,20 +364,20 @@ def _band_sound_pressure_level(spsd, bandwidth, half_bandwidth, fmin, fmax):
     octave_bins = np.append(lower_limit, upper_limit[-1])
 
     # Manual trapezoidal rule to get Pa^2
-    P2 = xr.DataArray(
+    pressure_squared = xr.DataArray(
         coords={"time": spsd["time"], "freq_bins": center_freq},
         dims=["time", "freq_bins"],
     )
     for i, key in enumerate(center_freq):
         band_min = octave_bins[i]
         band_max = octave_bins[i + 1]
-        P2.loc[dict(freq_bins=key)] = np.trapz(
+        pressure_squared.loc[{"freq_bins": key}] = np.trapz(
             spsd.sel(freq=slice(band_min, band_max)),
             spsd["freq"].sel(freq=slice(band_min, band_max)),
         )
 
     # Mean square sound pressure level in dB rel 1 uPa
-    mspl = 10 * np.log10(P2 / P2_ref)
+    mspl = 10 * np.log10(pressure_squared / reference)
 
     return mspl
 
@@ -358,7 +389,7 @@ def third_octave_sound_pressure_level(spsd, fmin=10, fmax=100000):
 
     Parameters
     ----------
-    psd: xarray.DataArray (time, freq)
+    spsd: xarray.DataArray (time, freq)
         Mean square sound pressure spectral density.
     fmin: int
         Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
@@ -391,7 +422,7 @@ def decidecade_sound_pressure_level(spsd, fmin=10, fmax=100000):
 
     Parameters
     ----------
-    psd: xarray.DataArray (time, freq)
+    spsd: xarray.DataArray (time, freq)
         Mean square sound pressure spectral density.
     fmin: int
         Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz

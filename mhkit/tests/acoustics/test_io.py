@@ -28,7 +28,10 @@ class TestIO(unittest.TestCase):
         file_name = join(datadir, "RBW_6661_20240601_053114.wav")
         td_orig = acoustics.io.read_iclisten(file_name)
         td_wrap = acoustics.io.read_hydrophone(
-            file_name, peak_V=3, sensitivity=-177, start_time="2024-06-01T05:31:14"
+            file_name,
+            peak_voltage=3,
+            sensitivity=-177,
+            start_time="2024-06-01T05:31:14",
         )
         td_volt = acoustics.io.read_iclisten(
             file_name, sensitivity=None, use_metadata=False
@@ -78,7 +81,10 @@ class TestIO(unittest.TestCase):
         file_name = join(datadir, "6247.230204150508.wav")
         td_orig = acoustics.io.read_soundtrap(file_name, sensitivity=-177)
         td_wrap = acoustics.io.read_hydrophone(
-            file_name, peak_V=1, sensitivity=-177, start_time="2023-02-04T15:05:08"
+            file_name,
+            peak_voltage=1,
+            sensitivity=-177,
+            start_time="2023-02-04T15:05:08",
         )
         td_volt = acoustics.io.read_soundtrap(file_name, sensitivity=None)
 
