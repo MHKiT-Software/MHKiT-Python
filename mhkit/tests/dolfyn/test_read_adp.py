@@ -21,7 +21,7 @@ dat_vm_os = load("vmdas02_os.nc")
 dat_wr1 = load("winriver01.nc")
 dat_wr2 = load("winriver02.nc")
 dat_rp = load("RiverPro_test01.nc")
-dat_trsc = load("winriver02_transect.nc")
+dat_transect = load("winriver02_transect.nc")
 
 dat_awac = load("AWAC_test01.nc")
 dat_awac_ud = load("AWAC_test01_ud.nc")
@@ -75,7 +75,7 @@ class io_adp_testcase(unittest.TestCase):
         assert_allclose(td_wr1, dat_wr1, atol=1e-6)
         assert_allclose(td_wr2, dat_wr2, atol=1e-6)
         assert_allclose(td_rp, dat_rp, atol=1e-6)
-        assert_allclose(td_transect, dat_trsc, atol=1e-6)
+        assert_allclose(td_transect, dat_transect, atol=1e-6)
 
     def test_io_nortek(self):
         nens = 100
