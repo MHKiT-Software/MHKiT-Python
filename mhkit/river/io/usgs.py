@@ -120,7 +120,10 @@ def request_usgs_data(
 
     # Use handle_caching to manage cache
     cached_data, metadata, cache_filepath = handle_caching(
-        hash_params, cache_dir, write_json, clear_cache
+        hash_params,
+        cache_dir,
+        cache_content={"data": None, "metadata": None, "write_json": write_json},
+        clear_cache_file=clear_cache,
     )
 
     if cached_data is not None:
@@ -165,7 +168,12 @@ def request_usgs_data(
 
     # After making the API request and processing the response, write the
     #  response to a cache file
-    handle_caching(hash_params, cache_dir, data=data, clear_cache_file=clear_cache)
+    handle_caching(
+        hash_params,
+        cache_dir,
+        cache_content={"data": data, "metadata": None, "write_json": None},
+        clear_cache_file=clear_cache,
+    )
 
     if write_json:
         shutil.copy(cache_filepath, write_json)

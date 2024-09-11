@@ -29,10 +29,10 @@ class TestGenUtils(unittest.TestCase):
         # load in file
         df = self.data["loads"]
         df.Timestamp = pd.to_datetime(df.Timestamp)
-        df.set_index("Timestamp", inplace=True)
+        test_df = df.set_index("Timestamp")
         # run function
         means, maxs, mins, stdevs = utils.get_statistics(
-            df,
+            test_df,
             self.freq,
             period=self.period,
             vector_channels=["WD_Nacelle", "WD_NacelleMod"],
@@ -56,6 +56,37 @@ class TestGenUtils(unittest.TestCase):
         string_time = "2017-03-01 01:28:41"
         time = pd.to_datetime(string_time)
         self.assertTrue(means.index[0] == time)
+
+    def test__calculate_statistics(self):
+        # load in file
+        df = self.data["loads"]
+        df.Timestamp = pd.to_datetime(df.Timestamp)
+        test_df = df.set_index("Timestamp")
+
+        # Select a specific data chunk (the first 10 rows)
+        datachunk = test_df.iloc[:10]
+
+        # Run the calculate_statistics function
+        stats = utils._calculate_statistics(
+            datachunk, vector_channels=["WD_Nacelle", "WD_NacelleMod"]
+        )
+
+        means = stats["means"]
+        maxs = stats["maxs"]
+        mins = stats["mins"]
+        stdevs = stats["stdevs"]
+
+        # check statistics for a specific column ('uWind_80m')
+        self.assertAlmostEqual(means["uWind_80m"], 3.226, 2)  # mean
+        self.assertAlmostEqual(maxs["uWind_80m"], 3.234, 2)  # max
+        self.assertAlmostEqual(mins["uWind_80m"], 3.221, 2)  # min
+        self.assertAlmostEqual(stdevs["uWind_80m"], 0.005049, 2)  # standard deviation
+
+        # check vector statistics for 'WD_Nacelle'
+        self.assertAlmostEqual(means["WD_Nacelle"], 157.302, 2)  # vector mean
+        self.assertAlmostEqual(
+            stdevs["WD_Nacelle"], 0.000, 2
+        )  # vector standard deviation
 
     def test_vector_statistics(self):
         # load in vector variable

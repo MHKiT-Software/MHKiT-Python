@@ -192,7 +192,11 @@ def request_wpto_point_data(
     # Construct a string representation of the function parameters
     hash_params = f"{data_type}_{parameter}_{lat_lon}_{years}_{tree}_{unscale}_{str_decode}_{hsds}_{path}_{to_pandas}"
     cache_dir = _get_cache_dir()
-    data, meta, _ = handle_caching(hash_params, cache_dir)
+    data, meta, _ = handle_caching(
+        hash_params,
+        cache_dir,
+        cache_content={"data": None, "metadata": None, "write_json": None},
+    )
 
     if data is not None:
         return data, meta
@@ -277,7 +281,11 @@ def request_wpto_point_data(
                 data = data.drop_vars("index")
 
         # save_to_cache(hash_params, data, meta)
-        handle_caching(hash_params, cache_dir, data, meta)
+        handle_caching(
+            hash_params,
+            cache_dir,
+            cache_content={"data": data, "metadata": meta, "write_json": None},
+        )
 
         return data, meta
 
@@ -374,7 +382,11 @@ def request_wpto_directional_spectrum(
     # Attempt to load data from cache
     hash_params = f"{lat_lon}_{year}_{tree}_{unscale}_{str_decode}_{hsds}_{path}"
     cache_dir = _get_cache_dir()
-    data, meta, _ = handle_caching(hash_params, cache_dir)
+    data, meta, _ = handle_caching(
+        hash_params,
+        cache_dir,
+        cache_content={"data": None, "metadata": None, "write_json": None},
+    )
 
     if data is not None:
         return data, meta
@@ -480,7 +492,11 @@ def request_wpto_directional_spectrum(
             },
         )
 
-    handle_caching(hash_params, cache_dir, data, meta)
+    handle_caching(
+        hash_params,
+        cache_dir,
+        cache_content={"data": data, "metadata": meta, "write_json": None},
+    )
 
     return data, meta
 
