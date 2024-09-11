@@ -250,7 +250,7 @@ def set_declination(ds, declin, inplace=True):
         "kj...,ij->ki...",
         ds["orientmat"].values,
         Rdec,
-    )
+    ).astype(np.float32)
     if "heading" in ds:
         heading = ds["heading"] + angle
         heading[heading > 180] -= 360

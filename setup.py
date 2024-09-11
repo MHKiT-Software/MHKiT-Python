@@ -18,25 +18,25 @@ CLASSIFIERS = [
     "Operating System :: OS Independent",
 ]
 DEPENDENCIES = [
-    "pandas>=1.0.0",
-    "numpy>=1.21.0, <2.0.0",
-    "scipy<=1.13.1",
-    "matplotlib>=3.8.0",
+    "numpy>=2.0.0",
+    "pandas>=2.2.2",
+    "scipy>=1.14.0",
+    "xarray>=2024.6.0",
+    "matplotlib>=3.9.1",
+    "scikit-learn>=1.5.1",
+    "h5py>=3.11.0",
+    "h5pyd>=0.18.0",
+    "netCDF4>=1.7.1.post1",
+    "statsmodels>=0.14.2",
     "requests",
     "pecos>=0.3.0",
     "fatpack",
-    "lxml",
-    "scikit-learn",
     "NREL-rex>=0.2.63",
-    "six>=1.13.0",
-    "h5py>=3.6.0",
-    "h5pyd >=0.7.0",
-    "netCDF4>=1.5.8, <=1.6.5",
-    "xarray",
-    "statsmodels",
     "pytz",
-    "bottleneck",
     "beautifulsoup4",
+    "numexpr>=2.10.0",
+    "lxml",
+    "bottleneck",
 ]
 
 LONG_DESCRIPTION = """
@@ -57,7 +57,7 @@ See the [MHKiT documentation](https://mhkit-software.github.io/MHKiT) for more i
 
 Installation
 ------------------------
-MHKiT-Python requires Python (3.8, 3.9, 3.10, or 3.11) along with several Python 
+MHKiT-Python requires Python (3.10, or 3.11) along with several Python 
 package dependencies.  MHKiT-Python can be installed from PyPI using the command ``pip install mhkit``.
 See [installation instructions](https://mhkit-software.github.io/MHKiT/installation.html) for more information.
 
