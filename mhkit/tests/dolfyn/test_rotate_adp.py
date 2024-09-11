@@ -57,7 +57,7 @@ class rotate_adp_testcase(unittest.TestCase):
 
         # # The reverse RDI rotation doesn't work b/c of NaN's in one beam
         # # that propagate to others, so we impose that here.
-        cd_td["vel"].values[:, np.isnan(cd_td["vel"].values).any(0)] = np.NaN
+        cd_td["vel"].values[:, np.isnan(cd_td["vel"].values).any(0)] = np.nan
 
         assert_allclose(td, cd_td, atol=1e-5)
         assert_allclose(td_awac, cd_awac, atol=1e-5)
