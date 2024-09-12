@@ -176,7 +176,7 @@ def convert_to_dataarray(data, name="data"):
             data = data.to_array()
             data = data.sel(variable=keys[0])
             data.name = keys[0]
-            data.drop_vars("variable")
+            data = data.drop_vars("variable")
         else:
             # Allow multiple variables if they have the same dimensions
             if all([data[keys[0]].dims == data[key].dims for key in keys]):
