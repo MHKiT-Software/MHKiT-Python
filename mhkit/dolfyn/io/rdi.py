@@ -204,7 +204,8 @@ class _RDIReader:
         self._vm_source = 0
         self._pos = 0
         self.progress = 0
-        self._cfac = 180 / 2**31
+        self._cfac32 = np.float32(180 / 2**31)  # signed 32 to float
+        self._cfac16 = np.float32(180 / 2**15)  # unsigned16 to float
         self._fixoffset = 0
         self._nbyte = 0
         self.n_cells_diff = 0
@@ -361,7 +362,9 @@ class _RDIReader:
                     clock[0, :] += defs.century
                 try:
                     dates = tmlib.date2epoch(
-                        tmlib.datetime(*clock[:6, 0], microsecond=clock[6, 0] * 10000)
+                        tmlib.datetime(
+                            *clock[:6, 0], microsecond=int(float(clock[6, 0]) * 10000)
+                        )
                     )[0]
                 except ValueError:
                     warnings.warn(
@@ -369,7 +372,7 @@ class _RDIReader:
                             int(self.ensemble.number[0])
                         )
                     )
-                    dat["coords"]["time"][iens] = np.NaN
+                    dat["coords"]["time"][iens] = np.nan
                 else:
                     dat["coords"]["time"][iens] = np.median(dates)
 
@@ -508,7 +511,7 @@ class _RDIReader:
         if self._debug_level > 1:
             logging.debug(
                 "  pos %0.0fmb/%0.0fmb\n"
-                % (self.f.tell() / 1048576.0, self._filesize / 1048576.0)
+                % (self.f.tell() / 1048576, self._filesize / 1048576)
             )
         if (self.f.tell() - self.progress) < 1048576:
             return
@@ -739,8 +742,8 @@ class _RDIReader:
                 )
         cfg["n_cells_sl"] = n_cells
         # Assuming surface layer profile cell size never changes
-        cfg["cell_size_sl"] = self.f.read_ui16(1) * 0.01
-        cfg["bin1_dist_m_sl"] = round(self.f.read_ui16(1) * 0.01, 4)
+        cfg["cell_size_sl"] = float(self.f.read_ui16(1) * 0.01)
+        cfg["bin1_dist_m_sl"] = round(float(self.f.read_ui16(1) * 0.01), 4)
 
         if self._debug_level > -1:
             logging.info("Read Surface Layer Config")
@@ -756,7 +759,7 @@ class _RDIReader:
         fd = self.f
         tmp = fd.read_ui8(5)
         prog_ver0 = tmp[0]
-        cfg["prog_ver"] = tmp[0] + tmp[1] / 100.0
+        cfg["prog_ver"] = float(tmp[0] + tmp[1] * 0.01)
         cfg["inst_model"] = defs.adcp_type.get(tmp[0], "unrecognized firmware version")
         config = tmp[2:4]
         cfg["beam_angle"] = [15, 20, 30][(config[1] & 3)]
@@ -775,36 +778,36 @@ class _RDIReader:
                 logging.info(f"Number of cells set to {cfg['n_cells']}")
         cfg["pings_per_ensemble"] = fd.read_ui16(1)
         # Check if cell size has changed
-        cs = fd.read_ui16(1) * 0.01
+        cs = float(fd.read_ui16(1) * 0.01)
         if ("cell_size" not in cfg) or (cs != cfg["cell_size"]):
             self.cs_diff = cs if "cell_size" not in cfg else (cs - cfg["cell_size"])
             cfg["cell_size"] = cs
             if self._debug_level > 0:
                 logging.info(f"Cell size set to {cfg['cell_size']}")
-        cfg["blank_dist"] = fd.read_ui16(1) * 0.01
+        cfg["blank_dist"] = round(float(fd.read_ui16(1) * 0.01), 2)
         cfg["profiling_mode"] = fd.read_ui8(1)
         cfg["min_corr_threshold"] = fd.read_ui8(1)
         cfg["n_code_reps"] = fd.read_ui8(1)
         cfg["min_prcnt_gd"] = fd.read_ui8(1)
-        cfg["max_error_vel"] = fd.read_ui16(1) / 1000
-        cfg["sec_between_ping_groups"] = np.sum(
-            np.array(fd.read_ui8(3)) * np.array([60.0, 1.0, 0.01])
+        cfg["max_error_vel"] = float(fd.read_ui16(1) * 0.001)
+        cfg["sec_between_ping_groups"] = round(
+            float(np.sum(np.array(fd.read_ui8(3)) * [60.0, 1.0, 0.01])), 3
         )
         coord_sys = fd.read_ui8(1)
         cfg["coord_sys"] = ["beam", "inst", "ship", "earth"][((coord_sys >> 3) & 3)]
         cfg["use_pitchroll"] = ["no", "yes"][(coord_sys & 4) == 4]
         cfg["use_3beam"] = ["no", "yes"][(coord_sys & 2) == 2]
         cfg["bin_mapping"] = ["no", "yes"][(coord_sys & 1) == 1]
-        cfg["heading_misalign_deg"] = fd.read_i16(1) * 0.01
-        cfg["magnetic_var_deg"] = fd.read_i16(1) * 0.01
+        cfg["heading_misalign_deg"] = float(fd.read_i16(1) * 0.01)
+        cfg["magnetic_var_deg"] = float(fd.read_i16(1) * 0.01)
         cfg["sensors_src"] = np.binary_repr(fd.read_ui8(1), 8)
         cfg["sensors_avail"] = np.binary_repr(fd.read_ui8(1), 8)
-        cfg["bin1_dist_m"] = round(fd.read_ui16(1) * 0.01, 4)
-        cfg["transmit_pulse_m"] = fd.read_ui16(1) * 0.01
-        cfg["water_ref_cells"] = list(fd.read_ui8(2))  # list for attrs
+        cfg["bin1_dist_m"] = round(float(fd.read_ui16(1) * 0.01), 4)
+        cfg["transmit_pulse_m"] = round(float(fd.read_ui16(1) * 0.01), 2)
+        cfg["water_ref_cells"] = list(fd.read_ui8(2).astype(list))  # list for attrs
         cfg["false_target_threshold"] = fd.read_ui8(1)
         fd.seek(1, 1)
-        cfg["transmit_lag_m"] = fd.read_ui16(1) * 0.01
+        cfg["transmit_lag_m"] = float(fd.read_ui16(1) * 0.01)
         self._nbyte = 40
 
         if cfg["prog_ver"] >= 8.14:
@@ -894,8 +897,8 @@ class _RDIReader:
             if cfg["prog_ver"] >= 8.13:
                 # Added pressure sensor stuff in 8.13
                 fd.seek(2, 1)
-                ens.pressure[k] = fd.read_ui32(1) / 1000  # dPa to dbar
-                ens.pressure_std[k] = fd.read_ui32(1) / 1000
+                ens.pressure[k] = fd.read_ui32(1) * 0.001  # dPa to dbar
+                ens.pressure_std[k] = fd.read_ui32(1) * 0.001
                 self._nbyte += 10
             if cfg["prog_ver"] >= 8.24:
                 # Spare byte added 8.24
@@ -1005,9 +1008,9 @@ class _RDIReader:
             fd.seek(2, 1)
             long1 = fd.read_ui16(1)
             fd.seek(6, 1)
-            ens.latitude_gps[k] = fd.read_i32(1) * self._cfac
+            ens.latitude_gps[k] = fd.read_i32(1) * self._cfac32
             if ens.latitude_gps[k] == 0:
-                ens.latitude_gps[k] = np.NaN
+                ens.latitude_gps[k] = np.nan
         else:
             fd.seek(14, 1)
         ens.dist_bt[:, k] = fd.read_ui16(4) * 0.01
@@ -1017,11 +1020,11 @@ class _RDIReader:
         ens.prcnt_gd_bt[:, k] = fd.read_ui8(4)
         if self._vm_source == 2:
             fd.seek(2, 1)
-            ens.longitude_gps[k] = (long1 + 65536 * fd.read_ui16(1)) * self._cfac
+            ens.longitude_gps[k] = (long1 + 65536 * fd.read_ui16(1)) * self._cfac32
             if ens.longitude_gps[k] > 180:
                 ens.longitude_gps[k] = ens.longitude_gps[k] - 360
             if ens.longitude_gps[k] == 0:
-                ens.longitude_gps[k] = np.NaN
+                ens.longitude_gps[k] = np.nan
             fd.seek(16, 1)
             qual = fd.read_ui8(1)
             if qual == 0:
@@ -1030,8 +1033,8 @@ class _RDIReader:
                         "  qual==%d,%f %f"
                         % (qual, ens.latitude_gps[k], ens.longitude_gps[k])
                     )
-                ens.latitude_gps[k] = np.NaN
-                ens.longitude_gps[k] = np.NaN
+                ens.latitude_gps[k] = np.nan
+                ens.longitude_gps[k] = np.nan
             fd.seek(71 - 45 - 16 - 17, 1)
             self._nbyte = 2 + 68
         else:
@@ -1060,7 +1063,7 @@ class _RDIReader:
         self.vars_read += ["alt_dist", "alt_rssi", "alt_eval", "alt_status"]
         ens.alt_eval[k] = fd.read_ui8(1)  # evaluation amplitude
         ens.alt_rssi[k] = fd.read_ui8(1)  # RSSI amplitude
-        ens.alt_dist[k] = fd.read_ui32(1) / 1000  # range to surface/seafloor
+        ens.alt_dist[k] = fd.read_ui32(1) * 0.001  # range to surface/seafloor
         ens.alt_status[k] = fd.read_ui8(1)  # status bit flags
         self._nbyte = 7 + 2
         if self._debug_level > -1:
@@ -1095,24 +1098,24 @@ class _RDIReader:
 
         # 1st lat/lon position after previous ADCP ping
         # This byte is in hundredths of seconds (10s of milliseconds):
-        utc_time_first_fix = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) / 10)))
+        utc_time_first_fix = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) * 0.1)))
         ens.clock_offset_UTC_gps[k] = (
-            fd.read_i32(1) / 1000
+            fd.read_i32(1) * 0.001
         )  # "PC clock offset from UTC" in ms
-        latitude_first_gps = fd.read_i32(1) * self._cfac
-        longitude_first_gps = fd.read_i32(1) * self._cfac
+        latitude_first_gps = fd.read_i32(1) * self._cfac32
+        longitude_first_gps = fd.read_i32(1) * self._cfac32
 
         # Last lat/lon position prior to current ADCP ping
-        utc_time_fix = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) / 10)))
+        utc_time_fix = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) * 0.1)))
         ens.time_gps[k] = tmlib.date2epoch(date_utc + utc_time_fix)[0]
-        ens.latitude_gps[k] = fd.read_i32(1) * self._cfac
-        ens.longitude_gps[k] = fd.read_i32(1) * self._cfac
+        ens.latitude_gps[k] = fd.read_i32(1) * self._cfac32
+        ens.longitude_gps[k] = fd.read_i32(1) * self._cfac32
 
-        ens.avg_speed_gps[k] = fd.read_ui16(1) / 1000
-        ens.avg_dir_gps[k] = fd.read_ui16(1) * 180 / 2**15  # avg true track
+        ens.avg_speed_gps[k] = fd.read_ui16(1) * 0.001
+        ens.avg_dir_gps[k] = fd.read_ui16(1) * self._cfac16  # avg true track
         fd.seek(2, 1)  # avg magnetic track
-        ens.speed_made_good_gps[k] = fd.read_ui16(1) / 1000
-        ens.dir_made_good_gps[k] = fd.read_ui16(1) * 180 / 2**15
+        ens.speed_made_good_gps[k] = fd.read_ui16(1) * 0.001
+        ens.dir_made_good_gps[k] = fd.read_ui16(1) * self._cfac16
         fd.seek(2, 1)  # reserved
         ens.flags_gps[k] = int(np.binary_repr(fd.read_ui16(1)))
         fd.seek(6, 1)  # reserved, ADCP ensemble #
@@ -1120,11 +1123,11 @@ class _RDIReader:
         # ADCP date time
         utim = fd.read_ui8(4)
         date_adcp = tmlib.datetime(utim[0] + utim[1] * 256, utim[3], utim[2])
-        time_adcp = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) / 10)))
+        time_adcp = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) * 0.1)))
 
-        ens.pitch_gps[k] = fd.read_ui16(1) * 180 / 2**15
-        ens.roll_gps[k] = fd.read_ui16(1) * 180 / 2**15
-        ens.heading_gps[k] = fd.read_ui16(1) * 180 / 2**15
+        ens.pitch_gps[k] = fd.read_ui16(1) * self._cfac16
+        ens.roll_gps[k] = fd.read_ui16(1) * self._cfac16
+        ens.heading_gps[k] = fd.read_ui16(1) * self._cfac16
 
         fd.seek(10, 1)
         self._nbyte = 2 + 76
@@ -1164,7 +1167,7 @@ class _RDIReader:
                     hours=int(gga_time[0:2]),
                     minutes=int(gga_time[2:4]),
                     seconds=int(gga_time[4:6]),
-                    milliseconds=int(float(gga_time[6:]) * 1000),
+                    milliseconds=int(float(gga_time[6:]) * float(1000)),
                 )
                 clock = self.ensemble.rtc[:, :]
                 if clock[0, 0] < 100:
@@ -1398,7 +1401,7 @@ class _RDIReader:
 
     def cleanup(self, dat, cfg):
         # Clean up changing cell size, if necessary
-        cs = np.array(self.cs)
+        cs = np.array(self.cs, dtype=np.float32)
         cell_sizes = cs[:, 1]
 
         # If cell sizes change, depth-bin average the smaller cell sizes
@@ -1422,10 +1425,10 @@ class _RDIReader:
 
         # Set cell size and range
         cfg["n_cells"] = self.ensemble["n_cells"]
-        cfg["cell_size"] = cell_sizes.max()
+        cfg["cell_size"] = round(cell_sizes.max(), 3)
         dat["coords"]["range"] = (
             cfg["bin1_dist_m"] + np.arange(cfg["n_cells"]) * cfg["cell_size"]
-        )
+        ).astype(np.float32)
 
         # Save configuration data as attributes
         for nm in cfg:
@@ -1462,7 +1465,7 @@ class _RDIReader:
             # If n_bin is an integer, we can do this simply.
             out[..., :n_bin] = (arr[..., : (shp[-2] * shp[-1])]).reshape(shp, order="C")
         else:
-            inds = (np.arange(np.prod(shp[-2:])) * n_bin // int(n_bin)).astype(int)
+            inds = np.arange(np.prod(shp[-2:])) * n_bin // int(n_bin)
             # If there are too many indices, drop one bin
             if inds[-1] >= arr.shape[-1]:
                 inds = inds[: -int(n_bin)]
