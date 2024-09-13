@@ -351,8 +351,9 @@ def export_audio(filename, pressure, gain=1):
     # Convert to (little-endian) 16 bit integers.
     audio = (v * (2**16 - 1)).astype("<h")
 
-    with wave.open(f"{filename}.wav", "w") as f:
-        f.setnchannels(1)
-        f.setsampwidth(2)
-        f.setframerate(pressure.fs)
-        f.writeframes(audio.tobytes())
+    # pylint incorrectly thinks this is opening in read mode
+    with wave.open(f"{filename}.wav", mode="w") as f:
+        f.setnchannels(1)  # pylint: disable=no-member
+        f.setsampwidth(2)  # pylint: disable=no-member
+        f.setframerate(pressure.fs)  # pylint: disable=no-member
+        f.writeframes(audio.tobytes())  # pylint: disable=no-member
