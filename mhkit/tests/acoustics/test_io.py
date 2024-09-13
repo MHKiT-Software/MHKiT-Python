@@ -193,3 +193,7 @@ class TestIO(unittest.TestCase):
 
         self.assertEqual(isfile("sound1.wav"), True)
         os.remove("sound1.wav")
+
+
+if __name__ == "__main__":
+    unittest.main()
