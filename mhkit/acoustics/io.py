@@ -334,11 +334,12 @@ def export_audio(filename, pressure, gain=1):
     Parameters
     ----------
     filename: string
-        Input filename
-    out: numpy.array
-        Sound pressure [Pa] indexed by time[s]
-    gain: numeric
-        Gain to multiply original timeseries by. Default 1.
+        Output filename for the WAV file (without extension).
+    pressure: object
+        Sound pressure object with attributes 'values' (numpy array of pressure data),
+        'sensitivity' (sensitivity of the hydrophone in dB), and 'fs' (sampling frequency in Hz).
+    gain: numeric, optional
+        Gain to multiply original time series by. Default is 1.
     """
 
     # Convert from Pascals to UPa
