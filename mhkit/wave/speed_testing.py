@@ -37,7 +37,7 @@ def frequency_moment_da(S, N, frequency_bins=None, frequency_dimension="", to_pa
     fn = np.power(f, N)
     if frequency_bins is None:
         delta_f = f.diff(dim=frequency_dimension)
-        delta_f0 = f[1] - f[0]
+        delta_f0 = f[0]
         delta_f0 = delta_f0.assign_coords({frequency_dimension: f[0]})
         delta_f = xr.concat([delta_f0, delta_f], dim=frequency_dimension)
     else:
@@ -199,10 +199,10 @@ ndbc_data = all_ndbc_data["2018"]
 # te_df = wave.resource.energy_period(ndbc_data, frequency_dimension="variable")
 
 ndbc_data_da = convert_to_dataarray(ndbc_data)
-ndbc_data_s = ndbc_data.iloc[:,0]
+ndbc_data_s = ndbc_data.iloc[0,:]
 te = wave.resource.energy_period(ndbc_data, frequency_dimension="variable")
 te_da = wave.resource.energy_period(ndbc_data_da, frequency_dimension="variable")
-te_s = wave.resource.energy_period(ndbc_data_s, frequency_dimension="variable")
+te_s = wave.resource.energy_period(ndbc_data_s)
 
 # # Uncomment for speed testing
 # # Initial results:

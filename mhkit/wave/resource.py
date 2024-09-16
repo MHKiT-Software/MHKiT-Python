@@ -752,7 +752,7 @@ def energy_period(S, frequency_dimension="", frequency_bins=None, to_pandas=True
     Te.name = "Te"
 
     if to_pandas:
-        Te = Te.to_dataframe()
+        Te = Te.to_pandas()
 
     return Te
 
