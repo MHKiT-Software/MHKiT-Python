@@ -430,7 +430,7 @@ def frequency_moment(S, N, frequency_bins=None, frequency_dimension="", to_panda
     m: pandas DataFrame or xarray Dataset
         Nth Frequency Moment indexed by S.columns
     """
-    S = convert_to_dataset(S)
+    S = convert_to_dataarray(S)
     if not isinstance(N, int):
         raise TypeError(f"N must be of type int. Got: {type(N)}")
     if not isinstance(to_pandas, bool):
@@ -464,7 +464,7 @@ def frequency_moment(S, N, frequency_bins=None, frequency_dimension="", to_panda
     m = S * fn * delta_f
     m = m.sum(dim=frequency_dimension)
 
-    m = _transform_dataset(m, "m" + str(N))
+    m.name = "m" + str(N)
 
     if to_pandas:
         m = m.to_dataframe()
@@ -728,7 +728,7 @@ def energy_period(S, frequency_dimension="", frequency_bins=None, to_pandas=True
     Te: pandas DataFrame or xarray Dataset
         Wave energy period [s] indexed by S.columns
     """
-    S = convert_to_dataset(S)
+    S = convert_to_dataarray(S)
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
@@ -738,17 +738,18 @@ def energy_period(S, frequency_dimension="", frequency_bins=None, to_pandas=True
         frequency_bins=frequency_bins,
         frequency_dimension=frequency_dimension,
         to_pandas=False,
-    ).rename({"m-1": "Te"})
+    )
     m0 = frequency_moment(
         S,
         0,
         frequency_bins=frequency_bins,
         frequency_dimension=frequency_dimension,
         to_pandas=False,
-    ).rename({"m0": "Te"})
+    )
 
     # Eq 13 in IEC 62600-101
     Te = mn1 / m0
+    Te.name = "Te"
 
     if to_pandas:
         Te = Te.to_dataframe()
