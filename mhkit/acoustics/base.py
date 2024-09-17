@@ -4,6 +4,7 @@ are designed to function on top of one another, starting from reading
 in wav files from the io submodule.
 """
 
+from typing import Union, Dict
 import warnings
 import numpy as np
 import xarray as xr
@@ -12,9 +13,21 @@ from mhkit.dolfyn import VelBinner
 from mhkit.dolfyn.time import epoch2dt64, dt642epoch
 
 
-def _fmax_warning(fn, fmax):
+def _fmax_warning(fn: float, fmax: float) -> float:
     """
-    Check that max frequency limit isn't greater than Nyquist frequency
+    Checks that the maximum frequency limit isn't greater than the Nyquist frequency.
+
+    Parameters
+    ----------
+    fn: float
+        The Nyquist frequency in Hz.
+    fmax: float
+        The maximum frequency limit in Hz.
+
+    Returns
+    -------
+    fmax: float
+        The adjusted maximum frequency limit, ensuring it does not exceed the Nyquist frequency.
     """
 
     if fmax > fn:
@@ -27,12 +40,30 @@ def _fmax_warning(fn, fmax):
     return fmax
 
 
-def minimum_frequency(water_depth, c=1500, c_seabed=1700):
+def minimum_frequency(
+    water_depth: float, c: float = 1500, c_seabed: float = 1700
+) -> float:
     """
     Estimate the shallow water cutoff frequency based on the speed of
     sound in the water column and the speed of sound in the seabed
     material (generally ranges from 1450 - 1800 m/s)
 
+    Parameters
+    ----------
+    water_depth: float
+        Depth of the water column in meters.
+    c: float, optional
+        Speed of sound in the water column in meters per second. Default is 1500 m/s.
+    c_seabed: float, optional
+        Speed of sound in the seabed material in meters per second. Default is 1700 m/s.
+
+    Returns
+    -------
+    f_min: float
+        The minimum cutoff frequency in Hz.
+
+    Reference
+    ---------
     Jennings 2011 - Computational Ocean Acoustics, 2nd ed.
     """
 
@@ -41,7 +72,9 @@ def minimum_frequency(water_depth, c=1500, c_seabed=1700):
     return f_min
 
 
-def sound_pressure_spectral_density(pressure, fs, window=1):
+def sound_pressure_spectral_density(
+    pressure: xr.DataArray, fs: int, window: Union[int, float] = 1
+) -> xr.DataArray:
     """
     Calculates the mean square sound pressure spectral density from audio
     samples split into FFTs with a specified window_size in seconds and
@@ -95,9 +128,11 @@ def sound_pressure_spectral_density(pressure, fs, window=1):
     return out
 
 
-def apply_calibration(spsd, sensitivity_curve, fill_value):
+def apply_calibration(
+    spsd: xr.DataArray, sensitivity_curve: xr.DataArray, fill_value: Union[float, int]
+) -> xr.DataArray:
     """
-    Applies custom calibration to spectral density values
+    Applies custom calibration to spectral density values.
 
     Parameters
     ----------
@@ -105,14 +140,14 @@ def apply_calibration(spsd, sensitivity_curve, fill_value):
         Mean square sound pressure spectral density in V^2/Hz.
     sensitivity_curve: xarray.DataArray (freq)
         Calibrated sensitivity curve in units of dB rel 1 V^2/uPa^2.
-    fill_value: numeric
-        Value with which to fill values missing from calibration curve,
+    fill_value: Union[float, int]
+        Value with which to fill missing values from the calibration curve,
         in units of dB rel 1 V^2/uPa^2.
 
     Returns
     -------
     spsd: xarray.DataArray (time, freq)
-        Spectral density [Pa^2/Hz] indexed by time and frequency
+        Spectral density in Pa^2/Hz, indexed by time and frequency.
     """
 
     # Read calibration curve
@@ -133,7 +168,7 @@ def apply_calibration(spsd, sensitivity_curve, fill_value):
     return spsd
 
 
-def sound_pressure_spectral_density_level(spsd):
+def sound_pressure_spectral_density_level(spsd: xr.DataArray) -> xr.DataArray:
     """
     Calculates the sound pressure spectral density level from
     the mean square sound pressure spectral density.
@@ -168,7 +203,13 @@ def sound_pressure_spectral_density_level(spsd):
     return out
 
 
-def band_average(spsdl, octave=3, fmin=10, fmax=100000, method="median"):
+def band_average(
+    spsdl: xr.DataArray,
+    octave: int = 3,
+    fmin: int = 10,
+    fmax: int = 100000,
+    method: Union[str, Dict[str, Union[float, int]]] = "median",
+) -> xr.DataArray:
     """
     Reorganizes spectral density level frequency tensor into
     fractional octave bands and applies a function to them.
@@ -249,7 +290,11 @@ def band_average(spsdl, octave=3, fmin=10, fmax=100000, method="median"):
     return out
 
 
-def time_average(spsdl, window=60, method="median", method_arg=None):
+def time_average(
+    spsdl: xr.DataArray,
+    window: int = 60,
+    method: Union[str, Dict[str, Union[float, int]]] = "median",
+) -> xr.DataArray:
     """
     Reorganizes spectral density level frequency tensor into
     time windows and applies a function to them.
@@ -263,11 +308,10 @@ def time_average(spsdl, window=60, method="median", method_arg=None):
         Mean square sound pressure spectral density level in dB rel 1 uPa^2/Hz
     window: int
         Time in seconds to subdivide spectral density level into. Default: 60 s.
-    method: str
-        xarray.DataArray method to run on the binned data. Default: "median".
+    method: str or dict
+        Method to run on the binned data. Can be a string (e.g., "median") or a dict
+        where the key is the method and the value is its argument (e.g., {"quantile": 0.25}).
         Options: [median, mean, min, max, sum, quantile, std, var, count]
-    method_arg: numeric
-        Optional argument for `method`. Only required for "quantile" function.
 
     Returns
     -------
@@ -288,8 +332,32 @@ def time_average(spsdl, window=60, method="median", method_arg=None):
 
     # Use xarray binning methods
     spsdl_group = spsdl.groupby_bins("time", time_bins, labels=center_time)
-    func = getattr(spsdl_group, method.lower())
-    out = func(method_arg)
+
+    # Validate the quantile argument
+    if method == "quantile" or (
+        isinstance(method, dict) and list(method.keys())[0] == "quantile"
+    ):
+        method_arg = method if isinstance(method, str) else list(method.values())[0]
+        if not isinstance(method_arg, (float, int)) or not 0 <= method_arg <= 1:
+            raise ValueError(
+                "The 'quantile' method must be a dictionary with a float between\
+                      0 and 1 as an argument."
+            )
+
+    # Handle method being a string or a dict
+    if isinstance(method, str):
+        func = getattr(spsdl_group, method.lower())
+        out = func()
+    elif isinstance(method, dict):
+        method_name, method_arg = list(method.items())[0]
+        func = getattr(spsdl_group, method_name.lower())
+        out = func(method_arg)
+    else:
+        raise ValueError(
+            f"Unsupported method type: {type(method)}. \
+                         Must be a string or dictionary."
+        )
+
     out.attrs["units"] = spsdl.units
     out.attrs["comment"] = f"Time average {method}"
 
@@ -300,7 +368,9 @@ def time_average(spsdl, window=60, method="median", method_arg=None):
     return out
 
 
-def sound_pressure_level(spsd, fmin=10, fmax=100000):
+def sound_pressure_level(
+    spsd: xr.DataArray, fmin: int = 10, fmax: int = 100000
+) -> xr.DataArray:
     """
     Calculates the sound pressure level in a specified frequency band
     from the mean square sound pressure spectral density.
@@ -349,7 +419,13 @@ def sound_pressure_level(spsd, fmin=10, fmax=100000):
     return out
 
 
-def _band_sound_pressure_level(spsd, bandwidth, half_bandwidth, fmin, fmax):
+def _band_sound_pressure_level(
+    spsd: xr.DataArray,
+    bandwidth: int,
+    half_bandwidth: int,
+    fmin: int = 10,
+    fmax: int = 100000,
+) -> xr.DataArray:
     """
     Calculates band-averaged sound pressure levels
 
@@ -408,7 +484,9 @@ def _band_sound_pressure_level(spsd, bandwidth, half_bandwidth, fmin, fmax):
     return mspl
 
 
-def third_octave_sound_pressure_level(spsd, fmin=10, fmax=100000):
+def third_octave_sound_pressure_level(
+    spsd: xr.DataArray, fmin: int = 10, fmax: int = 100000
+) -> xr.DataArray:
     """
     Calculates the sound pressure level in third octave bands directly
     from the mean square sound pressure spectral density.
@@ -441,7 +519,9 @@ def third_octave_sound_pressure_level(spsd, fmin=10, fmax=100000):
     return mspl
 
 
-def decidecade_sound_pressure_level(spsd, fmin=10, fmax=100000):
+def decidecade_sound_pressure_level(
+    spsd: xr.DataArray, fmin: int = 10, fmax: int = 100000
+) -> xr.DataArray:
     """
     Calculates the sound pressure level in decidecade bands directly
     from the mean square sound pressure spectral density.
