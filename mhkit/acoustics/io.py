@@ -151,7 +151,7 @@ def read_hydrophone(
             attrs={
                 "units": "V",
                 "resolution": np.round(min_res, 6),
-                "valid_min": -max_sat,
+                "valid_min": -1 * max_sat,
                 "valid_max": max_sat,
                 "fs": fs,
                 "filename": Path(filename).stem,
