@@ -168,9 +168,7 @@ def sound_pressure_spectral_density_level(spsd):
     return out
 
 
-def band_average(
-    spsdl, octave=3, fmin=10, fmax=100000, method="median", method_arg=None
-):
+def band_average(spsdl, octave=3, fmin=10, fmax=100000, method="median"):
     """
     Reorganizes spectral density level frequency tensor into
     fractional octave bands and applies a function to them.
@@ -185,11 +183,10 @@ def band_average(
         Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
     fmax: int
         Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
-    method: str
-        xarray.DataArray method to run on the binned data. Default: "median".
+    method: str or dict
+        Method to run on the binned data. Can be a string (e.g., "median") or a dict
+        where the key is the method and the value is its argument (e.g., {"quantile": 0.25}).
         Options: [median, mean, min, max, sum, quantile, std, var, count]
-    method_arg: numeric
-        Optional argument for `method`. Only required for "quantile" function.
 
     Returns
     -------
@@ -205,20 +202,46 @@ def band_average(
     bandwidth = 2 ** (1 / octave)
     half_bandwidth = 2 ** (1 / (octave * 2))
 
-    center_freq = 10 ** np.arange(
+    frequencies = {}
+    frequencies["center_freq"] = 10 ** np.arange(
         np.log10(fmin),
         np.log10(fmax * bandwidth),
         step=np.log10(bandwidth),
     )
-    freq_limits = {}
-    freq_limits["lower_limit"] = center_freq / half_bandwidth
-    freq_limits["upper_limit"] = center_freq * half_bandwidth
-    octave_bins = np.append(freq_limits["lower_limit"], freq_limits["upper_limit"][-1])
+    frequencies["lower_limit"] = frequencies["center_freq"] / half_bandwidth
+    frequencies["upper_limit"] = frequencies["center_freq"] * half_bandwidth
+    octave_bins = np.append(frequencies["lower_limit"], frequencies["upper_limit"][-1])
 
     # Use xarray binning methods
-    spsdl_group = spsdl.groupby_bins("freq", octave_bins, labels=center_freq)
-    func = getattr(spsdl_group, method.lower())
-    out = func(method_arg)
+    spsdl_group = spsdl.groupby_bins(
+        "freq", octave_bins, labels=frequencies["center_freq"]
+    )
+
+    # Validate the quantile argument
+    if method == "quantile" or (
+        isinstance(method, dict) and list(method.keys())[0] == "quantile"
+    ):
+        method_arg = method if isinstance(method, str) else list(method.values())[0]
+        if not isinstance(method_arg, (float, int)) or not 0 <= method_arg <= 1:
+            raise ValueError(
+                "The 'quantile' method must be a dictionary with a float \
+                  between 0 and 1 as an argument."
+            )
+
+    # Handle method being a string or a dict
+    if isinstance(method, str):
+        func = getattr(spsdl_group, method.lower())
+        out = func()
+    elif isinstance(method, dict):
+        method_name, method_arg = list(method.items())[0]
+        func = getattr(spsdl_group, method_name.lower())
+        out = func(method_arg)
+    else:
+        raise ValueError(
+            f"Unsupported method type: {type(method)}. \
+                         Must be a string or dictionary."
+        )
+
     out.attrs.update(
         {"units": spsdl.units, "comment": f"Third octave frequency band {method}"}
     )
@@ -356,21 +379,22 @@ def _band_sound_pressure_level(spsd, bandwidth, half_bandwidth, fmin, fmax):
     # Reference value of sound pressure
     reference = 1e-12  # Pa^2, = 1 uPa^2
 
-    center_freq = 10 ** np.arange(
+    frequencies = {}
+    frequencies["center_freq"] = 10 ** np.arange(
         np.log10(fmin),
         np.log10(fmax * bandwidth),
         step=np.log10(bandwidth),
     )
-    lower_limit = center_freq / half_bandwidth
-    upper_limit = center_freq * half_bandwidth
-    octave_bins = np.append(lower_limit, upper_limit[-1])
+    frequencies["lower_limit"] = frequencies["center_freq"] / half_bandwidth
+    frequencies["upper_limit"] = frequencies["center_freq"] * half_bandwidth
+    octave_bins = np.append(frequencies["lower_limit"], frequencies["upper_limit"][-1])
 
     # Manual trapezoidal rule to get Pa^2
     pressure_squared = xr.DataArray(
-        coords={"time": spsd["time"], "freq_bins": center_freq},
+        coords={"time": spsd["time"], "freq_bins": frequencies["center_freq"]},
         dims=["time", "freq_bins"],
     )
-    for i, key in enumerate(center_freq):
+    for i, key in enumerate(frequencies["center_freq"]):
         band_min = octave_bins[i]
         band_max = octave_bins[i + 1]
         pressure_squared.loc[{"freq_bins": key}] = np.trapz(
