@@ -210,16 +210,18 @@ def band_average(
         np.log10(fmax * bandwidth),
         step=np.log10(bandwidth),
     )
-    lower_limit = center_freq / half_bandwidth
-    upper_limit = center_freq * half_bandwidth
-    octave_bins = np.append(lower_limit, upper_limit[-1])
+    freq_limits = {}
+    freq_limits["lower_limit"] = center_freq / half_bandwidth
+    freq_limits["upper_limit"] = center_freq * half_bandwidth
+    octave_bins = np.append(freq_limits["lower_limit"], freq_limits["upper_limit"][-1])
 
     # Use xarray binning methods
     spsdl_group = spsdl.groupby_bins("freq", octave_bins, labels=center_freq)
     func = getattr(spsdl_group, method.lower())
     out = func(method_arg)
-    out.attrs["units"] = spsdl.units
-    out.attrs["comment"] = f"Third octave frequency band {method}"
+    out.attrs.update(
+        {"units": spsdl.units, "comment": f"Third octave frequency band {method}"}
+    )
 
     return out
 
