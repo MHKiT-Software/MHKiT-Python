@@ -62,10 +62,10 @@ class TestAnalysis(unittest.TestCase):
         window = 30
         td_spsdl_50 = acoustics.time_average(td_spsdl_mean, window, method="median")
         td_spsdl_25 = acoustics.time_average(
-            td_spsdl_mean, window, method="quantile", method_arg=0.25
+            td_spsdl_mean, window, method={"quantile": 0.25}
         )
         td_spsdl_75 = acoustics.time_average(
-            td_spsdl_mean, window, method="quantile", method_arg=0.75
+            td_spsdl_mean, window, method={"quantile": 0.75}
         )
 
         cc = np.array(
