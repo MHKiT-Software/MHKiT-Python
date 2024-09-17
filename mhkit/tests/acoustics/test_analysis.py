@@ -161,3 +161,7 @@ class TestAnalysis(unittest.TestCase):
         np.testing.assert_allclose(td_spl10.head().values, cd_spl10, atol=1e-6)
         np.testing.assert_allclose(td_spl3.head().values, cd_spl3, atol=1e-6)
         np.testing.assert_equal(td_spl["time"].head().values, cc)
+
+
+if __name__ == "__main__":
+    unittest.main()
