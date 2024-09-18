@@ -4,7 +4,7 @@ are designed to function on top of one another, starting from reading
 in wav files from the io submodule.
 """
 
-from typing import Union, Dict
+from typing import Union, Dict, Tuple, Optional
 import warnings
 import numpy as np
 import xarray as xr
@@ -252,6 +252,61 @@ def sound_pressure_spectral_density_level(spsd: xr.DataArray) -> xr.DataArray:
     return out
 
 
+def _validate_method(
+    method: Union[str, Dict[str, Union[float, int]]]
+) -> Tuple[str, Optional[Union[float, int]]]:
+    """
+    Validates the 'method' parameter and returns the method name and argument (if any).
+    """
+    allowed_methods = [
+        "median",
+        "mean",
+        "min",
+        "max",
+        "sum",
+        "quantile",
+        "std",
+        "var",
+        "count",
+    ]
+
+    if isinstance(method, str):
+        method_name = method.lower()
+        if method_name not in allowed_methods:
+            raise ValueError(
+                f"Method '{method}' is not supported. Supported methods are: {allowed_methods}"
+            )
+        if method_name == "quantile":
+            raise ValueError(
+                "The 'quantile' method must be provided as a dictionary with "
+                "the quantile value, e.g., {'quantile': 0.25}."
+            )
+        method_arg = None
+    elif isinstance(method, dict):
+        if len(method) != 1:
+            raise ValueError(
+                "'method' dictionary must contain exactly one key-value pair."
+            )
+        method_name, method_arg = list(method.items())[0]
+        if not isinstance(method_name, str):
+            raise TypeError("Key in 'method' dictionary must be a string.")
+        method_name = method_name.lower()
+        if method_name not in allowed_methods:
+            raise ValueError(
+                f"Method '{method_name}' is not supported. Supported methods are: {allowed_methods}"
+            )
+        if method_name == "quantile":
+            if not isinstance(method_arg, (float, int)) or not 0 <= method_arg <= 1:
+                raise ValueError(
+                    "The 'quantile' method must have a float between 0 and 1 as an argument."
+                )
+    else:
+        raise ValueError(
+            f"Unsupported method type: {type(method)}. Must be a string or dictionary."
+        )
+    return method_name, method_arg
+
+
 def band_average(
     spsdl: xr.DataArray,
     octave: int = 3,
@@ -305,50 +360,8 @@ def band_average(
     if fmax <= fmin:
         raise ValueError("'fmax' must be greater than 'fmin'.")
 
-    # Check method validity
-    allowed_methods = [
-        "median",
-        "mean",
-        "min",
-        "max",
-        "sum",
-        "quantile",
-        "std",
-        "var",
-        "count",
-    ]
-
-    if isinstance(method, str):
-        if method.lower() not in allowed_methods:
-            raise ValueError(
-                f"Method '{method}' is not supported. Supported methods are: {allowed_methods}"
-            )
-        if method.lower() == "quantile":
-            raise ValueError(
-                "The 'quantile' method must be provided as a dictionary with \
-                 the quantile value, e.g., {'quantile': 0.25}."
-            )
-    elif isinstance(method, dict):
-        if len(method) != 1:
-            raise ValueError(
-                "'method' dictionary must contain exactly one key-value pair."
-            )
-        method_name, method_arg = list(method.items())[0]
-        if not isinstance(method_name, str):
-            raise TypeError("Key in 'method' dictionary must be a string.")
-        if method_name.lower() not in allowed_methods:
-            raise ValueError(
-                f"Method '{method_name}' is not supported. Supported methods are: {allowed_methods}"
-            )
-        if method_name.lower() == "quantile":
-            if not isinstance(method_arg, (float, int)) or not 0 <= method_arg <= 1:
-                raise ValueError(
-                    "The 'quantile' method must have a float between 0 and 1 as an argument."
-                )
-    else:
-        raise ValueError(
-            f"Unsupported method type: {type(method)}. Must be a string or dictionary."
-        )
+    # Validate method and get method_name and method_arg
+    method_name, method_arg = _validate_method(method)
 
     # Check fmax
     fn = spsdl["freq"].max().values
@@ -441,6 +454,9 @@ def time_average(
     if not np.issubdtype(spsdl["time"].dtype, np.datetime64):
         raise TypeError("'spsdl['time']' must be of dtype 'datetime64'.")
 
+    # Validate method and get method_name and method_arg
+    method_name, method_arg = _validate_method(method)
+
     window = np.timedelta64(window, "s")
     time_bins_lower = np.arange(
         spsdl["time"][0].values, spsdl["time"][-1].values, window
@@ -454,59 +470,18 @@ def time_average(
     # Use xarray binning methods
     spsdl_group = spsdl.groupby_bins("time", time_bins, labels=center_time)
 
-    # Validate the method argument
-    allowed_methods = [
-        "median",
-        "mean",
-        "min",
-        "max",
-        "sum",
-        "quantile",
-        "std",
-        "var",
-        "count",
-    ]
-
-    if isinstance(method, str):
-        method = method.lower()
-        if method not in allowed_methods:
-            raise ValueError(
-                f"Method '{method}' is not supported. Supported methods are: {allowed_methods}"
-            )
-        if method == "quantile":
-            raise ValueError(
-                "The 'quantile' method must be provided as a dictionary \
-                with the quantile value, e.g., {'quantile': 0.25}."
-            )
-        func = getattr(spsdl_group, method)
-        out = func()
-    elif isinstance(method, dict):
-        if len(method) != 1:
-            raise ValueError(
-                "'method' dictionary must contain exactly one key-value pair."
-            )
-        method_name, method_arg = list(method.items())[0]
-        method_name = method_name.lower()
-        if method_name not in allowed_methods:
-            raise ValueError(
-                f"Method '{method_name}' is not supported. Supported methods are: {allowed_methods}"
-            )
-        if method_name == "quantile":
-            if not isinstance(method_arg, (float, int)) or not 0 <= method_arg <= 1:
-                raise ValueError(
-                    "The 'quantile' method must have a float between 0 and 1 as an argument."
-                )
-        func = getattr(spsdl_group, method_name)
+    # Apply the aggregation method
+    func = getattr(spsdl_group, method_name)
+    if method_arg is not None:
         out = func(method_arg)
     else:
-        raise ValueError(
-            f"Unsupported method type: {type(method)}. Must be a string or dictionary."
-        )
+        out = func()
 
+    # Update attributes
     out.attrs["units"] = spsdl.units
     out.attrs["comment"] = f"Time average {method}"
 
-    # This coordinate hangs on for some reason
+    # Remove 'quantile' coordinate if present
     if method == "quantile":
         out = out.drop_vars("quantile")
 
