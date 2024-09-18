@@ -20,7 +20,7 @@ def __check_for_range_offset(ds):
         return ds.attrs["range_offset"]
     elif "h_deploy" in ds.attrs:
         warnings.warn(
-            "The attribute 'h_deploy' will be dropped in a future release."
+            "The attribute 'h_deploy' is no longer in use."
             "It will now be renamed to 'range_offset'.",
             DeprecationWarning,
         )
@@ -68,9 +68,10 @@ def set_range_offset(ds, range_offset):
     if current_offset:
         warnings.warn(
             "The 'range_offset' is either already known or can be calculated "
-            f"from 'bin1_dist_m': {current_offset} m. If you would like to override "
-            f"this value with {range_offset} m, ignore this warning. "
-            "If this behavior is not desired, do not use this function."
+            f"from 'bin1_dist_m': {current_offset} m. If you would like to "
+            f"override this value with {range_offset} m, ignore this warning. "
+            "If you do not want to override this value, you do not need to use "
+            "this function."
         )
         # Remove offset from depth variable if exists
         if "depth" in ds.data_vars:
@@ -93,7 +94,7 @@ def set_range_offset(ds, range_offset):
 
 def find_surface(*args, **kwargs):
     warnings.warn(
-        "The 'find_surface_from_P' function was renamed to 'find_surface_from_pressure"
+        "The 'find_surface' function was renamed to 'water_depth_from_amplitude"
         "and will be dropped in a future release.",
         DeprecationWarning,
     )
@@ -181,7 +182,7 @@ def water_depth_from_amplitude(ds, thresh=10, nfilt=None):
 
 def find_surface_from_P(*args, **kwargs):
     warnings.warn(
-        "The 'find_surface_from_P' function was renamed to 'find_surface_from_pressure"
+        "The 'find_surface_from_P' function was renamed to 'water_depth_from_pressure"
         "and will be dropped in a future release.",
         DeprecationWarning,
     )
