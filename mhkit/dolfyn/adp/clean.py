@@ -11,6 +11,9 @@ from ..rotate.base import quaternion2orient
 
 
 def __check_for_range_offset(ds):
+    """
+    Fetches or calculates range offset from dataset attributes.
+    """
     if "bin1_dist_m" in ds.attrs:
         return ds.attrs["bin1_dist_m"] - ds.attrs["blank_dist"] - ds.attrs["cell_size"]
     elif "range_offset" in ds.attrs:
@@ -84,7 +87,7 @@ def set_range_offset(ds, range_offset):
     if "depth" in ds.data_vars:
         ds["depth"].values += range_offset
 
-    # Add back to dataset
+    # Add to dataset
     ds.attrs["range_offset"] = range_offset
 
 
@@ -112,14 +115,15 @@ def water_depth_from_amplitude(ds, thresh=10, nfilt=None):
     thresh : int
       Specifies the threshold used in detecting the surface. Default = 10
       (The amount that amplitude must increase by near the surface for it to
-      be considered a surface hit)
+      be considered a surface hit.)
     nfilt : int
       Specifies the width of the median filter applied, must be odd.
       Default is None
 
     Returns
     -------
-    None, operates "in place"
+    None, operates "in place" and adds the variable "depth" to the
+    input dataset
     """
 
     if "depth" in ds.data_vars:
@@ -178,8 +182,7 @@ def water_depth_from_amplitude(ds, thresh=10, nfilt=None):
 def find_surface_from_P(*args, **kwargs):
     warnings.warn(
         "The 'find_surface_from_P' function was renamed to 'find_surface_from_pressure"
-        "and will be dropped in a future release. This function now returns a single"
-        "DataArray, 'depth'",
+        "and will be dropped in a future release.",
         DeprecationWarning,
     )
     return water_depth_from_pressure(*args, **kwargs)
