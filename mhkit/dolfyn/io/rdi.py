@@ -115,12 +115,6 @@ def read_rdi(
         # Check magnetic declination if provided via software and/or userdata
         _set_rdi_declination(ds, filename, inplace=True)
 
-        # VMDAS applies gps correction on velocity in .ENX files only
-        if filename.rsplit(".")[-1] == "ENX":
-            ds.attrs["vel_gps_corrected"] = 1
-        else:  # (not ENR or ENS) or WinRiver files
-            ds.attrs["vel_gps_corrected"] = 0
-
         dss += [ds]
 
     if len(dss) == 2:

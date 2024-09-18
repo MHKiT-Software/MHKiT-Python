@@ -307,7 +307,7 @@ class Velocity:
         - earth:     east
         - principal: streamwise
         """
-        return self.ds["vel"][0].drop("dir")
+        return self.ds["vel"][0].drop_vars("dir")
 
     @property
     def v(
@@ -325,7 +325,7 @@ class Velocity:
         - earth:     north
         - principal: cross-stream
         """
-        return self.ds["vel"][1].drop("dir")
+        return self.ds["vel"][1].drop_vars("dir")
 
     @property
     def w(
@@ -343,7 +343,7 @@ class Velocity:
         - earth:     up
         - principal: up
         """
-        return self.ds["vel"][2].drop("dir")
+        return self.ds["vel"][2].drop_vars("dir")
 
     @property
     def U(
@@ -483,7 +483,7 @@ class Velocity:
     ):
         """u'v'bar Reynolds stress"""
 
-        return self.ds["stress_vec"].sel(tau="upvp_").drop("tau")
+        return self.ds["stress_vec"].sel(tau="upvp_").drop_vars("tau")
 
     @property
     def upwp_(
@@ -491,7 +491,7 @@ class Velocity:
     ):
         """u'w'bar Reynolds stress"""
 
-        return self.ds["stress_vec"].sel(tau="upwp_").drop("tau")
+        return self.ds["stress_vec"].sel(tau="upwp_").drop_vars("tau")
 
     @property
     def vpwp_(
@@ -499,7 +499,7 @@ class Velocity:
     ):
         """v'w'bar Reynolds stress"""
 
-        return self.ds["stress_vec"].sel(tau="vpwp_").drop("tau")
+        return self.ds["stress_vec"].sel(tau="vpwp_").drop_vars("tau")
 
     @property
     def upup_(
@@ -507,7 +507,7 @@ class Velocity:
     ):
         """u'u'bar component of the tke"""
 
-        return self.ds["tke_vec"].sel(tke="upup_").drop("tke")
+        return self.ds["tke_vec"].sel(tke="upup_").drop_vars("tke")
 
     @property
     def vpvp_(
@@ -515,7 +515,7 @@ class Velocity:
     ):
         """v'v'bar component of the tke"""
 
-        return self.ds["tke_vec"].sel(tke="vpvp_").drop("tke")
+        return self.ds["tke_vec"].sel(tke="vpvp_").drop_vars("tke")
 
     @property
     def wpwp_(
@@ -523,7 +523,7 @@ class Velocity:
     ):
         """w'w'bar component of the tke"""
 
-        return self.ds["tke_vec"].sel(tke="wpwp_").drop("tke")
+        return self.ds["tke_vec"].sel(tke="wpwp_").drop_vars("tke")
 
 
 class VelBinner(TimeBinner):
