@@ -89,6 +89,38 @@ class TestIO(unittest.TestCase):
             processed_pressure["max_sat"], expected_max_sat, places=12
         )
 
+    def test_read_iclisten_metadata(self):
+        from mhkit.acoustics.io import _read_iclisten_metadata
+
+        file_name = join(datadir, "RBW_6661_20240601_053114.wav")
+
+        with open(file_name, "rb") as f:
+            metadata = _read_iclisten_metadata(f)
+
+        expected_metadata = {
+            "iart": "icListen HF #6661",
+            "iprd": "RB9-ETH R8",
+            "icrd": "2024-06-01T05:31:14+00",
+            "isft": "icListen HF R40.0",
+            "inam": "RBW6661_20240601_053114",
+            "peak_voltage": 3.0,
+            "stored_sensitivity": -177,
+            "humidity": "24.0 % RH",
+            "temperature": "8.6 deg C",
+            "accelerometer": "Acc(-980,-18,141)",
+            "magnetometer": "Mag(3603,3223,-598)",
+            "count_at_peak_voltage": "8388608 = Max Count",
+            "sequence_num": "2589798400000 = Seq #",
+        }
+
+        # Assertions to check if metadata matches expected values
+        for key, expected_value in expected_metadata.items():
+            self.assertIn(key, metadata)
+            if isinstance(expected_value, float):
+                self.assertAlmostEqual(metadata[key], expected_value, places=6)
+            else:
+                self.assertEqual(metadata[key], expected_value)
+
     def test_read_iclisten(self):
         file_name = join(datadir, "RBW_6661_20240601_053114.wav")
         td_orig = acoustics.io.read_iclisten(file_name)
