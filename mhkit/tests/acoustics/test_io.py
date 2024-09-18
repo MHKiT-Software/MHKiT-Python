@@ -24,6 +24,71 @@ class TestIO(unittest.TestCase):
     def tearDownClass(self):
         pass
 
+    def test_read_wav_metadata(self):
+        # Test read_wav_metadata function
+        file_name = join(datadir, "RBW_6661_20240601_053114.wav")
+        with open(file_name, "rb") as f:
+            bits_per_sample = acoustics.io._read_wav_metadata(f)
+        expected_bits_per_sample = 24
+        self.assertEqual(bits_per_sample, expected_bits_per_sample)
+
+    def test_calculate_voltage_and_time(self):
+        # Test calculate_voltage_and_time function
+        fs = 1
+        raw = np.array([0, 32767, -32768, 16384, -16384], dtype=np.int16)
+        bits_per_sample = 16
+        peak_voltage = 2.5
+        start_time = "2024-06-06T00:00:00"
+
+        raw_voltage, time, max_count = acoustics.io._calculate_voltage_and_time(
+            fs, raw, bits_per_sample, peak_voltage, start_time
+        )
+
+        # Expected max_count
+        expected_max_count = 2 ** (bits_per_sample - 1)
+        self.assertEqual(max_count, expected_max_count)
+
+        # Expected raw_voltage
+        expected_raw_voltage = raw.astype(float) / expected_max_count * peak_voltage
+        np.testing.assert_allclose(raw_voltage, expected_raw_voltage, atol=1e-6)
+
+        # Expected time array
+        time_interval = pd.Timedelta(seconds=1 / fs)
+        expected_time = pd.date_range(
+            start=start_time, periods=len(raw) + 1, freq=time_interval
+        )
+        pd.testing.assert_index_equal(time, expected_time)
+
+    def test_process_pressure(self):
+        raw_voltage = np.array([0.0, 1.25, -1.25, 0.625, -0.625])
+        peak_voltage = 2.5
+        max_count = 32768  # 16 bits
+        sensitivity = -160
+        gain = 0
+
+        processed_pressure = acoustics.io._process_pressure(
+            raw_voltage, peak_voltage, max_count, sensitivity, gain
+        )
+
+        # Calculate expected values
+        adjusted_sensitivity = sensitivity - gain
+        sensitivity_linear = 10 ** (adjusted_sensitivity / 20)  # V/μPa
+
+        expected_pressure = raw_voltage / sensitivity_linear / 1e6  # Convert to Pa
+        np.testing.assert_allclose(
+            processed_pressure["pressure"], expected_pressure, atol=1e-12
+        )
+
+        expected_min_res = peak_voltage / max_count / sensitivity_linear  # uPa
+        self.assertAlmostEqual(
+            processed_pressure["min_res"], expected_min_res, places=12
+        )
+
+        expected_max_sat = peak_voltage / sensitivity_linear  # uPa
+        self.assertAlmostEqual(
+            processed_pressure["max_sat"], expected_max_sat, places=12
+        )
+
     def test_read_iclisten(self):
         file_name = join(datadir, "RBW_6661_20240601_053114.wav")
         td_orig = acoustics.io.read_iclisten(file_name)
