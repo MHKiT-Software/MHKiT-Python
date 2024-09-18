@@ -13,13 +13,15 @@ from mhkit.dolfyn import VelBinner
 from mhkit.dolfyn.time import epoch2dt64, dt642epoch
 
 
-def _fmax_warning(fn: float, fmax: float) -> float:
+def _fmax_warning(
+    fn: Union[int, float, np.ndarray], fmax: Union[int, float]
+) -> Union[float, np.ndarray]:
     """
     Checks that the maximum frequency limit isn't greater than the Nyquist frequency.
 
     Parameters
     ----------
-    fn: float
+    fn: int, float, or numpy.ndarray
         The Nyquist frequency in Hz.
     fmax: float
         The maximum frequency limit in Hz.
@@ -29,6 +31,11 @@ def _fmax_warning(fn: float, fmax: float) -> float:
     fmax: float
         The adjusted maximum frequency limit, ensuring it does not exceed the Nyquist frequency.
     """
+
+    if not isinstance(fn, (int, float, np.ndarray)):
+        raise TypeError("'fn' must be a numeric type (int or float).")
+    if not isinstance(fmax, (int, float)):
+        raise TypeError("'fmax' must be a numeric type (int or float).")
 
     if fmax > fn:
         warnings.warn(
@@ -41,7 +48,9 @@ def _fmax_warning(fn: float, fmax: float) -> float:
 
 
 def minimum_frequency(
-    water_depth: float, c: float = 1500, c_seabed: float = 1700
+    water_depth: Union[int, float],
+    c: Union[int, float] = 1500,
+    c_seabed: Union[int, float] = 1700,
 ) -> float:
     """
     Estimate the shallow water cutoff frequency based on the speed of
@@ -66,6 +75,21 @@ def minimum_frequency(
     ---------
     Jennings 2011 - Computational Ocean Acoustics, 2nd ed.
     """
+    if not isinstance(water_depth, (int, float)):
+        raise TypeError("'water_depth' must be a numeric type (int or float).")
+    if not isinstance(c, (int, float)):
+        raise TypeError("'c' must be a numeric type (int or float).")
+    if not isinstance(c_seabed, (int, float)):
+        raise TypeError("'c_seabed' must be a numeric type (int or float).")
+
+    if water_depth <= 0:
+        raise ValueError("'water_depth' must be a positive number.")
+    if c <= 0:
+        raise ValueError("'c' must be a positive number.")
+    if c_seabed <= 0:
+        raise ValueError("'c_seabed' must be a positive number.")
+    if c_seabed <= c:
+        raise ValueError("'c_seabed' must be greater than 'c'.")
 
     f_min = c / (4 * water_depth * np.sqrt(1 - (c / c_seabed) ** 2))
 
@@ -95,6 +119,16 @@ def sound_pressure_spectral_density(
     spsd: xarray.DataArray (time, freq)
         Spectral density [Pa^2/Hz] indexed by time and frequency
     """
+    if not isinstance(pressure, xr.DataArray):
+        raise TypeError("'pressure' must be an xarray.DataArray.")
+    if not isinstance(fs, int):
+        raise TypeError("'fs' must be an integer.")
+    if not isinstance(window, (int, float)):
+        raise TypeError("'window' must be a numeric type (int or float).")
+
+    # Ensure that 'pressure' has a 'time' coordinate
+    if "time" not in pressure.dims:
+        raise ValueError("'pressure' must be indexed by 'time' dimension.")
 
     # window length of each time series
     win = window * fs
@@ -140,7 +174,7 @@ def apply_calibration(
         Mean square sound pressure spectral density in V^2/Hz.
     sensitivity_curve: xarray.DataArray (freq)
         Calibrated sensitivity curve in units of dB rel 1 V^2/uPa^2.
-    fill_value: Union[float, int]
+    fill_value: float or int
         Value with which to fill missing values from the calibration curve,
         in units of dB rel 1 V^2/uPa^2.
 
@@ -149,6 +183,21 @@ def apply_calibration(
     spsd: xarray.DataArray (time, freq)
         Spectral density in Pa^2/Hz, indexed by time and frequency.
     """
+
+    if not isinstance(spsd, xr.DataArray):
+        raise TypeError("'spsd' must be an xarray.DataArray.")
+    if not isinstance(sensitivity_curve, xr.DataArray):
+        raise TypeError("'sensitivity_curve' must be an xarray.DataArray.")
+    if not isinstance(fill_value, (int, float)):
+        raise TypeError("'fill_value' must be a numeric type (int or float).")
+
+    # Ensure 'freq' dimension exists in both spsd and sensitivity_curve
+    if "freq" not in spsd.dims:
+        raise ValueError("'spsd' must have 'freq' as one of its dimensions.")
+    if "freq" not in sensitivity_curve.dims:
+        raise ValueError(
+            "'sensitivity_curve' must have 'freq' as one of its dimensions."
+        )
 
     # Read calibration curve
     freq = sensitivity_curve.dims[0]
@@ -235,6 +284,71 @@ def band_average(
         Frequency band-averaged sound pressure spectral density level [dB re 1 uPa^2/Hz]
         indexed by time and frequency
     """
+    if not isinstance(spsdl, xr.DataArray):
+        raise TypeError("'spsdl' must be an xarray.DataArray.")
+    if not isinstance(octave, int):
+        raise TypeError("'octave' must be an integer.")
+    if not isinstance(fmin, int):
+        raise TypeError("'fmin' must be an integer.")
+    if not isinstance(fmax, int):
+        raise TypeError("'fmax' must be an integer.")
+    if not isinstance(method, (str, dict)):
+        raise TypeError("'method' must be a string or a dictionary.")
+
+    # Value checks
+    if "freq" not in spsdl.dims or "time" not in spsdl.dims:
+        raise ValueError("'spsdl' must have 'time' and 'freq' as dimensions.")
+    if octave <= 0:
+        raise ValueError("'octave' must be a positive integer.")
+    if fmin <= 0:
+        raise ValueError("'fmin' must be a positive integer.")
+    if fmax <= fmin:
+        raise ValueError("'fmax' must be greater than 'fmin'.")
+
+    # Check method validity
+    allowed_methods = [
+        "median",
+        "mean",
+        "min",
+        "max",
+        "sum",
+        "quantile",
+        "std",
+        "var",
+        "count",
+    ]
+
+    if isinstance(method, str):
+        if method.lower() not in allowed_methods:
+            raise ValueError(
+                f"Method '{method}' is not supported. Supported methods are: {allowed_methods}"
+            )
+        if method.lower() == "quantile":
+            raise ValueError(
+                "The 'quantile' method must be provided as a dictionary with \
+                 the quantile value, e.g., {'quantile': 0.25}."
+            )
+    elif isinstance(method, dict):
+        if len(method) != 1:
+            raise ValueError(
+                "'method' dictionary must contain exactly one key-value pair."
+            )
+        method_name, method_arg = list(method.items())[0]
+        if not isinstance(method_name, str):
+            raise TypeError("Key in 'method' dictionary must be a string.")
+        if method_name.lower() not in allowed_methods:
+            raise ValueError(
+                f"Method '{method_name}' is not supported. Supported methods are: {allowed_methods}"
+            )
+        if method_name.lower() == "quantile":
+            if not isinstance(method_arg, (float, int)) or not 0 <= method_arg <= 1:
+                raise ValueError(
+                    "The 'quantile' method must have a float between 0 and 1 as an argument."
+                )
+    else:
+        raise ValueError(
+            f"Unsupported method type: {type(method)}. Must be a string or dictionary."
+        )
 
     # Check fmax
     fn = spsdl["freq"].max().values
@@ -257,17 +371,6 @@ def band_average(
     spsdl_group = spsdl.groupby_bins(
         "freq", octave_bins, labels=frequencies["center_freq"]
     )
-
-    # Validate the quantile argument
-    if method == "quantile" or (
-        isinstance(method, dict) and list(method.keys())[0] == "quantile"
-    ):
-        method_arg = method if isinstance(method, str) else list(method.values())[0]
-        if not isinstance(method_arg, (float, int)) or not 0 <= method_arg <= 1:
-            raise ValueError(
-                "The 'quantile' method must be a dictionary with a float \
-                  between 0 and 1 as an argument."
-            )
 
     # Handle method being a string or a dict
     if isinstance(method, str):
@@ -304,7 +407,7 @@ def time_average(
 
     Parameters
     ----------
-    spsdl: xarray.DataArray (time, freq)
+    spsdl: xarray.DataArray (time)
         Mean square sound pressure spectral density level in dB rel 1 uPa^2/Hz
     window: int
         Time in seconds to subdivide spectral density level into. Default: 60 s.
@@ -320,6 +423,24 @@ def time_average(
         indexed by time and frequency
     """
 
+    # Type checks
+    if not isinstance(spsdl, xr.DataArray):
+        raise TypeError("'spsdl' must be an xarray.DataArray.")
+    if not isinstance(window, int):
+        raise TypeError("'window' must be an integer.")
+    if not isinstance(method, (str, dict)):
+        raise TypeError("'method' must be a string or dictionary.")
+    if "time" not in spsdl.dims:
+        raise ValueError("'spsdl' must have 'time' dimension.")
+
+    # Value checks
+    if window <= 0:
+        raise ValueError("'window' must be a positive integer.")
+
+    # Ensure 'time' coordinate is of datetime64 dtype
+    if not np.issubdtype(spsdl["time"].dtype, np.datetime64):
+        raise TypeError("'spsdl['time']' must be of dtype 'datetime64'.")
+
     window = np.timedelta64(window, "s")
     time_bins_lower = np.arange(
         spsdl["time"][0].values, spsdl["time"][-1].values, window
@@ -333,29 +454,53 @@ def time_average(
     # Use xarray binning methods
     spsdl_group = spsdl.groupby_bins("time", time_bins, labels=center_time)
 
-    # Validate the quantile argument
-    if method == "quantile" or (
-        isinstance(method, dict) and list(method.keys())[0] == "quantile"
-    ):
-        method_arg = method if isinstance(method, str) else list(method.values())[0]
-        if not isinstance(method_arg, (float, int)) or not 0 <= method_arg <= 1:
-            raise ValueError(
-                "The 'quantile' method must be a dictionary with a float between\
-                      0 and 1 as an argument."
-            )
+    # Validate the method argument
+    allowed_methods = [
+        "median",
+        "mean",
+        "min",
+        "max",
+        "sum",
+        "quantile",
+        "std",
+        "var",
+        "count",
+    ]
 
-    # Handle method being a string or a dict
     if isinstance(method, str):
-        func = getattr(spsdl_group, method.lower())
+        method = method.lower()
+        if method not in allowed_methods:
+            raise ValueError(
+                f"Method '{method}' is not supported. Supported methods are: {allowed_methods}"
+            )
+        if method == "quantile":
+            raise ValueError(
+                "The 'quantile' method must be provided as a dictionary \
+                with the quantile value, e.g., {'quantile': 0.25}."
+            )
+        func = getattr(spsdl_group, method)
         out = func()
     elif isinstance(method, dict):
+        if len(method) != 1:
+            raise ValueError(
+                "'method' dictionary must contain exactly one key-value pair."
+            )
         method_name, method_arg = list(method.items())[0]
-        func = getattr(spsdl_group, method_name.lower())
+        method_name = method_name.lower()
+        if method_name not in allowed_methods:
+            raise ValueError(
+                f"Method '{method_name}' is not supported. Supported methods are: {allowed_methods}"
+            )
+        if method_name == "quantile":
+            if not isinstance(method_arg, (float, int)) or not 0 <= method_arg <= 1:
+                raise ValueError(
+                    "The 'quantile' method must have a float between 0 and 1 as an argument."
+                )
+        func = getattr(spsdl_group, method_name)
         out = func(method_arg)
     else:
         raise ValueError(
-            f"Unsupported method type: {type(method)}. \
-                         Must be a string or dictionary."
+            f"Unsupported method type: {type(method)}. Must be a string or dictionary."
         )
 
     out.attrs["units"] = spsdl.units
@@ -377,7 +522,7 @@ def sound_pressure_level(
 
     Parameters
     ----------
-    psd: xarray.DataArray (time, freq)
+    spsd: xarray.DataArray (time, freq)
         Mean square sound pressure spectral density in [Pa^2/Hz]
     fmin: int
         Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
@@ -389,6 +534,30 @@ def sound_pressure_level(
     spl: xarray.DataArray (time)
         Sound pressure level [dB re 1 uPa] indexed by time
     """
+
+    # Type checks
+    if not isinstance(spsd, xr.DataArray):
+        raise TypeError("'spsd' must be an xarray.DataArray.")
+    if not isinstance(fmin, int):
+        raise TypeError("'fmin' must be an integer.")
+    if not isinstance(fmax, int):
+        raise TypeError("'fmax' must be an integer.")
+
+    # Ensure 'freq' and 'time' dimensions are present
+    if "freq" not in spsd.dims or "time" not in spsd.dims:
+        raise ValueError("'spsd' must have 'time' and 'freq' as dimensions.")
+
+    # Check that 'fs' (sampling frequency) is available in attributes
+    if "fs" not in spsd.attrs:
+        raise ValueError(
+            "'spsd' must have 'fs' (sampling frequency) in its attributes."
+        )
+
+    # Value checks
+    if fmin <= 0:
+        raise ValueError("'fmin' must be a positive integer.")
+    if fmax <= fmin:
+        raise ValueError("'fmax' must be greater than 'fmin'.")
 
     # Check fmax
     fn = spsd.attrs["fs"] // 2
@@ -433,20 +602,48 @@ def _band_sound_pressure_level(
     ----------
     spsd: xarray.DataArray (time, freq)
         Mean square sound pressure spectral density.
-    bandwidth: int
-        Bandwidth to average over
-    half_bandwidth: int
-        Half-bandwidth, used to set upper and lower bandwidth limits
-    fmin: int
-        Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
-    fmax: int
-        Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
+    bandwidth : int or float
+        Bandwidth to average over.
+    half_bandwidth : int or float
+        Half-bandwidth, used to set upper and lower bandwidth limits.
+    fmin : int, optional
+        Lower frequency band limit (lower limit of the hydrophone). Default is 10 Hz.
+    fmax : int, optional
+        Upper frequency band limit (Nyquist frequency). Default is 100,000 Hz.
+
 
     Returns
     -------
     out: xarray.DataArray (time, freq_bins)
         Sound pressure level [dB re 1 uPa] indexed by time and frequency of specified bandwidth
     """
+    # Type checks
+    if not isinstance(spsd, xr.DataArray):
+        raise TypeError("'spsd' must be an xarray.DataArray.")
+    if not isinstance(bandwidth, (int, float)):
+        raise TypeError("'bandwidth' must be a numeric type (int or float).")
+    if not isinstance(half_bandwidth, (int, float)):
+        raise TypeError("'half_bandwidth' must be a numeric type (int or float).")
+    if not isinstance(fmin, int):
+        raise TypeError("'fmin' must be an integer.")
+    if not isinstance(fmax, int):
+        raise TypeError("'fmax' must be an integer.")
+
+    # Ensure 'freq' and 'time' dimensions are present
+    if "freq" not in spsd.dims or "time" not in spsd.dims:
+        raise ValueError("'spsd' must have 'time' and 'freq' as dimensions.")
+
+    # Check that 'fs' (sampling frequency) is available in attributes
+    if "fs" not in spsd.attrs:
+        raise ValueError(
+            "'spsd' must have 'fs' (sampling frequency) in its attributes."
+        )
+
+    # Value checks
+    if fmin <= 0:
+        raise ValueError("'fmin' must be a positive integer.")
+    if fmax <= fmin:
+        raise ValueError("'fmax' must be greater than 'fmin'.")
 
     # Check fmax
     fn = spsd.attrs["fs"] // 2
@@ -502,9 +699,32 @@ def third_octave_sound_pressure_level(
 
     Returns
     -------
-    out: xarray.DataArray (time, freq_bins)
+    mspl: xarray.DataArray (time, freq_bins)
         Sound pressure level [dB re 1 uPa] indexed by time and third octave bands
     """
+    # Type checks
+    if not isinstance(spsd, xr.DataArray):
+        raise TypeError("'spsd' must be an xarray.DataArray.")
+    if not isinstance(fmin, int):
+        raise TypeError("'fmin' must be an integer.")
+    if not isinstance(fmax, int):
+        raise TypeError("'fmax' must be an integer.")
+
+    # Ensure 'freq' and 'time' dimensions are present
+    if "freq" not in spsd.dims or "time" not in spsd.dims:
+        raise ValueError("'spsd' must have 'time' and 'freq' as dimensions.")
+
+    # Check that 'fs' (sampling frequency) is available in attributes
+    if "fs" not in spsd.attrs:
+        raise ValueError(
+            "'spsd' must have 'fs' (sampling frequency) in its attributes."
+        )
+
+    # Value checks
+    if fmin <= 0:
+        raise ValueError("'fmin' must be a positive integer.")
+    if fmax <= fmin:
+        raise ValueError("'fmax' must be greater than 'fmin'.")
 
     # Third octave bin frequencies
     bandwidth = 2 ** (1 / 3)
@@ -537,9 +757,32 @@ def decidecade_sound_pressure_level(
 
     Returns
     -------
-    out: xarray.DataArray (time, freq_bins)
+    mspl : xarray.DataArray (time, freq_bins)
         Sound pressure level [dB re 1 uPa] indexed by time and third octave bands
     """
+    # Type checks
+    if not isinstance(spsd, xr.DataArray):
+        raise TypeError("'spsd' must be an xarray.DataArray.")
+    if not isinstance(fmin, int):
+        raise TypeError("'fmin' must be an integer.")
+    if not isinstance(fmax, int):
+        raise TypeError("'fmax' must be an integer.")
+
+    # Ensure 'freq' and 'time' dimensions are present
+    if "freq" not in spsd.dims or "time" not in spsd.dims:
+        raise ValueError("'spsd' must have 'time' and 'freq' as dimensions.")
+
+    # Check that 'fs' (sampling frequency) is available in attributes
+    if "fs" not in spsd.attrs:
+        raise ValueError(
+            "'spsd' must have 'fs' (sampling frequency) in its attributes."
+        )
+
+    # Value checks
+    if fmin <= 0:
+        raise ValueError("'fmin' must be a positive integer.")
+    if fmax <= fmin:
+        raise ValueError("'fmax' must be greater than 'fmin'.")
 
     # Decidecade bin frequencies
     bandwidth = 2 ** (1 / 10)
