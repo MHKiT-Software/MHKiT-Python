@@ -5,6 +5,8 @@ functions for specific manufacturers. The `export_audio` function
 exists to improve audio if one is difficult to listen to.
 """
 
+from typing import BinaryIO, Tuple, Dict, Union, Optional, Any
+import io
 import struct
 import wave
 from pathlib import Path
@@ -14,22 +16,24 @@ import xarray as xr
 from scipy.io import wavfile
 
 
-# Helper function to read WAV file and extract metadata
-def read_wav_metadata(f):
+def _read_wav_metadata(f: BinaryIO) -> int:
     """
-    Extracts WAV file metadata, such as bit depth, and skips any metadata blocks
-    that might be present in the file.
+    Extracts the bit depth from a WAV file and skips over any metadata blocks
+    that might be present (e.g., 'LIST' chunks).
 
     Parameters
     ----------
-    f: file object
-        Opened WAV file in binary mode.
+    f : BinaryIO
+        An open WAV file in binary mode.
 
     Returns
     -------
-    bits_per_sample: int
-        The number of bits per sample in the WAV file. Typical values are 12, 16, 24, or 32.
+    bits_per_sample : int
+        The number of bits per sample in the WAV file (commonly 12, 16, 24, or 32).
     """
+    if not isinstance(f, io.BufferedIOBase):
+        raise TypeError("Expected 'f' to be a binary file object.")
+
     f.read(4)  # riff_key
     f.read(4)  # file_size "<I"
     f.read(4)  # wave_key
@@ -54,33 +58,50 @@ def read_wav_metadata(f):
     return bits_per_sample
 
 
-# Helper function to calculate normalization and time range
-def calculate_voltage_and_time(fs, raw, bits_per_sample, peak_voltage, start_time):
+def _calculate_voltage_and_time(
+    fs: int,
+    raw: np.ndarray,
+    bits_per_sample: int,
+    peak_voltage: Union[int, float],
+    start_time: str,
+) -> Tuple[np.ndarray, pd.DatetimeIndex, int]:
     """
     Normalizes the raw data from the WAV file to the appropriate voltage and
     calculates the time array based on the sampling frequency.
 
     Parameters
     ----------
-    raw: numpy.ndarray
-        The raw data extracted from the WAV file, typically int16 or int32.
-    bits_per_sample: int
-        The number of bits per sample in the WAV file (e.g., 16, 24, 32 bits).
-    peak_voltage: float
-        The peak voltage supplied to the analog to digital converter (ADC) in volts.
-    length: int
-        The duration of the recording in seconds, calculated as the number of samples
-        divided by the sample rate.
+    fs : int
+        Sampling frequency of the audio data in Hertz.
+    raw : numpy.ndarray
+        Raw audio data extracted from the WAV file.
+    bits_per_sample : int
+        Number of bits per sample in the WAV file.
+    peak_voltage : int or float
+        Peak voltage supplied to the analog-to-digital converter (ADC) in volts.
+    start_time : str, np.datetime64
+        Start time of the recording in ISO 8601 format (e.g., '2024-06-06T00:00:00').
 
     Returns
     -------
-    raw_voltage: numpy.ndarray
-        The normalized voltage values corresponding to the raw data from the WAV file.
-    time: pandas.DatetimeIndex
-        A time series index for the WAV data, based on the sample rate and start time.
-    max_count: int
-        The maximum possible count for the given bit depth, used for normalization.
+    raw_voltage : numpy.ndarray
+        Normalized voltage values corresponding to the raw audio data.
+    time : pandas.DatetimeIndex
+        Time index for the audio data based on the sample rate and start time.
+    max_count : int
+        Maximum possible count value for the given bit depth, used for normalization.
     """
+
+    if not isinstance(fs, int):
+        raise TypeError("Sampling frequency 'fs' must be an integer.")
+    if not isinstance(raw, np.ndarray):
+        raise TypeError("Raw audio data 'raw' must be a numpy.ndarray.")
+    if not isinstance(bits_per_sample, int):
+        raise TypeError("'bits_per_sample' must be an integer.")
+    if not isinstance(peak_voltage, (int, float)):
+        raise TypeError("'peak_voltage' must be numeric (int or float).")
+    if not isinstance(start_time, (str, np.datetime64)):
+        raise TypeError("'start_time' must be a string or np.datetime64.")
 
     length = raw.shape[0] // fs  # length of recording in seconds
 
@@ -107,8 +128,13 @@ def calculate_voltage_and_time(fs, raw, bits_per_sample, peak_voltage, start_tim
     return raw_voltage, time, max_count
 
 
-# Helper function to process sensitivity and pressure
-def process_pressure(raw_voltage, peak_voltage, max_count, sensitivity, gain):
+def _process_pressure(
+    raw_voltage: np.ndarray,
+    peak_voltage: Union[int, float],
+    max_count: int,
+    sensitivity: Union[int, float],
+    gain: Union[int, float],
+) -> Dict[str, Union[np.ndarray, float]]:
     """
     Converts the raw voltage data into sound pressure and calculates
     the minimum resolution and saturation levels based on the hydrophone's
@@ -118,24 +144,37 @@ def process_pressure(raw_voltage, peak_voltage, max_count, sensitivity, gain):
     ----------
     raw_voltage: numpy.ndarray
         The normalized voltage values corresponding to the raw data from the WAV file.
-    peak_voltage: float
+    peak_voltage: int or float
         The peak voltage supplied to the analog to digital converter (ADC) in volts.
     max_count: int
         The maximum possible count for the given bit depth, used for normalization.
-    sensitivity: float
+    sensitivity: int or float
         The hydrophone's sensitivity in dB re 1 V/uPa, entered as a negative value.
-    gain: float
+    gain: int or float
         Amplifier gain in dB. Default is 0.
 
     Returns
     -------
-    pressure: numpy.ndarray
-        The calculated sound pressure values in Pascals (Pa).
-    min_res: float
-        The minimum resolution in micro-Pascals (uPa) for the hydrophone.
-    max_sat: float
-        The maximum saturation level in micro-Pascals (uPa) for the hydrophone.
+    processed_pressure : dict
+        Dictionary containing:
+            - 'pressure': numpy.ndarray
+                Calculated sound pressure values in Pascals (Pa).
+            - 'min_res': float
+                Minimum resolution in micro-Pascals (μPa).
+            - 'max_sat': float
+                Maximum saturation level in micro-Pascals (μPa).
     """
+    if not isinstance(raw_voltage, np.ndarray):
+        raise TypeError("'raw_voltage' must be a numpy.ndarray.")
+    if not isinstance(peak_voltage, (int, float)):
+        raise TypeError("'peak_voltage' must be numeric (int or float).")
+    if not isinstance(max_count, int):
+        raise TypeError("'max_count' must be an integer.")
+    if not isinstance(sensitivity, (int, float)):
+        raise TypeError("'sensitivity' must be numeric (int or float).")
+    if not isinstance(gain, (int, float)):
+        raise TypeError("'gain' must be numeric (int or float).")
+
     # Subtract gain
     # hydrophone with sensitivity of -177 dB and gain of -3 dB = sensitivity of -174 dB
     if gain:
@@ -157,12 +196,12 @@ def process_pressure(raw_voltage, peak_voltage, max_count, sensitivity, gain):
 
 
 def read_hydrophone(
-    filename,
-    peak_voltage=None,
-    sensitivity=None,
-    gain=0,
-    start_time="2024-06-06T00:00:00",
-):
+    filename: Union[str, Path],
+    peak_voltage: Union[int, float],
+    sensitivity: Optional[Union[int, float]] = None,
+    gain: Union[int, float] = 0,
+    start_time: str = "2024-06-06T00:00:00",
+) -> xr.DataArray:
     """
     Read .wav file from a hydrophone. Returns voltage timeseries if sensitivity not
     provided, returns pressure timeseries if it is provided.
@@ -171,13 +210,13 @@ def read_hydrophone(
     ----------
     filename: str or pathlib.Path
         Input filename
-    peak_voltage: numeric
+    peak_voltage: int or float
         Peak voltage supplied to the analog to digital converter (ADC) in V.
         (Or 1/2 of the peak to peak voltage).
-    sensitivity: numeric
+    sensitivity: int or float
         Hydrophone calibration sensitivity in dB re 1 V/uPa.
         Should be negative. Default: None.
-    gain: numeric
+    gain: int or float
         Amplifier gain in dB re 1 V/uPa. Default 0.
     start_time: str
         Start time in the format yyyy-mm-ddTHH:MM:SS
@@ -188,12 +227,17 @@ def read_hydrophone(
         Sound pressure [Pa] or Voltage [V] indexed by time[s]
     """
 
-    if (not isinstance(filename, str)) and (not isinstance(filename.as_posix(), str)):
-        raise TypeError("Filename should be a string.")
-    if peak_voltage is None:
-        raise ValueError(
-            "Please provide the peak voltage of the hydrophone's ADC `peak_voltage`."
-        )
+    if not isinstance(filename, (str, Path)):
+        raise TypeError("Filename must be a string or a pathlib.Path object.")
+    if not isinstance(peak_voltage, (int, float)):
+        raise TypeError("'peak_voltage' must be numeric (int or float).")
+    if sensitivity is not None and not isinstance(sensitivity, (int, float)):
+        raise TypeError("'sensitivity' must be numeric (int, float) or None.")
+    if not isinstance(gain, (int, float)):
+        raise TypeError("'gain' must be numeric (int or float).")
+    if not isinstance(start_time, (str, np.datetime64)):
+        raise TypeError("'start_time' must be a string or np.datetime64")
+
     if (sensitivity is not None) and (sensitivity > 0):
         raise ValueError(
             "Hydrophone calibrated sensitivity should be entered as a negative number."
@@ -201,19 +245,19 @@ def read_hydrophone(
 
     # Read metadata from WAV file
     with open(filename, "rb") as f:
-        bits_per_sample = read_wav_metadata(f)
+        bits_per_sample = _read_wav_metadata(f)
 
     # Read data using scipy (will auto drop as int16 or int32)
     fs, raw = wavfile.read(filename)
 
     # Calculate raw voltage and time array
-    raw_voltage, time, max_count = calculate_voltage_and_time(
+    raw_voltage, time, max_count = _calculate_voltage_and_time(
         fs, raw, bits_per_sample, peak_voltage, start_time
     )
 
     # If sensitivity is provided, convert to sound pressure
     if sensitivity is not None:
-        processed_pressure = process_pressure(
+        processed_pressure = _process_pressure(
             raw_voltage, peak_voltage, max_count, sensitivity, gain
         )
 
@@ -257,7 +301,11 @@ def read_hydrophone(
     return out
 
 
-def read_soundtrap(filename, sensitivity=None, gain=0):
+def read_soundtrap(
+    filename: str,
+    sensitivity: Optional[Union[int, float]] = None,
+    gain: Union[int, float] = 0,
+) -> xr.DataArray:
     """
     Read .wav file from an Ocean Instruments SoundTrap hydrophone.
     Returns voltage timeseries if sensitivity not provided, returns pressure
@@ -265,19 +313,31 @@ def read_soundtrap(filename, sensitivity=None, gain=0):
 
     Parameters
     ----------
-    filename: string
-        Input filename
-    sensitivity: numeric
-        Hydrophone calibration sensitivity in dB re 1 V/uPa.
-        Should be negative.
-    gain: numeric
-        Amplifier gain in dB re 1 V/uPa. Default 0.
+    filename : str
+        Input filename.
+    sensitivity : int or float, optional
+        Hydrophone calibration sensitivity in dB re 1 V/μPa.
+        Should be negative. Default is None.
+    gain : int or float
+        Amplifier gain in dB re 1 V/μPa. Default is 0.
 
     Returns
     -------
-    out: numpy.array
-        Sound pressure [Pa] or Voltage [V] indexed by time[s]
+    out : xarray.DataArray
+        Sound pressure [Pa] or Voltage [V] indexed by time[s].
     """
+
+    if not isinstance(filename, str):
+        raise TypeError("'filename' must be a string.")
+    if sensitivity is not None and not isinstance(sensitivity, (int, float)):
+        raise TypeError("'sensitivity' must be a numeric type (int or float) or None.")
+    if not isinstance(gain, (int, float)):
+        raise TypeError("'gain' must be a numeric type (int or float).")
+    if sensitivity is not None and sensitivity > 0:
+        raise ValueError(
+            "Hydrophone calibrated sensitivity should be entered \
+                          as a negative number."
+        )
 
     # Get time from filename
     st = filename.split(".")[-2]
@@ -309,7 +369,102 @@ def read_soundtrap(filename, sensitivity=None, gain=0):
     return out
 
 
-def read_iclisten(filename, sensitivity=None, use_metadata=True):
+def _read_iclisten_metadata(f: io.BufferedIOBase) -> Dict[str, Any]:
+    """
+    Reads the metadata from the icListen .wav file and
+    returns the metadata in a dictionary.
+
+    Parameters
+    ----------
+    f: io.BufferedIOBase
+        Opened .wav file for reading metadata.
+
+    Returns
+    -------
+    metadata: dict
+        A dictionary containing metadata such as peak_voltage,
+        stored_sensitivity, humidity, temperature, etc.
+    """
+    if not isinstance(f, io.BufferedIOBase):
+        raise TypeError("'f' must be a binary file object opened in read mode.")
+
+    def read_string(f: io.BufferedIOBase) -> str:
+        """Reads a string from the file based on its size."""
+        if not isinstance(f, io.BufferedIOBase):
+            raise TypeError("'f' must be a binary file object opened in read mode.")
+
+        f.read(4)
+        size = struct.unpack("<I", f.read(4))[0]
+        return f.read(size).decode().rstrip("\x00")
+
+    metadata: Dict[str, Any] = {}
+
+    # Read header keys
+    riff_key = f.read(4)
+    f.read(4)  # file_size_bytes "<I"
+    wave_key = f.read(4)
+    list_key = f.read(4)
+
+    # Check if headers are as expected
+    if riff_key != b"RIFF" or wave_key != b"WAVE" or list_key != b"LIST":
+        raise ValueError("Invalid file format or missing LIST chunk in WAV file.")
+
+    # Read metadata keys
+    list_size_bytes = f.read(4)
+    if len(list_size_bytes) < 4:
+        raise ValueError("Unexpected end of file when reading list size.")
+
+    info_key = f.read(4)
+    if info_key != b"INFO":
+        raise ValueError("Expected INFO key in metadata but got different key.")
+
+    # Read metadata and store in the dictionary
+    metadata["iart"] = read_string(f)  # Hydrophone make and SN
+    metadata["iprd"] = read_string(f)  # Hydrophone model
+    metadata["icrd"] = read_string(f)  # File creation date
+    metadata["isft"] = read_string(f)  # Hydrophone software version
+    metadata["inam"] = read_string(f)  # Original filename
+
+    # Additional comments
+    icmt_key = f.read(4)
+    if icmt_key != b"ICMT":
+        raise ValueError("Expected ICMT key in metadata but got different key.")
+    icmt_size_bytes = f.read(4)
+    if len(icmt_size_bytes) < 4:
+        raise ValueError("Unexpected end of file when reading ICMT size.")
+    icmt_size = struct.unpack("<I", icmt_size_bytes)[0]
+    icmt_bytes = f.read(icmt_size)
+    if len(icmt_bytes) < icmt_size:
+        raise ValueError("Unexpected end of file when reading ICMT data.")
+    icmt = icmt_bytes.decode().rstrip("\x00")
+
+    # Parse the fields from comments and update the metadata dictionary
+    fields = icmt.split(",")
+    try:
+        metadata["peak_voltage"] = float(fields[0].split(" ")[0])
+        metadata["stored_sensitivity"] = int(fields[1].strip().split(" ")[0])
+        metadata["humidity"] = fields[2].strip()
+        metadata["temperature"] = fields[3].strip()
+        metadata["accelerometer"] = (
+            ",".join(fields[4:7]).strip() if len(fields) > 6 else None
+        )
+        metadata["magnetometer"] = (
+            ",".join(fields[7:10]).strip() if len(fields) > 9 else None
+        )
+        metadata["count_at_peak_voltage"] = fields[-2].strip()
+        metadata["sequence_num"] = fields[-1].strip()
+    except (IndexError, ValueError) as e:
+        raise ValueError(f"Error parsing metadata comments: {e}") from e
+
+    # Return a dictionary with metadata
+    return metadata
+
+
+def read_iclisten(
+    filename: str,
+    sensitivity: Optional[Union[int, float]] = None,
+    use_metadata: bool = True,
+) -> xr.DataArray:
     """
     Read .wav file from an Ocean Sonics icListen "Smart" hydrophone.
     Returns voltage timeseries if sensitivity not provided, returns pressure
@@ -317,101 +472,55 @@ def read_iclisten(filename, sensitivity=None, use_metadata=True):
 
     Parameters
     ----------
-    filename: string
-        Input filename
-    sensitivity: numeric
-        Hydrophone calibration sensitivity in dB re 1 V/uPa.
-        Should be negative. Default: None.
-    use_metadata: bool
-        If True and `sensitivity` = None, applies sensitivity value stored in .wav file LIST block.
-        If False and `sensitivity` = None, a sensitivity value isn't applied
+    filename : str
+        Input filename.
+    sensitivity : int or float, optional
+        Hydrophone calibration sensitivity in dB re 1 V/μPa.
+        Should be negative. Default is None.
+    use_metadata : bool
+        If True and `sensitivity` is None, applies sensitivity value stored
+        in the .wav file's LIST block. If False and `sensitivity` is None,
+        a sensitivity value isn't applied.
 
     Returns
     -------
-    out: numpy.array
-        Sound pressure [Pa] or [V] indexed by time[s]
+    out : xarray.DataArray
+        Sound pressure [Pa] or Voltage [V] indexed by time[s].
     """
-
-    def read_iclisten_metadata(f):
-        """
-        Reads the metadata from the icListen .wav file LIST block and
-        returns the metadata in a dictionary.
-
-        Parameters
-        ----------
-        f: file object
-            Opened .wav file for reading metadata.
-
-        Returns
-        -------
-        metadata: dict
-            A dictionary containing metadata such as peak_voltage,
-            stored_sensitivity, humidity, temperature, etc.
-        """
-
-        def read_string(f):
-            """Reads a string from the file based on its size."""
-            f.read(4)
-            size = struct.unpack("<I", f.read(4))[0]
-            return f.read(size).decode().rstrip("\x00")
-
-        metadata = {}
-
-        # Read header keys
-        f.read(4)  # riff_key
-        f.read(4)  # file_size "<I"
-        f.read(4)  # wave_key
-        f.read(4)  # list_key
-
-        # Read metadata keys
-        f.read(4)  # list_size "<I"
-        f.read(4)  # info_key
-
-        # Read metadata and store in the dictionary
-        metadata["iart"] = read_string(f)  # Hydrophone make and SN
-        metadata["iprd"] = read_string(f)  # Hydrophone model
-        metadata["icrd"] = read_string(f)  # File creation date
-        metadata["isft"] = read_string(f)  # Hydrophone software version
-        metadata["inam"] = read_string(f)  # Original filename
-
-        # Additional comments
-        f.read(4)  # icmt_key
-        icmt_size = struct.unpack("<I", f.read(4))[0]
-        icmt = f.read(icmt_size).decode().rstrip("\x00")
-
-        # Parse the fields from comments and update the metadata dictionary
-        fields = icmt.split(",")
-        metadata["peak_voltage"] = float(fields[0].split(" ")[0])
-        metadata["stored_sensitivity"] = int(fields[1].lstrip().split(" ")[0])
-        metadata["humidity"] = fields[2].lstrip()
-        metadata["temperature"] = fields[3].lstrip()
-        metadata["accelerometer"] = (
-            ",".join(fields[4:7]).lstrip() if len(fields) > 6 else []
+    if not isinstance(filename, str):
+        raise TypeError("'filename' must be a string.")
+    if sensitivity is not None and not isinstance(sensitivity, (int, float)):
+        raise TypeError("'sensitivity' must be a numeric type (int or float) or None.")
+    if not isinstance(use_metadata, bool):
+        raise TypeError("'use_metadata' must be a boolean value.")
+    if sensitivity is not None and sensitivity > 0:
+        raise ValueError(
+            "Hydrophone calibrated sensitivity should be entered \
+            as a negative number."
         )
-        metadata["magnetometer"] = (
-            ",".join(fields[7:10]).lstrip() if len(fields) > 6 else []
-        )
-        metadata["count_at_peak_voltage"] = fields[-2].lstrip()
-        metadata["sequence_num"] = fields[-1].lstrip()
-
-        # Return a dictionary with metadata
-        return metadata
 
     # Read icListen metadata from file header
     with open(filename, "rb") as f:
-        metadata = read_iclisten_metadata(f)
+        metadata = _read_iclisten_metadata(f)
 
     # Use stored sensitivity
-    if use_metadata and (sensitivity is None):
+    if use_metadata and sensitivity is None:
         sensitivity = metadata["stored_sensitivity"]
+        if sensitivity is None:
+            raise ValueError("Stored sensitivity not found in metadata.")
 
-    # Call the read_hydrophone function with appropriate parameters
+    # Convert metadata creation date to datetime64
+    try:
+        start_time = np.datetime64(metadata["icrd"])
+    except ValueError as e:
+        raise ValueError(f"Invalid creation date format in metadata: {e}") from e
+
     out = read_hydrophone(
         filename,
         peak_voltage=metadata["peak_voltage"],
         sensitivity=sensitivity,
         gain=0,
-        start_time=np.datetime64(metadata["icrd"]),
+        start_time=start_time,
     )
 
     # Update attributes with metadata
@@ -435,20 +544,47 @@ def read_iclisten(filename, sensitivity=None, use_metadata=True):
     return out
 
 
-def export_audio(filename, pressure, gain=1):
+def export_audio(
+    filename: str, pressure: xr.DataArray, gain: Union[int, float] = 1
+) -> None:
     """
     Creates human-scaled audio file from underwater recording.
 
     Parameters
     ----------
-    filename: string
+    filename : str
         Output filename for the WAV file (without extension).
-    pressure: object
-        Sound pressure object with attributes 'values' (numpy array of pressure data),
-        'sensitivity' (sensitivity of the hydrophone in dB), and 'fs' (sampling frequency in Hz).
-    gain: numeric, optional
-        Gain to multiply original time series by. Default is 1.
+    pressure : xarray.DataArray
+        Sound pressure data with attributes:
+            - 'values' (numpy.ndarray): Pressure data array.
+            - 'sensitivity' (int or float): Sensitivity of the hydrophone in dB.
+            - 'fs' (int or float): Sampling frequency in Hz.
+    gain : int or float, optional
+        Gain to multiply the original time series by. Default is 1.
+
+    Returns
+    -------
+    None
     """
+    if not isinstance(filename, str):
+        raise TypeError("'filename' must be a string.")
+
+    if not isinstance(pressure, xr.DataArray):
+        raise TypeError("'pressure' must be an xarray.DataArray.")
+
+    if not hasattr(pressure, "values") or not isinstance(pressure.values, np.ndarray):
+        raise TypeError("'pressure.values' must be a numpy.ndarray.")
+
+    if not hasattr(pressure, "sensitivity") or not isinstance(
+        pressure.sensitivity, (int, float)
+    ):
+        raise TypeError("'pressure.sensitivity' must be a numeric type (int or float).")
+
+    if not hasattr(pressure, "fs") or not isinstance(pressure.fs, (int, float)):
+        raise TypeError("'pressure.fs' must be a numeric type (int or float).")
+
+    if not isinstance(gain, (int, float)):
+        raise TypeError("'gain' must be a numeric type (int or float).")
 
     # Convert from Pascals to UPa
     upa = pressure.values.T * 1e6
