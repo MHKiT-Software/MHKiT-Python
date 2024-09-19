@@ -1,6 +1,7 @@
 import os
 from os.path import abspath, dirname, join, normpath
 import numpy as np
+import xarray as xr
 import unittest
 
 import mhkit.acoustics as acoustics
@@ -161,6 +162,127 @@ class TestAnalysis(unittest.TestCase):
         np.testing.assert_allclose(td_spl10.head().values, cd_spl10, atol=1e-6)
         np.testing.assert_allclose(td_spl3.head().values, cd_spl3, atol=1e-6)
         np.testing.assert_equal(td_spl["time"].head().values, cc)
+
+    def test_sound_pressure_spectral_density(self):
+        """
+        Test sound pressure spectral density calculation.
+        """
+        # Create some sample pressure data
+        time = np.arange(0, 10, 0.1)
+        data = np.sin(time)
+        pressure = xr.DataArray(
+            data, coords=[time], dims=["time"], attrs={"units": "Pa", "fs": 100}
+        )
+
+        # Adjust window size to get multiple segments
+        fs = 100
+        window = 0.1  # seconds
+        win_samples = int(window * fs)
+
+        # Run the spectral density function
+        spsd = acoustics.sound_pressure_spectral_density(pressure, fs=fs, window=window)
+
+        # Assert that output is an xarray DataArray with expected dimensions
+        self.assertIsInstance(spsd, xr.DataArray)
+        self.assertIn("freq", spsd.dims)
+        self.assertIn("time", spsd.dims)
+        self.assertEqual(spsd.attrs["units"], "Pa^2/Hz")
+        self.assertEqual(spsd.attrs["window"], f"{window}s")
+
+        # Calculate expected number of segments
+        overlap = 0.0
+        step = int(win_samples * (1 - overlap))
+        expected_segments = (len(pressure) - win_samples) // step + 1
+
+        # Calculate expected number of segments without overlap
+        expected_segments = len(pressure) // win_samples
+        self.assertEqual(spsd.shape[0], expected_segments)
+
+    def test_apply_calibration(self):
+        """
+        Test the application of calibration curves to spectral density.
+        """
+        # Create a sample SPSD (Spectral Pressure Spectral Density) and calibration curve
+        time = np.arange(0, 10, 0.1)
+        freq = np.linspace(10, 1000, len(time))
+        spsd_data = np.random.random((len(time), len(freq)))
+        spsd = xr.DataArray(
+            spsd_data,
+            coords=[time, freq],
+            dims=["time", "freq"],
+            attrs={"units": "V^2/Hz"},
+        )
+
+        sensitivity_curve = xr.DataArray(
+            np.random.random(len(freq)), coords=[freq], dims=["freq"]
+        )
+        fill_value = 0.0
+
+        # Apply calibration
+        calibrated_spsd = acoustics.apply_calibration(
+            spsd, sensitivity_curve, fill_value
+        )
+
+        # Assert that the calibration returns the correct data format and values
+        self.assertIsInstance(calibrated_spsd, xr.DataArray)
+        self.assertEqual(calibrated_spsd.attrs["units"], "Pa^2/Hz")
+        self.assertEqual(
+            calibrated_spsd.shape, spsd.shape
+        )  # Ensure shape remains the same
+        np.testing.assert_array_less(
+            calibrated_spsd.values, spsd.values
+        )  # Calibration should reduce values
+
+    def test_fmax_warning(self):
+        """
+        Test that fmax warning adjusts the maximum frequency if necessary.
+        """
+        from mhkit.acoustics.base import _fmax_warning
+
+        # Test case where fmax is greater than Nyquist frequency
+        fn = 1000
+        fmax = 1500  # Greater than Nyquist frequency
+        adjusted_fmax = _fmax_warning(fn, fmax)
+        self.assertEqual(adjusted_fmax, fn)  # Should return the Nyquist frequency
+
+        # Test case where fmax is within limits
+        fmax = 500
+        adjusted_fmax = _fmax_warning(fn, fmax)
+        self.assertEqual(adjusted_fmax, fmax)  # Should return the original fmax
+
+        # Test with incorrect types
+        with self.assertRaises(TypeError):
+            _fmax_warning("not a number", fmax)
+        with self.assertRaises(TypeError):
+            _fmax_warning(fn, "not a number")
+
+    def test_validate_method(self):
+        """
+        Test the validation of the 'method' parameter in band_average or time_average.
+        """
+        from mhkit.acoustics.base import _validate_method
+
+        # Valid method string
+        method_name, method_arg = _validate_method("median")
+        self.assertEqual(method_name, "median")
+        self.assertIsNone(method_arg)
+
+        # Valid method dictionary
+        method_name, method_arg = _validate_method({"quantile": 0.25})
+        self.assertEqual(method_name, "quantile")
+        self.assertEqual(method_arg, 0.25)
+
+        # Invalid method string
+        with self.assertRaises(ValueError):
+            _validate_method("unsupported_method")
+
+        # Invalid method dictionary
+        with self.assertRaises(ValueError):
+            _validate_method({"unsupported_method": None})
+
+        # Invalid quantile value in dictionary
+        with self.assertRaises(ValueError):
+            _validate_method({"quantile": 1.5})  # Out of valid range (0,1)
 
 
 if __name__ == "__main__":
