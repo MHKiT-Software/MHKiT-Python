@@ -386,13 +386,11 @@ def _read_iclisten_metadata(f: io.BufferedIOBase) -> Dict[str, Any]:
         raise KeyError("Expected INFO key in metadata but got different key.")
 
     # Read metadata and store in the dictionary
-    for i in range(5):
-        # Hydrophone make and SN
-        # Hydrophone model
-        # File creation date
-        # Hydrophone software version
-        # Original filename
-        metadata.update(read_string(f))
+    metadata.update(read_string(f))  # Hydrophone make and SN
+    metadata.update(read_string(f))  # Hydrophone model
+    metadata.update(read_string(f))  # File creation date
+    metadata.update(read_string(f))  # Hydrophone software version
+    metadata.update(read_string(f))  # Original filename
 
     # Additional comments
     icmt_key = f.read(4)
