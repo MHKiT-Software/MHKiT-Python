@@ -402,8 +402,8 @@ class Velocity:
             dims=self.U.dims,
             coords=self.U.coords,
             attrs={
-                "units": "degrees_CW_from_" + str(rel),
-                "long_name": "Water Direction",
+                "units": "degree",
+                "long_name": "Water Direction, CW from " + str(rel),
                 "standard_name": "sea_water_to_direction",
             },
         )
