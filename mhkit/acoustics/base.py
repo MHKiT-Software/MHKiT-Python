@@ -180,7 +180,7 @@ def apply_calibration(
 
     Returns
     -------
-    spsd: xarray.DataArray (time, freq)
+    spsd_calibrated: xarray.DataArray (time, freq)
         Spectral density in Pa^2/Hz, indexed by time and frequency.
     """
 
@@ -199,22 +199,25 @@ def apply_calibration(
             "'sensitivity_curve' must have 'freq' as one of its dimensions."
         )
 
+    # Create a copy of spsd to avoid in-place modification
+    spsd_calibrated = spsd.copy()
+
     # Read calibration curve
     freq = sensitivity_curve.dims[0]
     # Interpolate calibration curve to desired value
-    calibration = sensitivity_curve.interp({freq: spsd["freq"]}, method="linear").drop(
-        freq
-    )
+    calibration = sensitivity_curve.interp(
+        {freq: spsd_calibrated["freq"]}, method="linear"
+    ).drop(freq)
     # Fill missing with provided value
     calibration = calibration.fillna(fill_value)
 
     # Subtract from sound pressure spectral density
     sensitivity_ratio = 10 ** (calibration / 10)  # V^2/uPa^2
-    spsd /= sensitivity_ratio  # uPa^2/Hz
-    spsd /= 1e12  # Pa^2/Hz
-    spsd.attrs["units"] = "Pa^2/Hz"
+    spsd_calibrated /= sensitivity_ratio  # uPa^2/Hz
+    spsd_calibrated /= 1e12  # Pa^2/Hz
+    spsd_calibrated.attrs["units"] = "Pa^2/Hz"
 
-    return spsd
+    return spsd_calibrated
 
 
 def sound_pressure_spectral_density_level(spsd: xr.DataArray) -> xr.DataArray:
