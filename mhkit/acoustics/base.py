@@ -8,7 +8,6 @@ from typing import Union, Dict, Tuple, Optional
 import warnings
 import numpy as np
 import xarray as xr
-import warnings
 
 from mhkit.dolfyn import VelBinner
 from mhkit.dolfyn.time import epoch2dt64, dt642epoch
@@ -216,7 +215,8 @@ def apply_calibration(
         if len(sensitivity_curve.dims) > 1:
             # Issue a warning and assign the 0th dimension as 'freq'
             warnings.warn(
-                f"'sensitivity_curve' does not have 'freq' as a dimension and has multiple dimensions. "
+                f"'sensitivity_curve' does not have 'freq' as a dimension \
+                      and has multiple dimensions. "
                 f"Using the first dimension '{sensitivity_curve.dims[0]}' as 'freq'."
             )
         # Assign the 0th dimension as 'freq'
