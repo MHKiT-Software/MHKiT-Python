@@ -49,10 +49,10 @@ def _fmax_warning(
 
 
 def minimum_frequency(
-    water_depth: Union[int, float],
+    water_depth: Union[int, float, np.ndarray, list],
     c: Union[int, float] = 1500,
     c_seabed: Union[int, float] = 1700,
-) -> float:
+) -> Union[float, np.ndarray]:
     """
     Estimate the shallow water cutoff frequency based on the speed of
     sound in the water column and the speed of sound in the seabed
@@ -60,7 +60,7 @@ def minimum_frequency(
 
     Parameters
     ----------
-    water_depth: float
+    water_depth: int, float or array-like
         Depth of the water column in meters.
     c: float, optional
         Speed of sound in the water column in meters per second. Default is 1500 m/s.
@@ -69,22 +69,27 @@ def minimum_frequency(
 
     Returns
     -------
-    f_min: float
+    f_min: float or numpy.ndarray
         The minimum cutoff frequency in Hz.
 
     Reference
     ---------
     Jennings 2011 - Computational Ocean Acoustics, 2nd ed.
     """
-    if not isinstance(water_depth, (int, float)):
-        raise TypeError("'water_depth' must be a numeric type (int or float).")
+    # Convert water_depth to a NumPy array for vectorized operations
+    water_depth = np.asarray(water_depth)
+
+    # Validate water_depth
+    if not np.issubdtype(water_depth.dtype, np.number):
+        raise TypeError("'water_depth' must be a numeric type or array of numerics.")
+
     if not isinstance(c, (int, float)):
         raise TypeError("'c' must be a numeric type (int or float).")
     if not isinstance(c_seabed, (int, float)):
         raise TypeError("'c_seabed' must be a numeric type (int or float).")
 
-    if water_depth <= 0:
-        raise ValueError("'water_depth' must be a positive number.")
+    if np.any(water_depth <= 0):
+        raise ValueError("All elements of 'water_depth' must be positive numbers.")
     if c <= 0:
         raise ValueError("'c' must be a positive number.")
     if c_seabed <= 0:
