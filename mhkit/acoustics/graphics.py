@@ -39,7 +39,7 @@ def plot_spectogram(spsdl, fmin=10, fmax=100000, fig=None, ax=None, **kwargs):
     time = spsdl.dims[0]
     freq = spsdl.dims[-1]
     # Check fmax
-    fn = spsdl[freq].max()
+    fn = spsdl[freq].max().item()
     fmax = _fmax_warning(fn, fmax)
     # select frequency range
     spsdl = spsdl.sel({freq: slice(fmin, fmax)})
@@ -86,7 +86,7 @@ def plot_spectra(spsdl, fmin=10, fmax=100000, fig=None, ax=None, **kwargs):
     # Set dimension names
     freq = spsdl.dims[-1]
     # Check fmax
-    fn = spsdl[freq].max()
+    fn = spsdl[freq].max().item()
     fmax = _fmax_warning(fn, fmax)
     # select frequency range
     spsdl = spsdl.sel({freq: slice(fmin, fmax)})
