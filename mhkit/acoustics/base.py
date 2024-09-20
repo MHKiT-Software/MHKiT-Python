@@ -8,6 +8,7 @@ from typing import Union, Dict, Tuple, Optional
 import warnings
 import numpy as np
 import xarray as xr
+import warnings
 
 from mhkit.dolfyn import VelBinner
 from mhkit.dolfyn.time import epoch2dt64, dt642epoch
@@ -191,12 +192,28 @@ def apply_calibration(
     if not isinstance(fill_value, (int, float)):
         raise TypeError("'fill_value' must be a numeric type (int or float).")
 
-    # Ensure 'freq' dimension exists in both spsd and sensitivity_curve
+    # Ensure 'freq' dimension exists in 'spsd'
     if "freq" not in spsd.dims:
-        raise ValueError("'spsd' must have 'freq' as one of its dimensions.")
+        if len(spsd.dims) > 1:
+            # Issue a warning and assign the 0th dimension as 'freq'
+            warnings.warn(
+                f"'spsd' does not have 'freq' as a dimension and has multiple dimensions. "
+                f"Using the first dimension '{spsd.dims[0]}' as 'freq'."
+            )
+        # Assign the 0th dimension as 'freq'
+        spsd = spsd.rename({spsd.dims[0]: "freq"})
+
+    # Ensure 'freq' dimension exists in 'sensitivity_curve'
     if "freq" not in sensitivity_curve.dims:
-        raise ValueError(
-            "'sensitivity_curve' must have 'freq' as one of its dimensions."
+        if len(sensitivity_curve.dims) > 1:
+            # Issue a warning and assign the 0th dimension as 'freq'
+            warnings.warn(
+                f"'sensitivity_curve' does not have 'freq' as a dimension and has multiple dimensions. "
+                f"Using the first dimension '{sensitivity_curve.dims[0]}' as 'freq'."
+            )
+        # Assign the 0th dimension as 'freq'
+        sensitivity_curve = sensitivity_curve.rename(
+            {sensitivity_curve.dims[0]: "freq"}
         )
 
     # Create a copy of spsd to avoid in-place modification
