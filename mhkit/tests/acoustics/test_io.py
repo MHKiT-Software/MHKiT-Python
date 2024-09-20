@@ -28,9 +28,9 @@ class TestIO(unittest.TestCase):
         # Test read_wav_metadata function
         file_name = join(datadir, "RBW_6661_20240601_053114.wav")
         with open(file_name, "rb") as f:
-            bits_per_sample = acoustics.io._read_wav_metadata(f)
+            header = acoustics.io._read_wav_metadata(f)
         expected_bits_per_sample = 24
-        self.assertEqual(bits_per_sample, expected_bits_per_sample)
+        self.assertEqual(header["bits_per_sample"], expected_bits_per_sample)
 
     def test_calculate_voltage_and_time(self):
         # Test calculate_voltage_and_time function
@@ -59,15 +59,13 @@ class TestIO(unittest.TestCase):
         )
         pd.testing.assert_index_equal(time, expected_time)
 
-    def test_process_pressure(self):
+    def test_pressure_conversion(self):
         raw_voltage = np.array([0.0, 1.25, -1.25, 0.625, -0.625])
-        peak_voltage = 2.5
-        max_count = 32768  # 16 bits
         sensitivity = -160
         gain = 0
 
-        processed_pressure = acoustics.io._process_pressure(
-            raw_voltage, peak_voltage, max_count, sensitivity, gain
+        processed_pressure = acoustics.io._convert_to_pressure(
+            raw_voltage, sensitivity, gain
         )
 
         # Calculate expected values
@@ -75,19 +73,7 @@ class TestIO(unittest.TestCase):
         sensitivity_linear = 10 ** (adjusted_sensitivity / 20)  # V/μPa
 
         expected_pressure = raw_voltage / sensitivity_linear / 1e6  # Convert to Pa
-        np.testing.assert_allclose(
-            processed_pressure["pressure"], expected_pressure, atol=1e-12
-        )
-
-        expected_min_res = peak_voltage / max_count / sensitivity_linear  # uPa
-        self.assertAlmostEqual(
-            processed_pressure["min_res"], expected_min_res, places=12
-        )
-
-        expected_max_sat = peak_voltage / sensitivity_linear  # uPa
-        self.assertAlmostEqual(
-            processed_pressure["max_sat"], expected_max_sat, places=12
-        )
+        np.testing.assert_allclose(processed_pressure, expected_pressure, atol=1e-12)
 
     def test_read_iclisten_metadata(self):
         from mhkit.acoustics.io import _read_iclisten_metadata
