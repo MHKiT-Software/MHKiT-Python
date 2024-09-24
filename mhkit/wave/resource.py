@@ -87,7 +87,9 @@ def elevation_spectrum(
         )
 
     if detrend:
-        eta = _signal.detrend(eta.dropna(dim=time_dimension), axis=-1, type="linear", bp=0)
+        eta = _signal.detrend(
+            eta.dropna(dim=time_dimension), axis=-1, type="linear", bp=0
+        )
     [f, S] = _signal.welch(
         eta,
         fs=sample_rate,
@@ -373,12 +375,8 @@ def surface_elevation(
 
     if method == "ifft":
         A_cmplx = A * (np.cos(phase) + 1j * np.sin(phase))
-        eta_tmp = np.fft.irfft(
-            0.5 * A_cmplx.values * time_index.size, time_index.size
-        )
-        eta = xr.DataArray(
-            data=eta_tmp, dims="Time", coords={"Time": time_index}
-        )
+        eta_tmp = np.fft.irfft(0.5 * A_cmplx.values * time_index.size, time_index.size)
+        eta = xr.DataArray(data=eta_tmp, dims="Time", coords={"Time": time_index})
 
     elif method == "sum_of_sines":
         # Product of omega and time
@@ -1213,4 +1211,3 @@ def depth_regime(l, h, ratio=2):
     depth_reg = h / l > ratio
 
     return depth_reg
-
