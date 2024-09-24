@@ -90,7 +90,7 @@ def elevation_spectrum(
         eta = _signal.detrend(
             eta.dropna(dim=time_dimension), axis=-1, type="linear", bp=0
         )
-    [f, S] = _signal.welch(
+    [f, wave_spec_measured] = _signal.welch(
         eta,
         fs=sample_rate,
         window=window,
@@ -98,9 +98,9 @@ def elevation_spectrum(
         nfft=nnft,
         noverlap=noverlap,
     )
-    # S = (["Frequency"], wave_spec_measured)
-    # S = S.assign_coords({"Frequency": f})
-    S = xr.DataArray(data=S, coords=["Frequency"], dims={"Frequency": f})
+    S = xr.DataArray(
+        data=wave_spec_measured, dims=["Frequency"], coords={"Frequency": f}
+    )
 
     if to_pandas:
         S = S.to_pandas()
@@ -1162,10 +1162,10 @@ def wave_number(f, h, rho=1025, g=9.80665, to_pandas=True):
         if not ier == 1:
             raise ValueError("Wave number not found. " + mesg)
         k0[mask] = k
+    k = k0
 
     if isinstance(k0, (pd.Series, xr.DataArray)):
-        k0.name = "k"
-    # k = k0.to_dataset()
+        k.name = "k"
 
     # if to_pandas:
     #     k = k.to_pandas()
