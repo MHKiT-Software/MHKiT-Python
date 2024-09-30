@@ -6,7 +6,7 @@ from scipy.stats import binned_statistic_2d as _binned_statistic_2d
 from mhkit import wave
 import matplotlib.pylab as plt
 from os.path import join
-from mhkit.utils import convert_to_dataarray, convert_to_dataset
+from mhkit.utils import convert_to_dataarray
 
 
 def capture_length(P, J, to_pandas=True):
@@ -246,22 +246,22 @@ def power_matrix(LM, JM):
 
     Parameters
     ------------
-    LM: pandas DataFrame or xarray Dataset
+    LM: pandas DataFrame, xarray DatArray, or xarray Dataset
         Capture length matrix
-    JM: pandas DataFrame or xarray Dataset
+    JM: pandas DataFrame, xarray DatArray, or xarray Dataset
         Wave energy flux matrix
 
     Returns
     ---------
-    PM: pandas DataFrame or xarray Dataset
+    PM: pandas DataFrame, xarray DatArray, or xarray Dataset
         Power matrix
 
     """
-    if not isinstance(LM, (pd.DataFrame, xr.Dataset)):
+    if not isinstance(LM, (pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise TypeError(
             f"LM must be of type pd.DataFrame or xr.Dataset. Got: {type(LM)}"
         )
-    if not isinstance(JM, (pd.DataFrame, xr.Dataset)):
+    if not isinstance(JM, (pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise TypeError(
             f"JM must be of type pd.DataFrame or xr.Dataset. Got: {type(JM)}"
         )
@@ -306,11 +306,11 @@ def mean_annual_energy_production_matrix(LM, JM, frequency):
 
     Parameters
     ------------
-    LM: pandas DataFrame or xarray Dataset
+    LM: pandas DataFrame, xarray DatArray, or xarray Dataset
         Capture length
-    JM: pandas DataFrame or xarray Dataset
+    JM: pandas DataFrame, xarray DatArray, or xarray Dataset
         Wave energy flux
-    frequency: pandas DataFrame or xarray Dataset
+    frequency: pandas DataFrame, xarray DatArray, or xarray Dataset
         Data frequency for each bin
 
     Returns
@@ -393,7 +393,7 @@ def power_performance_workflow(
     maep_matrix: float
         Mean annual energy production
     """
-    S = convert_to_dataset(S)
+    S = convert_to_dataarray(S)
     if not isinstance(h, (int, float)):
         raise TypeError(f"h must be of type int or float. Got: {type(h)}")
     P = convert_to_dataarray(P)
@@ -408,19 +408,16 @@ def power_performance_workflow(
 
     # Compute the enegy periods from the spectra data
     Te = wave.resource.energy_period(S, frequency_bins=frequency_bins, to_pandas=False)
-    Te = Te["Te"]
 
     # Compute the significant wave height from the NDBC spectra data
     Hm0 = wave.resource.significant_wave_height(
         S, frequency_bins=frequency_bins, to_pandas=False
     )
-    Hm0 = Hm0["Hm0"]
 
     # Compute the energy flux from spectra data and water depth
     J = wave.resource.energy_flux(
         S, h, deep=deep, rho=rho, g=g, ratio=ratio, to_pandas=False
     )
-    J = J["J"]
 
     # Calculate capture length from power and energy flux
     L = wave.performance.capture_length(P, J, to_pandas=False)
