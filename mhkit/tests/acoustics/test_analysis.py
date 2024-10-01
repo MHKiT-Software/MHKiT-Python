@@ -237,7 +237,7 @@ class TestAnalysis(unittest.TestCase):
         """
         Test that fmax warning adjusts the maximum frequency if necessary.
         """
-        from mhkit.acoustics.base import _fmax_warning
+        from mhkit.acoustics.analysis import _fmax_warning
 
         # Test case where fmax is greater than Nyquist frequency
         fn = 1000
@@ -260,7 +260,7 @@ class TestAnalysis(unittest.TestCase):
         """
         Test the validation of the 'method' parameter in band_average or time_average.
         """
-        from mhkit.acoustics.base import _validate_method
+        from mhkit.acoustics.analysis import _validate_method
 
         # Valid method string
         method_name, method_arg = _validate_method("median")

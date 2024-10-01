@@ -75,6 +75,7 @@ def minimum_frequency(
     ---------
     Jennings 2011 - Computational Ocean Acoustics, 2nd ed.
     """
+
     # Convert water_depth to a NumPy array for vectorized operations
     water_depth = np.asarray(water_depth)
 
@@ -124,6 +125,8 @@ def sound_pressure_spectral_density(
     spsd: xarray.DataArray (time, freq)
         Spectral density [Pa^2/Hz] indexed by time and frequency
     """
+
+    # Type checks
     if not isinstance(pressure, xr.DataArray):
         raise TypeError("'pressure' must be an xarray.DataArray.")
     if not isinstance(fs, (int, float)):
@@ -367,6 +370,8 @@ def band_average(
         Frequency band-averaged sound pressure spectral density level [dB re 1 uPa^2/Hz]
         indexed by time and frequency
     """
+
+    # Type checks
     if not isinstance(spsdl, xr.DataArray):
         raise TypeError("'spsdl' must be an xarray.DataArray.")
     if not isinstance(octave, int):
@@ -618,6 +623,7 @@ def _band_sound_pressure_level(
     out: xarray.DataArray (time, freq_bins)
         Sound pressure level [dB re 1 uPa] indexed by time and frequency of specified bandwidth
     """
+
     # Type checks
     if not isinstance(spsd, xr.DataArray):
         raise TypeError("'spsd' must be an xarray.DataArray.")
@@ -703,6 +709,7 @@ def third_octave_sound_pressure_level(
     mspl: xarray.DataArray (time, freq_bins)
         Sound pressure level [dB re 1 uPa] indexed by time and third octave bands
     """
+
     # Type checks
     if not isinstance(spsd, xr.DataArray):
         raise TypeError("'spsd' must be an xarray.DataArray.")
@@ -761,6 +768,7 @@ def decidecade_sound_pressure_level(
     mspl : xarray.DataArray (time, freq_bins)
         Sound pressure level [dB re 1 uPa] indexed by time and third octave bands
     """
+
     # Type checks
     if not isinstance(spsd, xr.DataArray):
         raise TypeError("'spsd' must be an xarray.DataArray.")

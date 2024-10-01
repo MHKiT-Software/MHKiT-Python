@@ -6,4 +6,4 @@ wav files and conducts basic acoustics analysis and visualization.
 """
 
 from mhkit.acoustics import io, graphics
-from .base import *
+from .analysis import *

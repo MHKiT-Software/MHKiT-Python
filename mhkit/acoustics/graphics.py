@@ -5,7 +5,7 @@ to make them fully customizable.
 """
 
 import matplotlib.pyplot as plt
-from .base import _fmax_warning
+from .analysis import _fmax_warning
 
 
 def plot_spectogram(spsdl, fmin=10, fmax=100000, fig=None, ax=None, **kwargs):

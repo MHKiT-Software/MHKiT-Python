@@ -122,7 +122,7 @@ def _calculate_voltage_and_time(
     raw_voltage = raw.astype(float) / max_count * peak_voltage
 
     # Get time
-    end_time = np.datetime64(start_time) + np.timedelta64(length, "s")
+    end_time = np.datetime64(start_time) + np.timedelta64(length * 1000, "ms")
     time = pd.date_range(start_time, end_time, raw.size + 1)
 
     return raw_voltage, time, max_count
