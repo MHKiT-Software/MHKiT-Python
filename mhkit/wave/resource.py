@@ -358,45 +358,39 @@ def surface_elevation(
         data=2 * np.pi * f, dims=frequency_dimension, coords={frequency_dimension: f}
     )
 
-    eta = xr.Dataset()
-    for var in S.data_vars:
-        if phases is None:
-            np.random.seed(seed)
-            phase = xr.DataArray(
-                data=2 * np.pi * np.random.rand(S[var].size),
-                dims=frequency_dimension,
-                coords={frequency_dimension: f},
-            )
-        else:
-            phase = phases[var]
+    if phases is None:
+        np.random.seed(seed)
+        phase = xr.DataArray(
+            data=2 * np.pi * np.random.rand(S[var].size),
+            dims=frequency_dimension,
+            coords={frequency_dimension: f},
+        )
+    else:
+        phase = phases[var]
 
-        # Wave amplitude times delta f
-        A = 2 * S[var]
-        A = A * delta_f
-        A = np.sqrt(A)
+    # Wave amplitude times delta f
+    A = 2 * S[var]
+    A = A * delta_f
+    A = np.sqrt(A)
 
-        if method == "ifft":
-            A_cmplx = A * (np.cos(phase) + 1j * np.sin(phase))
-            eta_tmp = np.fft.irfft(
-                0.5 * A_cmplx.values * time_index.size, time_index.size
-            )
-            eta[var] = xr.DataArray(
-                data=eta_tmp, dims="Time", coords={"Time": time_index}
-            )
+    if method == "ifft":
+        A_cmplx = A * (np.cos(phase) + 1j * np.sin(phase))
+        eta_tmp = np.fft.irfft(0.5 * A_cmplx.values * time_index.size, time_index.size)
+        eta = xr.DataArray(data=eta_tmp, dims="Time", coords={"Time": time_index})
 
-        elif method == "sum_of_sines":
-            # Product of omega and time
-            B = np.outer(time_index, omega)
-            B = B.reshape((len(time_index), len(omega)))
-            B = xr.DataArray(
-                data=B,
-                dims=["Time", frequency_dimension],
-                coords={"Time": time_index, frequency_dimension: f},
-            )
+    elif method == "sum_of_sines":
+        # Product of omega and time
+        B = np.outer(time_index, omega)
+        B = B.reshape((len(time_index), len(omega)))
+        B = xr.DataArray(
+            data=B,
+            dims=["Time", frequency_dimension],
+            coords={"Time": time_index, frequency_dimension: f},
+        )
 
-            # wave elevation
-            C = np.cos(B + phase)
-            eta[var] = (C * A).sum(dim=frequency_dimension)
+        # wave elevation
+        C = np.cos(B + phase)
+        eta = (C * A).sum(dim=frequency_dimension)
 
     if to_pandas:
         eta = eta.to_pandas()
