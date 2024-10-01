@@ -289,6 +289,10 @@ def surface_elevation(
 
     """
     time_index = to_numeric_array(time_index, "time_index")
+    if isinstance(S, pd.DataFrame) and len(S.columns) > 1:
+        frequency_axis = 1
+    else:
+        frequency_axis = 0
     S = convert_to_dataarray(S)
     if not isinstance(seed, (type(None), int)):
         raise TypeError(f"If specified, seed must be of type int. Got: {type(seed)}")
@@ -300,12 +304,19 @@ def surface_elevation(
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     if frequency_dimension == "":
-        frequency_dimension = list(S.coords)[0]
-
-    elif frequency_dimension not in list(S.dims):
+        frequency_dimension = list(S.coords)[frequency_axis]
+    elif frequency_dimension in list(S.dims):
+        frequency_axis = list(S.dims).index(frequency_dimension)
+    else: # frequency_dimension give, but not in list of possible dimensions
         raise ValueError(
             f"frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}."
         )
+
+    # Create dimensions and coordinates for the new dataset (frequency becomes time)
+    new_dims = list(S.dims)
+    new_dims[frequency_axis] = 'Time'
+    new_coords = S.sum(dim=frequency_dimension).coords
+    new_coords = new_coords.assign({'Time': time_index})
     f = S[frequency_dimension]
 
     if not isinstance(frequency_bins, (type(None), np.ndarray)):
@@ -322,13 +333,10 @@ def surface_elevation(
                 "shape of frequency_bins must match shape of the frequency dimension of S"
             )
     if phases is not None:
-        if not list(phases.data_vars) == list(S.data_vars):
-            raise ValueError("phases must have the same variable names as S")
-        for var in phases.data_vars:
-            if not phases[var].shape == S[var].shape:
-                raise ValueError(
-                    "shape of variables in phases must match shape of variables in S"
-                )
+        if not phases.shape == S.shape:
+            raise ValueError(
+                "shape of variables in phases must match shape of variables in S"
+            )
     if method is not None:
         if not (method == "ifft" or method == "sum_of_sines"):
             raise ValueError(f"Method must be 'ifft' or 'sum_of_sines'. Got: {method}")
@@ -361,22 +369,21 @@ def surface_elevation(
     if phases is None:
         np.random.seed(seed)
         phase = xr.DataArray(
-            data=2 * np.pi * np.random.rand(S[var].size),
+            data=2 * np.pi * np.random.random_sample(S[frequency_dimension].shape),
             dims=frequency_dimension,
             coords={frequency_dimension: f},
         )
     else:
-        phase = phases[var]
+        phase = phases
 
     # Wave amplitude times delta f
-    A = 2 * S[var]
-    A = A * delta_f
-    A = np.sqrt(A)
+    A = np.sqrt(2 * S * delta_f)
 
     if method == "ifft":
         A_cmplx = A * (np.cos(phase) + 1j * np.sin(phase))
-        eta_tmp = np.fft.irfft(0.5 * A_cmplx.values * time_index.size, time_index.size)
-        eta = xr.DataArray(data=eta_tmp, dims="Time", coords={"Time": time_index})
+        # eta_tmp = np.fft.irfft(0.5 * A_cmplx.values * time_index.size, time_index.size)
+        eta_tmp = np.fft.irfftn(0.5 * A_cmplx * time_index.size, list(time_index.shape), axes=[frequency_axis])
+        eta = xr.DataArray(data=eta_tmp, dims=new_dims, coords=new_coords)
 
     elif method == "sum_of_sines":
         # Product of omega and time

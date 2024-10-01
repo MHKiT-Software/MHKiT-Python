@@ -36,8 +36,8 @@ class TestResourceSpectrum(unittest.TestCase):
 
     def test_pierson_moskowitz_spectrum(self):
         S = wave.resource.pierson_moskowitz_spectrum(self.f, self.Tp, self.Hs)
-        Hm0 = wave.resource.significant_wave_height(S).iloc[0, 0]
-        Tp0 = wave.resource.peak_period(S).iloc[0, 0]
+        Hm0 = wave.resource.significant_wave_height(S).item()
+        Tp0 = wave.resource.peak_period(S).item()
 
         errorHm0 = np.abs(self.Tp - Tp0) / self.Tp
         errorTp0 = np.abs(self.Hs - Hm0) / self.Hs
@@ -60,8 +60,8 @@ class TestResourceSpectrum(unittest.TestCase):
 
     def test_jonswap_spectrum(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
-        Hm0 = wave.resource.significant_wave_height(S).iloc[0, 0]
-        Tp0 = wave.resource.peak_period(S).iloc[0, 0]
+        Hm0 = wave.resource.significant_wave_height(S).item()
+        Tp0 = wave.resource.peak_period(S).item()
 
         errorHm0 = np.abs(self.Tp - Tp0) / self.Tp
         errorTp0 = np.abs(self.Hs - Hm0) / self.Hs
@@ -99,7 +99,7 @@ class TestResourceSpectrum(unittest.TestCase):
         S1 = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs * 1.1)
         S = pd.concat([S0, S1], axis=1)
 
-        eta0 = wave.resource.surface_elevation(S, self.t, seed=1)
+        eta0 = wave.resource.surface_elevation(S, self.t, seed=1, frequency_dimension='index')
 
         f_bins_np = np.array([np.diff(S.index)[0]] * len(S))
         f_bins_pd = pd.DataFrame(f_bins_np, index=S.index, columns=["df"])
@@ -122,14 +122,14 @@ class TestResourceSpectrum(unittest.TestCase):
             eta, 1 / dt, len(eta.values), detrend=False, window="boxcar", noverlap=0
         )
 
-        m0 = wave.resource.frequency_moment(S, 0).m0.values[0]
-        m0n = wave.resource.frequency_moment(Sn, 0).m0.values[0]
+        m0 = wave.resource.frequency_moment(S, 0).values[0]
+        m0n = wave.resource.frequency_moment(Sn, 0).values[0]
         errorm0 = np.abs((m0 - m0n) / m0)
 
         self.assertLess(errorm0, 0.01)
 
-        m1 = wave.resource.frequency_moment(S, 1).m1.values[0]
-        m1n = wave.resource.frequency_moment(Sn, 1).m1.values[0]
+        m1 = wave.resource.frequency_moment(S, 1).values[0]
+        m1n = wave.resource.frequency_moment(Sn, 1).values[0]
         errorm1 = np.abs((m1 - m1n) / m1)
 
         self.assertLess(errorm1, 0.01)
@@ -168,7 +168,7 @@ class TestResourceSpectrum(unittest.TestCase):
 
         expected_magnitude = [-0.983917, 1.274248, -2.129812]
 
-        assert_allclose(result["magnitude"], expected_magnitude, atol=1e-6)
+        assert_allclose(result, expected_magnitude, atol=1e-6)
 
     def test_ifft_sum_of_sines(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
