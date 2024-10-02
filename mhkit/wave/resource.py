@@ -272,13 +272,13 @@ def surface_elevation(
     method: str (optional)
         Method used to calculate the surface elevation. 'ifft'
         (Inverse Fast Fourier Transform) used by default if the
-        given frequency_bins==None.
+        given frequency_bins==None or is evenly spaced.
         'sum_of_sines' explicitly sums each frequency component
-        and used by default if frequency_bins are provided.
+        and used by default if uneven frequency_bins are provided.
         The 'ifft' method is significantly faster.
     frequency_dimension: string (optional)
         Name of the xarray dimension corresponding to frequency. If not supplied,
-        defaults to the first dimension. Does not affect pandas input.
+        defaults to the first dimension (the index for pandas input).
     to_pandas: bool (optional)
         Flag to output pandas instead of xarray. Default = True.
 
@@ -289,10 +289,6 @@ def surface_elevation(
 
     """
     time_index = to_numeric_array(time_index, "time_index")
-    if isinstance(S, pd.DataFrame) and len(S.columns) > 1:
-        frequency_axis = 1
-    else:
-        frequency_axis = 0
     S = convert_to_dataarray(S)
     if not isinstance(seed, (type(None), int)):
         raise TypeError(f"If specified, seed must be of type int. Got: {type(seed)}")
@@ -304,13 +300,13 @@ def surface_elevation(
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     if frequency_dimension == "":
-        frequency_dimension = list(S.coords)[frequency_axis]
-    elif frequency_dimension in list(S.dims):
-        frequency_axis = list(S.dims).index(frequency_dimension)
-    else: # frequency_dimension give, but not in list of possible dimensions
+        frequency_dimension = list(S.coords)[0]
+    elif frequency_dimension not in list(S.dims):
+        # frequency_dimension given, but not in list of possible dimensions
         raise ValueError(
             f"frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}."
         )
+    frequency_axis = list(S.dims).index(frequency_dimension)
 
     # Create dimensions and coordinates for the new dataset (frequency becomes time)
     new_dims = list(S.dims)
@@ -330,37 +326,38 @@ def surface_elevation(
     if frequency_bins is not None:
         if not frequency_bins.squeeze().shape == f.shape:
             raise ValueError(
-                "shape of frequency_bins must match shape of the frequency dimension of S"
+                "shape of frequency_bins must only contain 1 column and match the shape of the frequency dimension of S"
             )
+        delta_f = frequency_bins
+        delta_f_even = np.allclose(frequency_bins, frequency_bins[0])
+        if delta_f_even:
+            # reduce delta_f to a scalar if it is uniform
+            delta_f = delta_f[0].item()
+    else:
+        delta_f = f.values[1] - f.values[0]
+        delta_f_even = np.allclose(f.diff(dim=frequency_dimension)[1:], delta_f)
     if phases is not None:
         if not phases.shape == S.shape:
             raise ValueError(
                 "shape of variables in phases must match shape of variables in S"
             )
-    if method is not None:
-        if not (method == "ifft" or method == "sum_of_sines"):
-            raise ValueError(f"Method must be 'ifft' or 'sum_of_sines'. Got: {method}")
-
     if method == "ifft":
+        # ifft method must have a zero frequency and evenly spaced frequency bins
         if not f[0] == 0:
             warnings.warn(
                 f"ifft method must have zero frequency defined. Lowest frequency is: {f[0].values}. Setting method to less efficient `sum_of_sines` method."
             )
             method = "sum_of_sines"
-
-    if frequency_bins is None:
-        delta_f = f.values[1] - f.values[0]
-        if not np.allclose(f.diff(dim=frequency_dimension)[1:], delta_f):
-            raise ValueError(
-                "Frequency bins are not evenly spaced. "
-                + "Define 'frequency_bins' or create a constant "
-                + "frequency spacing for S."
+        if not delta_f_even:
+            warnings.warn(
+                f"ifft method must have evenly spaced frequency bins. Setting method to less efficient `sum_of_sines` method."
             )
+            method = "sum_of_sines"
+    elif method == 'sum_of_sines':
+        # For sum of sines, does not matter if there is a zero frequency or if frequency bins are evenly spaced
+        pass
     else:
-        if not len(frequency_bins.squeeze().shape) == 1:
-            raise ValueError("frequency_bins must only contain 1 column")
-        delta_f = frequency_bins
-        method = "sum_of_sines"
+        raise ValueError(f"Method must be 'ifft' or 'sum_of_sines'. Got: {method}")
 
     omega = xr.DataArray(
         data=2 * np.pi * f, dims=frequency_dimension, coords={frequency_dimension: f}
