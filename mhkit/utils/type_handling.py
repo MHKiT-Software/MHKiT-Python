@@ -160,10 +160,10 @@ def convert_to_dataarray(data, name="data"):
             # iloc returns a Series with one value as expected.
             data = data.iloc[:, 0]
         else:
-            # With this conversion, dataframe columns always become "dim_1". 
+            # With this conversion, dataframe columns always become "dim_1".
             # Rename to "variable" to match how multiple Dataset variables get converted into a DataArray dimension
             data = xr.DataArray(data)
-            data = data.rename({'dim_1':'variable'})
+            data = data.rename({"dim_1": "variable"})
 
     # Checks xr.Dataset input and converts to xr.DataArray if possible
     if isinstance(data, xr.Dataset):
@@ -174,7 +174,9 @@ def convert_to_dataarray(data, name="data"):
         else:
             # Allow multiple variables if they have the same dimensions
             if all([data[keys[0]].dims == data[key].dims for key in keys]):
-                data = data.to_array().T # transpose so that the new "variable dimension" is the last dimension (matches DataFrame to DataArray behavior)
+                data = (
+                    data.to_array().T
+                )  # transpose so that the new "variable dimension" is the last dimension (matches DataFrame to DataArray behavior)
             else:
                 raise ValueError(
                     "Multivariate Datasets can only be input if all variables have the same dimensions."

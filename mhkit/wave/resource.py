@@ -310,9 +310,9 @@ def surface_elevation(
 
     # Create dimensions and coordinates for the new dataset (frequency becomes time)
     new_dims = list(S.dims)
-    new_dims[frequency_axis] = 'Time'
+    new_dims[frequency_axis] = "Time"
     new_coords = S.sum(dim=frequency_dimension).coords
-    new_coords = new_coords.assign({'Time': time_index})
+    new_coords = new_coords.assign({"Time": time_index})
     f = S[frequency_dimension]
 
     if not isinstance(frequency_bins, (type(None), np.ndarray)):
@@ -353,7 +353,7 @@ def surface_elevation(
                 f"ifft method must have evenly spaced frequency bins. Setting method to less efficient `sum_of_sines` method."
             )
             method = "sum_of_sines"
-    elif method == 'sum_of_sines':
+    elif method == "sum_of_sines":
         # For sum of sines, does not matter if there is a zero frequency or if frequency bins are evenly spaced
         pass
     else:
@@ -379,7 +379,11 @@ def surface_elevation(
     if method == "ifft":
         A_cmplx = A * (np.cos(phase) + 1j * np.sin(phase))
         # eta_tmp = np.fft.irfft(0.5 * A_cmplx.values * time_index.size, time_index.size)
-        eta_tmp = np.fft.irfftn(0.5 * A_cmplx * time_index.size, list(time_index.shape), axes=[frequency_axis])
+        eta_tmp = np.fft.irfftn(
+            0.5 * A_cmplx * time_index.size,
+            list(time_index.shape),
+            axes=[frequency_axis],
+        )
         eta = xr.DataArray(data=eta_tmp, dims=new_dims, coords=new_coords)
 
     elif method == "sum_of_sines":
