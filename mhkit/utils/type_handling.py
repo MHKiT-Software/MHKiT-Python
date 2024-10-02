@@ -160,23 +160,13 @@ def convert_to_dataarray(data, name="data"):
             # iloc returns a Series with one value as expected.
             data = data.iloc[:, 0]
         else:
-            index = data.index.values
-            columns = data.columns.values
-            data = xr.DataArray(
-                data=data.T,
-                dims=("variable", "index"),
-                coords={"variable": columns, "index": index},
-            )
+            data = xr.DataArray(data)
 
     # Checks xr.Dataset input and converts to xr.DataArray if possible
     if isinstance(data, xr.Dataset):
         keys = list(data.keys())
         if len(keys) == 1:
-            # if only one variable, remove the "variable" dimension and rename the DataArray to simplify
-            data = data.to_array()
-            data = data.sel(variable=keys[0])
-            data.name = keys[0]
-            data = data.drop_vars("variable")
+            data = data[keys[0]]
         else:
             # Allow multiple variables if they have the same dimensions
             if all([data[keys[0]].dims == data[key].dims for key in keys]):
