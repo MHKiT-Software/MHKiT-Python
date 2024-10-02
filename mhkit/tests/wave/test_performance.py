@@ -126,6 +126,7 @@ class TestPerformance(unittest.TestCase):
         if isfile(filename):
             os.remove(filename)
         P = pd.Series(np.random.normal(200, 40, 743), index=self.S.columns)
+        P.index.name = "variable"
         statistic = ["mean"]
         savepath = plotdir
         show_values = True
