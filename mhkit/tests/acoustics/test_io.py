@@ -199,7 +199,7 @@ class TestIO(unittest.TestCase):
         file_name = join(datadir, "6247.230204150508.wav")
         td_volt = acoustics.io.read_soundtrap(file_name, sensitivity=None)
         td_spsd = acoustics.sound_pressure_spectral_density(
-            td_volt, td_volt.fs, window=1
+            td_volt, td_volt.fs, bin_length=1
         )
 
         # Run calibration

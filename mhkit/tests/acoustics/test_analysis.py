@@ -20,7 +20,7 @@ class TestAnalysis(unittest.TestCase):
     def setUpClass(self):
         file_name = join(datadir, "6247.230204150508.wav")
         P = acoustics.io.read_soundtrap(file_name, sensitivity=-177)
-        self.spsd = acoustics.sound_pressure_spectral_density(P, P.fs, window=1)
+        self.spsd = acoustics.sound_pressure_spectral_density(P, P.fs, bin_length=1)
 
     @classmethod
     def tearDownClass(self):
@@ -59,14 +59,14 @@ class TestAnalysis(unittest.TestCase):
         octave = 3
         td_spsdl_mean = acoustics.band_average(td_spsdl, octave, fmin=50)
 
-        # Time average into 30 s windows
-        window = 30
-        td_spsdl_50 = acoustics.time_average(td_spsdl_mean, window, method="median")
+        # Time average into 30 s bins
+        lbin = 30
+        td_spsdl_50 = acoustics.time_average(td_spsdl_mean, lbin, method="median")
         td_spsdl_25 = acoustics.time_average(
-            td_spsdl_mean, window, method={"quantile": 0.25}
+            td_spsdl_mean, lbin, method={"quantile": 0.25}
         )
         td_spsdl_75 = acoustics.time_average(
-            td_spsdl_mean, window, method={"quantile": 0.75}
+            td_spsdl_mean, lbin, method={"quantile": 0.75}
         )
 
         cc = np.array(
@@ -174,20 +174,22 @@ class TestAnalysis(unittest.TestCase):
             data, coords=[time], dims=["time"], attrs={"units": "Pa", "fs": 100}
         )
 
-        # Adjust window size to get multiple segments
+        # Adjust bin size to get multiple segments
         fs = 100
-        window = 0.1  # seconds
-        win_samples = int(window * fs)
+        bin_length = 0.1  # seconds
+        win_samples = int(bin_length * fs)
 
         # Run the spectral density function
-        spsd = acoustics.sound_pressure_spectral_density(pressure, fs=fs, window=window)
+        spsd = acoustics.sound_pressure_spectral_density(
+            pressure, fs=fs, bin_length=bin_length
+        )
 
         # Assert that output is an xarray DataArray with expected dimensions
         self.assertIsInstance(spsd, xr.DataArray)
         self.assertIn("freq", spsd.dims)
         self.assertIn("time", spsd.dims)
         self.assertEqual(spsd.attrs["units"], "Pa^2/Hz")
-        self.assertEqual(spsd.attrs["window"], f"{window}s")
+        self.assertEqual(spsd.attrs["nbin"], f"{bin_length} s")
 
         # Calculate expected number of segments
         overlap = 0.0

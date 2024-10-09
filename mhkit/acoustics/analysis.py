@@ -103,22 +103,22 @@ def minimum_frequency(
 
 
 def sound_pressure_spectral_density(
-    pressure: xr.DataArray, fs: Union[int, float], window: Union[int, float] = 1
+    pressure: xr.DataArray, fs: Union[int, float], bin_length: Union[int, float] = 1
 ) -> xr.DataArray:
     """
     Calculates the mean square sound pressure spectral density from audio
-    samples split into FFTs with a specified window_size in seconds and
-    at least a 50% overlap. The amplitude of the PSD is adjusted
+    samples split into FFTs with a specified bin length in seconds, using Hanning
+    windowing with 50% overlap. The amplitude of the PSD is adjusted
     according to Parseval's theorem.
 
     Parameters
     ----------
     pressure: xarray.DataArray (time)
         Sound pressure in [Pa] or voltage [V]
-    fs: int
+    fs: int or float
         Data collection sampling rate [Hz]
-    window: string (optional)
-        Length of time in seconds to create FFTs. Default: 1 s.
+    bin_length: int or float
+        Length of time in seconds to create FFTs. Default: 1.
 
     Returns
     -------
@@ -131,26 +131,26 @@ def sound_pressure_spectral_density(
         raise TypeError("'pressure' must be an xarray.DataArray.")
     if not isinstance(fs, (int, float)):
         raise TypeError("'fs' must be a numeric type (int or float).")
-    if not isinstance(window, (int, float)):
-        raise TypeError("'window' must be a numeric type (int or float).")
+    if not isinstance(bin_length, (int, float)):
+        raise TypeError("'bin_length' must be a numeric type (int or float).")
 
     # Ensure that 'pressure' has a 'time' coordinate
     if "time" not in pressure.dims:
         raise ValueError("'pressure' must be indexed by 'time' dimension.")
 
     # window length of each time series
-    win = window * fs
+    nbin = bin_length * fs
 
     # Use dolfyn PSD
-    binner = VelBinner(n_bin=win, fs=fs, n_fft=win)
+    binner = VelBinner(n_bin=nbin, fs=fs, n_fft=nbin)
     # Always 50% overlap if numbers reshape perfectly
     # Mean square sound pressure
     psd = binner.power_spectral_density(pressure, freq_units="Hz")
     samples = binner.reshape(pressure.values) - binner.mean(pressure.values)[:, None]
     # Power in time domain
-    t_power = np.sum(samples**2, axis=1) / win
+    t_power = np.sum(samples**2, axis=1) / nbin
     # Power in frequency domain
-    f_power = psd.sum("freq") * (fs / win)
+    f_power = psd.sum("freq") * (fs / nbin)
     # Adjust the amplitude of PSD according to Parseval's theorem
     psd_adj = psd * t_power[:, None] / f_power
 
@@ -161,9 +161,9 @@ def sound_pressure_spectral_density(
             "units": pressure.units + "^2/Hz",
             "long_name": "Mean Square Sound Pressure Spectral Density",
             "fs": fs,
-            "window": str(window) + "s",
+            "nbin": str(bin_length) + " s",
             "overlap": "50%",
-            "nfft": win,
+            "nfft": nbin,
         },
     )
 
