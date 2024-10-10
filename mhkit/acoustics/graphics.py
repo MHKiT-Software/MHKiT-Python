@@ -50,7 +50,7 @@ def plot_spectogram(spsdl, fmin=10, fmax=100000, fig=None, ax=None, **kwargs):
     h = ax.pcolormesh(
         spsdl[time].values, spsdl[freq].values, spsdl.T, shading="nearest", **kwargs
     )
-    fig.colorbar(h, ax=ax, label="dB re 1 uPa^2/Hz")
+    fig.colorbar(h, ax=ax, label=spsdl.units)
     ax.set(xlabel="Time", ylabel="Frequency [Hz]")
 
     return fig, ax
@@ -97,6 +97,6 @@ def plot_spectra(spsdl, fmin=10, fmax=100000, fig=None, ax=None, **kwargs):
             left=0.1, right=0.95, top=0.85, bottom=0.2, hspace=0.3, wspace=0.15
         )
     ax.plot(spsdl[freq], spsdl.T, **kwargs)
-    ax.set(xlim=(fmin, fmax), xlabel="Frequency [Hz]", ylabel="$dB re 1 uPa^2/Hz$")
+    ax.set(xlim=(fmin, fmax), xlabel="Frequency [Hz]", ylabel=spsdl.units)
 
     return fig, ax

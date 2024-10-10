@@ -59,22 +59,6 @@ class TestIO(unittest.TestCase):
         )
         pd.testing.assert_index_equal(time, expected_time)
 
-    def test_pressure_conversion(self):
-        raw_voltage = np.array([0.0, 1.25, -1.25, 0.625, -0.625])
-        sensitivity = -160
-        gain = 0
-
-        processed_pressure = acoustics.io._convert_to_pressure(
-            raw_voltage, sensitivity, gain
-        )
-
-        # Calculate expected values
-        adjusted_sensitivity = sensitivity - gain
-        sensitivity_linear = 10 ** (adjusted_sensitivity / 20)  # V/μPa
-
-        expected_pressure = raw_voltage / sensitivity_linear / 1e6  # Convert to Pa
-        np.testing.assert_allclose(processed_pressure, expected_pressure, atol=1e-12)
-
     def test_read_iclisten_metadata(self):
         from mhkit.acoustics.io import _read_iclisten_metadata
 

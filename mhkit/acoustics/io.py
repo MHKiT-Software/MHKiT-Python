@@ -128,52 +128,6 @@ def _calculate_voltage_and_time(
     return raw_voltage, time, max_count
 
 
-def _convert_to_pressure(
-    raw_voltage: np.ndarray,
-    sensitivity: Union[int, float],
-    gain: Union[int, float],
-) -> np.ndarray:
-    """
-    Converts the raw voltage data into sound pressure and calculates
-    the minimum resolution and saturation levels based on the hydrophone's
-    sensitivity and gain.
-
-    Parameters
-    ----------
-    raw_voltage: numpy.ndarray
-        The normalized voltage values corresponding to the raw data from the WAV file.
-    sensitivity: int or float
-        The hydrophone's sensitivity in dB re 1 V/uPa, entered as a negative value.
-    gain: int or float
-        Amplifier gain in dB. Default is 0.
-
-    Returns
-    -------
-    pressure: numpy.ndarray
-        Calculated sound pressure values in Pascals (Pa).
-    """
-
-    if not isinstance(raw_voltage, np.ndarray):
-        raise TypeError("'raw_voltage' must be a numpy.ndarray.")
-    if not isinstance(sensitivity, (int, float)):
-        raise TypeError("'sensitivity' must be numeric (int or float).")
-    if not isinstance(gain, (int, float)):
-        raise TypeError("'gain' must be numeric (int or float).")
-
-    # Subtract gain
-    # hydrophone with sensitivity of -177 dB and gain of -3 dB = sensitivity of -174 dB
-    if gain:
-        sensitivity -= gain
-    # Convert calibration from dB rel 1 V/uPa into ratio
-    sensitivity = 10 ** (sensitivity / 20)  # V/uPa
-
-    # Sound pressure
-    pressure = raw_voltage / sensitivity  # uPa
-    pressure = pressure / 1e6  # Pa
-
-    return pressure
-
-
 def read_hydrophone(
     filename: Union[str, Path],
     peak_voltage: Union[int, float],
@@ -236,13 +190,23 @@ def read_hydrophone(
 
     # If sensitivity is provided, convert to sound pressure
     if sensitivity is not None:
-        raw_pressure = _convert_to_pressure(raw_voltage, sensitivity, gain)
+        # Subtract gain
+        # Hydrophone with sensitivity of -177 dB and gain of -3 dB = sensitivity of -174 dB
+        if gain:
+            sensitivity -= gain
+        # Convert calibration from dB rel 1 V/uPa into ratio
+        sensitivity = 10 ** (sensitivity / 20)  # V/uPa
+
+        # Sound pressure
+        pressure = raw_voltage / sensitivity  # uPa
+        pressure = pressure / 1e6  # Pa
+
         out = xr.DataArray(
-            raw_pressure,
+            pressure,
             coords={"time": time[:-1]},
             attrs={
                 "units": "Pa",
-                "sensitivity": sensitivity,
+                "sensitivity": np.round(sensitivity, 12),
                 # Pressure min resolution
                 "resolution": np.round(peak_voltage / max_count / sensitivity / 1e6, 9),
                 # Minimum pressure sensor can read
