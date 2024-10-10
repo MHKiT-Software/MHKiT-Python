@@ -423,9 +423,7 @@ class TestWDRT(unittest.TestCase):
         mler["Phase"] = self.mler["phase"].values
         k = resource.wave_number(wave_freq, 70)
         np.nan_to_num(k, 0)
-        mler_norm = loads.extreme.mler_wave_amp_normalize(
-            4.5 * 1.9, mler, self.sim, k
-        )
+        mler_norm = loads.extreme.mler_wave_amp_normalize(4.5 * 1.9, mler, self.sim, k)
         mler_norm.reset_index(drop=True, inplace=True)
 
         assert_series_equal(
@@ -444,9 +442,7 @@ class TestWDRT(unittest.TestCase):
         k = resource.wave_number(wave_freq, 70)
         np.nan_to_num(k, 0)
         RAO = self.mler["RAO"].astype(complex)
-        mler_ts = loads.extreme.mler_export_time_series(
-            RAO.values, mler, self.sim, k
-        )
+        mler_ts = loads.extreme.mler_export_time_series(RAO.values, mler, self.sim, k)
         mler_ts.index.name = None  # compatibility with old data
 
         assert_frame_equal(self.mler_ts, mler_ts, atol=0.0001)
