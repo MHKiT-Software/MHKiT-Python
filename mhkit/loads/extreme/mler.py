@@ -61,9 +61,9 @@ def _calculate_spectral_values(
     spectrum_r = np.abs(rao_array) ** 2 * (2 * wave_spectrum)
 
     # Calculate spectral moments
-    m_0 = frequency_moment(pd.Series(spectrum_r, index=freq_hz), 0).iloc[0, 0]
-    m_1 = frequency_moment(pd.Series(spectrum_r, index=freq_hz), 1).iloc[0, 0]
-    m_2 = frequency_moment(pd.Series(spectrum_r, index=freq_hz), 2).iloc[0, 0]
+    m_0 = frequency_moment(pd.Series(spectrum_r, index=freq_hz), 0).item()
+    m_1 = frequency_moment(pd.Series(spectrum_r, index=freq_hz), 1).item()
+    m_2 = frequency_moment(pd.Series(spectrum_r, index=freq_hz), 2).item()
 
     # Calculate coefficient A_{R,n}
     coeff_a_rn = (
