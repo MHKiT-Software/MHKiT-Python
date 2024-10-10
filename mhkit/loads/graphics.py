@@ -113,6 +113,7 @@ def plot_statistics(
 
 
 # pylint: disable=R0913
+# pylint: disable=R0917
 def plot_bin_statistics(
     bin_centers: np.ndarray,
     bin_mean: np.ndarray,

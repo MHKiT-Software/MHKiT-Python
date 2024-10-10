@@ -1,4 +1,4 @@
-name: Pylint Loads
+name: Pylint
 
 on: [push, pull_request]
 
@@ -28,3 +28,7 @@ jobs:
       - name: Run Pylint on mhkit/power/
         run: |
           pylint mhkit/power/
+
+      - name: Run Pylint on mhkit/acoustics/
+        run: |
+          pylint mhkit/acoustics/
