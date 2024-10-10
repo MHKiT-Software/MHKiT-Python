@@ -299,18 +299,6 @@ def read_soundtrap(
         Sound pressure [Pa] or Voltage [V] indexed by time[s].
     """
 
-    if not isinstance(filename, str):
-        raise TypeError("'filename' must be a string.")
-    if sensitivity is not None and not isinstance(sensitivity, (int, float)):
-        raise TypeError("'sensitivity' must be a numeric type (int or float) or None.")
-    if not isinstance(gain, (int, float)):
-        raise TypeError("'gain' must be a numeric type (int or float).")
-    if sensitivity is not None and sensitivity > 0:
-        raise ValueError(
-            "Hydrophone calibrated sensitivity should be entered "
-            "as a negative number."
-        )
-
     # Get time from filename
     st = filename.split(".")[-2]
     start_time = (
@@ -454,17 +442,9 @@ def read_iclisten(
     out : xarray.DataArray
         Sound pressure [Pa] or Voltage [V] indexed by time[s].
     """
-    if not isinstance(filename, str):
-        raise TypeError("'filename' must be a string.")
-    if sensitivity is not None and not isinstance(sensitivity, (int, float)):
-        raise TypeError("'sensitivity' must be a numeric type (int or float) or None.")
+
     if not isinstance(use_metadata, bool):
         raise TypeError("'use_metadata' must be a boolean value.")
-    if sensitivity is not None and sensitivity > 0:
-        raise ValueError(
-            "Hydrophone calibrated sensitivity should be entered \
-            as a negative number."
-        )
 
     # Read icListen metadata from file header
     with open(filename, "rb") as f:
