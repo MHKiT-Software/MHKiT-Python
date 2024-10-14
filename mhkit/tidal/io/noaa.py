@@ -124,7 +124,10 @@ def request_noaa_data(
 
     # Use handle_caching to manage cache
     cached_data, cached_metadata, cache_filepath = handle_caching(
-        hash_params, cache_dir, write_json=write_json, clear_cache_file=clear_cache
+        hash_params,
+        cache_dir,
+        cache_content={"data": None, "metadata": None, "write_json": write_json},
+        clear_cache_file=clear_cache,
     )
 
     if cached_data is not None:
@@ -205,8 +208,7 @@ def request_noaa_data(
         handle_caching(
             hash_params,
             cache_dir,
-            data=data,
-            metadata=metadata,
+            cache_content={"data": data, "metadata": metadata, "write_json": None},
             clear_cache_file=clear_cache,
         )
 

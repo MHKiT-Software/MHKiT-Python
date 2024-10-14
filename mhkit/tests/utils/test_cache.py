@@ -93,7 +93,11 @@ class TestCacheUtils(unittest.TestCase):
         Asserts:
         - The cache file is successfully created at the expected file path.
         """
-        handle_caching(self.hash_params, self.cache_dir, data=self.data)
+        handle_caching(
+            self.hash_params,
+            self.cache_dir,
+            cache_content={"data": self.data, "metadata": None, "write_json": None},
+        )
 
         cache_filename = (
             hashlib.md5(self.hash_params.encode("utf-8")).hexdigest() + ".json"
@@ -114,8 +118,18 @@ class TestCacheUtils(unittest.TestCase):
         Asserts:
         - The retrieved data matches the original sample DataFrame.
         """
-        handle_caching(self.hash_params, self.cache_dir, data=self.data)
-        retrieved_data, _, _ = handle_caching(self.hash_params, self.cache_dir)
+        handle_caching(
+            self.hash_params,
+            self.cache_dir,
+            cache_content={"data": self.data, "metadata": None, "write_json": None},
+        )
+
+        retrieved_data, _, _ = handle_caching(
+            self.hash_params,
+            self.cache_dir,
+            cache_content={"data": None, "metadata": None, "write_json": None},
+        )
+
         pd.testing.assert_frame_equal(self.data, retrieved_data, check_freq=False)
 
     def test_handle_caching_cdip_file_extension(self):
@@ -132,7 +146,11 @@ class TestCacheUtils(unittest.TestCase):
         - The cache file with a ".pkl" extension is successfully created at the expected file path.
         """
         cache_dir = os.path.join(self.cache_dir, "cdip")
-        handle_caching(self.hash_params, cache_dir, data=self.data)
+        handle_caching(
+            self.hash_params,
+            cache_dir,
+            cache_content={"data": self.data, "metadata": None, "write_json": None},
+        )
 
         cache_filename = (
             hashlib.md5(self.hash_params.encode("utf-8")).hexdigest() + ".pkl"
