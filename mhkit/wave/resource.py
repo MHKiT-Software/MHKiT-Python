@@ -402,7 +402,8 @@ def surface_elevation(
 
     if to_pandas:
         eta = eta.to_pandas()
-    eta.name = "eta"
+    if isinstance(eta, (pd.Series, pd.DataFrame, xr.DataArray)):
+        eta.name = "eta"
 
     return eta
 
@@ -466,7 +467,8 @@ def frequency_moment(S, N, frequency_bins=None, frequency_dimension="", to_panda
 
     if to_pandas:
         m = m.to_pandas()
-    m.name = "m" + str(N)
+    if isinstance(m, (pd.Series, pd.DataFrame, xr.DataArray)):
+        m.name = "m" + str(N)
 
     return m
 
@@ -510,7 +512,8 @@ def significant_wave_height(
 
     if to_pandas:
         Hm0 = Hm0.to_pandas()
-    Hm0.name = "Hm0"
+    if isinstance(Hm0, (pd.Series, pd.DataFrame, xr.DataArray)):
+        Hm0.name = "Hm0"
 
     return Hm0
 
@@ -560,7 +563,8 @@ def average_zero_crossing_period(
 
     if to_pandas:
         Tz = Tz.to_pandas()
-    Tz.name = "Tz"
+    if isinstance(Tz, (pd.Series, pd.DataFrame, xr.DataArray)):
+        Tz.name = "Tz"
 
     return Tz
 
@@ -611,7 +615,8 @@ def average_crest_period(
 
     if to_pandas:
         Tavg = Tavg.to_pandas()
-    Tavg.name = "Tavg"
+    if isinstance(Tavg, (pd.Series, pd.DataFrame, xr.DataArray)):
+        Tavg.name = "Tavg"
 
     return Tavg
 
@@ -659,7 +664,8 @@ def average_wave_period(S, frequency_dimension="", frequency_bins=None, to_panda
 
     if to_pandas:
         Tm = Tm.to_pandas()
-    Tm.name = "Tm"
+    if isinstance(Tm, (pd.Series, pd.DataFrame, xr.DataArray)):
+        Tm.name = "Tm"
 
     return Tm
 
@@ -700,7 +706,8 @@ def peak_period(S, frequency_dimension="", to_pandas=True):
 
     if to_pandas:
         Tp = Tp.to_pandas()
-    Tp.name = "Tp"
+    if isinstance(Tp, (pd.Series, pd.DataFrame, xr.DataArray)):
+        Tp.name = "Tp"
 
     return Tp
 
@@ -750,7 +757,8 @@ def energy_period(S, frequency_dimension="", frequency_bins=None, to_pandas=True
 
     if to_pandas:
         Te = Te.to_pandas()
-    Te.name = "Te"
+    if isinstance(Te, (pd.Series, pd.DataFrame, xr.DataArray)):
+        Te.name = "Te"
 
     return Te
 
@@ -806,7 +814,8 @@ def spectral_bandwidth(S, frequency_dimension="", frequency_bins=None, to_pandas
 
     if to_pandas:
         e = e.to_pandas()
-    e.name = "e"
+    if isinstance(e, (pd.Series, pd.DataFrame, xr.DataArray)):
+        e.name = "e"
 
     return e
 
@@ -862,7 +871,8 @@ def spectral_width(S, frequency_dimension="", frequency_bins=None, to_pandas=Tru
 
     if to_pandas:
         v = v.to_pandas()
-    v.name = "v"
+    if isinstance(v, (pd.Series, pd.DataFrame, xr.DataArray)):
+        v.name = "v"
 
     return v
 
@@ -959,7 +969,8 @@ def energy_flux(
 
     if to_pandas:
         J = J.to_pandas()
-    J.name = "J"
+    if isinstance(J, (pd.Series, pd.DataFrame, xr.DataArray)):
+        J.name = "J"
 
     return J
 
@@ -1091,7 +1102,8 @@ def wave_celerity(
 
     if to_pandas:
         Cg = Cg.to_pandas()
-    Cg.name = "Cg"
+    if isinstance(Cg, (pd.Series, pd.DataFrame, xr.DataArray)):
+        Cg.name = "Cg"
 
     return Cg
 
