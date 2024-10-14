@@ -402,6 +402,7 @@ def surface_elevation(
 
     if to_pandas:
         eta = eta.to_pandas()
+    eta.name = "eta"
 
     return eta
 
@@ -463,10 +464,9 @@ def frequency_moment(S, N, frequency_bins=None, frequency_dimension="", to_panda
     m = S * fn * delta_f
     m = m.sum(dim=frequency_dimension)
 
-    m.name = "m" + str(N)
-
     if to_pandas:
         m = m.to_pandas()
+    m.name = "m" + str(N)
 
     return m
 
@@ -510,6 +510,7 @@ def significant_wave_height(
 
     if to_pandas:
         Hm0 = Hm0.to_pandas()
+    Hm0.name = "Hm0"
 
     return Hm0
 
@@ -559,6 +560,7 @@ def average_zero_crossing_period(
 
     if to_pandas:
         Tz = Tz.to_pandas()
+    Tz.name = "Tz"
 
     return Tz
 
@@ -609,6 +611,7 @@ def average_crest_period(
 
     if to_pandas:
         Tavg = Tavg.to_pandas()
+    Tavg.name = "Tavg"
 
     return Tavg
 
@@ -656,6 +659,7 @@ def average_wave_period(S, frequency_dimension="", frequency_bins=None, to_panda
 
     if to_pandas:
         Tm = Tm.to_pandas()
+    Tm.name = "Tm"
 
     return Tm
 
@@ -696,6 +700,7 @@ def peak_period(S, frequency_dimension="", to_pandas=True):
 
     if to_pandas:
         Tp = Tp.to_pandas()
+    Tp.name = "Tp"
 
     return Tp
 
@@ -742,10 +747,10 @@ def energy_period(S, frequency_dimension="", frequency_bins=None, to_pandas=True
 
     # Eq 13 in IEC 62600-101
     Te = mn1 / m0
-    Te.name = "Te"
 
     if to_pandas:
         Te = Te.to_pandas()
+    Te.name = "Te"
 
     return Te
 
@@ -801,6 +806,7 @@ def spectral_bandwidth(S, frequency_dimension="", frequency_bins=None, to_pandas
 
     if to_pandas:
         e = e.to_pandas()
+    e.name = "e"
 
     return e
 
@@ -856,6 +862,7 @@ def spectral_width(S, frequency_dimension="", frequency_bins=None, to_pandas=Tru
 
     if to_pandas:
         v = v.to_pandas()
+    v.name = "v"
 
     return v
 
@@ -952,6 +959,7 @@ def energy_flux(
 
     if to_pandas:
         J = J.to_pandas()
+    J.name = "J"
 
     return J
 
@@ -987,6 +995,8 @@ def energy_period_to_peak_period(Te, gamma):
     factor = 0.8255 + 0.03852 * gamma - 0.005537 * gamma**2 + 0.0003154 * gamma**3
 
     Tp = Te / factor
+    if isinstance(Tp, (pd.Series, pd.DataFrame, xr.DataArray)):
+        Tp.name = "Tp"
 
     return Tp
 
@@ -1079,10 +1089,9 @@ def wave_celerity(
         )
         Cg.name = "Cg"
 
-    # Cg = Cg.to_dataset()
-
     if to_pandas:
         Cg = Cg.to_pandas()
+    Cg.name = "Cg"
 
     return Cg
 
@@ -1110,6 +1119,8 @@ def wave_length(k):
         )
 
     l = 2 * np.pi / k
+    if isinstance(l, (pd.Series, pd.DataFrame, xr.DataArray)):
+        l.name = "l"
 
     return l
 
@@ -1172,11 +1183,8 @@ def wave_number(f, h, rho=1025, g=9.80665, to_pandas=True):
         k0[mask] = k
     k = k0
 
-    if isinstance(k0, (pd.Series, xr.DataArray)):
+    if isinstance(k, (pd.Series, pd.DataFrame, xr.DataArray)):
         k.name = "k"
-
-    # if to_pandas:
-    #     k = k.to_pandas()
 
     return k
 
@@ -1217,5 +1225,7 @@ def depth_regime(l, h, ratio=2):
         raise TypeError(f"h must be of type int or float. Got: {type(h)}")
 
     depth_reg = h / l > ratio
+    if isinstance(depth_reg, (pd.Series, pd.DataFrame, xr.DataArray)):
+        depth_reg.name = "depth_reg"
 
     return depth_reg
