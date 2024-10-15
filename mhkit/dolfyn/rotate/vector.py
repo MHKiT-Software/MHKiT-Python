@@ -279,7 +279,7 @@ def _calc_omat(time, hh, pp, rr, orientation_down=None):
     return _euler2orient(time, hh, pp, rr)
 
 
-def _euler2orient(time, heading, pitch, roll, units="degrees"):
+def _euler2orient(time, heading, pitch, roll, units="degree"):
     # For Nortek data only.
     # The heading, pitch, roll used here are from the Nortek binary files.
 
@@ -287,10 +287,14 @@ def _euler2orient(time, heading, pitch, roll, units="degrees"):
     # Returns a rotation matrix that rotates earth (ENU) -> inst.
     # This is based on the Nortek `Transforms.m` file, available in
     # the refs folder.
-    if units.lower() == "degrees":
+    if "deg" in units.lower():
         pitch = np.deg2rad(pitch)
         roll = np.deg2rad(roll)
         heading = np.deg2rad(heading)
+    elif "rad" in units.lower():
+        pass
+    else:
+        raise ValueError("Invalid units")
 
     # The definition of heading below is consistent with the right-hand-rule;
     # heading is the angle positive counterclockwise from North of the y-axis.
