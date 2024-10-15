@@ -159,11 +159,11 @@ def water_depth_from_amplitude(ds, thresh=10, nfilt=None):
     for ip in range(ds["vel"].shape[1]):
         itmp = np.min(inds[:, ip])
         if (edf[itmp:, :, ip] < thresh).all():
-            d[ip] = np.NaN
+            d[ip] = np.nan
 
     if nfilt:
         dfilt = medfiltnan(d, nfilt, thresh=4)
-        dfilt[dfilt == 0] = np.NaN
+        dfilt[dfilt == 0] = np.nan
         d = dfilt
 
     range_offset = __check_for_range_offset(ds)
