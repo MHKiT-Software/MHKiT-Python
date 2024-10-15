@@ -171,20 +171,27 @@ class TestGenUtils(unittest.TestCase):
         # test data formats
         test_n = d1
         test_s = pd.Series(d1, t)
-        test_df = pd.DataFrame({"d1": d1}, index=t)
-        test_df2 = pd.DataFrame({"d1": d1, "d1_duplicate": d1}, index=t)
+        test_df_1d = pd.DataFrame({"d1": d1}, index=t)
+        test_df_2d = pd.DataFrame({"d1": d1, "d1_duplicate": d1}, index=t)
         test_da = xr.DataArray(
             data=d1,
             dims="time",
             coords=dict(time=t),
         )
-        test_ds = xr.Dataset(
+        test_ds_1d_1v = xr.Dataset(
             data_vars={"d1": (["time"], d1)}, coords={"time": t, "index": i}
         )
-        test_ds2 = xr.Dataset(
+        test_ds_2d_1v = xr.Dataset(
             data_vars={
                 "d1": (["time"], d1),
-                "d2": (["ind"], d2),
+                "d1_duplicate": (["time"], d1),
+            },
+            coords={"time": t},
+        )
+        test_ds_2d_2v = xr.Dataset(
+            data_vars={
+                "d1": (["time"], d1),
+                "d2": (["index"], d2),
             },
             coords={"time": t, "index": i},
         )
@@ -205,15 +212,33 @@ class TestGenUtils(unittest.TestCase):
         self.assertIsInstance(da, xr.DataArray)
         self.assertTrue(all(da.data == d1))
 
-        # Dataframe
-        df = utils.convert_to_dataarray(test_df)
-        self.assertIsInstance(df, xr.DataArray)
-        self.assertTrue(all(df.data == d1))
+        # 1D Dataframe
+        df_1d = utils.convert_to_dataarray(test_df_1d)
+        self.assertIsInstance(df_1d, xr.DataArray)
+        self.assertTrue(all(df_1d.data == d1))
+        self.assertTrue("variable" not in df_1d.dims)
 
-        # Dataset
-        ds = utils.convert_to_dataarray(test_ds)
-        self.assertIsInstance(ds, xr.DataArray)
-        self.assertTrue(all(ds.data == d1))
+        # Multivariate Dataframe
+        df_2d = utils.convert_to_dataarray(test_df_2d)
+        self.assertIsInstance(df_2d, xr.DataArray)
+        self.assertTrue(all(df_2d.sel(variable="d1").data == d1))
+        self.assertTrue(all(df_2d.sel(variable="d1_duplicate").data == d1))
+
+        # 1D Dataset
+        ds_1d_1v = utils.convert_to_dataarray(test_ds_1d_1v)
+        self.assertIsInstance(ds_1d_1v, xr.DataArray)
+        self.assertTrue(all(ds_1d_1v.data == d1))
+        self.assertTrue("variable" not in ds_1d_1v.dims)
+
+        # Multivariate 1D Dataset
+        ds_2d_1v = utils.convert_to_dataarray(test_ds_2d_1v)
+        self.assertIsInstance(ds_2d_1v, xr.DataArray)
+        self.assertTrue(all(ds_2d_1v.sel(variable="d1").data == d1))
+        self.assertTrue(all(ds_2d_1v.sel(variable="d1_duplicate").data == d1))
+
+        # Multivariate 2D Dataset (error)
+        with self.assertRaises(ValueError):
+            utils.convert_to_dataarray(test_ds_2d_2v)
 
         # int (error)
         with self.assertRaises(TypeError):
@@ -222,14 +247,6 @@ class TestGenUtils(unittest.TestCase):
         # non-string name (error)
         with self.assertRaises(TypeError):
             utils.convert_to_dataarray(test_n, 5)
-
-        # Multivariate Dataframe (error)
-        with self.assertRaises(ValueError):
-            utils.convert_to_dataarray(test_df2)
-
-        # Multivariate Dataset (error)
-        with self.assertRaises(ValueError):
-            utils.convert_to_dataarray(test_ds2)
 
     def test_convert_to_dataset(self):
         # test data
@@ -242,7 +259,7 @@ class TestGenUtils(unittest.TestCase):
         # test data formats
         test_n = d1
         test_s = pd.Series(d1, t)
-        test_df2 = pd.DataFrame({"d1": d1, "d2": d2}, index=t)
+        test_df_2d = pd.DataFrame({"d1": d1, "d2": d2}, index=t)
         test_da = xr.DataArray(
             data=d1,
             dims="time",
@@ -267,7 +284,7 @@ class TestGenUtils(unittest.TestCase):
         self.assertTrue(all(da["test_name"].data == d1))
 
         # Dataframe
-        df = utils.convert_to_dataset(test_df2)
+        df = utils.convert_to_dataset(test_df_2d)
         self.assertIsInstance(df, xr.Dataset)
         self.assertTrue(all(df["d1"].data == d1))
         self.assertTrue(all(df["d2"].data == d2))

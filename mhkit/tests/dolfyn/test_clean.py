@@ -3,8 +3,8 @@ from . import test_read_adp as tp
 from .base import load_netcdf as load, save_netcdf as save, assert_allclose
 import mhkit.dolfyn.adv.api as avm
 import mhkit.dolfyn.adp.api as apm
-import numpy as np
 import unittest
+
 
 make_data = False
 
