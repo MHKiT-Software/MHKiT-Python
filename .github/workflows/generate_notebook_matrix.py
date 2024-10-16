@@ -11,7 +11,7 @@ notebook_timeouts = {
     "ADCP_Delft3D_TRTS_example.ipynb": 1200,
     "adcp_example.ipynb": 240,
     "adv_example.ipynb": 180,
-    "cdip_example.ipynb": 180,
+    "cdip_example.ipynb": 420,
     "Delft3D_example.ipynb": 180,
     "directional_waves.ipynb": 180,
     "environmental_contours_example.ipynb": 360,
