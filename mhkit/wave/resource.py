@@ -287,8 +287,7 @@ def surface_elevation(
     Returns
     ---------
     eta: pandas DataFrame or xarray Dataset
-        Wave surface elevation [m] indexed by time [s]. Type depends on
-        number of variables in eta and value of the to_pandas flag.
+        Wave surface elevation [m] indexed by time [s].
 
     """
     S = convert_to_dataset(S, "S")
