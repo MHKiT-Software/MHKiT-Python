@@ -53,7 +53,7 @@ def elevation_spectrum(
     # TODO: Add confidence intervals, equal energy frequency spacing, and NDBC
     #       frequency spacing
     # TODO: may need to raise an error for the length of nnft- signal.welch breaks when nfft is too short
-    eta = convert_to_dataset(eta,"eta")
+    eta = convert_to_dataset(eta, "eta")
     if not isinstance(sample_rate, (float, int)):
         raise TypeError(
             f"sample_rate must be of type int or float. Got: {type(sample_rate)}"
@@ -287,11 +287,11 @@ def surface_elevation(
     Returns
     ---------
     eta: pandas DataFrame or xarray Dataset
-        Wave surface elevation [m] indexed by time [s]. Type depends on 
+        Wave surface elevation [m] indexed by time [s]. Type depends on
         number of variables in eta and value of the to_pandas flag.
 
     """
-    S = convert_to_dataset(S,"S")
+    S = convert_to_dataset(S, "S")
     time_index = to_numeric_array(time_index, "time_index")
     if not isinstance(seed, (type(None), int)):
         raise TypeError(f"If specified, seed must be of type int. Got: {type(seed)}")
@@ -373,7 +373,9 @@ def surface_elevation(
         if phases is None:
             np.random.seed(seed)
             phase = xr.DataArray(
-                data=2 * np.pi * np.random.random_sample(S_subset[frequency_dimension].shape),
+                data=2
+                * np.pi
+                * np.random.random_sample(S_subset[frequency_dimension].shape),
                 dims=frequency_dimension,
                 coords={frequency_dimension: f},
             )

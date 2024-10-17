@@ -122,7 +122,7 @@ class TestResourceMetrics(unittest.TestCase):
         for k in [k_int]:
             l_calculated = wave.resource.wave_length(k)
             self.assertTrue(np.all(2.0 * np.pi / k == l_calculated))
-            
+
         for k in [k_array, k_float, k_df, k_series]:
             l_calculated = wave.resource.wave_length(k)
             self.assertTrue(np.all(2.0 * np.pi / k == l_calculated))
