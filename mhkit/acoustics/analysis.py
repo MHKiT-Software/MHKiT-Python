@@ -39,8 +39,8 @@ def _fmax_warning(
 
     if fmax > fn:
         warnings.warn(
-            "`fmax` = {fmax} is greater than the Nyquist frequency. Setting"
-            "fmax = {fn}"
+            f"`fmax` = {fmax} is greater than the Nyquist frequency. Setting"
+            f"fmax = {fn}"
         )
         fmax = fn
 
@@ -271,8 +271,8 @@ def sound_pressure_spectral_density_level(spsd: xr.DataArray) -> xr.DataArray:
     # Sound pressure spectral density level from mean square values
     lpf = 10 * np.log10(spsd.values / reference)
 
-    out = xr.DataArray(
-        lpf,
+    spsdl = xr.DataArray(
+        lpf.astype(np.float32),
         coords={"time": spsd["time"], "freq": spsd["freq"]},
         attrs={
             "units": "dB re 1 uPa^2/Hz",
@@ -280,7 +280,7 @@ def sound_pressure_spectral_density_level(spsd: xr.DataArray) -> xr.DataArray:
         },
     )
 
-    return out
+    return spsdl
 
 
 def _validate_method(
@@ -581,7 +581,7 @@ def sound_pressure_level(
     mspl = 10 * np.log10(pressure_squared / reference)
 
     out = xr.DataArray(
-        mspl,
+        mspl.astype(np.float32),
         coords={"time": spsd["time"]},
         attrs={
             "units": "dB re 1 uPa",
@@ -744,7 +744,7 @@ def third_octave_sound_pressure_level(
         "long_name": "Third Octave Sound Pressure Level",
     }
 
-    return mspl
+    return mspl.astype(np.float32)
 
 
 def decidecade_sound_pressure_level(
@@ -803,4 +803,4 @@ def decidecade_sound_pressure_level(
         "long_name": "Decidecade Sound Pressure Level",
     }
 
-    return mspl
+    return mspl.astype(np.float32)
