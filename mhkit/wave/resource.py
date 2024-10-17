@@ -47,13 +47,13 @@ def elevation_spectrum(
     Returns
     ---------
     S: pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
-        Spectral density [m^2/Hz] indexed by frequency [Hz]. Type depends on 
-        number of variables in eta and value of the to_pandas flag.
+        Spectral density [m^2/Hz] indexed by frequency [Hz].
     """
 
     # TODO: Add confidence intervals, equal energy frequency spacing, and NDBC
     #       frequency spacing
     # TODO: may need to raise an error for the length of nnft- signal.welch breaks when nfft is too short
+    eta = convert_to_dataset(eta,"eta")
     if not isinstance(sample_rate, (float, int)):
         raise TypeError(
             f"sample_rate must be of type int or float. Got: {type(sample_rate)}"
@@ -70,32 +70,25 @@ def elevation_spectrum(
         raise ValueError(f"sample_rate must be > 0. Got: {sample_rate}")
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
-    
-    if isinstance(eta, xr.DataArray):
-        eta = convert_to_dataset(eta,"eta")
-    elif isinstance(eta, pd.Series):
-        if eta.name == None:
-            eta.name = "eta"
-        eta = pd.DataFrame(eta)
+
+    if time_dimension == "":
+        time_dimension = list(eta.dims)[0]
+    else:
+        if time_dimension not in list(eta.dims):
+            raise ValueError(
+                f"time_dimension is not a dimension of eta ({list(eta.dims)}). Got: {time_dimension}."
+            )
+    time = eta[time_dimension]
+    delta_t = time.values[1] - time.values[0]
+    if not np.allclose(time.diff(dim=time_dimension)[1:], delta_t):
+        raise ValueError(
+            "Time bins are not evenly spaced. Create a constant "
+            + f"temporal spacing for eta."
+        )
 
     S = xr.Dataset()
-    for var in eta.data_vars if isinstance(eta, xr.Dataset) else eta.columns:
-        eta_subset = convert_to_dataarray(eta[var])
-        if time_dimension == "":
-            time_dimension = list(eta_subset.dims)[0]
-        else:
-            if time_dimension not in list(eta_subset.dims):
-                raise ValueError(
-                    f"time_dimension is not a dimension of eta[{var}] ({list(eta_subset.dims)}). Got: {time_dimension}."
-                )
-        time = eta_subset[time_dimension]
-        delta_t = time.values[1] - time.values[0]
-        if not np.allclose(time.diff(dim=time_dimension)[1:], delta_t):
-            raise ValueError(
-                "Time bins are not evenly spaced. Create a constant "
-                + f"temporal spacing for eta[{var}]."
-            )
-
+    for var in eta.data_vars:
+        eta_subset = eta[var]
         if detrend:
             eta_subset = _signal.detrend(
                 eta_subset.dropna(dim=time_dimension), axis=-1, type="linear", bp=0
@@ -110,10 +103,6 @@ def elevation_spectrum(
         )
         S[var] = (["Frequency"], wave_spec_measured)
     S = S.assign_coords({"Frequency": f})
-
-    varList = list(S.data_vars)
-    if len(varList) == 1:
-        S = S[varList[0]]
 
     if to_pandas:
         S = S.to_pandas()
@@ -302,91 +291,85 @@ def surface_elevation(
         number of variables in eta and value of the to_pandas flag.
 
     """
+    S = convert_to_dataset(S,"S")
     time_index = to_numeric_array(time_index, "time_index")
     if not isinstance(seed, (type(None), int)):
         raise TypeError(f"If specified, seed must be of type int. Got: {type(seed)}")
     if not isinstance(phases, type(None)):
-        phases = convert_to_dataarray(phases)
+        phases = convert_to_dataset(phases)
     if not isinstance(method, str):
         raise TypeError(f"method must be of type str. Got: {type(method)}")
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    
-    if isinstance(S, xr.DataArray):
-        S = convert_to_dataset(S,"S")
-    elif isinstance(S, pd.Series):
-        if S.name == None:
-            S.name = "S"
-        S = pd.DataFrame(S)
+    if frequency_dimension == "":
+        frequency_dimension = list(S.coords)[0]
+    elif frequency_dimension not in list(S.dims):
+        # frequency_dimension given, but not in list of possible dimensions
+        raise ValueError(
+            f"frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}."
+        )
+    frequency_axis = list(S.dims).index(frequency_dimension)
 
-    eta = xr.Dataset()
-    for var in S.data_vars if isinstance(S, xr.Dataset) else S.columns:
-        S_subset = convert_to_dataarray(S[var])
-        if frequency_dimension == "":
-            frequency_dimension = list(S_subset.coords)[0]
-        elif frequency_dimension not in list(S_subset.dims):
-            # frequency_dimension given, but not in list of possible dimensions
+    # Create dimensions and coordinates for the new dataset (frequency becomes time)
+    new_dims = list(S.dims)
+    new_dims[frequency_axis] = "Time"
+    new_coords = S.sum(dim=frequency_dimension).coords
+    new_coords = new_coords.assign({"Time": time_index})
+    f = S[frequency_dimension]
+
+    if not isinstance(frequency_bins, (type(None), np.ndarray)):
+        frequency_bins = convert_to_dataarray(frequency_bins)
+    elif isinstance(frequency_bins, np.ndarray):
+        frequency_bins = xr.DataArray(
+            data=frequency_bins,
+            dims=frequency_dimension,
+            coords={frequency_dimension: f},
+        )
+    if frequency_bins is not None:
+        if not frequency_bins.squeeze().shape == f.shape:
             raise ValueError(
-                f"frequency_dimension is not a dimension of S[{var}] ({list(S_subset.dims)}). Got: {frequency_dimension}."
+                "shape of frequency_bins must only contain 1 column and match the shape of the frequency dimension of S"
             )
-        frequency_axis = list(S_subset.dims).index(frequency_dimension)
-
-        # Create dimensions and coordinates for the new dataset (frequency becomes time)
-        new_dims = list(S_subset.dims)
-        new_dims[frequency_axis] = "Time"
-        new_coords = S_subset.sum(dim=frequency_dimension).coords
-        new_coords = new_coords.assign({"Time": time_index})
-        f = S_subset[frequency_dimension]
-
-        if not isinstance(frequency_bins, (type(None), np.ndarray)):
-            frequency_bins = convert_to_dataarray(frequency_bins)
-        elif isinstance(frequency_bins, np.ndarray):
-            frequency_bins = xr.DataArray(
-                data=frequency_bins,
-                dims=frequency_dimension,
-                coords={frequency_dimension: f},
-            )
-        if frequency_bins is not None:
-            if not frequency_bins.squeeze().shape == f.shape:
-                raise ValueError(
-                    "shape of frequency_bins must only contain 1 column and match the shape of the frequency dimension of S"
-                )
-            delta_f = frequency_bins
-            delta_f_even = np.allclose(frequency_bins, frequency_bins[0])
-            if delta_f_even:
-                # reduce delta_f to a scalar if it is uniform
-                delta_f = delta_f[0].item()
-        else:
-            delta_f = f.values[1] - f.values[0]
-            delta_f_even = np.allclose(f.diff(dim=frequency_dimension)[1:], delta_f)
-        if phases is not None:
-            if not phases.shape == S.shape:
+        delta_f = frequency_bins
+        delta_f_even = np.allclose(frequency_bins, frequency_bins[0])
+        if delta_f_even:
+            # reduce delta_f to a scalar if it is uniform
+            delta_f = delta_f[0].item()
+    else:
+        delta_f = f.values[1] - f.values[0]
+        delta_f_even = np.allclose(f.diff(dim=frequency_dimension)[1:], delta_f)
+    if phases is not None:
+        for var in phases.data_vars:
+            if not phases[var].shape == S[var].shape:
                 raise ValueError(
                     "shape of variables in phases must match shape of variables in S"
                 )
-        if method == "ifft":
-            # ifft method must have a zero frequency and evenly spaced frequency bins
-            if not f[0] == 0:
-                warnings.warn(
-                    f"ifft method must have zero frequency defined. Lowest frequency is: {f[0].values}. Setting method to less efficient `sum_of_sines` method."
-                )
-                method = "sum_of_sines"
-            if not delta_f_even:
-                warnings.warn(
-                    f"ifft method must have evenly spaced frequency bins. Setting method to less efficient `sum_of_sines` method."
-                )
-                method = "sum_of_sines"
-        elif method == "sum_of_sines":
-            # For sum of sines, does not matter if there is a zero frequency or if frequency bins are evenly spaced
-            pass
-        else:
-            raise ValueError(f"Method must be 'ifft' or 'sum_of_sines'. Got: {method}")
+    if method == "ifft":
+        # ifft method must have a zero frequency and evenly spaced frequency bins
+        if not f[0] == 0:
+            warnings.warn(
+                f"ifft method must have zero frequency defined. Lowest frequency is: {f[0].values}. Setting method to less efficient `sum_of_sines` method."
+            )
+            method = "sum_of_sines"
+        if not delta_f_even:
+            warnings.warn(
+                f"ifft method must have evenly spaced frequency bins. Setting method to less efficient `sum_of_sines` method."
+            )
+            method = "sum_of_sines"
+    elif method == "sum_of_sines":
+        # For sum of sines, does not matter if there is a zero frequency or if frequency bins are evenly spaced
+        pass
+    else:
+        raise ValueError(f"Method must be 'ifft' or 'sum_of_sines'. Got: {method}")
 
-        omega = xr.DataArray(
-            data=2 * np.pi * f, dims=frequency_dimension, coords={frequency_dimension: f}
-        )
+    omega = xr.DataArray(
+        data=2 * np.pi * f, dims=frequency_dimension, coords={frequency_dimension: f}
+    )
 
+    eta = xr.Dataset()
+    for var in S.data_vars:
+        S_subset = S[var]
         if phases is None:
             np.random.seed(seed)
             phase = xr.DataArray(
@@ -395,7 +378,7 @@ def surface_elevation(
                 coords={frequency_dimension: f},
             )
         else:
-            phase = phases
+            phase = phases[var]
 
         # Wave amplitude times delta f
         A = np.sqrt(2 * S_subset * delta_f)
@@ -422,10 +405,6 @@ def surface_elevation(
             # wave elevation
             C = np.cos(B + phase)
             eta[var] = (C * A).sum(dim=frequency_dimension)
-
-    varList = list(eta.data_vars)
-    if len(varList) == 1:
-        eta = eta[varList[0]]
 
     if to_pandas:
         eta = eta.to_pandas()

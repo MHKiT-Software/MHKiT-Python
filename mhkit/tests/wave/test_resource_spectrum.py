@@ -168,7 +168,7 @@ class TestResourceSpectrum(unittest.TestCase):
 
         expected_magnitude = [-0.983917, 1.274248, -2.129812]
 
-        assert_allclose(result, expected_magnitude, atol=1e-6)
+        assert_allclose(result.values[:,0], expected_magnitude, atol=1e-6)
 
     def test_ifft_sum_of_sines(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
