@@ -246,14 +246,14 @@ def power_matrix(LM, JM):
 
     Parameters
     ------------
-    LM: pandas DataFrame, xarray DatArray, or xarray Dataset
+    LM: pandas DataFrame, xarray DataArray, or xarray Dataset
         Capture length matrix
-    JM: pandas DataFrame, xarray DatArray, or xarray Dataset
+    JM: pandas DataFrame, xarray DataArray, or xarray Dataset
         Wave energy flux matrix
 
     Returns
     ---------
-    PM: pandas DataFrame, xarray DatArray, or xarray Dataset
+    PM: pandas DataFrame, xarray DataArray, or xarray Dataset
         Power matrix
 
     """
@@ -306,11 +306,11 @@ def mean_annual_energy_production_matrix(LM, JM, frequency):
 
     Parameters
     ------------
-    LM: pandas DataFrame, xarray DatArray, or xarray Dataset
+    LM: pandas DataFrame, xarray DataArray, or xarray Dataset
         Capture length
-    JM: pandas DataFrame, xarray DatArray, or xarray Dataset
+    JM: pandas DataFrame, xarray DataArray, or xarray Dataset
         Wave energy flux
-    frequency: pandas DataFrame, xarray DatArray, or xarray Dataset
+    frequency: pandas DataFrame, xarray DataArray, or xarray Dataset
         Data frequency for each bin
 
     Returns

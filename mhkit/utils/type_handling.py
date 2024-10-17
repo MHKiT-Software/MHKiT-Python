@@ -164,7 +164,7 @@ def convert_to_dataarray(data, name="data"):
             # Rename to "variable" to match how multiple Dataset variables get converted into a DataArray dimension
             data = xr.DataArray(data)
             if data.dims[1] == "dim_1":
-                # Slight chance their is already a name for the columns
+                # Slight chance there is already a name for the columns
                 data = data.rename({"dim_1": "variable"})
 
     # Checks xr.Dataset input and converts to xr.DataArray if possible

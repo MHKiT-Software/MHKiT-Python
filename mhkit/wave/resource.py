@@ -1164,7 +1164,6 @@ def wave_number(f, h, rho=1025, g=9.80665, to_pandas=True):
     """
     if isinstance(f, (int, float)):
         f = np.asarray([f])
-    # f = convert_to_dataarray(f)
     if not isinstance(h, (int, float)):
         raise TypeError(f"h must be of type int or float. Got: {type(h)}")
     if not isinstance(rho, (int, float)):
