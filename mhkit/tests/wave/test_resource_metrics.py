@@ -95,10 +95,11 @@ class TestResourceMetrics(unittest.TestCase):
 
             expected = self.valdata1[i]["k"]
             k = wave.resource.wave_number(f, h, rho)
-            calculated = k.loc[:, "k"].values
+            calculated = k
             error = ((expected - calculated) ** 2).sum()  # SSE
 
             self.assertLess(error, 1e-6)
+            self.assertIsInstance(calculated, type(f))
 
     def test_kfromw_one_freq(self):
         g = 9.81
@@ -106,21 +107,26 @@ class TestResourceMetrics(unittest.TestCase):
         h = 1e9
         w = np.pi * 2 * f  # deep water dispersion
         expected = w**2 / g
-        calculated = wave.resource.wave_number(f=f, h=h, g=g).values[0][0]
+        calculated = wave.resource.wave_number(f=f, h=h, g=g).item()
         error = np.abs(expected - calculated)
         self.assertLess(error, 1e-6)
+        self.assertIsInstance(calculated, type(f))
 
     def test_wave_length(self):
         k_array = np.asarray([1.0, 2.0, 10.0, 3.0])
-
         k_int = int(k_array[0])
         k_float = k_array[0]
         k_df = pd.DataFrame(k_array, index=[1, 2, 3, 4])
         k_series = k_df[0]
 
-        for l in [k_array, k_int, k_float, k_df, k_series]:
-            l_calculated = wave.resource.wave_length(l)
-            self.assertTrue(np.all(2.0 * np.pi / l == l_calculated))
+        for k in [k_int]:
+            l_calculated = wave.resource.wave_length(k)
+            self.assertTrue(np.all(2.0 * np.pi / k == l_calculated))
+
+        for k in [k_array, k_float, k_df, k_series]:
+            l_calculated = wave.resource.wave_length(k)
+            self.assertTrue(np.all(2.0 * np.pi / k == l_calculated))
+            self.assertIsInstance(l_calculated, type(k))
 
     def test_depth_regime(self):
         h = 10
@@ -144,11 +150,13 @@ class TestResourceMetrics(unittest.TestCase):
         for l in [l_array, l_series, l_da, l_ds]:
             calculated = wave.resource.depth_regime(l, h)
             self.assertTrue(np.all(expected == calculated))
+            self.assertIsInstance(calculated, type(l))
 
         # special formatting for pd.DataFrame
         for l in [l_df]:
             calculated = wave.resource.depth_regime(l, h)
             self.assertTrue(np.all(expected == calculated[0]))
+            self.assertIsInstance(calculated, type(l))
 
     def test_wave_celerity(self):
         # Depth regime ratio
@@ -218,7 +226,7 @@ class TestResourceMetrics(unittest.TestCase):
 
                     calculated = wave.resource.frequency_moment(
                         S, int(m), frequency_bins=f_bins
-                    ).iloc[0, 0]
+                    ).item()
                     error = np.abs(expected - calculated) / expected
 
                     self.assertLess(error, 0.01)
@@ -234,11 +242,11 @@ class TestResourceMetrics(unittest.TestCase):
         for g in gamma:
             for T in Te:
                 Tp = wave.resource.energy_period_to_peak_period(T, g)
+                self.assertIsInstance(Tp, type(T))
 
                 f = np.linspace(1 / (10 * Tp), 3 / Tp, 100)
                 S = wave.resource.jonswap_spectrum(f, Tp, Hs, g)
-
-                Te_calc = wave.resource.energy_period(S).values[0][0]
+                Te_calc = wave.resource.energy_period(S).item()
 
                 error = np.abs(T - Te_calc) / Te_calc
                 self.assertLess(error, 0.01)
@@ -259,16 +267,16 @@ class TestResourceMetrics(unittest.TestCase):
                 expected = data["metrics"]["Hm0"]
                 calculated = wave.resource.significant_wave_height(
                     S, frequency_bins=f_bins
-                ).iloc[0, 0]
+                )
                 error = np.abs(expected - calculated) / expected
                 # print('Hm0', expected, calculated, error)
                 self.assertLess(error, 0.01)
 
                 # Te
                 expected = data["metrics"]["Te"]
-                calculated = wave.resource.energy_period(S, frequency_bins=f_bins).iloc[
-                    0, 0
-                ]
+                calculated = wave.resource.energy_period(
+                    S, frequency_bins=f_bins
+                ).item()
                 error = np.abs(expected - calculated) / expected
                 # print('Te', expected, calculated, error)
                 self.assertLess(error, 0.01)
@@ -277,7 +285,7 @@ class TestResourceMetrics(unittest.TestCase):
                 expected = data["metrics"]["T0"]
                 calculated = wave.resource.average_zero_crossing_period(
                     S, frequency_bins=f_bins
-                ).iloc[0, 0]
+                ).item()
                 error = np.abs(expected - calculated) / expected
                 # print('T0', expected, calculated, error)
                 self.assertLess(error, 0.01)
@@ -289,7 +297,7 @@ class TestResourceMetrics(unittest.TestCase):
                         S,
                         # Tc = Tavg**2
                         frequency_bins=f_bins,
-                    ).iloc[0, 0]
+                    ).item()
                     ** 2
                 )
                 error = np.abs(expected - calculated) / expected
@@ -300,14 +308,14 @@ class TestResourceMetrics(unittest.TestCase):
                 expected = np.sqrt(data["metrics"]["Tm"])
                 calculated = wave.resource.average_wave_period(
                     S, frequency_bins=f_bins
-                ).iloc[0, 0]
+                ).item()
                 error = np.abs(expected - calculated) / expected
                 # print('Tm', expected, calculated, error)
                 self.assertLess(error, 0.01)
 
                 # Tp
                 expected = data["metrics"]["Tp"]
-                calculated = wave.resource.peak_period(S).iloc[0, 0]
+                calculated = wave.resource.peak_period(S)
                 error = np.abs(expected - calculated) / expected
                 # print('Tp', expected, calculated, error)
                 self.assertLess(error, 0.001)
@@ -316,7 +324,7 @@ class TestResourceMetrics(unittest.TestCase):
                 expected = data["metrics"]["e"]
                 calculated = wave.resource.spectral_bandwidth(
                     S, frequency_bins=f_bins
-                ).iloc[0, 0]
+                ).item()
                 error = np.abs(expected - calculated) / expected
                 # print('e', expected, calculated, error)
                 self.assertLess(error, 0.001)
@@ -325,8 +333,8 @@ class TestResourceMetrics(unittest.TestCase):
                 if file_i != "CDiP":
                     for i, j in zip(data["h"], data["J"]):
                         expected = data["J"][j]
-                        calculated = wave.resource.energy_flux(S, i)
-                        error = np.abs(expected - calculated.values) / expected
+                        calculated = wave.resource.energy_flux(S, i).item()
+                        error = np.abs(expected - calculated) / expected
                         self.assertLess(error, 0.1)
 
                 # v
@@ -335,14 +343,14 @@ class TestResourceMetrics(unittest.TestCase):
                     expected = data["metrics"]["v"]
                     calculated = wave.resource.spectral_width(
                         S, frequency_bins=f_bins
-                    ).iloc[0, 0]
+                    ).item()
                     error = np.abs(expected - calculated) / expected
                     self.assertLess(error, 0.01)
 
                 if file_i == "MC":
                     expected = data["metrics"]["v"]
                     # testing that default uniform frequency bin widths works
-                    calculated = wave.resource.spectral_width(S).iloc[0, 0]
+                    calculated = wave.resource.spectral_width(S).item()
                     error = np.abs(expected - calculated) / expected
                     self.assertLess(error, 0.01)
 
