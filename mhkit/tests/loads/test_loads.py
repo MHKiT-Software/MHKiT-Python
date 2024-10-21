@@ -422,7 +422,7 @@ class TestWDRT(unittest.TestCase):
         mler["WaveSpectrum"] = self.mler["Res_Spec"].values
         mler["Phase"] = self.mler["phase"].values
         k = resource.wave_number(wave_freq, 70)
-        np.nan_to_num(k, 0)
+        k = np.nan_to_num(k, nan=0)
         mler_norm = loads.extreme.mler_wave_amp_normalize(4.5 * 1.9, mler, self.sim, k)
         mler_norm.reset_index(drop=True, inplace=True)
 
