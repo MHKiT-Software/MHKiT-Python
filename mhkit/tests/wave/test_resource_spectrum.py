@@ -149,6 +149,39 @@ class TestResourceSpectrum(unittest.TestCase):
 
         self.assertLess(rmse_sum, 0.02)
 
+    def test_elevation_spectrum_multiple_variables(self):
+        time = np.linspace(0, 100, 1000)
+        eta1 = np.sin(2 * np.pi * 0.1 * time)
+        eta2 = np.sin(2 * np.pi * 0.2 * time)
+        eta3 = np.sin(2 * np.pi * 0.3 * time)
+
+        eta_dataset = xr.Dataset(
+            {
+                "eta1": (["time"], eta1),
+                "eta2": (["time"], eta2),
+                "eta3": (["time"], eta3),
+            },
+            coords={"time": time},
+        )
+
+        sample_rate = 10
+        nnft = 256
+
+        spectra = wave.resource.elevation_spectrum(eta_dataset, sample_rate, nnft)
+
+        # For each variable, find the frequency at which the spectrum has its maximum value
+        for var_name, expected_peak_freq in [
+            ("eta1", 0.117),
+            ("eta2", 0.2),
+            ("eta3", 0.3125),
+        ]:
+            spec_values = spectra[var_name].values
+            peak_index = np.argmax(spec_values)
+            peak_freq = spectra.index[peak_index]
+
+            # Assert that the peak frequency is close to the expected frequency
+            self.assertAlmostEqual(peak_freq, expected_peak_freq, places=2)
+
     def test_mhkit_spectrum_without_frequency_index_name_defined(self):
         S = wave.resource.jonswap_spectrum(self.f, self.Tp, self.Hs)
         S.index.name = None
