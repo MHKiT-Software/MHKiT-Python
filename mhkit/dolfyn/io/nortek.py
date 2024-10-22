@@ -518,13 +518,13 @@ class _NortekReader:
         TimCtrlReg = _int2binarray(tmp[8], 16)
         # From the nortek system integrator manual
         # (note: bit numbering is zero-based)
-        cfg_u["usr"]["profile_mode"] = ["single", "continuous"][TimCtrlReg[1]]
+        cfg_u["usr"]["profile_mode"] = ["single", "continuous"][int(TimCtrlReg[1])]
         cfg_u["usr"]["burst_mode"] = str(bool(~TimCtrlReg[2]))
         cfg_u["usr"]["power_level"] = int(TimCtrlReg[5] + 2 * TimCtrlReg[6] + 1)
         cfg_u["usr"]["sync_out_pos"] = [
             "middle",
             "end",
-        ][TimCtrlReg[7]]
+        ][int(TimCtrlReg[7])]
         cfg_u["usr"]["sample_on_sync"] = str(bool(TimCtrlReg[8]))
         cfg_u["usr"]["start_on_sync"] = str(bool(TimCtrlReg[9]))
         cfg_u["PwrCtrlReg"] = _int2binarray(tmp[9], 16)
