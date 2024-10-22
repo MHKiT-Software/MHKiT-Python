@@ -754,11 +754,23 @@ class _RDIReader:
         tmp = fd.read_ui8(5)
         prog_ver0 = tmp[0]
         cfg["prog_ver"] = float(tmp[0] + tmp[1] * 0.01)
-        cfg["inst_model"] = defs.adcp_type.get(tmp[0], "unrecognized firmware version")
+        cfg["inst_model"] = defs.adcp_type.get(tmp[0], "unrecognized instrument")
         config = tmp[2:4]
-        cfg["beam_angle"] = [15, 20, 30][(config[1] & 3)]
+        cfg["beam_angle"] = [15, 20, 30, [0, 25][int(tmp[0] in [11, 47, 66])]][
+            (config[1] & 3)
+        ]
         beam5 = [0, 1][int((config[1] & 16) == 16)]
-        cfg["freq"] = [75, 150, 300, 600, 1200, 2400, 38][(config[0] & 7)]
+        # Carrier frequency
+        if tmp[0] in [47, 66]:  # new freqs for Sentinel Vs
+            cfg["freq"] = [38.4, 76.8, 153.6, 307.2, 491.52, 983.04, 2457.6][
+                (config[0] & 7)
+            ]
+        elif tmp[0] == 31:
+            cfg["freq"] = 2000
+        elif tmp[0] == 61:
+            cfg["freq"] = 44
+        else:
+            cfg["freq"] = [75, 150, 300, 600, 1200, 2400, 38][(config[0] & 7)]
         cfg["beam_pattern"] = ["concave", "convex"][int((config[0] & 8) == 8)]
         cfg["orientation"] = ["down", "up"][int((config[0] & 128) == 128)]
         simflag = ["real", "simulated"][tmp[4]]
@@ -810,15 +822,15 @@ class _RDIReader:
         if cfg["prog_ver"] >= 8.24:
             cfg["bandwidth"] = fd.read_ui16(1)
             self._nbyte += 2
-        if cfg["prog_ver"] >= 16.05:
+        if cfg["prog_ver"] >= 9.68:
             cfg["power_level"] = fd.read_ui8(1)
-            self._nbyte += 1
-        if cfg["prog_ver"] >= 16.27:
             # cfg['navigator_basefreqindex'] = fd.read_ui8(1)
             fd.seek(1, 1)
             cfg["serialnum"] = fd.read_ui32(1)
-            cfg["beam_angle"] = fd.read_ui8(1)
-            self._nbyte += 6
+            ba = fd.read_ui8(1)
+            if not cfg["beam_angle"]:
+                cfg["beam_angle"] = ba
+            self._nbyte += 7
 
         self.configsize = self.f.tell() - cfgstart
         if self._debug_level > -1:

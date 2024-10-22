@@ -5,6 +5,8 @@ adcp_type = {
     4: "Broadband",
     5: "Broadband",
     6: "Navigator",
+    8: "Workhorse",
+    9: "Navigator",
     10: "Rio Grande",
     11: "H-ADCP",
     14: "Ocean Surveyor",
