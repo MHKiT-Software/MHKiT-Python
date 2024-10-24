@@ -57,15 +57,15 @@ class TestAnalysis(unittest.TestCase):
 
         # Frequency average into # octave bands
         octave = 3
-        td_spsdl_mean = acoustics.band_average(td_spsdl, octave, fmin=50)
+        td_spsdl_mean = acoustics.band_aggregate(td_spsdl, octave, fmin=50)
 
         # Time average into 30 s bins
         lbin = 30
-        td_spsdl_50 = acoustics.time_average(td_spsdl_mean, lbin, method="median")
-        td_spsdl_25 = acoustics.time_average(
+        td_spsdl_50 = acoustics.time_aggregate(td_spsdl_mean, lbin, method="median")
+        td_spsdl_25 = acoustics.time_aggregate(
             td_spsdl_mean, lbin, method={"quantile": 0.25}
         )
-        td_spsdl_75 = acoustics.time_average(
+        td_spsdl_75 = acoustics.time_aggregate(
             td_spsdl_mean, lbin, method={"quantile": 0.75}
         )
 
@@ -260,7 +260,7 @@ class TestAnalysis(unittest.TestCase):
 
     def test_validate_method(self):
         """
-        Test the validation of the 'method' parameter in band_average or time_average.
+        Test the validation of the 'method' parameter in band_aggregate or time_aggregate.
         """
         from mhkit.acoustics.analysis import _validate_method
 

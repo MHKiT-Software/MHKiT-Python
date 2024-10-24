@@ -4,13 +4,23 @@ functions allow passthrough of matplotlib functionality and commands
 to make them fully customizable.
 """
 
+from typing import Tuple
+import xarray as xr
 import matplotlib.pyplot as plt
+
 from .analysis import _fmax_warning
 
 
-def plot_spectogram(spsdl, fmin=10, fmax=100000, fig=None, ax=None, **kwargs):
+def plot_spectrogram(
+    spsdl: xr.DataArray,
+    fmin: int = 10,
+    fmax: int = 100000,
+    fig: plt.figure = None,
+    ax: plt.Axes = None,
+    **kwargs
+) -> Tuple[plt.figure, plt.Axes]:
     """
-    Plots the spectogram of the sound pressure spectral density level.
+    Plots the spectrogram of the sound pressure spectral density level.
 
     Parameters
     ----------
@@ -31,13 +41,21 @@ def plot_spectogram(spsdl, fmin=10, fmax=100000, fig=None, ax=None, **kwargs):
     -------
     fig: matplotlib.pyplot.figure
         Figure handle of plot
-    ax: matplotlib.pyplot.axis
+    ax: matplotlib.pyplot.Axes
         Figure plot axis
     """
 
+    if not isinstance(fmin, (int, float)) or not isinstance(fmax, (int, float)):
+        raise TypeError("fmin and fmax must be numeric types.")
+    if fmin >= fmax:
+        raise ValueError("fmin must be less than fmax.")
+
     # Set dimension names
+    # "time" or "time_bins" is always first
     time = spsdl.dims[0]
+    # "freq" or "freq_bins" is always second
     freq = spsdl.dims[-1]
+
     # Check fmax
     fn = spsdl[freq].max().item()
     fmax = _fmax_warning(fn, fmax)
@@ -48,7 +66,11 @@ def plot_spectogram(spsdl, fmin=10, fmax=100000, fig=None, ax=None, **kwargs):
         fig, ax = plt.subplots(figsize=(6, 5), subplot_kw={"yscale": "log"})
         fig.subplots_adjust(left=0.1, right=0.95, top=0.97, bottom=0.11)
     h = ax.pcolormesh(
-        spsdl[time].values, spsdl[freq].values, spsdl.T, shading="nearest", **kwargs
+        spsdl[time].values,
+        spsdl[freq].values,
+        spsdl.transpose(freq, time),
+        shading="nearest",
+        **kwargs
     )
     fig.colorbar(h, ax=ax, label=spsdl.units)
     ax.set(xlabel="Time", ylabel="Frequency [Hz]")
@@ -56,7 +78,14 @@ def plot_spectogram(spsdl, fmin=10, fmax=100000, fig=None, ax=None, **kwargs):
     return fig, ax
 
 
-def plot_spectra(spsdl, fmin=10, fmax=100000, fig=None, ax=None, **kwargs):
+def plot_spectra(
+    spsdl: xr.DataArray,
+    fmin: int = 10,
+    fmax: int = 100000,
+    fig: plt.figure = None,
+    ax: plt.Axes = None,
+    **kwargs
+) -> Tuple[plt.figure, plt.Axes]:
     """
     Plots spectral density. X axis is log-transformed.
 
@@ -70,7 +99,7 @@ def plot_spectra(spsdl, fmin=10, fmax=100000, fig=None, ax=None, **kwargs):
         Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
     fig: matplotlib.pyplot.figure
         Figure handle to plot on
-    ax: matplotlib.pyplot.axis
+    ax: matplotlib.pyplot.Axes
         Figure axis containing plot objects
     kwargs: dict
         Dictionary of matplotlib function keyword arguments
@@ -79,12 +108,19 @@ def plot_spectra(spsdl, fmin=10, fmax=100000, fig=None, ax=None, **kwargs):
     -------
     fig: matplotlib.pyplot.figure
         Figure handle of plot
-    ax: matplotlib.pyplot.axis
+    ax: matplotlib.pyplot.Axes
         Figure plot axis
     """
 
-    # Set dimension names
+    if not isinstance(fmin, (int, float)) or not isinstance(fmax, (int, float)):
+        raise TypeError("fmin and fmax must be numeric types.")
+    if fmin >= fmax:
+        raise ValueError("fmin must be less than fmax.")
+
+    # Set dimension names.
+    # "freq" or "freq_bins" is always second
     freq = spsdl.dims[-1]
+
     # Check fmax
     fn = spsdl[freq].max().item()
     fmax = _fmax_warning(fn, fmax)

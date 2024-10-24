@@ -205,18 +205,18 @@ def apply_calibration(
     # Ensure 'freq' dimension exists in 'spsd'
     if "freq" not in spsd.dims:
         if len(spsd.dims) > 1:
-            # Issue a warning and assign the 0th dimension as 'freq'
+            # Issue a warning and assign the 2nd dimension as 'freq'
             warnings.warn(
                 f"'spsd' does not have 'freq' as a dimension and has multiple dimensions. "
-                f"Using the first dimension '{spsd.dims[0]}' as 'freq'."
+                f"Using the second dimension '{spsd.dims[1]}' as 'freq'."
             )
-        # Assign the 0th dimension as 'freq'
-        spsd = spsd.rename({spsd.dims[0]: "freq"})
+        # Assign the 2nd dimension as 'freq'
+        spsd = spsd.rename({spsd.dims[1]: "freq"})
 
     # Ensure 'freq' dimension exists in 'sensitivity_curve'
     if "freq" not in sensitivity_curve.dims:
         if len(sensitivity_curve.dims) > 1:
-            # Issue a warning and assign the 0th dimension as 'freq'
+            # Issue a warning and assign the 1st dimension as 'freq'
             warnings.warn(
                 f"'sensitivity_curve' does not have 'freq' as a dimension \
                       and has multiple dimensions. "
@@ -228,22 +228,25 @@ def apply_calibration(
         )
 
     # Create a copy of spsd to avoid in-place modification
-    spsd_calibrated = spsd.copy()
+    spsd_calibrated = spsd.copy(deep=True)
+    attrs = spsd.attrs  # recover attrs
 
     # Read calibration curve
     freq = sensitivity_curve.dims[0]
     # Interpolate calibration curve to desired value
     calibration = sensitivity_curve.interp(
         {freq: spsd_calibrated["freq"]}, method="linear"
-    ).drop_vars(freq)
+    )
     # Fill missing with provided value
     calibration = calibration.fillna(fill_value)
 
     # Subtract from sound pressure spectral density
     sensitivity_ratio = 10 ** (calibration / 10)  # V^2/uPa^2
-    spsd_calibrated /= sensitivity_ratio  # uPa^2/Hz
-    spsd_calibrated /= 1e12  # Pa^2/Hz
-    spsd_calibrated.attrs["units"] = "Pa^2/Hz"
+    spsd_calibrated = spsd_calibrated / sensitivity_ratio / 1e12  # Pa^2/Hz
+    attrs.update(
+        {"long_name": "Calibrated Sound Pressure Spectral Density", "units": "Pa^2/Hz"}
+    )
+    spsd_calibrated.attrs = attrs
 
     return spsd_calibrated
 
@@ -287,8 +290,65 @@ def _validate_method(
     method: Union[str, Dict[str, Union[float, int]]]
 ) -> Tuple[str, Optional[Union[float, int]]]:
     """
-    Validates the 'method' parameter and returns the method name and argument (if any).
+    Validates the 'method' parameter and returns the method name and its argument (if any).
+
+    Parameters
+    ----------
+    method : str or dict
+        The aggregation method to validate. It can be either:
+          - A string representing one of the supported methods without additional arguments,
+            e.g., 'mean', 'sum'.
+          - A dictionary with a single key-value pair where the key is the method name and
+            the value is its argument, e.g., {'quantile': 0.25}.
+
+        Supported methods are:
+          - 'median'
+          - 'mean'
+          - 'min'
+          - 'max'
+          - 'sum'
+          - 'quantile' (requires an argument between 0 and 1)
+          - 'std'
+          - 'var'
+          - 'count'
+
+    Returns
+    -------
+    method_name : str
+        The validated method name in lowercase.
+    method_arg : float, int, or None
+        The argument associated with the method, if applicable; otherwise, None.
+
+    Raises
+    ------
+    ValueError
+        - If the method name is not supported.
+        - If the 'quantile' method is provided without an argument or with an invalid argument.
+        - If the 'method' dictionary does not contain exactly one key-value pair.
+        - If 'method' is of an unsupported type.
+    TypeError
+        - If the key in the 'method' dictionary is not a string.
+
+    Examples
+    --------
+    >>> _validate_method('mean')
+    ('mean', None)
+
+    >>> _validate_method({'quantile': 0.75})
+    ('quantile', 0.75)
+
+    >>> _validate_method('quantile')
+    ValueError: The 'quantile' method must be provided as a dictionary with the quantile value,
+        e.g., {'quantile': 0.25}.
+
+    >>> _validate_method({'quantile': 1.5})
+    ValueError: The 'quantile' method must have a float between 0 and 1 as an argument.
+
+    >>> _validate_method({'unsupported_method': None})
+    ValueError: Method 'unsupported_method' is not supported.
+        Supported methods are: ['median', 'mean', 'min', 'max', 'sum', 'quantile', 'std', 'var', 'count']
     """
+
     allowed_methods = [
         "median",
         "mean",
@@ -338,7 +398,7 @@ def _validate_method(
     return method_name, method_arg
 
 
-def band_average(
+def band_aggregate(
     spsdl: xr.DataArray,
     octave: int = 3,
     fmin: int = 10,
@@ -437,7 +497,7 @@ def band_average(
     return out
 
 
-def time_average(
+def time_aggregate(
     spsdl: xr.DataArray,
     window: int = 60,
     method: Union[str, Dict[str, Union[float, int]]] = "median",
@@ -710,30 +770,6 @@ def third_octave_sound_pressure_level(
         Sound pressure level [dB re 1 uPa] indexed by time and third octave bands
     """
 
-    # Type checks
-    if not isinstance(spsd, xr.DataArray):
-        raise TypeError("'spsd' must be an xarray.DataArray.")
-    if not isinstance(fmin, int):
-        raise TypeError("'fmin' must be an integer.")
-    if not isinstance(fmax, int):
-        raise TypeError("'fmax' must be an integer.")
-
-    # Ensure 'freq' and 'time' dimensions are present
-    if "freq" not in spsd.dims or "time" not in spsd.dims:
-        raise ValueError("'spsd' must have 'time' and 'freq' as dimensions.")
-
-    # Check that 'fs' (sampling frequency) is available in attributes
-    if "fs" not in spsd.attrs:
-        raise ValueError(
-            "'spsd' must have 'fs' (sampling frequency) in its attributes."
-        )
-
-    # Value checks
-    if fmin <= 0:
-        raise ValueError("'fmin' must be a positive integer.")
-    if fmax <= fmin:
-        raise ValueError("'fmax' must be greater than 'fmin'.")
-
     # Third octave bin frequencies
     bandwidth = 2 ** (1 / 3)
     half_bandwidth = 2 ** (1 / 6)
@@ -766,32 +802,8 @@ def decidecade_sound_pressure_level(
     Returns
     -------
     mspl : xarray.DataArray (time, freq_bins)
-        Sound pressure level [dB re 1 uPa] indexed by time and third octave bands
+        Sound pressure level [dB re 1 uPa] indexed by time and decidecade bands
     """
-
-    # Type checks
-    if not isinstance(spsd, xr.DataArray):
-        raise TypeError("'spsd' must be an xarray.DataArray.")
-    if not isinstance(fmin, int):
-        raise TypeError("'fmin' must be an integer.")
-    if not isinstance(fmax, int):
-        raise TypeError("'fmax' must be an integer.")
-
-    # Ensure 'freq' and 'time' dimensions are present
-    if "freq" not in spsd.dims or "time" not in spsd.dims:
-        raise ValueError("'spsd' must have 'time' and 'freq' as dimensions.")
-
-    # Check that 'fs' (sampling frequency) is available in attributes
-    if "fs" not in spsd.attrs:
-        raise ValueError(
-            "'spsd' must have 'fs' (sampling frequency) in its attributes."
-        )
-
-    # Value checks
-    if fmin <= 0:
-        raise ValueError("'fmin' must be a positive integer.")
-    if fmax <= fmin:
-        raise ValueError("'fmax' must be greater than 'fmin'.")
 
     # Decidecade bin frequencies
     bandwidth = 2 ** (1 / 10)
