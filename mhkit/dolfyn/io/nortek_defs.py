@@ -89,7 +89,7 @@ class _VarAtts:
             out = out.view(self.view_type)
         return out
 
-    def sci_func(self, data):
+    def scale(self, data):
         """
         Scale the data to scientific units.
 
