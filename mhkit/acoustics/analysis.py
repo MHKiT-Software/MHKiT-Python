@@ -346,7 +346,8 @@ def _validate_method(
 
     >>> _validate_method({'unsupported_method': None})
     ValueError: Method 'unsupported_method' is not supported.
-        Supported methods are: ['median', 'mean', 'min', 'max', 'sum', 'quantile', 'std', 'var', 'count']
+        Supported methods are:
+        ['median', 'mean', 'min', 'max', 'sum', 'quantile', 'std', 'var', 'count']
     """
 
     allowed_methods = [
