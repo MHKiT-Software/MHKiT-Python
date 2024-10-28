@@ -851,7 +851,7 @@ class VelBinner(TimeBinner):
             coords=coords,
             dims=dims,
             attrs={
-                "units": "% [0,1]",
+                "units": "%",
                 "long_name": "Turbulence Intensity",
                 "comment": f"TI was corrected from a noise level of {noise} m/s",
             },
