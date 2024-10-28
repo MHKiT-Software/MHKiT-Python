@@ -446,7 +446,7 @@ class Velocity:
             I_tke.data.astype("float32"),
             coords=self.U_mag.coords,
             dims=self.U_mag.dims,
-            attrs={"units": "% [0,1]", "long_name": "TKE Intensity"},
+            attrs={"units": "1", "long_name": "TKE Intensity"},
         )
 
     @property
@@ -462,7 +462,7 @@ class Velocity:
             I.data.astype("float32"),
             coords=self.U_mag.coords,
             dims=self.U_mag.dims,
-            attrs={"units": "% [0,1]", "long_name": "Turbulence Intensity"},
+            attrs={"units": "1", "long_name": "Turbulence Intensity"},
         )
 
     @property
@@ -851,7 +851,7 @@ class VelBinner(TimeBinner):
             coords=coords,
             dims=dims,
             attrs={
-                "units": "%",
+                "units": "1",
                 "long_name": "Turbulence Intensity",
                 "comment": f"TI was corrected from a noise level of {noise} m/s",
             },
