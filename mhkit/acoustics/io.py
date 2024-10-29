@@ -1,8 +1,39 @@
 """
-This submodule includes the main passive acoustics I/O functions.
-`read_hydrophone` is the main function, with a number of wrapper
-functions for specific manufacturers. The `export_audio` function
-exists to improve audio if one is difficult to listen to.
+This submodule provides input/output functions for passive acoustics data,
+focusing on hydrophone recordings stored in WAV files. The main functionality
+includes reading and processing hydrophone data from various manufacturers 
+and exporting audio files for easy playback and analysis.
+
+Supported Hydrophone Models
+---------------------------
+- **SoundTrap** (Ocean Instruments)
+- **icListen** (Ocean Sonics)
+
+Functions Overview
+------------------
+
+1. **Data Reading**:
+   - `read_hydrophone`: Main function to read a WAV file from a hydrophone and 
+     convert it to either a voltage or pressure time series, depending on the 
+     availability of sensitivity data.
+
+   - `read_soundtrap`: Wrapper for reading Ocean Instruments SoundTrap hydrophone 
+     files, automatically using appropriate metadata.
+
+   - `read_iclisten`: Wrapper for reading Ocean Sonics icListen hydrophone files, 
+     including metadata processing to apply hydrophone sensitivity for direct 
+     sound pressure calculation.
+
+2. **Audio Export**:
+   - `export_audio`: Converts processed sound pressure data back into a WAV file 
+     format, with optional gain adjustment to improve playback quality.
+
+3. **Data Extraction**:
+   - `_read_wav_metadata`: Extracts metadata from a WAV file, including bit depth 
+     and other header information.
+
+   - `_calculate_voltage_and_time`: Converts raw WAV data into voltage values and 
+     generates a time index based on the sampling frequency.
 """
 
 from typing import BinaryIO, Tuple, Dict, Union, Optional, Any

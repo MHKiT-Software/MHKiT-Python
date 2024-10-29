@@ -1,7 +1,50 @@
 """
-This file includes the main passive acoustics analysis functions. They
-are designed to function on top of one another, starting from reading
-in wav files from the io submodule.
+This module contains key functions for passive acoustics analysis, designed to process
+and analyze sound pressure data from .wav files in the frequency and time domains.
+The functions herein build on each other, with a structured flow that facilitates the
+calculation of sound pressure levels, spectral densities, and banded averages, based on 
+input audio data.
+
+The following functionality is provided:
+
+1. **Frequency Validation and Warning**:
+   - `_fmax_warning`: Ensures specified maximum frequency does not exceed the Nyquist frequency, 
+     adjusting if necessary to avoid aliasing.
+
+2. **Shallow Water Cutoff Frequency**:
+   - `minimum_frequency`: Calculates the minimum frequency cutoff based on water depth and the
+     speed of sound in water and seabed materials.
+
+3. **Spectral Density Calculations**:
+   - `sound_pressure_spectral_density`: Computes the mean square sound pressure spectral density
+     using FFT binning with Hanning windowing and 50% overlap.
+
+4. **Calibration**:
+   - `apply_calibration`: Applies calibration adjustments to the spectral density data using 
+     a sensitivity curve, filling missing values as specified.
+
+5. **Spectral Density Level Calculation**:
+   - `sound_pressure_spectral_density_level`: Converts mean square spectral density values to 
+     sound pressure spectral density levels in dB.
+
+6. **Spectral Density Aggregation**:
+   - `band_aggregate`: Aggregates spectral density data into fractional octave bands using
+     specified statistical methods (e.g., median, mean).
+
+   - `time_aggregate`: Aggregates spectral density data into specified time windows using
+     similar statistical methods.
+
+7. **Sound Pressure Level Calculation**:
+   - `sound_pressure_level`: Computes the overall sound pressure level within a frequency band
+     from mean square spectral density.
+
+8. **Frequency-Banded Sound Pressure Level**:
+   - `_band_sound_pressure_level`: Helper function for calculating sound pressure levels
+     over specified frequency bandwidths.
+     
+   - `third_octave_sound_pressure_level` and `decidecade_sound_pressure_level`: 
+     Compute sound pressure levels across third-octave and decidecade bands, respectively.
+
 """
 
 from typing import Union, Dict, Tuple, Optional
