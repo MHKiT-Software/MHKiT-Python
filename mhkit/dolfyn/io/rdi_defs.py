@@ -329,6 +329,18 @@ data_defs = {
 }
 
 
+def skip_Ncol(rdr, n_skip=1):
+    """Skip specified number of columns. For profile measurements."""
+    rdr.f.seek(n_skip * rdr.cfg["n_cells"], 1)
+    rdr._nbyte = 2 + n_skip * rdr.cfg["n_cells"]
+
+
+def skip_Nbyte(rdr, n_skip):
+    """Skip specified number of bytes. For non-profile measurements."""
+    rdr.f.seek(n_skip, 1)
+    rdr._nbyte = 2 + n_skip
+
+
 def switch_profile(rdr, bb):
     """Switch between bb, nb and sl profiles"""
     if bb == 1:

@@ -570,99 +570,99 @@ class _RDIReader:
         """Main function map used to read or skip stored IDs"""
         function_map = {
             # 0000 1st profile fixed leader
-            0: (defs.read_fixed, [self, False]),
+            0: (defs.read_fixed, [False]),
             # 0001 2nd profile fixed leader
-            1: (defs.read_fixed, [self, True]),
+            1: (defs.read_fixed, [True]),
             # 0010 Surface layer fixed leader (RiverPro & StreamPro)
-            16: (defs.read_fixed_sl, [self]),
+            16: (defs.read_fixed_sl, []),
             # 0080 1st profile variable leader
-            128: (defs.read_var, [self, False]),
+            128: (defs.read_var, [False]),
             # 0081 2nd profile variable leader
-            129: (defs.read_var, [self, True]),
+            129: (defs.read_var, [True]),
             # 0100 1st profile velocity
-            256: (defs.read_vel, [self, 0]),
+            256: (defs.read_vel, [0]),
             # 0101 2nd profile velocity
-            257: (defs.read_vel, [self, 1]),
+            257: (defs.read_vel, [1]),
             # 0103 Waves first leader
-            259: (self.skip_Nbyte, [74]),
+            259: (defs.skip_Nbyte, [74]),
             # 0110 Surface layer velocity (RiverPro & StreamPro)
-            272: (defs.read_vel, [self, 2]),
+            272: (defs.read_vel, [2]),
             # 0200 1st profile correlation
-            512: (defs.read_corr, [self, 0]),
+            512: (defs.read_corr, [0]),
             # 0201 2nd profile correlation
-            513: (defs.read_corr, [self, 1]),
+            513: (defs.read_corr, [1]),
             # 0203 Waves data
-            515: (self.skip_Nbyte, [186]),
+            515: (defs.skip_Nbyte, [186]),
             # 020C Ambient sound profile
-            524: (self.skip_Nbyte, [4]),
+            524: (defs.skip_Nbyte, [4]),
             # 0210 Surface layer correlation (RiverPro & StreamPro)
-            528: (defs.read_corr, [self, 2]),
+            528: (defs.read_corr, [2]),
             # 0300 1st profile amplitude
-            768: (defs.read_amp, [self, 0]),
+            768: (defs.read_amp, [0]),
             # 0301 2nd profile amplitude
-            769: (defs.read_amp, [self, 1]),
+            769: (defs.read_amp, [1]),
             # 0302 Beam 5 Sum of squared velocities
-            770: (self.skip_Ncol, []),
+            770: (defs.skip_Ncol, []),
             # 0303 Waves last leader
-            771: (self.skip_Ncol, [18]),
+            771: (defs.skip_Ncol, [18]),
             # 0310 Surface layer amplitude (RiverPro & StreamPro)
-            784: (defs.read_amp, [self, 2]),
+            784: (defs.read_amp, [2]),
             # 0400 1st profile % good
-            1024: (defs.read_prcnt_gd, [self, 0]),
+            1024: (defs.read_prcnt_gd, [0]),
             # 0401 2nd profile pct good
-            1025: (defs.read_prcnt_gd, [self, 1]),
+            1025: (defs.read_prcnt_gd, [1]),
             # 0403 Waves HPR data
-            1027: (self.skip_Nbyte, [6]),
+            1027: (defs.skip_Nbyte, [6]),
             # 0410 Surface layer pct good (RiverPro & StreamPro)
-            1040: (defs.read_prcnt_gd, [self, 2]),
+            1040: (defs.read_prcnt_gd, [2]),
             # 0500 1st profile status
-            1280: (defs.read_status, [self, 0]),
+            1280: (defs.read_status, [0]),
             # 0501 2nd profile status
-            1281: (defs.read_status, [self, 1]),
+            1281: (defs.read_status, [1]),
             # 0510 Surface layer status (RiverPro & StreamPro)
-            1296: (defs.read_status, [self, 2]),
-            1536: (defs.read_bottom, [self]),  # 0600 bottom tracking
-            1793: (self.skip_Ncol, [4]),  # 0701 number of pings
-            1794: (self.skip_Ncol, [4]),  # 0702 sum of squared vel
-            1795: (self.skip_Ncol, [4]),  # 0703 sum of velocities
-            2560: (self.skip_Ncol, []),  # 0A00 Beam 5 velocity
-            2816: (self.skip_Ncol, []),  # 0B00 Beam 5 correlation
-            3072: (self.skip_Ncol, []),  # 0C00 Beam 5 amplitude
-            3328: (self.skip_Ncol, []),  # 0D00 Beam 5 pct_good
+            1296: (defs.read_status, [2]),
+            1536: (defs.read_bottom, []),  # 0600 bottom tracking
+            1793: (defs.skip_Ncol, [4]),  # 0701 number of pings
+            1794: (defs.skip_Ncol, [4]),  # 0702 sum of squared vel
+            1795: (defs.skip_Ncol, [4]),  # 0703 sum of velocities
+            2560: (defs.skip_Ncol, []),  # 0A00 Beam 5 velocity
+            2816: (defs.skip_Ncol, []),  # 0B00 Beam 5 correlation
+            3072: (defs.skip_Ncol, []),  # 0C00 Beam 5 amplitude
+            3328: (defs.skip_Ncol, []),  # 0D00 Beam 5 pct_good
             # Fixed attitude data format for Ocean Surveyor ADCPs
-            3000: (self.skip_Nbyte, [32]),
-            3841: (self.skip_Nbyte, [38]),  # 0F01 Beam 5 leader
-            8192: (defs.read_vmdas, [self]),  # 2000
+            3000: (defs.skip_Nbyte, [32]),
+            3841: (defs.skip_Nbyte, [38]),  # 0F01 Beam 5 leader
+            8192: (defs.read_vmdas, []),  # 2000
             # 2013 Navigation parameter data
-            8211: (self.skip_Nbyte, [83]),
-            8226: (defs.read_winriver2, [self]),  # 2022
-            8448: (defs.read_winriver, [self]),  # 2100
-            8449: (defs.read_winriver, [self]),  # 2101
-            8450: (defs.read_winriver, [self]),  # 2102
-            8451: (defs.read_winriver, [self]),  # 2103
-            8452: (defs.read_winriver, [self]),  # 2104
+            8211: (defs.skip_Nbyte, [83]),
+            8226: (defs.read_winriver2, []),  # 2022
+            8448: (defs.read_winriver, []),  # 2100
+            8449: (defs.read_winriver, []),  # 2101
+            8450: (defs.read_winriver, []),  # 2102
+            8451: (defs.read_winriver, []),  # 2103
+            8452: (defs.read_winriver, []),  # 2104
             # 3200 Transformation matrix
-            12800: (self.skip_Nbyte, [32]),
+            12800: (defs.skip_Nbyte, [32]),
             # 3000 Fixed attitude data format for Ocean Surveyor ADCPs
-            12288: (self.skip_Nbyte, [32]),
-            12496: (self.skip_Nbyte, [24]),  # 30D0
-            12504: (self.skip_Nbyte, [48]),  # 30D8
+            12288: (defs.skip_Nbyte, [32]),
+            12496: (defs.skip_Nbyte, [24]),  # 30D0
+            12504: (defs.skip_Nbyte, [48]),  # 30D8
             # 4100 beam 5 range
-            16640: (defs.read_alt, [self]),
+            16640: (defs.read_alt, []),
             # 4400 Firmware status data (RiverPro & StreamPro)
-            17408: (self.skip_Nbyte, [28]),
+            17408: (defs.skip_Nbyte, [28]),
             # 4401 Auto mode setup (RiverPro & StreamPro)
-            17409: (self.skip_Nbyte, [82]),
+            17409: (defs.skip_Nbyte, [82]),
             # 5803 High resolution bottom track velocity
-            22531: (self.skip_Nbyte, [68]),
+            22531: (defs.skip_Nbyte, [68]),
             # 5804 Bottom track range
-            22532: (self.skip_Nbyte, [21]),
+            22532: (defs.skip_Nbyte, [21]),
             # 5901 ISM (IMU) data
-            22785: (self.skip_Nbyte, [65]),
+            22785: (defs.skip_Nbyte, [65]),
             # 5902 Ping attitude
-            22786: (self.skip_Nbyte, [105]),
+            22786: (defs.skip_Nbyte, [105]),
             # 7001 ADC data
-            28673: (self.skip_Nbyte, [14]),
+            28673: (defs.skip_Nbyte, [14]),
         }
         # Call the correct function:
         if self._debug_level > 1:
@@ -670,23 +670,13 @@ class _RDIReader:
         if id in function_map:
             if self._debug_level > 1:
                 logging.info("  Reading code {}...".format(hex(id)))
-            retval = function_map.get(id)[0](*function_map[id][1])
+            retval = function_map.get(id)[0](self, *function_map[id][1])
             if retval:
                 return retval
             if self._debug_level > 1:
                 logging.info("    success!")
         else:
             self.read_nocode(id)
-
-    def skip_Ncol(self, n_skip=1):
-        """Skip specified number of columns. For profile measurements."""
-        self.f.seek(n_skip * self.cfg["n_cells"], 1)
-        self._nbyte = 2 + n_skip * self.cfg["n_cells"]
-
-    def skip_Nbyte(self, n_skip):
-        """Skip specified number of bytes. For non-profile measurements."""
-        self.f.seek(n_skip, 1)
-        self._nbyte = 2 + n_skip
 
     def read_nocode(self, id):
         """Identify filler or unknown bytes and bypass them"""
@@ -704,7 +694,7 @@ class _RDIReader:
             # 2 bits of byte 3
             # 3 is a 0b00000011 mask:
             dfac = bin(int(hxid[3], 0) & 3).count("1")
-            self.skip_Nbyte(12 * nflds * dfac)
+            defs.skip_Nbyte(self, 12 * nflds * dfac)
         else:
             if self._debug_level > -1:
                 logging.warning("  Unrecognized ID code: %0.4X" % id)
@@ -716,7 +706,7 @@ class _RDIReader:
         idx = np.where(offsets == self.id_positions[id])[0][0]
         byte_len = offsets[idx + 1] - offsets[idx] - 2
 
-        self.skip_Nbyte(byte_len)
+        defs.skip_Nbyte(self, byte_len)
         if self._debug_level > -1:
             logging.debug(f"Skipping ID code {id}\n")
 
