@@ -8,7 +8,6 @@ from mhkit import power
 from mhkit import loads
 from mhkit import dolfyn
 from mhkit import mooring
-from mhkit import strain
 
 # Register datetime converter for a matplotlib plotting methods
 from pandas.plotting import register_matplotlib_converters as _rmc
