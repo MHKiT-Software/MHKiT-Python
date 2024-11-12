@@ -195,12 +195,11 @@ def convert_to_dataarray(
             data = data.iloc[:, 0]
         else:
             # With this conversion, dataframe columns always become "dim_1".
-            # Rename to "variable" to match how multiple Dataset variables get converted into a DataArray dimension
+            # Rename to "variable" to match how multiple Dataset variables get
+            # converted into a DataArray dimension
             data = xr.DataArray(data)
             if data.dims[1] == "dim_1":
-                # Slight chance there is already a name for the columns
                 data = data.rename({"dim_1": "variable"})
-
     # Checks xr.Dataset input and converts to xr.DataArray if possible
     if isinstance(data, xr.Dataset):
         keys = list(data.keys())
@@ -209,10 +208,10 @@ def convert_to_dataarray(
             data = data[keys[0]]
         else:
             # Allow multiple variables if they have the same dimensions
-            if all([data[keys[0]].dims == data[key].dims for key in keys]):
-                data = (
-                    data.to_array().T
-                )  # transpose so that the new "variable dimension" is the last dimension (matches DataFrame to DataArray behavior)
+            # transpose so that the new "variable dimension" is the last
+            # dimension (matches DataFrame to DataArray behavior)
+            if all(data[keys[0]].dims == data[key].dims for key in keys):
+                data = data.to_array().T
             else:
                 raise ValueError(
                     "Multivariate Datasets can only be input if all \
@@ -232,8 +231,7 @@ def convert_to_dataarray(
 
     # If there's no data name, add one to prevent issues calling or
     # converting to a Dataset later on
-    if data.name is None:
-        data.name = name
+    data.name = data.name if data.name is not None else name
 
     return data
 
