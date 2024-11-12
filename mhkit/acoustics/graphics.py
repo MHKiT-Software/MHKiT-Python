@@ -86,7 +86,7 @@ def plot_spectrogram(
         shading="nearest",
         **kwargs
     )
-    fig.colorbar(h, ax=ax, label=spsdl.units)
+    fig.colorbar(h, ax=ax, label=getattr(spsdl, "units", None))
     ax.set(xlabel="Time", ylabel="Frequency [Hz]")
 
     return fig, ax
@@ -147,6 +147,8 @@ def plot_spectra(
             left=0.1, right=0.95, top=0.85, bottom=0.2, hspace=0.3, wspace=0.15
         )
     ax.plot(spsdl[freq], spsdl.T, **kwargs)
-    ax.set(xlim=(fmin, fmax), xlabel="Frequency [Hz]", ylabel=spsdl.units)
+    ax.set(
+        xlim=(fmin, fmax), xlabel="Frequency [Hz]", ylabel=getattr(spsdl, "units", None)
+    )
 
     return fig, ax

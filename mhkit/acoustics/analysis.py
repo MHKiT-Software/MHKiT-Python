@@ -2,13 +2,13 @@
 This module contains key functions for passive acoustics analysis, designed to process
 and analyze sound pressure data from .wav files in the frequency and time domains.
 The functions herein build on each other, with a structured flow that facilitates the
-calculation of sound pressure levels, spectral densities, and banded averages, based on 
+calculation of sound pressure levels, spectral densities, and banded averages, based on
 input audio data.
 
 The following functionality is provided:
 
 1. **Frequency Validation and Warning**:
-   - `_fmax_warning`: Ensures specified maximum frequency does not exceed the Nyquist frequency, 
+   - `_fmax_warning`: Ensures specified maximum frequency does not exceed the Nyquist frequency,
      adjusting if necessary to avoid aliasing.
 
 2. **Shallow Water Cutoff Frequency**:
@@ -20,11 +20,11 @@ The following functionality is provided:
      using FFT binning with Hanning windowing and 50% overlap.
 
 4. **Calibration**:
-   - `apply_calibration`: Applies calibration adjustments to the spectral density data using 
+   - `apply_calibration`: Applies calibration adjustments to the spectral density data using
      a sensitivity curve, filling missing values as specified.
 
 5. **Spectral Density Level Calculation**:
-   - `sound_pressure_spectral_density_level`: Converts mean square spectral density values to 
+   - `sound_pressure_spectral_density_level`: Converts mean square spectral density values to
      sound pressure spectral density levels in dB.
 
 6. **Spectral Density Aggregation**:
@@ -41,10 +41,9 @@ The following functionality is provided:
 8. **Frequency-Banded Sound Pressure Level**:
    - `_band_sound_pressure_level`: Helper function for calculating sound pressure levels
      over specified frequency bandwidths.
-     
-   - `third_octave_sound_pressure_level` and `decidecade_sound_pressure_level`: 
-     Compute sound pressure levels across third-octave and decidecade bands, respectively.
 
+   - `third_octave_sound_pressure_level` and `decidecade_sound_pressure_level`:
+     Compute sound pressure levels across third-octave and decidecade bands, respectively.
 """
 
 from typing import Union, Dict, Tuple, Optional
@@ -333,7 +332,8 @@ def _validate_method(
     method: Union[str, Dict[str, Union[float, int]]]
 ) -> Tuple[str, Optional[Union[float, int]]]:
     """
-    Validates the 'method' parameter and returns the method name and its argument (if any).
+    Validates the 'method' parameter and returns the method name and its argument (if any)
+    for an xarray.core.groupby.DataArrayGroupBy method.
 
     Parameters
     ----------
@@ -345,15 +345,26 @@ def _validate_method(
             the value is its argument, e.g., {'quantile': 0.25}.
 
         Supported methods are:
-          - 'median'
-          - 'mean'
-          - 'min'
-          - 'max'
-          - 'sum'
-          - 'quantile' (requires an argument between 0 and 1)
-          - 'std'
-          - 'var'
+          - 'all'
+          - 'any'
+          - 'assign_coords' (requires coordinate argument)
           - 'count'
+          - 'cumprod'
+          - 'fillna'
+          - 'first'
+          - 'last'
+          - 'map' (requires custom function argument)
+          - 'max'
+          - 'mean'
+          - 'median'
+          - 'min'
+          - 'prod'
+          - 'quantile' (requires a quantile between 0 and 1)
+          - 'reduce' (requires custom function argument)
+          - 'std'
+          - 'sum'
+          - 'var'
+          - 'where' (requires condition argument)
 
     Returns
     -------
@@ -394,15 +405,27 @@ def _validate_method(
     """
 
     allowed_methods = [
-        "median",
-        "mean",
-        "min",
-        "max",
-        "sum",
-        "quantile",
-        "std",
-        "var",
+        "all",
+        "any",
+        "assign_coords",
         "count",
+        "cumsum",
+        "fillna",
+        "first",
+        "last",
+        "map",
+        "max",
+        "mean",
+        "median",
+        "min",
+        "prod",
+        "quantile",
+        "reduce",
+        "sum",
+        "std",
+        "sum",
+        "var",
+        "where",
     ]
 
     if isinstance(method, str):
@@ -527,16 +550,22 @@ def band_aggregate(
     elif isinstance(method, dict):
         method_name, method_arg = list(method.items())[0]
         func = getattr(spsdl_group, method_name.lower())
-        out = func(method_arg)
+        if isinstance(method_arg, list) or isinstance(method_arg, tuple):
+            out = func(*method_arg)
+        else:
+            out = func(method_arg)
     else:
         raise ValueError(
             f"Unsupported method type: {type(method)}. "
             "Must be a string or dictionary."
         )
 
-    out.attrs.update(
-        {"units": spsdl.units, "comment": f"Third octave frequency band {method}"}
-    )
+    # Update attributes
+    out.attrs["units"] = spsdl.units
+
+    # Remove 'quantile' coordinate if present
+    if method == "quantile":
+        out = out.drop_vars("quantile")
 
     return out
 
@@ -605,16 +634,25 @@ def time_aggregate(
     # Use xarray binning methods
     spsdl_group = spsdl.groupby_bins("time", time_bins, labels=center_time)
 
-    # Apply the aggregation method
-    func = getattr(spsdl_group, method_name)
-    if method_arg is not None:
-        out = func(method_arg)
-    else:
+    # Handle method being a string or a dict
+    if isinstance(method, str):
+        func = getattr(spsdl_group, method.lower())
         out = func()
+    elif isinstance(method, dict):
+        method_name, method_arg = list(method.items())[0]
+        func = getattr(spsdl_group, method_name.lower())
+        if isinstance(method_arg, list) or isinstance(method_arg, tuple):
+            out = func(*method_arg)
+        else:
+            out = func(method_arg)
+    else:
+        raise ValueError(
+            f"Unsupported method type: {type(method)}. "
+            "Must be a string or dictionary."
+        )
 
     # Update attributes
     out.attrs["units"] = spsdl.units
-    out.attrs["comment"] = f"Time average {method}"
 
     # Remove 'quantile' coordinate if present
     if method == "quantile":
