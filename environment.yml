@@ -1,5 +1,6 @@
 name: mhkit-env
 channels:
+  - conda-forge/label/cf-staging
   - conda-forge
   - defaults
 dependencies:
