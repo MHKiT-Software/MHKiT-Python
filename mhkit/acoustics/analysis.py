@@ -543,7 +543,7 @@ def band_aggregate(
     if isinstance(method, str):
         func = getattr(spsdl_group, method.lower())
         out = func()
-    elif isinstance(method, dict):
+    else:
         method_name, method_arg = list(method.items())[0]
         func = getattr(spsdl_group, method_name.lower())
         if isinstance(method_arg, (list, tuple)):
@@ -629,7 +629,7 @@ def time_aggregate(
     if isinstance(method, str):
         func = getattr(spsdl_group, method.lower())
         out = func()
-    elif isinstance(method, dict):
+    else:
         method_name, method_arg = list(method.items())[0]
         func = getattr(spsdl_group, method_name.lower())
         if isinstance(method_arg, (list, tuple)):
