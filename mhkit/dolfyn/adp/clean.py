@@ -1,7 +1,7 @@
-"""Module containing functions to clean data
-"""
+"""Module containing functions to clean data."""
 
 import warnings
+from typer import Optional
 import numpy as np
 import xarray as xr
 from scipy.signal import medfilt
@@ -10,10 +10,31 @@ from ..rotate.api import rotate2
 from ..rotate.base import quaternion2orient
 
 
-def __check_for_range_offset(ds):
+def __check_for_range_offset(ds) -> float:
     """
-    Fetches or calculates range offset from dataset attributes.
+    Determines the range offset based on a variety of possible dataset attributes.
+    The function first checks if specific attributes are present in the dataset (`ds`)
+    and calculates the range offset accordingly. If the attribute `h_deploy`
+    is found, it is renamed to `range_offset` with a deprecation warning.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset containing attributes used to calculate the range offset.
+
+    Returns
+    -------
+    float
+        The calculated or retrieved range offset. Returns 0 if no
+        relevant attributes are present.
+
+    Raises
+    ------
+    DeprecationWarning
+        Warns that the attribute `h_deploy` is deprecated and has been
+        renamed to `range_offset`.
     """
+
     if "bin1_dist_m" in ds.attrs:
         return ds.attrs["bin1_dist_m"] - ds.attrs["blank_dist"] - ds.attrs["cell_size"]
     elif "range_offset" in ds.attrs:
@@ -27,10 +48,10 @@ def __check_for_range_offset(ds):
         ds.attrs["range_offset"] = ds.attrs.pop("h_deploy")
         return ds.attrs["range_offset"]
     else:
-        return 0
+        return 0.0
 
 
-def set_range_offset(ds, range_offset):
+def set_range_offset(ds, range_offset) -> None:
     """
     Adds an instrument's height above seafloor (for an up-facing instrument)
     or depth below water surface (for a down-facing instrument) to the range
@@ -93,6 +114,9 @@ def set_range_offset(ds, range_offset):
 
 
 def find_surface(*args, **kwargs):
+    """
+    Deprecated function. Use `water_depth_from_amplitude` instead.
+    """
     warnings.warn(
         "The 'find_surface' function was renamed to 'water_depth_from_amplitude"
         "and will be dropped in a future release.",
@@ -101,7 +125,7 @@ def find_surface(*args, **kwargs):
     return water_depth_from_amplitude(*args, **kwargs)
 
 
-def water_depth_from_amplitude(ds, thresh=10, nfilt=None):
+def water_depth_from_amplitude(ds, thresh=10, nfilt=None) -> None:
     """
     Find the surface (water level or seafloor) from amplitude data and
     adds the variable "depth" to the input Dataset.
@@ -181,6 +205,9 @@ def water_depth_from_amplitude(ds, thresh=10, nfilt=None):
 
 
 def find_surface_from_P(*args, **kwargs):
+    """
+    Deprecated function. Use `water_depth_from_pressure` instead.
+    """
     warnings.warn(
         "The 'find_surface_from_P' function was renamed to 'water_depth_from_pressure"
         "and will be dropped in a future release.",
@@ -189,7 +216,7 @@ def find_surface_from_P(*args, **kwargs):
     return water_depth_from_pressure(*args, **kwargs)
 
 
-def water_depth_from_pressure(ds, salinity=35):
+def water_depth_from_pressure(ds, salinity=35) -> None:
     """
     Calculates the distance to the water surface. Temperature and salinity
     are used to calculate seawater density, which is in turn used with the
@@ -280,6 +307,9 @@ def water_depth_from_pressure(ds, salinity=35):
 
 
 def nan_beyond_surface(*args, **kwargs):
+    """
+    Deprecated function. Use `remove_surface_interference` instead.
+    """
     warnings.warn(
         "The 'nan_beyond_surface' function was renamed to 'remove_surface_interference"
         "and will be dropped in a future release.",
@@ -288,7 +318,9 @@ def nan_beyond_surface(*args, **kwargs):
     return remove_surface_interference(*args, **kwargs)
 
 
-def remove_surface_interference(ds, val=np.nan, beam_angle=None, inplace=False):
+def remove_surface_interference(
+    ds, val=np.nan, beam_angle=None, inplace=False
+) -> Optional[xr.Dataset]:
     """
     Mask the values of 3D data (vel, amp, corr, echo) that are beyond the surface.
 
@@ -371,7 +403,7 @@ def remove_surface_interference(ds, val=np.nan, beam_angle=None, inplace=False):
         return ds
 
 
-def correlation_filter(ds, thresh=50, inplace=False):
+def correlation_filter(ds, thresh=50, inplace=False) -> Optional[xr.Dataset]:
     """
     Filters out data where correlation is below a threshold in the
     along-beam correlation data.
@@ -433,7 +465,7 @@ def correlation_filter(ds, thresh=50, inplace=False):
         return ds
 
 
-def medfilt_orient(ds, nfilt=7):
+def medfilt_orient(ds, nfilt=7) -> xr.Dataset:
     """
     Median filters the orientation data (heading-pitch-roll or quaternions)
 
@@ -475,7 +507,7 @@ def medfilt_orient(ds, nfilt=7):
         return ds.drop_vars("orientmat")
 
 
-def val_exceeds_thresh(var, thresh=5, val=np.nan):
+def val_exceeds_thresh(var, thresh=5, val=np.nan) -> xr.DataArray:
     """
     Find values of a variable that exceed a threshold value,
     and assign "val" to the velocity data where the threshold is
@@ -492,8 +524,8 @@ def val_exceeds_thresh(var, thresh=5, val=np.nan):
 
     Returns
     -------
-    ds : xarray.Dataset
-      The adcp dataset with datapoints beyond thresh are set to `val`
+    ds : xarray.DataArray
+      The adcp dataarray with datapoints beyond thresh are set to `val`
     """
 
     var = var.copy(deep=True)
@@ -506,7 +538,7 @@ def val_exceeds_thresh(var, thresh=5, val=np.nan):
     return var
 
 
-def fillgaps_time(var, method="cubic", maxgap=None):
+def fillgaps_time(var, method="cubic", maxgap=None) -> xr.DataArray:
     """
     Fill gaps (nan values) in var across time using the specified method
 
@@ -536,7 +568,7 @@ def fillgaps_time(var, method="cubic", maxgap=None):
     )
 
 
-def fillgaps_depth(var, method="cubic", maxgap=None):
+def fillgaps_depth(var, method="cubic", maxgap=None) -> xr.DataArray:
     """
     Fill gaps (nan values) in var along the depth profile using the specified method
 
