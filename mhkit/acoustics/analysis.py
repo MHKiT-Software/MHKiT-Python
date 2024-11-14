@@ -501,24 +501,20 @@ def band_aggregate(
     # Type checks
     if not isinstance(spsdl, xr.DataArray):
         raise TypeError("'spsdl' must be an xarray.DataArray.")
-    if not isinstance(octave, int):
-        raise TypeError("'octave' must be an integer.")
-    if not isinstance(fmin, int):
-        raise TypeError("'fmin' must be an integer.")
-    if not isinstance(fmax, int):
-        raise TypeError("'fmax' must be an integer.")
+    if not isinstance(octave, int) or (octave <= 0):
+        raise TypeError("'octave' must be a positive integer.")
+    if not isinstance(fmin, int) or (fmin <= 0):
+        raise TypeError("'fmin' must be a positive integer.")
+    if not isinstance(fmax, int) or (fmin <= 0):
+        raise TypeError("'fmax' must be a positive integer.")
+    if fmax <= fmin:
+        raise ValueError("'fmax' must be greater than 'fmin'.")
     if not isinstance(method, (str, dict)):
         raise TypeError("'method' must be a string or a dictionary.")
 
     # Value checks
-    if "freq" not in spsdl.dims or "time" not in spsdl.dims:
+    if ("freq" not in spsdl.dims) or ("time" not in spsdl.dims):
         raise ValueError("'spsdl' must have 'time' and 'freq' as dimensions.")
-    if octave <= 0:
-        raise ValueError("'octave' must be a positive integer.")
-    if fmin <= 0:
-        raise ValueError("'fmin' must be a positive integer.")
-    if fmax <= fmin:
-        raise ValueError("'fmax' must be greater than 'fmin'.")
 
     # Validate method and get method_name and method_arg
     method_name, method_arg = _validate_method(method)
@@ -550,15 +546,10 @@ def band_aggregate(
     elif isinstance(method, dict):
         method_name, method_arg = list(method.items())[0]
         func = getattr(spsdl_group, method_name.lower())
-        if isinstance(method_arg, list) or isinstance(method_arg, tuple):
+        if isinstance(method_arg, (list, tuple)):
             out = func(*method_arg)
         else:
             out = func(method_arg)
-    else:
-        raise ValueError(
-            f"Unsupported method type: {type(method)}. "
-            "Must be a string or dictionary."
-        )
 
     # Update attributes
     out.attrs["units"] = spsdl.units
@@ -641,15 +632,10 @@ def time_aggregate(
     elif isinstance(method, dict):
         method_name, method_arg = list(method.items())[0]
         func = getattr(spsdl_group, method_name.lower())
-        if isinstance(method_arg, list) or isinstance(method_arg, tuple):
+        if isinstance(method_arg, (list, tuple)):
             out = func(*method_arg)
         else:
             out = func(method_arg)
-    else:
-        raise ValueError(
-            f"Unsupported method type: {type(method)}. "
-            "Must be a string or dictionary."
-        )
 
     # Update attributes
     out.attrs["units"] = spsdl.units
@@ -692,7 +678,7 @@ def sound_pressure_level(
         raise TypeError("'fmax' must be an integer.")
 
     # Ensure 'freq' and 'time' dimensions are present
-    if "freq" not in spsd.dims or "time" not in spsd.dims:
+    if ("freq" not in spsd.dims) or ("time" not in spsd.dims):
         raise ValueError("'spsd' must have 'time' and 'freq' as dimensions.")
 
     # Check that 'fs' (sampling frequency) is available in attributes
