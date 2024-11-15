@@ -1,10 +1,9 @@
 name: mhkit-env
 channels:
-  - conda-forge/label/cf-staging
   - conda-forge
   - defaults
 dependencies:
-  - python>=3.10
+  - python=3.11
   - pip
   - numpy>=2.0.0
   - pandas>=2.2.2
@@ -13,17 +12,17 @@ dependencies:
   - scikit-learn>=1.5.1
   - h5py>=3.11.0
   - h5pyd>=0.18.0
+  - netCDF4>=1.6.5
+  - hdf5>=1.14.3,<1.14.5.0a0
   - statsmodels>=0.14.2
   - requests
   - beautifulsoup4
   - numexpr>=2.10.0
   - lxml
   - bottleneck
-  - pecos
-  - netCDF4>=1.7.2
+  - pecos>=0.3.0
   - pip:
       - matplotlib>=3.9.1
-      - pecos>=0.3.0
       - fatpack
       - NREL-rex>=0.2.63
       - notebook
