@@ -67,10 +67,16 @@ jobs:
           activate-environment: TESTconda
           use-only-tar-bz2: true
 
+      - name: Configure conda channels
+        run: |
+          conda config --add channels conda-forge/label/cf-staging
+          conda config --add channels conda-forge
+          conda config --add channels defaults
+
       - name: Create MHKiT Conda environment
         shell: bash -l {0}
         run: |
-          conda env create -f environment.yml
+          conda env create -f environment.yml --debug
           conda activate mhkit-env
 
       - name: Install testing dependencies
