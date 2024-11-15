@@ -125,7 +125,7 @@ jobs:
           auto-update-conda: true
           activate-environment: TEST
           python-version: ${{ env.PYTHON_VER }}
-          use-only-tar-bz2: true
+          use-only-tar-bz2: false
 
       - name: Create MHKiT Conda environment
         shell: bash -l {0}
@@ -174,7 +174,7 @@ jobs:
           auto-update-conda: true
           activate-environment: TEST
           python-version: ${{ env.PYTHON_VER }}
-          use-only-tar-bz2: true
+          use-only-tar-bz2: false
 
       - name: Create MHKiT Conda environment
         shell: bash -l {0}
@@ -466,7 +466,7 @@ jobs:
           auto-update-conda: true
           python-version: '3.11'
           activate-environment: TESTconda
-          use-only-tar-bz2: true
+          use-only-tar-bz2: false
 
       - name: Create MHKiT Conda environment
         shell: bash -l {0}
