@@ -20,8 +20,8 @@ dependencies:
   - lxml
   - bottleneck
   - pecos
+  - netCDF4>=1.7.2
   - pip:
-      - netCDF4>=1.7.1.post1
       - matplotlib>=3.9.1
       - pecos>=0.3.0
       - fatpack
