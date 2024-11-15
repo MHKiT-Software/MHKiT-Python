@@ -65,7 +65,7 @@ jobs:
           auto-update-conda: true
           python-version: ${{ env.PYTHON_VER }}
           activate-environment: TESTconda
-          use-only-tar-bz2: true
+          use-only-tar-bz2: false
 
       - name: Use legacy solver
         run: conda config --set solver classic
