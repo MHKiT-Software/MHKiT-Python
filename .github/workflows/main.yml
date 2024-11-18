@@ -79,7 +79,7 @@ jobs:
       - name: Create MHKiT Conda environment
         shell: bash -l {0}
         run: |
-          conda env create -f environment.yml --debug
+          conda env create -f environment.yml
           conda activate mhkit-env
 
       - name: Install testing dependencies
