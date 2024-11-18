@@ -21,8 +21,7 @@ dependencies:
   - lxml
   - bottleneck
   - pecos>=0.3.0
-  - pip:
-      - matplotlib>=3.9.1
-      - fatpack
-      - NREL-rex>=0.2.63
-      - notebook
+  - notebook
+  - matplotlib>=3.9.1
+  - fatpack
+  - nrel-rex
