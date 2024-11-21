@@ -10,6 +10,9 @@ To start using the module, import it directly from MHKiT:
 are available directly from the main import, while the 
 I/O and graphics submodules are available from 
 ``acoustics.io`` and  ``acoustics.graphics``, respectively.
+The base functions are intended to be used on top of the I/O submodule, and 
+include functionality to calibrate data, create spectral densities, sound 
+pressure levels, and time or band aggregate spectral data.
 """
 
 from mhkit.acoustics import io, graphics
