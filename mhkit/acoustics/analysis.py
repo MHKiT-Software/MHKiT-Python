@@ -8,18 +8,22 @@ input audio data.
 The following functionality is provided:
 
 1. **Frequency Validation and Warning**:
+
    - `_fmax_warning`: Ensures specified maximum frequency does not exceed the Nyquist frequency,
      adjusting if necessary to avoid aliasing.
 
 2. **Shallow Water Cutoff Frequency**:
+
    - `minimum_frequency`: Calculates the minimum frequency cutoff based on water depth and the
      speed of sound in water and seabed materials.
 
 3. **Spectral Density Calculations**:
+
    - `sound_pressure_spectral_density`: Computes the mean square sound pressure spectral density
      using FFT binning with Hanning windowing and 50% overlap.
 
 4. **Calibration**:
+
    - `apply_calibration`: Applies calibration adjustments to the spectral density data using
      a sensitivity curve, filling missing values as specified.
 
@@ -28,6 +32,7 @@ The following functionality is provided:
      sound pressure spectral density levels in dB.
 
 6. **Spectral Density Aggregation**:
+
    - `band_aggregate`: Aggregates spectral density data into fractional octave bands using
      specified statistical methods (e.g., median, mean).
 
@@ -39,6 +44,7 @@ The following functionality is provided:
      from mean square spectral density.
 
 8. **Frequency-Banded Sound Pressure Level**:
+
    - `_band_sound_pressure_level`: Helper function for calculating sound pressure levels
      over specified frequency bandwidths.
 

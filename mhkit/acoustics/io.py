@@ -13,6 +13,7 @@ Functions Overview
 ------------------
 
 1. **Data Reading**:
+
    - `read_hydrophone`: Main function to read a WAV file from a hydrophone and 
      convert it to either a voltage or pressure time series, depending on the 
      availability of sensitivity data.
@@ -25,10 +26,12 @@ Functions Overview
      sound pressure calculation.
 
 2. **Audio Export**:
+
    - `export_audio`: Converts processed sound pressure data back into a WAV file 
      format, with optional gain adjustment to improve playback quality.
 
 3. **Data Extraction**:
+
    - `_read_wav_metadata`: Extracts metadata from a WAV file, including bit depth 
      and other header information.
 
