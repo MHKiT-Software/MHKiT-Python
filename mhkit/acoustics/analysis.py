@@ -28,6 +28,7 @@ The following functionality is provided:
      a sensitivity curve, filling missing values as specified.
 
 5. **Spectral Density Level Calculation**:
+
    - `sound_pressure_spectral_density_level`: Converts mean square spectral density values to
      sound pressure spectral density levels in dB.
 
@@ -40,6 +41,7 @@ The following functionality is provided:
      similar statistical methods.
 
 7. **Sound Pressure Level Calculation**:
+
    - `sound_pressure_level`: Computes the overall sound pressure level within a frequency band
      from mean square spectral density.
 
