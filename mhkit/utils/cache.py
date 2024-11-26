@@ -58,6 +58,13 @@ def handle_caching(
     Handles caching of data to avoid redundant network requests or
     computations.
 
+    The function checks if a cache file exists for the given parameters.
+    If it does, the function will load data from the cache file, unless
+    the `clear_cache_file` parameter is set to `True`, in which case the
+    cache file is cleared. If the cache file does not exist and the
+    `data` parameter is not `None`, the function will store the
+    provided data in a cache file.
+
     Parameters
     ----------
     hash_params : str
