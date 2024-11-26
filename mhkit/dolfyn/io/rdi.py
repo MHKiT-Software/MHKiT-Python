@@ -22,7 +22,7 @@ def read_rdi(
     vmdas_search=False,
     winriver=False,
     **kwargs,
-):
+) -> xr.Dataset:
     """
     Read a TRDI binary data file.
 
@@ -732,7 +732,18 @@ class _RDIReader:
         fd.seek(4 + self._fixoffset, 1)
 
     def remove_end(self, iens):
-        """Remove uncompleted measurements"""
+        """
+        Removes incomplete measurements from the dataset.
+
+        This method cleans up any partially read data by truncating measurements
+        to the specified ensemble index (`iens`). This is typically called upon
+        reaching the end of the file to ensure only complete data is retained.
+
+        Parameters
+        ----------
+        iens : int
+            The index up to which data is considered complete and should be retained.
+        """
         dat = self.outd
         if self._debug_level > 0:
             logging.info("  Encountered end of file.  Cleaning up data.")
@@ -740,7 +751,29 @@ class _RDIReader:
             lib._setd(dat, nm, lib._get(dat, nm)[..., :iens])
 
     def save_profiles(self, dat, nm, en, iens):
-        """Reformat and save profile measurements"""
+        """
+        Reformats profile measurements in the retrieved measurements.
+
+        This method processes profile measurements from individual pings,
+        adapting to changing cell counts and cell sizes as needed (from the WinRiver2
+        program with one of the ***Pro ADCPs).
+
+        Parameters
+        ----------
+        dat : dict
+            Raw data dictionary
+        nm : str
+            The name of the profile variable
+        en : dict
+            The dictionary containing ensemble profiles
+        iens : int
+            The index of the current ensemble
+
+        Returns
+        -------
+        dict
+            The updated dataset dictionary with the reformatted profile measurements.
+        """
         ds = lib._get(dat, nm)
         if self.n_avg == 1:
             bn = en[nm][..., 0]
@@ -782,8 +815,27 @@ class _RDIReader:
         return dat
 
     def cleanup(self, dat, cfg):
-        """Clean up recorded data, particularly variablem cell sizes
-        and profile ranges."""
+        """
+        Cleans up recorded data by adjusting variable cell sizes and profile ranges.
+
+        This method handles adjustments when cell sizes change during data collection,
+        performing depth-bin averaging for smaller cells if needed. It also updates
+        the configuration data, range coordinates, and manages any surface layer profiles.
+
+        Parameters
+        ----------
+        dat : dict
+            The dataset dictionary containing data variables and coordinates to be cleaned up.
+        cfg : dict
+            Configuration dictionary, which is updated with cell size, range, and additional
+            attributes after cleanup.
+
+        Returns
+        -------
+        tuple
+            - dict : The updated dataset dictionary with cleaned data.
+            - dict : The updated configuration dictionary with new attributes.
+        """
         # Clean up changing cell size, if necessary
         cs = np.array(self.cs, dtype=np.float32)
         cell_sizes = cs[:, 1]
@@ -834,7 +886,24 @@ class _RDIReader:
         return dat, cfg
 
     def reshape(self, arr, n_bin=None):
-        """Reshape the array `arr` to shape (...,n,n_bin)."""
+        """
+        Reshapes the input array `arr` to a shape of (..., n, n_bin).
+
+        Parameters
+        ----------
+        arr : np.ndarray
+            The array to reshape. The last dimension of `arr` will be divided into
+            `(n, n_bin)` based on the value of `n_bin`.
+        n_bin : int or float, optional
+            The bin size for reshaping. If `n_bin` is an integer, it divides the
+            last dimension directly. If not, indices are adjusted, and excess
+            bins may be removed. Default is None.
+
+        Returns
+        -------
+        np.ndarray
+            The reshaped array with shape (..., n, n_bin).
+        """
 
         out = np.zeros(
             list(arr.shape[:-1]) + [int(arr.shape[-1] // n_bin), int(n_bin)],
@@ -860,8 +929,24 @@ class _RDIReader:
         return out
 
     def finalize(self, dat):
-        """Remove the attributes from the data that were never loaded."""
+        """
+        This method cleans up the dataset by removing any attributes that were
+        defined but not loaded, updates configuration attributes, and sets the
+        sampling frequency (fs) based on the data source program. Additionally,
+        it adjusts the axes of certain variables as defined in data_defs.
 
+        Parameters
+        ----------
+        dat : dict
+            The dataset dictionary to be finalized. This dictionary is modified
+            in place by removing unused attributes, setting configuration values
+            as attributes, and calculating `fs`.
+
+        Returns
+        -------
+        dict
+            The finalized dataset dictionary with cleaned attributes and added metadata.
+        """
         for nm in set(defs.data_defs.keys()) - self.vars_read:
             lib._pop(dat, nm)
         for nm in self.cfg:
