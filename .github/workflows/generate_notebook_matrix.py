@@ -26,6 +26,7 @@ notebook_timeouts = {
     "qc_example.ipynb": 180,
     "river_example.ipynb": 180,
     "short_term_extremes_example.ipynb": 180,
+    "strain_measurement_example.ipynb": 30,
     "SWAN_example.ipynb": 180,
     "tidal_example.ipynb": 180,
     "tidal_performance_example.ipynb": 180,
