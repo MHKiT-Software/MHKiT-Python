@@ -84,7 +84,7 @@ class TestIOndbc(unittest.TestCase):
         }
         self.filenames = ["46042w1996.txt.gz", "46029w1997.txt.gz", "46029w1998.txt.gz"]
         self.swden = pd.read_csv(
-            join(datadir, self.filenames[0]), sep=r"\s+", compression="gzip"
+            join(datadir, self.filenames[0]), sep=r"\\s+", compression="gzip"
         )
 
         buoy = "42012"
