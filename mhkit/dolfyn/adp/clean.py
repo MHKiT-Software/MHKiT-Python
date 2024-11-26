@@ -1,7 +1,7 @@
 """Module containing functions to clean data."""
 
 import warnings
-from typer import Optional
+from typing import Optional
 import numpy as np
 import xarray as xr
 from scipy.signal import medfilt
