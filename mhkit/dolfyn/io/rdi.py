@@ -701,7 +701,17 @@ class _RDIReader:
             self.skip_nocode(id)
 
     def skip_nocode(self, id):
-        """Skip bytes if ID is not in function map"""
+        """
+        Skips bytes when an ID code is not found in the function map.
+
+        This method calculates the byte length to skip based on the positions
+        of known ID codes and uses this length to bypass filler or irrelevant data.
+
+        Parameters
+        ----------
+        id : int
+            The ID code that is not present in the function map.
+        """
         offsets = list(self.id_positions.values())
         idx = np.where(offsets == self.id_positions[id])[0][0]
         byte_len = offsets[idx + 1] - offsets[idx] - 2
@@ -712,8 +722,19 @@ class _RDIReader:
 
     def check_offset(self, offset, readbytes):
         """
-        Check distance to nearest function ID and adjust file
-        position as necessary
+        Checks and adjusts the file position based on the distance to the nearest function ID.
+
+        If the provided `offset` differs from the expected value and `_fixoffset` is zero,
+        this method updates `_fixoffset` and adjusts the file position in the data file
+        (`self.f`) accordingly. This adjustment is logged if `_debug_level` is set to a
+        positive value.
+
+        Parameters
+        ----------
+        offset : int
+            The current offset from the expected position.
+        readbytes : int
+            The number of bytes that have been read so far.
         """
         fd = self.f
         if offset != 4 and self._fixoffset == 0:

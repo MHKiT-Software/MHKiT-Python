@@ -114,9 +114,22 @@ def _handle_nan(data):
 
 def _remove_gps_duplicates(dat):
     """
-    Removes duplicate and nan timestamp values in 'time_gps' coordinate,
-    and add hardware (ADCP DAQ) timestamp corresponding to GPS acquisition
-    (in addition to the GPS unit's timestamp).
+    Removes duplicate and NaN timestamp values in the 'time_gps' coordinate
+    of the dataset and adds a hardware (ADCP DAQ) timestamp corresponding to GPS
+    acquisition in the 'hdwtime_gps' variable.
+
+    Parameters
+    ----------
+    dat : xarray.Dataset
+        Dataset containing GPS-related data and timestamps. This dataset is
+        modified in place.
+
+    Returns
+    -------
+    xarray.Dataset
+        The input dataset with duplicates and NaN values removed from the
+        'time_gps' coordinate. A new variable, 'hdwtime_gps', is added to
+        indicate the hardware timestamp corresponding to GPS acquisition.
     """
 
     dat["data_vars"]["hdwtime_gps"] = dat["coords"]["time"]
