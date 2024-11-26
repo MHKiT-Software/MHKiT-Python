@@ -50,7 +50,9 @@ def read_table(swan_file, to_pandas=True):
             metaDict["units"] = units
     f.close()
 
-    swan_data = pd.read_csv(swan_file, sep="\\s+", comment="%", names=metaDict["header"])
+    swan_data = pd.read_csv(
+        swan_file, sep="\\s+", comment="%", names=metaDict["header"]
+    )
 
     if not to_pandas:
         swan_data = convert_to_dataset(swan_data)
