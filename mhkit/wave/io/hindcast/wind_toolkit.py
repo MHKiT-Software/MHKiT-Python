@@ -417,7 +417,12 @@ def request_wtk_point_data(
     hash_params = f"{time_interval}_{parameter}_{lat_lon}_{years}_{preferred_region}_{tree}_{unscale}_{str_decode}_{hsds}"
 
     # Use handle_caching to manage caching.
-    data, meta, _ = handle_caching(hash_params, cache_dir, clear_cache_file=clear_cache)
+    data, meta, _ = handle_caching(
+        hash_params,
+        cache_dir,
+        cache_content={"data": None, "metadata": None, "write_json": None},
+        clear_cache_file=clear_cache,
+    )
 
     if data is not None and meta is not None:
         if not to_pandas:
@@ -478,7 +483,11 @@ def request_wtk_point_data(
             meta = meta.reset_index(drop=True)
 
         # Save the retrieved data and metadata to cache.
-        handle_caching(hash_params, cache_dir, data=data, metadata=meta)
+        handle_caching(
+            hash_params,
+            cache_dir,
+            cache_content={"data": data, "metadata": meta, "write_json": None},
+        )
 
         if not to_pandas:
             data = convert_to_dataset(data)
