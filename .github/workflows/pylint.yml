@@ -29,6 +29,10 @@ jobs:
         run: |
           pylint mhkit/power/
 
+      - name: Run Pylint on mhkit/utils/
+        run: |
+          pylint mhkit/utils/
+
       - name: Run Pylint on mhkit/acoustics/
         run: |
           pylint mhkit/acoustics/

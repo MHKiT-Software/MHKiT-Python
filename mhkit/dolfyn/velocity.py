@@ -307,7 +307,7 @@ class Velocity:
         - earth:     east
         - principal: streamwise
         """
-        return self.ds["vel"][0].drop("dir")
+        return self.ds["vel"][0].drop_vars("dir")
 
     @property
     def v(
@@ -325,7 +325,7 @@ class Velocity:
         - earth:     north
         - principal: cross-stream
         """
-        return self.ds["vel"][1].drop("dir")
+        return self.ds["vel"][1].drop_vars("dir")
 
     @property
     def w(
@@ -343,7 +343,7 @@ class Velocity:
         - earth:     up
         - principal: up
         """
-        return self.ds["vel"][2].drop("dir")
+        return self.ds["vel"][2].drop_vars("dir")
 
     @property
     def U(
@@ -402,8 +402,8 @@ class Velocity:
             dims=self.U.dims,
             coords=self.U.coords,
             attrs={
-                "units": "degrees_CW_from_" + str(rel),
-                "long_name": "Water Direction",
+                "units": "degree",
+                "long_name": "Water Direction, CW from " + str(rel),
                 "standard_name": "sea_water_to_direction",
             },
         )
@@ -446,7 +446,7 @@ class Velocity:
             I_tke.data.astype("float32"),
             coords=self.U_mag.coords,
             dims=self.U_mag.dims,
-            attrs={"units": "% [0,1]", "long_name": "TKE Intensity"},
+            attrs={"units": "1", "long_name": "TKE Intensity"},
         )
 
     @property
@@ -462,7 +462,7 @@ class Velocity:
             I.data.astype("float32"),
             coords=self.U_mag.coords,
             dims=self.U_mag.dims,
-            attrs={"units": "% [0,1]", "long_name": "Turbulence Intensity"},
+            attrs={"units": "1", "long_name": "Turbulence Intensity"},
         )
 
     @property
@@ -483,7 +483,7 @@ class Velocity:
     ):
         """u'v'bar Reynolds stress"""
 
-        return self.ds["stress_vec"].sel(tau="upvp_").drop("tau")
+        return self.ds["stress_vec"].sel(tau="upvp_").drop_vars("tau")
 
     @property
     def upwp_(
@@ -491,7 +491,7 @@ class Velocity:
     ):
         """u'w'bar Reynolds stress"""
 
-        return self.ds["stress_vec"].sel(tau="upwp_").drop("tau")
+        return self.ds["stress_vec"].sel(tau="upwp_").drop_vars("tau")
 
     @property
     def vpwp_(
@@ -499,7 +499,7 @@ class Velocity:
     ):
         """v'w'bar Reynolds stress"""
 
-        return self.ds["stress_vec"].sel(tau="vpwp_").drop("tau")
+        return self.ds["stress_vec"].sel(tau="vpwp_").drop_vars("tau")
 
     @property
     def upup_(
@@ -507,7 +507,7 @@ class Velocity:
     ):
         """u'u'bar component of the tke"""
 
-        return self.ds["tke_vec"].sel(tke="upup_").drop("tke")
+        return self.ds["tke_vec"].sel(tke="upup_").drop_vars("tke")
 
     @property
     def vpvp_(
@@ -515,7 +515,7 @@ class Velocity:
     ):
         """v'v'bar component of the tke"""
 
-        return self.ds["tke_vec"].sel(tke="vpvp_").drop("tke")
+        return self.ds["tke_vec"].sel(tke="vpvp_").drop_vars("tke")
 
     @property
     def wpwp_(
@@ -523,7 +523,7 @@ class Velocity:
     ):
         """w'w'bar component of the tke"""
 
-        return self.ds["tke_vec"].sel(tke="wpwp_").drop("tke")
+        return self.ds["tke_vec"].sel(tke="wpwp_").drop_vars("tke")
 
 
 class VelBinner(TimeBinner):
@@ -851,7 +851,7 @@ class VelBinner(TimeBinner):
             coords=coords,
             dims=dims,
             attrs={
-                "units": "% [0,1]",
+                "units": "1",
                 "long_name": "Turbulence Intensity",
                 "comment": f"TI was corrected from a noise level of {noise} m/s",
             },

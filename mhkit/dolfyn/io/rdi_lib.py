@@ -2,6 +2,8 @@ import numpy as np
 from struct import unpack
 from os.path import expanduser
 
+from .rdi_defs import data_defs
+
 
 class bin_reader:
     """
@@ -110,3 +112,92 @@ class bin_reader:
 
     def read_i32(self, n):
         return self.read(n, "l")
+
+
+class _variable_setlist(set):
+    def __iadd__(self, vals):
+        if vals[0] not in self:
+            self |= set(vals)
+        return self
+
+
+class _ensemble:
+    n_avg = 1
+    k = -1  # This is the counter for filling the ensemble object
+
+    def __getitem__(self, nm):
+        return getattr(self, nm)
+
+    def __init__(self, navg, n_cells):
+        if navg is None or navg == 0:
+            navg = 1
+        self.n_avg = navg
+        self.n_cells = n_cells
+        for nm in data_defs:
+            setattr(
+                self,
+                nm,
+                np.zeros(_get_size(nm, n=navg, ncell=n_cells), dtype=data_defs[nm][2]),
+            )
+
+    def clean_data(self):
+        self["vel"][self["vel"] == -32.768] = np.nan
+
+
+def _get(dat, nm):
+    grp = data_defs[nm][1]
+    if grp is None:
+        return dat[nm]
+    else:
+        return dat[grp][nm]
+
+
+def _in_group(dat, nm):
+    grp = data_defs[nm][1]
+    if grp is None:
+        return nm in dat
+    else:
+        return nm in dat[grp]
+
+
+def _pop(dat, nm):
+    grp = data_defs[nm][1]
+    if grp is None:
+        dat.pop(nm)
+    else:
+        dat[grp].pop(nm)
+
+
+def _setd(dat, nm, val):
+    grp = data_defs[nm][1]
+    if grp is None:
+        dat[nm] = val
+    else:
+        dat[grp][nm] = val
+
+
+def _idata(dat, nm, sz):
+    group = data_defs[nm][1]
+    dtype = data_defs[nm][2]
+    units = data_defs[nm][3]
+    long_name = data_defs[nm][4]
+    standard_name = data_defs[nm][5]
+    arr = np.empty(sz, dtype=dtype)
+    if dtype.startswith("float"):
+        arr[:] = np.nan
+    dat[group][nm] = arr
+    dat["units"][nm] = units
+    dat["long_name"][nm] = long_name
+    if standard_name:
+        dat["standard_name"][nm] = standard_name
+    return dat
+
+
+def _get_size(name, n=None, ncell=0):
+    sz = list(data_defs[name][0])  # create a copy!
+    if "nc" in sz:
+        sz.insert(sz.index("nc"), ncell)
+        sz.remove("nc")
+    if n is None:
+        return tuple(sz)
+    return tuple(sz + [n])

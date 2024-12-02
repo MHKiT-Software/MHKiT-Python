@@ -112,6 +112,47 @@ def _handle_nan(data):
     return data
 
 
+def _remove_gps_duplicates(dat):
+    """
+    Removes duplicate and NaN timestamp values in the 'time_gps' coordinate
+    of the dataset and adds a hardware (ADCP DAQ) timestamp corresponding to GPS
+    acquisition in the 'hdwtime_gps' variable.
+
+    Parameters
+    ----------
+    dat : xarray.Dataset
+        Dataset containing GPS-related data and timestamps. This dataset is
+        modified in place.
+
+    Returns
+    -------
+    xarray.Dataset
+        The input dataset with duplicates and NaN values removed from the
+        'time_gps' coordinate. A new variable, 'hdwtime_gps', is added to
+        indicate the hardware timestamp corresponding to GPS acquisition.
+    """
+
+    dat["data_vars"]["hdwtime_gps"] = dat["coords"]["time"]
+
+    # Remove duplicate timestamp values, if applicable
+    dat["coords"]["time_gps"], idx = np.unique(
+        dat["coords"]["time_gps"], return_index=True
+    )
+    # Remove nan values, if applicable
+    nan = np.zeros(dat["coords"]["time"].shape, dtype=bool)
+    if any(np.isnan(dat["coords"]["time_gps"])):
+        nan = np.isnan(dat["coords"]["time_gps"])
+        dat["coords"]["time_gps"] = dat["coords"]["time_gps"][~nan]
+
+    for key in dat["data_vars"]:
+        if ("gps" in key) or ("nmea" in key):
+            dat["data_vars"][key] = dat["data_vars"][key][idx]
+            if sum(nan) > 0:
+                dat["data_vars"][key] = dat["data_vars"][key][~nan]
+
+    return dat
+
+
 def _create_dataset(data):
     """
     Creates an xarray dataset from dictionary created from binary
