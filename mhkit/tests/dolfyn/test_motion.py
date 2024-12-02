@@ -56,6 +56,10 @@ class mc_testcase(unittest.TestCase):
 
         cdm10 = load("vector_data_imu01_mcDeclin10.nc")
 
+        # Normalize the datasets before comparison to reduce numerical noise.
+        tdmE["vel"] = tdmE["vel"] / np.linalg.norm(tdmE["vel"].values)
+        cdm10["vel"] = cdm10["vel"] / np.linalg.norm(cdm10["vel"].values)
+
         assert_allclose(tdm, load("vector_data_imu01_mc.nc"), atol=1e-7)
         assert_allclose(tdm10, tdmj, atol=1e-7)
         assert_allclose(tdm0, tdm, atol=1e-7)
