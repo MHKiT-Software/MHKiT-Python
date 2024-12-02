@@ -198,7 +198,15 @@ def save(ds, filename, format="NETCDF4", engine="netcdf4", compression=False, **
         enc[ky] = ds[ky].encoding
         # Remove unexpected netCDF4 encoding parameters
         # https://github.com/pydata/xarray/discussions/5709
-        params = ["szip", "zstd", "bzip2", "blosc", "contiguous", "chunksizes"]
+        params = [
+            "szip",
+            "zstd",
+            "bzip2",
+            "blosc",
+            "contiguous",
+            "chunksizes",
+            "preferred_chunks",
+        ]
         [enc[ky].pop(p) for p in params if p in enc[ky]]
 
         if compression:

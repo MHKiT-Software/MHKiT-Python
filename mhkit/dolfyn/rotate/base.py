@@ -163,7 +163,7 @@ def _beam2inst(dat, reverse=False, force=False):
     return dat
 
 
-def euler2orient(heading, pitch, roll, units="degrees"):
+def euler2orient(heading, pitch, roll, units="degree"):
     """
     Calculate the orientation matrix from DOLfYN-defined euler angles.
 
@@ -210,14 +210,14 @@ def euler2orient(heading, pitch, roll, units="degrees"):
          instrument's x-axis
     """
 
-    if units.lower() == "degrees":
+    if "deg" in units.lower():
         pitch = np.deg2rad(pitch)
         roll = np.deg2rad(roll)
         heading = np.deg2rad(heading)
-    elif units.lower() == "radians":
+    elif "rad" in units.lower():
         pass
     else:
-        raise Exception("Invalid units")
+        raise ValueError("Invalid units")
 
     # Converts the DOLfYN-defined heading to one that follows the right-hand-rule
     # reports heading as rotation of the y-axis positive counterclockwise from North
@@ -361,7 +361,7 @@ def quaternion2orient(quaternions):
     return omat.assign_coords({"earth": earth, "inst": inst, "time": quaternions.time})
 
 
-def calc_tilt(pitch, roll):
+def calc_tilt(pitch, roll, units="degree"):
     """
     Calculate "tilt", the vertical inclination, from pitch and roll.
 
@@ -377,6 +377,14 @@ def calc_tilt(pitch, roll):
     tilt : numpy.ndarray
       Vertical inclination of the instrument in degrees
     """
+
+    if "deg" in units.lower():
+        pitch = np.deg2rad(pitch)
+        roll = np.deg2rad(roll)
+    elif "rad" in units.lower():
+        pass
+    else:
+        raise ValueError("Invalid units")
 
     if "xarray" in type(pitch).__module__:
         pitch = pitch.values

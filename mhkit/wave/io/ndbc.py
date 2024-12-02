@@ -207,7 +207,12 @@ def available_data(
     cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit", "ndbc")
 
     # Check the cache before making the request
-    data, _, _ = handle_caching(hash_params, cache_dir, clear_cache_file=clear_cache)
+    data, _, _ = handle_caching(
+        hash_params,
+        cache_dir,
+        cache_content={"data": None, "metadata": None, "write_json": None},
+        clear_cache_file=clear_cache,
+    )
 
     # no coverage bc in coverage runs we have already cached the data/ run this code
     if data is None:  # pragma: no cover
@@ -246,7 +251,16 @@ def available_data(
                 data = available_data[available_data.id == buoy_number[i]]
                 available_data = available_data.append(data)
         # Cache the result
-        handle_caching(hash_params, cache_dir, data=available_data)
+        handle_caching(
+            hash_params,
+            cache_dir,
+            cache_content={
+                "data": available_data,
+                "metadata": None,
+                "write_json": None,
+            },
+        )
+
     else:
         available_data = data
 
@@ -371,7 +385,10 @@ def request_data(parameter, filenames, proxy=None, clear_cache=False, to_pandas=
             # Create a unique filename based on the function parameters for caching
             hash_params = f"{buoy_id}_{parameter}_{year}_{filename}"
             cached_data, _, _ = handle_caching(
-                hash_params, cache_dir, clear_cache_file=clear_cache
+                hash_params,
+                cache_dir,
+                cache_content={"data": None, "metadata": None, "write_json": None},
+                clear_cache_file=clear_cache,
             )
 
             if cached_data is not None:
@@ -415,7 +432,13 @@ def request_data(parameter, filenames, proxy=None, clear_cache=False, to_pandas=
                 # Cache the data after processing it if it exists
                 if year in ndbc_data[buoy_id]:
                     handle_caching(
-                        hash_params, cache_dir, data=ndbc_data[buoy_id][year]
+                        hash_params,
+                        cache_dir,
+                        cache_content={
+                            "data": ndbc_data[buoy_id][year],
+                            "metadata": None,
+                            "write_json": None,
+                        },
                     )
 
     if buoy_id and len(ndbc_data) == 1:
