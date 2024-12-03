@@ -76,7 +76,7 @@ def plot_flow_duration_curve(D, F, label=None, ax=None):
     """
     # Sort by F
     temp = xr.Dataset(data_vars={"D": D, "F": F})
-    temp.sortby("F", ascending=False)
+    temp = temp.sortby("F", ascending=False)
 
     ax = _xy_plot(
         temp["D"],
