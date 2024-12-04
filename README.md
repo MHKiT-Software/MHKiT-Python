@@ -32,10 +32,16 @@ See the [MHKiT documentation](https://mhkit-software.github.io/MHKiT) for more i
 
 ## Installation
 
-MHKiT-Python requires Python (3.8, 3.9, 3.10, 3.11) along with several Python
+MHKiT-Python requires Python (3.10, 3.11, 3.12) along with several Python
 package dependencies. MHKiT-Python can be installed from PyPI using the command:
 
 `pip install mhkit`
+
+MHKiT can alternatively be installed using conda:
+
+```bash
+conda install -c conda-forge mhkit
+```
 
 See [installation instructions](https://mhkit-software.github.io/MHKiT/installation.html) for more information.
 
