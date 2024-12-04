@@ -19,7 +19,7 @@ jobs:
       - id: set-matrix
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "develop" ]]; then
-            echo "matrix_os=[ \"macos-latest\"]" >> $GITHUB_OUTPUT
+            echo "matrix_os=[ \"ubuntu-latest\"]" >> $GITHUB_OUTPUT
           else
             echo "matrix_os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_OUTPUT
           fi
