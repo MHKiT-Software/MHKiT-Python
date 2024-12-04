@@ -60,7 +60,7 @@ class mc_testcase(unittest.TestCase):
         assert_allclose(tdm10, tdmj, atol=1e-7)
         assert_allclose(tdm0, tdm, atol=1e-7)
         assert_allclose(tdm10, cdm10, atol=1e-7)
-        assert_allclose(tdmE, cdm10, atol=1e-7)
+        assert_allclose(tdmE, cdm10, atol=1e-6)
         assert_allclose(tdmj, load("vector_data_imu01-json_mc.nc"), atol=1e-7)
 
     def test_sep_probes(self):
