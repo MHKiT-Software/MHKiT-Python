@@ -39,8 +39,8 @@ def _initialize_polar(ax=None, metadata=None, flood=None, ebb=None):
         plt.title(metadata["name"])
         # List of strings for metadata box
         bouy_str = [
-            f'Lat = {float(metadata["lat"]):0.2f}$\degree$',
-            f'Lon = {float(metadata["lon"]):0.2f}$\degree$',
+            f'Lat = {float(metadata["lat"]):0.2f}$\\degree$',
+            f'Lon = {float(metadata["lon"]):0.2f}$\\degree$',
         ]
         # Create string for text box
         bouy_data = "\n".join(bouy_str)

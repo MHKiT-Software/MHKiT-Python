@@ -1,10 +1,10 @@
 """
 This module contains functions for calculating various aspects of power quality, 
-particularly focusing on the analysis of harmonics and interharmonics in electrical 
-power systems. These functions are designed to assist in power quality assessments 
-by providing tools to analyze voltage and current signals for their harmonic 
-and interharmonic components based on the guidelines and methodologies 
-outlined in IEC 61000-4-7.
+particularly focusing on the analysis of harmonics, interharmonics and distortion 
+in electrical power systems. These functions are designed to assist in power 
+quality assessments by providing tools to analyze voltage and current signals 
+for their harmonic and interharmonic components based on the guidelines and methodologies 
+outlined in IEC 61000-4-7:2008 ED2 and in IEC 62600-30:2018 ED1.
 
 Functions in this module include:
 

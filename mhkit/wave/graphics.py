@@ -64,7 +64,7 @@ def plot_elevation_timeseries(eta, ax=None):
     t = eta[time_dimension]
 
     for var in eta.data_vars:
-        ax = _xy_plot(t, eta[var], fmt="-", xlabel="Time", ylabel="$\eta$ [m]", ax=ax)
+        ax = _xy_plot(t, eta[var], fmt="-", xlabel="Time", ylabel="$\\eta$ [m]", ax=ax)
 
     return ax
 
@@ -242,7 +242,7 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
 
         KC = H / D
         Diffraction = np.pi * D / lambda_w
-        label = f"$H$ = {H:g}, $\lambda_w$ = {lambda_w:g}, $D$ = {D:g}"
+        label = f"$H$ = {H:g}, $\\lambda_w$ = {lambda_w:g}, $D$ = {D:g}"
         ax.plot(Diffraction, KC, "o", label=label)
 
     if (
@@ -268,7 +268,7 @@ def plot_chakrabarti(H, lambda_w, D, ax=None):
     ax.text(
         1,
         7,
-        "wave\nbreaking\n$H/\lambda_w > 0.14$",
+        "wave\nbreaking\n$H/\\lambda_w > 0.14$",
         ha="center",
         va="center",
         fontstyle="italic",

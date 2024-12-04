@@ -98,7 +98,7 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
     if header_commented:
         data = pd.read_csv(
             file_name,
-            sep="\s+",
+            sep="\\s+",
             header=None,
             names=header,
             comment="#",
@@ -107,7 +107,7 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
     # If first line is not commented, then the first row can be used as header
     else:
         data = pd.read_csv(
-            file_name, sep="\s+", header=0, comment="#", parse_dates=[parse_vals]
+            file_name, sep="\\s+", header=0, comment="#", parse_dates=[parse_vals]
         )
 
     # Convert index to datetime
@@ -403,13 +403,13 @@ def request_data(parameter, filenames, proxy=None, clear_cache=False, to_pandas=
                 response = requests.get(file_url, proxies=proxy)
             try:
                 data = zlib.decompress(response.content, 16 + zlib.MAX_WBITS)
-                df = pd.read_csv(BytesIO(data), sep="\s+", low_memory=False)
+                df = pd.read_csv(BytesIO(data), sep="\\s+", low_memory=False)
 
                 # catch when units are included below the header
                 firstYear = df["MM"][0]
                 if isinstance(firstYear, str) and firstYear == "mo":
                     df = pd.read_csv(
-                        BytesIO(data), sep="\s+", low_memory=False, skiprows=[1]
+                        BytesIO(data), sep="\\s+", low_memory=False, skiprows=[1]
                     )
             except zlib.error:
                 msg = (

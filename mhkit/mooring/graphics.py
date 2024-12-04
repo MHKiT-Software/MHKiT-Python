@@ -1,6 +1,4 @@
 """
-graphics.py
-
 This module provides a function for creating animated visualizations of a 
 MoorDyn node position dataset using the matplotlib animation API. 
 

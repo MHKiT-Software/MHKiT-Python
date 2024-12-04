@@ -41,16 +41,18 @@ def read_table(swan_file, to_pandas=True):
             if metaDict["Table"].endswith("SWAN"):
                 metaDict["Table"] = metaDict["Table"].split(" SWAN")[:-1]
         if i == header_line_number:
-            header = re.split("\s+", line.rstrip().strip("%").lstrip())
+            header = re.split("\\s+", line.rstrip().strip("%").lstrip())
             metaDict["header"] = header
         if i == header_line_number + 1:
             units = re.split(
-                "\s+", line.strip(" %\n").replace("[", "").replace("]", "")
+                "\\s+", line.strip(" %\n").replace("[", "").replace("]", "")
             )
             metaDict["units"] = units
     f.close()
 
-    swan_data = pd.read_csv(swan_file, sep="\s+", comment="%", names=metaDict["header"])
+    swan_data = pd.read_csv(
+        swan_file, sep="\\s+", comment="%", names=metaDict["header"]
+    )
 
     if not to_pandas:
         swan_data = convert_to_dataset(swan_data)
@@ -144,7 +146,7 @@ def _read_block_txt(swan_file):
             columns_position = None
 
         if not line.startswith("%"):
-            raw_data = " ".join(re.split(" |\.", line.strip(" \n"))).split()
+            raw_data = " ".join(re.split(" |\\.", line.strip(" \n"))).split()
             index_number = int(raw_data[0])
             columns_data = raw_data[1:]
             data = []
@@ -230,7 +232,7 @@ def _parse_line_metadata(line):
 
     metaDict = {}
     meta = re.sub(
-        "\s+", " ", line.replace(",", " ").strip("% \n").replace("**", "vars:")
+        "\\s+", " ", line.replace(",", " ").strip("% \n").replace("**", "vars:")
     )
     mList = meta.split(":")
     elms = [elm.split(" ") for elm in mList]
