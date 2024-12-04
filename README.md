@@ -40,7 +40,7 @@ package dependencies. MHKiT-Python can be installed from PyPI using the command:
 MHKiT can alternatively be installed using conda:
 
 ```bash
-conda install mhkit
+conda install -c conda-forge mhkit
 ```
 
 See [installation instructions](https://mhkit-software.github.io/MHKiT/installation.html) for more information.
