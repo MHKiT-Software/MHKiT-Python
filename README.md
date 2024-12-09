@@ -4,8 +4,8 @@
     <a href=https://github.com/MHKiT-Software/MHKiT-Python/actions/workflows/main.yml>
         <img src="https://github.com/MHKiT-Software/MHKiT-Python/actions/workflows/main.yml/badge.svg">
     </a>
-    <a href=https://coveralls.io/github/MHKiT-Software/MHKiT-Python?branch=master>
-        <img src="https://coveralls.io/repos/github/MHKiT-Software/MHKiT-Python/badge.svg?branch=master">
+    <a href=https://coveralls.io/github/MHKiT-Software/MHKiT-Python?branch=main>
+        <img src="https://coveralls.io/repos/github/MHKiT-Software/MHKiT-Python/badge.svg?branch=main">
     </a>
     <a href=https://pepy.tech/project/mhkit>
         <img src="https://pepy.tech/badge/mhkit">
@@ -33,14 +33,16 @@ See the [MHKiT documentation](https://mhkit-software.github.io/MHKiT) for more i
 ## Installation
 
 MHKiT-Python requires Python (3.10, 3.11, 3.12) along with several Python
-package dependencies. MHKiT-Python can be installed from PyPI using the command:
-
-`pip install mhkit`
-
-MHKiT can alternatively be installed using conda:
+package dependencies. MHKiT-Python can be installed using the Conda package manager:
 
 ```bash
 conda install -c conda-forge mhkit
+```
+
+MHKiT can alternatively be installed from PyPi using pip:
+
+```bash
+pip install mhkit
 ```
 
 See [installation instructions](https://mhkit-software.github.io/MHKiT/installation.html) for more information.
@@ -82,7 +84,7 @@ The GitHub platform has the branch feature that facilitates code contributions a
 1. Navigate to your fork of MHKiT-Python (see instructions above)
 2. Above the list of files, click **Branches**.
 3. Click **New Branch**.
-4. Enter a name for the branch. Be sure to select **MHKiT-Software/MHKiT-Python:master** as the source.
+4. Enter a name for the branch. Be sure to select **MHKiT-Software/MHKiT-Python:main** as the source.
 5. Click **Create branch**. You will now have a branch on your fork of MHKiT-Python that you can use to work with the code base.
 
 ## Creating a pull request
