@@ -152,6 +152,8 @@ class _NortekReader:
         "0x11": "read_vec_sysdata",
         "0x12": "read_vec_hdr",
         "0x20": "read_awac_profile",
+        "0x21": "read_adopp_profile",
+        "0x2a": "read_adopp_profile_hr",
         "0x30": "read_awac_waves",
         "0x31": "read_awac_waves_hdr",
         "0x36": "read_awac_waves",  # "SUV"
@@ -788,25 +790,15 @@ class _NortekReader:
                 self.config["data_header"] = [self.config["data_header"]]
             self.config["data_header"] += [hdrnow]
 
-    def read_awac_profile(self):
-        """Read AWAC profile measurements block (0x20)"""
-        # ID: '0x20' = 32
+    def read_profile(self, skip_bytes=0):
+        """Reads AWAC or Aquadopp profile data"""
         dat = self.data
-        if self.debug:
-            logging.info(
-                "Reading AWAC velocity data (0x20) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
-            )
         nbins = self.config["usr"]["n_bins"]
-        if "temp" not in dat["data_vars"]:
-            self._init_data(defs.awac_profile)
-            self._dtypes += ["awac_profile"]
-
+        init_bytes = 28 + skip_bytes
         # Note: docs state there is 'fill' byte at the end, if nbins is odd,
         # but doesn't appear to be the case
         n = self.config["usr"]["n_beams"]
-        byts = self.read(116 + n * 3 * nbins)
+        byts = self.read(init_bytes + n * 3 * nbins)
         c = self.c
         dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
         ds = dat["sys"]
@@ -823,17 +815,97 @@ class _NortekReader:
             dv["status"][c],
             p_lsw,
             dv["temp"][c],
-        ) = unpack(self.endian + "5H2hBBHh", byts[8:28])
+        ) = unpack(self.endian + "5H2h2BHh", byts[8:28])
         dv["pressure"][c] = 65536 * p_msb + p_lsw
-        # The nortek system integrator manual specifies an 88byte 'spare'
-        # field, therefore we start at 116.
         tmp = unpack(
             self.endian + str(n * nbins) + "h" + str(n * nbins) + "B",
-            byts[116 : 116 + n * 3 * nbins],
+            byts[init_bytes : init_bytes + n * 3 * nbins],
         )
         for idx in range(n):
             dv["vel"][idx, :, c] = tmp[idx * nbins : (idx + 1) * nbins]
             dv["amp"][idx, :, c] = tmp[(idx + n) * nbins : (idx + n + 1) * nbins]
+        self.checksum(byts)
+        self.c += 1
+
+    def read_awac_profile(self):
+        """Read AWAC profile measurements block (0x20)"""
+        # ID: '0x20' = 32
+        if self.debug:
+            logging.info(
+                "Reading AWAC velocity data (0x20) ping #{} @ {}...".format(
+                    self.c, self.pos
+                )
+            )
+        if "temp" not in self.data["data_vars"]:
+            self._init_data(defs.awac_profile)
+            self._dtypes += ["awac_profile"]
+
+        # The nortek system integrator manual specifies an 88byte 'spare'
+        # field, therefore we start at 116.
+        self.read_profile(skip_bytes=88)
+
+    def read_adopp_profile(self):
+        """Read Aquadopp profile measurements block (0x21)"""
+        # ID: '0x21' = 33
+        if self.debug:
+            logging.info(
+                "Reading Aquadopp velocity data (0x21) ping #{} @ {}...".format(
+                    self.c, self.pos
+                )
+            )
+        if "temp" not in self.data["data_vars"]:
+            self._init_data(defs.awac_profile)
+            self._dtypes += ["adopp_profile"]
+
+        self.read_profile(skip_bytes=0)
+
+    def read_adopp_profile_hr(self):
+        """Read high resolution Aquadopp profile measurements block (0x2s)"""
+        # ID: '0x2a' = 42
+        dat = self.data
+        if self.debug:
+            logging.info(
+                "Reading Aquadopp velocity data (0x2a) ping #{} @ {}...".format(
+                    self.c, self.pos
+                )
+            )
+        if "temp" not in dat["data_vars"]:
+            self._init_data(defs.awac_profile)
+            self._dtypes += ["adopp_profile"]
+
+        byts = self.read(52)
+        c = self.c
+        dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
+        ds = dat["sys"]
+        dv = dat["data_vars"]
+        (
+            dv["milliseconds"][c],
+            dv["error"][c],
+            dv["batt"][c],
+            dv["c_sound"][c],
+            dv["heading"][c],
+            dv["pitch"][c],
+            dv["roll"][c],
+            p_msb,
+            dv["status"][c],
+            p_lsw,
+            dv["temp"][c],
+            ds["AnaIn1"][c],
+            ds["AnaIn2"][c],
+            nbeams,
+            ncells,
+        ) = unpack(self.endian + "5H2h2BHh2H2B", byts[8:35])
+        dv["pressure"][c] = 65536 * p_msb + p_lsw
+        hr_bytes = self.read(nbeams * ncells)
+        tmp = unpack(
+            self.endian + str(nbeams * ncells) + "h" + str(nbeams * ncells) + "B",
+            hr_bytes,
+        )
+        for idx in range(nbeams):
+            dv["vel_hr"][idx, :, c] = tmp[idx * ncells : (idx + 1) * ncells]
+            dv["amp_hr"][idx, :, c] = tmp[
+                (idx + nbeams) * ncells : (idx + nbeams + 1) * ncells
+            ]
         self.checksum(byts)
         self.c += 1
 
