@@ -144,20 +144,24 @@ class _NortekReader:
 
     _lastread = [None, None, None, None, None]
     fun_map = {
-        "0x00": "read_user_cfg",
-        "0x04": "read_head_cfg",
-        "0x05": "read_hw_cfg",
-        "0x07": "read_vec_checkdata",
-        "0x10": "read_vec_data",
-        "0x11": "read_vec_sysdata",
-        "0x12": "read_vec_hdr",
-        "0x20": "read_awac_profile",
-        "0x21": "read_adopp_profile",
-        "0x2a": "read_adopp_profile_hr",
-        "0x30": "read_awac_waves",
-        "0x31": "read_awac_waves_hdr",
-        "0x36": "read_awac_waves",  # "SUV"
-        "0x71": "read_imu",
+        "0x00": "read_user_cfg",  # User configuration
+        "0x04": "read_head_cfg",  # Header configuration
+        "0x05": "read_hw_cfg",  # Hardware configuration
+        "0x01": "read_adopp",  # Aquadopp velocity
+        "0x06": "read_adopp_diag_hdr",  # Aquadopp diagnostics header
+        "0x07": "read_vec_check",  # Vector probe check
+        "0x10": "read_vec",  # Vector velocity
+        "0x11": "read_vec_sys",  # Vector system data
+        "0x12": "read_vec_hdr",  # Vector header
+        "0x20": "read_awac_profile",  # AWAC profile
+        "0x21": "read_adopp_profile",  # Aquadopp profile
+        "0x2a": "read_adopp_profile_hr",  # Aquadopp high-res profile
+        "0x30": "read_awac_waves",  # AWAC waves
+        "0x31": "read_awac_waves_hdr",  # AWAC waves header
+        "0x36": "read_awac_waves",  # AWAC waves + "SUV"
+        "0x71": "read_imu",  # Vector IMU
+        "0x80": "read_adopp",  # Aquadopp diagnostics
+        "0x81": "read_adopp_mag",  # Aquadopp with magnetometer
     }
 
     def __init__(
@@ -228,6 +232,8 @@ class _NortekReader:
             self.config["config_type"] = "AWAC"
         elif self.config["hdw"]["serial_number"][0:3].upper() == "VEC":
             self.config["config_type"] = "ADV"
+        elif self.config["hdw"]["serial_number"][0:3].upper() in ["AQD", "PRF"]:
+            self.config["config_type"] = "Aquadopp"
         # Initialize the instrument type:
         self._inst = self.config.pop("config_type")
         # This is the position after reading the 'hardware',
@@ -605,7 +611,7 @@ class _NortekReader:
 
     def read_head_cfg(self):
         """Read header configuration block (0x04)"""
-        # ID: '0x04 = 04
+        # ID: '0x04' = 04
         if self.debug:
             logging.info(
                 "Reading header configuration (0x04) ping #{} @ {}...".format(
@@ -628,7 +634,7 @@ class _NortekReader:
 
     def read_hw_cfg(self):
         """Read hardware configuration block (0x05)"""
-        # ID 0x05 = 05
+        # ID '0x05' = 05
         if self.debug:
             logging.info(
                 "Reading hardware configuration (0x05) ping #{} @ {}...".format(
@@ -652,9 +658,85 @@ class _NortekReader:
         cfg_hw["hdw"]["firmware_version"] = tmp[7].decode("utf-8")
         self.checksum(byts)
 
-    def read_vec_checkdata(self):
-        """Read Vector check data block (0x07)"""
-        # ID: 0x07 = 07
+    def read_adopp(self):
+        """Read Aquadopp velocity block (0x01)"""
+        # ID: '0x01' & '0x80' = 1 & 128
+        c = self.c
+        dat = self.data
+        if self.debug:
+            logging.info(
+                "Reading Aquadopp (0x01) ping #{} @ {}...".format(self.c, self.pos)
+            )
+        if "temp" not in self.data["data_vars"]:
+            self._init_data(defs.vec_profile)
+            self._dtypes += ["vec_data"]
+
+        byts = self.read(38)
+        dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
+        ds = dat["sys"]
+        dv = dat["data_vars"]
+        (
+            dv["error"][c],
+            ds["AnaIn1"][c],
+            dv["batt"][c],
+            dv["c_sound"][c],
+            dv["heading"][c],
+            dv["pitch"][c],
+            dv["roll"][c],
+            p_msb,
+            dv["status"][c],
+            p_lsw,
+            dv["temp"][c],
+            dv["vel"][0, c],
+            dv["vel"][1, c],
+            dv["vel"][2, c],
+            dv["amp"][0, c],
+            dv["amp"][1, c],
+            dv["amp"][2, c],
+        ) = unpack(self.endian + "5H2h2BH4h3B", byts[8:37])
+        dv["pressure"][c] = 65536 * p_msb + p_lsw
+
+        self.checksum(byts)
+        self.c += 1
+
+    def read_adopp_diag_hdr(self):
+        """Read Aquadopp diagnostics header block (0x06)"""
+        # ID: '0x06' = 6
+        if self.debug:
+            logging.info(
+                "Reading Aquadopp diagnostics (0x06) ping #{} @ {}...".format(
+                    self.c, self.pos
+                )
+            )
+        byts = self.read(32)
+        # The first two are size, the next 6 are time.
+        tmp = unpack(self.endian + "2H4B8H6x", byts)
+        hdrnow = {}
+        hdrnow["NRecords"] = tmp[0]
+        hdrnow["Cell"] = tmp[1]
+        hdrnow["Noise1"] = tmp[2]
+        hdrnow["Noise2"] = tmp[3]
+        hdrnow["Noise3"] = tmp[4]
+        hdrnow["Noise4"] = tmp[5]
+        hdrnow["ProcMagn1"] = tmp[6]
+        hdrnow["ProcMagn2"] = tmp[7]
+        hdrnow["ProcMagn3"] = tmp[8]
+        hdrnow["ProcMagn4"] = tmp[9]
+        hdrnow["Distance1"] = tmp[10]
+        hdrnow["Distance2"] = tmp[11]
+        hdrnow["Distance3"] = tmp[12]
+        hdrnow["Distance4"] = tmp[13]
+        self.checksum(byts)
+        if "data_header" not in self.config:
+            self.config["data_header"] = hdrnow
+        else:
+            if not isinstance(self.config["data_header"], list):
+                self.config["data_header"] = [self.config["data_header"]]
+            self.config["data_header"] += [hdrnow]
+
+    def read_vec_check(self):
+        """Read Vector probe check block (0x07)"""
+        # ID: '0x07' = 07
         if self.debug:
             logging.info(
                 "Reading Vector check data (0x07) ping #{} @ {}...".format(
@@ -682,9 +764,9 @@ class _NortekReader:
                 self.config["checkdata"] = [self.config["checkdata"]]
             self.config["checkdata"] += [checknow]
 
-    def read_vec_data(self):
-        """Read Vector measurement data block (0x10)"""
-        # ID: 0x10 = 16
+    def read_vec(self):
+        """Read Vector velocity block (0x10)"""
+        # ID: '0x10' = 16
         c = self.c
         dat = self.data
         if self.debug:
@@ -722,9 +804,9 @@ class _NortekReader:
         self.checksum(byts)
         self.c += 1
 
-    def read_vec_sysdata(self):
+    def read_vec_sys(self):
         """Read Vector system data block (0x11)"""
-        # ID: 0x11 = 17
+        # ID: '0x11' = 17
         c = self.c
         if self.debug:
             logging.info(
@@ -761,7 +843,7 @@ class _NortekReader:
 
     def read_vec_hdr(self):
         """Read Vector header block (0x12)"""
-        # ID: '0x12 = 18
+        # ID: '0x12' = 18
         if self.debug:
             logging.info(
                 "Reading Vector header data (0x12) ping #{} @ {}...".format(
@@ -860,7 +942,7 @@ class _NortekReader:
         self.read_profile(skip_bytes=0)
 
     def read_adopp_profile_hr(self):
-        """Read high resolution Aquadopp profile measurements block (0x2s)"""
+        """Read high resolution Aquadopp profile measurements block (0x2a)"""
         # ID: '0x2a' = 42
         dat = self.data
         if self.debug:
@@ -871,7 +953,7 @@ class _NortekReader:
             )
         if "temp" not in dat["data_vars"]:
             self._init_data(defs.awac_profile)
-            self._dtypes += ["adopp_profile"]
+            self._dtypes += ["awac_profile"]
 
         byts = self.read(52)
         c = self.c
@@ -911,7 +993,7 @@ class _NortekReader:
 
     def read_awac_waves(self):
         """Read AWAC wave (0x30) and SUV (0x36) data blocks"""
-        # IDs: 0x30 & 0x36
+        # IDs: '0x30' & '0x36'  == 48 & 54
         c = self.c
         dat = self.data
         if self.debug:
@@ -948,7 +1030,7 @@ class _NortekReader:
 
     def read_awac_waves_hdr(self):
         """Read AWAC header bock for wave data (0x31)"""
-        # ID: '0x31'
+        # ID: '0x31' == 49
         c = self.c
         if self.debug:
             print(
@@ -995,6 +1077,7 @@ class _NortekReader:
     def read_imu(self):
         """Read ADV inertial measurement unit (IMU) data block (0x71)"""
 
+        # ID: '0x71' = 113
         def update_defs(dat, mag=False, orientmat=False):
             imu_data = {
                 "accel": ["m s-2", "Acceleration"],
@@ -1109,6 +1192,52 @@ class _NortekReader:
             return 10
         self.checksum(byts0 + byts)
         self.c += 1  # reset the increment
+
+    def read_adopp_mag(self):
+        """Read Aquadopp velocity and magnetometer block (0x81)"""
+        # ID: '0x81' = 129
+        c = self.c
+        dat = self.data
+        if self.debug:
+            logging.info(
+                "Reading Aquadopp (0x81) ping #{} @ {}...".format(self.c, self.pos)
+            )
+        if "temp" not in self.data["data_vars"]:
+            self._init_data(defs.vec_profile)
+            self._dtypes += ["vec_data"]
+
+        byts = self.read(48)
+        dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
+        ds = dat["sys"]
+        dv = dat["data_vars"]
+        (
+            dv["error"][c],
+            ds["AnaIn1"][c],
+            dv["batt"][c],
+            ds["AnaIn2"][c],
+            dv["heading"][c],
+            dv["pitch"][c],
+            dv["roll"][c],
+            p_msb,
+            dv["status"][c],
+            p_lsw,
+            dv["temp"][c],
+            dv["c_sound"][c],
+            dv["ensemble"][c],
+            dv["mag"][0, c],
+            dv["mag"][1, c],
+            dv["mag"][2, c],
+            dv["vel"][0, c],
+            dv["vel"][1, c],
+            dv["vel"][2, c],
+            dv["amp"][0, c],
+            dv["amp"][1, c],
+            dv["amp"][2, c],
+        ) = unpack(self.endian + "5H2h2BHhH7h3B", byts[8:49])
+        dv["pressure"][c] = 65536 * p_msb + p_lsw
+
+        self.checksum(byts)
+        self.c += 1
 
     def cleanup(self):
         """Convert and scale raw measurements to physical quantities."""
