@@ -619,13 +619,13 @@ class ADVBinner(VelBinner):
 
     def integral_length_scales(self, a_cov, U_mag, fs=None):
         """
-        Calculate integral length scales.
+        Calculate integral length scales from the autocovariance (or autocorrelation).
 
         Parameters
         ----------
-        a_cov : xarray.DataArray
-          The auto-covariance array (i.e. computed using `autocovariance`).
-        U_mag : xarray.DataArray
+        a_cov : xarray.DataArray (..., time, lag)
+          The autocovariance or autocorrelation array (i.e. computed using `autocovariance`).
+        U_mag : xarray.DataArray (..., time)
           The bin-averaged horizontal velocity (from dataset shortcut)
         fs : numeric
           The raw sample rate
@@ -637,10 +637,11 @@ class ADVBinner(VelBinner):
 
         Notes
         ----
-        The integral time scale (T_int) is the lag-time at which the
-        auto-covariance falls to 1/e.
-
-        If T_int is not reached, L_int will default to '0'.
+        The integral time scale (T_int) is integral of the normalized autocorrelation
+        function, which theoretically decays to zero over time. Practically,
+        T_int is the integral from zero to the first zero-crossing lag-time
+        of the autocorrelation function. The integral length scale (L_int)
+        then is the integral time scale multiplied by the bin speed.
         """
 
         if not isinstance(a_cov, xr.DataArray):
@@ -648,11 +649,20 @@ class ADVBinner(VelBinner):
         if len(a_cov["time"]) != len(U_mag["time"]):
             raise Exception("`U_mag` should be from ensembled-averaged dataset")
 
-        acov = a_cov.values
         fs = self._parse_fs(fs)
+        # Normalize autocovariance/autocorrelation
+        acov = a_cov / a_cov[..., 0]
 
-        scale = np.argmin((acov / acov[..., :1]) > (1 / np.e), axis=-1)
-        L_int = U_mag.values / fs * scale
+        # Calculate first zero crossing in auto-correlation
+        zero_crossing = np.nanargmin(~(acov < 0), axis=-1)
+
+        # Calculate integral time scale
+        T_int = np.zeros(acov.shape[:2])
+        for i in range(3):
+            for t in range(a_cov["time"].size):
+                T_int[i, t] = np.trapz(acov[i, t][: zero_crossing[i, t]], dx=1 / fs)
+
+        L_int = U_mag.values * T_int
 
         return xr.DataArray(
             L_int.astype("float32"),
