@@ -83,6 +83,9 @@ def _handle_nan(data):
     Finds trailing nan's that cause issues in running the rotation
     algorithms and deletes them.
     """
+    if "time" not in data["coords"]:
+        raise Exception("No data recorded in file.")
+
     nan = np.zeros(data["coords"]["time"].shape, dtype=bool)
     l = data["coords"]["time"].size
 
