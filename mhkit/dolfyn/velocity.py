@@ -177,10 +177,11 @@ class Velocity:
         self,
     ):
         time_string = "{:.2f} {} (started: {})"
-        if "time" not in self or dt642epoch(self["time"][0]) < 1:
+        time = "time" if "time" in self else "time_avg"
+        if time not in self or dt642epoch(self[time][0]) < 1:
             time_string = "-->No Time Information!<--"
         else:
-            tm = self["time"][[0, -1]].values
+            tm = self[time][[0, -1]].values
             dt = dt642date(tm[0])[0]
             delta = (dt642epoch(tm[-1]) - dt642epoch(tm[0])) / (3600 * 24)  # days
             if delta > 1:
@@ -202,7 +203,7 @@ class Velocity:
                 time_string = "-->Error in time info<--"
 
         p = self.ds.attrs
-        t_shape = self["time"].shape
+        t_shape = self[time].shape
         if len(t_shape) > 1:
             shape_string = "({} bins, {} pings @ {}Hz)".format(
                 t_shape[0], t_shape, p.get("fs")

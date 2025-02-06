@@ -207,7 +207,7 @@ def water_depth_from_amplitude(ds, thresh=10, nfilt=None) -> None:
 
     ds["depth"] = xr.DataArray(
         d.astype("float32"),
-        dims=["time"],
+        dims=["time" + tag[0]],
         attrs={"units": "m", "long_name": long_name, "standard_name": "depth"},
     )
 
@@ -309,7 +309,7 @@ def water_depth_from_pressure(ds, salinity=35) -> None:
 
     ds["water_density"] = xr.DataArray(
         rho.astype("float32"),
-        dims=["time"],
+        dims=[ds[pressure[0]].dims[0]],
         attrs={
             "units": "kg m-3",
             "long_name": "Water Density",
@@ -319,7 +319,7 @@ def water_depth_from_pressure(ds, salinity=35) -> None:
     )
     ds["depth"] = xr.DataArray(
         d.astype("float32"),
-        dims=["time"],
+        dims=[ds[pressure[0]].dims[0]],
         attrs={"units": "m", "long_name": long_name, "standard_name": "depth"},
     )
 
