@@ -400,7 +400,7 @@ def read_cfgseg(rdr, bb=False):
     if ("n_cells" not in cfg) or (n_cells != cfg["n_cells"]):
         cfg["n_cells"] = n_cells
         if rdr._debug_level > 0:
-            logging.info(f"Number of cells set to {cfg['n_cells']}")
+            logging.debug(f"Number of cells set to {n_cells}")
     cfg["pings_per_ensemble"] = fd.read_ui16(1)
     # Check if cell size has changed
     cs = float(fd.read_ui16(1) * 0.01)
@@ -408,7 +408,7 @@ def read_cfgseg(rdr, bb=False):
         rdr.cs_diff = cs if "cell_size" not in cfg else (cs - cfg["cell_size"])
         cfg["cell_size"] = cs
         if rdr._debug_level > 0:
-            logging.info(f"Cell size set to {cfg['cell_size']}")
+            logging.debug(f"Cell size set to {cs}")
     cfg["blank_dist"] = round(float(fd.read_ui16(1) * 0.01), 2)
     cfg["profiling_mode"] = fd.read_ui8(1)
     cfg["min_corr_threshold"] = fd.read_ui8(1)
@@ -427,7 +427,13 @@ def read_cfgseg(rdr, bb=False):
     cfg["magnetic_var_deg"] = float(fd.read_i16(1) * 0.01)
     cfg["sensors_src"] = np.binary_repr(fd.read_ui8(1), 8)
     cfg["sensors_avail"] = np.binary_repr(fd.read_ui8(1), 8)
-    cfg["bin1_dist_m"] = round(float(fd.read_ui16(1) * 0.01), 4)
+    # If cell size changes, the bin1 distance will too
+    # We only want to save the largest, as we depth average smaller cells together
+    b1d = round(float(fd.read_ui16(1) * 0.01), 4)
+    if ("bin1_dist_m" not in cfg) or (b1d > cfg["bin1_dist_m"]):
+        cfg["bin1_dist_m"] = b1d
+        if rdr._debug_level > 0:
+            logging.debug(f"Bin 1 distance set to {b1d}")
     cfg["transmit_pulse_m"] = round(float(fd.read_ui16(1) * 0.01), 2)
     cfg["water_ref_cells"] = list(fd.read_ui8(2).astype(list))  # list for attrs
     cfg["false_target_threshold"] = fd.read_ui8(1)
@@ -479,18 +485,29 @@ def read_fixed_sl(rdr):
     """Read surface layer fixed header"""
     cfg = rdr.cfg
     cfg["surface_layer"] = 1
-    n_cells = rdr.f.read_ui8(1)
     # Check if n_cells is greater than what was used in prior profiles
-    if n_cells > rdr.n_cells_sl:
-        rdr.n_cells_sl = n_cells
+    n_cells_sl = rdr.f.read_ui8(1)
+    if n_cells_sl > rdr.n_cells_sl:
+        rdr.n_cells_sl = n_cells_sl
+    if ("n_cells_sl" not in cfg) or (n_cells_sl != cfg["n_cells_sl"]):
+        cfg["n_cells_sl"] = n_cells_sl
         if rdr._debug_level > 0:
-            logging.warning(
-                f"Maximum number of surface layer cells increased to {n_cells}"
-            )
-    cfg["n_cells_sl"] = n_cells
-    # Assuming surface layer profile cell size never changes
-    cfg["cell_size_sl"] = float(rdr.f.read_ui16(1) * 0.01)
-    cfg["bin1_dist_m_sl"] = round(float(rdr.f.read_ui16(1) * 0.01), 4)
+            logging.debug(f"Number of surface cells set to {n_cells_sl}")
+    # Cell size also changes
+    cs_sl = float(rdr.f.read_ui16(1) * 0.01)
+    if ("cell_size_sl" not in cfg) or (cs_sl != cfg["cell_size_sl"]):
+        rdr.cs_sl_diff = (
+            cs_sl if "cell_size_sl" not in cfg else (cs_sl - cfg["cell_size_sl"])
+        )
+        cfg["cell_size_sl"] = cs_sl
+        if rdr._debug_level > 0:
+            logging.debug(f"Surface layer cell size set to {cs_sl}")
+    # Only save maximum bin 1 distance
+    b1d = round(float(rdr.f.read_ui16(1) * 0.01), 4)
+    if ("bin1_dist_m_sl" not in cfg) or (b1d > cfg["bin1_dist_m_sl"]):
+        cfg["bin1_dist_m_sl"] = b1d
+        if rdr._debug_level > 0:
+            logging.debug(f"Surface layer Bin 1 distance set to {b1d}")
 
     if rdr._debug_level > -1:
         logging.info("Read Surface Layer Config")

@@ -177,7 +177,9 @@ class _RDIReader:
         self.n_cells_diff = 0
         self.n_cells_sl = 0
         self.cs_diff = 0
+        self.cs_sl_diff = 0
         self.cs = []
+        self.cs_sl = []
         self.cfg = {}
         self.cfgbb = {}
         self.hdr = {}
@@ -828,6 +830,9 @@ class _RDIReader:
         if self.cs_diff:
             self.cs.append([iens, self.cfg["cell_size"]])
             self.cs_diff = 0
+        if self.cs_sl_diff:
+            self.cs_sl.append([iens, self.cfg["cell_size_sl"]])
+            self.cs_sl_diff = 0
 
         # Then copy the ensemble to the dataset.
         ds[..., iens] = bn
@@ -859,33 +864,25 @@ class _RDIReader:
         """
         # Clean up changing cell size, if necessary
         cs = np.array(self.cs, dtype=np.float32)
-        cell_sizes = cs[:, 1]
+        cs_sl = np.array(self.cs_sl, dtype=np.float32)
 
         # If cell sizes change, depth-bin average the smaller cell sizes
         if len(self.cs) > 1:
-            bins_to_merge = cell_sizes.max() / cell_sizes
-            idx_start = cs[:, 0].astype(int)
-            idx_end = np.append(cs[1:, 0], self._nens).astype(int)
-
             dv = dat["data_vars"]
-            for var in dv:
-                if (len(dv[var].shape) == 3) and ("_sl" not in var):
-                    # Create a new NaN var to save data in
-                    new_var = (np.zeros(dv[var].shape) * np.nan).astype(dv[var].dtype)
-                    # For each cell size change, reshape and bin-average
-                    for id1, id2, b in zip(idx_start, idx_end, bins_to_merge):
-                        array = np.transpose(dv[var][..., id1:id2])
-                        bin_arr = np.transpose(np.mean(self.reshape(array, b), axis=-1))
-                        new_var[: len(bin_arr), :, id1:id2] = bin_arr
-                    # Reset data. This often leaves nan data at farther ranges
-                    dv[var] = new_var
+            self.merge_bins(cs, dv, sl=False)
+        if len(self.cs_sl) > 1:
+            dv = dat["data_vars"]
+            self.merge_bins(cs_sl, dv, sl=True)
 
         # Set cell size and range
         cfg["n_cells"] = self.ensemble["n_cells"]
-        cfg["cell_size"] = round(cell_sizes.max(), 3)
+        cfg["cell_size"] = round(cs[:, 1].max(), 3)
         dat["coords"]["range"] = (
             cfg["bin1_dist_m"] + np.arange(cfg["n_cells"]) * cfg["cell_size"]
         ).astype(np.float32)
+        cfg["range_offset"] = round(
+            cfg["bin1_dist_m"] - cfg["blank_dist"] - cfg["cell_size"], 3
+        )
 
         # Save configuration data as attributes
         for nm in cfg:
@@ -893,6 +890,12 @@ class _RDIReader:
 
         # Clean up surface layer profiles
         if "surface_layer" in cfg:  # RiverPro/StreamPro
+            # Set SL cell size and range
+            cfg["cell_size_sl"] = round(cs_sl[:, 1].max(), 3)
+            cfg["n_cells_sl"] = self.n_cells_sl
+            # RDI doesn't include stored range offset in SL profiles for some reason
+            cfg["blank_dist_sl"] = round(cfg["bin1_dist_m_sl"] - cfg["cell_size_sl"], 3)
+            cfg["bin1_dist_m_sl"] += cfg["range_offset"]
             dat["coords"]["range_sl"] = (
                 cfg["bin1_dist_m_sl"]
                 + np.arange(0, self.n_cells_sl) * cfg["cell_size_sl"]
@@ -905,6 +908,28 @@ class _RDIReader:
             dat["attrs"]["rotate_vars"].append("vel_sl")
 
         return dat, cfg
+
+    def merge_bins(self, cs, dv, sl=False):
+        cell_sizes = cs[:, 1]
+        bins_to_merge = cell_sizes.max() / cell_sizes
+        idx_start = cs[:, 0].astype(int)
+        idx_end = np.append(cs[1:, 0], self._nens).astype(int)
+
+        for var in dv:
+            if not sl:
+                flag = "_sl" not in var
+            elif sl:
+                flag = "_sl" in var
+            if (len(dv[var].shape) == 3) and flag:
+                # Create a new NaN var to save data in
+                new_var = (np.zeros(dv[var].shape) * np.nan).astype(dv[var].dtype)
+                # For each cell size change, reshape and bin-average
+                for id1, id2, b in zip(idx_start, idx_end, bins_to_merge):
+                    array = np.transpose(dv[var][..., id1:id2])
+                    bin_arr = np.transpose(np.mean(self.reshape(array, b), axis=-1))
+                    new_var[: len(bin_arr), :, id1:id2] = bin_arr
+                # Reset data. This often leaves nan data at farther ranges
+                dv[var] = new_var
 
     def reshape(self, arr, n_bin=None):
         """
