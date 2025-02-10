@@ -346,47 +346,32 @@ class _RDIReader:
         # Finalize dataset (runs through both nb and bb)
         for dat, cfg in zip(datl, cfgl):
             dat, cfg = self.cleanup(dat, cfg)
-            dat = self.finalize(dat)
+            dat = self.finalize(dat, cfg)
             if "vel_bt" in dat["data_vars"]:
-                dat["attrs"]["rotate_vars"].append("vel_bt")
+                cfg["rotate_vars"].append("vel_bt")
 
         datbb = self.outdBB if self._bb else None
-        return self.outd, datbb
+        return dat, datbb
 
     def init_data(self):
         """Initiate data structure"""
         outd = {
             "data_vars": {},
             "coords": {},
-            "attrs": {},
             "units": {},
             "long_name": {},
             "standard_name": {},
             "sys": {},
         }
-        outd["attrs"]["inst_make"] = "TRDI"
-        outd["attrs"]["inst_type"] = "ADCP"
-        outd["attrs"]["rotate_vars"] = [
-            "vel",
-        ]
-        # Currently RDI doesn't use IMUs
-        outd["attrs"]["has_imu"] = 0
         if self._bb:
             outdbb = {
                 "data_vars": {},
                 "coords": {},
-                "attrs": {},
                 "units": {},
                 "long_name": {},
                 "standard_name": {},
                 "sys": {},
             }
-            outdbb["attrs"]["inst_make"] = "TRDI"
-            outdbb["attrs"]["inst_type"] = "ADCP"
-            outdbb["attrs"]["rotate_vars"] = [
-                "vel",
-            ]
-            outdbb["attrs"]["has_imu"] = 0
 
         # Preallocate variables and data sizes
         for nm in defs.data_defs:
@@ -877,35 +862,31 @@ class _RDIReader:
         # Set cell size and range
         cfg["n_cells"] = self.ensemble["n_cells"]
         cfg["cell_size"] = round(cs[:, 1].max(), 3)
+        bin1_dist = cfg.pop("bin1_dist_m")
         dat["coords"]["range"] = (
-            cfg["bin1_dist_m"] + np.arange(cfg["n_cells"]) * cfg["cell_size"]
+            bin1_dist + np.arange(cfg["n_cells"]) * cfg["cell_size"]
         ).astype(np.float32)
-        cfg["range_offset"] = round(
-            cfg["bin1_dist_m"] - cfg["blank_dist"] - cfg["cell_size"], 3
-        )
-
-        # Save configuration data as attributes
-        for nm in cfg:
-            dat["attrs"][nm] = cfg[nm]
+        cfg["range_offset"] = round(bin1_dist - cfg["blank_dist"] - cfg["cell_size"], 3)
 
         # Clean up surface layer profiles
         if "surface_layer" in cfg:  # RiverPro/StreamPro
             # Set SL cell size and range
             cfg["cell_size_sl"] = round(cs_sl[:, 1].max(), 3)
             cfg["n_cells_sl"] = self.n_cells_sl
-            # RDI doesn't include stored range offset in SL profiles for some reason
-            cfg["blank_dist_sl"] = round(cfg["bin1_dist_m_sl"] - cfg["cell_size_sl"], 3)
-            cfg["bin1_dist_m_sl"] += cfg["range_offset"]
+            bin1_dist_sl = cfg.pop("bin1_dist_m_sl")
+            # Blank distance not recorded
+            cfg["blank_dist_sl"] = round(bin1_dist_sl - cfg["cell_size_sl"], 3)
+            # Range offset not added in "bin1_dist_m_sl" for some reason
+            bin1_dist_sl += cfg["range_offset"]
             dat["coords"]["range_sl"] = (
-                cfg["bin1_dist_m_sl"]
-                + np.arange(0, self.n_cells_sl) * cfg["cell_size_sl"]
+                bin1_dist_sl + np.arange(0, self.n_cells_sl) * cfg["cell_size_sl"]
             )
             # Trim off extra nan data
             dv = dat["data_vars"]
             for var in dv:
                 if "sl" in var:
                     dv[var] = dv[var][: self.n_cells_sl]
-            dat["attrs"]["rotate_vars"].append("vel_sl")
+            cfg["rotate_vars"].append("vel_sl")
 
         return dat, cfg
 
@@ -974,7 +955,7 @@ class _RDIReader:
 
         return out
 
-    def finalize(self, dat):
+    def finalize(self, dat, cfg):
         """
         This method cleans up the dataset by removing any attributes that were
         defined but not loaded, updates configuration attributes, and sets the
@@ -993,19 +974,21 @@ class _RDIReader:
         dict
             The finalized dataset dictionary with cleaned attributes and added metadata.
         """
+
+        # Drop empty data variables
         for nm in set(defs.data_defs.keys()) - self.vars_read:
             lib._pop(dat, nm)
-        for nm in self.cfg:
-            dat["attrs"][nm] = self.cfg[nm]
 
         # VMDAS and WinRiver have different set sampling frequency
-        da = dat["attrs"]
-        if ("sourceprog" in da) and (
-            da["sourceprog"].lower() in ["vmdas", "winriver", "winriver2"]
+        if ("sourceprog" in cfg) and (
+            cfg["sourceprog"].lower() in ["vmdas", "winriver", "winriver2"]
         ):
-            da["fs"] = round(1 / np.median(np.diff(dat["coords"]["time"])), 2)
+            cfg["fs"] = round(1 / np.median(np.diff(dat["coords"]["time"])), 2)
         else:
-            da["fs"] = 1 / (da["sec_between_ping_groups"] * da["pings_per_ensemble"])
+            cfg["fs"] = 1 / (cfg["sec_between_ping_groups"] * cfg["pings_per_ensemble"])
+
+        # Save configuration data as attributes
+        dat["attrs"] = cfg
 
         for nm in defs.data_defs:
             shp = defs.data_defs[nm][0]

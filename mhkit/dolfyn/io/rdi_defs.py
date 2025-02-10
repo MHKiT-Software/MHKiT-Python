@@ -101,7 +101,7 @@ data_defs = {
     "pitch_std": ([], "data_vars", "float32", "degree", "Pitch Standard Deviation", ""),
     "roll_std": ([], "data_vars", "float32", "degree", "Roll Standard Deviation", ""),
     "adc": ([8], "sys", "uint8", "1", "Analog-Digital Converter Output", ""),
-    "error_status": ([], "attrs", "float32", "1", "Error Status", ""),
+    "error_status": ([], "sys", "float32", "1", "Error Status", ""),
     "pressure": ([], "data_vars", "float32", "dbar", "Pressure", "sea_water_pressure"),
     "pressure_std": (
         [],
@@ -373,6 +373,11 @@ def read_cfgseg(rdr, bb=False):
     tmp = fd.read_ui8(5)
     prog_ver0 = tmp[0]
     cfg["prog_ver"] = float(tmp[0] + tmp[1] * 0.01)
+    cfg["inst_make"] = "TRDI"
+    cfg["inst_type"] = "ADCP"
+    cfg["rotate_vars"] = ["vel"]
+    # Currently RDI doesn't use IMUs
+    cfg["has_imu"] = 0
     cfg["inst_model"] = adcp_type.get(tmp[0], "unrecognized instrument")
     config = tmp[2:4]
     cfg["beam_angle"] = [15, 20, 30, [0, 25][int(tmp[0] in [11, 47, 66])]][
