@@ -825,16 +825,19 @@ def _band_sound_pressure_level(
         dims=["time", "freq_bins"],
     )
     for i, key in enumerate(band["center_freq"]):
-        band_min = octave_bins[i]
-        band_max = octave_bins[i + 1]
-        slc = spsd.sel(freq=slice(band_min, band_max))
-        x = spsd["freq"].sel(freq=slice(band_min, band_max))
+        # Min and max band limits
+        band_range = [octave_bins[i], octave_bins[i + 1]]
+
         # Interpolate between band frequencies if width is narrow
+        x = spsd["freq"].sel(freq=slice(*band_range))
         if len(x) < 2:
-            slc = spsd.interp(freq=[band_min, band_max])
-            x = [band_min, band_max]
+            spsd_slc = spsd.interp(freq=band_range)
+            x = band_range
+        else:
+            spsd_slc = spsd.sel(freq=slice(*band_range))
+
         # Integrate spectral density by frequency
-        pressure_squared.loc[{"freq_bins": key}] = np.trapz(slc, x)
+        pressure_squared.loc[{"freq_bins": key}] = np.trapz(spsd_slc, x)
 
     # Mean square sound pressure level in dB rel 1 uPa
     mspl = 10 * np.log10(pressure_squared / reference)
