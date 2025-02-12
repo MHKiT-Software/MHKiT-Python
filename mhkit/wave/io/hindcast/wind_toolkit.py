@@ -2,27 +2,27 @@
 Wind Toolkit Data Utility Functions
 ===================================
 
-This module contains a collection of utility functions designed to facilitate 
-the extraction, caching, and visualization of wind data from the WIND Toolkit 
-hindcast dataset hosted on AWS. This dataset includes offshore wind hindcast data 
+This module contains a collection of utility functions designed to facilitate
+the extraction, caching, and visualization of wind data from the WIND Toolkit
+hindcast dataset hosted on AWS. This dataset includes offshore wind hindcast data
 with various parameters like wind speed, direction, temperature, and pressure.
 
 Key Functions:
 --------------
-- `region_selection`: Determines which predefined wind region a given latitude 
+- `region_selection`: Determines which predefined wind region a given latitude
   and longitude fall within.
-  
-- `get_region_data`: Retrieves latitude and longitude data points for a specified 
+
+- `get_region_data`: Retrieves latitude and longitude data points for a specified
   wind region. Uses caching to speed up repeated requests.
-  
-- `plot_region`: Plots the geographical extent of a specified wind region and 
+
+- `plot_region`: Plots the geographical extent of a specified wind region and
   can overlay a given latitude-longitude point.
-  
-- `elevation_to_string`: Converts a parameter (e.g., 'windspeed') and elevation 
+
+- `elevation_to_string`: Converts a parameter (e.g., 'windspeed') and elevation
   values (e.g., [20, 40, 120]) to the formatted strings used in the WIND Toolkit.
-  
-- `request_wtk_point_data`: Fetches specified wind data parameters for given 
-  latitude-longitude points and years from the WIND Toolkit hindcast dataset. 
+
+- `request_wtk_point_data`: Fetches specified wind data parameters for given
+  latitude-longitude points and years from the WIND Toolkit hindcast dataset.
   Supports caching for faster repeated data retrieval.
 
 Dependencies:
@@ -34,15 +34,15 @@ Dependencies:
 
 Notes:
 ------
-- To access the WIND Toolkit hindcast data, users need to configure `h5pyd` 
+- To access the WIND Toolkit hindcast data, users need to configure `h5pyd`
   for data access on HSDS (see the metocean_example or WPTO_hindcast_example
   notebook for more details).
-  
-- While some functions perform basic checks (e.g., verifying that latitude 
-  and longitude are within a predefined region), it's essential to understand 
+
+- While some functions perform basic checks (e.g., verifying that latitude
+  and longitude are within a predefined region), it's essential to understand
   the boundaries of each region and the available parameters and elevations in the dataset.
 
-Author: 
+Author:
 -------
 akeeste
 ssolson
