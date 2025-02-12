@@ -1,6 +1,6 @@
 """
-This submodule provides essential plotting functions for visualizing passive acoustics 
-data. The functions allow for customizable plotting of sound pressure spectral density 
+This submodule provides essential plotting functions for visualizing passive acoustics
+data. The functions allow for customizable plotting of sound pressure spectral density
 levels across time and frequency dimensions.
 
 Each plotting function leverages the flexibility of Matplotlib, allowing for passthrough
@@ -11,12 +11,12 @@ Key Functions
 -------------
 1. **plot_spectrogram**:
 
-   - Generates a spectrogram plot from sound pressure spectral density level data, 
+   - Generates a spectrogram plot from sound pressure spectral density level data,
      with a logarithmic frequency scale by default for improved readability of acoustic data.
 
 2. **plot_spectra**:
 
-   - Produces a spectral density plot with a log-transformed x-axis, allowing for clear 
+   - Produces a spectral density plot with a log-transformed x-axis, allowing for clear
      visualization of spectral density across frequency bands.
 """
 
