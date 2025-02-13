@@ -458,6 +458,7 @@ jobs:
           python-version: '3.11'
           activate-environment: TESTconda
           use-only-tar-bz2: false
+          use-mamba: false
 
       - name: Create MHKiT Conda environment
         shell: bash -l {0}
@@ -469,7 +470,9 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          conda install -y pytest coverage coveralls nbval jupyter utm folium
+          conda install -y pytest coverage coveralls
+          conda install -y jupyter
+          conda install -c conda-forge -y nbval utm folium
 
       - name: Install mhkit
         shell: bash -l {0}
