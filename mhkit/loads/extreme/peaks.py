@@ -1,15 +1,15 @@
 """
 This module provides utilities for analyzing wave data, specifically
 for identifying significant wave heights and estimating wave peak
-distributions using statistical methods. 
+distributions using statistical methods.
 
 Functions:
-- _calculate_window_size: Calculates the window size for peak 
+- _calculate_window_size: Calculates the window size for peak
   independence using the auto-correlation function of wave peaks.
-- _peaks_over_threshold: Identifies peaks over a specified 
+- _peaks_over_threshold: Identifies peaks over a specified
   threshold and returns independent storm peak values adjusted by
   the threshold.
-- global_peaks: Identifies global peaks in a zero-centered 
+- global_peaks: Identifies global peaks in a zero-centered
   response time-series based on consecutive zero up-crossings.
 - number_of_short_term_peaks: Estimates the number of peaks within a
  specified short-term period.
@@ -20,13 +20,13 @@ Functions:
 - automatic_hs_threshold: Determines the best significant wave height
  threshold for the peaks-over-threshold method.
 - peaks_distribution_peaks_over_threshold: Estimates the peaks
- distribution using the peaks over threshold method by fitting a 
+ distribution using the peaks over threshold method by fitting a
  generalized Pareto distribution.
 
 References:
-- Neary, V. S., S. Ahn, B. E. Seng, M. N. Allahdadi, T. Wang, Z. Yang, 
- and R. He (2020). "Characterization of Extreme Wave Conditions for 
- Wave Energy Converter Design and Project Risk Assessment.” J. Mar. 
+- Neary, V. S., S. Ahn, B. E. Seng, M. N. Allahdadi, T. Wang, Z. Yang,
+ and R. He (2020). "Characterization of Extreme Wave Conditions for
+ Wave Energy Converter Design and Project Risk Assessment.” J. Mar.
  Sci. Eng. 2020, 8(4), 289; https://doi.org/10.3390/jmse8040289.
 
 """

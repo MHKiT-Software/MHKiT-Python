@@ -337,7 +337,7 @@ def sound_pressure_spectral_density_level(spsd: xr.DataArray) -> xr.DataArray:
 
 
 def _validate_method(
-    method: Union[str, Dict[str, Union[float, int]]]
+    method: Union[str, Dict[str, Union[float, int]]],
 ) -> Tuple[str, Optional[Union[float, int]]]:
     """
     Validates the 'method' parameter and returns the method name and its argument (if any)

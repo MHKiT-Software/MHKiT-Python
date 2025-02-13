@@ -1,9 +1,9 @@
 """
-This module contains functions to perform various statistical calculations 
+This module contains functions to perform various statistical calculations
 on continuous data. It includes functions for calculating statistics such as
 mean, max, min, and standard deviation over specific windows, as well as functions
-for vector/directional statistics. The module also provides utility functions 
-to unwrap vectors, compute magnitudes and phases in 2D/3D, and calculate 
+for vector/directional statistics. The module also provides utility functions
+to unwrap vectors, compute magnitudes and phases in 2D/3D, and calculate
 the root mean squared values of vector components.
 
 Functions:
@@ -144,7 +144,7 @@ def get_statistics(
 
 
 def vector_statistics(
-    data: Union[pd.Series, np.ndarray, list]
+    data: Union[pd.Series, np.ndarray, list],
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Function used to calculate statistics for vector/directional channels based on
