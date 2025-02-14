@@ -44,7 +44,7 @@ jobs:
 
       - id: hindcast-logic
         run: |
-          if [[ "${{ github.event.pull_request.base.ref }}" == "main" || "${{ steps.changes.outputs.wave_io_hindcast }}" == "true" ]]; then
+          if "${{ github.event.pull_request.base.ref }}" == "main" ; then
             echo "should-run-hindcast=true" >> "$GITHUB_OUTPUT"
           else
             echo "should-run-hindcast=false" >> "$GITHUB_OUTPUT"
@@ -455,7 +455,7 @@ jobs:
         with:
           miniconda-version: 'latest'
           auto-update-conda: true
-          python-version: '3.11'
+          python-version: '3.12'
           activate-environment: TESTconda
           use-only-tar-bz2: false
           use-mamba: false
