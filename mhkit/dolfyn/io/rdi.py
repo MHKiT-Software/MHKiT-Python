@@ -181,7 +181,7 @@ class _RDIReader:
         self.cs = []
         self.cs_sl = []
         self.cfg = {}
-        self.cfgbb = {}
+        self.cfgBB = {}
         self.hdr = {}
         self.f = lib.bin_reader(self.fname)
 
@@ -191,17 +191,17 @@ class _RDIReader:
         self._npings = self._filesize // space
         if self._debug_level > -1:
             logging.info("Done: {}".format(self.cfg))
-            logging.info("self._bb {}".format(self._bb))
-            logging.info("self.cfgbb: {}".format(self.cfgbb))
+            logging.info("self._BB {}".format(self._BB))
+            logging.info("self.cfgBB: {}".format(self.cfgBB))
         self.f.seek(self._pos, 0)
         self.n_avg = navg
 
         self.ensemble = lib._ensemble(self.n_avg, self.cfg["n_cells"])
-        if self._bb:
-            self.ensembleBB = lib._ensemble(self.n_avg, self.cfgbb["n_cells"])
+        if self._BB:
+            self.ensembleBB = lib._ensemble(self.n_avg, self.cfgBB["n_cells"])
 
         self.vars_read = lib._variable_setlist(["time"])
-        if self._bb:
+        if self._BB:
             self.vars_readBB = lib._variable_setlist(["time"])
 
     def code_spacing(self, iternum=50):
@@ -214,7 +214,7 @@ class _RDIReader:
         # Get basic header data and check dual profile
         if not self.read_hdr():
             raise RuntimeError("No header in this file")
-        self._bb = self.check_for_double_buffer()
+        self._BB = self.check_for_double_buffer()
 
         # Turn off debugging to check code spacing
         debug_level = self._debug_level
@@ -305,21 +305,21 @@ class _RDIReader:
                 self.remove_end(iens)
                 break
             self.ensemble.clean_data()
-            if self._bb:
+            if self._BB:
                 self.ensembleBB.clean_data()
             ens = [self.ensemble]
             vars = [self.vars_read]
             datl = [self.outd]
             cfgl = [self.cfg]
-            if self._bb:
+            if self._BB:
                 ens += [self.ensembleBB]
                 vars += [self.vars_readBB]
                 datl += [self.outdBB]
-                cfgl += [self.cfgbb]
+                cfgl += [self.cfgBB]
 
-            for var, en, dat in zip(vars, ens, datl):
+            for var, en, dat, cfg in zip(vars, ens, datl, cfgl):
                 for nm in var:
-                    dat = self.save_profiles(dat, nm, en, iens)
+                    dat = self.save_profiles(dat, cfg, nm, en, iens)
                 # reset flag after all variables run
                 self.n_cells_diff = 0
 
@@ -343,14 +343,14 @@ class _RDIReader:
                 else:
                     dat["coords"]["time"][iens] = np.median(dates)
 
-        # Finalize dataset (runs through both nb and bb)
+        # Finalize dataset (runs through both NB and BB)
         for dat, cfg in zip(datl, cfgl):
             dat, cfg = self.cleanup(dat, cfg)
             dat = self.finalize(dat, cfg)
             if "vel_bt" in dat["data_vars"]:
                 cfg["rotate_vars"].append("vel_bt")
 
-        datbb = self.outdBB if self._bb else None
+        datbb = self.outdBB if self._BB else None
         return dat, datbb
 
     def init_data(self):
@@ -363,7 +363,7 @@ class _RDIReader:
             "standard_name": {},
             "sys": {},
         }
-        if self._bb:
+        if self._BB:
             outdbb = {
                 "data_vars": {},
                 "coords": {},
@@ -380,10 +380,10 @@ class _RDIReader:
             )
         self.outd = outd
 
-        if self._bb:
+        if self._BB:
             for nm in defs.data_defs:
                 outdbb = lib._idata(
-                    outdbb, nm, sz=lib._get_size(nm, self._nens, self.cfgbb["n_cells"])
+                    outdbb, nm, sz=lib._get_size(nm, self._nens, self.cfgBB["n_cells"])
                 )
             self.outdBB = outdbb
             if self._debug_level > 1:
@@ -391,14 +391,14 @@ class _RDIReader:
 
         if self._debug_level > 1:
             logging.info("{} ncells, not BB".format(self.cfg["n_cells"]))
-            if self._bb:
-                logging.info("{} ncells, BB".format(self.cfgbb["n_cells"]))
+            if self._BB:
+                logging.info("{} ncells, BB".format(self.cfgBB["n_cells"]))
 
     def read_buffer(self):
         """Read through the file"""
         fd = self.f
         self.ensemble.k = -1  # so that k+=1 gives 0 on the first loop.
-        if self._bb:
+        if self._BB:
             self.ensembleBB.k = -1  # so that k+=1 gives 0 on the first loop.
         self.print_progress()
         hdr = self.hdr
@@ -758,7 +758,7 @@ class _RDIReader:
         for nm in self.vars_read:
             lib._setd(dat, nm, lib._get(dat, nm)[..., :iens])
 
-    def save_profiles(self, dat, nm, en, iens):
+    def save_profiles(self, dat, cfg, nm, en, iens):
         """
         Reformats profile measurements in the retrieved measurements.
 
@@ -769,7 +769,11 @@ class _RDIReader:
         Parameters
         ----------
         dat : dict
-            Raw data dictionary
+            Contains data for the final dataset. This variable has the same pointer
+            as the data dictionary `self.outd` or `self.outdBB`.
+        cfg : dict
+            Global attributes for the final dataset. This variable has the same pointer
+            as the configuration dictionary `self.cfg` or `self.cfgBB`.
         nm : str
             The name of the profile variable
         en : dict
@@ -836,10 +840,11 @@ class _RDIReader:
         Parameters
         ----------
         dat : dict
-            The dataset dictionary containing data variables and coordinates to be cleaned up.
+            Contains data for the final dataset. This variable has the same pointer
+            as the data dictionary `self.outd` or `self.outdBB`.
         cfg : dict
-            Configuration dictionary, which is updated with cell size, range, and additional
-            attributes after cleanup.
+            Global attributes for the final dataset. This variable has the same pointer
+            as the configuration dictionary `self.cfg` or `self.cfgBB`.
 
         Returns
         -------
@@ -965,9 +970,11 @@ class _RDIReader:
         Parameters
         ----------
         dat : dict
-            The dataset dictionary to be finalized. This dictionary is modified
-            in place by removing unused attributes, setting configuration values
-            as attributes, and calculating `fs`.
+            Contains data for the final dataset. This variable has the same pointer
+            as the data dictionary `self.outd` or `self.outdBB`.
+        cfg : dict
+            Global attributes for the final dataset. This variable has the same pointer
+            as the configuration dictionary `self.cfg` or `self.cfgBB`.
 
         Returns
         -------
