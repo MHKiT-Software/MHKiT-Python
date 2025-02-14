@@ -1,31 +1,31 @@
 """
-This module contains functions for calculating various aspects of power quality, 
-particularly focusing on the analysis of harmonics, interharmonics and distortion 
-in electrical power systems. These functions are designed to assist in power 
-quality assessments by providing tools to analyze voltage and current signals 
-for their harmonic and interharmonic components based on the guidelines and methodologies 
+This module contains functions for calculating various aspects of power quality,
+particularly focusing on the analysis of harmonics, interharmonics and distortion
+in electrical power systems. These functions are designed to assist in power
+quality assessments by providing tools to analyze voltage and current signals
+for their harmonic and interharmonic components based on the guidelines and methodologies
 outlined in IEC 61000-4-7:2008 ED2 and in IEC 62600-30:2018 ED1.
 
 Functions in this module include:
 
-- harmonics: Calculates the harmonics from time series of voltage or current. 
-  This function returns the amplitude of the time-series data harmonics indexed by 
-  the harmonic frequency, aiding in the identification of harmonic distortions 
+- harmonics: Calculates the harmonics from time series of voltage or current.
+  This function returns the amplitude of the time-series data harmonics indexed by
+  the harmonic frequency, aiding in the identification of harmonic distortions
   within the power system.
 
-- harmonic_subgroups: Computes the harmonic subgroups as per IEC 61000-4-7 standards. 
-  Harmonic subgroups provide insights into the distribution of power across 
-  different harmonic frequencies, which is crucial for understanding the behavior 
+- harmonic_subgroups: Computes the harmonic subgroups as per IEC 61000-4-7 standards.
+  Harmonic subgroups provide insights into the distribution of power across
+  different harmonic frequencies, which is crucial for understanding the behavior
   of non-linear loads and their impact on the power quality.
 
-- total_harmonic_current_distortion (THCD): Determines the total harmonic current 
-  distortion, offering a summary metric that quantifies the overall level of 
-  harmonic distortion present in the current waveform. This metric is essential 
+- total_harmonic_current_distortion (THCD): Determines the total harmonic current
+  distortion, offering a summary metric that quantifies the overall level of
+  harmonic distortion present in the current waveform. This metric is essential
   for assessing compliance with power quality standards and guidelines.
 
-- interharmonics: Identifies and calculates the interharmonics present in the 
-  power system. Interharmonics, which are frequencies that occur between the 
-  fundamental and harmonic frequencies, can arise from various sources and 
+- interharmonics: Identifies and calculates the interharmonics present in the
+  power system. Interharmonics, which are frequencies that occur between the
+  fundamental and harmonic frequencies, can arise from various sources and
   potentially lead to power quality issues.
 """
 
