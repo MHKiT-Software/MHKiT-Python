@@ -44,7 +44,7 @@ jobs:
 
       - id: hindcast-logic
         run: |
-          if [[ "${{ github.event.pull_request.base.ref }}" == "main" || "${{ steps.changes.outputs.wave_io_hindcast }}" == "true" ]]; then
+          if "${{ github.event.pull_request.base.ref }}" == "main" ; then
             echo "should-run-hindcast=true" >> "$GITHUB_OUTPUT"
           else
             echo "should-run-hindcast=false" >> "$GITHUB_OUTPUT"
@@ -456,11 +456,9 @@ jobs:
           miniconda-version: 'latest'
           auto-update-conda: true
           python-version: '3.12'
-          environment-file: environment.yml
           channels: conda-forge
           activate-environment: TESTconda
           use-only-tar-bz2: false
-          use-mamba: false
 
       - name: Create MHKiT Conda environment
         shell: bash -l {0}
@@ -472,9 +470,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          conda install -y pytest coverage coveralls
-          conda install -y jupyter
-          conda install -c conda-forge -y nbval utm folium
+          conda install -y pytest coverage coveralls nbval jupyter utm folium
 
       - name: Install mhkit
         shell: bash -l {0}
