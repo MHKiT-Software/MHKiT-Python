@@ -456,6 +456,8 @@ jobs:
           miniconda-version: 'latest'
           auto-update-conda: true
           python-version: '3.12'
+          environment-file: environment.yml
+          channels: conda-forge
           activate-environment: TESTconda
           use-only-tar-bz2: false
           use-mamba: false
