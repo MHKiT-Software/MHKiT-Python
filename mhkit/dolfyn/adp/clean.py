@@ -171,7 +171,7 @@ def water_depth_from_amplitude(ds, thresh=10, nfilt=None) -> None:
     # the echo profile
     edf = np.diff(ds["amp" + tag[0]].values.astype(np.int16), axis=1)
     inds2 = (
-        np.max(
+        np.nanmax(
             (edf < 0)
             * np.arange(ds["vel" + tag[0]].shape[1] - 1, dtype=np.uint8)[None, :, None],
             axis=1,
@@ -185,11 +185,11 @@ def water_depth_from_amplitude(ds, thresh=10, nfilt=None) -> None:
     # Combine them:
     D = np.vstack((d1, d2))
     # Take the median value as the estimate of the surface:
-    d = np.median(D, axis=0)
+    d = np.nanmedian(D, axis=0)
 
     # Throw out values that do not increase near the surface by *thresh*
     for ip in range(ds["vel" + tag[0]].shape[1]):
-        itmp = np.min(inds[:, ip])
+        itmp = np.nanmin(inds[:, ip])
         if (edf[itmp:, :, ip] < thresh).all():
             d[ip] = np.nan
 
@@ -238,7 +238,7 @@ def water_depth_from_pressure(ds, salinity=35) -> None:
     ds : xarray.Dataset
       The full adcp dataset
     salinity: numeric
-      Water salinity in psu. Default = 35
+      Water salinity in PSU. Default = 35
 
     Returns
     -------
@@ -337,7 +337,7 @@ def nan_beyond_surface(*args, **kwargs):
 
 
 def remove_surface_interference(
-    ds, val=np.nan, beam_angle=None, inplace=False
+    ds, val=np.nan, beam_angle=None, cell_size=None, inplace=False
 ) -> Optional[xr.Dataset]:
     """
     Mask the values of 3D data (vel, amp, corr, echo) that are beyond the surface.
@@ -350,6 +350,8 @@ def remove_surface_interference(
       Specifies the value to set the bad values to. Default is `numpy.nan`
     beam_angle : int
       ADCP beam inclination angle in degrees. Default = dataset.attrs['beam_angle']
+    cell_size : float
+      ADCP beam cellsize in meters. Default = dataset.attrs['cell_size']
     inplace : bool
       When True the existing data object is modified. When False
       a copy is returned. Default = False
@@ -370,19 +372,42 @@ def remove_surface_interference(
         raise KeyError(
             "Depth variable 'depth' does not exist in input dataset."
             "Please calculate 'depth' using the function 'water_depth_from_pressure'"
-            "or 'water_depth_from_amplitude."
+            "or 'water_depth_from_amplitude, or it can be found from the 'dist_bt'"
+            "(bottom track) or 'dist_alt' (altimeter) variables, if available."
         )
 
     if beam_angle is None:
         if hasattr(ds, "beam_angle"):
             beam_angle = np.deg2rad(ds.attrs["beam_angle"])
         else:
-            raise Exception(
+            raise KeyError(
                 "'beam_angle` not found in dataset attributes. "
                 "Please supply the ADCP's beam angle."
             )
     else:
         beam_angle = np.deg2rad(beam_angle)
+
+    if cell_size is None:
+        # Fetch cell size
+        cell_sizes = [
+            a
+            for a in ds.attrs
+            if (
+                ("cell_size" in a)
+                and ("_bt" not in a)
+                and ("_alt" not in a)
+                and ("wave" not in a)
+            )
+        ]
+        if cell_sizes:
+            cs = cell_sizes[0]
+        else:
+            raise KeyError(
+                "'cell_size` not found in dataset attributes. "
+                "Please supply the ADCP's cell size."
+            )
+    else:
+        cs = [cell_size]
 
     if not inplace:
         ds = ds.copy(deep=True)
@@ -390,26 +415,14 @@ def remove_surface_interference(
     # Get all variables with 'range' coordinate
     profile_vars = [h for h in ds.keys() if any(s for s in ds[h].dims if "range" in s)]
 
-    # Fetch cell size
-    cs = [
-        a
-        for a in ds.attrs
-        if (
-            ("cell_size" in a)
-            and ("_bt" not in a)
-            and ("_alt" not in a)
-            and ("wave" not in a)
-        )
-    ]
-
     # Apply range_offset if available
     range_offset = __check_for_range_offset(ds)
     if range_offset:
         range_limit = (
-            (ds["depth"] - range_offset) * np.cos(beam_angle) - ds.attrs[cs[0]]
+            (ds["depth"] - range_offset) * np.cos(beam_angle) - ds.attrs[cs]
         ) + range_offset
     else:
-        range_limit = ds["depth"] * np.cos(beam_angle) - ds.attrs[cs[0]]
+        range_limit = ds["depth"] * np.cos(beam_angle) - ds.attrs[cs]
 
     # Echosounder data needs only be trimmed at water surface
     if "echo" in profile_vars:
