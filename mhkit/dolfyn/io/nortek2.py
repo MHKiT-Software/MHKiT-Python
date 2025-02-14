@@ -14,6 +14,9 @@ from ..rotate.api import set_declination
 from ..time import epoch2dt64, _fill_time_gaps
 
 
+int32_max = np.iinfo(np.int32).max
+
+
 def read_signature(
     filename,
     userdata=True,
@@ -163,7 +166,7 @@ class _Ad2cpReader:
             debug=debug,
             dp=dual_profile,
         )
-        self._reopen(bufsize)
+        self._open(bufsize)
         self.filehead_config = self._read_filehead_config_string()
         self._ens_pos = self._index["pos"][
             lib._boolarray_firstensemble_ping(self._index)
@@ -183,7 +186,7 @@ class _Ad2cpReader:
         return (self._eof - self._ens_pos[-1]) == standard_blocksize
 
     def _check_nortek(self, endian):
-        self._reopen(10)
+        self._open(10)
         byts = self.f.read(2)
         if endian is None:
             if unpack("<" + "BB", byts) == (165, 10):
@@ -205,8 +208,12 @@ class _Ad2cpReader:
                 yield idx
                 idx = s.find(c, idx + 1)
 
-        # Open the entire file
-        self._reopen(self._eof)
+        # Open the entire file to find start header
+        if self._eof >= int32_max:
+            init_buffer = int32_max
+        else:
+            init_buffer = self._eof
+        self._open(init_buffer)
         pk = self.f.peek(1)
         # Search for multiple saved headers
         found = [i for i in find_all(pk, b"GETCLOCKSTR")]
@@ -216,7 +223,7 @@ class _Ad2cpReader:
             start_idx = found[-1] - 11
             return start_idx
 
-    def _reopen(self, bufsize=None):
+    def _open(self, bufsize=None):
         if bufsize is None:
             bufsize = 1000000
         try:

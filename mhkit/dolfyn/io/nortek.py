@@ -262,6 +262,7 @@ class _NortekReader:
             self.config["coord_sys_axes"]
         ]
         da["has_imu"] = 0  # Initiate attribute
+        self._eof = self.pos
         if self.debug:
             logging.info("Init completed")
 
@@ -384,6 +385,7 @@ class _NortekReader:
         if self.endian == "<":
             func = np.uint8
             func2 = lib._bitshift8
+        searching = False
         while True:
             val = unpack(self.endian + "H", self.read(2))[0]
             if np.array(val).astype(func) == 165 and (not do_cs or cs == sum):
@@ -391,6 +393,9 @@ class _NortekReader:
                 return hex(func2(val))
             sum += cs
             cs = val
+            if self.debug and not searching:
+                logging.debug("Scanning every 2 bytes for next datablock...")
+                searching = True
 
     def read_id(self):
         """Read the next 'ID' from the file."""
@@ -456,6 +461,7 @@ class _NortekReader:
             id = int(id, 0)
         nowid = None
         while nowid != id:
+            pos = self.pos
             nowid = self.read_id()
             if nowid == 16:
                 shift = 22
@@ -463,6 +469,9 @@ class _NortekReader:
                 sz = 2 * unpack(self.endian + "H", self.read(2))[0]
                 shift = sz - 4
             self.f.seek(shift, 1)
+            # If we get stuck in a while loop
+            if self.pos == pos:
+                self.f.seek(2, 1)
         return self.pos
 
     def code_spacing(self, searchcode, iternum=50):
