@@ -817,7 +817,7 @@ def _band_sound_pressure_level(
     # Reference value of sound pressure
     reference = 1e-12  # Pa^2, = 1 uPa^2
 
-    octave_bins, band = _create_frequency_bands(octave, fmin, fmax)
+    _, band = _create_frequency_bands(octave, fmin, fmax)
 
     # Manual trapezoidal rule to get Pa^2
     pressure_squared = xr.DataArray(
@@ -826,17 +826,25 @@ def _band_sound_pressure_level(
     )
     for i, key in enumerate(band["center_freq"]):
         # Min and max band limits
-        band_range = [octave_bins[i], octave_bins[i + 1]]
+        band_range = [band["lower_limit"][i], band["upper_limit"][i]]
 
-        # Interpolate between band frequencies if width is narrow
+        # Integrate spectral density by frequency
         x = spsd["freq"].sel(freq=slice(*band_range))
         if len(x) < 2:
-            spsd_slc = spsd.interp(freq=band_range)
+            # Interpolate between band frequencies if width is narrow
+            bandwidth = band_range[1] / band_range[0]
+            # Use smaller set of dataset to speed up interpolation
+            spsd_slc = spsd.sel(
+                freq=slice(
+                    None,  # Only happens at low frequency
+                    band_range[1] * bandwidth * 2,
+                )
+            )
+            spsd_slc = spsd_slc.interp(freq=band_range)
             x = band_range
         else:
             spsd_slc = spsd.sel(freq=slice(*band_range))
 
-        # Integrate spectral density by frequency
         pressure_squared.loc[{"freq_bins": key}] = np.trapz(spsd_slc, x)
 
     # Mean square sound pressure level in dB rel 1 uPa
