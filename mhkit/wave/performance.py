@@ -7,6 +7,7 @@ from mhkit import wave
 import matplotlib.pylab as plt
 from os.path import join
 from mhkit.utils import convert_to_dataarray
+import warnings
 
 
 def capture_length(P, J, to_pandas=True):
@@ -99,12 +100,14 @@ def _performance_matrix(X, Y, Z, statistic, x_centers, y_centers):
 
     # Convert bin centers to edges
     xi = [np.mean([x_centers[i], x_centers[i + 1]]) for i in range(len(x_centers) - 1)]
-    xi.insert(0, -np.inf)
-    xi.append(np.inf)
+    xi.insert(0, np.float64(0))
+    xi_end = (x_centers[-1] + np.diff(x_centers[-2:])/2)[0]
+    xi.append(xi_end)
 
     yi = [np.mean([y_centers[i], y_centers[i + 1]]) for i in range(len(y_centers) - 1)]
-    yi.insert(0, -np.inf)
-    yi.append(np.inf)
+    yi.insert(0, np.float64(0))
+    yi_end = (y_centers[-1] + np.diff(y_centers[-2:])/2)[0]
+    yi.append(yi_end)
 
     # Override standard deviation with degree of freedom equal to 1
     if statistic == "std":
@@ -121,6 +124,14 @@ def _performance_matrix(X, Y, Z, statistic, x_centers, y_centers):
         X, Y, Z, statistic, bins=[xi, yi], expand_binnumbers=False
     )
 
+    # Warn if the X (Hm0) or Y (Te) spacing is greater than the IEC TS 62600-100 Ed. 2.0 en 2024 maxima (0.5m, 1.0s).
+    dx_edge = np.diff(x_edge)
+    if np.any(dx_edge > 0.5):
+        warnings.warn("Matrix bin widths are greater than the IEC TS 62600-100 limit of 0.5 meters.")
+    dy_edge = np.diff(y_edge)
+    if np.any(dy_edge > 0.5):
+        warnings.warn("Matrix bin widths are greater than the IEC TS 62600-100 limit of 1.0 seconds.")
+    
     M = xr.DataArray(
         data=zi,
         dims=["x_centers", "y_centers"],
