@@ -222,7 +222,7 @@ def total_harmonic_current_distortion(
     to_pandas: bool = True,
 ) -> Union[pd.DataFrame, xr.Dataset]:
     """
-    Calculates the total harmonic current distortion (THC) based on IEC/TS 62600-30
+    Calculates the total harmonic current distortion (THC) based on IEC TS 62600-30
 
     Parameters
     ----------
