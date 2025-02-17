@@ -626,7 +626,7 @@ def plot_avg_annual_energy_matrix(
 def monthly_cumulative_distribution(J):
     """
     Creates a cumulative distribution of energy flux as described in
-    IEC TS 62600-101.
+    Figure 6 of IEC TS 62600-101 Ed. 2.0 en 2024.
 
     Parameters
     ----------
