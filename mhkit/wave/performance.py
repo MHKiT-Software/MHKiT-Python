@@ -10,9 +10,9 @@ from mhkit.utils import convert_to_dataarray
 import warnings
 
 
-def capture_length(P, J, to_pandas=True):
+def capture_width(P, J, to_pandas=True):
     """
-    Calculates the capture length (often called capture width).
+    Calculates the capture width (sometimes called capture length).
 
     Parameters
     ------------
@@ -25,8 +25,8 @@ def capture_length(P, J, to_pandas=True):
 
     Returns
     ---------
-    L: pandas Series or xarray DataArray
-        Capture length [m]
+    CW: pandas Series or xarray DataArray
+        Capture width [m]
     """
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
@@ -34,12 +34,20 @@ def capture_length(P, J, to_pandas=True):
     P = convert_to_dataarray(P)
     J = convert_to_dataarray(J)
 
-    L = P / J
+    CW = P / J
 
     if to_pandas:
-        L = L.to_pandas()
+        CW = CW.to_pandas()
 
-    return L
+    return CW
+
+
+def capture_length(P, J, to_pandas=True):
+    """
+    Alias for `capture_width`.
+    """
+    CW = capture_width(P, J, to_pandas)
+    return CW
 
 
 def statistics(X, to_pandas=True):
@@ -141,11 +149,11 @@ def _performance_matrix(X, Y, Z, statistic, x_centers, y_centers):
     return M
 
 
-def capture_length_matrix(Hm0, Te, L, statistic, Hm0_bins, Te_bins, to_pandas=True):
+def capture_width_matrix(Hm0, Te, CW, statistic, Hm0_bins, Te_bins, to_pandas=True):
     """
-    Generates a capture length matrix for a given statistic
+    Generates a capture width matrix for a given statistic
 
-    Note that IEC TS 62600-100 Ed. 2.0 en 2024 section 9.2.4 requires capture length matrices for
+    Note that IEC TS 62600-100 Ed. 2.0 en 2024 section 9.2.4 requires capture width matrices for
     the mean, std, count, min, and max.
 
     Parameters
@@ -154,8 +162,8 @@ def capture_length_matrix(Hm0, Te, L, statistic, Hm0_bins, Te_bins, to_pandas=Tr
         Significant wave height from spectra [m]
     Te: numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Energy period from spectra [s]
-    L : numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
-        Capture length [m]
+    CW : numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
+        Capture width [m]
     statistic: string
         Statistic for each bin, options include: 'mean', 'std', 'median',
         'count', 'sum', 'min', 'max', and 'frequency'.  Note that 'std' uses
@@ -169,14 +177,14 @@ def capture_length_matrix(Hm0, Te, L, statistic, Hm0_bins, Te_bins, to_pandas=Tr
 
     Returns
     ---------
-    LM: pandas DataFrame or xarray DataArray
-        Capture length matrix with index equal to Hm0_bins and columns
-        equal to Te_bins
+    CWM: pandas DataFrame or xarray DataArray
+         Capture width matrix with index equal to Hm0_bins and columns
+         equal to Te_bins
 
     """
     Hm0 = convert_to_dataarray(Hm0)
     Te = convert_to_dataarray(Te)
-    L = convert_to_dataarray(L)
+    CW = convert_to_dataarray(CW)
 
     if not (isinstance(statistic, str) or callable(statistic)):
         raise TypeError(
@@ -189,13 +197,19 @@ def capture_length_matrix(Hm0, Te, L, statistic, Hm0_bins, Te_bins, to_pandas=Tr
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    LM = _performance_matrix(Hm0, Te, L, statistic, Hm0_bins, Te_bins)
+    CWM = _performance_matrix(Hm0, Te, CW, statistic, Hm0_bins, Te_bins)
 
     if to_pandas:
-        LM = LM.to_pandas()
+        CWM = CWM.to_pandas()
 
-    return LM
+    return CWM
 
+def capture_length_maxtrix(Hm0, Te, CW, statistic, Hm0_bins, Te_bins, to_pandas=True):
+    """
+    Alias for `capture_width_maxtrix`.
+    """
+    CWM = capture_width_matrix(Hm0, Te, CW, statistic, Hm0_bins, Te_bins, to_pandas)
+    return CWM
 
 def wave_energy_flux_matrix(Hm0, Te, J, statistic, Hm0_bins, Te_bins, to_pandas=True):
     """
@@ -250,15 +264,15 @@ def wave_energy_flux_matrix(Hm0, Te, J, statistic, Hm0_bins, Te_bins, to_pandas=
     return JM
 
 
-def power_matrix(LM, JM):
+def power_matrix(CWM, JM):
     """
-    Generates a power matrix from a capture length matrix and wave energy
+    Generates a power matrix from a capture width matrix and wave energy
     flux matrix
 
     Parameters
     ------------
-    LM: pandas DataFrame, xarray DataArray, or xarray Dataset
-        Capture length matrix
+    CWM: pandas DataFrame, xarray DataArray, or xarray Dataset
+        Capture width matrix
     JM: pandas DataFrame, xarray DataArray, or xarray Dataset
         Wave energy flux matrix
 
@@ -268,28 +282,28 @@ def power_matrix(LM, JM):
         Power matrix
 
     """
-    if not isinstance(LM, (pd.DataFrame, xr.DataArray, xr.Dataset)):
+    if not isinstance(CWM, (pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise TypeError(
-            f"LM must be of type pd.DataFrame or xr.Dataset. Got: {type(LM)}"
+            f"CWM must be of type pd.DataFrame or xr.Dataset. Got: {type(CWM)}"
         )
     if not isinstance(JM, (pd.DataFrame, xr.DataArray, xr.Dataset)):
         raise TypeError(
             f"JM must be of type pd.DataFrame or xr.Dataset. Got: {type(JM)}"
         )
 
-    PM = LM * JM
+    PM = CWM * JM
 
     return PM
 
 
-def mean_annual_energy_production_timeseries(L, J):
+def mean_annual_energy_production_timeseries(CW, J):
     """
     Calculates mean annual energy production (MAEP) from time-series
 
     Parameters
     ------------
-    L: numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
-        Capture length
+    CW: numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
+        Capture width
     J: numpy array, pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Wave energy flux
 
@@ -299,26 +313,26 @@ def mean_annual_energy_production_timeseries(L, J):
         Mean annual energy production
 
     """
-    L = convert_to_dataarray(L)
+    CW = convert_to_dataarray(CW)
     J = convert_to_dataarray(J)
 
     T = 8766  # Average length of a year (h)
-    n = len(L)
+    n = len(CW)
 
-    maep = T / n * (L * J).sum().item()
+    maep = T / n * (CW * J).sum().item()
 
     return maep
 
 
-def mean_annual_energy_production_matrix(LM, JM, frequency):
+def mean_annual_energy_production_matrix(CWM, JM, frequency):
     """
     Calculates mean annual energy production (MAEP) from matrix data
     along with data frequency in each bin
 
     Parameters
     ------------
-    LM: pandas DataFrame, xarray DataArray, or xarray Dataset
-        Capture length
+    CWM: pandas DataFrame, xarray DataArray, or xarray Dataset
+        Capture width
     JM: pandas DataFrame, xarray DataArray, or xarray Dataset
         Wave energy flux
     frequency: pandas DataFrame, xarray DataArray, or xarray Dataset
@@ -330,17 +344,17 @@ def mean_annual_energy_production_matrix(LM, JM, frequency):
         Mean annual energy production
 
     """
-    LM = convert_to_dataarray(LM)
+    CWM = convert_to_dataarray(CWM)
     JM = convert_to_dataarray(JM)
     frequency = convert_to_dataarray(frequency)
 
-    if not LM.shape == JM.shape == frequency.shape:
-        raise ValueError("LM, JM, and frequency must be of the same size")
+    if not CWM.shape == JM.shape == frequency.shape:
+        raise ValueError("CWM, JM, and frequency must be of the same size")
     if not np.abs(frequency.sum() - 1) < 1e-6:
         raise ValueError("Frequency components must sum to one.")
 
     T = 8766  # Average length of a year (h)
-    maep = T * np.nansum(LM * JM * frequency)
+    maep = T * np.nansum(CWM * JM * frequency)
 
     return maep
 
@@ -371,11 +385,11 @@ def power_performance_workflow(
     P: numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Power [W]
     statistic: string or list of strings
-        Statistics for plotting capture length matrices,
+        Statistics for plotting capture width matrices,
         options include: "mean", "std", "median",
         "count", "sum", "min", "max", and "frequency".
         Note that "std" uses a degree of freedom of 1 in accordance with Formula D.5 of IEC TS 62600-100 Ed. 2.0 en 2024.
-        To output capture length matrices for multiple binning parameters,
+        To output capture width matrices for multiple binning parameters,
         define as a list of strings: statistic = ["", "", ""]
     frequency_bins: numpy array or pandas Series (optional)
        Bin widths for frequency of S. Required for unevenly sized bins
@@ -398,8 +412,8 @@ def power_performance_workflow(
 
     Returns
     ---------
-    LM: xarray dataset
-        Capture length matrices
+    CWM: xarray dataset
+        Capture width matrices
 
     maep_matrix: float
         Mean annual energy production
@@ -430,39 +444,39 @@ def power_performance_workflow(
         S, h, deep=deep, rho=rho, g=g, ratio=ratio, to_pandas=False
     )
 
-    # Calculate capture length from power and energy flux
-    L = wave.performance.capture_length(P, J, to_pandas=False)
+    # Calculate capture width from power and energy flux
+    CW = wave.performance.capture_width(P, J, to_pandas=False)
 
     # Generate bins for Hm0 and Te, input format (start, stop, step_size)
     Hm0_bins = np.arange(0, Hm0.values.max() + 0.5, 0.5)
     Te_bins = np.arange(0, Te.values.max() + 1, 1)
 
-    # Create capture length matrices for each statistic based on IEC TS 62600-100 Ed. 2.0 en 2024
+    # Create capture width matrices for each statistic based on IEC TS 62600-100 Ed. 2.0 en 2024
     # Median, sum, frequency additionally provided
-    LM = xr.Dataset()
-    LM["mean"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "mean", Hm0_bins, Te_bins, to_pandas=False
+    CWM = xr.Dataset()
+    CWM["mean"] = wave.performance.capture_width_matrix(
+        Hm0, Te, CW, "mean", Hm0_bins, Te_bins, to_pandas=False
     )
-    LM["std"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "std", Hm0_bins, Te_bins, to_pandas=False
+    CWM["std"] = wave.performance.capture_width_matrix(
+        Hm0, Te, CW, "std", Hm0_bins, Te_bins, to_pandas=False
     )
-    LM["median"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "median", Hm0_bins, Te_bins, to_pandas=False
+    CWM["median"] = wave.performance.capture_width_matrix(
+        Hm0, Te, CW, "median", Hm0_bins, Te_bins, to_pandas=False
     )
-    LM["count"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "count", Hm0_bins, Te_bins, to_pandas=False
+    CWM["count"] = wave.performance.capture_width_matrix(
+        Hm0, Te, CW, "count", Hm0_bins, Te_bins, to_pandas=False
     )
-    LM["sum"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "sum", Hm0_bins, Te_bins, to_pandas=False
+    CWM["sum"] = wave.performance.capture_width_matrix(
+        Hm0, Te, CW, "sum", Hm0_bins, Te_bins, to_pandas=False
     )
-    LM["min"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "min", Hm0_bins, Te_bins, to_pandas=False
+    CWM["min"] = wave.performance.capture_width_matrix(
+        Hm0, Te, CW, "min", Hm0_bins, Te_bins, to_pandas=False
     )
-    LM["max"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "max", Hm0_bins, Te_bins, to_pandas=False
+    CWM["max"] = wave.performance.capture_width_matrix(
+        Hm0, Te, CW, "max", Hm0_bins, Te_bins, to_pandas=False
     )
-    LM["freq"] = wave.performance.capture_length_matrix(
-        Hm0, Te, L, "frequency", Hm0_bins, Te_bins, to_pandas=False
+    CWM["freq"] = wave.performance.capture_width_matrix(
+        Hm0, Te, CW, "frequency", Hm0_bins, Te_bins, to_pandas=False
     )
 
     # Create wave energy flux matrix using mean
@@ -472,24 +486,24 @@ def power_performance_workflow(
 
     # Calculate maep from matrix
     maep_matrix = wave.performance.mean_annual_energy_production_matrix(
-        LM["mean"], JM, LM["freq"]
+        CWM["mean"], JM, CWM["freq"]
     )
 
-    # Plot capture length matrices using statistic
+    # Plot capture width matrices using statistic
     for str in statistic:
-        if str not in list(LM.data_vars):
+        if str not in list(CWM.data_vars):
             print("ERROR: Invalid Statistics passed")
             continue
-        plt.figure(figsize=(12, 12), num="Capture Length Matrix " + str)
+        plt.figure(figsize=(12, 12), num="Capture Width Matrix " + str)
         ax = plt.gca()
         wave.graphics.plot_matrix(
-            LM[str],
+            CWM[str],
             xlabel="Te (s)",
             ylabel="Hm0 (m)",
-            zlabel=str + " of Capture Length",
+            zlabel=str + " of Capture Width",
             show_values=show_values,
             ax=ax,
         )
-        plt.savefig(join(savepath, "Capture Length Matrix " + str + ".png"))
+        plt.savefig(join(savepath, "Capture Width Matrix " + str + ".png"))
 
-    return LM, maep_matrix
+    return CWM, maep_matrix
