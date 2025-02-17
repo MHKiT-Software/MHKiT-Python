@@ -47,7 +47,7 @@ def statistics(X, to_pandas=True):
     deviation (std), min, percentiles (25%, 50%, 75%), and max.
 
     Note that std uses a degree of freedom of 1 in accordance with
-    IEC/TS 62600-100.
+    Formula D.5 of IEC TS 62600-100 Ed. 2.0 en 2024.
 
     Parameters
     ------------
@@ -134,7 +134,7 @@ def capture_length_matrix(Hm0, Te, L, statistic, Hm0_bins, Te_bins, to_pandas=Tr
     """
     Generates a capture length matrix for a given statistic
 
-    Note that IEC/TS 62600-100 requires capture length matrices for
+    Note that IEC TS 62600-100 Ed. 2.0 en 2024 section 9.2.4 requires capture length matrices for
     the mean, std, count, min, and max.
 
     Parameters
@@ -148,7 +148,7 @@ def capture_length_matrix(Hm0, Te, L, statistic, Hm0_bins, Te_bins, to_pandas=Tr
     statistic: string
         Statistic for each bin, options include: 'mean', 'std', 'median',
         'count', 'sum', 'min', 'max', and 'frequency'.  Note that 'std' uses
-        a degree of freedom of 1 in accordance with IEC/TS 62600-100.
+        a degree of freedom of 1 in accordance with Formula D.5 of IEC TS 62600-100 Ed. 2.0 en 2024.
     Hm0_bins: numpy array
         Bin centers for Hm0 [m]
     Te_bins: numpy array
@@ -200,8 +200,8 @@ def wave_energy_flux_matrix(Hm0, Te, J, statistic, Hm0_bins, Te_bins, to_pandas=
         Wave energy flux from spectra [W/m]
     statistic: string
         Statistic for each bin, options include: 'mean', 'std', 'median',
-        'count', 'sum', 'min', 'max', and 'frequency'.  Note that 'std' uses a degree of freedom
-        of 1 in accordance of IEC/TS 62600-100.
+        'count', 'sum', 'min', 'max', and 'frequency'. Note that 'std' uses
+        a degree of freedom of 1 in accordance with Formula D.5 of IEC TS 62600-100 Ed. 2.0 en 2024.
     Hm0_bins: numpy array
         Bin centers for Hm0 [m]
     Te_bins: numpy array
@@ -349,7 +349,7 @@ def power_performance_workflow(
 ):
     """
     High-level function to compute power performance quantities of
-    interest following IEC TS 62600-100 for given wave spectra.
+    interest following IEC TS 62600-100 Ed. 2.0 en 2024 for given wave spectra.
 
     Parameters
     ------------
@@ -363,7 +363,7 @@ def power_performance_workflow(
         Statistics for plotting capture length matrices,
         options include: "mean", "std", "median",
         "count", "sum", "min", "max", and "frequency".
-        Note that "std" uses a degree of freedom of 1 in accordance with IEC/TS 62600-100.
+        Note that "std" uses a degree of freedom of 1 in accordance with Formula D.5 of IEC TS 62600-100 Ed. 2.0 en 2024.
         To output capture length matrices for multiple binning parameters,
         define as a list of strings: statistic = ["", "", ""]
     frequency_bins: numpy array or pandas Series (optional)
@@ -426,7 +426,7 @@ def power_performance_workflow(
     Hm0_bins = np.arange(0, Hm0.values.max() + 0.5, 0.5)
     Te_bins = np.arange(0, Te.values.max() + 1, 1)
 
-    # Create capture length matrices for each statistic based on IEC/TS 62600-100
+    # Create capture length matrices for each statistic based on IEC TS 62600-100 Ed. 2.0 en 2024
     # Median, sum, frequency additionally provided
     LM = xr.Dataset()
     LM["mean"] = wave.performance.capture_length_matrix(

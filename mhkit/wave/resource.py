@@ -949,7 +949,7 @@ def energy_flux(
     f = S[frequency_dimension]
 
     if deep:
-        # Eq 8 in IEC 62600-100, deep water simplification
+        # Eq 8 in IEC 62600-100 Ed. 2.0 en 2024, deep water simplification
         Te = energy_period(S, to_pandas=False)
         Hm0 = significant_wave_height(S, to_pandas=False)
 
