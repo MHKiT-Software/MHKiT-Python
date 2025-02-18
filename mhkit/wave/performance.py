@@ -55,7 +55,7 @@ def statistics(X, to_pandas=True):
     Calculates statistics, including count, mean, standard
     deviation (std), min, percentiles (25%, 50%, 75%), and max.
 
-    Note that std uses a degree of freedom of 1 in accordance with
+    Note that std uses a degree of freedom of N in accordance with
     Formula D.5 of IEC TS 62600-100 Ed. 2.0 en 2024.
 
     Parameters
@@ -77,7 +77,7 @@ def statistics(X, to_pandas=True):
 
     count = X.count().item()
     mean = X.mean().item()
-    std = _std_ddof1(X)
+    std = _std_ddof0(X)
     q = X.quantile([0.0, 0.25, 0.5, 0.75, 1.0]).values
     variables = ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]
 
@@ -93,14 +93,14 @@ def statistics(X, to_pandas=True):
     return stats
 
 
-def _std_ddof1(a):
-    # Standard deviation with degree of freedom equal to 1
+def _std_ddof0(a):
+    # Standard deviation with degree of freedom equal to N samples (delta degree of freedom = 0)
     if len(a) == 0:
         return np.nan
     elif len(a) == 1:
         return 0
     else:
-        return np.std(a, ddof=1)
+        return np.std(a, ddof=0)
 
 
 def _performance_matrix(X, Y, Z, statistic, x_centers, y_centers):
@@ -119,7 +119,7 @@ def _performance_matrix(X, Y, Z, statistic, x_centers, y_centers):
 
     # Override standard deviation with degree of freedom equal to 1
     if statistic == "std":
-        statistic = _std_ddof1
+        statistic = _std_ddof0
 
     # Provide function to compute frequency
     def _frequency(a):
@@ -136,12 +136,12 @@ def _performance_matrix(X, Y, Z, statistic, x_centers, y_centers):
     dx_edge = np.diff(x_edge)
     if np.any(dx_edge > 0.5):
         warnings.warn(
-            "Matrix bin widths are greater than the IEC TS 62600-100 limit of 0.5 meters."
+            "Significant wave height bins are greater than the IEC TS 62600-100 limit of 0.5 meters."
         )
     dy_edge = np.diff(y_edge)
-    if np.any(dy_edge > 0.5):
+    if np.any(dy_edge > 1.0):
         warnings.warn(
-            "Matrix bin widths are greater than the IEC TS 62600-100 limit of 1.0 seconds."
+            "Energy period bins are greater than the IEC TS 62600-100 limit of 1.0 seconds."
         )
 
     M = xr.DataArray(
@@ -171,7 +171,7 @@ def capture_width_matrix(Hm0, Te, CW, statistic, Hm0_bins, Te_bins, to_pandas=Tr
     statistic: string
         Statistic for each bin, options include: 'mean', 'std', 'median',
         'count', 'sum', 'min', 'max', and 'frequency'.  Note that 'std' uses
-        a degree of freedom of 1 in accordance with Formula D.5 of IEC TS 62600-100 Ed. 2.0 en 2024.
+        a degree of freedom of N in accordance with Formula D.5 of IEC TS 62600-100 Ed. 2.0 en 2024.
     Hm0_bins: numpy array
         Bin centers for Hm0 [m]
     Te_bins: numpy array
@@ -232,7 +232,7 @@ def wave_energy_flux_matrix(Hm0, Te, J, statistic, Hm0_bins, Te_bins, to_pandas=
     statistic: string
         Statistic for each bin, options include: 'mean', 'std', 'median',
         'count', 'sum', 'min', 'max', and 'frequency'. Note that 'std' uses
-        a degree of freedom of 1 in accordance with Formula D.5 of IEC TS 62600-100 Ed. 2.0 en 2024.
+        a degree of freedom of N in accordance with Formula D.5 of IEC TS 62600-100 Ed. 2.0 en 2024.
     Hm0_bins: numpy array
         Bin centers for Hm0 [m]
     Te_bins: numpy array
@@ -394,7 +394,7 @@ def power_performance_workflow(
         Statistics for plotting capture width matrices,
         options include: "mean", "std", "median",
         "count", "sum", "min", "max", and "frequency".
-        Note that "std" uses a degree of freedom of 1 in accordance with Formula D.5 of IEC TS 62600-100 Ed. 2.0 en 2024.
+        Note that "std" uses a degree of freedom of N in accordance with Formula D.5 of IEC TS 62600-100 Ed. 2.0 en 2024.
         To output capture width matrices for multiple binning parameters,
         define as a list of strings: statistic = ["", "", ""]
     frequency_bins: numpy array or pandas Series (optional)
