@@ -62,6 +62,7 @@ class clean_testcase(unittest.TestCase):
         td_awac = tp.dat_awac.copy(deep=True)
         td_sig = tp.dat_sig_tide.copy(deep=True)
         td_rdi = tp.dat_rdi.copy(deep=True)
+        td_dual = tp.dat_sig_dp2.copy(deep=True)
 
         apm.clean.water_depth_from_pressure(td_awac, salinity=30)
         apm.clean.remove_surface_interference(td_awac, beam_angle=20, inplace=True)
@@ -70,6 +71,11 @@ class clean_testcase(unittest.TestCase):
         apm.clean.water_depth_from_pressure(td_sig, salinity=31)
         apm.clean.remove_surface_interference(td_sig, inplace=True)
         td_sig = apm.clean.correlation_filter(td_sig, thresh=50)
+
+        apm.clean.set_range_offset(td_dual, 0.6)
+        apm.clean.water_depth_from_pressure(td_dual, salinity=31)
+        apm.clean.remove_surface_interference(td_dual, inplace=True)
+        td_dual = apm.clean.correlation_filter(td_dual, thresh=50)
 
         # Depth should already be found for this RDI file, but it's bad
         td_rdi["pressure"] /= 10  # set to something reasonable
@@ -89,6 +95,7 @@ class clean_testcase(unittest.TestCase):
 
     def test_clean_downADCP(self):
         td = tp.dat_sig_ie.copy(deep=True)
+        td_dual = tp.dat_sig_dp2.copy(deep=True)
 
         # First remove bad data
         td["vel"] = apm.clean.val_exceeds_thresh(td.vel, thresh=3)
@@ -100,7 +107,12 @@ class clean_testcase(unittest.TestCase):
         # Then clean below seabed
         apm.clean.set_range_offset(td, 0.5)
         apm.clean.water_depth_from_amplitude(td, thresh=10, nfilt=3)
-        td = apm.clean.remove_surface_interference(td)
+        td = apm.clean.remove_surface_interference(td, inplace=False)
+
+        # Technically up-facing but a good check
+        apm.clean.set_range_offset(td_dual, 0.6)
+        apm.clean.water_depth_from_amplitude(td_dual, thresh=10, nfilt=3)
+        td_dual = apm.clean.remove_surface_interference(td_dual, inplace=False)
 
         if make_data:
             save(td, "Sig500_Echo_clean.nc")
