@@ -7,16 +7,16 @@ from mhkit.utils import convert_nested_dict_and_pandas
 
 def read_output(file_name, to_pandas=True):
     """
-    Loads the wecSim response class once 'output' has been saved to a `.mat`
+    Loads the WEC-Sim response class once 'output' has been saved to a `.mat`
     structure.
 
     NOTE: Python is unable to import MATLAB objects.
-    MATLAB must be used to save the wecSim object as a structure.
+    MATLAB must be used to save the WEC-Sim object as a structure.
 
     Parameters
     ------------
     file_name: string
-        Name of wecSim output file saved as a `.mat` structure
+        Name of WEC-Sim output file saved as a `.mat` structure
     to_pandas: bool (optional)
         Flag to output a dictionary of pandas objects instead of a dictionary
         of xarray objects. Default = True.
@@ -38,7 +38,7 @@ def read_output(file_name, to_pandas=True):
     output = ws_data["output"]
 
     ######################################
-    ## import wecSim wave class
+    ## import WEC-Sim wave class
     #         type: ''
     #         time: [iterations x 1 double]
     #    elevation: [iterations x 1 double]
@@ -62,7 +62,7 @@ def read_output(file_name, to_pandas=True):
         wave_output = []
 
     ######################################
-    ## import wecSim body class
+    ## import WEC-Sim body class
     #                       name: ''
     #                       time: [iterations x 1 double]
     #                   position: [iterations x 6 double]
@@ -154,7 +154,7 @@ def read_output(file_name, to_pandas=True):
         body_output = []
 
     ######################################
-    ## import wecSim pto class
+    ## import WEC-Sim pto class
     #                      name: ''
     #                      time: [iterations x 1 double]
     #                  position: [iterations x 6 double]
@@ -228,7 +228,7 @@ def read_output(file_name, to_pandas=True):
         pto_output = []
 
     ######################################
-    ## import wecSim constraint class
+    ## import WEC-Sim constraint class
     #
     #            name: ''
     #            time: [iterations x 1 double]
@@ -288,7 +288,7 @@ def read_output(file_name, to_pandas=True):
         constraint_output = []
 
     ######################################
-    ## import wecSim mooring class
+    ## import WEC-Sim mooring class
     #
     #         name: ''
     #         time: [iterations x 1 double]
@@ -338,7 +338,7 @@ def read_output(file_name, to_pandas=True):
         mooring_output = []
 
     ######################################
-    ## import wecSim moorDyn class
+    ## import WEC-Sim moorDyn class
     #
     #    Lines: [1×1 struct]
     #    Line1: [1×1 struct]
@@ -383,7 +383,7 @@ def read_output(file_name, to_pandas=True):
         moorDyn_output = []
 
     ######################################
-    ## import wecSim ptosim class
+    ## import WEC-Sim ptosim class
     #
     #                 name: ''
     #             pistonCF: [1×1 struct]
@@ -406,7 +406,7 @@ def read_output(file_name, to_pandas=True):
         ptosim_output = []
 
     ######################################
-    ## import wecSim cable class
+    ## import WEC-Sim cable class
     #
     #       name: ''
     #       time: [iterations x 1 double]
@@ -465,7 +465,7 @@ def read_output(file_name, to_pandas=True):
         cable_output = []
 
     ############################################
-    ## create wecSim output - Dict of DataFrames
+    ## create WEC-Sim output - Dict of DataFrames
     ############################################
     ws_output = {
         "wave": wave_output,
