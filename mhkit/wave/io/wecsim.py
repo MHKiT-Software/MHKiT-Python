@@ -1,8 +1,36 @@
 import pandas as pd
 import numpy as np
+import xarray as xr
 import scipy.io as sio
 from os.path import isfile
 from mhkit.utils import convert_nested_dict_and_pandas
+
+
+def _consolidate_dimensions(output):
+    """
+    Converts the previously read WEC-Sim output, already in xarray,
+    to a conventient form where dof and object number are distinct dimensions.
+    """
+    all_dof_vars = list(output.data_vars)
+    for s in all_dof_vars:
+        if "_dof" not in s:
+            all_dof_vars = all_dof_vars.remove(s)
+    if not isinstance(all_dof_vars, type(None)):
+        vars = all_dof_vars.copy()
+        for i, v in enumerate(vars):
+            vars[i] = v.rstrip("_dof123456")
+        unique_vars = set(vars)
+        for unique_var in unique_vars:
+            data = output[unique_var + "_dof1"]
+            for i in np.arange(2, 7):
+                data = xr.concat([data, output[unique_var + "_dof" + str(i)]], "dof")
+            data = data.assign_coords({"dof": [1, 2, 3, 4, 5, 6]})
+            data.name = unique_var
+            output[unique_var] = data
+
+        # remove old variables
+        output = output.drop_vars(all_dof_vars)
+    return output
 
 
 def read_output(file_name, to_pandas=True):
@@ -10,8 +38,8 @@ def read_output(file_name, to_pandas=True):
     Loads the WEC-Sim response class once 'output' has been saved to a `.mat`
     structure.
 
-    NOTE: Python is unable to import MATLAB objects.
-    MATLAB must be used to save the WEC-Sim object as a structure.
+    NOTE: Python is unable to import MATLAB classes.
+    MATLAB must be used to convert the WEC-Sim responseClass object into a structure.
 
     Parameters
     ------------
@@ -480,5 +508,24 @@ def read_output(file_name, to_pandas=True):
 
     if not to_pandas:
         ws_output = convert_nested_dict_and_pandas(ws_output)
+
+        # Loop through each output type (bodies, constraints, ptos, etc) in the WEC-Sim output
+        for k in ws_output.keys():
+            # Skip
+            if not isinstance(ws_output[k], list):
+                if isinstance(ws_output[k], dict):
+                    # Loop through each instance of an output type (body1, body2, etc)
+                    for k2 in ws_output[k].keys():
+                        ws_output[k][k2] = _consolidate_dimensions(ws_output[k][k2])
+
+                    # Concatenate multiple instances of each output type into one dataset
+                    dim_name = k.rstrip("s").replace("ie", "y")  #
+                    n = len(ws_output[k])
+                    ws_output[k] = xr.concat(list(ws_output[k].values()), dim_name)
+                    ws_output[k] = ws_output[k].assign_coords(
+                        {dim_name: np.arange(1, n + 1)}
+                    )
+                else:
+                    ws_output[k] = _consolidate_dimensions(ws_output[k])
 
     return ws_output
