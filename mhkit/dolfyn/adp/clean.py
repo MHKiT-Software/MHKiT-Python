@@ -157,31 +157,39 @@ def water_depth_from_amplitude(ds, thresh=10, nfilt=None) -> None:
             "Please manually remove 'depth' if it needs to be recalculated."
         )
 
+    # Use "avg" velocty if standard isn't available.
+    # Should not matter which is used.
+    tag = []
+    if hasattr(ds, "vel"):
+        tag += [""]
+    if hasattr(ds, "vel_avg"):
+        tag += ["_avg"]
+
     # This finds the maximum of the echo profile:
-    inds = np.argmax(ds["amp"].values, axis=1)
+    inds = np.argmax(ds["amp" + tag[0]].values, axis=1)
     # This finds the first point that increases (away from the profiler) in
     # the echo profile
-    edf = np.diff(ds["amp"].values.astype(np.int16), axis=1)
+    edf = np.diff(ds["amp" + tag[0]].values.astype(np.int16), axis=1)
     inds2 = (
-        np.max(
+        np.nanmax(
             (edf < 0)
-            * np.arange(ds["vel"].shape[1] - 1, dtype=np.uint8)[None, :, None],
+            * np.arange(ds["vel" + tag[0]].shape[1] - 1, dtype=np.uint8)[None, :, None],
             axis=1,
         )
         + 1
     )
 
     # Calculate the depth of these quantities
-    d1 = ds["range"].values[inds]
-    d2 = ds["range"].values[inds2]
+    d1 = ds["range" + tag[0]].values[inds]
+    d2 = ds["range" + tag[0]].values[inds2]
     # Combine them:
     D = np.vstack((d1, d2))
     # Take the median value as the estimate of the surface:
-    d = np.median(D, axis=0)
+    d = np.nanmedian(D, axis=0)
 
     # Throw out values that do not increase near the surface by *thresh*
-    for ip in range(ds["vel"].shape[1]):
-        itmp = np.min(inds[:, ip])
+    for ip in range(ds["vel" + tag[0]].shape[1]):
+        itmp = np.nanmin(inds[:, ip])
         if (edf[itmp:, :, ip] < thresh).all():
             d[ip] = np.nan
 
@@ -199,7 +207,7 @@ def water_depth_from_amplitude(ds, thresh=10, nfilt=None) -> None:
 
     ds["depth"] = xr.DataArray(
         d.astype("float32"),
-        dims=["time"],
+        dims=["time" + tag[0]],
         attrs={"units": "m", "long_name": long_name, "standard_name": "depth"},
     )
 
@@ -230,7 +238,7 @@ def water_depth_from_pressure(ds, salinity=35) -> None:
     ds : xarray.Dataset
       The full adcp dataset
     salinity: numeric
-      Water salinity in psu. Default = 35
+      Water salinity in PSU. Default = 35
 
     Returns
     -------
@@ -259,16 +267,26 @@ def water_depth_from_pressure(ds, salinity=35) -> None:
             "The variable 'depth' already exists. "
             "Please manually remove 'depth' if it needs to be recalculated."
         )
-    if "pressure" not in ds.data_vars:
+    pressure = [v for v in ds.data_vars if "pressure" in v]
+    if not pressure:
         raise NameError("The variable 'pressure' does not exist.")
-    elif not ds["pressure"].sum():
-        raise ValueError("Pressure data not recorded.")
-    if "temp" not in ds.data_vars:
+    else:
+        for p in pressure:
+            if not ds[p].sum():
+                pressure.remove(p)
+        if not pressure:
+            raise ValueError("Pressure data not recorded.")
+    temp = [
+        v
+        for v in ds.data_vars
+        if (("temp" in v) and ("clock" not in v) and ("press" not in v))
+    ]
+    if not temp:
         raise NameError("The variable 'temp' does not exist.")
 
     # Density calcation
-    P = ds["pressure"].values
-    T = ds["temp"].values  # temperature, degC
+    P = ds[pressure[0]].values  # pressure, dbar
+    T = ds[temp[0]].values  # temperature, degC
     S = salinity  # practical salinity
     rho0 = 1027  # kg/m^3
     T0 = 10  # degC
@@ -291,7 +309,7 @@ def water_depth_from_pressure(ds, salinity=35) -> None:
 
     ds["water_density"] = xr.DataArray(
         rho.astype("float32"),
-        dims=["time"],
+        dims=[ds[pressure[0]].dims[0]],
         attrs={
             "units": "kg m-3",
             "long_name": "Water Density",
@@ -301,7 +319,7 @@ def water_depth_from_pressure(ds, salinity=35) -> None:
     )
     ds["depth"] = xr.DataArray(
         d.astype("float32"),
-        dims=["time"],
+        dims=[ds[pressure[0]].dims[0]],
         attrs={"units": "m", "long_name": long_name, "standard_name": "depth"},
     )
 
@@ -319,7 +337,7 @@ def nan_beyond_surface(*args, **kwargs):
 
 
 def remove_surface_interference(
-    ds, val=np.nan, beam_angle=None, inplace=False
+    ds, val=np.nan, beam_angle=None, cell_size=None, inplace=False
 ) -> Optional[xr.Dataset]:
     """
     Mask the values of 3D data (vel, amp, corr, echo) that are beyond the surface.
@@ -332,6 +350,8 @@ def remove_surface_interference(
       Specifies the value to set the bad values to. Default is `numpy.nan`
     beam_angle : int
       ADCP beam inclination angle in degrees. Default = dataset.attrs['beam_angle']
+    cell_size : float
+      ADCP beam cellsize in meters. Default = dataset.attrs['cell_size']
     inplace : bool
       When True the existing data object is modified. When False
       a copy is returned. Default = False
@@ -352,19 +372,42 @@ def remove_surface_interference(
         raise KeyError(
             "Depth variable 'depth' does not exist in input dataset."
             "Please calculate 'depth' using the function 'water_depth_from_pressure'"
-            "or 'water_depth_from_amplitude."
+            "or 'water_depth_from_amplitude, or it can be found from the 'dist_bt'"
+            "(bottom track) or 'dist_alt' (altimeter) variables, if available."
         )
 
     if beam_angle is None:
         if hasattr(ds, "beam_angle"):
             beam_angle = np.deg2rad(ds.attrs["beam_angle"])
         else:
-            raise Exception(
+            raise KeyError(
                 "'beam_angle` not found in dataset attributes. "
                 "Please supply the ADCP's beam angle."
             )
     else:
         beam_angle = np.deg2rad(beam_angle)
+
+    if cell_size is None:
+        # Fetch cell size
+        cell_sizes = [
+            a
+            for a in ds.attrs
+            if (
+                ("cell_size" in a)
+                and ("_bt" not in a)
+                and ("_alt" not in a)
+                and ("wave" not in a)
+            )
+        ]
+        if cell_sizes:
+            cs = cell_sizes[0]
+        else:
+            raise KeyError(
+                "'cell_size` not found in dataset attributes. "
+                "Please supply the ADCP's cell size."
+            )
+    else:
+        cs = [cell_size]
 
     if not inplace:
         ds = ds.copy(deep=True)
@@ -372,17 +415,14 @@ def remove_surface_interference(
     # Get all variables with 'range' coordinate
     profile_vars = [h for h in ds.keys() if any(s for s in ds[h].dims if "range" in s)]
 
-    # Surface interference distance
     # Apply range_offset if available
     range_offset = __check_for_range_offset(ds)
     if range_offset:
         range_limit = (
-            (ds["depth"] - range_offset) * np.cos(beam_angle) - ds.attrs["cell_size"]
+            (ds["depth"] - range_offset) * np.cos(beam_angle) - ds.attrs[cs]
         ) + range_offset
     else:
-        range_limit = ds["depth"] * np.cos(beam_angle) - ds.attrs["cell_size"]
-
-    bds = ds["range"] > range_limit
+        range_limit = ds["depth"] * np.cos(beam_angle) - ds.attrs[cs]
 
     # Echosounder data needs only be trimmed at water surface
     if "echo" in profile_vars:
@@ -390,13 +430,20 @@ def remove_surface_interference(
         ds["echo"].values[..., mask_echo] = val
         profile_vars.remove("echo")
 
-    # Correct rest of "range" data for surface interference
+    # Correct profile measurements for surface interference
     for var in profile_vars:
+        # Use correct coordinate tag
+        if "_" in var and ("gd" not in var):
+            tag = "_" + "_".join(var.split("_")[1:])
+        else:
+            tag = ""
+        mask = ds["range" + tag] > range_limit
+        # Remove values
         a = ds[var].values
         try:  # float dtype
-            a[..., bds] = val
+            a[..., mask] = val
         except:  # int dtype
-            a[..., bds] = 0
+            a[..., mask] = 0
         ds[var].values = a
 
     if not inplace:
@@ -434,10 +481,13 @@ def correlation_filter(ds, thresh=50, inplace=False) -> Optional[xr.Dataset]:
         ds = ds.copy(deep=True)
 
     # 4 or 5 beam
+    tag = []
+    if hasattr(ds, "vel"):
+        tag += [""]
     if hasattr(ds, "vel_b5"):
-        tag = ["", "_b5"]
-    else:
-        tag = [""]
+        tag += ["_b5"]
+    if hasattr(ds, "vel_avg"):
+        tag += ["_avg"]
 
     # copy original ref frame
     coord_sys_orig = ds.coord_sys
@@ -456,7 +506,7 @@ def correlation_filter(ds, thresh=50, inplace=False) -> Optional[xr.Dataset]:
             ds[var + tg].attrs["Comments"] = (
                 "Filtered of data with a correlation value below "
                 + str(thresh)
-                + ds.corr.units
+                + ds["corr" + tg].units
             )
 
     rotate2(ds, coord_sys_orig, inplace=True)

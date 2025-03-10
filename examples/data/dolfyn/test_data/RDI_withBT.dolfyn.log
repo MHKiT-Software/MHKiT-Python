@@ -3,8 +3,9 @@ root - INFO - cfgid0: [7f, 7f]
 root - INFO - {'nbyte': 579, 'dat_offsets': array([ 20,  79, 144, 282, 352, 422, 492])}
 root - INFO - pos 20
 root - INFO - id 0 offset 20
-root - INFO - Number of cells set to 17
-root - INFO - Cell size set to 1.0
+root - DEBUG - Number of cells set to 17
+root - DEBUG - Cell size set to 1.0
+root - DEBUG - Bin 1 distance set to 2.09
 root - INFO - Read Config
 root - INFO - Read Fixed
 root - INFO - id 128 offset 79
@@ -13,9 +14,9 @@ root - INFO - id 512 offset 282
 root - INFO - id 768 offset 352
 root - INFO - id 1024 offset 422
 root - INFO - id 1536 offset 492
-root - INFO - Done: {'prog_ver': 51.41, 'inst_model': 'Workhorse', 'beam_angle': 20, 'freq': 600, 'beam_pattern': 'convex', 'orientation': 'down', 'n_beams': 4, 'n_cells': 17, 'pings_per_ensemble': 1, 'cell_size': 1.0, 'blank_dist': 0.88, 'profiling_mode': 1, 'min_corr_threshold': 64, 'n_code_reps': 5, 'min_prcnt_gd': 0, 'max_error_vel': 2.0, 'sec_between_ping_groups': 0.5, 'coord_sys': 'earth', 'use_pitchroll': 'yes', 'use_3beam': 'yes', 'bin_mapping': 'yes', 'heading_misalign_deg': 0.0, 'magnetic_var_deg': 0.0, 'sensors_src': '01111101', 'sensors_avail': '00111101', 'bin1_dist_m': 2.09, 'transmit_pulse_m': 1.18, 'water_ref_cells': [1, 5], 'false_target_threshold': 50, 'transmit_lag_m': 0.24, 'bandwidth': 0, 'power_level': 255, 'serialnum': 18655}
-root - INFO - self._bb False
-root - INFO - self.cfgbb: {}
+root - INFO - Done: {'prog_ver': 51.41, 'inst_make': 'TRDI', 'inst_type': 'ADCP', 'rotate_vars': ['vel'], 'has_imu': 0, 'inst_model': 'Workhorse', 'beam_angle': 20, 'freq': 600, 'beam_pattern': 'convex', 'orientation': 'down', 'n_beams': 4, 'n_cells': 17, 'pings_per_ensemble': 1, 'cell_size': 1.0, 'blank_dist': 0.88, 'profiling_mode': 1, 'min_corr_threshold': 64, 'n_code_reps': 5, 'min_prcnt_gd': 0, 'max_error_vel': 2.0, 'sec_between_ping_groups': 0.5, 'coord_sys': 'earth', 'use_pitchroll': 'yes', 'use_3beam': 'yes', 'bin_mapping': 'yes', 'heading_misalign_deg': 0.0, 'magnetic_var_deg': 0.0, 'sensors_src': '01111101', 'sensors_avail': '00111101', 'bin1_dist_m': 2.09, 'transmit_pulse_m': 1.18, 'water_ref_cells': [1, 5], 'false_target_threshold': 50, 'transmit_lag_m': 0.24, 'bandwidth': 0, 'power_level': 255, 'serialnum': 18655}
+root - INFO - self._BB False
+root - INFO - self.cfgBB: {}
 root - INFO -   taking data from pings 0 - 1721
 root - INFO -   1721 ensembles will be produced.
 
@@ -98,4 +99,3 @@ root - DEBUG -   pos: 865, pos_: 0, nbyte: 138, k: 0, byte_offset: -1
 root - DEBUG - Trying to Read 512
 root - INFO -   Reading code 0x200...
 root - INFO - Read Corr
-root - INFO -     success!
