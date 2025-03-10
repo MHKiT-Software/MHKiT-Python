@@ -9,8 +9,7 @@ JSON formats, and writing data to a JSON file.
 
 Functions:
 ----------
-request_noaa_data(station, parameter, start_date, end_date, proxy=None,
-  write_json=None):
+request_noaa_data(station, parameter, start_date, end_date, options=None):
     Loads NOAA current data from the API into a pandas DataFrame,
     with optional support for proxy settings and writing data to a JSON
     file.
@@ -30,21 +29,13 @@ import datetime
 import json
 import math
 import shutil
+import warnings
 import pandas as pd
 import requests
 from mhkit.utils.cache import handle_caching
 
 
-def request_noaa_data(
-    station,
-    parameter,
-    start_date,
-    end_date,
-    proxy=None,
-    write_json=None,
-    clear_cache=False,
-    to_pandas=True,
-):
+def request_noaa_data(station, parameter, start_date, end_date, options=None, **kwargs):
     """
     Loads NOAA current data directly from https://api.tidesandcurrents.noaa.gov/api/prod/
     into a pandas DataFrame. NOAA sets max of 31 days between start and end date.
@@ -65,15 +56,12 @@ def request_noaa_data(
         Start date in the format yyyyMMdd
     end_date : str
         End date in the format yyyyMMdd
-    proxy : dict or None
-        To request data from behind a firewall, define a dictionary of proxy
-        settings, for example {"http": 'localhost:8080'}
-    write_json : str or None
-        Name of json file to write data
-    clear_cache : bool
-        If True, the cache for this specific request will be cleared.
-    to_pandas : bool, optional
-        Flag to output pandas instead of xarray. Default = True.
+    options : dict, optional
+        Dictionary containing optional parameters:
+        - proxy: dict or None
+        - write_json: str or None
+        - clear_cache: bool
+        - to_pandas: bool
 
     Returns
     -------
@@ -84,7 +72,59 @@ def request_noaa_data(
         Request metadata. If returning xarray, metadata is instead attached to
         the data's attributes.
     """
-    # Type check inputs
+    if kwargs:
+        warnings.warn(
+            f"Unexpected keyword arguments: {', '.join(kwargs.keys())}. "
+            "Please pass options as a dictionary.",
+            UserWarning,
+        )
+
+    options = options or {}
+    proxy = options.get("proxy", None)
+    write_json = options.get("write_json", None)
+    clear_cache = options.get("clear_cache", False)
+    to_pandas = options.get("to_pandas", True)
+
+    _validate_inputs(
+        station,
+        parameter,
+        start_date,
+        end_date,
+        options,
+    )
+
+    cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit", "noaa")
+    hash_params = f"{station}_{parameter}_{start_date}_{end_date}"
+
+    cached_data, cached_metadata, cache_filepath = handle_caching(
+        hash_params,
+        cache_dir,
+        {"data": None, "metadata": None, "write_json": write_json},
+        clear_cache,
+    )
+
+    if cached_data is not None:
+        return _handle_cached_data(
+            cached_data, cached_metadata, write_json, cache_filepath, to_pandas
+        )
+
+    return _fetch_noaa_data(
+        station,
+        parameter,
+        start_date,
+        end_date,
+        {
+            "proxy": proxy,
+            "cache_dir": cache_dir,
+            "hash_params": hash_params,
+            "write_json": write_json,
+            "clear_cache": clear_cache,
+            "to_pandas": to_pandas,
+        },
+    )
+
+
+def _validate_inputs(station, parameter, start_date, end_date, options):
     if not isinstance(station, str):
         raise TypeError(
             f"Expected 'station' to be of type str, but got {type(station)}"
@@ -101,6 +141,12 @@ def request_noaa_data(
         raise TypeError(
             f"Expected 'end_date' to be of type str, but got {type(end_date)}"
         )
+
+    proxy = options.get("proxy", None)
+    write_json = options.get("write_json", None)
+    clear_cache = options.get("clear_cache", False)
+    to_pandas = options.get("to_pandas", True)
+
     if proxy and not isinstance(proxy, dict):
         raise TypeError(
             f"Expected 'proxy' to be of type dict or None, but got {type(proxy)}"
@@ -116,111 +162,108 @@ def request_noaa_data(
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    # Define the path to the cache directory
-    cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit", "noaa")
 
-    # Create a unique filename based on the function parameters
-    hash_params = f"{station}_{parameter}_{start_date}_{end_date}"
+def _handle_cached_data(
+    cached_data, cached_metadata, write_json, cache_filepath, to_pandas
+):
+    if write_json:
+        shutil.copy(cache_filepath, write_json)
+    if to_pandas:
+        return cached_data, cached_metadata
 
-    # Use handle_caching to manage cache
-    cached_data, cached_metadata, cache_filepath = handle_caching(
-        hash_params,
-        cache_dir,
-        cache_content={"data": None, "metadata": None, "write_json": write_json},
-        clear_cache_file=clear_cache,
+    cached_data = cached_data.to_xarray()
+    cached_data.attrs = cached_metadata
+    return cached_data
+
+
+def _fetch_noaa_data(station, parameter, start_date, end_date, options):
+    begin, end = _parse_dates(start_date, end_date)
+    date_list = _create_date_ranges(begin, end)
+
+    data_frames = []
+    metadata = None  # Initialize metadata
+    for i in range(len(date_list) - 1):
+        start_date = date_list[i].strftime("%Y%m%d")
+        end_date = date_list[i + 1].strftime("%Y%m%d")
+        data_url = _build_data_url(station, parameter, start_date, end_date)
+
+        print(f"Data request URL: {data_url}\n")
+        response = _make_request(data_url, options["proxy"])
+        df, metadata = _xml_to_dataframe(response)
+        data_frames.append(df)
+
+    return _process_data_frames(data_frames, metadata, options)
+
+
+def _process_data_frames(data_frames, metadata, options):
+    data = _concatenate_data_frames(data_frames)
+    cache_filepath = handle_caching(
+        options["hash_params"],
+        options["cache_dir"],
+        {"data": data, "metadata": metadata, "write_json": None},
+        options["clear_cache"],
     )
 
-    if cached_data is not None:
-        if write_json:
-            shutil.copy(cache_filepath, write_json)
-        if to_pandas:
-            return cached_data, cached_metadata
-        else:
-            cached_data = cached_data.to_xarray()
-            cached_data.attrs = cached_metadata
-            return cached_data
-    # If no cached data is available, make the API request
-    # no coverage bc in coverage runs we have already cached the data/ run this code
-    else:  # pragma: no cover
-        # Convert start and end dates to datetime objects
-        begin = datetime.datetime.strptime(start_date, "%Y%m%d").date()
-        end = datetime.datetime.strptime(end_date, "%Y%m%d").date()
+    if options["write_json"]:
+        shutil.copy(cache_filepath, options["write_json"])
 
-        # Determine the number of 30 day intervals
-        delta = 30
-        interval = math.ceil(((end - begin).days) / delta)
+    if options["to_pandas"]:
+        return data, metadata
 
-        # Create date ranges with 30 day intervals
-        date_list = [
-            begin + datetime.timedelta(days=i * delta) for i in range(interval + 1)
-        ]
-        date_list[-1] = end
+    data = data.to_xarray()
+    data.attrs = metadata
+    return data
 
-        # Iterate over date_list (30 day intervals) and fetch data
-        data_frames = []
-        for i in range(len(date_list) - 1):
-            start_date = date_list[i].strftime("%Y%m%d")
-            end_date = date_list[i + 1].strftime("%Y%m%d")
 
-            api_query = f"begin_date={start_date}&end_date={end_date}&station={station}&product={parameter}&units=metric&time_zone=gmt&application=web_services&format=xml"
-            # Add datum to water level inquiries
-            if parameter == "water_level":
-                api_query += "&datum=MLLW"
-            data_url = f"https://tidesandcurrents.noaa.gov/api/datagetter?{api_query}"
+def _parse_dates(start_date, end_date):
+    begin = datetime.datetime.strptime(start_date, "%Y%m%d").date()
+    end = datetime.datetime.strptime(end_date, "%Y%m%d").date()
+    return begin, end
 
-            print(f"Data request URL: {data_url}\n")
 
-            # Get response
-            try:
-                response = requests.get(url=data_url, proxies=proxy)
-                response.raise_for_status()
-                # Catch non-exception errors
-                if "error" in response.content.decode():
-                    raise Exception(response.content.decode())
-            except Exception as err:
-                if err.__class__ == requests.exceptions.HTTPError:
-                    print(f"HTTP error occurred: {err}")
-                    print(f"Error message: {response.content.decode()}\n")
-                    continue
-                elif err.__class__ == requests.exceptions.RequestException:
-                    print(f"Requests error occurred: {err}")
-                    print(f"Error message: {response.content.decode()}\n")
-                    continue
-                else:
-                    print(f"Requests error occurred: {err}\n")
-                    continue
+def _create_date_ranges(begin, end):
+    delta = 30
+    interval = math.ceil(((end - begin).days) / delta)
+    date_list = [
+        begin + datetime.timedelta(days=i * delta) for i in range(interval + 1)
+    ]
+    date_list[-1] = end
+    return date_list
 
-            # Convert to DataFrame and save in data_frames list
-            df, metadata = _xml_to_dataframe(response)
-            data_frames.append(df)
 
-        # Concatenate all DataFrames
-        if data_frames:
-            data = pd.concat(data_frames, ignore_index=False)
-        else:
-            raise ValueError("No data retrieved.")
+def _build_data_url(station, parameter, start_date, end_date):
+    api_query = (
+        f"begin_date={start_date}&end_date={end_date}&station={station}&product={parameter}"
+        "&units=metric&time_zone=gmt&application=web_services&format=xml"
+    )
+    if parameter == "water_level":
+        api_query += "&datum=MLLW"
+    return f"https://tidesandcurrents.noaa.gov/api/datagetter?{api_query}"
 
-        # Remove duplicated date values
-        data = data.loc[~data.index.duplicated()]
 
-        # After making the API request and processing the response, write the
-        #  response to a cache file
-        handle_caching(
-            hash_params,
-            cache_dir,
-            cache_content={"data": data, "metadata": metadata, "write_json": None},
-            clear_cache_file=clear_cache,
-        )
+def _make_request(data_url, proxy):
+    try:
+        response = requests.get(url=data_url, proxies=proxy, timeout=60)
+        response.raise_for_status()
+        if "error" in response.content.decode():
+            raise requests.exceptions.RequestException(response.content.decode())
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+        print(f"Error message: {response.content.decode()}\n")
+        raise
+    except requests.exceptions.RequestException as req_err:
+        print(f"Requests error occurred: {req_err}")
+        print(f"Error message: {response.content.decode()}\n")
+        raise
+    return response
 
-        if write_json:
-            shutil.copy(cache_filepath, write_json)
 
-        if to_pandas:
-            return data, metadata
-        else:
-            data = data.to_xarray()
-            data.attrs = metadata
-            return data
+def _concatenate_data_frames(data_frames):
+    if data_frames:
+        data = pd.concat(data_frames, ignore_index=False)
+    else:
+        raise ValueError("No data retrieved.")
+    return data.loc[~data.index.duplicated()]
 
 
 def _xml_to_dataframe(response):
@@ -232,30 +275,26 @@ def _xml_to_dataframe(response):
     data = None
 
     for child in root:
-        # Save meta data dictionary
         if child.tag == "metadata":
             metadata = child.attrib
         elif child.tag == "observations":
             data = child
         elif child.tag == "error":
             print("***ERROR: Response returned error")
-            return None
+            return None, {}
 
     if data is None:
         print("***ERROR: No observations found")
-        return None
+        return None, {}
 
-    # Create a list of DataFrames then Concatenate
     df = pd.concat(
         [pd.DataFrame(obs.attrib, index=[0]) for obs in data], ignore_index=True
     )
 
-    # Convert time to datetime
     df["t"] = pd.to_datetime(df.t)
     df = df.set_index("t")
     df.drop_duplicates(inplace=True)
 
-    # Convert data to float
     cols = list(df.columns)
     for var in cols:
         try:
@@ -263,7 +302,7 @@ def _xml_to_dataframe(response):
         except ValueError:
             pass
 
-    return df, metadata
+    return df, metadata or {}
 
 
 def read_noaa_json(filename, to_pandas=True):
@@ -288,7 +327,7 @@ def read_noaa_json(filename, to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    with open(filename) as outfile:
+    with open(filename, encoding="utf-8") as outfile:
         json_data = json.load(outfile)
     try:  # original MHKiT format (deprecate in future)
         # Get the metadata
@@ -311,7 +350,7 @@ def read_noaa_json(filename, to_pandas=True):
 
     if to_pandas:
         return data, metadata
-    else:
-        data = data.to_xarray()
-        data.attrs = metadata
-        return data
+
+    data = data.to_xarray()
+    data.attrs = metadata
+    return data
