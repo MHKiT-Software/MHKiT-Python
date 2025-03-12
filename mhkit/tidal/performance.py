@@ -1,3 +1,26 @@
+"""
+Tidal Performance Module
+
+This module provides functions for analyzing the performance of tidal energy
+devices using Acoustic Doppler Current Profiler (ADCP) data. It includes
+methods for calculating power curves, efficiency, velocity profiles, and
+other metrics relevant to marine energy devices.
+
+Functions:
+    - _slice_circular_capture_area: Slices a circular capture area based on ADCP depth bins.
+    - _slice_rectangular_capture_area: Slices a rectangular capture area based on ADCP depth bins.
+    - power_curve: Computes power curve and power statistics for a marine energy device.
+    - _average_velocity_bins: Averages velocity profiles into velocity bins.
+    - _apply_function: Applies statistical functions (mean, RMS, std) to velocity data.
+    - velocity_profiles: Computes velocity profiles for different statistical measures.
+    - device_efficiency: Computes the efficiency (power coefficient) of a tidal energy device.
+    - _calculate_density: Computes averaged water density for a given time period.
+
+Usage:
+    This module is intended for use with ADCP data to evaluate the performance
+    of marine energy devices based on IEC/TS 62600-200 standards.
+"""
+
 import numpy as np
 import xarray as xr
 from mhkit.utils import convert_to_dataarray
@@ -11,6 +34,15 @@ from mhkit.river.performance import (
     tip_speed_ratio,
     power_coefficient,
 )
+
+__all__ = [
+    "circular",
+    "ducted",
+    "rectangular",
+    "multiple_circular",
+    "tip_speed_ratio",
+    "power_coefficient",
+]
 
 
 def _slice_circular_capture_area(diameter, hub_height, doppler_cell_size):
@@ -38,32 +70,26 @@ def _slice_circular_capture_area(diameter, hub_height, doppler_cell_size):
     """
 
     def area_of_circle_segment(radius, angle):
-        # Calculating area of sector
-        area_of_sector = np.pi * radius**2 * (angle / 360)
-        # Calculating area of triangle
-        area_of_triangle = 0.5 * radius**2 * np.sin((np.pi * angle) / 180)
-        return area_of_sector - area_of_triangle
+        return np.pi * radius**2 * (angle / 360) - 0.5 * radius**2 * np.sin(
+            (np.pi * angle) / 180
+        )
 
     def point_on_circle(y, r):
         return np.sqrt(r**2 - y**2)
 
-    # Capture area - from mhkit.river.performance
-    d = diameter
-    cs = doppler_cell_size
-
-    A_cap = np.pi * (d / 2) ** 2  # m^2
     # Need to chop up capture area into slices based on bin size
-    # For a cirle:
-    r_min = hub_height - d / 2
-    r_max = hub_height + d / 2
-    A_edge = np.arange(r_min, r_max + cs, cs)
-    A_rng = A_edge[:-1] + cs / 2  # Center of each slice
+    # For a circle:
+    area_edge = np.arange(
+        hub_height - diameter / 2,
+        hub_height + diameter / 2 + doppler_cell_size,
+        doppler_cell_size,
+    )
+    area_rng = area_edge[:-1] + doppler_cell_size / 2  # Center of each slice
 
     # y runs from the bottom edge of the lower centerline slice to
     # the top edge of the lowest slice
-    # Will need to figure out y if the hub height isn't centered
-    y = abs(A_edge - np.mean(A_edge))
-    y[np.where(abs(y) > (d / 2))] = d / 2
+    y = abs(area_edge - np.mean(area_edge))
+    y[np.where(abs(y) > (diameter / 2))] = diameter / 2
 
     # Even vs odd number of slices
     if y.size % 2:
@@ -73,22 +99,24 @@ def _slice_circular_capture_area(diameter, hub_height, doppler_cell_size):
         y = y[: len(y) // 2]
         y = np.append(y, 0)
 
-    x = point_on_circle(y, d / 2)
+    x = point_on_circle(y, diameter / 2)
     radii = np.rad2deg(np.arctan(x / y) * 2)
     # Segments go from outside of circle towards middle
-    As = area_of_circle_segment(d / 2, radii)
+    area_segments = area_of_circle_segment(diameter / 2, radii)
     # Subtract segments to get area of slices
-    As_slc = As[1:] - As[:-1]
+    area_segments_slc = area_segments[1:] - area_segments[:-1]
 
     if not odd:
         # Make middle slice half whole
-        As_slc[-1] = As_slc[-1] * 2
+        area_segments_slc[-1] = area_segments_slc[-1] * 2
         # Copy-flip the other slices to get the whole circle
-        As_slc = np.append(As_slc, np.flip(As_slc[:-1]))
+        area_segments_slc = np.append(
+            area_segments_slc, np.flip(area_segments_slc[:-1])
+        )
     else:
-        As_slc = abs(As_slc)
+        area_segments_slc = abs(area_segments_slc)
 
-    return xr.DataArray(As_slc, coords={"range": A_rng})
+    return xr.DataArray(area_segments_slc, coords={"range": area_rng})
 
 
 def _slice_rectangular_capture_area(height, width, hub_height, doppler_cell_size):
@@ -123,12 +151,12 @@ def _slice_rectangular_capture_area(height, width, hub_height, doppler_cell_size
     cs = doppler_cell_size
     r_min = hub_height - height / 2
     r_max = hub_height + height / 2
-    A_edge = np.arange(r_min, r_max + cs, cs)
-    A_rng = A_edge[:-1] + cs / 2  # Center of each slice
+    area_edge = np.arange(r_min, r_max + cs, cs)
+    area_rng = area_edge[:-1] + cs / 2  # Center of each slice
 
-    As_slc = np.ones(len(A_rng)) * width * cs
+    area_slice = np.ones(len(area_rng)) * width * cs
 
-    return xr.DataArray(As_slc, coords={"range": A_rng})
+    return xr.DataArray(area_slice, coords={"range": area_rng})
 
 
 def power_curve(
@@ -180,7 +208,7 @@ def power_curve(
         Power-weighted velocity, mean power, power std dev, max and
         min power vs hub-height velocity.
     """
-
+    # pylint: disable=too-many-arguments, too-many-positional-arguments, too-many-locals
     # Velocity should be a 2D xarray or pandas array and have dims (range, time)
     # Power should have a timestamp coordinate/index
     power = convert_to_dataarray(power)
@@ -219,41 +247,42 @@ def power_curve(
             "`turbine_profile` must be one of 'circular' or 'rectangular'."
         )
     if turbine_profile == "circular":
-        if diameter is None:
-            raise TypeError(
-                "`diameter` cannot be None for input `turbine_profile` = 'circular'."
+        if not isinstance(diameter, (int, float)) or diameter <= 0:
+            raise ValueError(
+                "`diameter` must be specified as a positive integer or float."
             )
-        elif not isinstance(diameter, (int, float)) or diameter <= 0:
-            raise ValueError("`diameter` must be a positive number.")
-        else:  # If the checks pass, calculate A_slc
-            A_slc = _slice_circular_capture_area(
-                diameter, hub_height, doppler_cell_size
-            )
+        # If the checks pass, calculate area_slice
+        area_slice = _slice_circular_capture_area(
+            diameter, hub_height, doppler_cell_size
+        )
     else:  # Rectangular profile
         if height is None or width is None:
             raise TypeError(
                 "`height` and `width` cannot be None for input `turbine_profile` = 'rectangular'."
             )
-        elif not all(
+        if not all(
             isinstance(val, (int, float)) and val > 0 for val in [height, width]
         ):
             raise ValueError("`height` and `width` must be positive numbers.")
-        else:  # If the checks pass, calculate A_slc
-            A_slc = _slice_rectangular_capture_area(
-                height, width, hub_height, doppler_cell_size
-            )
+        # If the checks pass, calculate area_slice
+        area_slice = _slice_rectangular_capture_area(
+            height, width, hub_height, doppler_cell_size
+        )
 
     # Streamwise data
-    U = abs(velocity)
-    time = U["time"].values
+    velocity_absolute = abs(velocity)
+    time = velocity_absolute["time"].values
     # Interpolate power to velocity timestamps
-    P = power.interp(time=U["time"], method="linear")
+    power_interpolated = power.interp(time=velocity_absolute["time"], method="linear")
 
     # Power weighted velocity in capture area
-    # Interpolate U range to capture area slices, then cube and multiply by area
-    U_hat = U.interp(range=A_slc["range"], method="linear") ** 3 * A_slc
+    # Interpolate velocity_absolute range to capture area slices, then cube and multiply by area
+    velocity_hat = (
+        velocity_absolute.interp(range=area_slice["range"], method="linear") ** 3
+        * area_slice
+    )
     # Average the velocity across the capture area and divide out area
-    U_hat = (U_hat.sum("range") / A_slc.sum()) ** (-1 / 3)
+    velocity_hat = (velocity_hat.sum("range") / area_slice.sum()) ** (-1 / 3)
 
     # Time-average velocity at hub-height
     bnr = dolfyn.VelBinner(
@@ -261,46 +290,50 @@ def power_curve(
     )
     # Hub-height velocity mean
     mean_hub_vel = xr.DataArray(
-        bnr.mean(U.sel(range=hub_height, method="nearest").values),
+        bnr.mean(velocity_absolute.sel(range=hub_height, method="nearest").values),
         coords={"time": bnr.mean(time)},
     )
 
     # Power-weighted hub-height velocity mean
-    U_hat_bar = xr.DataArray(
-        (bnr.mean(U_hat.values**3)) ** (-1 / 3), coords={"time": bnr.mean(time)}
+    velocity_hat_bar = xr.DataArray(
+        (bnr.mean(velocity_hat.values**3)) ** (-1 / 3), coords={"time": bnr.mean(time)}
     )
 
     # Average power
-    P_bar = xr.DataArray(bnr.mean(P.values), coords={"time": bnr.mean(time)})
+    power_bar = xr.DataArray(
+        bnr.mean(power_interpolated.values), coords={"time": bnr.mean(time)}
+    )
 
     # Then reorganize into 0.1 m velocity bins and average
-    U_bins = np.arange(0, np.nanmax(mean_hub_vel) + 0.1, 0.1)
-    U_hub_vel = mean_hub_vel.assign_coords({"time": mean_hub_vel}).rename(
+    velocity_bins = np.arange(0, np.nanmax(mean_hub_vel) + 0.1, 0.1)
+    velocity_hub_vel = mean_hub_vel.assign_coords({"time": mean_hub_vel}).rename(
         {"time": "speed"}
     )
-    U_hub_mean = U_hub_vel.groupby_bins("speed", U_bins).mean()
-    U_hat_vel = U_hat_bar.assign_coords({"time": mean_hub_vel}).rename(
+    velocity_hub_mean = velocity_hub_vel.groupby_bins("speed", velocity_bins).mean()
+    velocity_hat_vel = velocity_hat_bar.assign_coords({"time": mean_hub_vel}).rename(
         {"time": "speed"}
     )
-    U_hat_mean = U_hat_vel.groupby_bins("speed", U_bins).mean()
+    velocity_hat_mean = velocity_hat_vel.groupby_bins("speed", velocity_bins).mean()
 
-    P_bar_vel = P_bar.assign_coords({"time": mean_hub_vel}).rename({"time": "speed"})
-    P_bar_mean = P_bar_vel.groupby_bins("speed", U_bins).mean()
-    P_bar_std = P_bar_vel.groupby_bins("speed", U_bins).std()
-    P_bar_max = P_bar_vel.groupby_bins("speed", U_bins).max()
-    P_bar_min = P_bar_vel.groupby_bins("speed", U_bins).min()
+    power_bar_vel = power_bar.assign_coords({"time": mean_hub_vel}).rename(
+        {"time": "speed"}
+    )
+    power_bar_mean = power_bar_vel.groupby_bins("speed", velocity_bins).mean()
+    power_bar_std = power_bar_vel.groupby_bins("speed", velocity_bins).std()
+    power_bar_max = power_bar_vel.groupby_bins("speed", velocity_bins).max()
+    power_bar_min = power_bar_vel.groupby_bins("speed", velocity_bins).min()
 
     device_power_curve = xr.Dataset(
         {
-            "U_avg": U_hub_mean,
-            "U_avg_power_weighted": U_hat_mean,
-            "P_avg": P_bar_mean,
-            "P_std": P_bar_std,
-            "P_max": P_bar_max,
-            "P_min": P_bar_min,
+            "velocity_avg": velocity_hub_mean,
+            "velocity_avg_power_weighted": velocity_hat_mean,
+            "power_avg": power_bar_mean,
+            "power_std": power_bar_std,
+            "power_max": power_bar_max,
+            "power_min": power_bar_min,
         }
     )
-    device_power_curve = device_power_curve.rename({"speed_bins": "U_bins"})
+    device_power_curve = device_power_curve.rename({"speed_bins": "velocity_bins"})
 
     if to_pandas:
         device_power_curve = device_power_curve.to_pandas()
@@ -308,40 +341,42 @@ def power_curve(
     return device_power_curve
 
 
-def _average_velocity_bins(U, U_hub, bin_size):
+def _average_velocity_bins(velocity_data, velocity_hub, bin_size):
     """
     Groups time-ensembles into velocity bins based on hub-height
     velocity and averages them.
 
     Parameters
     -------------
-    U: xarray.DataArray
+    velocity_data: xarray.DataArray
         Input variable to group by velocity.
-    U_hub: xarray.DataArray
+    velocity_hub: xarray.DataArray
         Sea water velocity at hub height.
     bin_size: numeric
         Velocity averaging window size in m/s.
 
     Returns
     ---------
-    U_binned: xarray.DataArray
+    velocity_binned: xarray.DataArray
         Data grouped into velocity bins.
     """
 
     # Reorganize into velocity bins and average
-    U_bins = np.arange(0, np.nanmax(U_hub) + bin_size, bin_size)
+    velocity_bins = np.arange(0, np.nanmax(velocity_hub) + bin_size, bin_size)
 
     # Group time-ensembles into velocity bins based on hub-height velocity and average
-    U_binned = U.assign_coords({"time": U_hub}).rename({"time": "speed"})
-    U_binned = U_binned.groupby_bins("speed", U_bins).mean()
+    velocity_binned = velocity_data.assign_coords({"time": velocity_hub}).rename(
+        {"time": "speed"}
+    )
+    velocity_binned = velocity_binned.groupby_bins("speed", velocity_bins).mean()
 
-    return U_binned
+    return velocity_binned
 
 
-def _apply_function(function, bnr, U):
+def _apply_function(function, bnr, velocity):
     """
     Applies a specified function ('mean', 'rms', or 'std') to the input
-    data array U, grouped into bins as specified by the binning rules in bnr.
+    data array velocity, grouped into bins as specified by the binning rules in bnr.
 
     Parameters
     -------------
@@ -349,42 +384,43 @@ def _apply_function(function, bnr, U):
         The name of the function to apply. Must be one of 'mean',
         'rms', or 'std'.
     bnr: dolfyn.VelBinner or similar
-        The binning rule object that determines how data in U is
+        The binning rule object that determines how data in velocity is
         grouped into bins.
-    U: xarray.DataArray
+    velocity: xarray.DataArray
         The input data array to which the function is applied.
 
     Returns
     ---------
     xarray.DataArray
-        The input data array U after the specified function has been
+        The input data array velocity after the specified function has been
         applied, grouped into bins according to bnr.
     """
 
     if function == "mean":
         # Average data into 5-10 minute ensembles
         return xr.DataArray(
-            bnr.mean(abs(U).values),
-            coords={"range": U.range, "time": bnr.mean(U["time"].values)},
+            bnr.mean(abs(velocity).values),
+            coords={"range": velocity.range, "time": bnr.mean(velocity["time"].values)},
         )
-    elif function == "rms":
+    if function == "rms":
         # Reshape tidal velocity - returns (range, ensemble-time, ensemble elements)
-        U_reshaped = bnr.reshape(abs(U).values)
+        velocity_reshaped = bnr.reshape(abs(velocity).values)
         # Take root-mean-square
-        U_rms = np.sqrt(np.nanmean(U_reshaped**2, axis=-1))
+        velocity_rms = np.sqrt(np.nanmean(velocity_reshaped**2, axis=-1))
         return xr.DataArray(
-            U_rms, coords={"range": U.range, "time": bnr.mean(U["time"].values)}
+            velocity_rms,
+            coords={"range": velocity.range, "time": bnr.mean(velocity["time"].values)},
         )
-    elif function == "std":
+    if function == "std":
         # Standard deviation
         return xr.DataArray(
-            bnr.standard_deviation(U.values),
-            coords={"range": U.range, "time": bnr.mean(U["time"].values)},
+            bnr.standard_deviation(velocity.values),
+            coords={"range": velocity.range, "time": bnr.mean(velocity["time"].values)},
         )
-    else:
-        raise ValueError(
-            f"Unknown function {function}. Should be one of 'mean', 'rms', or 'std'"
-        )
+
+    raise ValueError(
+        f"Unknown function {function}. Should be one of 'mean', 'rms', or 'std'"
+    )
 
 
 def velocity_profiles(
@@ -425,7 +461,7 @@ def velocity_profiles(
     iec_profiles: pandas.DataFrame
         Average velocity profiles based on ensemble mean velocity.
     """
-
+    # pylint: disable=too-many-arguments, too-many-positional-arguments, too-many-locals
     velocity = convert_to_dataarray(velocity, "velocity")
     if len(velocity.shape) != 2:
         raise ValueError(
@@ -438,21 +474,18 @@ def velocity_profiles(
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    # Streamwise data
-    U = velocity
-
     # Create binner
     bnr = dolfyn.VelBinner(
         n_bin=window_avg_time * sampling_frequency, fs=sampling_frequency
     )
     # Take velocity at hub height
-    mean_hub_vel = bnr.mean(U.sel(range=hub_height, method="nearest").values)
+    mean_hub_vel = bnr.mean(velocity.sel(range=hub_height, method="nearest").values)
 
     # Apply mean, root-mean-square, or standard deviation
-    U_out = _apply_function(function, bnr, U)
+    velocity_out = _apply_function(function, bnr, velocity)
 
     # Then reorganize into 0.5 m/s velocity bins and average
-    profiles = _average_velocity_bins(U_out, mean_hub_vel, bin_size=0.5)
+    profiles = _average_velocity_bins(velocity_out, mean_hub_vel, bin_size=0.5)
 
     # Extend top and bottom of profiles to the seafloor and sea surface
     # Clip off extra depth bins with nans
@@ -514,7 +547,7 @@ def device_efficiency(
     device_eta : pandas.Series or xarray.DataArray
         Device efficiency (power coefficient) in percent.
     """
-
+    # pylint: disable=too-many-arguments, too-many-positional-arguments, too-many-locals
     # Velocity should be a 2D xarray or pandas array and have dims (range, time)
     # Power should have a timestamp coordinate/index
     power = convert_to_dataarray(power, "power")
@@ -528,11 +561,11 @@ def device_efficiency(
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
     # Streamwise data
-    U = abs(velocity)
-    time = U["time"].values
+    velocity_absolute = abs(velocity)
+    time = velocity_absolute["time"].values
 
     # Power: Interpolate to velocity timeseries
-    power.interp(time=U["time"], method="linear")
+    power_interpolated = power.interp(time=velocity_absolute["time"], method="linear")
 
     # Create binner
     bnr = dolfyn.VelBinner(
@@ -540,7 +573,7 @@ def device_efficiency(
     )
     # Hub-height velocity
     mean_hub_vel = xr.DataArray(
-        bnr.mean(U.sel(range=hub_height, method="nearest").values),
+        bnr.mean(velocity_absolute.sel(range=hub_height, method="nearest").values),
         coords={"time": bnr.mean(time)},
     )
     vel_hub = _average_velocity_bins(mean_hub_vel, mean_hub_vel, bin_size=0.1)
@@ -549,14 +582,16 @@ def device_efficiency(
     rho_vel = _calculate_density(water_density, bnr, mean_hub_vel, time)
 
     # Bin average power
-    P_avg = xr.DataArray(bnr.mean(power.values), coords={"time": bnr.mean(time)})
-    P_vel = _average_velocity_bins(P_avg, mean_hub_vel, bin_size=0.1)
+    power_avg = xr.DataArray(
+        bnr.mean(power_interpolated.values), coords={"time": bnr.mean(time)}
+    )
+    power_vel = _average_velocity_bins(power_avg, mean_hub_vel, bin_size=0.1)
 
     # Theoretical power resource
-    P_resource = 1 / 2 * rho_vel * capture_area * vel_hub**3
+    power_resource = 1 / 2 * rho_vel * capture_area * vel_hub**3
 
     # Efficiency
-    eta = P_vel / P_resource
+    eta = power_vel / power_resource
 
     device_eta = xr.Dataset({"U_avg": vel_hub, "Efficiency": eta})
     device_eta = device_eta.rename({"speed_bins": "U_bins"})
@@ -599,5 +634,5 @@ def _calculate_density(water_density, bnr, mean_hub_vel, time):
             bnr.mean(water_density.values), coords={"time": bnr.mean(time)}
         )
         return _average_velocity_bins(rho_avg, mean_hub_vel, bin_size=0.1)
-    else:
-        return water_density
+
+    return water_density
