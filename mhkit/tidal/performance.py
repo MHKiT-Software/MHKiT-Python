@@ -325,15 +325,15 @@ def power_curve(
 
     device_power_curve = xr.Dataset(
         {
-            "velocity_avg": velocity_hub_mean,
-            "velocity_avg_power_weighted": velocity_hat_mean,
-            "power_avg": power_bar_mean,
-            "power_std": power_bar_std,
-            "power_max": power_bar_max,
-            "power_min": power_bar_min,
+            "U_avg": velocity_hub_mean,
+            "U_avg_power_weighted": velocity_hat_mean,
+            "P_avg": power_bar_mean,
+            "P_std": power_bar_std,
+            "P_max": power_bar_max,
+            "P_min": power_bar_min,
         }
     )
-    device_power_curve = device_power_curve.rename({"speed_bins": "velocity_bins"})
+    device_power_curve = device_power_curve.rename({"speed_bins": "U_bins"})
 
     if to_pandas:
         device_power_curve = device_power_curve.to_pandas()
