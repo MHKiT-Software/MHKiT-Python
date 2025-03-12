@@ -36,3 +36,7 @@ jobs:
       - name: Run Pylint on mhkit/acoustics/
         run: |
           pylint mhkit/acoustics/
+
+      - name: Run Pylint on mhkit/tidal
+        run: |
+          pylint mhkit/tidal/
