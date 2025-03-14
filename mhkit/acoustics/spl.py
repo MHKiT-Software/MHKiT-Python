@@ -26,8 +26,8 @@ def sound_pressure_level(
     spsd: xr.DataArray, fmin: int = 10, fmax: int = 100000
 ) -> xr.DataArray:
     """
-    Calculates the sound pressure level in a specified frequency band
-    from the mean square sound pressure spectral density.
+    Calculates the sound pressure level (SPL) in a specified frequency band
+    from the mean square sound pressure spectral density (SPSD).
 
     Parameters
     ----------
@@ -104,7 +104,8 @@ def _band_sound_pressure_level(
     fmax: int = 100000,
 ) -> xr.DataArray:
     """
-    Calculates band-averaged sound pressure levels
+    Calculates band-averaged sound pressure levels from the
+    mean square sound pressure spectral density (SPSD).
 
     Parameters
     ----------
@@ -113,9 +114,11 @@ def _band_sound_pressure_level(
     octave: int
         Octave to subdivide spectral density level by.
     fmin : int, optional
-        Lower frequency band limit (lower limit of the hydrophone). Default is 10 Hz.
+        Lower frequency band limit (lower limit of the hydrophone).
+        Default is 10 Hz.
     fmax : int, optional
-        Upper frequency band limit (Nyquist frequency). Default is 100,000 Hz.
+        Upper frequency band limit (Nyquist frequency).
+        Default is 100,000 Hz.
 
 
     Returns
@@ -198,16 +201,18 @@ def third_octave_sound_pressure_level(
 ) -> xr.DataArray:
     """
     Calculates the sound pressure level in third octave bands directly
-    from the mean square sound pressure spectral density.
+    from the mean square sound pressure spectral density (SPSD).
 
     Parameters
     ----------
     spsd: xarray.DataArray (time, freq)
         Mean square sound pressure spectral density.
     fmin: int
-        Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
+        Lower frequency band limit (lower limit of the hydrophone).
+        Default: 10 Hz
     fmax: int
-        Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
+        Upper frequency band limit (Nyquist frequency).
+        Default: 100000 Hz
 
     Returns
     -------
@@ -229,16 +234,18 @@ def decidecade_sound_pressure_level(
 ) -> xr.DataArray:
     """
     Calculates the sound pressure level in decidecade bands directly
-    from the mean square sound pressure spectral density.
+    from the mean square sound pressure spectral density (SPSD).
 
     Parameters
     ----------
     spsd: xarray.DataArray (time, freq)
         Mean square sound pressure spectral density.
     fmin: int
-        Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
+        Lower frequency band limit (lower limit of the hydrophone).
+        Default: 10 Hz
     fmax: int
-        Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
+        Upper frequency band limit (Nyquist frequency).
+        Default: 100000 Hz
 
     Returns
     -------

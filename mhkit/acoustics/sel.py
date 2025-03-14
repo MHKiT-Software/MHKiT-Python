@@ -22,9 +22,13 @@ def nmfs_auditory_weighting(frequency, group):
     based on the National Marine Fisheries Service (NMFS) guidelines.
 
     The weighting function is applied to sound exposure level to determine the
-    auditory impact on marine mammals. The exposure function is the inverse of
-    the weighting function and illustrates how the weighting function relates
-    to marine mammal hearing thresholds.
+    auditory impact on marine mammals. The exposure function is the inverse of the
+    weighting function and illustrates how the weighting function relates to marine
+    mammal hearing thresholds.
+    Both function are returned in their log10-transform, in units of dB. To transform
+    back to linear units, use 10**(weighting_func/10).
+
+    https://www.fisheries.noaa.gov/national/marine-mammal-protection/marine-mammal-acoustic-technical-guidance-other-acoustic-tools
 
     Parameters
     ----------
@@ -39,13 +43,13 @@ def nmfs_auditory_weighting(frequency, group):
     Returns
     -------
     weighting_func: float
-        Auditory weighting function [dB] indexed by frequency
+        Auditory weighting function [unitless] indexed by frequency
     exposure_func: float
-        Auditory exposure function [dB] indexed by frequency
+        Log-transformed auditory exposure function [dB] indexed by frequency
     """
 
     if group.lower() == "lf":
-        # Low frequency cetaceans
+        # Low-frequency cetaceans
         a = 0.99
         b = 5
         f1 = 0.168  # kHz
@@ -53,7 +57,7 @@ def nmfs_auditory_weighting(frequency, group):
         C = 0.12  # dB
         K = 177  # dB
     elif group.lower() == "hf":
-        # High frequency cetaceans
+        # High-frequency cetaceans
         a = 1.55
         b = 5
         f1 = 1.73
@@ -61,7 +65,7 @@ def nmfs_auditory_weighting(frequency, group):
         C = 0.32
         K = 181
     elif group.lower() == "vhf":
-        # Very high frequency cetaceans
+        # Very high-frequency cetaceans
         a = 2.23
         b = 5
         f1 = 5.93
@@ -82,18 +86,17 @@ def nmfs_auditory_weighting(frequency, group):
         b = 5
         f1 = 2.53
         f2 = 43.8
-        C = 1.36
+        C = 1.37
         K = 178
     else:
         raise ValueError("Group must be LF, MF, HF, PW, or OW")
 
     A = frequency / f1
-    B = 1 + A**2
-    D = 1 + (frequency / f2) ** 2
-    band_filter = 10 * np.log10(A ** (2 * a) / ((B**a) * (D**b)))
+    B = frequency / f2
+    band_filter = A ** (2 * a) / (((1 + A**2) ** a) * ((1 + B**2) ** b))
 
-    weighting_func = C + band_filter  # dB
-    exposure_func = K - band_filter  # dB
+    weighting_func = C + 10 * np.log10(band_filter)  # dB
+    exposure_func = K - 10 * np.log10(band_filter)  # dB
 
     return weighting_func, exposure_func
 
@@ -102,8 +105,9 @@ def sound_exposure_level(
     spsd: xr.DataArray, group: str = None, fmin: int = 10, fmax: int = 100000
 ) -> xr.DataArray:
     """
-    Calculates the sound exposure level across a specified frequency band
-    from the mean square sound pressure spectral density.
+    Calculates the sound exposure level (SEL) across a specified frequency band
+    from the mean square sound pressure spectral density (SPSD). An SPSD with
+    a bin length of 1 s will result in an unweighted SEL equivalent to SPL.
 
     If a marine mammal group is provided, the resulting SEL is weighted according
     to the National Marine Fisheries Service (NMFS) guidelines.
@@ -112,22 +116,23 @@ def sound_exposure_level(
     ----------
     spsd: xarray.DataArray (time, freq)
         Mean square sound pressure spectral density in [Pa^2/Hz] with a bin length
-        equal to the time over which sound exposure should be computed. An SPSD with
-        a bin length of 1 s will result in an unweighted SEL equivalent to SPL.
+        equal to the time over which sound exposure should be computed.
     group: str
         Marine mammal group for which the auditory weighting function is applied.
         Options: 'LF' (low frequency cetaceans), 'HF' (high frequency cetaceans),
         'VHF' (very high frequency cetaceans), 'PW' (phocid pinnepeds),
-        'OW' (otariid pinnepeds)
+        'OW' (otariid pinnepeds). Default: None
     fmin: int
-        Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
+        Lower frequency band limit (lower limit of the hydrophone).
+        Default: 10 Hz
     fmax: int
-        Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
+        Upper frequency band limit (Nyquist frequency). Default:
+        100000 Hz
 
     Returns
     -------
-    spl: xarray.DataArray (time)
-        Sound pressure level [dB re 1 uPa] indexed by time
+    sel: xarray.DataArray (time)
+        Sound exposure level [dB re 1 uPa^2 s] indexed by time
     """
 
     # Type checks
@@ -142,11 +147,11 @@ def sound_exposure_level(
     if ("freq" not in spsd.dims) or ("time" not in spsd.dims):
         raise ValueError("'spsd' must have 'time' and 'freq' as dimensions.")
 
-    if spsd["time"].size > 1:
-        raise AssertionError(
-            "SEL should be calculated from a sound pressure spectral density "
-            "with a bin length covering the timespan of interest."
-        )
+    # if spsd["time"].size > 1:
+    #     raise AssertionError(
+    #         "SEL should be calculated from a sound pressure spectral density "
+    #         "with a bin length covering the timespan of interest."
+    #     )
 
     # Check that 'fs' (sampling frequency) is available in attributes
     if "fs" not in spsd.attrs:
@@ -166,6 +171,8 @@ def sound_exposure_level(
 
     if group is not None:
         W, _ = nmfs_auditory_weighting(spsd["freq"], group)
+        # convert from dB back to unitless
+        W = 10 ** (W / 10)
         long_name = "Weighted Sound Exposure Level"
     else:
         W = 1
@@ -185,12 +192,12 @@ def sound_exposure_level(
 
     out = xr.DataArray(
         sel.astype(np.float32),
-        coords={"freq": spsd["freq"]},
+        coords={"time": spsd["time"]},
         attrs={
             "units": "dB re 1 uPa^2 s",
             "long_name": long_name,
             "weighting_group": group,
-            "time_length": spsd.attrs["nbin"],
+            "integration_time": spsd.attrs["nbin"],
             "freq_band_min": fmin,
             "freq_band_max": fmax,
         },

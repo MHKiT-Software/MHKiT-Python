@@ -29,4 +29,4 @@ from .spl import (
     third_octave_sound_pressure_level,
     decidecade_sound_pressure_level,
 )
-from .sel import sound_exposure_level
+from .sel import nmfs_auditory_weighting, sound_exposure_level
