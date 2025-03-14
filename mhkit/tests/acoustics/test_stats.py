@@ -22,7 +22,7 @@ class TestAnalysis(unittest.TestCase):
         P = acoustics.io.read_soundtrap(file_name, sensitivity=-177)
         self.spsd = acoustics.sound_pressure_spectral_density(P, P.fs, bin_length=1)
         self.spsd_60s = acoustics.sound_pressure_spectral_density(
-            P, P.fs, bin_length=60
+            P, P.fs, bin_length=60, rms=False
         )
 
     @classmethod
@@ -188,12 +188,12 @@ class TestAnalysis(unittest.TestCase):
             ],
             dtype="datetime64[ns]",
         )
-        cd_sel = np.array([98.40123, 103.917145, 125.49966, 129.59328, 109.23676])
-        cd_sel_lf = np.array([74.1906, 75.81813, 73.56478, 80.66241, 80.292534])
-        cd_sel_hf = np.array([90.18734, 91.522995, 94.29787, 99.58887, 95.28623])
-        cd_sel_vhf = np.array([92.37378, 93.75414, 100.17553, 104.98738, 97.526855])
-        cd_sel_pw = np.array([85.43313, 86.80623, 86.18998, 91.69678, 90.627945])
-        cd_sel_ow = np.array([81.88585, 83.337166, 81.72521, 87.50341, 87.37827])
+        cd_sel = np.array([98.2998, 102.6271, 125.41366, 125.71297, 104.94424])
+        cd_sel_lf = np.array([74.089165, 74.528076, 73.478775, 76.782104, 76.000015])
+        cd_sel_hf = np.array([90.085915, 90.23294, 94.21187, 95.70856, 90.99371])
+        cd_sel_vhf = np.array([92.27235, 92.464096, 100.08952, 101.10707, 93.23433])
+        cd_sel_pw = np.array([85.331696, 85.516174, 86.10397, 87.81647, 86.33542])
+        cd_sel_ow = np.array([81.784424, 82.04712, 81.639206, 83.623116, 83.08575])
 
         np.testing.assert_allclose(td_sel.values, cd_sel, atol=1e-6)
         np.testing.assert_allclose(td_sel_lf.values, cd_sel_lf, atol=1e-6)

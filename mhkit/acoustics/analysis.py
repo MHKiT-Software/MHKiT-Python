@@ -140,13 +140,18 @@ def minimum_frequency(
 
 
 def sound_pressure_spectral_density(
-    pressure: xr.DataArray, fs: Union[int, float], bin_length: Union[int, float] = 1
+    pressure: xr.DataArray,
+    fs: Union[int, float],
+    bin_length: Union[int, float] = 1,
+    rms: bool = True,
 ) -> xr.DataArray:
     """
-    Calculates the mean square sound pressure spectral density from audio
-    samples split into FFTs with a specified bin length in seconds, using Hanning
-    windowing with 50% overlap. The amplitude of the PSD is adjusted
-    according to Parseval's theorem.
+    Calculates the sound pressure spectral density (SPSD) from audio
+    samples split into FFTs with a specified bin length in seconds,
+    using Hanning windowing with 50% overlap.
+
+    If finding the mean-squared SPSD (rms = True), the amplitude of the
+    SPSD is adjusted according to Parseval's theorem.
 
     Parameters
     ----------
@@ -156,6 +161,10 @@ def sound_pressure_spectral_density(
         Data collection sampling rate [Hz]
     bin_length: int or float
         Length of time in seconds to create FFTs. Default: 1.
+    rms: bool
+        Set to True to calculate the mean-squared SPSD. Set to False to
+        calculate standard SPSD.
+        Default: True.
 
     Returns
     -------
@@ -178,25 +187,35 @@ def sound_pressure_spectral_density(
     # window length of each time series
     nbin = bin_length * fs
 
-    # Use dolfyn PSD
+    # Use dolfyn PSD functionality
     binner = VelBinner(n_bin=nbin, fs=fs, n_fft=nbin)
     # Always 50% overlap if numbers reshape perfectly
     # Mean square sound pressure
     psd = binner.power_spectral_density(pressure, freq_units="Hz")
-    samples = binner.reshape(pressure.values) - binner.mean(pressure.values)[:, None]
-    # Power in time domain
-    t_power = np.sum(samples**2, axis=1) / nbin
-    # Power in frequency domain
-    f_power = psd.sum("freq") * (fs / nbin)
-    # Adjust the amplitude of PSD according to Parseval's theorem
-    psd_adj = psd * t_power[:, None] / f_power
+    # Use take mean square if calculating SPL down the line (SPL is based on the RMS
+    # of the pressure signal)
+    if rms:
+        samples = (
+            binner.reshape(pressure.values) - binner.mean(pressure.values)[:, None]
+        )
+        # mean squared pressure ("power") in time domain
+        t_power = np.sum(samples**2, axis=1) / nbin
+        # pressure ("power") in frequency domain
+        f_power = psd.sum("freq") * (fs / nbin)
+        # Adjust the amplitude of the PSD to return the mean-squared PSD
+        # based on Parseval's theorem: total energy computed in the time
+        # domain must equal the total energy computed in the frequency domain
+        psd = psd * t_power[:, None] / f_power
+        long_name = "Mean Square Sound Pressure Spectral Density"
+    else:
+        long_name = "Sound Pressure Spectral Density"
 
     out = xr.DataArray(
-        psd_adj,
-        coords={"time": psd_adj["time"], "freq": psd_adj["freq"]},
+        psd,
+        coords={"time": psd["time"], "freq": psd["freq"]},
         attrs={
             "units": pressure.units + "^2/Hz",
-            "long_name": "Mean Square Sound Pressure Spectral Density",
+            "long_name": long_name,
             "fs": fs,
             "nbin": str(bin_length) + " s",
             "overlap": "50%",

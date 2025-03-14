@@ -106,16 +106,14 @@ def sound_exposure_level(
 ) -> xr.DataArray:
     """
     Calculates the sound exposure level (SEL) across a specified frequency band
-    from the mean square sound pressure spectral density (SPSD). An SPSD with
-    a bin length of 1 s will result in an unweighted SEL equivalent to SPL.
-
-    If a marine mammal group is provided, the resulting SEL is weighted according
-    to the National Marine Fisheries Service (NMFS) guidelines.
+    from the sound pressure spectral density (SPSD). If a marine mammal group is
+    provided, the resulting SEL is weighted according to the U.S. National Marine
+    Fisheries Service (NMFS) guidelines.
 
     Parameters
     ----------
     spsd: xarray.DataArray (time, freq)
-        Mean square sound pressure spectral density in [Pa^2/Hz] with a bin length
+        Sound pressure spectral density in [Pa^2/Hz] with a bin length
         equal to the time over which sound exposure should be computed.
     group: str
         Marine mammal group for which the auditory weighting function is applied.
@@ -147,16 +145,15 @@ def sound_exposure_level(
     if ("freq" not in spsd.dims) or ("time" not in spsd.dims):
         raise ValueError("'spsd' must have 'time' and 'freq' as dimensions.")
 
-    # if spsd["time"].size > 1:
-    #     raise AssertionError(
-    #         "SEL should be calculated from a sound pressure spectral density "
-    #         "with a bin length covering the timespan of interest."
-    #     )
-
     # Check that 'fs' (sampling frequency) is available in attributes
     if "fs" not in spsd.attrs:
         raise ValueError(
             "'spsd' must have 'fs' (sampling frequency) in its attributes."
+        )
+    if "mean square" in spsd.attrs["long_name"].lower():
+        raise AssertionError(
+            "'spsd' should not be the mean square sound pressure spectral density."
+            "Please set `rms=False` in `mhkit.acoustics.sound_pressure_spectral_density`."
         )
 
     # Value checks
