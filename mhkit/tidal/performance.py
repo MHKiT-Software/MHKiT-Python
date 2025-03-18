@@ -21,10 +21,11 @@ Usage:
     of marine energy devices based on IEC/TS 62600-200 standards.
 """
 
+from typing import Union, Optional
+import pandas as pd
 import numpy as np
 import xarray as xr
 from mhkit.utils import convert_to_dataarray
-
 from mhkit import dolfyn
 from mhkit.river.performance import (
     circular,
@@ -34,9 +35,6 @@ from mhkit.river.performance import (
     tip_speed_ratio,
     power_coefficient,
 )
-
-from typing import Union, Optional
-import pandas as pd
 
 __all__ = [
     "circular",
