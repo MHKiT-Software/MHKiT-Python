@@ -150,11 +150,6 @@ def sound_exposure_level(
         raise ValueError(
             "'spsd' must have 'fs' (sampling frequency) in its attributes."
         )
-    if "mean square" in spsd.attrs["long_name"].lower():
-        raise AssertionError(
-            "'spsd' should not be the mean square sound pressure spectral density."
-            "Please set `rms=False` in `mhkit.acoustics.sound_pressure_spectral_density`."
-        )
 
     # Value checks
     if fmin <= 0:
@@ -176,16 +171,19 @@ def sound_exposure_level(
         long_name = "Sound Exposure Level"
 
     # Reference value of sound pressure
-    reference = 1e-12  # Pa^2, = 1 uPa^2
+    reference = 1e-12 * 1  # Pa^2 s, = 1 uPa^2 s
 
-    # Sound exposure [Pa^2 s]
+    # Mean square sound pressure in a specified frequency band
+    # from weighted mean square values
     exposure = np.trapz(
         (spsd * W).sel(freq=slice(fmin, fmax)),
         spsd["freq"].sel(freq=slice(fmin, fmax)),
     )
 
-    # Sound exposure level
-    sel = 10 * np.log10(exposure / reference)
+    # Sound exposure level (L_{E,p}) = (L_{p,rms} + 10log10(t))
+    sel = 10 * np.log10(exposure / reference) + 10 * np.log10(
+        spsd.attrs["nfft"] / spsd.attrs["fs"]
+    )
 
     out = xr.DataArray(
         sel.astype(np.float32),

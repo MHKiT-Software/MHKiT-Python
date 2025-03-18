@@ -192,23 +192,17 @@ def sound_pressure_spectral_density(
     # Always 50% overlap if numbers reshape perfectly
     # Mean square sound pressure
     psd = binner.power_spectral_density(pressure, freq_units="Hz")
-    # Use take mean square if calculating SPL down the line (SPL is based on the RMS
-    # of the pressure signal)
-    if rms:
-        samples = (
-            binner.reshape(pressure.values) - binner.mean(pressure.values)[:, None]
-        )
-        # mean squared pressure ("power") in time domain
-        t_power = np.sum(samples**2, axis=1) / nbin
-        # pressure ("power") in frequency domain
-        f_power = psd.sum("freq") * (fs / nbin)
-        # Adjust the amplitude of the PSD to return the mean-squared PSD
-        # based on Parseval's theorem: total energy computed in the time
-        # domain must equal the total energy computed in the frequency domain
-        psd = psd * t_power[:, None] / f_power
-        long_name = "Mean Square Sound Pressure Spectral Density"
-    else:
-        long_name = "Sound Pressure Spectral Density"
+    # Scale PSD by mean square of original signal
+    samples = binner.reshape(pressure.values) - binner.mean(pressure.values)[:, None]
+    # mean squared pressure ("power") in time domain
+    t_power = np.sum(samples**2, axis=1) / nbin
+    # pressure ("power") in frequency domain
+    f_power = psd.sum("freq") * (fs / nbin)
+    # Adjust the amplitude of the PSD to return the mean-squared PSD
+    # based on Parseval's theorem: total energy computed in the time
+    # domain must equal the total energy computed in the frequency domain
+    psd = psd * t_power[:, None] / f_power
+    long_name = "Mean Square Sound Pressure Spectral Density"
 
     out = xr.DataArray(
         psd,
@@ -479,7 +473,7 @@ def _validate_method(
     return method_name, method_arg
 
 
-def _create_frequency_bands(octave, fmin, fmax):
+def _create_frequency_bands(octave, base, fmin, fmax):
     """
     Calculates frequency bands based on the specified octave, minimum and
     maximum frequency limits.
@@ -488,6 +482,9 @@ def _create_frequency_bands(octave, fmin, fmax):
     ----------
     octave: int
         Octave to subdivide spectral density level by.
+    base : int, optional
+        Octave base. Set to 2 for the true octave band; set to base 10 for
+        the decidecade octave band. Default: 2
     fmin : int, optional
         Lower frequency band limit (lower limit of the hydrophone). Default is 10 Hz.
     fmax : int, optional
@@ -501,8 +498,8 @@ def _create_frequency_bands(octave, fmin, fmax):
         Dictionary containing the frequency band edges and center frequency
     """
 
-    bandwidth = 2 ** (1 / octave)
-    half_bandwidth = 2 ** (1 / (octave * 2))
+    bandwidth = base ** (1 / octave)
+    half_bandwidth = base ** (1 / (octave * 2))
 
     band = {}
     band["center_freq"] = 10 ** np.arange(
@@ -520,6 +517,7 @@ def _create_frequency_bands(octave, fmin, fmax):
 def band_aggregate(
     spsdl: xr.DataArray,
     octave: int = 3,
+    base: int = 2,
     fmin: int = 10,
     fmax: int = 100000,
     method: Union[str, Dict[str, Union[float, int]]] = "median",
@@ -534,6 +532,9 @@ def band_aggregate(
         Mean square sound pressure spectral density level in dB rel 1 uPa^2/Hz
     octave: int
         Octave to subdivide spectral density level by. Default = 3 (third octave)
+    base : int, optional
+        Octave base. Set to 2 for the true octave band; set to base 10 for
+        the decidecade octave band. Default: 2
     fmin: int
         Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
     fmax: int
@@ -575,7 +576,7 @@ def band_aggregate(
     fn = spsdl["freq"].max().values
     fmax = _fmax_warning(fn, fmax)
 
-    octave_bins, band = _create_frequency_bands(octave, fmin, fmax)
+    octave_bins, band = _create_frequency_bands(octave, base, fmin, fmax)
 
     # Use xarray binning methods
     spsdl_group = spsdl.groupby_bins("freq", octave_bins, labels=band["center_freq"])

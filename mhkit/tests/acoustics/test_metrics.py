@@ -15,7 +15,7 @@ if not isdir:
 datadir = normpath(join(testdir, "..", "..", "..", "examples", "data", "acoustics"))
 
 
-class TestAnalysis(unittest.TestCase):
+class TestMetrics(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         file_name = join(datadir, "6247.230204150508.wav")
@@ -56,27 +56,27 @@ class TestAnalysis(unittest.TestCase):
         cd_spl_tail = np.array([98.420975, 98.10879, 97.430115, 97.99395, 97.95798])
 
         cd_spl10_freq_head = np.array(
-            [10.0, 10.717735, 11.486984, 12.311444, 13.195079]
+            [10.0, 12.589254, 15.848932, 19.952623, 25.118864]
         )
         cd_spl10_head = np.array(
             [
-                [64.40389, 64.78221, 63.64469, 67.782845, 73.05421],
-                [56.934277, 62.80422, 66.329056, 67.336395, 65.79995],
-                [67.16593, 69.089096, 69.5835, 67.69844, 63.657196],
-                [66.010025, 67.567635, 68.16686, 66.72678, 64.52246],
-                [63.887203, 68.73698, 72.71424, 72.98322, 69.08172],
+                [68.88561, 75.65294, 68.29522, 75.80323, 82.53724],
+                [62.806908, 69.76993, 62.64113, 73.26091, 83.27883],
+                [71.73166, 68.541534, 68.056076, 75.438034, 84.268715],
+                [70.84345, 68.65471, 63.4681, 72.818085, 77.38771],
+                [69.23148, 74.04387, 64.49707, 74.146164, 79.52727],
             ]
         )
         cd_spl10_freq_tail = np.array(
-            [38217.031333, 40960.0, 43899.841025, 47050.684621, 50427.675171]
+            [19952.62315, 25118.864315, 31622.776602, 39810.717055, 50118.723363]
         )
         cd_spl10_tail = np.array(
             [
-                [77.38338, 73.43317, 72.7755, 72.53339, np.nan],
-                [77.72596, 73.57787, 73.16561, 72.637436, np.nan],
-                [77.61121, 73.59171, 73.20265, 72.57601, np.nan],
-                [77.3753, 73.35718, 72.89339, 72.386765, np.nan],
-                [77.31649, 73.806496, 73.296, 72.73348, np.nan],
+                [80.50317, 80.87118, 83.18715, 81.44459, 73.96579],
+                [81.933586, 81.51899, 83.47768, 81.85002, 74.25242],
+                [81.261314, 81.41166, 83.528534, 81.81753, 74.15244],
+                [81.70521, 81.42419, 83.45481, 81.4712, 73.85561],
+                [80.90549, 81.397545, 83.36795, 81.5738, 74.3497],
             ]
         )
         cd_spl3_freq_head = np.array([10.0, 12.59921, 15.874011, 20.0, 25.198421])
@@ -188,12 +188,12 @@ class TestAnalysis(unittest.TestCase):
             ],
             dtype="datetime64[ns]",
         )
-        cd_sel = np.array([98.2998, 102.6271, 125.41366, 125.71297, 104.94424])
-        cd_sel_lf = np.array([74.089165, 74.528076, 73.478775, 76.782104, 76.000015])
-        cd_sel_hf = np.array([90.085915, 90.23294, 94.21187, 95.70856, 90.99371])
-        cd_sel_vhf = np.array([92.27235, 92.464096, 100.08952, 101.10707, 93.23433])
-        cd_sel_pw = np.array([85.331696, 85.516174, 86.10397, 87.81647, 86.33542])
-        cd_sel_ow = np.array([81.784424, 82.04712, 81.639206, 83.623116, 83.08575])
+        cd_sel = np.array([116.18274, 121.698654, 143.28117, 147.37479, 127.01828])
+        cd_sel_lf = np.array([91.97211, 93.59965, 91.34629, 98.443924, 98.07405])
+        cd_sel_hf = np.array([107.96886, 109.304504, 112.079384, 117.37038, 113.06774])
+        cd_sel_vhf = np.array([110.15529, 111.53565, 117.95704, 122.76889, 115.30837])
+        cd_sel_pw = np.array([103.21464, 104.58774, 103.97149, 109.47829, 108.409454])
+        cd_sel_ow = np.array([99.667366, 101.11868, 99.50672, 105.28493, 105.15978])
 
         np.testing.assert_allclose(td_sel.values, cd_sel, atol=1e-6)
         np.testing.assert_allclose(td_sel_lf.values, cd_sel_lf, atol=1e-6)
@@ -202,3 +202,10 @@ class TestAnalysis(unittest.TestCase):
         np.testing.assert_allclose(td_sel_pw.values, cd_sel_pw, atol=1e-6)
         np.testing.assert_allclose(td_sel_ow.values, cd_sel_ow, atol=1e-6)
         np.testing.assert_equal(td_sel["time"].values, cc)
+
+    def test_spl_vs_sel(self):
+        # SPL should equal SEL over a 1 second interval
+        td_spl = acoustics.sound_pressure_level(self.spsd, fmin=10, fmax=100000)
+        td_sel = acoustics.sound_exposure_level(self.spsd, fmin=10, fmax=100000)
+
+        np.testing.assert_allclose(td_spl.values, td_sel.values, atol=1e-6)

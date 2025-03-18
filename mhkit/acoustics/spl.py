@@ -100,6 +100,7 @@ def sound_pressure_level(
 def _band_sound_pressure_level(
     spsd: xr.DataArray,
     octave: int,
+    base: int = 2,
     fmin: int = 10,
     fmax: int = 100000,
 ) -> xr.DataArray:
@@ -160,7 +161,7 @@ def _band_sound_pressure_level(
     # Reference value of sound pressure
     reference = 1e-12  # Pa^2, = 1 uPa^2
 
-    _, band = _create_frequency_bands(octave, fmin, fmax)
+    _, band = _create_frequency_bands(octave, base, fmin, fmax)
 
     # Manual trapezoidal rule to get Pa^2
     pressure_squared = xr.DataArray(
@@ -220,7 +221,8 @@ def third_octave_sound_pressure_level(
         Sound pressure level [dB re 1 uPa] indexed by time and third octave bands
     """
     octave = 3
-    mspl = _band_sound_pressure_level(spsd, octave, fmin, fmax)
+    base = 2
+    mspl = _band_sound_pressure_level(spsd, octave, base, fmin, fmax)
     mspl.attrs = {
         "units": "dB re 1 uPa",
         "long_name": "Third Octave Sound Pressure Level",
@@ -254,7 +256,8 @@ def decidecade_sound_pressure_level(
     """
 
     octave = 10
-    mspl = _band_sound_pressure_level(spsd, octave, fmin, fmax)
+    base = 10
+    mspl = _band_sound_pressure_level(spsd, octave, base, fmin, fmax)
     mspl.attrs = {
         "units": "dB re 1 uPa",
         "long_name": "Decidecade Sound Pressure Level",

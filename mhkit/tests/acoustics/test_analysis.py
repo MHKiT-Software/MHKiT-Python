@@ -137,7 +137,9 @@ class TestAnalysis(unittest.TestCase):
 
         # Frequency average into # octave bands
         octave = 3
-        td_spsdl_mean = acoustics.band_aggregate(td_spsdl, octave, fmin=10, fmax=100000)
+        td_spsdl_mean = acoustics.band_aggregate(
+            td_spsdl, octave, base=2, fmin=10, fmax=100000
+        )
 
         # Time average into 30 s bins
         lbin = 30
