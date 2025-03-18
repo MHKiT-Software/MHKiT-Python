@@ -138,6 +138,27 @@ def request_noaa_data(
 def _validate_inputs(
     station: str, parameter: str, start_date: str, end_date: str, options: dict
 ) -> None:
+    """
+    Validates the input parameters for the NOAA data request.
+
+    Parameters
+    ----------
+    station : str
+        NOAA current station number.
+    parameter : str
+        NOAA parameter to fetch.
+    start_date : str
+        Start date for data retrieval in yyyyMMdd format.
+    end_date : str
+        End date for data retrieval in yyyyMMdd format.
+    options : dict
+        Dictionary of options for data retrieval.
+
+    Raises
+    ------
+    TypeError
+        If any of the inputs are not of the expected type.
+    """
     if not isinstance(station, str):
         raise TypeError(
             f"Expected 'station' to be of type str, but got {type(station)}"
@@ -318,6 +339,21 @@ def _process_data_frames(
 
 
 def _parse_dates(start_date: str, end_date: str) -> tuple[datetime.date, datetime.date]:
+    """
+    Parses start and end dates from strings to datetime.date objects.
+
+    Parameters
+    ----------
+    start_date : str
+        Start date in yyyyMMdd format.
+    end_date : str
+        End date in yyyyMMdd format.
+
+    Returns
+    -------
+    tuple[datetime.date, datetime.date]
+        Parsed start and end dates.
+    """
     begin = datetime.datetime.strptime(start_date, "%Y%m%d").date()
     end = datetime.datetime.strptime(end_date, "%Y%m%d").date()
     return begin, end
@@ -326,6 +362,21 @@ def _parse_dates(start_date: str, end_date: str) -> tuple[datetime.date, datetim
 def _create_date_ranges(
     begin: datetime.date, end: datetime.date
 ) -> list[datetime.date]:
+    """
+    Creates a list of date ranges between the start and end dates.
+
+    Parameters
+    ----------
+    begin : datetime.date
+        Start date.
+    end : datetime.date
+        End date.
+
+    Returns
+    -------
+    list[datetime.date]
+        List of date ranges.
+    """
     delta = 30
     interval = math.ceil(((end - begin).days) / delta)
     date_list = [
@@ -338,6 +389,25 @@ def _create_date_ranges(
 def _build_data_url(
     station: str, parameter: str, start_date: str, end_date: str
 ) -> str:
+    """
+    Builds the data request URL for the NOAA API.
+
+    Parameters
+    ----------
+    station : str
+        NOAA current station number.
+    parameter : str
+        NOAA parameter to fetch.
+    start_date : str
+        Start date for data retrieval in yyyyMMdd format.
+    end_date : str
+        End date for data retrieval in yyyyMMdd format.
+
+    Returns
+    -------
+    str
+        The constructed data request URL.
+    """
     api_query = (
         f"begin_date={start_date}&end_date={end_date}&station={station}&product={parameter}"
         "&units=metric&time_zone=gmt&application=web_services&format=xml"
@@ -348,6 +418,26 @@ def _build_data_url(
 
 
 def _make_request(data_url: str, proxy: dict) -> requests.Response:
+    """
+    Makes an HTTP request to the specified data URL using optional proxy settings.
+
+    Parameters
+    ----------
+    data_url : str
+        The URL to request data from.
+    proxy : dict
+        Proxy settings for the request.
+
+    Returns
+    -------
+    requests.Response
+        The HTTP response from the request.
+
+    Raises
+    ------
+    requests.exceptions.RequestException
+        If an error occurs during the request.
+    """
     try:
         response = requests.get(url=data_url, proxies=proxy, timeout=60)
         response.raise_for_status()
@@ -377,6 +467,11 @@ def _concatenate_data_frames(data_frames: list[pd.DataFrame]) -> pd.DataFrame:
     -------
     pd.DataFrame
         The concatenated data frame with duplicates removed.
+
+    Raises
+    ------
+    ValueError
+        If no data frames are provided.
     """
     if data_frames:
         data = pd.concat(data_frames, ignore_index=False)
@@ -387,7 +482,17 @@ def _concatenate_data_frames(data_frames: list[pd.DataFrame]) -> pd.DataFrame:
 
 def _xml_to_dataframe(response: requests.Response) -> tuple[pd.DataFrame, dict]:
     """
-    Returns a dataframe from an xml response
+    Converts an XML response from the NOAA API into a pandas DataFrame and extracts metadata.
+
+    Parameters
+    ----------
+    response : requests.Response
+        The HTTP response containing XML data from the NOAA API.
+
+    Returns
+    -------
+    tuple[pd.DataFrame, dict]
+        A tuple containing the data as a pandas DataFrame and the associated metadata as a dictionary.
     """
     root = ET.fromstring(response.text)
     metadata = None
