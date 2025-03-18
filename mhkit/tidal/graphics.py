@@ -25,7 +25,9 @@ __all__ = [
 viridis = mpl.colormaps["viridis"]
 
 
-def _initialize_polar(ax=None, metadata=None, flood=None, ebb=None):
+def _initialize_polar(
+    ax: plt.Axes = None, metadata: dict = None, flood: float = None, ebb: float = None
+) -> plt.Axes:
     """
     Initializes a polar plots with cardinal directions and ebb/flow
 
@@ -96,7 +98,9 @@ def _initialize_polar(ax=None, metadata=None, flood=None, ebb=None):
     return ax
 
 
-def _check_inputs(directions, velocities, flood, ebb):
+def _check_inputs(
+    directions: np.ndarray, velocities: np.ndarray, flood: float, ebb: float
+) -> None:
     """
     Runs checks on inputs for the graphics functions.
 
@@ -134,15 +138,15 @@ def _check_inputs(directions, velocities, flood, ebb):
 
 
 def plot_rose(
-    directions,
-    velocities,
-    width_dir,
-    width_vel,
-    ax=None,
-    metadata=None,
-    flood=None,
-    ebb=None,
-):
+    directions: np.ndarray,
+    velocities: np.ndarray,
+    width_dir: float,
+    width_vel: float,
+    ax: plt.Axes = None,
+    metadata: dict = None,
+    flood: float = None,
+    ebb: float = None,
+) -> plt.Axes:
     """
     Creates a polar histogram. Direction angles from binned histogram must
     be specified such that 0 degrees is north.
@@ -215,15 +219,15 @@ def plot_rose(
 
 
 def plot_joint_probability_distribution(
-    directions,
-    velocities,
-    width_dir,
-    width_vel,
-    ax=None,
-    metadata=None,
-    flood=None,
-    ebb=None,
-):
+    directions: np.ndarray,
+    velocities: np.ndarray,
+    width_dir: float,
+    width_vel: float,
+    ax: plt.Axes = None,
+    metadata: dict = None,
+    flood: float = None,
+    ebb: float = None,
+) -> plt.Axes:
     """
     Creates a polar histogram. Direction angles from binned histogram must
     be specified such that 0 is north.
@@ -293,8 +297,12 @@ def plot_joint_probability_distribution(
 
 
 def plot_current_timeseries(
-    directions, velocities, principal_direction, label=None, ax=None
-):
+    directions: np.ndarray,
+    velocities: np.ndarray,
+    principal_direction: float,
+    label: str = None,
+    ax: plt.Axes = None,
+) -> plt.Axes:
     """
     Returns a plot of velocity from an array of direction and speed
     data in the direction of the supplied principal_direction.
@@ -343,7 +351,14 @@ def plot_current_timeseries(
     return ax
 
 
-def tidal_phase_probability(directions, velocities, flood, ebb, bin_size=0.1, ax=None):
+def tidal_phase_probability(
+    directions: np.ndarray,
+    velocities: np.ndarray,
+    flood: float,
+    ebb: float,
+    bin_size: float = 0.1,
+    ax: plt.Axes = None,
+) -> plt.Axes:
     """
     Discretizes the tidal series speed by bin size and returns a plot
     of the probability for each bin in the flood or ebb tidal phase.
@@ -427,7 +442,14 @@ def tidal_phase_probability(directions, velocities, flood, ebb, bin_size=0.1, ax
     return ax
 
 
-def tidal_phase_exceedance(directions, velocities, flood, ebb, bin_size=0.1, ax=None):
+def tidal_phase_exceedance(
+    directions: np.ndarray,
+    velocities: np.ndarray,
+    flood: float,
+    ebb: float,
+    bin_size: float = 0.1,
+    ax: plt.Axes = None,
+) -> plt.Axes:
     """
     Returns a stacked area plot of the exceedance probability for the
     flood and ebb tidal phases.
