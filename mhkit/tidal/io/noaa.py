@@ -35,7 +35,14 @@ import requests
 from mhkit.utils.cache import handle_caching
 
 
-def request_noaa_data(station, parameter, start_date, end_date, options=None, **kwargs):
+def request_noaa_data(
+    station: str,
+    parameter: str,
+    start_date: str,
+    end_date: str,
+    options: dict = None,
+    **kwargs,
+) -> tuple[pd.DataFrame, dict]:
     """
     Loads NOAA current data directly from https://api.tidesandcurrents.noaa.gov/api/prod/
     into a pandas DataFrame. NOAA sets max of 31 days between start and end date.
@@ -59,9 +66,13 @@ def request_noaa_data(station, parameter, start_date, end_date, options=None, **
     options : dict, optional
         Dictionary containing optional parameters:
         - proxy: dict or None
+            Proxy settings for the request.
         - write_json: str or None
+            Path to write the data as a JSON file.
         - clear_cache: bool
+            Whether to clear cached data.
         - to_pandas: bool
+            Whether to return the data as a pandas DataFrame.
 
     Returns
     -------
@@ -124,7 +135,9 @@ def request_noaa_data(station, parameter, start_date, end_date, options=None, **
     )
 
 
-def _validate_inputs(station, parameter, start_date, end_date, options):
+def _validate_inputs(
+    station: str, parameter: str, start_date: str, end_date: str, options: dict
+) -> None:
     if not isinstance(station, str):
         raise TypeError(
             f"Expected 'station' to be of type str, but got {type(station)}"
@@ -164,8 +177,33 @@ def _validate_inputs(station, parameter, start_date, end_date, options):
 
 
 def _handle_cached_data(
-    cached_data, cached_metadata, write_json, cache_filepath, to_pandas
-):
+    cached_data: pd.DataFrame,
+    cached_metadata: dict,
+    write_json: str,
+    cache_filepath: str,
+    to_pandas: bool,
+) -> tuple[pd.DataFrame, dict]:
+    """
+    Handles cached data by optionally writing it to a JSON file and returning it.
+
+    Parameters
+    ----------
+    cached_data : pd.DataFrame
+        The cached data to be returned.
+    cached_metadata : dict
+        Metadata associated with the cached data.
+    write_json : str
+        Path to write the cached data as a JSON file, if specified.
+    cache_filepath : str
+        Filepath of the cached data.
+    to_pandas : bool
+        Flag indicating whether to return the data as a pandas DataFrame.
+
+    Returns
+    -------
+    tuple[pd.DataFrame, dict]
+        The cached data and its metadata.
+    """
     if write_json:
         shutil.copy(cache_filepath, write_json)
     if to_pandas:
@@ -176,7 +214,42 @@ def _handle_cached_data(
     return cached_data
 
 
-def _fetch_noaa_data(station, parameter, start_date, end_date, options):
+def _fetch_noaa_data(
+    station: str, parameter: str, start_date: str, end_date: str, options: dict
+) -> tuple[pd.DataFrame, dict]:
+    """
+    Fetches NOAA data from the API, processes it, and returns it along with metadata.
+
+    Parameters
+    ----------
+    station : str
+        NOAA current station number.
+    parameter : str
+        NOAA parameter to fetch.
+    start_date : str
+        Start date for data retrieval in yyyyMMdd format.
+    end_date : str
+        End date for data retrieval in yyyyMMdd format.
+    options : dict
+        Dictionary of options for data retrieval:
+        - proxy: dict or None
+            Proxy settings for the request.
+        - cache_dir: str
+            Directory for caching data.
+        - hash_params: str
+            Parameters used for caching.
+        - write_json: str or None
+            Path to write the data as a JSON file.
+        - clear_cache: bool
+            Whether to clear cached data.
+        - to_pandas: bool
+            Whether to return the data as a pandas DataFrame.
+
+    Returns
+    -------
+    tuple[pd.DataFrame, dict]
+        The fetched data and its metadata.
+    """
     begin, end = _parse_dates(start_date, end_date)
     date_list = _create_date_ranges(begin, end)
 
@@ -195,7 +268,36 @@ def _fetch_noaa_data(station, parameter, start_date, end_date, options):
     return _process_data_frames(data_frames, metadata, options)
 
 
-def _process_data_frames(data_frames, metadata, options):
+def _process_data_frames(
+    data_frames: list[pd.DataFrame], metadata: dict, options: dict
+) -> tuple[pd.DataFrame, dict]:
+    """
+    Processes a list of data frames by concatenating them and handling caching.
+
+    Parameters
+    ----------
+    data_frames : list[pd.DataFrame]
+        List of data frames to process.
+    metadata : dict
+        Metadata associated with the data.
+    options : dict
+        Options for processing, including caching and output format:
+        - hash_params: str
+            Parameters used for caching.
+        - cache_dir: str
+            Directory for caching data.
+        - write_json: str or None
+            Path to write the data as a JSON file.
+        - clear_cache: bool
+            Whether to clear cached data.
+        - to_pandas: bool
+            Whether to return the data as a pandas DataFrame.
+
+    Returns
+    -------
+    tuple[pd.DataFrame, dict]
+        The processed data and its metadata.
+    """
     data = _concatenate_data_frames(data_frames)
     cache_filepath = handle_caching(
         options["hash_params"],
@@ -215,13 +317,15 @@ def _process_data_frames(data_frames, metadata, options):
     return data
 
 
-def _parse_dates(start_date, end_date):
+def _parse_dates(start_date: str, end_date: str) -> tuple[datetime.date, datetime.date]:
     begin = datetime.datetime.strptime(start_date, "%Y%m%d").date()
     end = datetime.datetime.strptime(end_date, "%Y%m%d").date()
     return begin, end
 
 
-def _create_date_ranges(begin, end):
+def _create_date_ranges(
+    begin: datetime.date, end: datetime.date
+) -> list[datetime.date]:
     delta = 30
     interval = math.ceil(((end - begin).days) / delta)
     date_list = [
@@ -231,7 +335,9 @@ def _create_date_ranges(begin, end):
     return date_list
 
 
-def _build_data_url(station, parameter, start_date, end_date):
+def _build_data_url(
+    station: str, parameter: str, start_date: str, end_date: str
+) -> str:
     api_query = (
         f"begin_date={start_date}&end_date={end_date}&station={station}&product={parameter}"
         "&units=metric&time_zone=gmt&application=web_services&format=xml"
@@ -241,7 +347,7 @@ def _build_data_url(station, parameter, start_date, end_date):
     return f"https://tidesandcurrents.noaa.gov/api/datagetter?{api_query}"
 
 
-def _make_request(data_url, proxy):
+def _make_request(data_url: str, proxy: dict) -> requests.Response:
     try:
         response = requests.get(url=data_url, proxies=proxy, timeout=60)
         response.raise_for_status()
@@ -258,7 +364,20 @@ def _make_request(data_url, proxy):
     return response
 
 
-def _concatenate_data_frames(data_frames):
+def _concatenate_data_frames(data_frames: list[pd.DataFrame]) -> pd.DataFrame:
+    """
+    Concatenates a list of data frames into a single data frame, removing duplicates.
+
+    Parameters
+    ----------
+    data_frames : list[pd.DataFrame]
+        List of data frames to concatenate.
+
+    Returns
+    -------
+    pd.DataFrame
+        The concatenated data frame with duplicates removed.
+    """
     if data_frames:
         data = pd.concat(data_frames, ignore_index=False)
     else:
@@ -266,7 +385,7 @@ def _concatenate_data_frames(data_frames):
     return data.loc[~data.index.duplicated()]
 
 
-def _xml_to_dataframe(response):
+def _xml_to_dataframe(response: requests.Response) -> tuple[pd.DataFrame, dict]:
     """
     Returns a dataframe from an xml response
     """
@@ -305,7 +424,7 @@ def _xml_to_dataframe(response):
     return df, metadata or {}
 
 
-def read_noaa_json(filename, to_pandas=True):
+def read_noaa_json(filename: str, to_pandas: bool = True) -> tuple[pd.DataFrame, dict]:
     """
     Returns site DataFrame and metadata from a json saved from the
     request_noaa_data
