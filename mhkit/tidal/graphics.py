@@ -1,9 +1,25 @@
 """
-MHKiT Tidal Graphics Module
+graphics.py
 
-This module provides functions for visualizing tidal data.
-It includes tools for creating plots and graphs to analyze tidal
-resource and performance data.
+This module provides functions for visualizing tidal resource and performance data.
+It includes tools for creating polar plots, velocity distributions, exceedance
+probability charts, and current time-series plots.
+
+Features:
+---------
+- Generates **polar histograms** (current roses) of tidal flow directions and speeds.
+- Computes and visualizes **joint probability distributions** of velocity and direction.
+- Plots **time-series data** of tidal currents in a given principal direction.
+- Creates **exceedance probability** plots for ebb and flood conditions.
+- Supports **custom metadata annotations** (site name, latitude, longitude).
+
+Functions:
+----------
+- `plot_rose`: Creates a polar histogram of flow directions and velocities.
+- `plot_joint_probability_distribution`: Generates a joint probability distribution.
+- `plot_current_timeseries`: Plots velocity time-series in the principal direction.
+- `tidal_phase_probability`: Analyzes probability of flow in flood or ebb phases.
+- `tidal_phase_exceedance`: Creates a stacked exceedance probability plot.
 """
 
 import bisect

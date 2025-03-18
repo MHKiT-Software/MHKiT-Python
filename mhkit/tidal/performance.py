@@ -1,24 +1,35 @@
 """
-Tidal Performance Module
+performance.py
 
 This module provides functions for analyzing the performance of tidal energy
 devices using Acoustic Doppler Current Profiler (ADCP) data. It includes
 methods for calculating power curves, efficiency, velocity profiles, and
 other metrics relevant to marine energy devices.
 
+Features:
+---------
+- Computes **power curves** and performance statistics for marine energy devices.
+- Evaluates **device efficiency** based on IEC/TS 62600-200 standards.
+- Analyzes **velocity profiles** using time-averaging and statistical functions.
+- Supports **circular and rectangular turbine profiles** for swept area calculations.
+- Processes **ADCP data** to derive meaningful hydrodynamic insights.
+
 Functions:
-    - _slice_circular_capture_area: Slices a circular capture area based on ADCP depth bins.
-    - _slice_rectangular_capture_area: Slices a rectangular capture area based on ADCP depth bins.
-    - power_curve: Computes power curve and power statistics for a marine energy device.
-    - _average_velocity_bins: Averages velocity profiles into velocity bins.
-    - _apply_function: Applies statistical functions (mean, RMS, std) to velocity data.
-    - velocity_profiles: Computes velocity profiles for different statistical measures.
-    - device_efficiency: Computes the efficiency (power coefficient) of a tidal energy device.
-    - _calculate_density: Computes averaged water density for a given time period.
+----------
+- `_slice_circular_capture_area`: Slices a circular capture area based on ADCP depth bins.
+- `_slice_rectangular_capture_area`: Slices a rectangular capture area based on ADCP depth bins.
+- `power_curve`: Computes power curve and power statistics for a marine energy device.
+- `_average_velocity_bins`: Averages velocity profiles into velocity bins.
+- `_apply_function`: Applies statistical functions (mean, RMS, std) to velocity data.
+- `velocity_profiles`: Computes velocity profiles for different statistical measures.
+- `device_efficiency`: Computes the efficiency (power coefficient) of a tidal energy device.
+- `_calculate_density`: Computes averaged water density for a given time period.
 
 Usage:
-    This module is intended for use with ADCP data to evaluate the performance
-    of marine energy devices based on IEC/TS 62600-200 standards.
+------
+This module is intended for use with ADCP data to evaluate the performance
+of marine energy devices based on IEC/TS 62600-200 standards. It is useful for
+hydrodynamic modeling, resource assessment, and marine energy system optimization.
 """
 
 from typing import Union, Optional

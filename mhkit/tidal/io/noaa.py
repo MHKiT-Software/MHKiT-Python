@@ -1,26 +1,31 @@
 """
 noaa.py
 
-This module provides functions to fetch, process, and read NOAA (National
-Oceanic and Atmospheric Administration) current data directly from the
-NOAA Tides and Currents API (https://api.tidesandcurrents.noaa.gov/api/prod/). It
-supports loading data into a pandas DataFrame, handling data in XML and
-JSON formats, and writing data to a JSON file.
+This module provides functions to fetch, process, cache, and read NOAA (National
+Oceanic and Atmospheric Administration) current data using the NOAA Tides and
+Currents API (https://api.tidesandcurrents.noaa.gov/api/prod/). It supports
+retrieving data in XML and JSON formats, converting it into a pandas DataFrame
+or xarray Dataset, and saving it as a JSON file for future use.
+
+Features:
+---------
+- Fetch NOAA current, tidal, and environmental data from the API.
+- Convert XML and JSON responses into structured pandas DataFrames.
+- Cache and retrieve previously requested data to optimize performance.
+- Save and load data from JSON files for offline access.
 
 Functions:
 ----------
 request_noaa_data(station, parameter, start_date, end_date, options=None):
-    Loads NOAA current data from the API into a pandas DataFrame,
-    with optional support for proxy settings and writing data to a JSON
-    file.
+    Fetches NOAA data from the API, converts it into a pandas DataFrame (or xarray Dataset),
+    and caches the result. Supports proxy settings and JSON file export.
 
 _xml_to_dataframe(response):
-    Converts NOAA response data in XML format into a pandas DataFrame
-    and returns metadata.
+    Converts NOAA response data from XML format into a pandas DataFrame and extracts metadata.
 
-read_noaa_json(filename):
-    Reads a JSON file containing NOAA data saved from the request_noaa_data
-    function and returns a DataFrame with timeseries site data and metadata.
+read_noaa_json(filename, to_pandas=True):
+    Reads a previously saved JSON file containing NOAA data and returns a pandas DataFrame
+    (or xarray Dataset) with time-series data and metadata.
 """
 
 import os

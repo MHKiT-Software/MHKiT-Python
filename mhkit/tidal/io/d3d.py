@@ -1,5 +1,9 @@
 """
-This module provides functions for interacting with Delft3D data specific to tidal applications.
+d3d.py
+
+This module provides functions for reading, processing, and analyzing Delft3D
+data. It supports time indexing, variable interpolation, and turbulent
+intensity calculations to facilitate tidal resource assessment and modeling.
 """
 
 from mhkit.river.io.d3d import (
