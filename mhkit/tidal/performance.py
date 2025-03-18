@@ -35,6 +35,9 @@ from mhkit.river.performance import (
     power_coefficient,
 )
 
+from typing import Union, Optional
+import pandas as pd
+
 __all__ = [
     "circular",
     "ducted",
@@ -45,7 +48,9 @@ __all__ = [
 ]
 
 
-def _slice_circular_capture_area(diameter, hub_height, doppler_cell_size):
+def _slice_circular_capture_area(
+    diameter: float, hub_height: float, doppler_cell_size: float
+) -> xr.DataArray:
     """
     Slices a circle (capture area) based on ADCP depth bins mapped
     across the face of the capture area.
@@ -119,7 +124,9 @@ def _slice_circular_capture_area(diameter, hub_height, doppler_cell_size):
     return xr.DataArray(area_segments_slc, coords={"range": area_rng})
 
 
-def _slice_rectangular_capture_area(height, width, hub_height, doppler_cell_size):
+def _slice_rectangular_capture_area(
+    height: float, width: float, hub_height: float, doppler_cell_size: float
+) -> xr.DataArray:
     """
     Slices a rectangular (capture area) based on ADCP depth bins mapped
     across the face of the capture area.
@@ -160,18 +167,18 @@ def _slice_rectangular_capture_area(height, width, hub_height, doppler_cell_size
 
 
 def power_curve(
-    power,
-    velocity,
-    hub_height,
-    doppler_cell_size,
-    sampling_frequency,
-    window_avg_time=600,
-    turbine_profile="circular",
-    diameter=None,
-    height=None,
-    width=None,
-    to_pandas=True,
-):
+    power: Union[np.ndarray, pd.DataFrame, pd.Series, xr.DataArray, xr.Dataset],
+    velocity: Union[np.ndarray, pd.DataFrame, pd.Series, xr.DataArray, xr.Dataset],
+    hub_height: float,
+    doppler_cell_size: float,
+    sampling_frequency: float,
+    window_avg_time: int = 600,
+    turbine_profile: str = "circular",
+    diameter: Optional[float] = None,
+    height: Optional[float] = None,
+    width: Optional[float] = None,
+    to_pandas: bool = True,
+) -> Union[pd.DataFrame, xr.Dataset]:
     """
     Calculates power curve and power statistics for a marine energy
     device based on IEC/TS 62600-200 section 9.3.
@@ -341,7 +348,9 @@ def power_curve(
     return device_power_curve
 
 
-def _average_velocity_bins(velocity_data, velocity_hub, bin_size):
+def _average_velocity_bins(
+    velocity_data: xr.DataArray, velocity_hub: xr.DataArray, bin_size: float
+) -> xr.DataArray:
     """
     Groups time-ensembles into velocity bins based on hub-height
     velocity and averages them.
@@ -373,7 +382,9 @@ def _average_velocity_bins(velocity_data, velocity_hub, bin_size):
     return velocity_binned
 
 
-def _apply_function(function, bnr, velocity):
+def _apply_function(
+    function: str, bnr: dolfyn.VelBinner, velocity: xr.DataArray
+) -> xr.DataArray:
     """
     Applies a specified function ('mean', 'rms', or 'std') to the input
     data array velocity, grouped into bins as specified by the binning rules in bnr.
@@ -424,14 +435,14 @@ def _apply_function(function, bnr, velocity):
 
 
 def velocity_profiles(
-    velocity,
-    hub_height,
-    water_depth,
-    sampling_frequency,
-    window_avg_time=600,
-    function="mean",
-    to_pandas=True,
-):
+    velocity: Union[np.ndarray, pd.DataFrame, pd.Series, xr.DataArray, xr.Dataset],
+    hub_height: float,
+    water_depth: float,
+    sampling_frequency: float,
+    window_avg_time: int = 600,
+    function: str = "mean",
+    to_pandas: bool = True,
+) -> Union[pd.DataFrame, xr.DataArray]:
     """
     Calculates profiles of the mean, root-mean-square (RMS), or standard
     deviation(std) of velocity. The chosen metric, specified by `function`,
@@ -510,15 +521,15 @@ def velocity_profiles(
 
 
 def device_efficiency(
-    power,
-    velocity,
-    water_density,
-    capture_area,
-    hub_height,
-    sampling_frequency,
-    window_avg_time=600,
-    to_pandas=True,
-):
+    power: Union[np.ndarray, pd.DataFrame, pd.Series, xr.DataArray, xr.Dataset],
+    velocity: Union[np.ndarray, pd.DataFrame, pd.Series, xr.DataArray, xr.Dataset],
+    water_density: Union[float, pd.Series, xr.DataArray],
+    capture_area: float,
+    hub_height: float,
+    sampling_frequency: float,
+    window_avg_time: int = 600,
+    to_pandas: bool = True,
+) -> Union[pd.Series, xr.DataArray]:
     """
     Calculates marine energy device efficiency based on IEC/TS 62600-200 Section 9.7.
 
@@ -602,7 +613,12 @@ def device_efficiency(
     return device_eta
 
 
-def _calculate_density(water_density, bnr, mean_hub_vel, time):
+def _calculate_density(
+    water_density: Union[np.ndarray, float],
+    bnr: dolfyn.VelBinner,
+    mean_hub_vel: xr.DataArray,
+    time: np.ndarray,
+) -> Union[xr.DataArray, float]:
     """
     Calculates the averaged density for the given time period.
 
