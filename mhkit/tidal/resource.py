@@ -28,7 +28,9 @@ __all__ = [
 ]
 
 
-def _histogram(directions, velocities, width_dir, width_vel):
+def _histogram(
+    directions: np.ndarray, velocities: np.ndarray, width_dir: float, width_vel: float
+) -> tuple[np.ndarray, list, list]:
     """
     Wrapper around numpy histogram 2D. Used to find joint probability
     between directions and velocities. Returns joint probability H as [%].
@@ -74,7 +76,7 @@ def _histogram(directions, velocities, width_dir, width_vel):
     return joint_probability, dir_edges, vel_edges
 
 
-def _normalize_angle(degree):
+def _normalize_angle(degree: float) -> float:
     """
     Normalizes degrees to be between 0 and 360
 
@@ -94,7 +96,9 @@ def _normalize_angle(degree):
     return new_degree
 
 
-def principal_flow_directions(directions, width_dir):
+def principal_flow_directions(
+    directions: np.ndarray, width_dir: float
+) -> tuple[float, float]:
     """
     Calculates principal flow directions for ebb and flood cycles
 
@@ -189,7 +193,7 @@ def principal_flow_directions(directions, width_dir):
     return principal_direction1, principal_direction2
 
 
-def _flood_or_ebb(d, flood, ebb):
+def _flood_or_ebb(d: np.ndarray, flood: float, ebb: float) -> np.ndarray:
     """
     Returns a mask which is True for directions on the ebb side of the
     midpoints between the flood and ebb directions on the unit circle
