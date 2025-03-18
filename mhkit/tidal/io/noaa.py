@@ -492,7 +492,8 @@ def _xml_to_dataframe(response: requests.Response) -> tuple[pd.DataFrame, dict]:
     Returns
     -------
     tuple[pd.DataFrame, dict]
-        A tuple containing the data as a pandas DataFrame and the associated metadata as a dictionary.
+        A tuple containing the data as a pandas DataFrame and the associated metadata
+        as a dictionary.
     """
     root = ET.fromstring(response.text)
     metadata = None
