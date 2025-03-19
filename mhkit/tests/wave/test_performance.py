@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import unittest
 import os
+import pytest
 
 
 testdir = dirname(abspath(__file__))
@@ -47,16 +48,23 @@ class TestPerformance(unittest.TestCase):
         pass
 
     def test_capture_width(self):
-        CW = wave.performance.capture_width(self.data["P"], self.data["J"])
+        with pytest.warns(FutureWarning):
+            CW = wave.performance.capture_length(self.data["P"], self.data["J"])
         CW_stats = wave.performance.statistics(CW)
 
         self.assertAlmostEqual(CW_stats["mean"], 0.6676, 3)
 
     def test_capture_width_matrix(self):
         CW = wave.performance.capture_width(self.data["P"], self.data["J"])
-        CWM = wave.performance.capture_width_matrix(
-            self.data["Hm0"], self.data["Te"], CW, "std", self.Hm0_bins, self.Te_bins
-        )
+        with pytest.warns(FutureWarning):
+            CWM = wave.performance.capture_length_maxtrix(
+                self.data["Hm0"],
+                self.data["Te"],
+                CW,
+                "std",
+                self.Hm0_bins,
+                self.Te_bins,
+            )
 
         self.assertEqual(CWM.shape, (38, 9))
         self.assertEqual(CWM.isna().sum().sum(), 131)

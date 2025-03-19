@@ -46,6 +46,12 @@ def capture_length(P, J, to_pandas=True):
     """
     Alias for `capture_width`.
     """
+    warnings.warn(
+        'IEC TS 62600-100 Ed. 2.0 replaces "capture length" with "capture width". '
+        "wave.performance.capture_length() will be deprecated. "
+        "Replace with wave.performance.capture_width().",
+        FutureWarning,
+    )
     CW = capture_width(P, J, to_pandas)
     return CW
 
@@ -213,6 +219,12 @@ def capture_length_maxtrix(Hm0, Te, CW, statistic, Hm0_bins, Te_bins, to_pandas=
     """
     Alias for `capture_width_maxtrix`.
     """
+    warnings.warn(
+        'IEC TS 62600-100 Ed. 2.0 replaces "capture length" with "capture width". '
+        "wave.performance.capture_length_maxtrix() will be deprecated. "
+        "Replace with wave.performance.capture_width_maxtrix().",
+        FutureWarning,
+    )
     CWM = capture_width_matrix(Hm0, Te, CW, statistic, Hm0_bins, Te_bins, to_pandas)
     return CWM
 
