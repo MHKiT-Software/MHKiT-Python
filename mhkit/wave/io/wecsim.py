@@ -9,7 +9,7 @@ from mhkit.utils import convert_nested_dict_and_pandas
 def _consolidate_dimensions(output):
     """
     Converts the previously read WEC-Sim output, already in xarray,
-    to a conventient form where dof and object number are distinct dimensions.
+    to a convenient form where dof and object number are distinct dimensions.
     """
     all_dof_vars = list(output.data_vars)
     for s in all_dof_vars:
