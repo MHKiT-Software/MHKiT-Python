@@ -13,7 +13,7 @@ from sound pressure data.
 import numpy as np
 import xarray as xr
 
-from .analysis import _fmax_warning
+from .spl import _argument_check
 
 
 def nmfs_auditory_weighting(frequency, group):
@@ -54,49 +54,51 @@ def nmfs_auditory_weighting(frequency, group):
         b = 5
         f1 = 0.168  # kHz
         f2 = 26.6  # kHz
-        C = 0.12  # dB
-        K = 177  # dB
+        c = 0.12  # dB
+        k = 177  # dB
     elif group.lower() == "hf":
         # High-frequency cetaceans
         a = 1.55
         b = 5
         f1 = 1.73
         f2 = 129
-        C = 0.32
-        K = 181
+        c = 0.32
+        k = 181
     elif group.lower() == "vhf":
         # Very high-frequency cetaceans
         a = 2.23
         b = 5
         f1 = 5.93
         f2 = 186
-        C = 0.91
-        K = 160
+        c = 0.91
+        k = 160
     elif group.lower() == "pw":
         # Phocid pinnepeds
         a = 1.63
         b = 5
         f1 = 0.81
         f2 = 68.3
-        C = 0.29
-        K = 175
+        c = 0.29
+        k = 175
     elif group.lower() == "ow":
         # Otariid pinnepeds
         a = 1.58
         b = 5
         f1 = 2.53
         f2 = 43.8
-        C = 1.37
-        K = 178
+        c = 1.37
+        k = 178
     else:
         raise ValueError("Group must be LF, MF, HF, PW, or OW")
 
-    A = frequency / f1
-    B = frequency / f2
-    band_filter = A ** (2 * a) / (((1 + A**2) ** a) * ((1 + B**2) ** b))
+    ratio_a = frequency / f1
+    ratio_b = frequency / f2
+    band_filter = ratio_a ** (2 * a) / (
+        ((1 + ratio_a**2) ** a) * ((1 + ratio_b**2) ** b)
+    )
 
-    weighting_func = C + 10 * np.log10(band_filter)  # dB
-    exposure_func = K - 10 * np.log10(band_filter)  # dB
+    weighting_func = c + 10 * np.log10(band_filter)  # dB
+    exposure_func = k - 10 * np.log10(band_filter)  # dB
 
     return weighting_func, exposure_func
 
@@ -133,33 +135,8 @@ def sound_exposure_level(
         Sound exposure level [dB re 1 uPa^2 s] indexed by time
     """
 
-    # Type checks
-    if not isinstance(spsd, xr.DataArray):
-        raise TypeError("'spsd' must be an xarray.DataArray.")
-    if not isinstance(fmin, int):
-        raise TypeError("'fmin' must be an integer.")
-    if not isinstance(fmax, int):
-        raise TypeError("'fmax' must be an integer.")
-
-    # Ensure 'freq' and 'time' dimensions are present
-    if ("freq" not in spsd.dims) or ("time" not in spsd.dims):
-        raise ValueError("'spsd' must have 'time' and 'freq' as dimensions.")
-
-    # Check that 'fs' (sampling frequency) is available in attributes
-    if "fs" not in spsd.attrs:
-        raise ValueError(
-            "'spsd' must have 'fs' (sampling frequency) in its attributes."
-        )
-
-    # Value checks
-    if fmin <= 0:
-        raise ValueError("'fmin' must be a positive integer.")
-    if fmax <= fmin:
-        raise ValueError("'fmax' must be greater than 'fmin'.")
-
-    # Check fmax
-    fn = spsd.attrs["fs"] // 2
-    fmax = _fmax_warning(fn, fmax)
+    # Argument checks
+    fmax = _argument_check(spsd, fmin, fmax)
 
     if group is not None:
         W, _ = nmfs_auditory_weighting(spsd["freq"], group)
@@ -182,7 +159,7 @@ def sound_exposure_level(
 
     # Sound exposure level (L_{E,p}) = (L_{p,rms} + 10log10(t))
     sel = 10 * np.log10(exposure / reference) + 10 * np.log10(
-        spsd.attrs["nfft"] / spsd.attrs["fs"]
+        spsd.attrs["nfft"] / spsd.attrs["fs"]  # n_points / (n_points/s)
     )
 
     out = xr.DataArray(

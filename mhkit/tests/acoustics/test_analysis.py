@@ -136,10 +136,8 @@ class TestAnalysis(unittest.TestCase):
         td_spsdl = acoustics.sound_pressure_spectral_density_level(self.spsd)
 
         # Frequency average into # octave bands
-        octave = 3
-        td_spsdl_mean = acoustics.band_aggregate(
-            td_spsdl, octave, base=2, fmin=10, fmax=100000
-        )
+        octave = [3, 2]
+        td_spsdl_mean = acoustics.band_aggregate(td_spsdl, octave, fmin=10, fmax=100000)
 
         # Time average into 30 s bins
         lbin = 30

@@ -151,7 +151,7 @@ def sound_pressure_spectral_density(
     using Hanning windowing with 50% overlap.
 
     If finding the mean-squared SPSD (rms = True), the amplitude of the
-    SPSD is adjusted according to Parseval's theorem.
+    SPSD is adjusted accordingly based on Parseval's theorem.
 
     Parameters
     ----------
@@ -162,9 +162,8 @@ def sound_pressure_spectral_density(
     bin_length: int or float
         Length of time in seconds to create FFTs. Default: 1.
     rms: bool
-        Set to True to calculate the mean-squared SPSD. Set to False to
-        calculate standard SPSD.
-        Default: True.
+        If True, calculates the mean-squared SPSD. Set to False to
+        calculate standard SPSD. Default: True.
 
     Returns
     -------
@@ -192,17 +191,22 @@ def sound_pressure_spectral_density(
     # Always 50% overlap if numbers reshape perfectly
     # Mean square sound pressure
     psd = binner.power_spectral_density(pressure, freq_units="Hz")
-    # Scale PSD by mean square of original signal
-    samples = binner.reshape(pressure.values) - binner.mean(pressure.values)[:, None]
-    # mean squared pressure ("power") in time domain
-    t_power = np.sum(samples**2, axis=1) / nbin
-    # pressure ("power") in frequency domain
-    f_power = psd.sum("freq") * (fs / nbin)
-    # Adjust the amplitude of the PSD to return the mean-squared PSD
-    # based on Parseval's theorem: total energy computed in the time
-    # domain must equal the total energy computed in the frequency domain
-    psd = psd * t_power[:, None] / f_power
-    long_name = "Mean Square Sound Pressure Spectral Density"
+    if rms:
+        # Scale PSD by mean square of original signal
+        samples = (
+            binner.reshape(pressure.values) - binner.mean(pressure.values)[:, None]
+        )
+        # mean squared pressure ("power") in time domain
+        t_power = np.sum(samples**2, axis=1) / nbin
+        # pressure ("power") in frequency domain
+        f_power = psd.sum("freq") * (fs / nbin)
+        # Adjust the amplitude of the PSD to return the mean-squared PSD
+        # based on Parseval's theorem: total energy computed in the time
+        # domain must equal the total energy computed in the frequency domain
+        psd = psd * t_power[:, None] / f_power
+        long_name = "Mean Square Sound Pressure Spectral Density"
+    else:
+        long_name = "Sound Pressure Spectral Density"
 
     out = xr.DataArray(
         psd,
@@ -516,8 +520,7 @@ def _create_frequency_bands(octave, base, fmin, fmax):
 
 def band_aggregate(
     spsdl: xr.DataArray,
-    octave: int = 3,
-    base: int = 2,
+    octave: Tuple[int, int] = [3, 2],
     fmin: int = 10,
     fmax: int = 100000,
     method: Union[str, Dict[str, Union[float, int]]] = "median",
@@ -530,11 +533,11 @@ def band_aggregate(
     ----------
     spsdl: xarray.DataArray (time, freq)
         Mean square sound pressure spectral density level in dB rel 1 uPa^2/Hz
-    octave: int
-        Octave to subdivide spectral density level by. Default = 3 (third octave)
-    base : int, optional
-        Octave base. Set to 2 for the true octave band; set to base 10 for
-        the decidecade octave band. Default: 2
+    octave: [int, int]
+        Octave and octave base to subdivide spectral density level by. Set to
+        octave base to 2 for the true octave band; set to base 10 for
+        the decidecade octave band.
+        Default = [3, 2] (true third octave)
     fmin: int
         Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
     fmax: int
@@ -554,8 +557,9 @@ def band_aggregate(
     # Type checks
     if not isinstance(spsdl, xr.DataArray):
         raise TypeError("'spsdl' must be an xarray.DataArray.")
-    if not isinstance(octave, int) or (octave <= 0):
-        raise TypeError("'octave' must be a positive integer.")
+    for val in octave:
+        if not isinstance(val, int) or (val <= 0):
+            raise TypeError("'octave' must contain positive integers.")
     if not isinstance(fmin, int) or (fmin <= 0):
         raise TypeError("'fmin' must be a positive integer.")
     if not isinstance(fmax, int) or (fmin <= 0):
@@ -576,7 +580,7 @@ def band_aggregate(
     fn = spsdl["freq"].max().values
     fmax = _fmax_warning(fn, fmax)
 
-    octave_bins, band = _create_frequency_bands(octave, base, fmin, fmax)
+    octave_bins, band = _create_frequency_bands(octave[0], octave[1], fmin, fmax)
 
     # Use xarray binning methods
     spsdl_group = spsdl.groupby_bins("freq", octave_bins, labels=band["center_freq"])

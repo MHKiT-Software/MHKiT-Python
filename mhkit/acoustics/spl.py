@@ -22,6 +22,40 @@ import xarray as xr
 from .analysis import _fmax_warning, _create_frequency_bands
 
 
+def _argument_check(spsd, fmin, fmax):
+    # Type checks
+    if not isinstance(spsd, xr.DataArray):
+        raise TypeError("'spsd' must be an xarray.DataArray.")
+    if not isinstance(fmin, int):
+        raise TypeError("'fmin' must be an integer.")
+    if not isinstance(fmax, int):
+        raise TypeError("'fmax' must be an integer.")
+    if fmax <= fmin:
+        raise ValueError("'fmax' must be greater than 'fmin'.")
+
+    # Ensure 'freq' and 'time' dimensions are present
+    if ("freq" not in spsd.dims) or ("time" not in spsd.dims):
+        raise ValueError("'spsd' must have 'time' and 'freq' as dimensions.")
+
+    # Check that 'fs' (sampling frequency) is available in attributes
+    if "fs" not in spsd.attrs:
+        raise ValueError(
+            "'spsd' must have 'fs' (sampling frequency) in its attributes."
+        )
+
+    # Value checks
+    if fmin <= 0:
+        raise ValueError("'fmin' must be a positive integer.")
+    if fmax <= fmin:
+        raise ValueError("'fmax' must be greater than 'fmin'.")
+
+    # Check fmax
+    fn = spsd.attrs["fs"] // 2
+    fmax = _fmax_warning(fn, fmax)
+
+    return fmax
+
+
 def sound_pressure_level(
     spsd: xr.DataArray, fmin: int = 10, fmax: int = 100000
 ) -> xr.DataArray:
@@ -44,33 +78,8 @@ def sound_pressure_level(
         Sound pressure level [dB re 1 uPa] indexed by time
     """
 
-    # Type checks
-    if not isinstance(spsd, xr.DataArray):
-        raise TypeError("'spsd' must be an xarray.DataArray.")
-    if not isinstance(fmin, int):
-        raise TypeError("'fmin' must be an integer.")
-    if not isinstance(fmax, int):
-        raise TypeError("'fmax' must be an integer.")
-
-    # Ensure 'freq' and 'time' dimensions are present
-    if ("freq" not in spsd.dims) or ("time" not in spsd.dims):
-        raise ValueError("'spsd' must have 'time' and 'freq' as dimensions.")
-
-    # Check that 'fs' (sampling frequency) is available in attributes
-    if "fs" not in spsd.attrs:
-        raise ValueError(
-            "'spsd' must have 'fs' (sampling frequency) in its attributes."
-        )
-
-    # Value checks
-    if fmin <= 0:
-        raise ValueError("'fmin' must be a positive integer.")
-    if fmax <= fmin:
-        raise ValueError("'fmax' must be greater than 'fmin'.")
-
-    # Check fmax
-    fn = spsd.attrs["fs"] // 2
-    fmax = _fmax_warning(fn, fmax)
+    # Argument checks
+    fmax = _argument_check(spsd, fmin, fmax)
 
     # Reference value of sound pressure
     reference = 1e-12  # Pa^2, = 1 uPa^2
@@ -129,34 +138,11 @@ def _band_sound_pressure_level(
     """
 
     # Type checks
-    if not isinstance(spsd, xr.DataArray):
-        raise TypeError("'spsd' must be an xarray.DataArray.")
     if not isinstance(octave, int) or (octave <= 0):
         raise TypeError("'octave' must be a positive integer.")
-    if not isinstance(fmin, int):
-        raise TypeError("'fmin' must be an integer.")
-    if not isinstance(fmax, int):
-        raise TypeError("'fmax' must be an integer.")
 
-    # Ensure 'freq' and 'time' dimensions are present
-    if "freq" not in spsd.dims or "time" not in spsd.dims:
-        raise ValueError("'spsd' must have 'time' and 'freq' as dimensions.")
-
-    # Check that 'fs' (sampling frequency) is available in attributes
-    if "fs" not in spsd.attrs:
-        raise ValueError(
-            "'spsd' must have 'fs' (sampling frequency) in its attributes."
-        )
-
-    # Value checks
-    if fmin <= 0:
-        raise ValueError("'fmin' must be a positive integer.")
-    if fmax <= fmin:
-        raise ValueError("'fmax' must be greater than 'fmin'.")
-
-    # Check fmax
-    fn = spsd.attrs["fs"] // 2
-    fmax = _fmax_warning(fn, fmax)
+    # Argument checks
+    fmax = _argument_check(spsd, fmin, fmax)
 
     # Reference value of sound pressure
     reference = 1e-12  # Pa^2, = 1 uPa^2
