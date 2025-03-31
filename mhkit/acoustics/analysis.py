@@ -439,7 +439,8 @@ def _validate_method(
         "var",
         "where",
     ]
-
+    if not isinstance(method, (str, dict)):
+        raise TypeError("'method' must be a string or a dictionary.")
     if isinstance(method, str):
         method_name = method.lower()
         if method_name not in allowed_methods:
@@ -568,8 +569,6 @@ def band_aggregate(
         raise TypeError("'fmax' must be a positive integer.")
     if fmax <= fmin:
         raise ValueError("'fmax' must be greater than 'fmin'.")
-    if not isinstance(method, (str, dict)):
-        raise TypeError("'method' must be a string or a dictionary.")
 
     # Value checks
     if ("freq" not in spsdl.dims) or ("time" not in spsdl.dims):
@@ -601,10 +600,6 @@ def band_aggregate(
 
     # Update attributes
     out.attrs["units"] = spsdl.units
-
-    # Remove 'quantile' coordinate if present
-    if method == "quantile":
-        out = out.drop_vars("quantile")
 
     return out
 
