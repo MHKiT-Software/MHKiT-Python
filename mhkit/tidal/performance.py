@@ -146,7 +146,7 @@ def power_curve(
 ):
     """
     Calculates power curve and power statistics for a marine energy
-    device based on IEC/TS 62600-200 section 9.3.
+    device based on IEC TS 62600-200 section 9.3.
 
     Parameters
     -------------
@@ -400,7 +400,7 @@ def velocity_profiles(
     Calculates profiles of the mean, root-mean-square (RMS), or standard
     deviation(std) of velocity. The chosen metric, specified by `function`,
     is calculated for each `window_avg_time` and bin-averaged based on
-    ensemble velocity, as per IEC/TS 62600-200 sections 9.4 and 9.5.
+    ensemble velocity, as per IEC TS 62600-200 sections 9.4 and 9.5.
 
     Parameters
     -------------
@@ -487,7 +487,7 @@ def device_efficiency(
     to_pandas=True,
 ):
     """
-    Calculates marine energy device efficiency based on IEC/TS 62600-200 Section 9.7.
+    Calculates marine energy device efficiency based on IEC TS 62600-200 Section 9.7.
 
     Parameters
     -------------
