@@ -139,12 +139,12 @@ def sound_exposure_level(
     fmax = _argument_check(spsd, fmin, fmax)
 
     if group is not None:
-        W, _ = nmfs_auditory_weighting(spsd["freq"], group)
+        w, _ = nmfs_auditory_weighting(spsd["freq"], group)
         # convert from dB back to unitless
-        W = 10 ** (W / 10)
+        w = 10 ** (w / 10)
         long_name = "Weighted Sound Exposure Level"
     else:
-        W = 1
+        w = 1
         long_name = "Sound Exposure Level"
 
     # Reference value of sound pressure
@@ -153,7 +153,7 @@ def sound_exposure_level(
     # Mean square sound pressure in a specified frequency band
     # from weighted mean square values
     exposure = np.trapz(
-        (spsd * W).sel(freq=slice(fmin, fmax)),
+        (spsd * w).sel(freq=slice(fmin, fmax)),
         spsd["freq"].sel(freq=slice(fmin, fmax)),
     )
 
