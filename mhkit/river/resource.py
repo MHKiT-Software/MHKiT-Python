@@ -11,13 +11,13 @@ This module includes utilities for:
 All functions include input validation and follow consistent unit conventions.
 """
 
+from typing import Union, Tuple
 import xarray as xr
 import numpy as np
 from scipy.stats import linregress as _linregress
 from scipy.stats import rv_histogram as _rv_histogram
-from mhkit.utils import convert_to_dataarray
-from typing import Union, Tuple, Optional
 from pandas import DataFrame, Series
+from mhkit.utils import convert_to_dataarray
 
 
 def froude_number(

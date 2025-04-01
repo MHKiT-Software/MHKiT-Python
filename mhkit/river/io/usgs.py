@@ -13,13 +13,13 @@ Functions:
 
 """
 
+from typing import Dict, Union, Optional
 import os
 import json
 import shutil
 import requests
 import pandas as pd
 import xarray as xr
-from typing import Dict, Union, Optional
 from pandas import DataFrame
 from mhkit.utils.cache import handle_caching
 

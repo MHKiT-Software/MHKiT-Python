@@ -10,8 +10,8 @@ This module includes utilities for:
 All functions follow consistent unit conventions and include input validation.
 """
 
-import numpy as np
 from typing import Union, Tuple, List
+import numpy as np
 
 
 def circular(diameter: Union[int, float]) -> Tuple[float, float]:

@@ -14,13 +14,13 @@ objects for further customization if needed. All plots follow consistent styling
 include proper units and labels by default.
 """
 
+from typing import Union, Optional
 import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
-from mhkit.utils import convert_to_dataarray
-from typing import Union, Optional
 from matplotlib.axes import Axes
 from numpy.typing import ArrayLike
+from mhkit.utils import convert_to_dataarray
 
 
 # pylint: disable=too-many-arguments
