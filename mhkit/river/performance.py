@@ -1,3 +1,15 @@
+"""
+The performance module provides functions for calculating key performance metrics
+of marine and hydrokinetic (MHK) devices in river environments.
+
+This module includes utilities for:
+- Calculating turbine geometry (circular, ducted, rectangular, multiple circular)
+- Computing performance metrics like tip speed ratio and power coefficient
+- Determining device characteristics such as equivalent diameter and capture area
+
+All functions follow consistent unit conventions and include input validation.
+"""
+
 import numpy as np
 
 
@@ -127,18 +139,19 @@ def tip_speed_ratio(rotor_speed, rotor_diameter, inflow_speed):
 
     Returns
     --------
-    TSR : numpy array
+    tip_speed_ratio_values : numpy array
         Calculated tip speed ratio (TSR)
     """
 
     try:
         rotor_speed = np.asarray(rotor_speed)
-    except:
-        "rotor_speed must be of type np.ndarray"
+    except (ValueError, TypeError) as exc:
+        raise TypeError("rotor_speed must be convertible to np.ndarray") from exc
+
     try:
         inflow_speed = np.asarray(inflow_speed)
-    except:
-        "inflow_speed must be of type np.ndarray"
+    except (ValueError, TypeError) as exc:
+        raise TypeError("inflow_speed must be convertible to np.ndarray") from exc
 
     if not isinstance(rotor_diameter, (float, int)):
         raise TypeError(
@@ -147,9 +160,9 @@ def tip_speed_ratio(rotor_speed, rotor_diameter, inflow_speed):
 
     rotor_velocity = rotor_speed * np.pi * rotor_diameter
 
-    TSR = rotor_velocity / inflow_speed
+    tip_speed_ratio_values = rotor_velocity / inflow_speed
 
-    return TSR
+    return tip_speed_ratio_values
 
 
 def power_coefficient(power, inflow_speed, capture_area, rho):
@@ -169,18 +182,19 @@ def power_coefficient(power, inflow_speed, capture_area, rho):
 
     Returns
     --------
-    Cp : numpy array
+    power_coeff : numpy array
         Power coefficient of device [-]
     """
 
     try:
         power = np.asarray(power)
-    except:
-        "power must be of type np.ndarray"
+    except (ValueError, TypeError) as exc:
+        raise TypeError("power must be convertible to np.ndarray") from exc
+
     try:
         inflow_speed = np.asarray(inflow_speed)
-    except:
-        "inflow_speed must be of type np.ndarray"
+    except (ValueError, TypeError) as exc:
+        raise TypeError("inflow_speed must be convertible to np.ndarray") from exc
 
     if not isinstance(capture_area, (float, int)):
         raise TypeError(
@@ -192,6 +206,6 @@ def power_coefficient(power, inflow_speed, capture_area, rho):
     # Predicted power from inflow
     power_in = 0.5 * rho * capture_area * inflow_speed**3
 
-    Cp = power / power_in
+    power_coeff = power / power_in
 
-    return Cp
+    return power_coeff
