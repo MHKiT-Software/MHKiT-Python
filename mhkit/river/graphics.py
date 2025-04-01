@@ -1,9 +1,27 @@
+"""
+The graphics module provides plotting utilities for river and tidal energy resource data.
+
+This module contains functions for creating standardized visualizations of:
+- Flow Duration Curves (FDC)
+- Velocity Duration Curves (VDC)
+- Power Duration Curves (PDC)
+- Discharge time series
+- Discharge vs velocity relationships
+- Velocity vs power relationships
+
+Each plotting function accepts data in array-like format and returns matplotlib axes
+objects for further customization if needed. All plots follow consistent styling and
+include proper units and labels by default.
+"""
+
 import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 from mhkit.utils import convert_to_dataarray
 
 
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-positional-arguments
 def _xy_plot(x, y, fmt=".", label=None, xlabel=None, ylabel=None, title=None, ax=None):
     """
     Base function to plot any x vs y data
@@ -50,16 +68,16 @@ def _xy_plot(x, y, fmt=".", label=None, xlabel=None, ylabel=None, title=None, ax
     return ax
 
 
-def plot_flow_duration_curve(D, F, label=None, ax=None):
+def plot_flow_duration_curve(discharge, exceedance_prob, label=None, ax=None):
     """
     Plots discharge vs exceedance probability as a Flow Duration Curve (FDC)
 
     Parameters
     ------------
-    D: array-like
+    discharge: array-like
         Discharge [m/s] indexed by time
 
-    F: array-like
+    exceedance_prob: array-like
          Exceedance probability [unitless] indexed by time
 
     label: string
@@ -74,13 +92,15 @@ def plot_flow_duration_curve(D, F, label=None, ax=None):
     ax : matplotlib pyplot axes
 
     """
-    # Sort by F
-    temp = xr.Dataset(data_vars={"D": D, "F": F})
-    temp = temp.sortby("F", ascending=False)
+    # Sort by exceedance_prob
+    temp = xr.Dataset(
+        data_vars={"discharge": discharge, "exceedance_prob": exceedance_prob}
+    )
+    temp = temp.sortby("exceedance_prob", ascending=False)
 
     ax = _xy_plot(
-        temp["D"],
-        temp["F"],
+        temp["discharge"],
+        temp["exceedance_prob"],
         fmt="-",
         label=label,
         xlabel="Discharge [$m^3/s$]",
@@ -92,16 +112,16 @@ def plot_flow_duration_curve(D, F, label=None, ax=None):
     return ax
 
 
-def plot_velocity_duration_curve(V, F, label=None, ax=None):
+def plot_velocity_duration_curve(velocity, exceedance_prob, label=None, ax=None):
     """
     Plots velocity vs exceedance probability as a Velocity Duration Curve (VDC)
 
     Parameters
     ------------
-    V: array-like
+    velocity: array-like
         Velocity [m/s] indexed by time
 
-    F: array-like
+    exceedance_prob: array-like
         Exceedance probability [unitless] indexed by time
 
     label: string
@@ -116,13 +136,15 @@ def plot_velocity_duration_curve(V, F, label=None, ax=None):
     ax : matplotlib pyplot axes
 
     """
-    # Sort by F
-    temp = xr.Dataset(data_vars={"V": V, "F": F})
-    temp = temp.sortby("F", ascending=False)
+    # Sort by exceedance_prob
+    temp = xr.Dataset(
+        data_vars={"velocity": velocity, "exceedance_prob": exceedance_prob}
+    )
+    temp = temp.sortby("exceedance_prob", ascending=False)
 
     ax = _xy_plot(
-        temp["V"],
-        temp["F"],
+        temp["velocity"],
+        temp["exceedance_prob"],
         fmt="-",
         label=label,
         xlabel="Velocity [$m/s$]",
@@ -133,16 +155,16 @@ def plot_velocity_duration_curve(V, F, label=None, ax=None):
     return ax
 
 
-def plot_power_duration_curve(P, F, label=None, ax=None):
+def plot_power_duration_curve(power, exceedance_prob, label=None, ax=None):
     """
     Plots power vs exceedance probability as a Power Duration Curve (PDC)
 
     Parameters
     ------------
-    P: array-like
+    power: array-like
         Power [W] indexed by time
 
-    F: array-like
+    exceedance_prob: array-like
         Exceedance probability [unitless] indexed by time
 
     label: string
@@ -157,13 +179,13 @@ def plot_power_duration_curve(P, F, label=None, ax=None):
     ax : matplotlib pyplot axes
 
     """
-    # Sort by F
-    temp = xr.Dataset(data_vars={"P": P, "F": F})
-    temp.sortby("F", ascending=False)
+    # Sort by exceedance_prob
+    temp = xr.Dataset(data_vars={"power": power, "exceedance_prob": exceedance_prob})
+    temp.sortby("exceedance_prob", ascending=False)
 
     ax = _xy_plot(
-        temp["P"],
-        temp["F"],
+        temp["power"],
+        temp["exceedance_prob"],
         fmt="-",
         label=label,
         xlabel="Power [W]",
@@ -174,13 +196,13 @@ def plot_power_duration_curve(P, F, label=None, ax=None):
     return ax
 
 
-def plot_discharge_timeseries(Q, time_dimension="", label=None, ax=None):
+def plot_discharge_timeseries(discharge, time_dimension="", label=None, ax=None):
     """
     Plots discharge time-series
 
     Parameters
     ------------
-    Q: array-like
+    discharge: array-like
         Discharge [m3/s] indexed by time
 
     time_dimension: string (optional)
@@ -199,14 +221,14 @@ def plot_discharge_timeseries(Q, time_dimension="", label=None, ax=None):
     ax : matplotlib pyplot axes
 
     """
-    Q = convert_to_dataarray(Q)
+    discharge = convert_to_dataarray(discharge)
 
     if time_dimension == "":
-        time_dimension = list(Q.coords)[0]
+        time_dimension = list(discharge.coords)[0]
 
     ax = _xy_plot(
-        Q.coords[time_dimension].values,
-        Q,
+        discharge.coords[time_dimension].values,
+        discharge,
         fmt="-",
         label=label,
         xlabel="Time",
@@ -217,16 +239,18 @@ def plot_discharge_timeseries(Q, time_dimension="", label=None, ax=None):
     return ax
 
 
-def plot_discharge_vs_velocity(D, V, polynomial_coeff=None, label=None, ax=None):
+def plot_discharge_vs_velocity(
+    discharge, velocity, polynomial_coeff=None, label=None, ax=None
+):
     """
     Plots discharge vs velocity data along with the polynomial fit
 
     Parameters
     ------------
-    D : array-like
+    discharge : array-like
         Discharge [m/s] indexed by time
 
-    V : array-like
+    velocity : array-like
         Velocity [m/s] indexed by time
 
     polynomial_coeff: numpy polynomial
@@ -244,8 +268,8 @@ def plot_discharge_vs_velocity(D, V, polynomial_coeff=None, label=None, ax=None)
 
     """
     ax = _xy_plot(
-        D,
-        V,
+        discharge,
+        velocity,
         fmt=".",
         label=label,
         xlabel="Discharge [$m^3/s$]",
@@ -253,7 +277,7 @@ def plot_discharge_vs_velocity(D, V, polynomial_coeff=None, label=None, ax=None)
         ax=ax,
     )
     if polynomial_coeff:
-        x = np.linspace(D.min(), D.max())
+        x = np.linspace(discharge.min(), discharge.max())
         ax = _xy_plot(
             x,
             polynomial_coeff(x),
@@ -267,16 +291,16 @@ def plot_discharge_vs_velocity(D, V, polynomial_coeff=None, label=None, ax=None)
     return ax
 
 
-def plot_velocity_vs_power(V, P, polynomial_coeff=None, label=None, ax=None):
+def plot_velocity_vs_power(velocity, power, polynomial_coeff=None, label=None, ax=None):
     """
     Plots velocity vs power data along with the polynomial fit
 
     Parameters
     ------------
-    V : array-like
+    velocity : array-like
         Velocity [m/s] indexed by time
 
-    P: array-like
+    power: array-like
         Power [W] indexed by time
 
     polynomial_coeff: numpy polynomial
@@ -294,8 +318,8 @@ def plot_velocity_vs_power(V, P, polynomial_coeff=None, label=None, ax=None):
 
     """
     ax = _xy_plot(
-        V,
-        P,
+        velocity,
+        power,
         fmt=".",
         label=label,
         xlabel="Velocity [$m/s$]",
@@ -303,7 +327,7 @@ def plot_velocity_vs_power(V, P, polynomial_coeff=None, label=None, ax=None):
         ax=ax,
     )
     if polynomial_coeff:
-        x = np.linspace(V.min(), V.max())
+        x = np.linspace(velocity.min(), velocity.max())
         ax = _xy_plot(
             x,
             polynomial_coeff(x),
