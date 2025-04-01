@@ -18,11 +18,23 @@ import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 from mhkit.utils import convert_to_dataarray
+from typing import Union, Optional
+from matplotlib.axes import Axes
+from numpy.typing import ArrayLike
 
 
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-positional-arguments
-def _xy_plot(x, y, fmt=".", label=None, xlabel=None, ylabel=None, title=None, ax=None):
+def _xy_plot(
+    x: ArrayLike,
+    y: ArrayLike,
+    fmt: str = ".",
+    label: Optional[str] = None,
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
+    title: Optional[str] = None,
+    ax: Optional[Axes] = None,
+) -> Axes:
     """
     Base function to plot any x vs y data
 
@@ -68,7 +80,12 @@ def _xy_plot(x, y, fmt=".", label=None, xlabel=None, ylabel=None, title=None, ax
     return ax
 
 
-def plot_flow_duration_curve(discharge, exceedance_prob, label=None, ax=None):
+def plot_flow_duration_curve(
+    discharge: Union[ArrayLike, xr.DataArray],
+    exceedance_prob: Union[ArrayLike, xr.DataArray],
+    label: Optional[str] = None,
+    ax: Optional[Axes] = None,
+) -> Axes:
     """
     Plots discharge vs exceedance probability as a Flow Duration Curve (FDC)
 
@@ -112,7 +129,12 @@ def plot_flow_duration_curve(discharge, exceedance_prob, label=None, ax=None):
     return ax
 
 
-def plot_velocity_duration_curve(velocity, exceedance_prob, label=None, ax=None):
+def plot_velocity_duration_curve(
+    velocity: Union[ArrayLike, xr.DataArray],
+    exceedance_prob: Union[ArrayLike, xr.DataArray],
+    label: Optional[str] = None,
+    ax: Optional[Axes] = None,
+) -> Axes:
     """
     Plots velocity vs exceedance probability as a Velocity Duration Curve (VDC)
 
@@ -155,7 +177,12 @@ def plot_velocity_duration_curve(velocity, exceedance_prob, label=None, ax=None)
     return ax
 
 
-def plot_power_duration_curve(power, exceedance_prob, label=None, ax=None):
+def plot_power_duration_curve(
+    power: Union[ArrayLike, xr.DataArray],
+    exceedance_prob: Union[ArrayLike, xr.DataArray],
+    label: Optional[str] = None,
+    ax: Optional[Axes] = None,
+) -> Axes:
     """
     Plots power vs exceedance probability as a Power Duration Curve (PDC)
 
@@ -196,7 +223,12 @@ def plot_power_duration_curve(power, exceedance_prob, label=None, ax=None):
     return ax
 
 
-def plot_discharge_timeseries(discharge, time_dimension="", label=None, ax=None):
+def plot_discharge_timeseries(
+    discharge: Union[ArrayLike, xr.DataArray],
+    time_dimension: str = "",
+    label: Optional[str] = None,
+    ax: Optional[Axes] = None,
+) -> Axes:
     """
     Plots discharge time-series
 
@@ -240,8 +272,12 @@ def plot_discharge_timeseries(discharge, time_dimension="", label=None, ax=None)
 
 
 def plot_discharge_vs_velocity(
-    discharge, velocity, polynomial_coeff=None, label=None, ax=None
-):
+    discharge: Union[ArrayLike, xr.DataArray],
+    velocity: Union[ArrayLike, xr.DataArray],
+    polynomial_coeff: Optional[np.poly1d] = None,
+    label: Optional[str] = None,
+    ax: Optional[Axes] = None,
+) -> Axes:
     """
     Plots discharge vs velocity data along with the polynomial fit
 
@@ -291,7 +327,13 @@ def plot_discharge_vs_velocity(
     return ax
 
 
-def plot_velocity_vs_power(velocity, power, polynomial_coeff=None, label=None, ax=None):
+def plot_velocity_vs_power(
+    velocity: Union[ArrayLike, xr.DataArray],
+    power: Union[ArrayLike, xr.DataArray],
+    polynomial_coeff: Optional[np.poly1d] = None,
+    label: Optional[str] = None,
+    ax: Optional[Axes] = None,
+) -> Axes:
     """
     Plots velocity vs power data along with the polynomial fit
 

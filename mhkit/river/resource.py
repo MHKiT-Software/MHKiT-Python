@@ -16,9 +16,13 @@ import numpy as np
 from scipy.stats import linregress as _linregress
 from scipy.stats import rv_histogram as _rv_histogram
 from mhkit.utils import convert_to_dataarray
+from typing import Union, Tuple, Optional
+from pandas import DataFrame, Series
 
 
-def froude_number(v, h, g=9.80665):
+def froude_number(
+    v: Union[int, float], h: Union[int, float], g: Union[int, float] = 9.80665
+) -> float:
     """
     Calculate the Froude Number of the river, channel or duct flow,
     to check subcritical flow assumption (if Fr <1).
@@ -50,7 +54,11 @@ def froude_number(v, h, g=9.80665):
     return froude_num
 
 
-def exceedance_probability(discharge, dimension="", to_pandas=True):
+def exceedance_probability(
+    discharge: Union[Series, DataFrame, xr.DataArray, xr.Dataset],
+    dimension: str = "",
+    to_pandas: bool = True,
+) -> Union[DataFrame, xr.Dataset]:
     """
     Calculates the exceedance probability
 
@@ -95,7 +103,7 @@ def exceedance_probability(discharge, dimension="", to_pandas=True):
     return exceedance_prob
 
 
-def polynomial_fit(x, y, n):
+def polynomial_fit(x: np.ndarray, y: np.ndarray, n: int) -> Tuple[np.poly1d, float]:
     """
     Returns a polynomial fit for y given x of order n
     with an R-squared score of the fit
@@ -146,8 +154,11 @@ def polynomial_fit(x, y, n):
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-positional-arguments
 def discharge_to_velocity(
-    discharge, polynomial_coefficients, dimension="", to_pandas=True
-):
+    discharge: Union[np.ndarray, DataFrame, Series, xr.DataArray, xr.Dataset],
+    polynomial_coefficients: np.poly1d,
+    dimension: str = "",
+    to_pandas: bool = True,
+) -> Union[DataFrame, xr.Dataset]:
     """
     Calculates velocity given discharge data and the relationship between
     discharge and velocity at an individual turbine
@@ -202,8 +213,13 @@ def discharge_to_velocity(
 
 
 def velocity_to_power(
-    velocity, polynomial_coefficients, cut_in, cut_out, dimension="", to_pandas=True
-):
+    velocity: Union[np.ndarray, DataFrame, Series, xr.DataArray, xr.Dataset],
+    polynomial_coefficients: np.poly1d,
+    cut_in: Union[int, float],
+    cut_out: Union[int, float],
+    dimension: str = "",
+    to_pandas: bool = True,
+) -> Union[DataFrame, xr.Dataset]:
     """
     Calculates power given velocity data and the relationship
     between velocity and power from an individual turbine
@@ -269,7 +285,10 @@ def velocity_to_power(
     return power
 
 
-def energy_produced(power_data, seconds):
+def energy_produced(
+    power_data: Union[np.ndarray, DataFrame, Series, xr.DataArray, xr.Dataset],
+    seconds: Union[int, float],
+) -> float:
     """
     Returns the energy produced for a given time period provided
     exceedance probability and power.

@@ -24,11 +24,13 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import scipy.interpolate as interp
-
+from typing import Union, Optional, List, Tuple, Any
+from numpy.typing import ArrayLike, NDArray
+from pandas import DataFrame
 from mhkit.utils import unorm
 
 
-def get_all_time(data):
+def get_all_time(data: netCDF4.Dataset) -> NDArray:
     """
     Returns all of the time stamps from a D3D simulation passed to the function
     as a NetCDF object (data)
@@ -55,7 +57,7 @@ def get_all_time(data):
     return seconds_run
 
 
-def index_to_seconds(data, time_index):
+def index_to_seconds(data: netCDF4.Dataset, time_index: int) -> Union[int, float]:
     """
     The function will return 'seconds_run' if passed a 'time_index'
 
@@ -76,7 +78,7 @@ def index_to_seconds(data, time_index):
     return _convert_time(data, time_index=time_index)
 
 
-def seconds_to_index(data, seconds_run):
+def seconds_to_index(data: netCDF4.Dataset, seconds_run: Union[int, float]) -> int:
     """
     The function will return the nearest 'time_index' in the data if passed an
     integer number of 'seconds_run'
@@ -99,7 +101,11 @@ def seconds_to_index(data, seconds_run):
     return _convert_time(data, seconds_run=seconds_run)
 
 
-def _convert_time(data, time_index=None, seconds_run=None):
+def _convert_time(
+    data: netCDF4.Dataset,
+    time_index: Optional[Union[int, float]] = None,
+    seconds_run: Optional[Union[int, float]] = None,
+) -> Union[int, float]:
     """
     Converts a time index to seconds or seconds to a time index. The user
     must specify 'time_index' or 'seconds_run' (Not both). The function
@@ -164,7 +170,13 @@ def _convert_time(data, time_index=None, seconds_run=None):
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-statements
-def get_layer_data(data, variable, layer_index=-1, time_index=-1, to_pandas=True):
+def get_layer_data(
+    data: netCDF4.Dataset,
+    variable: str,
+    layer_index: int = -1,
+    time_index: int = -1,
+    to_pandas: bool = True,
+) -> Union[pd.DataFrame, xr.Dataset]:
     """
     Get variable data from the NetCDF4 object at a specified layer and timestep.
     If the data is 2D the layer_index is ignored.
@@ -355,7 +367,12 @@ def get_layer_data(data, variable, layer_index=-1, time_index=-1, to_pandas=True
     return layer_data
 
 
-def create_points(x, y, waterdepth, to_pandas=True):
+def create_points(
+    x: Union[int, float, ArrayLike],
+    y: Union[int, float, ArrayLike],
+    waterdepth: Union[int, float, ArrayLike],
+    to_pandas: bool = True,
+) -> Union[pd.DataFrame, xr.Dataset]:
     """
     Generate a Dataset of points from combinations of input coordinates.
 
@@ -477,16 +494,16 @@ def create_points(x, y, waterdepth, to_pandas=True):
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-positional-arguments
 def variable_interpolation(
-    data,
-    variables,
-    points="cells",
-    edges="none",
-    x_max_lim=float("inf"),
-    x_min_lim=float("-inf"),
-    y_max_lim=float("inf"),
-    y_min_lim=float("-inf"),
-    to_pandas=True,
-):
+    data: netCDF4.Dataset,
+    variables: List[str],
+    points: Union[str, pd.DataFrame, xr.Dataset] = "cells",
+    edges: str = "none",
+    x_max_lim: float = float("inf"),
+    x_min_lim: float = float("-inf"),
+    y_max_lim: float = float("inf"),
+    y_min_lim: float = float("-inf"),
+    to_pandas: bool = True,
+) -> Union[pd.DataFrame, xr.Dataset]:
     """
     Interpolate multiple variables from the Delft3D onto the same points.
 
@@ -580,7 +597,9 @@ def variable_interpolation(
     return transformed_data
 
 
-def get_all_data_points(data, variable, time_index=-1, to_pandas=True):
+def get_all_data_points(
+    data: netCDF4.Dataset, variable: str, time_index: int = -1, to_pandas: bool = True
+) -> Union[pd.DataFrame, xr.Dataset]:
     """
     Get data points for a passed variable for all layers at a specified time from
     the Delft3D NetCDF4 object by iterating over the `get_layer_data` function.
@@ -707,8 +726,12 @@ def get_all_data_points(data, variable, time_index=-1, to_pandas=True):
 
 
 def turbulent_intensity(
-    data, points="cells", time_index=-1, intermediate_values=False, to_pandas=True
-):
+    data: netCDF4.Dataset,
+    points: Union[str, pd.DataFrame, xr.Dataset] = "cells",
+    time_index: int = -1,
+    intermediate_values: bool = False,
+    to_pandas: bool = True,
+) -> Union[pd.DataFrame, xr.Dataset]:
     """
     Calculate the turbulent intensity percentage for a given data set for the
     specified points. Assumes variable names: ucx, ucy, ucz and turkin1.

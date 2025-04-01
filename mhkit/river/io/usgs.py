@@ -18,10 +18,13 @@ import json
 import shutil
 import requests
 import pandas as pd
+import xarray as xr
+from typing import Dict, Union, Optional
+from pandas import DataFrame
 from mhkit.utils.cache import handle_caching
 
 
-def _read_usgs_json(text, to_pandas=True):
+def _read_usgs_json(text: Dict, to_pandas: bool = True) -> Union[DataFrame, xr.Dataset]:
     """
     Process USGS JSON response into a pandas DataFrame or xarray Dataset.
 
@@ -63,7 +66,9 @@ def _read_usgs_json(text, to_pandas=True):
     return data
 
 
-def read_usgs_file(file_name, to_pandas=True):
+def read_usgs_file(
+    file_name: str, to_pandas: bool = True
+) -> Union[DataFrame, xr.Dataset]:
     """
     Reads a USGS JSON data file (from https://waterdata.usgs.gov/nwis)
 
@@ -93,12 +98,12 @@ def read_usgs_file(file_name, to_pandas=True):
 
 # pylint: disable=too-many-locals
 def request_usgs_data(
-    station,
-    parameter,
-    start_date,
-    end_date,
-    options=None,
-):
+    station: str,
+    parameter: str,
+    start_date: str,
+    end_date: str,
+    options: Optional[Dict] = None,
+) -> Union[DataFrame, xr.Dataset]:
     """
     Loads USGS data directly from https://waterdata.usgs.gov/nwis using a
     GET request

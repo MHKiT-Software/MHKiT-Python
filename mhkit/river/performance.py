@@ -11,9 +11,10 @@ All functions follow consistent unit conventions and include input validation.
 """
 
 import numpy as np
+from typing import Union, Tuple, List
 
 
-def circular(diameter):
+def circular(diameter: Union[int, float]) -> Tuple[float, float]:
     """
     Calculates the equivalent diameter and projected capture area of a
     circular turbine
@@ -39,7 +40,7 @@ def circular(diameter):
     return equivalent_diameter, projected_capture_area
 
 
-def ducted(duct_diameter):
+def ducted(duct_diameter: Union[int, float]) -> Tuple[float, float]:
     """
     Calculates the equivalent diameter and projected capture area of a
     ducted turbine
@@ -67,7 +68,7 @@ def ducted(duct_diameter):
     return equivalent_diameter, projected_capture_area
 
 
-def rectangular(h, w):
+def rectangular(h: Union[int, float], w: Union[int, float]) -> Tuple[float, float]:
     """
     Calculates the equivalent diameter and projected capture area of a
     retangular turbine
@@ -97,7 +98,7 @@ def rectangular(h, w):
     return equivalent_diameter, projected_capture_area
 
 
-def multiple_circular(diameters):
+def multiple_circular(diameters: List[Union[int, float]]) -> Tuple[float, float]:
     """
     Calculates the equivalent diameter and projected capture area of a
     multiple circular turbine
@@ -124,7 +125,11 @@ def multiple_circular(diameters):
     return equivalent_diameter, projected_capture_area
 
 
-def tip_speed_ratio(rotor_speed, rotor_diameter, inflow_speed):
+def tip_speed_ratio(
+    rotor_speed: Union[np.ndarray, List[Union[int, float]]],
+    rotor_diameter: Union[int, float],
+    inflow_speed: Union[np.ndarray, List[Union[int, float]]],
+) -> np.ndarray:
     """
     Function used to calculate the tip speed ratio (TSR) of a MEC device with rotor
 
@@ -165,7 +170,12 @@ def tip_speed_ratio(rotor_speed, rotor_diameter, inflow_speed):
     return tip_speed_ratio_values
 
 
-def power_coefficient(power, inflow_speed, capture_area, rho):
+def power_coefficient(
+    power: Union[np.ndarray, List[Union[int, float]]],
+    inflow_speed: Union[np.ndarray, List[Union[int, float]]],
+    capture_area: Union[int, float],
+    rho: Union[int, float],
+) -> np.ndarray:
     """
     Function that calculates the power coefficient of MEC device
 
