@@ -30,12 +30,12 @@ Functions:
 
 import math
 import numpy as np
-from mhkit.river.resource import exceedance_probability, Froude_number
+from mhkit.river.resource import exceedance_probability, froude_number
 from mhkit.utils import convert_to_dataarray
 
 __all__ = [
     "exceedance_probability",
-    "Froude_number",
+    "froude_number",
     "principal_flow_directions",
     "_histogram",
     "_flood_or_ebb",
