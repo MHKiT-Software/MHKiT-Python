@@ -7,25 +7,6 @@ Currents API (https://api.tidesandcurrents.noaa.gov/api/prod/). It supports
 retrieving data in XML and JSON formats, converting it into a pandas DataFrame
 or xarray Dataset, and saving it as a JSON file for future use.
 
-Features:
----------
-- Fetch NOAA current, tidal, and environmental data from the API.
-- Convert XML and JSON responses into structured pandas DataFrames.
-- Cache and retrieve previously requested data to optimize performance.
-- Save and load data from JSON files for offline access.
-
-Functions:
-----------
-request_noaa_data(station, parameter, start_date, end_date, options=None):
-    Fetches NOAA data from the API, converts it into a pandas DataFrame (or xarray Dataset),
-    and caches the result. Supports proxy settings and JSON file export.
-
-_xml_to_dataframe(response):
-    Converts NOAA response data from XML format into a pandas DataFrame and extracts metadata.
-
-read_noaa_json(filename, to_pandas=True):
-    Reads a previously saved JSON file containing NOAA data and returns a pandas DataFrame
-    (or xarray Dataset) with time-series data and metadata.
 """
 
 import os

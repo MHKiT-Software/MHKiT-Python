@@ -214,7 +214,9 @@ def plot_rose(
             color=colors[vel_bin],
             label=labels[vel_bin],
         )
-        r_offset += histogram[:, vel_bin]  # Increase the radius offset in all directions
+        r_offset += histogram[
+            :, vel_bin
+        ]  # Increase the radius offset in all directions
 
     # Configure legend and ticks
     plt.legend(
