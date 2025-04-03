@@ -12,14 +12,6 @@ Features:
 - Plots **time-series data** of tidal currents in a given principal direction.
 - Creates **exceedance probability** plots for ebb and flood conditions.
 - Supports **custom metadata annotations** (site name, latitude, longitude).
-
-Functions:
-----------
-- `plot_rose`: Creates a polar histogram of flow directions and velocities.
-- `plot_joint_probability_distribution`: Generates a joint probability distribution.
-- `plot_current_timeseries`: Plots velocity time-series in the principal direction.
-- `tidal_phase_probability`: Analyzes probability of flow in flood or ebb phases.
-- `tidal_phase_exceedance`: Creates a stacked exceedance probability plot.
 """
 
 import bisect
