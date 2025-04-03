@@ -1,5 +1,5 @@
 """
-This module initializes the tidal I/O package, importing necessary submodules.
+The io submodule contains functions to load NOAA and Delft3D tidal velocity and direction data.
 """
 
 from mhkit.tidal.io import noaa
