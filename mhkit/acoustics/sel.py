@@ -89,7 +89,7 @@ def nmfs_auditory_weighting(frequency, group):
         c = 1.37
         k = 178
     else:
-        raise ValueError("Group must be LF, MF, HF, PW, or OW")
+        raise ValueError("Group must be LF, HF, VHF, PW, or OW")
 
     ratio_a = frequency / f1
     ratio_b = frequency / f2
