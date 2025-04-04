@@ -37,6 +37,7 @@ DEPENDENCIES = [
     "numexpr>=2.10.0",
     "lxml",
     "bottleneck",
+    "cartopy",
 ]
 
 LONG_DESCRIPTION = """
