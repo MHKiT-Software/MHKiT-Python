@@ -5,7 +5,7 @@ import cartopy.crs as ccrs
 
 def discharge(ds, water_depth, rho, mu=None, surface_offset=0, utm_zone=10):
     """Calculate discharge (volume flux), power (kinetic energy flux),
-    kinetic energy, and Reynolds number from a dataset containing a
+    power density, and Reynolds number from a dataset containing a
     boat survey with a down-looking ADCP. This function is built to
     natively handle ADCP datasets read in using the `dolfyn` module.
 
@@ -43,8 +43,12 @@ def discharge(ds, water_depth, rho, mu=None, surface_offset=0, utm_zone=10):
 
     Returns
     -------
-    out: dict(str, float)
-        Dictionary containing computed parameters
+    out: xarray.Dataset
+        Dataset containing the following variables:
+         - `discharge`: (1) volume flux, in m^3/s
+         - `power`: (1) power, in W
+         - `power_density`: (1) power density, in W/m^2
+         - `reynolds_number`: (1) Reynolds number, unitless
     """
 
     def extrap2bottom(vel, bottom, rng):
@@ -142,4 +146,37 @@ def discharge(ds, water_depth, rho, mu=None, surface_offset=0, utm_zone=10):
         out["J"] = np.nan
         out["Re"] = np.nan
 
-    return out
+    ds["discharge"] = xr.DataArray(
+        np.float32(out["Q"]),
+        dims=[],
+        attrs={
+            "units": "m3 s-1",
+            "long_name": "Discharge",
+        },
+    )
+    ds["power"] = xr.DataArray(
+        np.float32(out["P"]),
+        dims=[],
+        attrs={
+            "units": "W",
+            "long_name": "Power",
+        },
+    )
+    ds["power_density"] = xr.DataArray(
+        np.float32(out["J"]),
+        dims=[],
+        attrs={
+            "units": "W m-2",
+            "long_name": "Power Density",
+        },
+    )
+    ds["reynolds_number"] = xr.DataArray(
+        np.float32(out["Re"]),
+        dims=[],
+        attrs={
+            "units": "1",
+            "long_name": "Reynolds Number",
+        },
+    )
+
+    return ds
