@@ -5,13 +5,6 @@ This module provides functions for visualizing tidal resource and performance da
 It includes tools for creating polar plots, velocity distributions, exceedance
 probability charts, and current time-series plots.
 
-Features:
----------
-- Generates **polar histograms** (current roses) of tidal flow directions and speeds.
-- Computes and visualizes **joint probability distributions** of velocity and direction.
-- Plots **time-series data** of tidal currents in a given principal direction.
-- Creates **exceedance probability** plots for ebb and flood conditions.
-- Supports **custom metadata annotations** (site name, latitude, longitude).
 """
 
 import bisect

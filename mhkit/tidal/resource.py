@@ -1,15 +1,10 @@
 """
+resource.py
 This module provides utility functions for analyzing river and tidal
 flow directions and velocities. It includes tools for determining
 principal flow directions, classifying ebb and flood cycles, and
 computing probability distributions of flow velocities.
 
-Features:
----------
-- Computes joint probability histograms of flow directions and velocities.
-- Determines principal flow directions using histogram-based analysis.
-- Classifies ebb and flood conditions based on directional data.
-- Normalizes flow angles for consistent analysis.
 """
 
 import math

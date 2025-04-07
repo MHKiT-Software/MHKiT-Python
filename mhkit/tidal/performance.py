@@ -6,19 +6,6 @@ devices using Acoustic Doppler Current Profiler (ADCP) data. It includes
 methods for calculating power curves, efficiency, velocity profiles, and
 other metrics relevant to marine energy devices.
 
-Features:
----------
-- Computes **power curves** and performance statistics for marine energy devices.
-- Evaluates **device efficiency** based on IEC/TS 62600-200 standards.
-- Analyzes **velocity profiles** using time-averaging and statistical functions.
-- Supports **circular and rectangular turbine profiles** for swept area calculations.
-- Processes **ADCP data** to derive meaningful hydrodynamic insights.
-
-Usage:
-------
-This module is intended for use with ADCP data to evaluate the performance
-of marine energy devices based on IEC/TS 62600-200 standards. It is useful for
-hydrodynamic modeling, resource assessment, and marine energy system optimization.
 """
 
 from typing import Union, Optional
