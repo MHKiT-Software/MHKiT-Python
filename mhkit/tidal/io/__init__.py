@@ -1,5 +1,5 @@
 """
-The io submodule contains functions to load NOAA and Delft3D tidal velocity and direction data.
+The io submodule contains functions to load NOAA and Delft3D data.
 """
 
 from mhkit.tidal.io import noaa
