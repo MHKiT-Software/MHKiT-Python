@@ -1,15 +1,34 @@
-import numpy as np
+"""
+graphics.py
+
+This module provides functions for visualizing tidal resource and performance data.
+It includes tools for creating polar plots, velocity distributions, exceedance
+probability charts, and current time-series plots.
+
+"""
+
 import bisect
+import numpy as np
 from scipy.interpolate import interpn as _interpn
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 from mhkit.river.resource import exceedance_probability
 from mhkit.tidal.resource import _histogram, _flood_or_ebb
 from mhkit.river.graphics import plot_velocity_duration_curve, _xy_plot
 from mhkit.utils import convert_to_dataarray
 
+# Explicitly declare the river functions to be exported
+__all__ = [
+    "plot_velocity_duration_curve",
+]
 
-def _initialize_polar(ax=None, metadata=None, flood=None, ebb=None):
+viridis = mpl.colormaps["viridis"]
+
+
+def _initialize_polar(
+    ax: plt.Axes = None, metadata: dict = None, flood: float = None, ebb: float = None
+) -> plt.Axes:
     """
     Initializes a polar plots with cardinal directions and ebb/flow
 
@@ -23,18 +42,18 @@ def _initialize_polar(ax=None, metadata=None, flood=None, ebb=None):
     ax: axes
     """
 
-    if ax == None:
+    if ax is None:
         # Initialize polar plot
-        fig = plt.figure(figsize=(12, 8))
+        plt.figure(figsize=(12, 8))
         ax = plt.axes(polar=True)
     # Angles are measured clockwise from true north
     ax.set_theta_zero_location("N")
     ax.set_theta_direction(-1)
     xticks = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
     # Polar plots do not have minor ticks, insert flood/ebb into major ticks
-    xtickDegrees = [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0]
+    xtick_degrees = [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0]
     # Set title and metadata box
-    if metadata != None:
+    if metadata is not None:
         # Set the Title
         plt.title(metadata["name"])
         # List of strings for metadata box
@@ -52,35 +71,37 @@ def _initialize_polar(ax=None, metadata=None, flood=None, ebb=None):
             transform=ax.transAxes,
             fontsize=14,
             verticalalignment="top",
-            bbox=dict(facecolor="none", edgecolor="k", pad=5),
+            bbox={"facecolor": "none", "edgecolor": "k", "pad": 5},
         )
     # If defined plot flood and ebb directions as major ticks
-    if flood != None:
+    if flood is not None:
         # Get flood direction in degrees
-        floodDirection = flood
+        flood_direction = flood
         # Polar plots do not have minor ticks,
         #    insert flood/ebb into major ticks
-        bisect.insort(xtickDegrees, floodDirection)
+        bisect.insort(xtick_degrees, flood_direction)
         # Get location in list
-        idxFlood = xtickDegrees.index(floodDirection)
+        idx_flood = xtick_degrees.index(flood_direction)
         # Insert label at appropriate location
-        xticks[idxFlood:idxFlood] = ["\nFlood"]
-    if ebb != None:
-        # Get flood direction in degrees
-        ebbDirection = ebb
+        xticks[idx_flood:idx_flood] = ["\nFlood"]
+    if ebb is not None:
+        # Get ebb direction in degrees
+        ebb_direction = ebb
         # Polar plots do not have minor ticks,
         #    insert flood/ebb into major ticks
-        bisect.insort(xtickDegrees, ebbDirection)
+        bisect.insort(xtick_degrees, ebb_direction)
         # Get location in list
-        idxEbb = xtickDegrees.index(ebbDirection)
+        idx_ebb = xtick_degrees.index(ebb_direction)
         # Insert label at appropriate location
-        xticks[idxEbb:idxEbb] = ["\nEbb"]
-    ax.set_xticks(np.array(xtickDegrees) * np.pi / 180.0)
+        xticks[idx_ebb:idx_ebb] = ["\nEbb"]
+    ax.set_xticks(np.array(xtick_degrees) * np.pi / 180.0)
     ax.set_xticklabels(xticks)
     return ax
 
 
-def _check_inputs(directions, velocities, flood, ebb):
+def _check_inputs(
+    directions: np.ndarray, velocities: np.ndarray, flood: float, ebb: float
+) -> None:
     """
     Runs checks on inputs for the graphics functions.
 
@@ -111,27 +132,25 @@ def _check_inputs(directions, velocities, flood, ebb):
         raise TypeError("flood must be of type int or float")
     if not isinstance(ebb, (int, float, type(None))):
         raise TypeError("ebb must be of type int or float")
-    if flood is not None:
-        if (flood < 0) and (flood > 360):
-            raise ValueError("flood must be between 0 and 360 degrees")
-    if ebb is not None:
-        if (ebb < 0) and (ebb > 360):
-            raise ValueError("ebb must be between 0 and 360 degrees")
+    if flood is not None and not 0 <= flood <= 360:
+        raise ValueError("flood must be between 0 and 360 degrees")
+    if ebb is not None and not 0 <= ebb <= 360:
+        raise ValueError("ebb must be between 0 and 360 degrees")
 
 
 def plot_rose(
-    directions,
-    velocities,
-    width_dir,
-    width_vel,
-    ax=None,
-    metadata=None,
-    flood=None,
-    ebb=None,
-):
+    directions: np.ndarray,
+    velocities: np.ndarray,
+    width_dir: float,
+    width_vel: float,
+    ax: plt.Axes = None,
+    metadata: dict = None,
+    flood: float = None,
+    ebb: float = None,
+) -> plt.Axes:
     """
     Creates a polar histogram. Direction angles from binned histogram must
-    be specified such that 0  degrees is north.
+    be specified such that 0 degrees is north.
 
     Parameters
     ----------
@@ -145,7 +164,7 @@ def plot_rose(
         Width of velocity bins for histogram in m/s
     ax: float
         Polar plot axes to add polar histogram
-    metadata: dictonary
+    metadata: dictionary
         If provided needs keys ['name', 'lat', 'lon'] for plot title
         and information box on plot
     flood: float
@@ -157,69 +176,61 @@ def plot_rose(
     ax: figure
         Water current rose plot
     """
-
+    # pylint: disable=too-many-positional-arguments, disable=too-many-arguments, disable=too-many-locals
+    # Validate inputs inline to reduce function calls
     _check_inputs(directions, velocities, flood, ebb)
+    if not isinstance(width_dir, (int, float)) or width_dir < 0:
+        raise ValueError("width_dir must be a positive number")
+    if not isinstance(width_vel, (int, float)) or width_vel < 0:
+        raise ValueError("width_vel must be a positive number")
 
-    if not isinstance(width_dir, (int, float)):
-        raise TypeError("width_dir must be of type int or float")
-    if not isinstance(width_vel, (int, float)):
-        raise TypeError("width_vel must be of type int or float")
-    if width_dir < 0:
-        raise ValueError("width_dir must be greater than 0")
-    if width_vel < 0:
-        raise ValueError("width_vel must be greater than 0")
+    # Compute histogram and bin edges
+    histogram, _, vel_edges = _histogram(directions, velocities, width_dir, width_vel)
 
-    # Calculate the 2D histogram
-    H, dir_edges, vel_edges = _histogram(directions, velocities, width_dir, width_vel)
-    # Determine number of bins
-    dir_bins = H.shape[0]
-    vel_bins = H.shape[1]
-    # Create the angles
-    thetas = np.arange(0, 2 * np.pi, 2 * np.pi / dir_bins)
-    # Initialize the polar polt
+    # Initialize polar plot
     ax = _initialize_polar(ax=ax, metadata=metadata, flood=flood, ebb=ebb)
-    # Set bar color based on wind speed
-    colors = plt.cm.viridis(np.linspace(0, 1.0, vel_bins))
-    # Set the current speed bin label names
-    # Calculate the 2D histogram
+
+    # Define bin properties
+    dir_bins, vel_bins = histogram.shape
+    thetas = np.linspace(0, 2 * np.pi, dir_bins, endpoint=False)
+    colors = viridis(np.linspace(0, 1, vel_bins))
     labels = [f"{i:.1f}-{j:.1f}" for i, j in zip(vel_edges[:-1], vel_edges[1:])]
-    # Initialize the vertical-offset (polar radius) for the stacked bar chart.
+
+    # Plot histogram
     r_offset = np.zeros(dir_bins)
     for vel_bin in range(vel_bins):
-        # Plot fist set of bars in all directions
         ax.bar(
             thetas,
-            H[:, vel_bin],
+            histogram[:, vel_bin],
             width=(2 * np.pi / dir_bins),
             bottom=r_offset,
             color=colors[vel_bin],
             label=labels[vel_bin],
         )
-        # Increase the radius offset in all directions
-        r_offset = r_offset + H[:, vel_bin]
-    # Add the a legend for current speed bins
+        r_offset += histogram[
+            :, vel_bin
+        ]  # Increase the radius offset in all directions
+
+    # Configure legend and ticks
     plt.legend(
         loc="best", title="Velocity bins [m/s]", bbox_to_anchor=(1.29, 1.00), ncol=1
     )
-    # Get the r-ticks (polar y-ticks)
     yticks = plt.yticks()
-    # Format y-ticks with  units for clarity
-    rticks = [f"{y:.1f}%" for y in yticks[0]]
-    # Set the y-ticks
-    plt.yticks(yticks[0], rticks)
+    plt.yticks(yticks[0], [f"{y:.1f}%" for y in yticks[0]])
+
     return ax
 
 
 def plot_joint_probability_distribution(
-    directions,
-    velocities,
-    width_dir,
-    width_vel,
-    ax=None,
-    metadata=None,
-    flood=None,
-    ebb=None,
-):
+    directions: np.ndarray,
+    velocities: np.ndarray,
+    width_dir: float,
+    width_vel: float,
+    ax: plt.Axes = None,
+    metadata: dict = None,
+    flood: float = None,
+    ebb: float = None,
+) -> plt.Axes:
     """
     Creates a polar histogram. Direction angles from binned histogram must
     be specified such that 0 is north.
@@ -236,7 +247,7 @@ def plot_joint_probability_distribution(
         Width of velocity bins for histogram in m/s
     ax: float
         Polar plot axes to add polar histogram
-    metadata: dictonary
+    metadata: dictionary
         If provided needs keys ['name', 'Lat', 'Lon'] for plot title
         and information box on plot
     flood: float
@@ -248,61 +259,53 @@ def plot_joint_probability_distribution(
     ax: figure
         Joint probability distribution
     """
-
+    # pylint: disable=too-many-positional-arguments, disable=too-many-arguments, disable=too-many-locals
     _check_inputs(directions, velocities, flood, ebb)
 
     if not isinstance(width_dir, (int, float)):
         raise TypeError("width_dir must be of type int or float")
     if not isinstance(width_vel, (int, float)):
         raise TypeError("width_vel must be of type int or float")
-    if width_dir < 0:
-        raise ValueError("width_dir must be greater than 0")
-    if width_vel < 0:
-        raise ValueError("width_vel must be greater than 0")
+    if width_dir < 0 or width_vel < 0:
+        raise ValueError("width_dir and width_vel must be greater than 0")
 
-    # Calculate the 2D histogram
-    H, dir_edges, vel_edges = _histogram(directions, velocities, width_dir, width_vel)
-    # Initialize the polar polt
+    histogram, dir_edges, vel_edges = _histogram(
+        directions, velocities, width_dir, width_vel
+    )
     ax = _initialize_polar(ax=ax, metadata=metadata, flood=flood, ebb=ebb)
-    # Set the current speed bin label names
-    labels = [f"{i:.1f}-{j:.1f}" for i, j in zip(vel_edges[:-1], vel_edges[1:])]
-    # Set vel & dir bins to middle of bin except at ends
-    dir_bins = 0.5 * (dir_edges[1:] + dir_edges[:-1])  # set all bins to middle
+
+    dir_bins = 0.5 * (dir_edges[1:] + dir_edges[:-1])
     vel_bins = 0.5 * (vel_edges[1:] + vel_edges[:-1])
-    # Reset end of bin range to edge of bin
-    dir_bins[0] = dir_edges[0]
-    vel_bins[0] = vel_edges[0]
-    dir_bins[-1] = dir_edges[-1]
-    vel_bins[-1] = vel_edges[-1]
-    # Interpolate the bins back to specific data points
+    dir_bins[[0, -1]] = dir_edges[[0, -1]]
+    vel_bins[[0, -1]] = vel_edges[[0, -1]]
+
     z = _interpn(
         (dir_bins, vel_bins),
-        H,
+        histogram,
         np.vstack([directions, velocities]).T,
         method="splinef2d",
         bounds_error=False,
     )
-    # Plot the most probable data last
+
     idx = z.argsort()
-    # Convert to radians and order points by probability
-    theta, r, z = directions.values[idx] * np.pi / 180, velocities.values[idx], z[idx]
-    # Create scatter plot colored by probability density
-    sx = ax.scatter(theta, r, c=z, s=5, edgecolor=None)
-    # Create colorbar
+    theta = directions.values[idx] * np.pi / 180
+    r = velocities.values[idx]
+
+    sx = ax.scatter(theta, r, c=z[idx], s=5, edgecolor=None)
     plt.colorbar(sx, ax=ax, label="Joint Probability [%]")
 
-    # Get the r-ticks (polar y-ticks)
-    yticks = ax.get_yticks()
-    # Set y-ticks labels
-    ax.set_yticks(yticks)  # to avoid matplotlib warning
-    ax.set_yticklabels([f"{y:.1f} $m/s$" for y in yticks])
+    ax.set_yticklabels([f"{y:.1f} $m/s$" for y in ax.get_yticks()])
 
     return ax
 
 
 def plot_current_timeseries(
-    directions, velocities, principal_direction, label=None, ax=None
-):
+    directions: np.ndarray,
+    velocities: np.ndarray,
+    principal_direction: float,
+    label: str = None,
+    ax: plt.Axes = None,
+) -> plt.Axes:
     """
     Returns a plot of velocity from an array of direction and speed
     data in the direction of the supplied principal_direction.
@@ -351,7 +354,14 @@ def plot_current_timeseries(
     return ax
 
 
-def tidal_phase_probability(directions, velocities, flood, ebb, bin_size=0.1, ax=None):
+def tidal_phase_probability(
+    directions: np.ndarray,
+    velocities: np.ndarray,
+    flood: float,
+    ebb: float,
+    bin_size: float = 0.1,
+    ax: plt.Axes = None,
+) -> plt.Axes:
     """
     Discretizes the tidal series speed by bin size and returns a plot
     of the probability for each bin in the flood or ebb tidal phase.
@@ -360,47 +370,45 @@ def tidal_phase_probability(directions, velocities, flood, ebb, bin_size=0.1, ax
     ----------
     directions: array-like
         Time-series of directions [degrees]
-    speed: array-like
+    velocities: array-like
         Time-series of speeds [m/s]
     flood: float or int
         Principal component of flow in the flood direction [degrees]
     ebb: float or int
         Principal component of flow in the ebb direction [degrees]
     bin_size: float
-        Speed bin size. Optional. Deaful = 0.1 m/s
+        Speed bin size. Optional. Default = 0.1 m/s
     ax : matplotlib axes object
-        Axes for plotting.  If None, then a new figure with a single
+        Axes for plotting. If None, then a new figure with a single
         axes is used.
 
     Returns
     -------
     ax: figure
     """
-
+    # pylint: disable=too-many-positional-arguments, too-many-arguments, too-many-locals
     _check_inputs(directions, velocities, flood, ebb)
     if bin_size < 0:
         raise ValueError("bin_size must be greater than 0")
 
-    if ax == None:
-        fig, ax = plt.subplots(figsize=(12, 8))
+    if ax is None:
+        ax = plt.subplots(figsize=(12, 8))[1]
 
-    isEbb = _flood_or_ebb(directions, flood, ebb)
+    is_ebb = _flood_or_ebb(directions, flood, ebb)
 
-    decimals = round(bin_size / 0.1)
-    N_bins = int(round(velocities.max(), decimals) / bin_size)
+    n_bins = int(round(velocities.max(), round(bin_size / 0.1)) / bin_size)
 
-    H, bins = np.histogram(velocities, bins=N_bins)
-    H_ebb, bins1 = np.histogram(velocities[isEbb], bins=bins)
-    H_flood, bins2 = np.histogram(velocities[~isEbb], bins=bins)
+    bins = np.histogram_bin_edges(velocities, bins=n_bins)
+    h_ebb, _ = np.histogram(velocities[is_ebb], bins=bins)
+    h_flood, _ = np.histogram(velocities[~is_ebb], bins=bins)
 
-    p_ebb = H_ebb / H
-    p_flood = H_flood / H
+    p_ebb = h_ebb / (h_ebb + h_flood)
+    p_flood = h_flood / (h_ebb + h_flood)
 
     center = (bins[:-1] + bins[1:]) / 2
     width = 0.9 * (bins[1] - bins[0])
 
-    mask1 = np.ma.where(p_ebb >= p_flood)
-    mask2 = np.ma.where(p_flood >= p_ebb)
+    mask1 = p_ebb >= p_flood
 
     ax.bar(
         center[mask1],
@@ -420,8 +428,8 @@ def tidal_phase_probability(directions, velocities, flood, ebb, bin_size=0.1, ax
         color="orange",
     )
     ax.bar(
-        center[mask2],
-        height=p_ebb[mask2],
+        center[~mask1],
+        height=p_ebb[~mask1],
         alpha=1,
         edgecolor="black",
         width=width,
@@ -437,7 +445,14 @@ def tidal_phase_probability(directions, velocities, flood, ebb, bin_size=0.1, ax
     return ax
 
 
-def tidal_phase_exceedance(directions, velocities, flood, ebb, bin_size=0.1, ax=None):
+def tidal_phase_exceedance(
+    directions: np.ndarray,
+    velocities: np.ndarray,
+    flood: float,
+    ebb: float,
+    bin_size: float = 0.1,
+    ax: plt.Axes = None,
+) -> plt.Axes:
     """
     Returns a stacked area plot of the exceedance probability for the
     flood and ebb tidal phases.
@@ -462,22 +477,21 @@ def tidal_phase_exceedance(directions, velocities, flood, ebb, bin_size=0.1, ax=
     -------
     ax: figure
     """
-
+    # pylint: disable=too-many-positional-arguments, too-many-arguments
     _check_inputs(directions, velocities, flood, ebb)
     if bin_size < 0:
         raise ValueError("bin_size must be greater than 0")
 
-    if ax == None:
-        fig, ax = plt.subplots(figsize=(12, 8))
+    if ax is None:
+        ax = plt.subplots(figsize=(12, 8))[1]
 
-    isEbb = _flood_or_ebb(directions, flood, ebb)
+    is_ebb = _flood_or_ebb(directions, flood, ebb)
 
-    s_ebb = velocities[isEbb]
-    s_flood = velocities[~isEbb]
+    s_ebb = velocities[is_ebb]
+    s_flood = velocities[~is_ebb]
 
-    F = exceedance_probability(velocities)["F"]
-    F_ebb = exceedance_probability(s_ebb)["F"]
-    F_flood = exceedance_probability(s_flood)["F"]
+    f_ebb = exceedance_probability(s_ebb)["F"]
+    f_flood = exceedance_probability(s_flood)["F"]
 
     decimals = round(bin_size / 0.1)
     s_new = np.arange(
@@ -486,20 +500,15 @@ def tidal_phase_exceedance(directions, velocities, flood, ebb, bin_size=0.1, ax=
         bin_size,
     )
 
-    f_total = interp1d(velocities, F, bounds_error=False)
-    f_ebb = interp1d(s_ebb, F_ebb, bounds_error=False)
-    f_flood = interp1d(s_flood, F_flood, bounds_error=False)
+    f_ebb = interp1d(s_ebb, f_ebb, bounds_error=False)
+    f_flood = interp1d(s_flood, f_flood, bounds_error=False)
 
-    F_total = f_total(s_new)
-    F_ebb = f_ebb(s_new)
-    F_flood = f_flood(s_new)
-
-    F_max_total = np.nanmax(F_ebb) + np.nanmax(F_flood)
+    f_max_total = np.nanmax(f_ebb(s_new)) + np.nanmax(f_flood(s_new))
 
     ax.stackplot(
         s_new,
-        F_ebb / F_max_total * 100,
-        F_flood / F_max_total * 100,
+        f_ebb(s_new) / f_max_total * 100,
+        f_flood(s_new) / f_max_total * 100,
         labels=["Ebb", "Flood"],
     )
 
