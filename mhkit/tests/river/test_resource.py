@@ -35,20 +35,20 @@ class TestResource(unittest.TestCase):
     def test_Froude_number(self):
         v = 2
         h = 5
-        Fr = river.resource.Froude_number(v, h)
+        Fr = river.resource.froude_number(v, h)
         self.assertAlmostEqual(Fr, 0.286, places=3)
 
     def test_froude_number_v_type_error(self):
         v = "invalid_type"  # String instead of int/float
         h = 5
         with self.assertRaises(TypeError):
-            river.resource.Froude_number(v, h)
+            river.resource.froude_number(v, h)
 
     def test_froude_number_h_type_error(self):
         v = 2
         h = "invalid_type"  # String instead of int/float
         with self.assertRaises(TypeError):
-            river.resource.Froude_number(v, h)
+            river.resource.froude_number(v, h)
 
     def test_froude_number_g_type_error(self):
         v = 2
