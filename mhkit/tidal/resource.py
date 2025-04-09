@@ -4,38 +4,16 @@ flow directions and velocities. It includes tools for determining
 principal flow directions, classifying ebb and flood cycles, and
 computing probability distributions of flow velocities.
 
-Features:
----------
-- Computes joint probability histograms of flow directions and velocities.
-- Determines principal flow directions using histogram-based analysis.
-- Classifies ebb and flood conditions based on directional data.
-- Normalizes flow angles for consistent analysis.
-
-Functions:
-----------
-- `_histogram(directions, velocities, width_dir, width_vel)`:
-  Computes a joint probability histogram of flow directions and velocities.
-
-- `_normalize_angle(degree)`:
-  Normalizes an angle to the range [0, 360] degrees.
-
-- `principal_flow_directions(directions, width_dir)`:
-  Determines principal flow directions for ebb and flood cycles
-  using a histogram-based approach.
-
-- `_flood_or_ebb(d, flood, ebb)`:
-  Identifies whether a given set of flow directions corresponds to
-  ebb or flood conditions.
 """
 
 import math
 import numpy as np
-from mhkit.river.resource import exceedance_probability, froude_number
+from mhkit.river.resource import exceedance_probability, Froude_number
 from mhkit.utils import convert_to_dataarray
 
 __all__ = [
     "exceedance_probability",
-    "froude_number",
+    "Froude_number",
     "principal_flow_directions",
     "_histogram",
     "_flood_or_ebb",
