@@ -1,13 +1,9 @@
 """
+performance.py
+
 The performance module provides functions for calculating key performance metrics
-of marine and hydrokinetic (MHK) devices in river environments.
+of marine energy devices in river environments.
 
-This module includes utilities for:
-- Calculating turbine geometry (circular, ducted, rectangular, multiple circular)
-- Computing performance metrics like tip speed ratio and power coefficient
-- Determining device characteristics such as equivalent diameter and capture area
-
-All functions follow consistent unit conventions and include input validation.
 """
 
 from typing import Union, Tuple, List

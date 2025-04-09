@@ -1,7 +1,9 @@
 """
 resource.py
 
-The resource module provides functions for analyzing river and tidal energy resources.
+Computes resource assessment metrics, including exceedance probability, 
+inflow velocity, and power (theoretical resource). Calculations are based 
+on IEC TS 62600-301:2019 ED1.
 
 """
 

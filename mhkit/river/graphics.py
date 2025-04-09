@@ -1,17 +1,8 @@
 """
-The graphics module provides plotting utilities for river and tidal energy resource data.
+graphics.py
 
-This module contains functions for creating standardized visualizations of:
-- Flow Duration Curves (FDC)
-- Velocity Duration Curves (VDC)
-- Power Duration Curves (PDC)
-- Discharge time series
-- Discharge vs velocity relationships
-- Velocity vs power relationships
+The graphics module provides plotting utilities for river energy resource data.
 
-Each plotting function accepts data in array-like format and returns matplotlib axes
-objects for further customization if needed. All plots follow consistent styling and
-include proper units and labels by default.
 """
 
 from typing import Union, Optional
