@@ -1,14 +1,8 @@
 """
+resource.py
+
 The resource module provides functions for analyzing river and tidal energy resources.
 
-This module includes utilities for:
-- Calculating flow characteristics (Froude number)
-- Computing exceedance probabilities
-- Fitting polynomial relationships between discharge, velocity, and power
-- Converting between different resource metrics (discharge to velocity, velocity to power)
-- Calculating energy production from power data
-
-All functions include input validation and follow consistent unit conventions.
 """
 
 from typing import Union, Tuple
