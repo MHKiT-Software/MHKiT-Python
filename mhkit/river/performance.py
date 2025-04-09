@@ -1,8 +1,8 @@
 """
 performance.py
 
-The performance module provides functions for calculating key performance metrics
-of marine energy devices in river environments.
+Computes device metrics such as equivalent diameter, tip speed ratio,
+and capture area. Calculations are based on IEC TS 62600-300:2019 ED1.
 
 """
 
