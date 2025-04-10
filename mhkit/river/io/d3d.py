@@ -894,9 +894,9 @@ def list_variables(data: Union[netCDF4.Dataset, xr.Dataset, xr.DataArray]) -> Li
     """
     if isinstance(data, netCDF4.Dataset):
         return list(data.variables.keys())
-    elif isinstance(data, (xr.Dataset, xr.DataArray)):
+    if isinstance(data, (xr.Dataset, xr.DataArray)):
         return list(data.variables.keys())
-    else:
-        raise TypeError(
-            f"data must be a NetCDF4 Dataset, xarray Dataset, or xarray DataArray. Got: {type(data)}"
-        )
+    raise TypeError(
+        "data must be a NetCDF4 Dataset, xarray Dataset, or "
+        f"xarray DataArray. Got: {type(data)}"
+    )
