@@ -55,7 +55,7 @@ class TestResource(unittest.TestCase):
         h = 5
         g = "invalid_type"  # String instead of int/float
         with self.assertRaises(TypeError):
-            river.resource.Froude_number(v, h, g)
+            river.resource.froude_number(v, h, g)
 
     def test_exceedance_probability(self):
         # Create arbitrary discharge between 0 and 8(N=9)
@@ -121,7 +121,7 @@ class TestResource(unittest.TestCase):
         p, r2 = river.resource.polynomial_fit(np.arange(9), 10 * np.arange(9), 1)
         # Because the polynomial line fits perfect we should expect the V to equal 10*Q
         V = river.resource.discharge_to_velocity(Q, p)
-        self.assertAlmostEqual(np.sum(10 * Q - V["V"]), 0.00, places=2)
+        self.assertAlmostEqual(np.sum(10 * Q - V["velocity"]), 0.00, places=2)
 
     def test_discharge_to_velocity_xarray(self):
         # Create arbitrary discharge between 0 and 8(N=9)
@@ -132,7 +132,7 @@ class TestResource(unittest.TestCase):
         p, r2 = river.resource.polynomial_fit(np.arange(9), 10 * np.arange(9), 1)
         # Because the polynomial line fits perfect we should expect the V to equal 10*Q
         V = river.resource.discharge_to_velocity(Q, p, to_pandas=False)
-        self.assertAlmostEqual(np.sum(10 * Q - V["V"]).values, 0.00, places=2)
+        self.assertAlmostEqual(np.sum(10 * Q - V["velocity"]).values, 0.00, places=2)
 
     def test_discharge_to_velocity_D_type_error(self):
         D = "invalid_type"  # String instead of pd.Series or pd.DataFrame
@@ -154,16 +154,18 @@ class TestResource(unittest.TestCase):
         # Calculate a first order polynomial on an VP_Curve x=y line 10 times greater than the V values
         p2, r22 = river.resource.polynomial_fit(np.arange(9), 10 * np.arange(9), 1)
         # Set cut in/out to exclude 1 bin on either end of V range
-        cut_in = V["V"][1]
-        cut_out = V["V"].iloc[-2]
+        cut_in = V["velocity"][1]
+        cut_out = V["velocity"].iloc[-2]
         # Power should be 10x greater and exclude the ends of V
-        P = river.resource.velocity_to_power(V["V"], p2, cut_in, cut_out)
+        P = river.resource.velocity_to_power(V["velocity"], p2, cut_in, cut_out)
         # Cut in power zero
-        self.assertAlmostEqual(P["P"][0], 0.00, places=2)
+        self.assertAlmostEqual(P["power"][0], 0.00, places=2)
         # Cut out power zero
-        self.assertAlmostEqual(P["P"].iloc[-1], 0.00, places=2)
+        self.assertAlmostEqual(P["power"].iloc[-1], 0.00, places=2)
         # Middle 10x greater than velocity
-        self.assertAlmostEqual((P["P"][1:-1] - 10 * V["V"][1:-1]).sum(), 0.00, places=2)
+        self.assertAlmostEqual(
+            (P["power"][1:-1] - 10 * V["velocity"][1:-1]).sum(), 0.00, places=2
+        )
 
     def test_velocity_to_power_xarray(self):
         # Calculate a first order polynomial on an DV_Curve x=y line 10 times greater than the Q values
@@ -175,19 +177,19 @@ class TestResource(unittest.TestCase):
         # Calculate a first order polynomial on an VP_Curve x=y line 10 times greater than the V values
         p2, r22 = river.resource.polynomial_fit(np.arange(9), 10 * np.arange(9), 1)
         # Set cut in/out to exclude 1 bin on either end of V range
-        cut_in = V["V"].values[1]
-        cut_out = V["V"].values[-2]
+        cut_in = V["velocity"].values[1]
+        cut_out = V["velocity"].values[-2]
         # Power should be 10x greater and exclude the ends of V
         P = river.resource.velocity_to_power(
-            V["V"], p2, cut_in, cut_out, to_pandas=False
+            V["velocity"], p2, cut_in, cut_out, to_pandas=False
         )
         # Cut in power zero
-        self.assertAlmostEqual(P["P"][0], 0.00, places=2)
+        self.assertAlmostEqual(P["power"][0], 0.00, places=2)
         # Cut out power zero
-        self.assertAlmostEqual(P["P"][-1], 0.00, places=2)
+        self.assertAlmostEqual(P["power"][-1], 0.00, places=2)
         # Middle 10x greater than velocity
         self.assertAlmostEqual(
-            (P["P"][1:-1] - 10 * V["V"][1:-1]).sum().values, 0.00, places=2
+            (P["power"][1:-1] - 10 * V["velocity"][1:-1]).sum().values, 0.00, places=2
         )
 
     def test_velocity_to_power_V_type_error(self):
@@ -278,7 +280,9 @@ class TestResource(unittest.TestCase):
 
         f = river.resource.exceedance_probability(self.data.Q)
         plt.figure()
-        river.graphics.plot_flow_duration_curve(self.data["Q"], f["F"])
+        river.graphics.plot_flow_duration_curve(
+            self.data["Q"], f["exceedance_probability"]
+        )
         plt.savefig(filename, format="png")
         plt.close()
 
@@ -291,7 +295,9 @@ class TestResource(unittest.TestCase):
 
         f = river.resource.exceedance_probability(self.data.Q)
         plt.figure()
-        river.graphics.plot_flow_duration_curve(self.results["P_control"], f["F"])
+        river.graphics.plot_flow_duration_curve(
+            self.results["P_control"], f["exceedance_probability"]
+        )
         plt.savefig(filename, format="png")
         plt.close()
 
@@ -304,7 +310,9 @@ class TestResource(unittest.TestCase):
 
         f = river.resource.exceedance_probability(self.data.Q)
         plt.figure()
-        river.graphics.plot_velocity_duration_curve(self.results["V_control"], f["F"])
+        river.graphics.plot_velocity_duration_curve(
+            self.results["V_control"], f["exceedance_probability"]
+        )
         plt.savefig(filename, format="png")
         plt.close()
 
