@@ -83,7 +83,7 @@ def plot_flow_duration_curve(
     Parameters
     ------------
     discharge: array-like
-        Discharge [m/s] indexed by time
+        Discharge [m3/s] indexed by time
 
     exceedance_prob: array-like
          Exceedance probability [unitless] indexed by time
@@ -275,7 +275,7 @@ def plot_discharge_vs_velocity(
     Parameters
     ------------
     discharge : array-like
-        Discharge [m/s] indexed by time
+        Discharge [m3/s] indexed by time
 
     velocity : array-like
         Velocity [m/s] indexed by time
