@@ -5,12 +5,6 @@ This module provides functions for retrieving and processing data from the Unite
 Geological Survey (USGS) National Water Information System (NWIS). It enables access to
 river flow data and related measurements useful for hydrokinetic resource assessment.
 
-Functions:
-----------
-- read_usgs_file: Read data from USGS data files
-- request_usgs_data: Fetch data directly from USGS web services
-- process_usgs_data: Process and validate USGS data formats
-
 """
 
 from typing import Dict, Union, Optional
