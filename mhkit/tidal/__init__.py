@@ -1,7 +1,8 @@
 """
 MHKiT Tidal Module
 
-This module provides tools for analyzing and processing tidal data.
+The tidal module contains a set of functions to calculate
+relevant quantities of interest for tidal energy converters (TECs).
 """
 
 from mhkit.tidal import graphics
