@@ -1,6 +1,4 @@
 """
-usgs.py
-
 This module provides functions for retrieving and processing data from the United States
 Geological Survey (USGS) National Water Information System (NWIS). It enables access to
 river flow data and related measurements useful for hydrokinetic resource assessment.

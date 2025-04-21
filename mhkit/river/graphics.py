@@ -1,6 +1,4 @@
 """
-graphics.py
-
 The graphics module provides plotting utilities for river energy resource data.
 
 """

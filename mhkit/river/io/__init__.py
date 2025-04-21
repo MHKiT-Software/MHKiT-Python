@@ -1,6 +1,4 @@
 """
-river.io
-
 This module provides input/output functionality for river energy related data in MHKiT.
 
 """
