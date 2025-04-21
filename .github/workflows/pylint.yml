@@ -37,6 +37,10 @@ jobs:
         run: |
           pylint mhkit/acoustics/
 
-      - name: Run Pylint on mhkit/tidal
+      - name: Run Pylint on mhkit/tidal/
         run: |
           pylint mhkit/tidal/
+
+      - name: Run Pylint on mhkit/river/
+        run: |
+          pylint --extension-pkg-allow-list=netCDF4 mhkit/river/

@@ -644,20 +644,24 @@ def monthly_cumulative_distribution(J):
     for month in months:
         F = exceedance_probability(J[J.index.month == month])
         cumSum[month] = 1 - F / 100
-        cumSum[month].sort_values("F", inplace=True)
+        cumSum[month].sort_values("exceedance_probability", inplace=True)
     plt.figure(figsize=(12, 8))
     for month in months:
         plt.semilogx(
             J.loc[cumSum[month].index],
-            cumSum[month].F,
+            cumSum[month]["exceedance_probability"],
             "--",
             label=calendar.month_abbr[month],
         )
 
     F = exceedance_probability(J)
-    F.sort_values("F", inplace=True)
+    F.sort_values("exceedance_probability", inplace=True)
     ax = plt.semilogx(
-        J.loc[F.index], 1 - F["F"] / 100, "k-", fillstyle="none", label="All"
+        J.loc[F.index],
+        1 - F["exceedance_probability"] / 100,
+        "k-",
+        fillstyle="none",
+        label="All",
     )
 
     plt.grid()

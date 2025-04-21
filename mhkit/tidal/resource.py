@@ -1,6 +1,4 @@
 """
-resource.py
-
 This module provides utility functions for analyzing river and tidal
 flow directions and velocities. It includes tools for determining
 principal flow directions, classifying ebb and flood cycles, and
@@ -10,12 +8,12 @@ computing probability distributions of flow velocities.
 
 import math
 import numpy as np
-from mhkit.river.resource import exceedance_probability, Froude_number
+from mhkit.river.resource import exceedance_probability, froude_number
 from mhkit.utils import convert_to_dataarray
 
 __all__ = [
     "exceedance_probability",
-    "Froude_number",
+    "froude_number",
     "principal_flow_directions",
     "_histogram",
     "_flood_or_ebb",

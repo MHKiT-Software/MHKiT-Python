@@ -490,8 +490,8 @@ def tidal_phase_exceedance(
     s_ebb = velocities[is_ebb]
     s_flood = velocities[~is_ebb]
 
-    f_ebb = exceedance_probability(s_ebb)["F"]
-    f_flood = exceedance_probability(s_flood)["F"]
+    f_ebb = exceedance_probability(s_ebb)["exceedance_probability"]
+    f_flood = exceedance_probability(s_flood)["exceedance_probability"]
 
     decimals = round(bin_size / 0.1)
     s_new = np.arange(

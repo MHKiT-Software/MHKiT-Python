@@ -6,7 +6,6 @@ Oceanic and Atmospheric Administration) current data using the NOAA Tides and
 Currents API (https://api.tidesandcurrents.noaa.gov/api/prod/). It supports
 retrieving data in XML and JSON formats, converting it into a pandas DataFrame
 or xarray Dataset, and saving it as a JSON file for future use.
-
 """
 
 import os

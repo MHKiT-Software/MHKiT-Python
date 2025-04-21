@@ -1,11 +1,22 @@
+"""
+Computes resource assessment metrics, including exceedance probability,
+inflow velocity, and power (theoretical resource). Calculations are based
+on IEC TS 62600-301:2019 ED1.
+
+"""
+
+from typing import Union, Tuple
 import xarray as xr
 import numpy as np
 from scipy.stats import linregress as _linregress
 from scipy.stats import rv_histogram as _rv_histogram
+from pandas import DataFrame, Series
 from mhkit.utils import convert_to_dataarray
 
 
-def Froude_number(v, h, g=9.80665):
+def froude_number(
+    v: Union[int, float], h: Union[int, float], g: Union[int, float] = 9.80665
+) -> float:
     """
     Calculate the Froude Number of the river, channel or duct flow,
     to check subcritical flow assumption (if Fr <1).
@@ -21,7 +32,7 @@ def Froude_number(v, h, g=9.80665):
 
     Returns
     ---------
-    Fr : float
+    froude_num : float
         Froude Number of the river [unitless].
 
     """
@@ -32,18 +43,22 @@ def Froude_number(v, h, g=9.80665):
     if not isinstance(g, (int, float)):
         raise TypeError(f"g must be of type int or float. Got: {type(g)}")
 
-    Fr = v / np.sqrt(g * h)
+    froude_num = v / np.sqrt(g * h)
 
-    return Fr
+    return froude_num
 
 
-def exceedance_probability(D, dimension="", to_pandas=True):
+def exceedance_probability(
+    discharge: Union[Series, DataFrame, xr.DataArray, xr.Dataset],
+    dimension: str = "",
+    to_pandas: bool = True,
+) -> Union[DataFrame, xr.Dataset]:
     """
     Calculates the exceedance probability
 
     Parameters
     ----------
-    D : pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
+    discharge : pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
         Discharge indexed by time [datetime or s].
 
     dimension: string (optional)
@@ -55,7 +70,7 @@ def exceedance_probability(D, dimension="", to_pandas=True):
 
     Returns
     -------
-    F : pandas DataFrame or xarray Dataset
+    exceedance_prob : pandas DataFrame or xarray Dataset
         Exceedance probability [unitless] indexed by time [datetime or s]
     """
     if not isinstance(dimension, str):
@@ -63,26 +78,26 @@ def exceedance_probability(D, dimension="", to_pandas=True):
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    D = convert_to_dataarray(D)
+    discharge = convert_to_dataarray(discharge)
 
     if dimension == "":
-        dimension = list(D.coords)[0]
+        dimension = list(discharge.coords)[0]
 
-    # Calculate exceedance probability (F)
-    rank = D.rank(dim=dimension)
-    rank = len(D[dimension]) - rank + 1  # convert to descending rank
-    F = 100 * rank / (len(D[dimension]) + 1)
-    F.name = "F"
+    # Calculate exceedance probability
+    rank = discharge.rank(dim=dimension)
+    rank = len(discharge[dimension]) - rank + 1  # convert to descending rank
+    exceedance_prob = 100 * rank / (len(discharge[dimension]) + 1)
+    exceedance_prob.name = "exceedance_probability"
 
-    F = F.to_dataset()  # for matlab
+    exceedance_prob = exceedance_prob.to_dataset()  # for matlab
 
     if to_pandas:
-        F = F.to_pandas()
+        exceedance_prob = exceedance_prob.to_pandas()
 
-    return F
+    return exceedance_prob
 
 
-def polynomial_fit(x, y, n):
+def polynomial_fit(x: np.ndarray, y: np.ndarray, n: int) -> Tuple[np.poly1d, float]:
     """
     Returns a polynomial fit for y given x of order n
     with an R-squared score of the fit
@@ -100,18 +115,19 @@ def polynomial_fit(x, y, n):
     ----------
     polynomial_coefficients : numpy polynomial
         List of polynomial coefficients
-    R2 : float
-        Polynomical fit coeffcient of determination
+    r_squared : float
+        Polynomial fit coefficient of determination
 
     """
     try:
         x = np.array(x)
-    except:
-        pass
+    except (ValueError, TypeError) as exc:
+        raise TypeError("x must be convertible to np.ndarray") from exc
     try:
         y = np.array(y)
-    except:
-        pass
+    except (ValueError, TypeError) as exc:
+        raise TypeError("y must be convertible to np.ndarray") from exc
+
     if not isinstance(x, np.ndarray):
         raise TypeError(f"x must be of type np.ndarray. Got: {type(x)}")
     if not isinstance(y, np.ndarray):
@@ -119,26 +135,31 @@ def polynomial_fit(x, y, n):
     if not isinstance(n, int):
         raise TypeError(f"n must be of type int. Got: {type(n)}")
 
-    # Get coeffcients of polynomial of order n
+    # Get coefficients of polynomial of order n
     polynomial_coefficients = np.poly1d(np.polyfit(x, y, n))
 
-    # Calculate the coeffcient of determination
-    slope, intercept, r_value, p_value, std_err = _linregress(
-        y, polynomial_coefficients(x)
-    )
-    R2 = r_value**2
+    # Calculate the coefficient of determination
+    _, _, r_value, _, _ = _linregress(y, polynomial_coefficients(x))
+    r_squared = r_value**2
 
-    return polynomial_coefficients, R2
+    return polynomial_coefficients, r_squared
 
 
-def discharge_to_velocity(D, polynomial_coefficients, dimension="", to_pandas=True):
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-positional-arguments
+def discharge_to_velocity(
+    discharge: Union[np.ndarray, DataFrame, Series, xr.DataArray, xr.Dataset],
+    polynomial_coefficients: np.poly1d,
+    dimension: str = "",
+    to_pandas: bool = True,
+) -> Union[DataFrame, xr.Dataset]:
     """
     Calculates velocity given discharge data and the relationship between
     discharge and velocity at an individual turbine
 
     Parameters
     ------------
-    D : numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
+    discharge : numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Discharge data [m3/s] indexed by time [datetime or s]
     polynomial_coefficients : numpy polynomial
         List of polynomial coefficients that describe the relationship between
@@ -151,57 +172,63 @@ def discharge_to_velocity(D, polynomial_coefficients, dimension="", to_pandas=Tr
 
     Returns
     ------------
-    V: pandas DataFrame or xarray Dataset
+    velocity: pandas DataFrame or xarray Dataset
         Velocity [m/s] indexed by time [datetime or s]
     """
     if not isinstance(polynomial_coefficients, np.poly1d):
         raise TypeError(
-            f"polynomial_coefficients must be of type np.poly1d. Got: {type(polynomial_coefficients)}"
+            "polynomial_coefficients must be of "
+            f"type np.poly1d. Got: {type(polynomial_coefficients)}"
         )
     if not isinstance(dimension, str):
         raise TypeError(f"dimension must be of type str. Got: {type(dimension)}")
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type str. Got: {type(to_pandas)}")
 
-    D = convert_to_dataarray(D)
+    discharge = convert_to_dataarray(discharge)
 
     if dimension == "":
-        dimension = list(D.coords)[0]
+        dimension = list(discharge.coords)[0]
 
     # Calculate velocity using polynomial
-    V = xr.DataArray(
-        data=polynomial_coefficients(D),
+    velocity = xr.DataArray(
+        data=polynomial_coefficients(discharge),
         dims=dimension,
-        coords={dimension: D[dimension]},
+        coords={dimension: discharge[dimension]},
     )
-    V.name = "V"
+    velocity.name = "velocity"
 
-    V = V.to_dataset()  # for matlab
+    velocity = velocity.to_dataset()  # for matlab
 
     if to_pandas:
-        V = V.to_pandas()
+        velocity = velocity.to_pandas()
 
-    return V
+    return velocity
 
 
 def velocity_to_power(
-    V, polynomial_coefficients, cut_in, cut_out, dimension="", to_pandas=True
-):
+    velocity: Union[np.ndarray, DataFrame, Series, xr.DataArray, xr.Dataset],
+    polynomial_coefficients: np.poly1d,
+    cut_in: Union[int, float],
+    cut_out: Union[int, float],
+    dimension: str = "",
+    to_pandas: bool = True,
+) -> Union[DataFrame, xr.Dataset]:
     """
     Calculates power given velocity data and the relationship
     between velocity and power from an individual turbine
 
     Parameters
     ----------
-    V : numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
+    velocity : numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Velocity [m/s] indexed by time [datetime or s]
     polynomial_coefficients : numpy polynomial
         List of polynomial coefficients that describe the relationship between
         velocity and power at an individual turbine
     cut_in: int/float
-        Velocity values below cut_in are not used to compute P
+        Velocity values below cut_in are not used to compute power
     cut_out: int/float
-        Velocity values above cut_out are not used to compute P
+        Velocity values above cut_out are not used to compute power
     dimension: string (optional)
         Name of the relevant xarray dimension. If not supplied,
         defaults to the first dimension. Does not affect pandas input.
@@ -210,12 +237,13 @@ def velocity_to_power(
 
     Returns
     -------
-    P : pandas DataFrame or xarray Dataset
+    power : pandas DataFrame or xarray Dataset
         Power [W] indexed by time [datetime or s]
     """
     if not isinstance(polynomial_coefficients, np.poly1d):
         raise TypeError(
-            f"polynomial_coefficients must be of type np.poly1d. Got: {type(polynomial_coefficients)}"
+            "polynomial_coefficients must be"
+            f"of type np.poly1d. Got: {type(polynomial_coefficients)}"
         )
     if not isinstance(cut_in, (int, float)):
         raise TypeError(f"cut_in must be of type int or float. Got: {type(cut_in)}")
@@ -224,64 +252,69 @@ def velocity_to_power(
     if not isinstance(dimension, str):
         raise TypeError(f"dimension must be of type str. Got: {type(dimension)}")
     if not isinstance(to_pandas, bool):
-        raise TypeError(f"to_pandas must be of type str. Got: {type(to_pandas)}")
+        raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    V = convert_to_dataarray(V)
+    velocity = convert_to_dataarray(velocity)
 
     if dimension == "":
-        dimension = list(V.coords)[0]
+        dimension = list(velocity.coords)[0]
 
-    # Calculate velocity using polynomial
-    power = polynomial_coefficients(V)
+    # Calculate power using polynomial
+    power_values = polynomial_coefficients(velocity)
 
     # Power for velocity values outside lower and upper bounds Turbine produces 0 power
-    power[V < cut_in] = 0.0
-    power[V > cut_out] = 0.0
+    power_values[velocity < cut_in] = 0.0
+    power_values[velocity > cut_out] = 0.0
 
-    P = xr.DataArray(data=power, dims=dimension, coords={dimension: V[dimension]})
-    P.name = "P"
+    power = xr.DataArray(
+        data=power_values, dims=dimension, coords={dimension: velocity[dimension]}
+    )
+    power.name = "power"
 
-    P = P.to_dataset()
+    power = power.to_dataset()
 
     if to_pandas:
-        P = P.to_pandas()
+        power = power.to_pandas()
 
-    return P
+    return power
 
 
-def energy_produced(P, seconds):
+def energy_produced(
+    power_data: Union[np.ndarray, DataFrame, Series, xr.DataArray, xr.Dataset],
+    seconds: Union[int, float],
+) -> float:
     """
     Returns the energy produced for a given time period provided
     exceedance probability and power.
 
     Parameters
     ----------
-    P : numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
+    power_data : numpy ndarray, pandas DataFrame, pandas Series, xarray DataArray, or xarray Dataset
         Power [W] indexed by time [datetime or s]
     seconds: int or float
         Seconds in the time period of interest
 
     Returns
     -------
-    E : float
+    energy : float
         Energy [J] produced in the given length of time
     """
     if not isinstance(seconds, (int, float)):
         raise TypeError(f"seconds must be of type int or float. Got: {type(seconds)}")
 
-    P = convert_to_dataarray(P)
+    power_data = convert_to_dataarray(power_data)
 
-    # Calculate Histogram of power
-    H, edges = np.histogram(P, 100)
+    # Calculate histogram of power
+    hist_values, edges = np.histogram(power_data, 100)
     # Create a distribution
-    hist_dist = _rv_histogram([H, edges])
+    hist_dist = _rv_histogram([hist_values, edges])
     # Sample range for pdf
     x = np.linspace(edges.min(), edges.max(), 1000)
-    # Calculate the expected value of Power
-    expected_val_of_power = np.trapz(x * hist_dist.pdf(x), x=x)
+    # Calculate the expected value of power
+    expected_power = np.trapz(x * hist_dist.pdf(x), x=x)
     # Note: Built-in Expected Value method often throws warning
     # EV = hist_dist.expect(lb=edges.min(), ub=edges.max())
-    # Energy
-    E = seconds * expected_val_of_power
+    # Calculate energy
+    energy = seconds * expected_power
 
-    return E
+    return energy
