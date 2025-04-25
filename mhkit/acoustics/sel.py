@@ -49,17 +49,17 @@ def nmfs_auditory_weighting(frequency, group):
     """
 
     group_params = {
-        "lf": dict(a=0.99, b=5, f1=0.168, f2=26.6, c=0.12, k=177),
-        "hf": dict(a=1.55, b=5, f1=1.73, f2=129, c=0.32, k=181),
-        "vhf": dict(a=2.23, b=5, f1=5.93, f2=186, c=0.91, k=160),
-        "pw": dict(a=1.63, b=5, f1=0.81, f2=68.3, c=0.29, k=175),
-        "ow": dict(a=1.58, b=5, f1=2.53, f2=43.8, c=1.37, k=178),
+        "lf": {"a": 0.99, "b": 5, "f1": 0.168, "f2": 26.6, "c": 0.12, "k": 177},
+        "hf": {"a": 1.55, "b": 5, "f1": 1.73, "f2": 129, "c": 0.32, "k": 181},
+        "vhf": {"a": 2.23, "b": 5, "f1": 5.93, "f2": 186, "c": 0.91, "k": 160},
+        "pw": {"a": 1.63, "b": 5, "f1": 0.81, "f2": 68.3, "c": 0.29, "k": 175},
+        "ow": {"a": 1.58, "b": 5, "f1": 2.53, "f2": 43.8, "c": 1.37, "k": 178},
     }
 
     try:
         params = group_params[group.lower()]
-    except KeyError:
-        raise ValueError("Group must be one of: LF, HF, VHF, PW, OW")
+    except KeyError as e:
+        raise ValueError("Group must be one of: LF, HF, VHF, PW, OW") from e
 
     a, b, f1, f2, c, k = params.values()
 

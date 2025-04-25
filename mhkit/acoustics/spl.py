@@ -24,7 +24,8 @@ from .analysis import _fmax_warning, _create_frequency_bands
 
 def _argument_check(spsd, fmin, fmax):
     """
-    Validates input types, values, and dimensions for SPSD data and adjusts fmax to the Nyquist frequency if needed.
+    Validates input types, values, and dimensions for SPSD data and adjusts
+    fmax to the Nyquist frequency if needed.
 
     Parameters
     ----------

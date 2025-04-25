@@ -527,7 +527,7 @@ def _create_frequency_bands(octave, base, fmin, fmax):
 
 def band_aggregate(
     spsdl: xr.DataArray,
-    octave: Tuple[int, int] = None,
+    octave: Tuple[int, int] = [3, 2],
     fmin: int = 10,
     fmax: int = 100000,
     method: Union[str, Dict[str, Union[float, int]]] = "median",
@@ -564,8 +564,6 @@ def band_aggregate(
     # Type checks
     if not isinstance(spsdl, xr.DataArray):
         raise TypeError("'spsdl' must be an xarray.DataArray.")
-    if octave is None:
-        octave = [3, 2]
     if not isinstance(octave, list) and not isinstance(octave, tuple):
         raise TypeError("'octave' must be a list or tuple of two integers.")
     for val in octave:
