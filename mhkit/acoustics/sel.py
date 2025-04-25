@@ -48,6 +48,15 @@ def nmfs_auditory_weighting(frequency, group):
         Log-transformed auditory exposure function [dB] indexed by frequency
     """
 
+    if group.lower() not in [
+        "lf",
+        "hf",
+        "vhf",
+        "pw",
+        "ow",
+    ]:
+        raise ValueError("Group must be one of: LF, HF, VHF, PW, OW")
+
     group_params = {
         "lf": {"a": 0.99, "b": 5, "f1": 0.168, "f2": 26.6, "c": 0.12, "k": 177},
         "hf": {"a": 1.55, "b": 5, "f1": 1.73, "f2": 129, "c": 0.32, "k": 181},
@@ -56,12 +65,7 @@ def nmfs_auditory_weighting(frequency, group):
         "ow": {"a": 1.58, "b": 5, "f1": 2.53, "f2": 43.8, "c": 1.37, "k": 178},
     }
 
-    try:
-        params = group_params[group.lower()]
-    except KeyError as e:
-        raise ValueError("Group must be one of: LF, HF, VHF, PW, OW") from e
-
-    a, b, f1, f2, c, k = params.values()
+    a, b, f1, f2, c, k = group_params[group.lower()].values()
 
     frequency = frequency / 1000  # Convert to kHz
     ratio_a = frequency / f1
