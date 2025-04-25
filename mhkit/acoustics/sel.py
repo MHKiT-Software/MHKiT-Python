@@ -42,55 +42,28 @@ def nmfs_auditory_weighting(frequency, group):
 
     Returns
     -------
-    weighting_func: float
+    weighting_func: xarray.DataArray (freq)
         Auditory weighting function [unitless] indexed by frequency
-    exposure_func: float
+    exposure_func: xarray.DataArray (freq)
         Log-transformed auditory exposure function [dB] indexed by frequency
     """
 
-    if group.lower() == "lf":
-        # Low-frequency cetaceans
-        a = 0.99
-        b = 5
-        f1 = 0.168  # kHz
-        f2 = 26.6  # kHz
-        c = 0.12  # dB
-        k = 177  # dB
-    elif group.lower() == "hf":
-        # High-frequency cetaceans
-        a = 1.55
-        b = 5
-        f1 = 1.73
-        f2 = 129
-        c = 0.32
-        k = 181
-    elif group.lower() == "vhf":
-        # Very high-frequency cetaceans
-        a = 2.23
-        b = 5
-        f1 = 5.93
-        f2 = 186
-        c = 0.91
-        k = 160
-    elif group.lower() == "pw":
-        # Phocid pinnepeds
-        a = 1.63
-        b = 5
-        f1 = 0.81
-        f2 = 68.3
-        c = 0.29
-        k = 175
-    elif group.lower() == "ow":
-        # Otariid pinnepeds
-        a = 1.58
-        b = 5
-        f1 = 2.53
-        f2 = 43.8
-        c = 1.37
-        k = 178
-    else:
-        raise ValueError("Group must be LF, HF, VHF, PW, or OW")
+    group_params = {
+        "lf": dict(a=0.99, b=5, f1=0.168, f2=26.6, c=0.12, k=177),
+        "hf": dict(a=1.55, b=5, f1=1.73, f2=129, c=0.32, k=181),
+        "vhf": dict(a=2.23, b=5, f1=5.93, f2=186, c=0.91, k=160),
+        "pw": dict(a=1.63, b=5, f1=0.81, f2=68.3, c=0.29, k=175),
+        "ow": dict(a=1.58, b=5, f1=2.53, f2=43.8, c=1.37, k=178),
+    }
 
+    try:
+        params = group_params[group.lower()]
+    except KeyError:
+        raise ValueError("Group must be one of: LF, HF, VHF, PW, OW")
+
+    a, b, f1, f2, c, k = params.values()
+
+    frequency = frequency / 1000  # Convert to kHz
     ratio_a = frequency / f1
     ratio_b = frequency / f2
     band_filter = ratio_a ** (2 * a) / (
@@ -152,10 +125,9 @@ def sound_exposure_level(
 
     # Mean square sound pressure in a specified frequency band
     # from weighted mean square values
-    exposure = np.trapz(
-        (spsd * w).sel(freq=slice(fmin, fmax)),
-        spsd["freq"].sel(freq=slice(fmin, fmax)),
-    )
+    band = spsd.sel(freq=slice(fmin, fmax))
+    freqs = band["freq"]
+    exposure = np.trapz(band * w, freqs)
 
     # Sound exposure level (L_{E,p}) = (L_{p,rms} + 10log10(t))
     sel = 10 * np.log10(exposure / reference) + 10 * np.log10(

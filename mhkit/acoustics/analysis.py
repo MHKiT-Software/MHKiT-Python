@@ -150,8 +150,14 @@ def sound_pressure_spectral_density(
     samples split into FFTs with a specified bin length in seconds,
     using Hanning windowing with 50% overlap.
 
-    If finding the mean-squared SPSD (rms = True), the amplitude of the
-    SPSD is adjusted accordingly based on Parseval's theorem.
+    By default (`rms=True`), this function returns the mean-squared SPSD,
+    which found by scaling the total spectral power (frequency domain) with
+    the time-domain averaged mean-squared power, in accordance with
+    Parseval's theorem.
+
+    Setting `rms=False` disables this scaling and returns the
+    power spectral density of the sound pressure signal.
+    Both forms have units of [Pa^2/Hz] or [V^2/Hz].
 
     Parameters
     ----------
@@ -560,6 +566,8 @@ def band_aggregate(
         raise TypeError("'spsdl' must be an xarray.DataArray.")
     if octave is None:
         octave = [3, 2]
+    if not isinstance(octave, list) and not isinstance(octave, tuple):
+        raise TypeError("'octave' must be a list or tuple of two integers.")
     for val in octave:
         if not isinstance(val, int) or (val <= 0):
             raise TypeError("'octave' must contain positive integers.")
