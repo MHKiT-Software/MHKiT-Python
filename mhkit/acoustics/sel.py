@@ -121,7 +121,7 @@ def sound_exposure_level(
         w = 10 ** (w / 10)
         long_name = "Weighted Sound Exposure Level"
     else:
-        w = 1
+        w = xr.ones_like(spsd["freq"])
         long_name = "Sound Exposure Level"
 
     # Reference value of sound pressure
@@ -130,8 +130,8 @@ def sound_exposure_level(
     # Mean square sound pressure in a specified frequency band
     # from weighted mean square values
     band = spsd.sel(freq=slice(fmin, fmax))
-    freqs = band["freq"]
-    exposure = np.trapz(band * w, freqs)
+    w = w.sel(freq=slice(fmin, fmax))
+    exposure = np.trapz(band * w, band["freq"])
 
     # Sound exposure level (L_{E,p}) = (L_{p,rms} + 10log10(t))
     sel = 10 * np.log10(exposure / reference) + 10 * np.log10(
