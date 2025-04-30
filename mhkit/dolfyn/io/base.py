@@ -298,7 +298,7 @@ def _create_dataset(data):
                         "data": data["data_vars"][key],
                     }
 
-                elif "b5" in tg:
+                elif "b5" in key:
                     ds_dict[key] = {
                         "dims": ("range_b5", "time_b5"),
                         "data": data["data_vars"][key],
@@ -324,7 +324,7 @@ def _create_dataset(data):
                     # "vel_b5" sometimes stored as (1, range_b5, time_b5)
                     ds_dict[key] = {
                         "dims": ("range_b5", "time_b5"),
-                        "data": data["data_vars"][key][0],
+                        "data": data["data_vars"][key].squeeze(),
                     }
                 elif "sl" in key:
                     ds_dict[key] = {
@@ -357,12 +357,12 @@ def _create_dataset(data):
     r_list = [r for r in ds.coords if "range" in r]
     for ky in r_list:
         ds[ky].attrs["units"] = "m"
-        ds[ky].attrs["long_name"] = "Profile Range"
+        ds[ky].attrs["long_name"] = "Profile " + ky.capitalize().replace("_", " ")
         ds[ky].attrs["description"] = "Distance to the center of each depth bin"
     time_list = [t for t in ds.coords if "time" in t]
     for ky in time_list:
         ds[ky].attrs["units"] = "seconds since 1970-01-01 00:00:00"
-        ds[ky].attrs["long_name"] = "Time"
+        ds[ky].attrs["long_name"] = ky.capitalize().replace("_", " ")
         ds[ky].attrs["standard_name"] = "time"
 
     # Set dataset metadata

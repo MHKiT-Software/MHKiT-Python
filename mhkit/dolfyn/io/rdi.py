@@ -323,6 +323,9 @@ class _RDIReader:
                 # reset flag after all variables run
                 self.n_cells_diff = 0
 
+                # b5 clock flag
+                b5 = True if "ping_offset_time_b5" in cfg else False
+
                 # Set clock
                 clock = en.rtc[:, :]
                 if clock[0, 0] < 100:
@@ -340,8 +343,14 @@ class _RDIReader:
                         )
                     )
                     dat["coords"]["time"][iens] = np.nan
+                    if b5:
+                        dat["coords"]["time_b5"][iens] = np.nan
                 else:
                     dat["coords"]["time"][iens] = np.median(dates)
+                    if b5:
+                        dat["coords"]["time_b5"][iens] = (
+                            np.median(dates) + cfg["ping_offset_time_b5"]
+                        )
 
         # Finalize dataset (runs through both NB and BB)
         for dat, cfg in zip(datl, cfgl):
@@ -587,6 +596,10 @@ class _RDIReader:
             0: (defs.read_fixed, [False]),
             # 0001 2nd profile fixed leader
             1: (defs.read_fixed, [True]),
+            # 000B Wave parameters
+            11: (defs.skip_Nbyte, [51]),
+            # 000C Wave parameters - sea and swell
+            12: (defs.skip_Nbyte, [44]),
             # 0010 Surface layer fixed leader (RiverPro & StreamPro)
             16: (defs.read_fixed_sl, []),
             # 0080 1st profile variable leader
@@ -639,13 +652,13 @@ class _RDIReader:
             1793: (defs.skip_Ncol, [4]),  # 0701 number of pings
             1794: (defs.skip_Ncol, [4]),  # 0702 sum of squared vel
             1795: (defs.skip_Ncol, [4]),  # 0703 sum of velocities
-            2560: (defs.skip_Ncol, []),  # 0A00 Beam 5 velocity TODO
-            2816: (defs.skip_Ncol, []),  # 0B00 Beam 5 correlation TODO
-            3072: (defs.skip_Ncol, []),  # 0C00 Beam 5 amplitude TODO
-            3328: (defs.skip_Ncol, []),  # 0D00 Beam 5 pct_good TODO
+            2560: (defs.read_vel_b5, []),  # 0A00 Beam 5 velocity TODO
+            2816: (defs.read_corr_b5, []),  # 0B00 Beam 5 correlation TODO
+            3072: (defs.read_amp_b5, []),  # 0C00 Beam 5 amplitude TODO
+            3328: (defs.read_prcnt_gd_b5, []),  # 0D00 Beam 5 pct_good TODO
             # Fixed attitude data format for Ocean Surveyor ADCPs
             3000: (defs.skip_Nbyte, [32]),
-            3841: (defs.skip_Nbyte, [38]),  # 0F01 Beam 5 leader
+            3841: (defs.read_vel_b5_leader, []),  # 0F01 Beam 5 leader TODO
             8192: (defs.read_vmdas, []),  # 2000
             # 2013 Navigation parameter data
             8211: (defs.skip_Nbyte, [83]),
@@ -675,16 +688,16 @@ class _RDIReader:
             22785: (defs.skip_Nbyte, [65]),
             # 5902 Ping attitude
             22786: (defs.skip_Nbyte, [105]),
-            # 7000 Sentinvel V system configuration TODO
-            28672: (defs.skip_Nbyte, [14]),
-            # 7001 Sentinel V leader TODO
-            28673: (defs.skip_Nbyte, [42]),
+            # 7000 Sentinvel V system configuration
+            28672: (defs.read_sentinelv_syscfg, [False]),
+            # 7001 Sentinel V leader
+            28673: (defs.read_sentinelv_ping_setup, [False]),
             # 7002 ADC data
             28674: (defs.skip_Nbyte, [14]),
             # 7003 Sentinel V "Features" (only first ensemble)
             28675: (defs.skip_Nbyte, [88]),  # min size
             # 7004 Sentinel V Event Log
-            28676: (defs.skip_Nbyte, [6]),  # min size
+            28676: (defs.read_sentinelv_event_log, []),
         }
         # Call the correct function:
         if self._debug_level > 1:
@@ -908,6 +921,12 @@ class _RDIReader:
         ).astype(np.float32)
         cfg["range_offset"] = round(bin1_dist - cfg["blank_dist"] - cfg["cell_size"], 3)
 
+        if "n_cells_b5" in cfg:
+            bin1_dist_b5 = cfg.pop("bin1_dist_b5_m")
+            dat["coords"]["range_b5"] = (
+                bin1_dist_b5 + np.arange(cfg["n_cells_b5"]) * cfg["cell_size_b5"]
+            ).astype(np.float32)
+
         # Clean up surface layer profiles
         if "surface_layer" in cfg:  # RiverPro/StreamPro
             # Set SL cell size and range
@@ -1021,24 +1040,22 @@ class _RDIReader:
         for nm in set(defs.data_defs.keys()) - self.vars_read:
             lib._pop(dat, nm)
 
-        # VMDAS and WinRiver have different set sampling frequency
-        if ("sourceprog" in cfg) and (
-            cfg["sourceprog"].lower() in ["vmdas", "winriver", "winriver2"]
-        ):
+        # Need to figure out how to differentiate burst mode from averaging mode
+        if (
+            ("source_program" in cfg)
+            and (cfg["source_program"].lower() in ["vmdas", "winriver", "winriver2"])
+        ) or ("sentinelv" in cfg["inst_model"].lower()):
             cfg["fs"] = round(1 / np.median(np.diff(dat["coords"]["time"])), 2)
         else:
-            sec_bt_ping_group = cfg["sec_between_ping_groups"]
-            if not sec_bt_ping_group:
-                cfg["fs"] = np.nan
-            else:
-                cfg["fs"] = 1 / (sec_bt_ping_group * cfg["pings_per_ensemble"])
+            cfg["fs"] = 1 / (cfg["sec_between_ping_groups"] * cfg["pings_per_ensemble"])
 
         # Save configuration data as attributes
         dat["attrs"] = cfg
 
+        # Set 3D variable axes properly (beam, range, time)
         for nm in defs.data_defs:
             shp = defs.data_defs[nm][0]
-            if len(shp) and shp[0] == "nc" and lib._in_group(dat, nm):
+            if (len(shp) == 2) and (shp[0] == "nc") and lib._in_group(dat, nm):
                 lib._setd(dat, nm, np.swapaxes(lib._get(dat, nm), 0, 1))
 
         return dat

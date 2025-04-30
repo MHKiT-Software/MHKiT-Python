@@ -326,6 +326,47 @@ data_defs = {
         "proportion_of_acceptable_signal_returns_from_acoustic_instrument_in_sea_water",
     ),
     "status_sl": (["nc", 4], "data_vars", "float32", "1", "Surface Layer Status", ""),
+    "faults": (
+        [],
+        "data_vars",
+        "<U13",
+        "1",
+        "Fault ID . Status Code . Diagnostics Code",
+        "",
+    ),
+    "time_b5": (
+        [],
+        "coords",
+        "float64",
+        "seconds since 1970-01-01 00:00:00",
+        "Time Beam 5",
+        "time",
+    ),
+    "vel_b5": (["nc"], "data_vars", "float32", "m s-1", "Water Velocity", ""),
+    "amp_b5": (
+        ["nc"],
+        "data_vars",
+        "uint8",
+        "1",
+        "Acoustic Signal Amplitude",
+        "signal_intensity_from_multibeam_acoustic_doppler_velocity_sensor_in_sea_water",
+    ),
+    "corr_b5": (
+        ["nc"],
+        "data_vars",
+        "uint8",
+        "1",
+        "Acoustic Signal Correlation",
+        "beam_consistency_indicator_from_multibeam_acoustic_doppler_velocity_profiler_in_sea_water",
+    ),
+    "prcnt_gd_b5": (
+        ["nc"],
+        "data_vars",
+        "uint8",
+        "%",
+        "Percent Good",
+        "proportion_of_acceptable_signal_returns_from_acoustic_instrument_in_sea_water",
+    ),
 }
 
 
@@ -371,8 +412,7 @@ def read_cfgseg(rdr, bb=False):
         cfg = rdr.cfg
     fd = rdr.f
     tmp = fd.read_ui8(5)
-    prog_ver0 = tmp[0]
-    cfg["prog_ver"] = float(tmp[0] + tmp[1] * 0.01)
+    cfg["firmware_ver"] = float(tmp[0] + tmp[1] * 0.01)
     cfg["inst_make"] = "TRDI"
     cfg["inst_type"] = "ADCP"
     cfg["rotate_vars"] = ["vel"]
@@ -386,15 +426,15 @@ def read_cfgseg(rdr, bb=False):
     beam5 = [0, 1][int((config[1] & 16) == 16)]
     # Carrier frequency
     if tmp[0] in [47, 66]:  # new freqs for Sentinel Vs
-        cfg["freq"] = [38.4, 76.8, 153.6, 307.2, 491.52, 983.04, 2457.6][
+        cfg["carrier_freq"] = [38.4, 76.8, 153.6, 307.2, 491.52, 983.04, 2457.6][
             (config[0] & 7)
         ]
     elif tmp[0] == 31:
-        cfg["freq"] = 2000
+        cfg["carrier_freq"] = 2000
     elif tmp[0] == 61:
-        cfg["freq"] = 44
+        cfg["carrier_freq"] = 44
     else:
-        cfg["freq"] = [75, 150, 300, 600, 1200, 2400, 38][(config[0] & 7)]
+        cfg["carrier_freq"] = [75, 150, 300, 600, 1200, 2400, 38][(config[0] & 7)]
     cfg["beam_pattern"] = ["concave", "convex"][int((config[0] & 8) == 8)]
     cfg["orientation"] = ["down", "up"][int((config[0] & 128) == 128)]
     simflag = ["real", "simulated"][tmp[4]]
@@ -446,13 +486,13 @@ def read_cfgseg(rdr, bb=False):
     cfg["transmit_lag_m"] = float(fd.read_ui16(1) * 0.01)
     rdr._nbyte = 40
 
-    if cfg["prog_ver"] >= 8.14:
+    if cfg["firmware_ver"] >= 8.14:
         cpu_serialnum = fd.read_ui8(8)
         rdr._nbyte += 8
-    if cfg["prog_ver"] >= 8.24:
+    if cfg["firmware_ver"] >= 8.24:
         cfg["bandwidth"] = fd.read_ui16(1)
         rdr._nbyte += 2
-    if cfg["prog_ver"] >= 9.68:
+    if cfg["firmware_ver"] >= 9.68:
         cfg["power_level"] = fd.read_ui8(1)
         # cfg['navigator_basefreqindex'] = fd.read_ui8(1)
         fd.seek(1, 1)
@@ -567,7 +607,7 @@ def read_var(rdr, bb=False):
 
     cfg = rdr.cfg
     if cfg["inst_model"].lower() == "broadband":
-        if cfg["prog_ver"] >= 5.55:
+        if cfg["firmware_ver"] >= 5.55:
             fd.seek(15, 1)
             cent = fd.read_ui8(1)
             ens.rtc[:, k] = fd.read_ui8(7)
@@ -576,30 +616,30 @@ def read_var(rdr, bb=False):
     elif cfg["inst_model"].lower() == "ocean surveyor":
         fd.seek(16, 1)  # 30 bytes all set to zero, 14 read above
         rdr._nbyte += 16
-        if cfg["prog_ver"] > 23:
+        if cfg["firmware_ver"] > 23:
             fd.seek(2, 1)
             rdr._nbyte += 2
     else:
         ens.error_status[k] = np.binary_repr(fd.read_ui32(1), 32)
         rdr.vars_read += ["pressure", "pressure_std"]
         rdr._nbyte += 4
-        if cfg["prog_ver"] >= 8.13:
+        if cfg["firmware_ver"] >= 8.13:
             # Added pressure sensor stuff in 8.13
             fd.seek(2, 1)
             ens.pressure[k] = fd.read_ui32(1) * 0.001  # dPa to dbar
             ens.pressure_std[k] = fd.read_ui32(1) * 0.001
             rdr._nbyte += 10
-        if cfg["prog_ver"] >= 8.24:
+        if cfg["firmware_ver"] >= 8.24:
             # Spare byte added 8.24
             fd.seek(1, 1)
             rdr._nbyte += 1
-        if cfg["prog_ver"] >= 16.05:
+        if cfg["firmware_ver"] >= 16.05:
             # Added more fields with century in clock
             cent = fd.read_ui8(1)
             ens.rtc[:, k] = fd.read_ui8(7)
             ens.rtc[0, k] = ens.rtc[0, k] + cent * 100
             rdr._nbyte += 8
-        if cfg["prog_ver"] >= 56:
+        if cfg["firmware_ver"] >= 56:
             fd.seek(1)  # lag near bottom flag
             rdr._nbyte += 1
 
@@ -724,14 +764,16 @@ def read_bottom(rdr):
         # Skip reference layer data
         fd.seek(26, 1)
         rdr._nbyte = 2 + 68
-    if cfg["prog_ver"] >= 5.3:
+    if cfg["firmware_ver"] >= 5.3:
         fd.seek(7, 1)  # skip to rangeMsb bytes
         ens.dist_bt[:, k] = ens.dist_bt[:, k] + fd.read_ui8(4) * 655.36
         rdr._nbyte += 11
-    if cfg["prog_ver"] >= 16.2 and (cfg.get("sourceprog", "").lower() != "winriver"):
+    if cfg["firmware_ver"] >= 16.2 and (
+        cfg.get("source_program", "").lower() != "winriver"
+    ):
         fd.seek(4, 1)  # not documented
         rdr._nbyte += 4
-    if cfg["prog_ver"] >= 56.1:
+    if cfg["firmware_ver"] >= 56.1:
         fd.seek(4, 1)  # not documented
         rdr._nbyte += 4
 
@@ -757,7 +799,7 @@ def read_alt(rdr):
 def read_winriver(rdr):
     """Skip WinRiver1 Navigation block (outdated)"""
     rdr._winrivprob = True
-    rdr.cfg["sourceprog"] = "WINRIVER"
+    rdr.cfg["source_program"] = "WINRIVER"
     if rdr._vm_source not in [2, 3]:
         if rdr._debug_level > -1:
             logging.warning(
@@ -775,7 +817,7 @@ def read_winriver2(rdr):
     """Read WinRiver2 Navigation block"""
     startpos = rdr.f.tell()
     rdr._winrivprob = True
-    rdr.cfg["sourceprog"] = "WinRiver2"
+    rdr.cfg["source_program"] = "WinRiver2"
     ens = rdr.ensemble
     k = ens.k
     if rdr._debug_level > -1:
@@ -920,7 +962,7 @@ def read_winriver2(rdr):
 def read_vmdas(rdr):
     """Read VMDAS Navigation block"""
     fd = rdr.f
-    rdr.cfg["sourceprog"] = "VMDAS"
+    rdr.cfg["source_program"] = "VMDAS"
     ens = rdr.ensemble
     k = ens.k
     if rdr._vm_source != 1 and rdr._debug_level > -1:
@@ -983,3 +1025,156 @@ def read_vmdas(rdr):
     if rdr._debug_level > -1:
         logging.info("Read VMDAS")
     rdr._read_vmdas = True
+
+
+def read_sentinelv_syscfg(rdr, bb=False):
+    """Read system configuration block for Sentinel V: 0x7000"""
+    if bb:
+        cfg = rdr.cfgbb
+    else:
+        cfg = rdr.cfg
+
+    fd = rdr.f
+    fw = fd.read_ui8(4)
+    cfg["firmware_ver"] = ".".join(fw.astype(str))
+    cfg["carrier_freq"] = fd.read_ui32(1) / 1000
+    cfg["pressure_rating_m"] = fd.read_ui16(1)
+    schema = fd.read_ui8(3)
+    cfg["schema"] = ".".join(schema.astype(str))
+    fd.seek(1, 1)
+
+    if rdr._debug_level > -1:
+        logging.info("Read Sentinel V System Configuration")
+    rdr._nbyte = 2 + 14
+
+
+def read_sentinelv_ping_setup(rdr, bb=False):
+    """Read 'ping setup' block for Sentinel V: 0x7001"""
+    if bb:
+        cfg = rdr.cfgbb
+    else:
+        cfg = rdr.cfg
+
+    fd = rdr.f
+    ping_id = fd.read_ui16(1)
+    ensemble_interval = fd.read_ui32(1) * 0.001
+    cfg["pings_per_ensemble"] = fd.read_ui16(1)
+    time_between_pings_s = fd.read_ui32(1) * 0.001
+    cfg["sec_between_ping_groups"] = fd.read_ui32(1) * 0.001
+    fd.seek(4, 1)
+    ping_seq_num_wi_ensemble = fd.read_ui16(1)
+    cfg["ambiguity_vel"] = fd.read_ui16(1) * 0.001
+    fd.seek(4, 1)
+    ensemble_offset = fd.read_ui32(1)
+    ensemble_count = fd.read_ui16(1)
+    clock = fd.read_ui8(8)
+    clock[1] += century
+    cfg["deployment_start"] = tmlib.date2str(
+        tmlib.datetime(*clock[1:7], microsecond=int(float(clock[7]) * 10000))
+    )
+    if rdr._debug_level > -1:
+        logging.info("Read Sentinel V Ping Setup")
+    rdr._nbyte = 2 + 42
+
+
+def read_sentinelv_event_log(rdr):
+    """Read event log block for Sentinel V: 0x7004"""
+    fd = rdr.f
+    ens = rdr.ensemble
+    k = ens.k
+    n_faults = fd.read_ui16(1)
+    code = []
+    if n_faults:
+        code.append(f"{fd.read_ui16(1)}.{fd.read_ui8(1)}.{fd.read_ui8(1)}")
+    rdr.vars_read += ["faults"]
+    ens.faults[k] = ",".join(code)
+
+    if rdr._debug_level > -1:
+        logging.info("Read Sentinel V Event Log")
+    rdr._nbyte = 2 + 6 + 4 * (n_faults - 1)
+
+
+def read_vel_b5_leader(rdr):
+    """Read Sentinel V vertical beam (b5) leader: 0x0F01"""
+    cfg = rdr.cfg
+    fd = rdr.f
+    rdr.vars_read += ["time_b5"]  # Make sure this is added
+    cfg["n_cells_b5"] = fd.read_ui16(1)
+    n_pings_b5 = fd.read_ui16(1)
+    cfg["cell_size_b5"] = fd.read_ui16(1) * 0.01
+    cfg["bin1_dist_b5_m"] = fd.read_ui16(1) * 0.01
+    cfg["mode_b5"] = fd.read_ui16(1)
+    cfg["transmit_pulse_b5_m"] = fd.read_ui16(1) * 0.01
+    cfg["transmit_lag_b5_m"] = fd.read_ui16(1) * 0.01
+    transmit_code_elements = fd.read_ui16(1)
+    vertical_rssi_threshold = fd.read_ui16(1)
+    vertical_shallow_bin = fd.read_ui16(1)
+    vertical_start_bin = fd.read_ui16(1)
+    vertical_shallow_rssi_bin = fd.read_ui16(1)
+    max_core_threshold = fd.read_ui16(1)
+    min_core_threshold = fd.read_ui16(1)
+    cfg["ping_offset_time_b5"] = fd.read_ui16(1) * 0.001
+    fd.seek(2, 1)
+    depth_screen = fd.read_ui16(1)
+    cfg["min_prcnt_gd_b5"] = fd.read_ui16(1)
+    vertical_do_proofing = fd.read_ui16(1)
+
+    if rdr._debug_level > -1:
+        logging.info("Read Sentinel V Event Log")
+    rdr._nbyte = 2 + 38
+
+
+def read_vel_b5(rdr):
+    """Read Sentinel V vertical beam water velocity block: 0x0A00"""
+    ens = rdr.ensemble
+    cfg = rdr.cfg
+    rdr.vars_read += ["vel_b5"]
+    n_cells_b5 = cfg["n_cells_b5"]
+
+    k = ens.k
+    vel_b5 = np.array(rdr.f.read_i16(n_cells_b5)) * 0.001
+    ens["vel_b5"][:n_cells_b5, k] = vel_b5
+    rdr._nbyte = 2 + n_cells_b5 * 2
+    if rdr._debug_level > -1:
+        logging.info("Read Vel Beam 5")
+
+
+def read_corr_b5(rdr):
+    """Read Sentinel V vertical beam acoustic signal correlation block: 0x0B00"""
+    ens = rdr.ensemble
+    cfg = rdr.cfg
+    rdr.vars_read += ["corr_b5"]
+    n_cells_b5 = cfg["n_cells_b5"]
+
+    k = ens.k
+    ens["corr_b5"][:n_cells_b5, k] = np.array(rdr.f.read_ui8(n_cells_b5))
+    rdr._nbyte = 2 + n_cells_b5
+    if rdr._debug_level > -1:
+        logging.info("Read Corr Beam 5")
+
+
+def read_amp_b5(rdr, bb=0):
+    """Read Sentinel V vertical beam acoustic signal amplitude block: 0C00"""
+    ens = rdr.ensemble
+    cfg = rdr.cfg
+    rdr.vars_read += ["amp_b5"]
+    n_cells_b5 = cfg["n_cells_b5"]
+
+    k = ens.k
+    ens["amp_b5"][:n_cells_b5, k] = np.array(rdr.f.read_ui8(n_cells_b5))
+    rdr._nbyte = 2 + n_cells_b5
+    if rdr._debug_level > -1:
+        logging.info("Read Amp Beam 5")
+
+
+def read_prcnt_gd_b5(rdr, bb=0):
+    """Read Sentinel V vertical beam acoustic signal 'percent good' block: 0x0D00"""
+    ens = rdr.ensemble
+    cfg = rdr.cfg
+    rdr.vars_read += ["prcnt_gd_b5"]
+    n_cells_b5 = cfg["n_cells_b5"]
+
+    ens["prcnt_gd_b5"][:n_cells_b5, ens.k] = np.array(rdr.f.read_ui8(n_cells_b5))
+    rdr._nbyte = 2 + n_cells_b5
+    if rdr._debug_level > -1:
+        logging.info("Read PG Beam 5")
