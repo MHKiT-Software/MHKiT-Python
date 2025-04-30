@@ -406,6 +406,33 @@ class _RDIReader:
             if not self.search_buffer():
                 return False
             startpos = fd.tell() - 2
+
+            noBytesInEnsemble = fd.read_i16(1)
+            # go back to start of ensemble
+            fd.seek(-4, 1)
+            # pack the entire ensemble into a bytearray
+            bytesInEnsemble = bytearray(fd.read_ui8(noBytesInEnsemble))
+            # get checksum (2 bytes unsigned integer)
+            checksum = fd.read_ui16(1)
+            # calculate checksum and check
+            # if the checksum is wrong, back up 100 bytes and search for the next
+            # ensemble
+            if (sum(bytesInEnsemble) & 0xFFFF) != checksum:
+                logging.warning(
+                    "Ensemble starting at startpos {} has a checksum error".format(
+                        startpos
+                    )
+                )
+                logging.warning(
+                    "checksum calculated = %s, actual checksum = %s\n"
+                    % ((sum(bytesInEnsemble) & 0xFFFF), checksum)
+                )
+                fd.seek(-100, 1)
+                self.read_buffer()
+            else:
+                # go back to start of ensemble
+                fd.seek(-noBytesInEnsemble, 1)
+
             self.read_hdrseg()
             if self._debug_level > -1:
                 logging.info("Read Header", hdr)
@@ -612,10 +639,10 @@ class _RDIReader:
             1793: (defs.skip_Ncol, [4]),  # 0701 number of pings
             1794: (defs.skip_Ncol, [4]),  # 0702 sum of squared vel
             1795: (defs.skip_Ncol, [4]),  # 0703 sum of velocities
-            2560: (defs.skip_Ncol, []),  # 0A00 Beam 5 velocity
-            2816: (defs.skip_Ncol, []),  # 0B00 Beam 5 correlation
-            3072: (defs.skip_Ncol, []),  # 0C00 Beam 5 amplitude
-            3328: (defs.skip_Ncol, []),  # 0D00 Beam 5 pct_good
+            2560: (defs.skip_Ncol, []),  # 0A00 Beam 5 velocity TODO
+            2816: (defs.skip_Ncol, []),  # 0B00 Beam 5 correlation TODO
+            3072: (defs.skip_Ncol, []),  # 0C00 Beam 5 amplitude TODO
+            3328: (defs.skip_Ncol, []),  # 0D00 Beam 5 pct_good TODO
             # Fixed attitude data format for Ocean Surveyor ADCPs
             3000: (defs.skip_Nbyte, [32]),
             3841: (defs.skip_Nbyte, [38]),  # 0F01 Beam 5 leader
@@ -648,8 +675,16 @@ class _RDIReader:
             22785: (defs.skip_Nbyte, [65]),
             # 5902 Ping attitude
             22786: (defs.skip_Nbyte, [105]),
-            # 7001 ADC data
-            28673: (defs.skip_Nbyte, [14]),
+            # 7000 Sentinvel V system configuration TODO
+            28672: (defs.skip_Nbyte, [14]),
+            # 7001 Sentinel V leader TODO
+            28673: (defs.skip_Nbyte, [42]),
+            # 7002 ADC data
+            28674: (defs.skip_Nbyte, [14]),
+            # 7003 Sentinel V "Features" (only first ensemble)
+            28675: (defs.skip_Nbyte, [88]),  # min size
+            # 7004 Sentinel V Event Log
+            28676: (defs.skip_Nbyte, [6]),  # min size
         }
         # Call the correct function:
         if self._debug_level > 1:
@@ -992,7 +1027,11 @@ class _RDIReader:
         ):
             cfg["fs"] = round(1 / np.median(np.diff(dat["coords"]["time"])), 2)
         else:
-            cfg["fs"] = 1 / (cfg["sec_between_ping_groups"] * cfg["pings_per_ensemble"])
+            sec_bt_ping_group = cfg["sec_between_ping_groups"]
+            if not sec_bt_ping_group:
+                cfg["fs"] = np.nan
+            else:
+                cfg["fs"] = 1 / (sec_bt_ping_group * cfg["pings_per_ensemble"])
 
         # Save configuration data as attributes
         dat["attrs"] = cfg
