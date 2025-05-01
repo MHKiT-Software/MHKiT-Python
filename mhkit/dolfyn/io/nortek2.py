@@ -764,8 +764,13 @@ def _reduce(data):
         dc["range_avg"] = (np.arange(dv["vel_avg"].shape[1]) + 1) * da[
             "cell_size_avg"
         ] + da["blank_dist_avg"]
-        if "orientmat" not in dv:
+        # Check to see if orientmat_avg was written (only for instruments with an AHRS)
+        if ("orientmat" not in dv) and ("orientmat_avg" in dv):
             dv["orientmat"] = dv.pop("orientmat_avg")
+        else:  # need these to write orientation matrix
+            dv["heading"] = dv.pop("heading_avg")
+            dv["pitch"] = dv.pop("pitch_avg")
+            dv["roll"] = dv.pop("roll_avg")
         tmat = da["filehead_config"]["XFAVG"]
         da["fs"] = da["filehead_config"]["PLAN"]["MIAVG"]
         da["avg_interval_sec"] = da["filehead_config"]["AVG"]["AI"]
@@ -812,6 +817,7 @@ def split_dp_datasets(ds):
     Splits a dataset containing dual profiles into individual profiles
     """
 
+    ds2 = type(ds)()
     # Figure out which variables belong to which profile based on length of time variables
     t_dict = {}
     for t in ds.coords:
@@ -825,45 +831,45 @@ def split_dp_datasets(ds):
                 # altraw goes with burst, altraw_avg goes with avg
                 continue
             other_coords.append(key)
-    # Fetch variables, coordinates, and attrs for second profiling configuration
-    other_vars = [
-        v for v in ds.data_vars if any(x in ds[v].coords for x in other_coords)
-    ]
-    other_tags = [s.split("_")[-1] for s in other_coords]
-    other_coords += [v for v in ds.coords if any(x in v for x in other_tags)]
-    other_attrs = [s for s in ds.attrs if any(x in s for x in other_tags)]
-    critical_attrs = [
-        "inst_model",
-        "inst_make",
-        "inst_type",
-        "fs",
-        "orientation",
-        "orient_status",
-        "has_imu",
-        "beam_angle",
-    ]
+    if other_coords:
+        # Fetch variables, coordinates, and attrs for second profiling configuration
+        other_vars = [
+            v for v in ds.data_vars if any(x in ds[v].coords for x in other_coords)
+        ]
+        other_tags = [s.split("_")[-1] for s in other_coords]
+        other_coords += [v for v in ds.coords if any(x in v for x in other_tags)]
+        other_attrs = [s for s in ds.attrs if any(x in s for x in other_tags)]
+        critical_attrs = [
+            "inst_model",
+            "inst_make",
+            "inst_type",
+            "fs",
+            "orientation",
+            "orient_status",
+            "has_imu",
+            "beam_angle",
+        ]
 
-    # Create second dataset
-    ds2 = type(ds)()
-    for a in other_attrs + critical_attrs:
-        ds2.attrs[a] = ds.attrs[a]
-    for v in other_vars:
-        ds2[v] = ds[v]
-    # Set rotate_vars
-    rotate_vars2 = [v for v in ds.attrs["rotate_vars"] if v in other_vars]
-    ds2.attrs["rotate_vars"] = rotate_vars2
-    # Set orientation matricies
-    ds2["beam2inst_orientmat"] = ds["beam2inst_orientmat"]
-    ds2 = ds2.rename({"orientmat_" + other_tags[0]: "orientmat"})
-    # Set original coordinate system
-    cy = ds2.attrs["coord_sys_axes_" + other_tags[0]]
-    ds2.attrs["coord_sys"] = {"XYZ": "inst", "ENU": "earth", "beam": "beam"}[cy]
-    ds2 = _set_coords(ds2, ref_frame=ds2.coord_sys)
+        # Create second dataset
+        for a in other_attrs + critical_attrs:
+            ds2.attrs[a] = ds.attrs[a]
+        for v in other_vars:
+            ds2[v] = ds[v]
+        # Set rotate_vars
+        rotate_vars2 = [v for v in ds.attrs["rotate_vars"] if v in other_vars]
+        ds2.attrs["rotate_vars"] = rotate_vars2
+        # Set orientation matricies
+        ds2["beam2inst_orientmat"] = ds["beam2inst_orientmat"]
+        ds2 = ds2.rename({"orientmat_" + other_tags[0]: "orientmat"})
+        # Set original coordinate system
+        cy = ds2.attrs["coord_sys_axes_" + other_tags[0]]
+        ds2.attrs["coord_sys"] = {"XYZ": "inst", "ENU": "earth", "beam": "beam"}[cy]
+        ds2 = _set_coords(ds2, ref_frame=ds2.coord_sys)
 
-    # Clean up first dataset
-    [ds.attrs.pop(ky) for ky in other_attrs]
-    ds = ds.drop_vars(other_vars + other_coords)
-    for itm in rotate_vars2:
-        ds.attrs["rotate_vars"].remove(itm)
+        # Clean up first dataset
+        [ds.attrs.pop(ky) for ky in other_attrs]
+        ds = ds.drop_vars(other_vars + other_coords)
+        for itm in rotate_vars2:
+            ds.attrs["rotate_vars"].remove(itm)
 
     return ds, ds2

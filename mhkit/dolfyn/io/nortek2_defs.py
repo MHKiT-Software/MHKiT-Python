@@ -1,5 +1,6 @@
 import numpy as np
 from copy import copy
+import struct
 from struct import Struct
 from . import nortek2_lib as lib
 
@@ -90,6 +91,10 @@ class _DataDef:
         if len(bytes) != self.nbyte:
             raise IOError("End of file.")
         data = self._struct.unpack(bytes)
+        # Issue with 10 bytes in the header being hardcoded
+        if data[1] == 12:
+            fobj.seek(-10, 1)
+            data = struct.unpack("<BBBBIhh", fobj.read(12))
         if cs is not None:
             if cs is True:
                 # if cs is True, then it should be the last value that
