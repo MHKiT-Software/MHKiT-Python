@@ -247,8 +247,10 @@ def _check_index(idx, infile, fix_hw_ens=False, dp=False):
     N_id = len(uid)
 
     # Are there better ways to detect dual profile?
-    if (21 in uid) and (22 in uid):
-        warnings.warn("Dual Profile detected... Two datasets will be returned.")
+    if (22 in uid) and ((21 in uid) or (28 in uid)):
+        msg = "Dual Profile detected... Two datasets will be returned."
+        warnings.warn(msg)
+        logging.warning(msg)
         dp = True
 
     # HACK This loop fixes 'skips' inside the file

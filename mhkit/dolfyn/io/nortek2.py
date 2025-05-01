@@ -860,10 +860,21 @@ def split_dp_datasets(ds):
         ds2.attrs["rotate_vars"] = rotate_vars2
         # Set orientation matricies
         ds2["beam2inst_orientmat"] = ds["beam2inst_orientmat"]
-        ds2 = ds2.rename({"orientmat_" + other_tags[0]: "orientmat"})
+        # drop echo sounder tag for following code
+        other_tags.remove("echo")
+        if ds.attrs["has_imu"] and other_tags:
+            ds2 = ds2.rename({"orientmat_" + other_tags[0]: "orientmat"})
+        else:
+            ds2["orientmat"] = ds["orientmat"]
         # Set original coordinate system
-        cy = ds2.attrs["coord_sys_axes_" + other_tags[0]]
-        ds2.attrs["coord_sys"] = {"XYZ": "inst", "ENU": "earth", "beam": "beam"}[cy]
+        if other_tags:
+            cy = ds2.attrs["coord_sys_axes_" + other_tags[0]]
+            ds2.attrs["coord_sys"] = {"XYZ": "inst", "ENU": "earth", "beam": "beam"}[cy]
+        else:
+            ds2.attrs["coord_sys"] = ds.attrs["coord_sys"]
+        # Need to add beam coordinate
+        if "beam" not in ds2.dims:
+            ds2 = ds2.assign_coords({"beam": ds["beam"], "dir": ds["dir"]})
         ds2 = _set_coords(ds2, ref_frame=ds2.coord_sys)
 
         # Clean up first dataset
