@@ -652,13 +652,13 @@ class _RDIReader:
             1793: (defs.skip_Ncol, [4]),  # 0701 number of pings
             1794: (defs.skip_Ncol, [4]),  # 0702 sum of squared vel
             1795: (defs.skip_Ncol, [4]),  # 0703 sum of velocities
-            2560: (defs.read_vel_b5, []),  # 0A00 Beam 5 velocity TODO
-            2816: (defs.read_corr_b5, []),  # 0B00 Beam 5 correlation TODO
-            3072: (defs.read_amp_b5, []),  # 0C00 Beam 5 amplitude TODO
-            3328: (defs.read_prcnt_gd_b5, []),  # 0D00 Beam 5 pct_good TODO
+            2560: (defs.read_vel_b5, []),  # 0A00 Beam 5 velocity
+            2816: (defs.read_corr_b5, []),  # 0B00 Beam 5 correlation
+            3072: (defs.read_amp_b5, []),  # 0C00 Beam 5 amplitude
+            3328: (defs.read_prcnt_gd_b5, []),  # 0D00 Beam 5 pct_good
             # Fixed attitude data format for Ocean Surveyor ADCPs
             3000: (defs.skip_Nbyte, [32]),
-            3841: (defs.read_vel_b5_leader, []),  # 0F01 Beam 5 leader TODO
+            3841: (defs.read_vel_b5_leader, []),  # 0F01 Beam 5 leader
             8192: (defs.read_vmdas, []),  # 2000
             # 2013 Navigation parameter data
             8211: (defs.skip_Nbyte, [83]),
