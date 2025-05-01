@@ -1068,7 +1068,7 @@ def read_sentinelv_ping_setup(rdr, bb=False):
     clock[1] += century
     cfg["deployment_start"] = tmlib.date2str(
         tmlib.datetime(*clock[1:7], microsecond=int(float(clock[7]) * 10000))
-    )
+    )[0]
     if rdr._debug_level > -1:
         logging.info("Read Sentinel V Ping Setup")
     rdr._nbyte = 2 + 42

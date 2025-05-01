@@ -21,6 +21,7 @@ def read_rdi(
     debug_level=-1,
     vmdas_search=False,
     winriver=False,
+    search_num=20000,
     **kwargs,
 ) -> xr.Dataset:
     """
@@ -65,7 +66,11 @@ def read_rdi(
     # Reads into a dictionary of dictionaries using netcdf naming conventions
     # Should be easier to debug
     rdr = _RDIReader(
-        filename, debug_level=debug_level, vmdas_search=vmdas_search, winriver=winriver
+        filename,
+        debug_level=debug_level,
+        vmdas_search=vmdas_search,
+        winriver=winriver,
+        search_num=search_num,
     )
     datNB, datBB = rdr.load_data(nens=nens)
 
@@ -159,9 +164,7 @@ def _set_rdi_declination(dat, fname, inplace):
 
 
 class _RDIReader:
-    def __init__(
-        self, fname, navg=1, debug_level=-1, vmdas_search=False, winriver=False
-    ):
+    def __init__(self, fname, debug_level, vmdas_search, winriver, search_num):
         self.fname = base._abspath(fname)
         print("\nReading file {} ...".format(fname))
         self._debug_level = debug_level
@@ -170,6 +173,7 @@ class _RDIReader:
         self._vm_source = 0
         self._pos = 0
         self.progress = 0
+        self.search_num = search_num
         self._cfac32 = np.float32(180 / 2**31)  # signed 32 to float
         self._cfac16 = np.float32(180 / 2**15)  # unsigned16 to float
         self._fixoffset = 0
@@ -194,7 +198,7 @@ class _RDIReader:
             logging.info("self._BB {}".format(self._BB))
             logging.info("self.cfgBB: {}".format(self.cfgBB))
         self.f.seek(self._pos, 0)
-        self.n_avg = navg
+        self.n_avg = 1
 
         self.ensemble = lib._ensemble(self.n_avg, self.cfg["n_cells"])
         if self._BB:
@@ -500,7 +504,7 @@ class _RDIReader:
         """
         Check to see if the next bytes indicate the beginning of a
         data block.  If not, search for the next data block, up to
-        _search_num times.
+        search_num times.
         """
         fd = self.f
         id = fd.read_ui8(2)
@@ -515,8 +519,11 @@ class _RDIReader:
             logging.info("cfgid0: [{:x}, {:x}]".format(*cfgid))
         # If not [127, 127] or if the file ends in the next ensemble
         while (cfgid != [127, 127]) or self.check_eof():
+            if search_cnt == self.search_num:
+                logging.debug(f"Stopped searching at byte position {fd.tell()}")
+                return False
+            # Search for the next header or the end of the file
             if cfgid == [127, 121]:
-                # Search for the next header or the end of the file
                 skipbytes = fd.read_i16(1)
                 fd.seek(skipbytes - 2, 1)
                 id = fd.read_ui8(2)
