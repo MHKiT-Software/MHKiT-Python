@@ -1,5 +1,5 @@
 import numpy as np
-from struct import unpack, calcsize
+from struct import unpack, calcsize, Struct
 import warnings
 from pathlib import Path
 import logging
@@ -157,7 +157,7 @@ class _Ad2cpReader:
         self._check_nortek(endian)
         self.f.seek(0, 2)  # Seek to end
         self._eof = self.f.tell()
-        self.start_pos = self._check_header()
+        self.start_pos = 0  # self._check_header()
         self._index, self._dp = lib.get_index(
             fname,
             pos=self.start_pos,
@@ -322,6 +322,9 @@ class _Ad2cpReader:
 
     def _read_hdr(self, do_cs=False):
         res = defs.header.read2dict(self.f, cs=do_cs)
+        if res["hsz"] == 12:
+            self.f.seek(-10, 1)
+            res = defs.header12.read2dict(self.f, cs=do_cs)
         if res["sync"] != 165:
             raise Exception("Out of sync!")
         return res
@@ -767,7 +770,7 @@ def _reduce(data):
         # Check to see if orientmat_avg was written (only for instruments with an AHRS)
         if ("orientmat" not in dv) and ("orientmat_avg" in dv):
             dv["orientmat"] = dv.pop("orientmat_avg")
-        else:  # need these to write orientation matrix
+        elif "heading" not in dv:  # need these to write orientation matrix
             dv["heading"] = dv.pop("heading_avg")
             dv["pitch"] = dv.pop("pitch_avg")
             dv["roll"] = dv.pop("roll_avg")
@@ -861,7 +864,8 @@ def split_dp_datasets(ds):
         # Set orientation matricies
         ds2["beam2inst_orientmat"] = ds["beam2inst_orientmat"]
         # drop echo sounder tag for following code
-        other_tags.remove("echo")
+        if "echo" in other_tags:
+            other_tags.remove("echo")
         if ds.attrs["has_imu"] and other_tags:
             ds2 = ds2.rename({"orientmat_" + other_tags[0]: "orientmat"})
         else:

@@ -134,7 +134,7 @@ def _create_index(infile, outfile, init_pos, eof, debug):
         35: 40,  # 0x23 raw echo sounder
         36: 40,  # 0x24 raw tx echo sounder
         48: 40,  # 0x30 processed wave
-        # 160: 40, # 0xA0 string (GPS NMEA data)
+        # 160: 40, # 0xA0 string (header info, GPS NMEA data)
         # 192: 40, # 0xC0 Nortek Data format 8 record
     }
     pos = 0
@@ -253,7 +253,7 @@ def _check_index(idx, infile, fix_hw_ens=False, dp=False):
         logging.warning(msg)
         dp = True
 
-    # HACK This loop fixes 'skips' inside the file
+    # This loop fixes 'skips' inside the file
     for id in uid:
         # These are the indices for this ID
         inds = np.nonzero(idx["ID"] == id)[0]
