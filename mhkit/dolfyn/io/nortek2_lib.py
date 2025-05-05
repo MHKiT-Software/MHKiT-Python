@@ -169,6 +169,7 @@ def _create_index(infile, outfile, init_pos, eof, debug):
         # 192: 40, # 0xC0 Nortek Data format 8 record
     }
     pos = 0
+    header_check_flag = 0
     # leave room for header plus other data (12 + 76)
     while pos <= (eof - 88):
         if init_pos and not pos:
@@ -192,15 +193,22 @@ def _create_index(infile, outfile, init_pos, eof, debug):
                     logging.debug("Header is not 10 or 12 bytes: %10d\n" % (pos))
                 # check for if file was terminated and restarted
                 # by searching for start of header configuration string
-                fin, to_skip = __check_header(fin, eof)
-                if to_skip:
-                    fin.seek(to_skip, 1)
-                    if debug:
-                        logging.debug(
-                            "Found new header string as position: %10d\n"
-                            % (pos + to_skip)
-                        )
-                    continue
+                if not header_check_flag:
+                    fin, to_skip = __check_header(fin, eof)
+                    # Will run long for large files
+                    if to_skip:
+                        if debug:
+                            logging.info(
+                                "Found new header configuration string as position: %10d\n"
+                                % (pos + to_skip)
+                            )
+                        fin.seek(to_skip, 1)
+                        continue
+                    else:
+                        # Don't run more often than necessary
+                        header_check_flag = 1
+                        if debug:
+                            logging.info("No new header configuration string found")
         if dat[2] in ids:
             idk = dat[2]
             # version, byte offset to actual data, configuration bit mask

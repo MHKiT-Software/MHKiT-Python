@@ -1,5 +1,5 @@
 import numpy as np
-from struct import unpack, calcsize, Struct
+from struct import unpack, calcsize
 import warnings
 from pathlib import Path
 import logging
