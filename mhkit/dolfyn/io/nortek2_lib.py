@@ -291,7 +291,8 @@ def _boolarray_firstensemble_ping(index):
     each ensemble.
     """
     dens = np.ones(index["ens"].shape, dtype="bool")
-    dens[1:] = np.diff(index["ens"]) != 0
+    if any(index["ens"]):
+        dens[1:] = np.diff(index["ens"]) != 0
     return dens
 
 
