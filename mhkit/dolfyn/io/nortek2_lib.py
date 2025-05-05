@@ -106,6 +106,37 @@ def _calc_time(year, month, day, hour, minute, second, usec, zero_is_bad=True):
     return dt
 
 
+def __check_header(infile_obj, eof):
+    def find_all(s, c):
+        idx = s.find(c)
+        while idx != -1:
+            yield idx
+            idx = s.find(c, idx + 1)
+
+    # Save current position
+    current_pos = infile_obj.tell()
+
+    # Close and reopen file with larger buffer
+    infile_obj.close()
+    int32_max = np.iinfo(np.int32).max
+    if eof >= int32_max:
+        buffer = int32_max
+    else:
+        buffer = eof
+    fin = open(_abspath(infile_obj.name), "rb", buffer)
+    fin.seek(current_pos, 1)
+
+    # Search for multiple saved headers
+    pk = fin.peek(1)
+    found = [i for i in find_all(pk, b"GETCLOCKSTR")]
+    if found:
+        start_idx = found[0] - 11  # assuming next header is 10 bytes
+    else:
+        start_idx = 0
+
+    return fin, start_idx
+
+
 def _create_index(infile, outfile, init_pos, eof, debug):
     logging = getLogger()
     print("Indexing {}...".format(infile), end="")
@@ -156,8 +187,20 @@ def _create_index(infile, outfile, init_pos, eof, debug):
                 fin.seek(-10, 1)
                 dat = struct.unpack("<BBBBIhh", fin.read(12))
             else:
+                # Lost header
                 if debug:
                     logging.debug("Header is not 10 or 12 bytes: %10d\n" % (pos))
+                # check for if file was terminated and restarted
+                # by searching for start of header configuration string
+                fin, to_skip = __check_header(fin, eof)
+                if to_skip:
+                    fin.seek(to_skip, 1)
+                    if debug:
+                        logging.debug(
+                            "Found new header string as position: %10d\n"
+                            % (pos + to_skip)
+                        )
+                    continue
         if dat[2] in ids:
             idk = dat[2]
             # version, byte offset to actual data, configuration bit mask

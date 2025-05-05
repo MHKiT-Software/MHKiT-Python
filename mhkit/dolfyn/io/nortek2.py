@@ -14,9 +14,6 @@ from ..rotate.api import set_declination
 from ..time import epoch2dt64, _fill_time_gaps
 
 
-int32_max = np.iinfo(np.int32).max
-
-
 def read_signature(
     filename,
     userdata=True,
@@ -157,10 +154,9 @@ class _Ad2cpReader:
         self._check_nortek(endian)
         self.f.seek(0, 2)  # Seek to end
         self._eof = self.f.tell()
-        self.start_pos = 0  # self._check_header()
         self._index, self._dp = lib.get_index(
             fname,
-            pos=self.start_pos,
+            pos=0,
             eof=self._eof,
             rebuild=rebuild_index,
             debug=debug,
@@ -200,28 +196,6 @@ class _Ad2cpReader:
                     "AD2CP file?"
                 )
         self.endian = endian
-
-    def _check_header(self):
-        def find_all(s, c):
-            idx = s.find(c)
-            while idx != -1:
-                yield idx
-                idx = s.find(c, idx + 1)
-
-        # Open the entire file to find start header
-        if self._eof >= int32_max:
-            init_buffer = int32_max
-        else:
-            init_buffer = self._eof
-        self._open(init_buffer)
-        pk = self.f.peek(1)
-        # Search for multiple saved headers
-        found = [i for i in find_all(pk, b"GETCLOCKSTR")]
-        if len(found) < 2:
-            return 0
-        else:
-            start_idx = found[-1] - 11
-            return start_idx
 
     def _open(self, bufsize=None):
         if bufsize is None:
