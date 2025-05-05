@@ -146,12 +146,12 @@ def discharge(ds, water_depth, rho, mu=None, surface_offset=0, utm_zone=10):
 
         """
 
-        PlateC = ccrs.PlateCarree()
+        plate_c = ccrs.PlateCarree()
         proj.x0, proj.y0 = proj.transform_point(
-            ds["longitude_gps"].mean(), ds["latitude_gps"].mean(), PlateC
+            ds["longitude_gps"].mean(), ds["latitude_gps"].mean(), plate_c
         )
         xy = xr.DataArray(
-            proj.transform_points(PlateC, ds["longitude_gps"], ds["latitude_gps"])[
+            proj.transform_points(plate_c, ds["longitude_gps"], ds["latitude_gps"])[
                 :, :2
             ].T,
             coords={"gps": ["x", "y"], "time_gps": ds["longitude_gps"]["time_gps"]},
