@@ -25,3 +25,4 @@ dependencies:
   - matplotlib>=3.9.1
   - fatpack
   - nrel-rex
+  - cartopy
