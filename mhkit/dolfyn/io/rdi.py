@@ -33,8 +33,8 @@ def read_rdi(
       Filename of TRDI file to read.
     userdata : True, False, or string of userdata.json filename
       Whether to read the '<base-filename>.userdata.json' file. Default = True
-    nens : None, int or 2-element tuple (start, stop)
-      Number of pings or ensembles to read from the file.
+    nens : None, int
+      Number of pings or ensembles to read from the file, starting from 0.
       Default is None, read entire file
     debug : int
       Debug level [0 - 3]. Default = 0
@@ -246,7 +246,7 @@ class _RDIReader:
         fd = self.f
         hdr = self.hdr
         hdr["nbyte"] = fd.read_i16(1)
-        spare = fd.read_ui8(1)
+        fd.seek(1, 1)
         ndat = fd.read_ui8(1)
         hdr["dat_offsets"] = fd.read_ui16(ndat)
         self._nbyte = 4 + ndat * 2
@@ -281,29 +281,22 @@ class _RDIReader:
 
     def load_data(self, nens=None):
         """Main function run after reader class is initiated."""
+
         if nens is None:
-            # Attempt to overshoot WinRiver2 or *Pro filesize
-            if (self.cfg["coord_sys"] == "ship") or (
-                self.cfg["inst_model"]
-                in [
-                    "RiverPro",
-                    "StreamPro",
-                ]
-            ):
-                self._nens = int((self._filesize / self.hdr["nbyte"]) * 1.1)
-            else:
-                # Attempt to overshoot other instrument filesizes
-                self._nens = int(self._npings)
+            # Overshoot file size to pre-allocate enough ensembles
+            self._nens = int(self._npings * 10)
         elif nens.__class__ is tuple or nens.__class__ is list:
             raise Exception("    `nens` must be a integer")
         else:
             self._nens = nens
-        if self._debug_level > -1:
-            logging.info("  taking data from pings 0 - %d" % self._nens)
-            logging.info("  %d ensembles will be produced.\n" % self._nens)
+
+        # Pre-allocate data
         self.init_data()
 
-        for iens in range(self._nens):
+        iens = 0
+        while True:
+            if iens == self._nens:
+                break
             if not self.read_buffer():
                 self.remove_end(iens)
                 break
@@ -354,6 +347,7 @@ class _RDIReader:
                         dat["coords"]["time_b5"][iens] = (
                             np.median(dates) + cfg["ping_offset_time_b5"]
                         )
+                iens += 1
 
         # Finalize dataset (runs through both NB and BB)
         for dat, cfg in zip(datl, cfgl):
