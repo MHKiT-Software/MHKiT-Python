@@ -32,10 +32,14 @@ dat_sig_i_ud = load("Sig1000_IMU_ud.nc")
 dat_sig_ieb = load("VelEchoBT01.nc")
 dat_sig_ie = load("Sig500_Echo.nc")
 dat_sig_tide = load("Sig1000_tidal.nc")
+dat_sig_raw_avg = load("Sig100_raw_avg.nc")
+dat_sig_avg = load("Sig100_avg.nc")
+dat_sig_rt = load("Sig1000_online.nc")
 dat_sig_skip = load("Sig_SkippedPings01.nc")
 dat_sig_badt = load("Sig1000_BadTime01.nc")
 dat_sig5_leiw = load("Sig500_last_ensemble_is_whole.nc")
-dat_sig_dp2 = load("dual_profile.nc")
+dat_sig_dp2_all = load("Sig500_dp_all.nc")
+dat_sig_dp2_echo = load("Sig1000_dp_echo.nc")
 
 
 class io_adp_testcase(unittest.TestCase):
@@ -104,8 +108,14 @@ class io_adp_testcase(unittest.TestCase):
         td_sig_ieb = read("VelEchoBT01.ad2cp", nens=nens, rebuild_index=True)
         td_sig_ie = read("Sig500_Echo.ad2cp", nens=nens, rebuild_index=True)
         td_sig_tide = read("Sig1000_tidal.ad2cp", nens=nens, rebuild_index=True)
+        td_sig_raw_avg = read("Sig100_raw_avg.ad2cp", nens=nens, rebuild_index=True)
+        td_sig_avg = read("Sig100_avg.ad2cp", nens=nens, rebuild_index=True)
+        td_sig_rt = read("Sig1000_online.ad2cp", nens=nens, rebuild_index=True)
         # Only need to test 2nd dataset
-        td_sig_dp1, td_sig_dp2 = read("dual_profile.ad2cp")
+        td_sig_dp1_all, td_sig_dp2_all = read("Sig500_dp_all.ad2cp", rebuild_index=True)
+        td_sig_dp1_avg, td_sig_dp2_echo = read(
+            "Sig1000_dp_echo.ad2cp", rebuild_index=True
+        )
 
         with pytest.warns(UserWarning):
             # This issues a warning...
@@ -123,10 +133,14 @@ class io_adp_testcase(unittest.TestCase):
         os.remove(tb.exdt("VelEchoBT01.ad2cp.index"))
         os.remove(tb.exdt("Sig500_Echo.ad2cp.index"))
         os.remove(tb.exdt("Sig1000_tidal.ad2cp.index"))
+        os.remove(tb.exdt("Sig100_raw_avg.ad2cp.index"))
+        os.remove(tb.exdt("Sig100_avg.ad2cp.index"))
+        os.remove(tb.exdt("Sig1000_online.ad2cp.index"))
         os.remove(tb.exdt("Sig_SkippedPings01.ad2cp.index"))
         os.remove(tb.exdt("Sig500_last_ensemble_is_whole.ad2cp.index"))
         os.remove(tb.rfnm("Sig1000_BadTime01.ad2cp.index"))
-        os.remove(tb.exdt("dual_profile.ad2cp.index"))
+        os.remove(tb.exdt("Sig500_dp_all.ad2cp.index"))
+        os.remove(tb.exdt("Sig1000_dp_echo.ad2cp.index"))
 
         if make_data:
             save(td_sig, "BenchFile01.nc")
@@ -135,10 +149,14 @@ class io_adp_testcase(unittest.TestCase):
             save(td_sig_ieb, "VelEchoBT01.nc")
             save(td_sig_ie, "Sig500_Echo.nc")
             save(td_sig_tide, "Sig1000_tidal.nc")
+            save(td_sig_raw_avg, "Sig100_raw_avg.nc")
+            save(td_sig_avg, "Sig100_avg.nc")
+            save(td_sig_rt, "Sig1000_online.nc")
             save(td_sig_skip, "Sig_SkippedPings01.nc")
             save(td_sig_badt, "Sig1000_BadTime01.nc")
             save(td_sig5_leiw, "Sig500_last_ensemble_is_whole.nc")
-            save(td_sig_dp2, "dual_profile.nc")
+            save(td_sig_dp2_all, "dual_profile.nc")
+            save(td_sig_dp2_echo, "Sig1000_dp_echo.nc")
             return
 
         assert_allclose(td_sig, dat_sig, atol=1e-6)
@@ -147,10 +165,14 @@ class io_adp_testcase(unittest.TestCase):
         assert_allclose(td_sig_ieb, dat_sig_ieb, atol=1e-6)
         assert_allclose(td_sig_ie, dat_sig_ie, atol=1e-6)
         assert_allclose(td_sig_tide, dat_sig_tide, atol=1e-6)
+        assert_allclose(td_sig_raw_avg, dat_sig_raw_avg, atol=1e-6)
+        assert_allclose(td_sig_avg, dat_sig_avg, atol=1e-6)
+        assert_allclose(td_sig_rt, dat_sig_rt, atol=1e-6)
         assert_allclose(td_sig5_leiw, dat_sig5_leiw, atol=1e-6)
         assert_allclose(td_sig_skip, dat_sig_skip, atol=1e-6)
         assert_allclose(td_sig_badt, dat_sig_badt, atol=1e-6)
-        assert_allclose(td_sig_dp2, dat_sig_dp2, atol=1e-6)
+        assert_allclose(td_sig_dp2_all, dat_sig_dp2_all, atol=1e-6)
+        assert_allclose(td_sig_dp2_echo, dat_sig_dp2_echo, atol=1e-6)
 
     def test_nortek2_crop(self):
         # Test file cropping function
