@@ -62,7 +62,7 @@ class clean_testcase(unittest.TestCase):
         td_awac = tp.dat_awac.copy(deep=True)
         td_sig = tp.dat_sig_tide.copy(deep=True)
         td_rdi = tp.dat_rdi.copy(deep=True)
-        td_dual = tp.dat_sig_dp2.copy(deep=True)
+        td_dual = tp.dat_sig_dp1_ice.copy(deep=True)
 
         apm.clean.water_depth_from_pressure(td_awac, salinity=30)
         apm.clean.remove_surface_interference(td_awac, beam_angle=20, inplace=True)
@@ -95,7 +95,7 @@ class clean_testcase(unittest.TestCase):
 
     def test_clean_downADCP(self):
         td = tp.dat_sig_ie.copy(deep=True)
-        td_dual = tp.dat_sig_dp2.copy(deep=True)
+        td_dual = tp.dat_sig_dp1_ice.copy(deep=True)
 
         # First remove bad data
         td["vel"] = apm.clean.val_exceeds_thresh(td.vel, thresh=3)

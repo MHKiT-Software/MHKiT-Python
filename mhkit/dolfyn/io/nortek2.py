@@ -769,13 +769,6 @@ def _reduce(data):
             tm[irow, icol] = tmat["M" + str(irow + 1) + str(icol + 1)]
     dv["beam2inst_orientmat"] = tm
 
-    # If burst velocity isn't used, need to copy one for 'time'
-    if "time" not in dc:
-        for val in dc:
-            if "time" in val:
-                time = val
-        dc["time"] = dc[time]
-
 
 def split_dp_datasets(ds):
     """
@@ -783,27 +776,22 @@ def split_dp_datasets(ds):
     """
 
     ds2 = type(ds)()
-    # Figure out which variables belong to which profile based on length of time variables
-    t_dict = {}
-    for t in ds.coords:
-        if "time" in t:
-            t_dict[t] = ds[t].size
+    # Get averaged time variables
+    other_coords = [t for t in ds.coords if "_avg" in t]
+    # Check if ice tracking was used
+    if ("vel" in ds.data_vars) and ("time_bt" in ds.coords):
+        if ds["time"].size != ds["time_bt"].size:
+            other_coords.append("time_bt")
 
-    other_coords = []
-    for key, val in t_dict.items():
-        if val != t_dict["time"]:
-            if key.endswith("altraw"):
-                # altraw goes with burst, altraw_avg goes with avg
-                continue
-            other_coords.append(key)
     if other_coords:
         # Fetch variables, coordinates, and attrs for second profiling configuration
         other_vars = [
-            v for v in ds.data_vars if any(x in ds[v].coords for x in other_coords)
+            v
+            for v in ds.data_vars
+            if any(x in ds[v].coords for x in other_coords)
+            or any(ds[v].shape[-1] == ds[x].size for x in other_coords)
         ]
-        other_tags = [s.split("_")[-1] for s in other_coords]
-        other_coords += [v for v in ds.coords if any(x in v for x in other_tags)]
-        other_attrs = [s for s in ds.attrs if any(x in s for x in other_tags)]
+        other_attrs = [s for s in ds.attrs if "_avg" in s]
         critical_attrs = [
             "inst_model",
             "inst_make",
@@ -825,19 +813,13 @@ def split_dp_datasets(ds):
         ds2.attrs["rotate_vars"] = rotate_vars2
         # Set orientation matricies
         ds2["beam2inst_orientmat"] = ds["beam2inst_orientmat"]
-        # drop echo sounder tag for following code
-        if "echo" in other_tags:
-            other_tags.remove("echo")
-        if ds.attrs["has_imu"] and other_tags:
-            ds2 = ds2.rename({"orientmat_" + other_tags[0]: "orientmat"})
+        if ds.attrs["has_imu"]:
+            ds2 = ds2.rename({"orientmat_avg": "orientmat"})
         else:
             ds2["orientmat"] = ds["orientmat"]
         # Set original coordinate system
-        if other_tags:
-            cy = ds2.attrs["coord_sys_axes_" + other_tags[0]]
-            ds2.attrs["coord_sys"] = {"XYZ": "inst", "ENU": "earth", "beam": "beam"}[cy]
-        else:
-            ds2.attrs["coord_sys"] = ds.attrs["coord_sys"]
+        cy = ds2.attrs["coord_sys_axes_avg"]
+        ds2.attrs["coord_sys"] = {"XYZ": "inst", "ENU": "earth", "beam": "beam"}[cy]
         # Need to add beam coordinate
         if "beam" not in ds2.dims:
             ds2 = ds2.assign_coords({"beam": ds["beam"], "dir": ds["dir"]})
@@ -849,4 +831,7 @@ def split_dp_datasets(ds):
         for itm in rotate_vars2:
             ds.attrs["rotate_vars"].remove(itm)
 
-    return ds, ds2
+    if ds2:
+        return ds, ds2
+    else:
+        return ds
