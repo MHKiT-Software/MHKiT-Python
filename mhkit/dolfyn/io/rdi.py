@@ -18,7 +18,7 @@ def read_rdi(
     filename,
     userdata=None,
     nens=None,
-    debug_level=-1,
+    debug=0,
     vmdas_search=False,
     winriver=False,
     search_num=20000,
@@ -36,8 +36,8 @@ def read_rdi(
     nens : None, int or 2-element tuple (start, stop)
       Number of pings or ensembles to read from the file.
       Default is None, read entire file
-    debug_level : int
-      Debug level [0 - 2]. Default = -1
+    debug : int
+      Debug level [0 - 3]. Default = 0
     vmdas_search : bool
       Search from the end of each ensemble for the VMDAS navigation
       block.  The byte offsets are sometimes incorrect. Default = False
@@ -51,7 +51,7 @@ def read_rdi(
       An xarray dataset from the binary instrument data
     """
     # Start debugger logging
-    if debug_level >= 0:
+    if debug > 0:
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
         filepath = Path(filename)
@@ -67,7 +67,7 @@ def read_rdi(
     # Should be easier to debug
     rdr = _RDIReader(
         filename,
-        debug_level=debug_level,
+        debug=debug,
         vmdas_search=vmdas_search,
         winriver=winriver,
         search_num=search_num,
@@ -128,7 +128,7 @@ def read_rdi(
         )
 
     # Close handler
-    if debug_level >= 0:
+    if debug > 0:
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
             handler.close()
@@ -164,10 +164,10 @@ def _set_rdi_declination(dat, fname, inplace):
 
 
 class _RDIReader:
-    def __init__(self, fname, debug_level, vmdas_search, winriver, search_num):
+    def __init__(self, fname, debug, vmdas_search, winriver, search_num):
         self.fname = base._abspath(fname)
         print("\nReading file {} ...".format(fname))
-        self._debug_level = debug_level
+        self._debug_level = debug
         self._vmdas_search = vmdas_search
         self._winrivprob = winriver
         self._vm_source = 0
@@ -198,11 +198,10 @@ class _RDIReader:
             logging.info("self._BB {}".format(self._BB))
             logging.info("self.cfgBB: {}".format(self.cfgBB))
         self.f.seek(self._pos, 0)
-        self.n_avg = 1
 
-        self.ensemble = lib._ensemble(self.n_avg, self.cfg["n_cells"])
+        self.ensemble = lib._ensemble(self.cfg["n_cells"])
         if self._BB:
-            self.ensembleBB = lib._ensemble(self.n_avg, self.cfgBB["n_cells"])
+            self.ensembleBB = lib._ensemble(self.cfgBB["n_cells"])
 
         self.vars_read = lib._variable_setlist(["time"])
         if self._BB:
@@ -291,10 +290,10 @@ class _RDIReader:
                     "StreamPro",
                 ]
             ):
-                self._nens = int(self._filesize / self.hdr["nbyte"] / self.n_avg * 1.1)
+                self._nens = int((self._filesize / self.hdr["nbyte"]) * 1.1)
             else:
                 # Attempt to overshoot other instrument filesizes
-                self._nens = int(self._npings / self.n_avg)
+                self._nens = int(self._npings)
         elif nens.__class__ is tuple or nens.__class__ is list:
             raise Exception("    `nens` must be a integer")
         else:
@@ -415,7 +414,7 @@ class _RDIReader:
             self.ensembleBB.k = -1  # so that k+=1 gives 0 on the first loop.
         self.print_progress()
         hdr = self.hdr
-        while self.ensemble.k < self.ensemble.n_avg - 1:
+        while self.ensemble.k < 0:
             if not self.search_buffer():
                 return False
             startpos = fd.tell() - 2
@@ -540,7 +539,7 @@ class _RDIReader:
                 cfgid[0] = cfgid[1]
                 cfgid[1] = nextbyte
 
-        if pos_7f79 and self._debug_level > -1:
+        if pos_7f79 and (self._debug_level > -1):
             logging.info("Skipped junk data: [{:x}, {:x}]".format(*[127, 121]))
 
         if search_cnt > 0:
@@ -842,10 +841,7 @@ class _RDIReader:
             The updated dataset dictionary with the reformatted profile measurements.
         """
         ds = lib._get(dat, nm)
-        if self.n_avg == 1:
-            bn = en[nm][..., 0]
-        else:
-            bn = np.nanmean(en[nm], axis=-1)
+        bn = en[nm][..., 0]
 
         # If n_cells has changed (RiverPro/StreamPro WinRiver transects)
         if len(ds.shape) == 3:

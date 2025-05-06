@@ -519,7 +519,7 @@ def read_fixed(rdr, bb=False):
         rdr.n_cells_diff = rdr.cfg["n_cells"] - rdr.ensemble["n_cells"]
         # Increase n_cells if greater than 0
         if rdr.n_cells_diff > 0:
-            rdr.ensemble = lib._ensemble(rdr.n_avg, rdr.cfg["n_cells"])
+            rdr.ensemble = lib._ensemble(rdr.cfg["n_cells"])
             if rdr._debug_level > 0:
                 logging.warning(
                     f"Maximum number of cells increased to {rdr.cfg['n_cells']}"
