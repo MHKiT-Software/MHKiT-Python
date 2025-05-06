@@ -1,9 +1,9 @@
-import numpy as np
-from struct import unpack, calcsize
-import warnings
-from pathlib import Path
-import logging
 import json
+import logging
+import warnings
+from struct import unpack, calcsize
+from pathlib import Path
+import numpy as np
 
 from . import nortek2_defs as defs
 from . import nortek2_lib as lib
@@ -140,20 +140,12 @@ def read_signature(
 
 
 class _Ad2cpReader:
-    def __init__(
-        self,
-        fname,
-        endian=None,
-        bufsize=None,
-        rebuild_index=False,
-        debug=False,
-        dual_profile=False,
-    ):
+    def __init__(self, fname, rebuild_index, debug, dual_profile):
         self.fname = fname
         self.debug = debug
-        self._check_nortek(endian)
-        self.f.seek(0, 2)  # Seek to end
-        self._eof = self.f.tell()
+        # Open file, check endianess, and find filelength
+        self._check_nortek2()
+        # Generate indexing file
         self._index, self._dp = lib.get_index(
             fname,
             pos=0,
@@ -162,7 +154,8 @@ class _Ad2cpReader:
             debug=debug,
             dp=dual_profile,
         )
-        self._open(bufsize)
+        # Open file for reading
+        self._open()
         self.filehead_config = self._read_filehead_config_string()
         self._ens_pos = self._index["pos"][
             lib._boolarray_firstensemble_ping(self._index)
@@ -172,30 +165,18 @@ class _Ad2cpReader:
         self._init_burst_readers()
         self.unknown_ID_count = {}
 
-    def _calc_lastblock_iswhole(
-        self,
-    ):
-        blocksize, blocksize_count = np.unique(
-            np.diff(self._ens_pos), return_counts=True
-        )
-        standard_blocksize = blocksize[blocksize_count.argmax()]
-        return (self._eof - self._ens_pos[-1]) == standard_blocksize
-
-    def _check_nortek(self, endian):
+    def _check_nortek2(self):
         self._open(10)
         byts = self.f.read(2)
-        if endian is None:
-            if unpack("<" + "BB", byts) == (165, 10):
-                endian = "<"
-            elif unpack(">" + "BB", byts) == (165, 10):
-                endian = ">"
-            else:
-                raise Exception(
-                    "I/O error: could not determine the 'endianness' "
-                    "of the file.  Are you sure this is a Nortek "
-                    "AD2CP file?"
-                )
-        self.endian = endian
+        if not (unpack("<BB", byts) == (165, 10)):
+            raise Exception(
+                "I/O error: could not determine the 'endianness' "
+                "of the file.  Are you sure this is a Nortek "
+                "AD2CP file?"
+            )
+        self.f.seek(0, 2)  # Seek to end
+        self._eof = self.f.tell()
+        self.f.close()
 
     def _open(self, bufsize=None):
         if bufsize is None:
@@ -242,6 +223,13 @@ class _Ad2cpReader:
             else:
                 out2[ky] = out[ky]
         return out2
+
+    def _calc_lastblock_iswhole(self):
+        blocksize, blocksize_count = np.unique(
+            np.diff(self._ens_pos), return_counts=True
+        )
+        standard_blocksize = blocksize[blocksize_count.argmax()]
+        return (self._eof - self._ens_pos[-1]) == standard_blocksize
 
     def _init_burst_readers(
         self,

@@ -1,8 +1,9 @@
 import struct
-import os.path as path
-import numpy as np
-from logging import getLogger
 import warnings
+from os import path
+from logging import getLogger
+import numpy as np
+
 from .. import time
 from .base import _abspath
 
@@ -194,8 +195,8 @@ def _create_index(infile, outfile, init_pos, eof, debug):
                 # check for if file was terminated and restarted
                 # by searching for start of header configuration string
                 if not header_check_flag:
-                    fin, to_skip = __check_header(fin, eof)
                     # Will run long for large files
+                    fin, to_skip = __check_header(fin, eof)
                     if to_skip:
                         if debug:
                             logging.info(
@@ -214,7 +215,7 @@ def _create_index(infile, outfile, init_pos, eof, debug):
             # version, byte offset to actual data, configuration bit mask
             d_ver, d_off, config = struct.unpack("<BBH", fin.read(4))
             if d_ver not in [1, 3, 7]:
-                # data record definition version number (1=100 apparently)
+                # data-record definition version number
                 # increases occasionally with instrument firmware updates
                 continue
             fin.seek(4, 1)  # instrument serial number

@@ -1,6 +1,7 @@
-import numpy as np
 from copy import copy
 from struct import Struct
+import numpy as np
+
 from . import nortek2_lib as lib
 
 
