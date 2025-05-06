@@ -89,7 +89,7 @@ def plot_spectrogram(
         **kwargs
     )
     fig.colorbar(h, ax=ax, label=getattr(spsdl, "units", None))
-    ax.set(xlabel="Time", ylabel="Frequency [Hz]")
+    ax.set(ylim=(fmin, fmax), xlabel="Time", ylabel="Frequency [Hz]")
 
     return fig, ax
 
@@ -140,8 +140,6 @@ def plot_spectra(
     # Check fmax
     fn = spsdl[freq].max().item()
     fmax = _fmax_warning(fn, fmax)
-    # select frequency range
-    spsdl = spsdl.sel({freq: slice(fmin, fmax)})
 
     if ax is None:
         fig, ax = plt.subplots(figsize=(6, 5), subplot_kw={"xscale": "log"})
