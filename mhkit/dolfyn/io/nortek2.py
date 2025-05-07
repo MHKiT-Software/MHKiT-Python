@@ -21,7 +21,7 @@ def read_signature(
     rebuild_index=False,
     debug=False,
     dual_profile=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Read a Nortek Signature (.ad2cp) datafile
@@ -737,8 +737,17 @@ def _reduce(data):
             dv["pitch"] = dv.pop("pitch_avg")
             dv["roll"] = dv.pop("roll_avg")
         tmat = da["filehead_config"]["XFAVG"]
-        da["fs"] = da["filehead_config"]["PLAN"]["MIAVG"]
-        da["avg_interval_sec"] = da["filehead_config"]["AVG"]["AI"]
+        da["duty_cycle_interval"] = dci = da["filehead_config"]["PLAN"]["MIAVG"]
+        da["duty_cycle_n_burst"] = da["filehead_config"]["AVG"]["NPING"]
+        da["duty_cycle_avg_interval"] = dca = da["filehead_config"]["AVG"]["AI"]
+        fs = da["duty_cycle_n_burst"] / da["duty_cycle_avg_interval"]
+        da["duty_cycle_description"] = (
+            f"Measurements collected for {dca / 60} minutes at {fs} Hz every {dci / 60} minutes"
+        )
+        if "fs" in da:
+            da["fs_avg"] = fs
+        else:
+            da["fs"] = fs
         da["bandwidth"] = da["filehead_config"]["AVG"]["BW"]
     if "vel_b5" in dv:
         # vel_b5 is sometimes shape 2 and sometimes shape 3
@@ -791,7 +800,7 @@ def split_dp_datasets(ds):
             if any(x in ds[v].coords for x in other_coords)
             or any(ds[v].shape[-1] == ds[x].size for x in other_coords)
         ]
-        other_attrs = [s for s in ds.attrs if "_avg" in s]
+        other_attrs = [s for s in ds.attrs if ("_avg" in s) or ("duty_cycle" in s)]
         critical_attrs = [
             "inst_model",
             "inst_make",
