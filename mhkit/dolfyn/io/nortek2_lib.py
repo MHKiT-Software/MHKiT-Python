@@ -1,8 +1,9 @@
 import struct
-import os.path as path
-import numpy as np
-from logging import getLogger
 import warnings
+from os import path
+from logging import getLogger
+import numpy as np
+
 from .. import time
 from .base import _abspath
 
@@ -40,7 +41,6 @@ def _reduce_by_average_angle(data, ky0, ky1, degrees=True):
 # This is the data-type of the index file.
 # This must match what is written-out by the create_index function.
 _index_version = 1
-_hdr = struct.Struct("<BBBBhhh")
 _index_dtype = {
     None: np.dtype(
         [
@@ -107,6 +107,37 @@ def _calc_time(year, month, day, hour, minute, second, usec, zero_is_bad=True):
     return dt
 
 
+def __check_header(infile_obj, eof):
+    def find_all(s, c):
+        idx = s.find(c)
+        while idx != -1:
+            yield idx
+            idx = s.find(c, idx + 1)
+
+    # Save current position
+    current_pos = infile_obj.tell()
+
+    # Close and reopen file with larger buffer
+    infile_obj.close()
+    int32_max = np.iinfo(np.int32).max
+    if eof >= int32_max:
+        buffer = int32_max
+    else:
+        buffer = eof
+    fin = open(_abspath(infile_obj.name), "rb", buffer)
+    fin.seek(current_pos, 1)
+
+    # Search for multiple saved headers
+    pk = fin.peek(1)
+    found = [i for i in find_all(pk, b"GETCLOCKSTR")]
+    if found:
+        start_idx = found[0] - 11  # assuming next header is 10 bytes
+    else:
+        start_idx = 0
+
+    return fin, start_idx
+
+
 def _create_index(infile, outfile, init_pos, eof, debug):
     logging = getLogger()
     print("Indexing {}...".format(infile), end="")
@@ -122,39 +153,77 @@ def _create_index(infile, outfile, init_pos, eof, debug):
     config = 0
     last_ens = dict.fromkeys(ids, -1)
     seek_2ens = {
-        21: 40,
-        22: 40,
-        23: 42,
-        24: 40,
-        26: 40,
-        28: 40,  # 23 starts from "42"
-        27: 40,
-        29: 40,
-        30: 40,
-        31: 40,
-        35: 40,
-        36: 40,
+        21: 40,  # 0x15 burst
+        22: 40,  # 0x16 average
+        23: 42,  # 0x17 bottom track, starts from "42"
+        24: 40,  # 0x18 interleaved burst (beam 5)
+        26: 40,  # 0x1A burst altimeter
+        27: 40,  # 0x1B DVL bottom track
+        28: 40,  # 0x1C echo sounder
+        29: 40,  # 0x1D DVL water track
+        30: 40,  # 0x1E altimeter
+        31: 40,  # 0x1F avg altimeter
+        35: 40,  # 0x23 raw echo sounder
+        36: 40,  # 0x24 raw tx echo sounder
+        48: 40,  # 0x30 processed wave
+        # 160: 40, # 0xA0 string (header info, GPS NMEA data)
+        # 192: 40, # 0xC0 Nortek Data format 8 record
     }
     pos = 0
-    while pos <= eof:
-        pos = fin.tell()
+    header_check_flag = 0
+    # leave room for header plus other data (12 + 76)
+    while pos <= (eof - 88):
         if init_pos and not pos:
             fin.seek(init_pos, 1)
         try:
-            dat = _hdr.unpack(fin.read(_hdr.size))
-        except:
+            dat = struct.unpack("<BBBBhhh", fin.read(10))
+        except Exception as e:
+            logging.error(e)
+            logging.error("Header is shorter than 10 bytes: %10d\n" % (pos))
             break
+        if dat[0] != 165:
+            if debug:
+                logging.debug("Lost sync byte at pos: %10d\n" % (pos))
+        if dat[1] != 10:
+            if dat[1] == 12:
+                fin.seek(-10, 1)
+                dat = struct.unpack("<BBBBIhh", fin.read(12))
+            else:
+                # Lost header
+                if debug:
+                    logging.debug("Header is not 10 or 12 bytes: %10d\n" % (pos))
+                # check for if file was terminated and restarted
+                # by searching for start of header configuration string
+                if not header_check_flag:
+                    # Will run long for large files
+                    fin, to_skip = __check_header(fin, eof)
+                    if to_skip:
+                        if debug:
+                            logging.info(
+                                "Found new header configuration string as position: %10d\n"
+                                % (pos + to_skip)
+                            )
+                        fin.seek(to_skip, 1)
+                        continue
+                    else:
+                        # Don't run more often than necessary
+                        header_check_flag = 1
+                        if debug:
+                            logging.info("No new header configuration string found")
         if dat[2] in ids:
             idk = dat[2]
+            # version, byte offset to actual data, configuration bit mask
             d_ver, d_off, config = struct.unpack("<BBH", fin.read(4))
-            if d_ver not in [1, 3]:
-                # 1 for bottom track, 3 for all others
+            if d_ver not in [1, 3, 7]:
+                # data-record definition version number
+                # increases occasionally with instrument firmware updates
                 continue
-            fin.seek(4, 1)
+            fin.seek(4, 1)  # instrument serial number
             yr, mo, dy, h, m, s, u = struct.unpack("6BH", fin.read(8))
-            fin.seek(14, 1)
-            beams_cy = struct.unpack("<H", fin.read(2))[0]
+            fin.seek(14, 1)  # soundspeed, temp, pres, h,p,r
+            beams_cy = struct.unpack("<H", fin.read(2))[0]  # cell_size
             fin.seek(seek_2ens[dat[2]], 1)
+            # should end at byte 74 or 76
             ens[idk] = struct.unpack("<I", fin.read(4))[0]
 
             if last_ens[idk] > 0:
@@ -211,25 +280,29 @@ def _create_index(infile, outfile, init_pos, eof, debug):
                     logging.info("Invalid skip byte at pos: %10d\n" % (pos))
                 break
             fin.seek(dat[4], 1)
+        # Update for while loop check
+        pos = fin.tell()
+
     fin.close()
     fout.close()
     print(" Done.")
 
 
 def _check_index(idx, infile, fix_hw_ens=False, dp=False):
+    logging = getLogger()
     uid = np.unique(idx["ID"])
     if fix_hw_ens:
         hwe = idx["hw_ens"]
     else:
         hwe = idx["hw_ens"].copy()
-    period = hwe.max()
     ens = idx["ens"]
     N_id = len(uid)
-    FLAG = False
 
     # Are there better ways to detect dual profile?
-    if (21 in uid) and (22 in uid):
-        warnings.warn("Dual Profile detected... Two datasets will be returned.")
+    if (22 in uid) and ((21 in uid) or (28 in uid)):
+        msg = "Dual Profile detected... Two datasets will be returned."
+        warnings.warn(msg)
+        logging.warning(msg)
         dp = True
 
     # This loop fixes 'skips' inside the file
@@ -238,6 +311,7 @@ def _check_index(idx, infile, fix_hw_ens=False, dp=False):
         inds = np.nonzero(idx["ID"] == id)[0]
         # These are bad steps in the indices for this ID
         ibad = np.nonzero(np.diff(inds) > N_id)[0]
+
         # Check if spacing is equal for dual profiling ADCPs
         if dp:
             skip_size = np.diff(ibad)
@@ -250,10 +324,9 @@ def _check_index(idx, infile, fix_hw_ens=False, dp=False):
             mask = np.append(skip_size, 0).astype(bool) if any(skip_size) else []
             ibad = ibad[mask]
         for ib in ibad:
-            FLAG = True
             # The ping number reported here may not be quite right if
             # the ensemble count is wrong.
-            warnings.warn(
+            logging.warning(
                 "Skipped ping (ID: {}) in file {} at ensemble {}.".format(
                     id, infile, idx["ens"][inds[ib + 1] - 1]
                 )
@@ -270,7 +343,8 @@ def _boolarray_firstensemble_ping(index):
     each ensemble.
     """
     dens = np.ones(index["ens"].shape, dtype="bool")
-    dens[1:] = np.diff(index["ens"]) != 0
+    if any(index["ens"]):
+        dens[1:] = np.diff(index["ens"]) != 0
     return dens
 
 

@@ -118,6 +118,8 @@ class rotate_adp_testcase(unittest.TestCase):
         rotate2(td_sig, "inst", inplace=True)
         td_sig_i = load("Sig1000_IMU_rotate_inst2earth.nc")
         rotate2(td_sig_i, "inst", inplace=True)
+        td_sig_avg = load("Sig100_avg")
+        rotate2(td_sig_avg, "inst", inplace=True)
 
         cd_rdi = load("RDI_test01_rotate_beam2inst.nc")
         cd_wr2 = tr.dat_wr2

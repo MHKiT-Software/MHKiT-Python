@@ -164,6 +164,14 @@ def _create_dataset(data):
     """
 
     tag = ["_avg", "_b5", "_echo", "_bt", "_gps", "_altraw", "_altraw_avg", "_sl"]
+    # If burst velocity not measured
+    if "vel" not in data["data_vars"]:
+        # dual profile where burst velocity is not measured but echo sounder is
+        if "vel_avg" in data["data_vars"]:
+            data["coords"]["time"] = data["coords"]["time_avg"]
+        else:
+            t_vars = [t for t in data["coords"] if "time" in t]
+            data["coords"]["time"] = data["coords"][t_vars[0]]
 
     ds_dict = {}
     for key in data["coords"]:
