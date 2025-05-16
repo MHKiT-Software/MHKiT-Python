@@ -8,4 +8,3 @@ except ImportError:
         "MHKiT-Python. If you are using Windows and calling from"
         "MHKiT-MATLAB this is expected."
     )
-    pass
