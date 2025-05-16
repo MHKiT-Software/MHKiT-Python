@@ -21,15 +21,17 @@ Date:
 import os
 import hashlib
 import pickle
+from typing import List, Tuple, Union, Optional, Dict
 import pandas as pd
-
-from rex import MultiYearWindX
+import numpy as np
+import xarray as xr
 import matplotlib.pyplot as plt
+from rex import MultiYearWindX
 from mhkit.utils.cache import handle_caching
 from mhkit.utils.type_handling import convert_to_dataset
 
 
-def region_selection(lat_lon, preferred_region=""):
+def region_selection(lat_lon: Tuple[float, float], preferred_region: str = "") -> str:
     """
     Returns the name of the predefined region in which the given coordinates reside.
     Can be used to check if the passed lat/lon pair is within the WIND Toolkit hindcast dataset.
@@ -70,7 +72,7 @@ def region_selection(lat_lon, preferred_region=""):
 
     # Note that this check is fast, but not robust because region are not
     # rectangular on a lat-lon grid
-    region_dict = {
+    region_dict: Dict[str, Dict[str, List[float]]] = {
         "CA_NWP_overlap": {"lat": [41.213, 42.642], "lon": [-129.090, -121.672]},
         "Offshore_CA": {"lat": [31.932, 42.642], "lon": [-129.090, -115.806]},
         "Hawaii": {"lat": [15.565, 26.221], "lon": [-164.451, -151.278]},
@@ -78,7 +80,7 @@ def region_selection(lat_lon, preferred_region=""):
         "Mid_Atlantic": {"lat": [37.273, 42.211], "lon": [-76.427, -64.800]},
     }
 
-    def region_search(x):
+    def region_search(x: str) -> bool:
         return all(
             (
                 region_dict[x][dk][0] <= d <= region_dict[x][dk][1]
@@ -106,7 +108,7 @@ def region_selection(lat_lon, preferred_region=""):
     return region[0]
 
 
-def get_region_data(region):
+def get_region_data(region: str) -> Tuple[np.ndarray, np.ndarray]:
     """
     Retrieves the latitude and longitude data points for the specified region
     from the cache if available; otherwise, fetches the data and caches it for
@@ -178,7 +180,11 @@ def get_region_data(region):
     return lats, lons
 
 
-def plot_region(region, lat_lon=None, ax=None):
+def plot_region(
+    region: str,
+    lat_lon: Optional[Tuple[float, float]] = None,
+    ax: Optional[plt.Axes] = None,
+) -> plt.Axes:
     """
     Visualizes the area that a given region covers. Can help users understand
     the extent of a region since they are not all rectangular.
@@ -224,7 +230,9 @@ def plot_region(region, lat_lon=None, ax=None):
     return ax
 
 
-def elevation_to_string(parameter, elevations):
+def elevation_to_string(
+    parameter: str, elevations: Union[float, List[float]]
+) -> List[str]:
     """
     Takes in a parameter (e.g. 'windspeed') and elevations (e.g. [20, 40, 120])
     and returns the formatted strings that are input to WIND Toolkit (e.g. windspeed_10m).
@@ -271,18 +279,18 @@ def elevation_to_string(parameter, elevations):
 # pylint: disable=too-many-positional-arguments
 # pylint: disable=duplicate-code
 def request_wtk_point_data(
-    time_interval,
-    parameter,
-    lat_lon,
-    years,
-    preferred_region="",
-    tree=None,
-    unscale=True,
-    str_decode=True,
-    hsds=True,
-    clear_cache=False,
-    to_pandas=True,
-):
+    time_interval: str,
+    parameter: Union[str, List[str]],
+    lat_lon: Union[Tuple[float, float], List[Tuple[float, float]]],
+    years: List[int],
+    preferred_region: str = "",
+    tree: Optional[str] = None,
+    unscale: bool = True,
+    str_decode: bool = True,
+    hsds: bool = True,
+    clear_cache: bool = False,
+    to_pandas: bool = True,
+) -> Tuple[Union[pd.DataFrame, xr.Dataset], pd.DataFrame]:
     """
     Returns data from the WIND Toolkit offshore wind hindcast hosted on
     AWS at the specified latitude and longitude point(s), or the closest

@@ -12,6 +12,7 @@ Date: 2023-09-26
 import os
 import sys
 from time import sleep
+from typing import List, Tuple, Union, Optional, Dict
 import pandas as pd
 import xarray as xr
 import numpy as np
@@ -20,7 +21,7 @@ from mhkit.utils.cache import handle_caching
 from mhkit.utils.type_handling import convert_to_dataset
 
 
-def region_selection(lat_lon):
+def region_selection(lat_lon: Union[List[float], Tuple[float, float]]) -> str:
     """
     Returns the name of the predefined region in which the given
     coordinates reside. Can be used to check if the passed lat/lon
@@ -44,13 +45,17 @@ def region_selection(lat_lon):
             f"lat_lon values must be of type float or int. Got: {type(lat_lon[0])}"
         )
 
-    regions = {
+    regions: Dict[str, Dict[str, List[float]]] = {
         "Hawaii": {"lat": [15.0, 27.000002], "lon": [-164.0, -151.0]},
         "West_Coast": {"lat": [30.0906, 48.8641], "lon": [-130.072, -116.899]},
         "Atlantic": {"lat": [24.382, 44.8247], "lon": [-81.552, -65.721]},
     }
 
-    def region_search(lat_lon, region, regions):
+    def region_search(
+        lat_lon: Union[List[float], Tuple[float, float]],
+        region: str,
+        regions: Dict[str, Dict[str, List[float]]],
+    ) -> bool:
         return all(
             regions[region][dk][0] <= d <= regions[region][dk][1]
             for dk, d in {"lat": lat_lon[0], "lon": lat_lon[1]}.items()
@@ -70,17 +75,17 @@ def region_selection(lat_lon):
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-statements
 def request_wpto_point_data(
-    data_type,
-    parameter,
-    lat_lon,
-    years,
-    tree=None,
-    unscale=True,
-    str_decode=True,
-    hsds=True,
-    path=None,
-    to_pandas=True,
-):
+    data_type: str,
+    parameter: Union[str, List[str]],
+    lat_lon: Union[Tuple[float, float], List[Tuple[float, float]]],
+    years: List[int],
+    tree: Optional[str] = None,
+    unscale: bool = True,
+    str_decode: bool = True,
+    hsds: bool = True,
+    path: Optional[str] = None,
+    to_pandas: bool = True,
+) -> Tuple[Union[pd.DataFrame, xr.Dataset], pd.DataFrame]:
     """
     Returns data from the WPTO wave hindcast hosted on AWS at the
     specified latitude and longitude point(s), or the closest
@@ -279,14 +284,14 @@ def request_wpto_point_data(
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-statements
 def request_wpto_directional_spectrum(
-    lat_lon,
-    year,
-    tree=None,
-    unscale=True,
-    str_decode=True,
-    hsds=True,
-    path=None,
-):
+    lat_lon: Union[Tuple[float, float], List[Tuple[float, float]]],
+    year: str,
+    tree: Optional[str] = None,
+    unscale: bool = True,
+    str_decode: bool = True,
+    hsds: bool = True,
+    path: Optional[str] = None,
+) -> Tuple[xr.Dataset, pd.DataFrame]:
     """
     Returns directional spectra data from the WPTO wave hindcast hosted
     on AWS at the specified latitude and longitude point(s),
@@ -489,7 +494,7 @@ def request_wpto_directional_spectrum(
     return data, meta
 
 
-def _get_cache_dir():
+def _get_cache_dir() -> str:
     """
     Returns the path to the cache directory.
     """
