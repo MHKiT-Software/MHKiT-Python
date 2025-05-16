@@ -22,6 +22,7 @@ dat_wr1 = load("winriver01.nc")
 dat_wr2 = load("winriver02.nc")
 dat_rp = load("RiverPro_test01.nc")
 dat_transect = load("winriver02_transect.nc")
+dat_senb5 = load("sentinelv_b5.nc")
 
 dat_awac = load("AWAC_test01.nc")
 dat_awac_ud = load("AWAC_test01_ud.nc")
@@ -58,6 +59,7 @@ class io_adp_testcase(unittest.TestCase):
         td_wr2 = read("winriver02.PD0")
         td_rp = read("RiverPro_test01.PD0")
         td_transect = read("winriver02_transect.PD0", nens=nens)
+        td_senb5 = read("sentinelv_b5.pd0")
 
         if make_data:
             save(td_rdi, "RDI_test01.nc")
@@ -70,6 +72,7 @@ class io_adp_testcase(unittest.TestCase):
             save(td_wr2, "winriver02.nc")
             save(td_rp, "RiverPro_test01.nc")
             save(td_transect, "winriver02_transect.nc")
+            save(td_senb5, "sentinelv_b5.nc")
             return
 
         assert_allclose(td_rdi, dat_rdi, atol=1e-6)
@@ -82,6 +85,7 @@ class io_adp_testcase(unittest.TestCase):
         assert_allclose(td_wr2, dat_wr2, atol=1e-6)
         assert_allclose(td_rp, dat_rp, atol=1e-6)
         assert_allclose(td_transect, dat_transect, atol=1e-6)
+        assert_allclose(td_senb5, dat_senb5, atol=1e-6)
 
     def test_io_nortek(self):
         nens = 100
