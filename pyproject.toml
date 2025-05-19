@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mhkit"
+version = "0.0.0"  # This will be read from __init__.py during build
+description = "Marine and Hydrokinetic Toolkit"
+readme = "README.md"
+authors = [
+    {name = "MHKiT developers"}
+]
+license = {text = "Revised BSD"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=2.0.0",
+    "pandas>=2.2.2",
+    "scipy>=1.14.0",
+    "xarray>=2024.6.0",
+    "matplotlib>=3.9.1",
+    "scikit-learn>=1.5.1",
+    "h5py>=3.11.0",
+    "h5pyd>=0.18.0",
+    "netCDF4>=1.7.1.post1",
+    "statsmodels>=0.14.2",
+    "requests",
+    "pecos>=0.3.0",
+    "fatpack",
+    "NREL-rex>=0.2.63",
+    "pytz",
+    "beautifulsoup4",
+    "numexpr>=2.10.0",
+    "lxml",
+    "bottleneck",
+    "cartopy",
+]
+
+[project.urls]
+Homepage = "https://github.com/MHKiT-Software/mhkit-python"
+Documentation = "https://mhkit-software.github.io/MHKiT"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "pre-commit",
+]
+
+[tool.setuptools]
+packages = ["mhkit"]
+zip-safe = false
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = {attr = "mhkit.__version__"} 
