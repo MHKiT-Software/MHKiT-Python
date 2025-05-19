@@ -4,7 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mhkit"
-version = "0.0.0"  # This will be read from __init__.py during build
+# `version` is read from `[tools.setuptools.dynamic] version` during build: https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
+version = "dynamic"
 description = "Marine and Hydrokinetic Toolkit"
 readme = "README.md"
 authors = [
