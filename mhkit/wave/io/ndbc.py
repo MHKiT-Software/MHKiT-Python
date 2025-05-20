@@ -126,7 +126,11 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
 
     # Convert columns to numeric data if possible, otherwise leave as string
     for column in data:
-        data[column] = pd.to_numeric(data[column], errors="ignore")
+        try:
+            data[column] = pd.to_numeric(data[column])
+        except (ValueError, TypeError):
+            # Keep as string if conversion fails
+            pass
 
     # Convert column names to float if possible (handles frequency headers)
     # if there is non-numeric name, just leave all as strings.
