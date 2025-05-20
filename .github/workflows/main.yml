@@ -83,7 +83,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e . --no-deps
+          pip install -e ".[all]" --no-deps
 
       - name: Prepare non-hindcast API data
         shell: bash -l {0}
@@ -134,7 +134,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e . --no-deps
+          pip install -e ".[all]" --no-deps
 
       - name: Prepare Wave Hindcast data
         shell: bash -l {0}
@@ -183,7 +183,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e . --no-deps
+          pip install -e ".[all]" --no-deps
 
       - name: Prepare Wind Hindcast data
         shell: bash -l {0}
@@ -354,7 +354,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e . --no-deps
+          pip install -e ".[all]" --no-deps
 
       - name: Download Wave Hindcast data from artifact
         uses: actions/download-artifact@v4
@@ -476,7 +476,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e . --no-deps
+          pip install -e ".[all]" --no-deps
 
       - name: Download non-hindcast data
         uses: actions/download-artifact@v4

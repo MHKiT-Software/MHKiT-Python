@@ -26,33 +26,97 @@ dependencies = [
     "scipy>=1.14.0",
     "xarray>=2024.6.0",
     "matplotlib>=3.9.1",
+]
+
+[project.optional-dependencies]
+# Core dependencies for each module
+wave = [
     "scikit-learn>=1.5.1",
+    "statsmodels>=0.14.2",
+    "numexpr>=2.10.0",
+    "bottleneck",
+]
+
+tidal = [
+    "scikit-learn>=1.5.1",
+    "statsmodels>=0.14.2",
+    "numexpr>=2.10.0",
+    "bottleneck",
+]
+
+river = [
+    "scikit-learn>=1.5.1",
+    "statsmodels>=0.14.2",
+    "numexpr>=2.10.0",
+    "bottleneck",
+]
+
+dolfyn = [
     "h5py>=3.11.0",
     "h5pyd>=0.18.0",
     "netCDF4>=1.7.1.post1",
-    "statsmodels>=0.14.2",
-    "requests",
-    "pecos>=0.3.0",
-    "fatpack",
-    "NREL-rex>=0.2.63",
-    "pytz",
-    "beautifulsoup4",
-    "numexpr>=2.10.0",
-    "lxml",
-    "bottleneck",
     "cartopy",
 ]
 
-[project.urls]
-Homepage = "https://github.com/MHKiT-Software/mhkit-python"
-Documentation = "https://mhkit-software.github.io/MHKiT"
+power = [
+    "scikit-learn>=1.5.1",
+    "statsmodels>=0.14.2",
+]
 
-[project.optional-dependencies]
+loads = [
+    "scikit-learn>=1.5.1",
+    "statsmodels>=0.14.2",
+]
+
+mooring = [
+    "scikit-learn>=1.5.1",
+    "statsmodels>=0.14.2",
+]
+
+acoustics = [
+    "scikit-learn>=1.5.1",
+    "statsmodels>=0.14.2",
+]
+
+qc = [
+    "scikit-learn>=1.5.1",
+    "statsmodels>=0.14.2",
+]
+
+utils = [
+    "requests",
+    "beautifulsoup4",
+    "lxml",
+    "pytz",
+    "NREL-rex>=0.2.63",
+    "pecos>=0.3.0",
+    "fatpack",
+]
+
+# Development dependencies
 dev = [
     "pytest",
     "pytest-cov",
     "pre-commit",
 ]
+
+# Install all optional dependencies
+all = [
+    "mhkit[wave]",
+    "mhkit[tidal]",
+    "mhkit[river]",
+    "mhkit[dolfyn]",
+    "mhkit[power]",
+    "mhkit[loads]",
+    "mhkit[mooring]",
+    "mhkit[acoustics]",
+    "mhkit[qc]",
+    "mhkit[utils]",
+]
+
+[project.urls]
+Homepage = "https://github.com/MHKiT-Software/mhkit-python"
+Documentation = "https://mhkit-software.github.io/MHKiT"
 
 [tool.setuptools]
 packages = ["mhkit"]
