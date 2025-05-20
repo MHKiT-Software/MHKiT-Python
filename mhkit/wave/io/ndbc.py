@@ -102,7 +102,6 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
             header=None,
             names=header,
             comment="#",
-            parse_dates=[parse_vals],
         )
     # If first line is not commented, then the first row can be used as header
     else:
@@ -140,7 +139,8 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
         data.columns = data.columns
 
     # Replace indicated missing values with nan
-    data.replace(missing_values, np.nan, inplace=True)
+    data = data.replace(missing_values, np.nan)
+    data = data.infer_objects(copy=False)
 
     if not to_pandas:
         data = convert_to_dataset(data)
