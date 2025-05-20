@@ -1,7 +1,7 @@
 import os
 from collections import OrderedDict as _OrderedDict
 from collections import defaultdict as _defaultdict
-from io import BytesIO
+from io import BytesIO, StringIO
 import re
 import requests
 import zlib
@@ -234,7 +234,7 @@ def available_data(
             msg = f"request.get({ndbc_data}) failed by returning code of {response.status_code}"
             raise Exception(msg)
 
-        filenames = pd.read_html(response.text)[0].Name.dropna()
+        filenames = pd.read_html(StringIO(response.text))[0].Name.dropna()
         buoys = _parse_filenames(parameter, filenames)
 
         available_data = buoys.copy(deep=True)
