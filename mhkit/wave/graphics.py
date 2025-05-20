@@ -839,7 +839,10 @@ def plot_boxplot(Hs, buoy_title=None):
     bp2 = plt.subplot(gs[1, :])
     meanprops = dict(linewidth=2.5, marker="|", markersize=25)
     bp2_example = bp2.boxplot(
-        bp_sample2, vert=False, flierprops=flierprops, medianprops=medianprops
+        bp_sample2,
+        orientation="horizontal",
+        flierprops=flierprops,
+        medianprops=medianprops,
     )
     sample_mean = 2.3
     bp2.scatter(sample_mean, 1, marker="|", color="g", linewidths=1.0, s=200)
