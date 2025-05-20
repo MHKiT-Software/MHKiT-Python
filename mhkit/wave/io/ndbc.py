@@ -106,13 +106,13 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
         )
     # If first line is not commented, then the first row can be used as header
     else:
-        data = pd.read_csv(
-            file_name, sep="\\s+", header=0, comment="#", parse_dates=[parse_vals]
-        )
+        data = pd.read_csv(file_name, sep="\\s+", header=0, comment="#")
 
     # Convert index to datetime
     date_column = "_".join(parse_vals)
-    data["Time"] = pd.to_datetime(data[date_column], format=date_format)
+    data["Time"] = pd.to_datetime(
+        data[parse_vals].agg(" ".join, axis=1), format=date_format
+    )
     data.index = data["Time"].values
     # Remove date columns
     del data[date_column]
