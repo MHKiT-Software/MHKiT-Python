@@ -535,7 +535,7 @@ class ADVBinner(VelBinner):
         x = np.arange(-20, 20, 1e-2)  # I think this is a long enough range.
         out = np.empty_like(I_tke.flatten())
         for i, (b, t) in enumerate(zip(I_tke.flatten(), theta.flatten())):
-            out[i] = np.trapz(
+            out[i] = np.trapezoid(
                 cbrt(x**2 - 2 / b * np.cos(t) * x + b ** (-2)) * np.exp(-0.5 * x**2),
                 x,
             )
@@ -660,7 +660,7 @@ class ADVBinner(VelBinner):
         T_int = np.zeros(acov.shape[:2])
         for i in range(3):
             for t in range(a_cov["time"].size):
-                T_int[i, t] = np.trapz(acov[i, t][: zero_crossing[i, t]], dx=1 / fs)
+                T_int[i, t] = np.trapezoid(acov[i, t][: zero_crossing[i, t]], dx=1 / fs)
 
         L_int = U_mag.values * T_int
 

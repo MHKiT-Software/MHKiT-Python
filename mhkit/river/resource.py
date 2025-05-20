@@ -311,7 +311,7 @@ def energy_produced(
     # Sample range for pdf
     x = np.linspace(edges.min(), edges.max(), 1000)
     # Calculate the expected value of power
-    expected_power = np.trapz(x * hist_dist.pdf(x), x=x)
+    expected_power = np.trapezoid(x * hist_dist.pdf(x), x=x)
     # Note: Built-in Expected Value method often throws warning
     # EV = hist_dist.expect(lb=edges.min(), ub=edges.max())
     # Calculate energy
