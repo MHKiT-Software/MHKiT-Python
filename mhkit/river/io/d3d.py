@@ -570,7 +570,7 @@ def variable_interpolation(
 
             if len(idx[0]):
                 for i in idx[0]:
-                    transformed_data[var][i] = interp.griddata(
+                    transformed_data.loc[i, var] = interp.griddata(
                         data_raw[var][["x", "y", "waterdepth"]],
                         data_raw[var][var],
                         [points["x"][i], points["y"][i], points["waterdepth"][i]],
@@ -815,7 +815,7 @@ def turbulent_intensity(
 
         if len(idx[0]):
             for i in idx[0]:
-                turbulent_data[var][i] = interp.griddata(
+                turbulent_data.loc[i, var] = interp.griddata(
                     turbulent_data_raw[var][["x", "y", "waterdepth"]],
                     turbulent_data_raw[var][var],
                     [points["x"][i], points["y"][i], points["waterdepth"][i]],
@@ -837,7 +837,7 @@ def turbulent_intensity(
     zero_ind = neg_index[0][zero_bool]
     non_zero_ind = neg_index[0][~zero_bool]
     turbulent_data.loc[zero_ind, "turkin1"] = np.zeros(len(zero_ind))
-    turbulent_data.loc[non_zero_ind, "turkin1"] = [np.nan] * len(non_zero_ind)
+    turbulent_data.loc[non_zero_ind, "turkin1"] = np.nan
 
     turbulent_data["turbulent_intensity"] = (
         np.sqrt(2 / 3 * turbulent_data["turkin1"]) / u_mag * 100
