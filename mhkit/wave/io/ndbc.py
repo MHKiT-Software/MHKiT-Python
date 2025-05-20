@@ -19,6 +19,9 @@ from mhkit.utils import (
     convert_nested_dict_and_pandas,
 )
 
+# Set pandas option to opt-in to future behavior
+pd.set_option("future.no_silent_downcasting", True)
+
 
 def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
     """
