@@ -98,6 +98,8 @@ dev = [
     "pytest",
     "pytest-cov",
     "pre-commit",
+    "coverage",
+    "coveralls"
 ]
 
 # Examples dependencies
