@@ -96,6 +96,7 @@ utils = [
 # Development dependencies
 dev = [
     "pytest",
+    "pylint",
     "pytest-cov",
     "pre-commit",
     "coverage",
