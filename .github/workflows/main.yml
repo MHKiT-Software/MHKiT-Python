@@ -286,7 +286,7 @@ jobs:
         shell: bash -l {0}
         run: |
           python -m pip install --upgrade pip wheel
-          pip install coverage pytest coveralls .
+          pip install -e ".[all]"
 
       - name: Install setuptools for Python 3.12
         if: matrix.python-version == '3.12'
