@@ -100,6 +100,26 @@ dev = [
     "pre-commit",
 ]
 
+# Examples dependencies
+examples = [
+    "jupyter",
+    "notebook",
+    "ipykernel",
+    "nbval",
+    "utm",
+    "folium",
+    "mhkit[wave]",
+    "mhkit[tidal]",
+    "mhkit[river]",
+    "mhkit[dolfyn]",
+    "mhkit[power]",
+    "mhkit[loads]",
+    "mhkit[mooring]",
+    "mhkit[acoustics]",
+    "mhkit[qc]",
+    "mhkit[utils]",
+]
+
 # Install all optional dependencies
 all = [
     "mhkit[wave]",
