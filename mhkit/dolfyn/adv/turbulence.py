@@ -341,7 +341,7 @@ class ADVBinner(VelBinner):
 
     def dissipation_rate_LT83(self, psd, U_mag, freq_range=[6.28, 12.57], noise=None):
         """
-        Calculate the dissipation rate from the PSD
+        Calculate the dissipation rate from the power spectral density of velocity.
 
         Parameters
         ----------
@@ -369,10 +369,9 @@ class ADVBinner(VelBinner):
 
         .. math:: S(k) = \\alpha \\epsilon^{2/3} k^{-5/3} + N
 
-        where :math:`\\alpha = 0.5` (1.5 for all three velocity
-        components), `k` is wavenumber, `S(k)` is the turbulent
-        kinetic energy spectrum, and `N' is the doppler noise level
-        associated with the TKE spectrum.
+        where :math:`\\alpha is the Kolmogorov constant, `k` is wavenumber,
+        `S(k)` is the turbulent kinetic energy spectrum, and `N' is the
+        doppler noise level associated with the TKE spectrum.
 
         With :math:`k \\rightarrow \\omega / U`, then -- to preserve variance --
         :math:`S(k) = U S(\\omega)`, and so this becomes:
@@ -390,15 +389,15 @@ class ADVBinner(VelBinner):
         if not isinstance(psd, xr.DataArray):
             raise TypeError("`psd` must be an instance of `xarray.DataArray`.")
         if len(U_mag.shape) != 1:
-            raise Exception("U_mag should be 1-dimensional (time)")
+            raise Exception("U_mag should be 1-dimensional (time).")
         if len(psd["time"]) != len(U_mag["time"]):
-            raise Exception("`U_mag` should be from ensembled-averaged dataset")
+            raise Exception("`U_mag` should be from ensembled-averaged dataset.")
         if not hasattr(freq_range, "__iter__") or len(freq_range) != 2:
             raise ValueError("`freq_range` must be an iterable of length 2.")
 
         if noise is not None:
-            if np.shape(noise)[0] != 3:
-                raise Exception("Noise should have same first dimension as velocity")
+            if np.shape(noise)[0] != np.shape(psd)[0]:
+                raise Exception("Noise should have same first dimension as `psd`.")
         else:
             noise = np.array([0, 0, 0])[:, None, None]
 
@@ -412,12 +411,19 @@ class ADVBinner(VelBinner):
         idx = np.where((freq_range[0] < freq) & (freq < freq_range[1]))
         idx = idx[0]
 
+        # Set the correct magnitude whether the frequency is in Hz or rad/s
         if freq.units == "Hz":
             U = U_mag / (2 * np.pi)
         else:
             U = U_mag
 
-        a = 0.5
+        # Set Kolmogorov constant
+        if psd.shape[0] == 3:
+            a = np.array([0.5, 0.67, 0.67])
+            a = a[:, None, None]  # stack properly
+        else:
+            a = 0.5
+        # Calculate dissipation
         out = (psd.isel(freq=idx) * freq.isel(freq=idx) ** (5 / 3) / a).mean(
             axis=-1
         ) ** (3 / 2) / U

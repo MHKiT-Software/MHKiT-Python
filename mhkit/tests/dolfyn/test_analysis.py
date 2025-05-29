@@ -143,7 +143,7 @@ class analysis_testcase(unittest.TestCase):
         dat.velds.rotate2("beam")
 
         tdat["psd"] = bnr.power_spectral_density(
-            dat["vel"].isel(dir=2, range=len(dat["range"]) // 2), freq_units="Hz"
+            dat["vel_b5"].isel(range_b5=len(dat["range_b5"]) // 2), freq_units="Hz"
         )
         tdat["noise"] = bnr.doppler_noise_level(tdat["psd"], pct_fN=0.8)
         tdat["stress_vec4"] = bnr.reynolds_stress_4beam(
@@ -179,11 +179,11 @@ class analysis_testcase(unittest.TestCase):
         ) = bnr.dissipation_rate_SF(dat["vel"].isel(dir=2), r_range=[1, 5])
 
         slope_check = bnr.check_turbulence_cascade_slope(
-            tdat["psd"].mean("time"), freq_range=[0.4, 4]
+            tdat["psd"].mean("time_b5"), freq_range=[0.4, 4]
         )
         # Check noise subtraction in psd function
         tdat["psd_noise"] = bnr.power_spectral_density(
-            dat["vel"].isel(dir=2, range=len(dat["range"]) // 2),
+            dat["vel_b5"].isel(range_b5=len(dat["range_b5"]) // 2),
             freq_units="Hz",
             noise=0.01,
         )
