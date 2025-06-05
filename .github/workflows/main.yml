@@ -391,12 +391,7 @@ jobs:
           path-to-lcov: ./coverage.lcov
 
   test-optional-pip-dependencies:
-    needs:
-      [
-        prepare-nonhindcast-cache,
-        prepare-wave-hindcast-cache,
-        prepare-wind-hindcast-cache,
-      ]
+    needs: [set-os, prepare-nonhindcast-cache]
     runs-on: ubuntu-latest
     strategy:
       matrix:
