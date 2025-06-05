@@ -390,6 +390,67 @@ jobs:
           parallel: true
           path-to-lcov: ./coverage.lcov
 
+  test-optional-pip-dependencies:
+    needs:
+      [
+        prepare-nonhindcast-cache,
+        prepare-wave-hindcast-cache,
+        prepare-wind-hindcast-cache,
+      ]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module:
+          [
+            wave,
+            tidal,
+            river,
+            dolfyn,
+            power,
+            loads,
+            mooring,
+            acoustics,
+            qc,
+            utils,
+          ]
+        python-version: ['3.12']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Download non-hindcast data
+        uses: actions/download-artifact@v4
+        with:
+          name: data
+          path: ~/.cache/mhkit
+
+      - name: Download wave hindcast data
+        uses: actions/download-artifact@v4
+        with:
+          name: wave-hindcast-data
+          path: ~/.cache/mhkit
+
+      - name: Download wind hindcast data
+        uses: actions/download-artifact@v4
+        with:
+          name: wind-hindcast-data
+          path: ~/.cache/mhkit
+
+      - name: Install MHKiT with optional dependency
+        run: |
+          python -m pip install --upgrade pip
+          pip install "mhkit[${{ matrix.module }}]"
+          pip install pytest
+
+      - name: Run tests for ${{ matrix.module }}
+        run: |
+          python -m pytest -c .github/workflows/pytest.ini mhkit/tests/${{ matrix.module }}/
+
   notebook-matrix:
     runs-on: ubuntu-latest
     needs:
