@@ -51,7 +51,8 @@ tidal = [
 river = [
     "netCDF4>=1.7.1.post1",
     "requests",
-    "bottleneck"
+    "bottleneck",
+    "cartopy"
 ]
 
 dolfyn = [
