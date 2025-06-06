@@ -1,14 +1,5 @@
 import warnings as _warn
-from mhkit import wave
-from mhkit import river
-from mhkit import tidal
-from mhkit import qc
-from mhkit import utils
-from mhkit import power
-from mhkit import loads
-from mhkit import dolfyn
-from mhkit import mooring
-from mhkit import acoustics
+import importlib
 
 # Register datetime converter for a matplotlib plotting methods
 from pandas.plotting import register_matplotlib_converters as _rmc
@@ -28,3 +19,21 @@ Sandia, LLC under the terms of Contract DE-NA0003525. The U.S. Government
 retains certain rights in this software."""
 
 __license__ = "Revised BSD License"
+
+
+def __getattr__(name):
+    """Lazy import modules."""
+    if name in [
+        "wave",
+        "river",
+        "tidal",
+        "qc",
+        "utils",
+        "power",
+        "loads",
+        "dolfyn",
+        "mooring",
+        "acoustics",
+    ]:
+        return importlib.import_module(f"mhkit.{name}")
+    raise AttributeError(f"module 'mhkit' has no attribute '{name}'")
