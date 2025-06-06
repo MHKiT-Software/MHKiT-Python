@@ -52,7 +52,6 @@ river = [
     "netCDF4>=1.7.1.post1",
     "requests",
     "bottleneck",
-    "cartopy"
 ]
 
 dolfyn = [
@@ -66,12 +65,10 @@ power = [
 ]
 
 loads = [
- "fatpack",
- "cartopy"
+ "fatpack"
 ]
 
 mooring = [
-    "cartopy"
 ]
 
 acoustics = [
