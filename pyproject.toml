@@ -67,9 +67,11 @@ power = [
 
 loads = [
  "fatpack",
+ "cartopy"
 ]
 
 mooring = [
+    "cartopy"
 ]
 
 acoustics = [
