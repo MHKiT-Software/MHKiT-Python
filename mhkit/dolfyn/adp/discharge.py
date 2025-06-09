@@ -1,6 +1,5 @@
 import numpy as np
 import xarray as xr
-import cartopy.crs as ccrs
 
 
 def discharge(ds, water_depth, rho, mu=None, surface_offset=0, utm_zone=10):
@@ -53,6 +52,9 @@ def discharge(ds, water_depth, rho, mu=None, surface_offset=0, utm_zone=10):
          - `power_density`: (1) power density, in W/m^2
          - `reynolds_number`: (1) Reynolds number, unitless
     """
+
+    # Lazy import cartopy
+    import cartopy.crs as ccrs
 
     def _extrapolate_to_bottom(vel, bottom, rng):
         """
