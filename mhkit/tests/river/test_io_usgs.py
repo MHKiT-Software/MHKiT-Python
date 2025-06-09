@@ -3,6 +3,7 @@ import mhkit.river as river
 import pandas as pd
 import unittest
 import os
+import requests
 
 
 testdir = dirname(abspath(__file__))
@@ -42,15 +43,25 @@ class TestIO(unittest.TestCase):
         """
         Test request_usgs_data with daily data
         """
-        data = river.io.usgs.request_usgs_data(
-            station="15515500",
-            parameter="00060",
-            start_date="2009-08-01",
-            end_date="2009-08-10",
-            options={"data_type": "Daily"},
-        )
-        self.assertEqual(data.columns, ["Discharge, cubic feet per second"])
-        self.assertEqual(data.shape, (10, 1))
+        try:
+            data = river.io.usgs.request_usgs_data(
+                station="15515500",
+                parameter="00060",
+                start_date="2009-08-01",
+                end_date="2009-08-10",
+                options={
+                    "data_type": "Daily",
+                    "timeout": 60,  # Increase timeout to 60 seconds
+                },
+            )
+            self.assertEqual(data.columns, ["Discharge, cubic feet per second"])
+            self.assertEqual(data.shape, (10, 1))
+        except requests.exceptions.ReadTimeout:
+            self.fail("USGS server timed out - failed test")
+        except requests.exceptions.SSLError:
+            self.fail("USGS server SSL error - failed test")
+        except Exception as e:
+            self.fail(f"Test failed with unexpected error: {str(e)}")
 
     def test_request_usgs_data_instant(self):
         """
