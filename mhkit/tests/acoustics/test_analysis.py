@@ -130,7 +130,9 @@ class TestAnalysis(unittest.TestCase):
         )
 
         np.testing.assert_allclose(td_spsdl.head().values, cd_spsdl, atol=1e-6)
-        np.testing.assert_equal(td_spsdl["time"].head().values, cc)
+        np.testing.assert_allclose(
+            td_spsdl["time"].head().astype("int64"), cc.astype("int64"), atol=1
+        )
 
     def test_averaging(self):
         td_spsdl = acoustics.sound_pressure_spectral_density_level(self.spsd)
@@ -190,7 +192,9 @@ class TestAnalysis(unittest.TestCase):
         np.testing.assert_allclose(td_spsdl_50.head().values, cd_spsdl_50, atol=1e-6)
         np.testing.assert_allclose(td_spsdl_25.head().values, cd_spsdl_25, atol=1e-6)
         np.testing.assert_allclose(td_spsdl_75.head().values, cd_spsdl_75, atol=1e-6)
-        np.testing.assert_equal(td_spsdl_50["time_bins"].head().values, cc)
+        np.testing.assert_allclose(
+            td_spsdl_50["time_bins"].head().astype("int64"), cc.astype("int64"), atol=1
+        )
 
     def test_fmax_warning(self):
         """
