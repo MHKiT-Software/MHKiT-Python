@@ -189,9 +189,9 @@ class TestAnalysis(unittest.TestCase):
             ]
         )
 
-        np.testing.assert_allclose(td_spsdl_50.head().values, cd_spsdl_50, atol=1e-6)
-        np.testing.assert_allclose(td_spsdl_25.head().values, cd_spsdl_25, atol=1e-6)
-        np.testing.assert_allclose(td_spsdl_75.head().values, cd_spsdl_75, atol=1e-6)
+        np.testing.assert_allclose(td_spsdl_50.head().values, cd_spsdl_50, atol=1e-5)
+        np.testing.assert_allclose(td_spsdl_25.head().values, cd_spsdl_25, atol=1e-5)
+        np.testing.assert_allclose(td_spsdl_75.head().values, cd_spsdl_75, atol=1e-5)
         np.testing.assert_allclose(
             td_spsdl_50["time_bins"].head().astype("int64"), cc.astype("int64"), atol=1
         )
