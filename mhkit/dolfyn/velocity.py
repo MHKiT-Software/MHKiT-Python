@@ -658,16 +658,17 @@ class VelBinner(TimeBinner):
                     ).astype("float32")
                 except:  # variables not needing averaging
                     pass
-            # Add standard deviation
-            std = self.standard_deviation(raw_ds.velds.U_mag.values)
-            out_ds["U_std"] = xr.DataArray(
-                std.astype("float32"),
-                dims=raw_ds.vel.dims[1:],
-                attrs={
-                    "units": "m s-1",
-                    "long_name": "Water Velocity Standard Deviation",
-                },
-            )
+
+        # Add standard deviation
+        std = self.standard_deviation(raw_ds.velds.U_mag.values)
+        out_ds["U_std"] = xr.DataArray(
+            std.astype("float32"),
+            dims=raw_ds.vel.dims[1:],
+            attrs={
+                "units": "m s-1",
+                "long_name": "Water Velocity Standard Deviation",
+            },
+        )
 
         return out_ds
 
