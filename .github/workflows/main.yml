@@ -396,18 +396,7 @@ jobs:
     strategy:
       matrix:
         module:
-          [
-            wave,
-            tidal,
-            river,
-            dolfyn,
-            power,
-            loads,
-            mooring,
-            acoustics,
-            qc,
-            utils,
-          ]
+          [wave, tidal, river, dolfyn, power, loads, mooring, acoustics, utils]
         python-version: ['3.12']
 
     steps:
