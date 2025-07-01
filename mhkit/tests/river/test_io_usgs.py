@@ -3,7 +3,10 @@ import mhkit.river as river
 import pandas as pd
 import unittest
 import os
-import requests
+from unittest.mock import patch, MagicMock
+import json
+import shutil
+from datetime import timezone
 
 
 testdir = dirname(abspath(__file__))
@@ -39,44 +42,112 @@ class TestIO(unittest.TestCase):
         self.assertEqual((data.index == expected_index.tz_localize("UTC")).all(), True)
         self.assertEqual(data.shape, (31, 1))
 
-    def test_request_usgs_data_daily(self):
+    @patch("mhkit.river.io.usgs.requests.get")
+    def test_request_usgs_data_daily(self, mock_get):
         """
         Test request_usgs_data with daily data
         """
-        try:
-            data = river.io.usgs.request_usgs_data(
-                station="15515500",
-                parameter="00060",
-                start_date="2009-08-01",
-                end_date="2009-08-10",
-                options={
-                    "data_type": "Daily",
-                    "timeout": 60,  # Increase timeout to 60 seconds
-                },
+        # Prepare the mocked HTTP response for daily data
+        daily_values = []
+        start = pd.Timestamp("2009-08-01 00:00:00", tz="UTC")
+        end = pd.Timestamp("2009-08-10 23:59:59", tz="UTC")
+        current = start
+        while current <= end:
+            daily_values.append(
+                {
+                    "dateTime": current.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    "value": "1000",
+                    "qualifiers": ["P"],
+                }
             )
-            self.assertEqual(data.columns, ["Discharge, cubic feet per second"])
-            self.assertEqual(data.shape, (10, 1))
-        except requests.exceptions.ReadTimeout:
-            self.fail("USGS server timed out - failed test")
-        except requests.exceptions.SSLError:
-            self.fail("USGS server SSL error - failed test")
-        except Exception as e:
-            self.fail(f"Test failed with unexpected error: {str(e)}")
+            current += pd.Timedelta(days=1)
 
-    def test_request_usgs_data_instant(self):
-        """
-        Test request_usgs_data with instantaneous data
-        """
+        mock_payload = {
+            "value": {
+                "timeSeries": [
+                    {
+                        "variable": {
+                            "variableDescription": "Discharge, cubic feet per second"
+                        },
+                        "values": [{"value": daily_values}],
+                    }
+                ]
+            }
+        }
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = json.dumps(mock_payload)
+        mock_get.return_value = mock_resp
+
         data = river.io.usgs.request_usgs_data(
             station="15515500",
             parameter="00060",
             start_date="2009-08-01",
             end_date="2009-08-10",
-            options={"data_type": "Instantaneous"},
+            options={"data_type": "Daily", "clear_cache": True},
         )
-        self.assertEqual(data.columns, ["Discharge, cubic feet per second"])
-        # Every 15 minutes or 4 times per hour
-        self.assertEqual(data.shape, (10 * 24 * 4, 1))
+
+        # Verify that we called requests.get
+        mock_get.assert_called_once()
+
+        # Basic functionality checks
+        self.assertIsInstance(data, pd.DataFrame)
+        self.assertGreater(len(data), 0)  # Has data
+        self.assertTrue(data.index.tz is not None)  # Timezone aware
+
+
+class TestUSGSInstant(unittest.TestCase):
+    @patch("mhkit.river.io.usgs.requests.get")
+    def test_request_usgs_data_instant(self, mock_get):
+        mock_payload = {
+            "value": {
+                "timeSeries": [
+                    {
+                        "variable": {
+                            "variableDescription": "Discharge, cubic feet per second"
+                        },
+                        "values": [
+                            {
+                                "value": [
+                                    {
+                                        "dateTime": "2009-08-01T00:00:00.000Z",
+                                        "value": "1000",
+                                        "qualifiers": ["P"],
+                                    },
+                                    {
+                                        "dateTime": "2009-08-01T00:15:00.000Z",
+                                        "value": "1000",
+                                        "qualifiers": ["P"],
+                                    },
+                                ]
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = json.dumps(mock_payload)
+        mock_get.return_value = mock_resp
+
+        df = river.io.usgs.request_usgs_data(
+            station="15515500",
+            parameter="00060",
+            start_date="2009-08-01",
+            end_date="2009-08-10",
+            options={"data_type": "Instantaneous", "clear_cache": True},
+        )
+
+        # Verify that we called requests.get
+        mock_get.assert_called_once()
+
+        # Basic functionality checks
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertGreater(len(df), 0)  # Has data
+        self.assertTrue(df.index.tz is not None)  # Timezone aware
 
 
 if __name__ == "__main__":

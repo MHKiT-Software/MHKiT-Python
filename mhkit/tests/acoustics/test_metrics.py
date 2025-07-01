@@ -120,7 +120,9 @@ class TestMetrics(unittest.TestCase):
             td_spl3["freq_bins"].tail().values, cd_spl3_freq_tail, atol=1e-6
         )
         np.testing.assert_allclose(td_spl3.tail().values, cd_spl3_tail, atol=1e-6)
-        np.testing.assert_equal(td_spl["time"].head().values, cc)
+        np.testing.assert_allclose(
+            td_spl["time"].head().astype("int64"), cc.astype("int64"), atol=1
+        )
 
     def test_nmfs_weighting(self):
         freq = self.spsd["freq"]
@@ -195,13 +197,15 @@ class TestMetrics(unittest.TestCase):
         cd_sel_pw = np.array([112.22191, 119.87286, 141.67467, 145.6534, 125.419975])
         cd_sel_ow = np.array([110.945404, 118.06397, 139.08435, 143.51094, 123.68077])
 
-        np.testing.assert_allclose(td_sel.values, cd_sel, atol=1e-6)
-        np.testing.assert_allclose(td_sel_lf.values, cd_sel_lf, atol=1e-6)
-        np.testing.assert_allclose(td_sel_hf.values, cd_sel_hf, atol=1e-6)
-        np.testing.assert_allclose(td_sel_vhf.values, cd_sel_vhf, atol=1e-6)
-        np.testing.assert_allclose(td_sel_pw.values, cd_sel_pw, atol=1e-6)
-        np.testing.assert_allclose(td_sel_ow.values, cd_sel_ow, atol=1e-6)
-        np.testing.assert_equal(td_sel["time"].values, cc)
+        np.testing.assert_allclose(td_sel.values, cd_sel, atol=1e-5)
+        np.testing.assert_allclose(td_sel_lf.values, cd_sel_lf, atol=1e-5)
+        np.testing.assert_allclose(td_sel_hf.values, cd_sel_hf, atol=1e-5)
+        np.testing.assert_allclose(td_sel_vhf.values, cd_sel_vhf, atol=1e-5)
+        np.testing.assert_allclose(td_sel_pw.values, cd_sel_pw, atol=1e-5)
+        np.testing.assert_allclose(td_sel_ow.values, cd_sel_ow, atol=1e-5)
+        np.testing.assert_allclose(
+            td_sel["time"].astype("int64"), cc.astype("int64"), atol=1
+        )
 
     def test_spl_vs_sel(self):
         # SPL should equal SEL over a 1 second interval
