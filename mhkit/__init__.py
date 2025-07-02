@@ -44,7 +44,7 @@ def __getattr__(name):
     if name in known_modules:
         error_msg += f"\n\nTo install the {name} module, run:\n"
         error_msg += f"pip install mhkit[{name}]\n\n"
-        error_msg += f"Or install all modules with:\n"
-        error_msg += f"pip install mhkit[all]"
+        error_msg += "Or install all modules with:\n"
+        error_msg += "pip install mhkit[all]"
 
     raise AttributeError(error_msg)
