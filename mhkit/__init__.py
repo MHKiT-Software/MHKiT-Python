@@ -23,7 +23,7 @@ __license__ = "Revised BSD License"
 
 def __getattr__(name):
     """Lazy import modules to handle pip optional dependencies."""
-    if name in [
+    known_modules = [
         "wave",
         "river",
         "tidal",
@@ -34,31 +34,17 @@ def __getattr__(name):
         "dolfyn",
         "mooring",
         "acoustics",
-    ]:
-        return importlib.import_module(f"mhkit.{name}")
-
-    # Enhanced error message with installation instructions
-    error_msg = f"module 'mhkit' has no attribute '{name}'"
-
-    # Check if it's a known module that might not be installed
-    known_modules = {
-        "wave": "wave analysis and resource assessment",
-        "river": "river hydrokinetic analysis",
-        "tidal": "tidal energy analysis",
-        "qc": "quality control tools",
-        "utils": "utility functions",
-        "power": "power performance analysis",
-        "loads": "load analysis and extreme value statistics",
-        "dolfyn": "acoustic Doppler current profiler (ADCP/ADV) data processing",
-        "mooring": "mooring analysis tools",
-        "acoustics": "acoustic analysis tools",
-    }
+    ]
 
     if name in known_modules:
-        error_msg += f"\n\nTo install the {name} module and its dependencies, run:\n"
+        return importlib.import_module(f"mhkit.{name}")
+
+    error_msg = f"module 'mhkit' has no attribute '{name}'"
+
+    if name in known_modules:
+        error_msg += f"\n\nTo install the {name} module, run:\n"
         error_msg += f"pip install mhkit[{name}]\n\n"
         error_msg += f"Or install all modules with:\n"
-        error_msg += f"pip install mhkit[all]\n\n"
-        error_msg += f"The {name} module provides {known_modules[name]}."
+        error_msg += f"pip install mhkit[all]"
 
     raise AttributeError(error_msg)
