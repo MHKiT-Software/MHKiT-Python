@@ -137,10 +137,17 @@ def _remove_gps_duplicates(dat):
 
     dat["data_vars"]["hdwtime_gps"] = dat["coords"]["time"]
 
+    # If the time jumps by nearly 24 hours at any given instance, we've skipped a day
+    time_diff = np.diff(dat["coords"]["time_gps"])
+    if any(np.array(list(set(time_diff))) < -(23.9 * 3600)):
+        idx = np.where(time_diff == time_diff.min())[0]
+        dat["coords"]["time_gps"][int(idx) + 1 :] += 24 * 3600
+
     # Remove duplicate timestamp values, if applicable
     dat["coords"]["time_gps"], idx = np.unique(
         dat["coords"]["time_gps"], return_index=True
     )
+
     # Remove nan values, if applicable
     nan = np.zeros(dat["coords"]["time"].shape, dtype=bool)
     if any(np.isnan(dat["coords"]["time_gps"])):
