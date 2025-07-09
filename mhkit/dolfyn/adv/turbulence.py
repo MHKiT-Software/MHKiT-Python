@@ -339,7 +339,14 @@ class ADVBinner(VelBinner):
 
         return m, b
 
-    def dissipation_rate_LT83(self, psd, U_mag, freq_range=[6.28, 12.57], noise=None):
+    def dissipation_rate_LT83(
+        self,
+        psd,
+        U_mag,
+        freq_range=[6.28, 12.57],
+        k_constant=[0.5, 0.67, 0.67],
+        noise=None,
+    ):
         """
         Calculate the dissipation rate from the power spectral density of velocity.
 
@@ -353,6 +360,12 @@ class ADVBinner(VelBinner):
           The range over which to integrate/average the spectrum, in units
           of the psd frequency vector (Hz or rad/s).
           Default = [6.28, 12.57] rad/s
+        k_constant : float or iterable(3)
+          Kolmogorov Constant (\\alpha in Notes section below) to use. If a
+          three dimensional PSD is provided, \\alpha defaults to [0.5, 0.67, 0.67];
+          i.e. 0.5 for the streamwise PSD and 0.67 for the transverse and vertical
+          PSDs. If the PSD is provided for a single velocity direction, \\alpha is
+          taken to be 0.5 unless otherwise specified.
         noise : float or array-like
           Instrument noise level in same units as velocity. Typically
           found from `adv.turbulence.calc_doppler_noise`.
@@ -394,7 +407,10 @@ class ADVBinner(VelBinner):
             raise Exception("`U_mag` should be from ensembled-averaged dataset.")
         if not hasattr(freq_range, "__iter__") or len(freq_range) != 2:
             raise ValueError("`freq_range` must be an iterable of length 2.")
-
+        if (np.size(k_constant) != 1) and (np.size(k_constant) != 3):
+            raise ValueError(
+                "`k_constant` should be a single value or iterable of length 3."
+            )
         if noise is not None:
             if np.shape(noise)[0] != np.shape(psd)[0]:
                 raise Exception("Noise should have same first dimension as `psd`.")
@@ -418,11 +434,12 @@ class ADVBinner(VelBinner):
             U = U_mag
 
         # Set Kolmogorov constant
+        a = np.array(k_constant)
         if psd.shape[0] == 3:
-            a = np.array([0.5, 0.67, 0.67])
             a = a[:, None, None]  # stack properly
         else:
-            a = 0.5
+            a = np.squeeze(k_constant)
+
         # Calculate dissipation
         out = (psd.isel(freq=idx) * freq.isel(freq=idx) ** (5 / 3) / a).mean(
             axis=-1

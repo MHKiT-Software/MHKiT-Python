@@ -835,7 +835,9 @@ class ADPBinner(VelBinner):
 
         return m, b
 
-    def dissipation_rate_LT83(self, psd, U_mag, freq_range=[0.2, 0.4], noise=None):
+    def dissipation_rate_LT83(
+        self, psd, U_mag, freq_range=[0.2, 0.4], k_constant=0.67, noise=None
+    ):
         """
         Calculate the TKE dissipation rate from the velocity spectra.
 
@@ -850,6 +852,9 @@ class ADPBinner(VelBinner):
         f_range : iterable(2)
           The range over which to integrate/average the spectrum, in units
           of the psd frequency vector (Hz or rad/s)
+        k_constant : float or iterable(3)
+          Kolmogorov Constant (\\alpha in Notes section below) to use. Default
+          \\alpha is 0.67.
         noise : float or array-like
           Instrument noise level in same units as velocity. Typically
           found from `adp.turbulence.doppler_noise_level`.
@@ -891,6 +896,8 @@ class ADPBinner(VelBinner):
             raise Exception("U_mag should be 1-dimensional (time)")
         if not hasattr(freq_range, "__iter__") or len(freq_range) != 2:
             raise ValueError("`freq_range` must be an iterable of length 2.")
+        if np.size(k_constant) != 1:
+            raise ValueError("`k_constant` should be a single value.")
         if noise is not None:
             if np.shape(noise)[0] != np.shape(psd)[0]:
                 raise Exception("Noise should have same first dimension as `psd`")
@@ -914,7 +921,7 @@ class ADPBinner(VelBinner):
             U = U_mag
 
         # Use the transverse value derived from the Kolmogorov constant
-        a = 0.67
+        a = k_constant
         # Calculate dissipation
         out = (psd[:, idx] * freq[idx] ** (5 / 3) / a).mean(axis=-1) ** (
             3 / 2
