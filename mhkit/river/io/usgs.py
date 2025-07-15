@@ -199,8 +199,23 @@ def request_usgs_data(
 
     print("Data request URL: ", data_url + api_query)
 
-    response = requests.get(url=data_url + api_query, proxies=proxy, timeout=timeout)
-    text = json.loads(response.text)
+    max_retries = 3
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            response = requests.get(
+                url=data_url + api_query, proxies=proxy, timeout=timeout, verify=True
+            )
+            text = json.loads(response.text)
+            break
+        except requests.exceptions.SSLError as e:
+            retry_count += 1
+            if retry_count == max_retries:
+                raise e
+            print(
+                f"SSL Error occurred, retrying... (Attempt {retry_count}/{max_retries})"
+            )
+            continue
 
     # handle_caching is only set-up for pandas, so force this data to output as pandas for now
     data = _read_usgs_json(text, True)

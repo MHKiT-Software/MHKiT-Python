@@ -33,7 +33,7 @@ def plot_spectrogram(
     fmax: int = 100000,
     fig: plt.figure = None,
     ax: plt.Axes = None,
-    **kwargs
+    **kwargs,
 ) -> Tuple[plt.figure, plt.Axes]:
     """
     Plots the spectrogram of the sound pressure spectral density level.
@@ -86,7 +86,7 @@ def plot_spectrogram(
         spsdl[freq].values,
         spsdl.transpose(freq, time),
         shading="nearest",
-        **kwargs
+        **kwargs,
     )
     fig.colorbar(h, ax=ax, label=getattr(spsdl, "units", None))
     ax.set(ylim=(fmin, fmax), xlabel="Time", ylabel="Frequency [Hz]")
@@ -100,7 +100,7 @@ def plot_spectra(
     fmax: int = 100000,
     fig: plt.figure = None,
     ax: plt.Axes = None,
-    **kwargs
+    **kwargs,
 ) -> Tuple[plt.figure, plt.Axes]:
     """
     Plots spectral density. X axis is log-transformed.
