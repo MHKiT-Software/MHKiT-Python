@@ -39,12 +39,12 @@ def __getattr__(name):
     if name in known_modules:
         return importlib.import_module(f"mhkit.{name}")
 
-    error_msg = f"module 'mhkit' has no attribute '{name}'"
-
     if name in known_modules:
-        error_msg += f"\n\nTo install the {name} module, run:\n"
+        error_msg = f"\n\nTo install the {name} module, run:\n"
         error_msg += f"pip install mhkit[{name}]\n\n"
         error_msg += "Or install all modules with:\n"
         error_msg += "pip install mhkit[all]"
+    else:
+        error_msg = f"module 'mhkit' has no attribute '{name}'"
 
     raise AttributeError(error_msg)
