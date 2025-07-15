@@ -26,6 +26,7 @@ dependencies = [
     "scipy>=1.14.0",
     "xarray>=2024.6.0",
     "matplotlib>=3.9.1",
+    "pecos>=0.3.0",
 ]
 
 [project.optional-dependencies]
@@ -76,11 +77,11 @@ acoustics = [
 ]
 
 qc = [
- "pecos>=0.3.0",
+
 ]
 
 utils = [
-  "pecos>=0.3.0",
+
 ]
 
 # Development dependencies
