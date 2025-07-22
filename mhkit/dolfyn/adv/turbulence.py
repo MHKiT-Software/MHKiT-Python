@@ -407,10 +407,11 @@ class ADVBinner(VelBinner):
             raise Exception("`U_mag` should be from ensembled-averaged dataset.")
         if not hasattr(freq_range, "__iter__") or len(freq_range) != 2:
             raise ValueError("`freq_range` must be an iterable of length 2.")
-        if (np.size(k_constant) != 1) and (np.size(k_constant) != 3):
-            raise ValueError(
-                "`k_constant` should be a single value or iterable of length 3."
-            )
+        # if the spectra are 1D, then the first dimension should be time (any length)
+        if (psd.shape[0] != 3) and (np.size(k_constant) != 1):
+            raise ValueError("`k_constant` should be a single value.")
+        elif (psd.shape[0] == 3) and (np.size(k_constant) != 3):
+            raise ValueError("`k_constant` should be an iterable of length 3.")
         if noise is not None:
             if np.shape(noise)[0] != np.shape(psd)[0]:
                 raise Exception("Noise should have same first dimension as `psd`.")
