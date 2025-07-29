@@ -235,7 +235,7 @@ data_defs = {
         "data_vars",
         "float32",
         "m s-1",
-        "Platform Speed Made Good",
+        "Platform Speed Made Good from Lat/Lon",
         "platform_speed_wrt_ground",
     ),
     "dir_made_good_gps": (
@@ -243,7 +243,7 @@ data_defs = {
         "data_vars",
         "float32",
         "degree",
-        "Platform Direction Made Good",
+        "Platform Direction Made Good from Lat/Lon",
         "platform_course",
     ),
     "flags_gps": ([], "data_vars", "float32", "bits", "GPS Flags", ""),
@@ -970,8 +970,8 @@ def read_vmdas(rdr):
         "clock_offset_UTC_gps",
         "latitude_gps",
         "longitude_gps",
-        "avg_speed_gps",
-        "avg_dir_gps",
+        "speed_over_grnd_gps",
+        "dir_over_grnd_gps",
         "speed_made_good_gps",
         "dir_made_good_gps",
         "flags_gps",
@@ -993,14 +993,15 @@ def read_vmdas(rdr):
     longitude_first_gps = fd.read_i32(1) * rdr._cfac32
 
     # Last lat/lon position prior to current ADCP ping
-    utc_time_fix = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) * 0.1)))
-    ens.time_gps[k] = tmlib.date2epoch(date_utc + utc_time_fix)[0]
+    utc_time_last_fix = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) * 0.1)))
+    ens.time_gps[k] = tmlib.date2epoch(date_utc + utc_time_last_fix)[0]
     ens.latitude_gps[k] = fd.read_i32(1) * rdr._cfac32
     ens.longitude_gps[k] = fd.read_i32(1) * rdr._cfac32
-
-    ens.avg_speed_gps[k] = fd.read_ui16(1) * 0.001
-    ens.avg_dir_gps[k] = fd.read_ui16(1) * rdr._cfac16  # avg true track
+    # From VTG
+    ens.speed_over_grnd_gps[k] = fd.read_ui16(1) * 0.001
+    ens.dir_over_grnd_gps[k] = fd.read_ui16(1) * rdr._cfac16  # avg true track
     fd.seek(2, 1)  # avg magnetic track
+    # Calculated from difference between latitude and longitude
     ens.speed_made_good_gps[k] = fd.read_ui16(1) * 0.001
     ens.dir_made_good_gps[k] = fd.read_ui16(1) * rdr._cfac16
     fd.seek(2, 1)  # reserved
