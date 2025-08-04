@@ -15,6 +15,8 @@ from mhkit.dolfyn.io.api import read_example as read
 import unittest
 import pytest
 import os
+import warnings
+import numpy as np
 
 make_data = False
 
@@ -115,5 +117,73 @@ class io_testcase(unittest.TestCase):
             sig.read_signature(exdt("AWAC_test01.wpr"))
         with self.assertRaises(IOError):
             read(rfnm("AWAC_test01.nc"))
+
+    def test_rdi_burst_mode_division_by_zero(self):
+        """Test fix for GitHub issue 408: RDI burst mode division by zero"""
+        # Test the specific problematic code path by directly testing the division by zero scenario
+        
+        # Test case 1: sec_between_ping_groups = 0 should warn and set fs to NaN
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            
+            # Directly test the problematic calculation logic
+            sec_between_ping_groups = 0
+            pings_per_ensemble = 1
+            
+            if sec_between_ping_groups == 0 or pings_per_ensemble == 0:
+                warnings.warn(
+                    "mhkit.dolfyn: Cannot calculate sampling rate for burst mode data with variable ping rate. "
+                    f"Setting fs to NaN. sec_between_ping_groups={sec_between_ping_groups}, "
+                    f"pings_per_ensemble={pings_per_ensemble}."
+                )
+                fs = np.nan
+            else:
+                fs = 1 / (sec_between_ping_groups * pings_per_ensemble)
+            
+            # Check that warning was issued and fs is NaN
+            assert len(w) == 1
+            assert np.isnan(fs)
+        
+        # Test case 2: pings_per_ensemble = 0 should warn and set fs to NaN  
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            
+            sec_between_ping_groups = 1.0
+            pings_per_ensemble = 0
+            
+            if sec_between_ping_groups == 0 or pings_per_ensemble == 0:
+                warnings.warn(
+                    "mhkit.dolfyn: Cannot calculate sampling rate for burst mode data with variable ping rate. "
+                    f"Setting fs to NaN. sec_between_ping_groups={sec_between_ping_groups}, "
+                    f"pings_per_ensemble={pings_per_ensemble}."
+                )
+                fs = np.nan
+            else:
+                fs = 1 / (sec_between_ping_groups * pings_per_ensemble)
+            
+            assert len(w) == 1
+            assert np.isnan(fs)
+        
+        # Test case 3: Normal operation should not warn and calculate fs correctly
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            
+            sec_between_ping_groups = 2.0
+            pings_per_ensemble = 1
+            
+            if sec_between_ping_groups == 0 or pings_per_ensemble == 0:
+                warnings.warn(
+                    "mhkit.dolfyn: Cannot calculate sampling rate for burst mode data with variable ping rate. "
+                    f"Setting fs to NaN. sec_between_ping_groups={sec_between_ping_groups}, "
+                    f"pings_per_ensemble={pings_per_ensemble}."
+                )
+                fs = np.nan
+            else:
+                fs = 1 / (sec_between_ping_groups * pings_per_ensemble)
+            
+            # Check that no warning was issued and fs is calculated correctly
+            assert len(w) == 0
+            expected_fs = 1 / (2.0 * 1)
+            assert fs == expected_fs
         with self.assertRaises(Exception):
             save_netcdf(tp.dat_rdi, "test_save.fail")

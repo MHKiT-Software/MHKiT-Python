@@ -1044,7 +1044,16 @@ class _RDIReader:
         ) or ("sentinelv" in cfg["inst_model"].lower()):
             cfg["fs"] = round(1 / np.median(np.diff(dat["coords"]["time"])), 2)
         else:
-            cfg["fs"] = 1 / (cfg["sec_between_ping_groups"] * cfg["pings_per_ensemble"])
+            # Handle burst mode where sec_between_ping_groups or pings_per_ensemble may be 0
+            if cfg["sec_between_ping_groups"] == 0 or cfg["pings_per_ensemble"] == 0:
+                warnings.warn(
+                    "mhkit.dolfyn: Cannot calculate sampling rate for burst mode data with variable ping rate. "
+                    f"Setting fs to NaN. sec_between_ping_groups={cfg['sec_between_ping_groups']}, "
+                    f"pings_per_ensemble={cfg['pings_per_ensemble']}."
+                )
+                cfg["fs"] = np.nan
+            else:
+                cfg["fs"] = 1 / (cfg["sec_between_ping_groups"] * cfg["pings_per_ensemble"])
 
         # Save configuration data as attributes
         dat["attrs"] = cfg
