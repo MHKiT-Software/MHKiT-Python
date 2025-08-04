@@ -124,7 +124,7 @@ def read_rdi(
 
     if len(dss) == 2:
         warnings.warn(
-            "\nTwo profiling configurations retrieved from file" "\nReturning first."
+            "\nTwo profiling configurations retrieved from file\nReturning first."
         )
 
     # Close handler
