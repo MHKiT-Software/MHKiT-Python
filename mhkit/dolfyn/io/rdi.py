@@ -1053,7 +1053,9 @@ class _RDIReader:
                 )
                 cfg["fs"] = np.nan
             else:
-                cfg["fs"] = 1 / (cfg["sec_between_ping_groups"] * cfg["pings_per_ensemble"])
+                cfg["fs"] = 1 / (
+                    cfg["sec_between_ping_groups"] * cfg["pings_per_ensemble"]
+                )
 
         # Save configuration data as attributes
         dat["attrs"] = cfg
