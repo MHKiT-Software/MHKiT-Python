@@ -7,6 +7,8 @@ import warnings
 import unittest
 import pytest
 import os
+import numpy as np
+from unittest.mock import patch
 
 make_data = False
 load = tb.load_netcdf
@@ -86,6 +88,46 @@ class io_adp_testcase(unittest.TestCase):
         assert_allclose(td_rp, dat_rp, atol=1e-6)
         assert_allclose(td_transect, dat_transect, atol=1e-6)
         assert_allclose(td_senb5, dat_senb5, atol=1e-6)
+
+    def test_rdi_burst_mode_division_by_zero(self):
+        """Test fix for issue #408: RDI burst mode division by zero
+
+        Issue #408 reported that RDI Pinnacle 45 in continuous burst mode
+        sets sec_between_ping_groups=0 while pings_per_ensemble=1, causing
+        ZeroDivisionError in sampling rate calculation.
+        """
+        # First verify normal operation with a regular RDI file
+        td_rdi_normal = read("RDI_test01.000", nens=10)
+
+        # Verify normal file has valid fs (not NaN)
+        assert not np.isnan(td_rdi_normal.attrs["fs"])
+        assert td_rdi_normal.attrs["fs"] > 0
+
+        # Now test burst mode by patching the RDI reader to force burst mode config
+        # Patch the finalize method to modify cfg before the fs calculation
+        import mhkit.dolfyn.io.rdi as rdi_module
+
+        original_finalize = rdi_module._RDIReader.finalize
+
+        def mock_finalize_burst_mode(self, data, cfg):
+            # Force burst mode configuration as reported in issue #408
+            cfg["sec_between_ping_groups"] = 0
+            cfg["pings_per_ensemble"] = 1
+            return original_finalize(self, data, cfg)
+
+        # Test burst mode scenario with patching
+        with patch.object(rdi_module._RDIReader, "finalize", mock_finalize_burst_mode):
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+
+                # Read the same file but with forced burst mode config
+                td_rdi_burst = read("RDI_test01.000", nens=10)
+
+                # Check that warning was issued for burst mode
+                assert len(w) > 0
+
+                # Check that fs is set to NaN (not a crash)
+                assert np.isnan(td_rdi_burst.attrs["fs"])
 
     def test_io_nortek(self):
         nens = 100
