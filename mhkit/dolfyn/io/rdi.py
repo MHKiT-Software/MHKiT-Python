@@ -1044,12 +1044,13 @@ class _RDIReader:
         ) or ("sentinelv" in cfg["inst_model"].lower()):
             cfg["fs"] = round(1 / np.median(np.diff(dat["coords"]["time"])), 2)
         else:
-            # Handle burst mode where sec_between_ping_groups or pings_per_ensemble may be 0
-            if cfg["sec_between_ping_groups"] == 0 or cfg["pings_per_ensemble"] == 0:
+            # Handle edge case where sec_between_ping_groups is 0, likely indicating burst mode is active (issue #408)
+            if cfg["sec_between_ping_groups"] == 0:
                 warnings.warn(
-                    "mhkit.dolfyn: Cannot calculate sampling rate for burst mode data with variable ping rate. "
-                    f"Setting fs to NaN. sec_between_ping_groups={cfg['sec_between_ping_groups']}, "
-                    f"pings_per_ensemble={cfg['pings_per_ensemble']}."
+                    "mhkit.dolfyn: Setting fs (sample rate) to NaN because sec_between_ping_groups is zero. "
+                    "Per issue #408, burst mode operation pings as fast as possible with inconsistent timing, "
+                    "preventing accurate sample rate calculations. "
+                    "See https://github.com/MHKiT-Software/MHKiT-Python/issues/408"
                 )
                 cfg["fs"] = np.nan
             else:
