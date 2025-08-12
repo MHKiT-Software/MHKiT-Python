@@ -501,7 +501,12 @@ def _xml_to_dataframe(response: requests.Response) -> tuple[pd.DataFrame, dict]:
         [pd.DataFrame(obs.attrib, index=[0]) for obs in data], ignore_index=True
     )
 
-    df["t"] = pd.to_datetime(pd.to_numeric(df.t), unit="ms")
+    try:
+        df["t"] = pd.to_datetime(pd.to_numeric(df.t), unit="ms")
+    except ValueError:
+        # Don't convert df.t to numeric if its a datetime formatted string
+        df["t"] = pd.to_datetime(df.t)
+
     df = df.set_index("t")
     df.drop_duplicates(inplace=True)
 
