@@ -1040,7 +1040,6 @@ class _RDIReader:
         # Need to figure out how to differentiate burst mode from averaging mode
         calculate_sample_rate_from_time_diff = (
             cfg.get("source_program", "").lower() in ["vmdas", "winriver", "winriver2"]
-            # or "sentinelv" in cfg["inst_model"].lower()
             or cfg["sec_between_ping_groups"] == 0
         )
 
