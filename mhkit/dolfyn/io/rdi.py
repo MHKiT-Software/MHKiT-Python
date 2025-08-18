@@ -124,7 +124,7 @@ def read_rdi(
 
     if len(dss) == 2:
         warnings.warn(
-            "\nTwo profiling configurations retrieved from file" "\nReturning first."
+            "\nTwo profiling configurations retrieved from file\nReturning first."
         )
 
     # Close handler
@@ -1038,12 +1038,26 @@ class _RDIReader:
             lib._pop(dat, nm)
 
         # Need to figure out how to differentiate burst mode from averaging mode
-        if (
-            ("source_program" in cfg)
-            and (cfg["source_program"].lower() in ["vmdas", "winriver", "winriver2"])
-        ) or ("sentinelv" in cfg["inst_model"].lower()):
-            cfg["fs"] = round(1 / np.median(np.diff(dat["coords"]["time"])), 2)
+        calculate_sample_rate_from_time_diff = (
+            cfg.get("source_program", "").lower() in ["vmdas", "winriver", "winriver2"]
+            or cfg["sec_between_ping_groups"] == 0
+        )
+
+        if calculate_sample_rate_from_time_diff:
+            # Use median-based calculation for burst mode operation
+            time_diffs = np.diff(dat["coords"]["time"])
+            if cfg["sec_between_ping_groups"] == 0:
+                warnings.warn(
+                    "mhkit.dolfyn: sec_between_ping_groups is zero, likely indicating burst mode operation. "
+                    "Using median time difference to estimate sample rate, but the actual sample rate "
+                    "may be variable and non-uniform if operating in burst mode. This could introduce "
+                    "artifacts in downstream spectral analysis, filtering, or other time-series "
+                    "processing that assumes constant sampling intervals. "
+                    "Per issue #408: https://github.com/MHKiT-Software/MHKiT-Python/issues/408"
+                )
+            cfg["fs"] = round(1 / np.median(time_diffs), 2)
         else:
+            # Standard calculation for averaging mode
             cfg["fs"] = 1 / (cfg["sec_between_ping_groups"] * cfg["pings_per_ensemble"])
 
         # Save configuration data as attributes

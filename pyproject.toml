@@ -133,3 +133,6 @@ include-package-data = true
 
 [tool.setuptools.dynamic]
 version = {attr = "mhkit.__version__"} 
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"

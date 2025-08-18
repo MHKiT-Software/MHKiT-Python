@@ -115,5 +115,6 @@ class io_testcase(unittest.TestCase):
             sig.read_signature(exdt("AWAC_test01.wpr"))
         with self.assertRaises(IOError):
             read(rfnm("AWAC_test01.nc"))
+
         with self.assertRaises(Exception):
             save_netcdf(tp.dat_rdi, "test_save.fail")
