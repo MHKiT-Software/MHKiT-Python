@@ -501,7 +501,12 @@ def _xml_to_dataframe(response: requests.Response) -> tuple[pd.DataFrame, dict]:
         [pd.DataFrame(obs.attrib, index=[0]) for obs in data], ignore_index=True
     )
 
-    df["t"] = pd.to_datetime(df.t)
+    try:
+        df["t"] = pd.to_datetime(pd.to_numeric(df.t), unit="ms")
+    except ValueError:
+        # Don't convert df.t to numeric if its a datetime formatted string
+        df["t"] = pd.to_datetime(df.t)
+
     df = df.set_index("t")
     df.drop_duplicates(inplace=True)
 
@@ -547,7 +552,7 @@ def read_noaa_json(filename: str, to_pandas: bool = True) -> tuple[pd.DataFrame,
         # Remainder is DataFrame
         data = pd.DataFrame.from_dict(json_data)
         # Convert from epoch to date time
-        data.index = pd.to_datetime(data.index, unit="ms")
+        data.index = pd.to_datetime(pd.to_numeric(data.index), unit="ms")
 
     except ValueError:  # using cache.py format
         if "metadata" in json_data:

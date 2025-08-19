@@ -229,7 +229,7 @@ def discharge(ds, water_depth, rho, mu=None, surface_offset=0, utm_zone=10):
             sign = -1
         else:
             sign = 1
-        return sign * np.trapz(np.trapz(vel, depth, axis=0), x)
+        return sign * np.trapezoid(np.trapezoid(vel, depth, axis=0), x)
 
     # Extrapolate to bed
     vel = ds["vel"].copy()
@@ -265,7 +265,7 @@ def discharge(ds, water_depth, rho, mu=None, surface_offset=0, utm_zone=10):
             (0.5 * rho * speed**3).mean().item()
         )  # kg/m^3 * m^3/s^3 = kg/s^3 = W/m^2
         hydraulic_depth = abs(
-            np.trapz((water_depth - surface_offset)[_xinds], xy[0][_xinds])
+            np.trapezoid((water_depth - surface_offset)[_xinds], xy[0][_xinds])
         ) / (
             xy[0][_xinds].max() - xy[0][_xinds].min()
         )  # area / surface-width

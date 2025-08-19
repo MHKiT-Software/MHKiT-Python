@@ -6,8 +6,10 @@ from pandas.plotting import register_matplotlib_converters as _rmc
 
 _rmc()
 
-# Ignore future warnings
-_warn.simplefilter(action="ignore", category=FutureWarning)
+# Use targeted warning configuration
+from mhkit.warnings import configure_warnings
+
+configure_warnings()
 
 __version__ = "v0.9.0"
 

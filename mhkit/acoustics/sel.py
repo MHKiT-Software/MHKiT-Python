@@ -131,7 +131,7 @@ def sound_exposure_level(
     # from weighted mean square values
     band = spsd.sel(freq=slice(fmin, fmax))
     w = w.sel(freq=slice(fmin, fmax))
-    exposure = np.trapz(band * w, band["freq"])
+    exposure = np.trapezoid(band * w, band["freq"])
 
     # Sound exposure level (L_{E,p}) = (L_{p,rms} + 10log10(t))
     sel = 10 * np.log10(exposure / reference) + 10 * np.log10(

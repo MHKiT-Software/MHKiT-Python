@@ -108,7 +108,7 @@ def sound_pressure_level(
     # Mean square sound pressure in a specified frequency band from mean square values
     band = spsd.sel(freq=slice(fmin, fmax))
     freqs = band["freq"]
-    pressure_squared = np.trapz(band, freqs)
+    pressure_squared = np.trapezoid(band, freqs)
 
     # Mean square sound pressure level
     mspl = 10 * np.log10(pressure_squared / reference)
@@ -197,7 +197,7 @@ def _band_sound_pressure_level(
         else:
             spsd_slc = spsd.sel(freq=slice(*band_range))
 
-        pressure_squared.loc[{"freq_bins": key}] = np.trapz(spsd_slc, x)
+        pressure_squared.loc[{"freq_bins": key}] = np.trapezoid(spsd_slc, x)
 
     # Mean square sound pressure level in dB rel 1 uPa
     mspl = 10 * np.log10(pressure_squared / reference)
