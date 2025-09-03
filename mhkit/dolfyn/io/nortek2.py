@@ -113,9 +113,13 @@ def read_signature(
     ds = _create_dataset(out)
     ds = _set_coords(ds, ref_frame=ds.coord_sys)
 
-    if "orientmat" not in ds:
+    if ("orientmat" not in ds) and ("heading" in ds):
         ds["orientmat"] = _euler2orient(
             ds["time"], ds["heading"], ds["pitch"], ds["roll"]
+        )
+    elif ("orientmat_avg" not in ds) and ("heading_avg" in ds):
+        ds["orientmat_avg"] = _euler2orient(
+            ds["time_avg"], ds["heading_avg"], ds["pitch_avg"], ds["roll_avg"]
         )
 
     if declin is not None:
@@ -729,13 +733,6 @@ def _reduce(data):
         dc["range_avg"] = (np.arange(dv["vel_avg"].shape[1]) + 1) * da[
             "cell_size_avg"
         ] + da["blank_dist_avg"]
-        # Check to see if orientmat_avg was written (only for instruments with an AHRS)
-        if ("orientmat" not in dv) and ("orientmat_avg" in dv):
-            dv["orientmat"] = dv.pop("orientmat_avg")
-        elif "heading" not in dv:  # need these to write orientation matrix
-            dv["heading"] = dv.pop("heading_avg")
-            dv["pitch"] = dv.pop("pitch_avg")
-            dv["roll"] = dv.pop("roll_avg")
         tmat = da["filehead_config"]["XFAVG"]
         da["duty_cycle_interval"] = dci = da["filehead_config"]["PLAN"]["MIAVG"]
         da["duty_cycle_n_burst"] = da["filehead_config"]["AVG"]["NPING"]
@@ -822,10 +819,11 @@ def split_dp_datasets(ds):
         ds2.attrs["rotate_vars"] = rotate_vars2
         # Set orientation matricies
         ds2["beam2inst_orientmat"] = ds["beam2inst_orientmat"]
-        if ds.attrs["has_imu"]:
-            ds2 = ds2.rename({"orientmat_avg": "orientmat"})
-        else:
-            ds2["orientmat"] = ds["orientmat"]
+        # IMU versions have 'orientmat_avg' variable, but non-IMU versions do not
+        if not ds.attrs["has_imu"]:
+            ds2["orientmat_avg"] = _euler2orient(
+                ds2["time_avg"], ds2["heading_avg"], ds2["pitch_avg"], ds2["roll_avg"]
+            )
         # Set original coordinate system
         cy = ds2.attrs["coord_sys_axes_avg"]
         ds2.attrs["coord_sys"] = {"XYZ": "inst", "ENU": "earth", "beam": "beam"}[cy]
