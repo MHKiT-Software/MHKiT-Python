@@ -205,7 +205,7 @@ def water_depth_from_amplitude(ds, thresh=10, nfilt=None) -> None:
     else:
         long_name = "Instrument Depth"
 
-    ds["depth"] = xr.DataArray(
+    ds["depth" + tag[0]] = xr.DataArray(
         d.astype("float32"),
         dims=["time" + tag[0]],
         attrs={"units": "m", "long_name": long_name, "standard_name": "depth"},
@@ -307,7 +307,13 @@ def water_depth_from_pressure(ds, salinity=35) -> None:
     else:
         long_name = "Instrument Depth"
 
-    ds["water_density"] = xr.DataArray(
+    # Use correct coordinate tag
+    if "_" in pressure[0]:
+        tag = "_" + pressure[0].split("_")[-1]
+    else:
+        tag = ""
+
+    ds["water_density" + tag] = xr.DataArray(
         rho.astype("float32"),
         dims=[ds[pressure[0]].dims[0]],
         attrs={
@@ -317,7 +323,7 @@ def water_depth_from_pressure(ds, salinity=35) -> None:
             "description": "Water density from linear approximation of sea water equation of state",
         },
     )
-    ds["depth"] = xr.DataArray(
+    ds["depth" + tag] = xr.DataArray(
         d.astype("float32"),
         dims=[ds[pressure[0]].dims[0]],
         attrs={"units": "m", "long_name": long_name, "standard_name": "depth"},
@@ -368,7 +374,7 @@ def remove_surface_interference(
     `distance > range * cos(beam angle) - cell size`
     """
 
-    if "depth" not in ds.data_vars:
+    if ("depth" not in ds.data_vars) and ("depth_avg" not in ds.data_vars):
         raise KeyError(
             "Depth variable 'depth' does not exist in input dataset."
             "Please calculate 'depth' using the function 'water_depth_from_pressure'"
@@ -388,26 +394,22 @@ def remove_surface_interference(
         beam_angle = np.deg2rad(beam_angle)
 
     if cell_size is None:
-        # Fetch cell size
-        cell_sizes = [
-            a
-            for a in ds.attrs
-            if (
-                ("cell_size" in a)
-                and ("_bt" not in a)
-                and ("_alt" not in a)
-                and ("wave" not in a)
-            )
-        ]
-        if cell_sizes:
-            cs = cell_sizes[0]
-        else:
+        # Fetch cell size (usually 'cell_size' or 'cell_size_avg')
+        cell_sizes = []
+        if hasattr(ds, "cell_size"):
+            cell_sizes.append("cell_size")
+        if hasattr(ds, "cell_size_avg"):
+            cell_sizes.append("cell_size_avg")
+        if not cell_sizes:
             raise KeyError(
                 "'cell_size` not found in dataset attributes. "
                 "Please supply the ADCP's cell size."
             )
     else:
         cs = [cell_size]
+
+    # Depth variable(s)
+    depths = [cs.replace("cell_size", "depth") for cs in cell_sizes]
 
     if not inplace:
         ds = ds.copy(deep=True)
@@ -417,34 +419,50 @@ def remove_surface_interference(
 
     # Apply range_offset if available
     range_offset = __check_for_range_offset(ds)
-    if range_offset:
-        range_limit = (
-            (ds["depth"] - range_offset) * np.cos(beam_angle) - ds.attrs[cs]
-        ) + range_offset
-    else:
-        range_limit = ds["depth"] * np.cos(beam_angle) - ds.attrs[cs]
-
-    # Echosounder data needs only be trimmed at water surface
-    if "echo" in profile_vars:
-        mask_echo = ds["range_echo"] > ds["depth"]
-        ds["echo"].values[..., mask_echo] = val
-        profile_vars.remove("echo")
-
-    # Correct profile measurements for surface interference
-    for var in profile_vars:
-        # Use correct coordinate tag
-        if "_" in var and ("gd" not in var):
-            tag = "_" + "_".join(var.split("_")[1:])
+    for depth, cs in zip(depths, cell_sizes):
+        if range_offset:
+            range_limit = (
+                (ds[depth] - range_offset) * np.cos(beam_angle) - ds.attrs[cs]
+            ) + range_offset
         else:
-            tag = ""
-        mask = ds["range" + tag] > range_limit
-        # Remove values
-        a = ds[var].values
-        try:  # float dtype
-            a[..., mask] = val
-        except:  # int dtype
-            a[..., mask] = 0
-        ds[var].values = a
+            range_limit = ds[depth] * np.cos(beam_angle) - ds.attrs[cs]
+
+        # No good way to do this
+        if "_avg" not in depth:
+            # Echosounder data needs only be trimmed at water surface
+            if "echo" in profile_vars:
+                mask_echo = ds["range_echo"] > ds["depth"]
+                ds["echo"].values[..., mask_echo] = val
+                profile_vars.remove("echo")
+
+            # Correct profile measurements for surface interference
+            for var in profile_vars:
+                if "avg" in var:
+                    continue
+                # Use correct coordinate tag
+                if "_" in var and ("gd" not in var):
+                    tag = "_" + "_".join(var.split("_")[1:])
+                else:
+                    tag = ""
+                mask = ds["range" + tag] > range_limit
+                # Remove values
+                a = ds[var].values
+                try:  # float dtype
+                    a[..., mask] = val
+                except:  # int dtype
+                    a[..., mask] = 0
+                ds[var].values = a
+        else:
+            for var in profile_vars:
+                if "avg" in var:
+                    mask = ds["range_avg"] > range_limit
+                    # Remove values
+                    a = ds[var].values
+                    try:  # float dtype
+                        a[..., mask] = val
+                    except:  # int dtype
+                        a[..., mask] = 0
+                    ds[var].values = a
 
     if not inplace:
         return ds
