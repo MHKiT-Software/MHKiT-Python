@@ -188,7 +188,7 @@ class TimeBinner:
           corners of the matrix (beginning/end of timeseries).  In
           this case, the array shape will be (...,`n`,`n_pad`+`n_bin`)
         n_bin : int
-          Override this binner's n_bin. Default is `binner.n_bin`
+          Override this binner's n_bin. Default is `self.n_bin`
 
         Returns
         -------
@@ -256,7 +256,7 @@ class TimeBinner:
           this case, the array shape will be (...,`n`,`n_pad`+`n_bin`).
           Default = 0
         n_bin : int
-          Override this binner's n_bin. Default is `binner.n_bin`
+          Override this binner's n_bin. Default is `self.n_bin`
 
         Returns
         -------
@@ -284,7 +284,7 @@ class TimeBinner:
           this case, the array shape will be (...,`n`,`n_pad`+`n_bin`).
           Default = 0
         n_bin : int
-          Override this binner's n_bin. Default is `binner.n_bin`
+          Override this binner's n_bin. Default is `self.n_bin`
 
         Returns
         -------
@@ -305,7 +305,7 @@ class TimeBinner:
         axis : int
           Axis along which to take mean. Default = -1
         n_bin : int
-          Override this binner's n_bin. Default is `binner.n_bin`
+          Override this binner's n_bin. Default is `self.n_bin`
 
         Returns
         -------
@@ -332,7 +332,7 @@ class TimeBinner:
         axis : int
           Axis along which to take variance. Default = -1
         n_bin : int
-          Override this binner's n_bin. Default is `binner.n_bin`
+          Override this binner's n_bin. Default is `self.n_bin`
 
         Returns
         -------
@@ -353,7 +353,7 @@ class TimeBinner:
         axis : int
           Axis along which to take std dev. Default = -1
         n_bin : int
-          Override this binner's n_bin. Default is `binner.n_bin`
+          Override this binner's n_bin. Default is `self.n_bin`
 
         Returns
         -------

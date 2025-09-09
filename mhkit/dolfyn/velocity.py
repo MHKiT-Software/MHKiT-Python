@@ -18,10 +18,6 @@ class Velocity:
     :class:`VelBinner` tool, but the method for calculating these
     variables can depend on the details of the measurement
     (instrument, it's configuration, orientation, etc.).
-
-    See Also
-    ========
-    :class:`VelBinner`
     """
 
     ########
@@ -43,7 +39,7 @@ class Velocity:
         Returns
         -------
         ds : xarray.Dataset or None
-          Returns the rotated dataset **when ``inplace=False``**, otherwise
+          Returns the rotated dataset **when `inplace=False`**, otherwise
           returns None.
 
         Notes
@@ -128,7 +124,7 @@ class Velocity:
         Returns
         -------
         ds : xarray.Dataset or None
-          Returns the rotated dataset **when ``inplace=False``**, otherwise
+          Returns the rotated dataset **when `inplace=False`**, otherwise
           returns None.
 
         Notes
@@ -155,7 +151,7 @@ class Velocity:
 
         Notes
         -----
-        See DOLfYN's :func:`save <dolfyn.io.api.save>` function for
+        See DOLfYN's :func:`save <mhkit.dolfyn.io.api.save>` function for
         additional details.
         """
 
@@ -299,9 +295,9 @@ class Velocity:
         """
         The first velocity component.
 
-        This is simply a shortcut to self['vel'][0]. Therefore,
+        This is simply a shortcut to ``self['vel'][0]``. Therefore,
         depending on the coordinate system of the data object
-        (self.attrs['coord_sys']), it is:
+        (``self.attrs['coord_sys']``), it is:
 
         - beam:      beam1
         - inst:      x
@@ -317,9 +313,9 @@ class Velocity:
         """
         The second velocity component.
 
-        This is simply a shortcut to self['vel'][1]. Therefore,
+        This is simply a shortcut to ``self['vel'][1]``. Therefore,
         depending on the coordinate system of the data object
-        (self.attrs['coord_sys']), it is:
+        (``self.attrs['coord_sys']``), it is:
 
         - beam:      beam2
         - inst:      y
@@ -335,9 +331,9 @@ class Velocity:
         """
         The third velocity component.
 
-        This is simply a shortcut to self['vel'][2]. Therefore,
+        This is simply a shortcut to ``self['vel'][2]``. Therefore,
         depending on the coordinate system of the data object
-        (self.attrs['coord_sys']), it is:
+        (``self.attrs['coord_sys']``), it is:
 
         - beam:      beam3
         - inst:      z
@@ -361,7 +357,7 @@ class Velocity:
     def U_mag(
         self,
     ):
-        """Horizontal velocity magnitude"""
+        """Horizontal velocity magnitude, i.e., speed"""
 
         return xr.DataArray(
             np.abs(self.U).astype("float32"),
@@ -377,7 +373,7 @@ class Velocity:
         self,
     ):
         """
-        Angle of horizontal velocity vector. Direction is 'to',
+        Angle of horizontal velocity vector, i.e., direction. Direction is 'to',
         as opposed to 'from'. This function calculates angle as
         "degrees CCW from X/East/streamwise" and then converts it to
         "degrees CW from X/North/streamwise".
@@ -416,8 +412,8 @@ class Velocity:
         """
         Coherent turbulent energy
 
-        Niel Kelley's 'coherent turbulence energy', which is the RMS
-        of the Reynold's stresses.
+        Niel Kelley's 'coherent turbulence energy', which is the
+        root-mean-square of the Reynold's stresses.
 
         See: NREL Technical Report TP-500-52353
         """
@@ -438,7 +434,7 @@ class Velocity:
         """
         Turbulent kinetic energy intensity.
 
-        Ratio of sqrt(tke) to horizontal velocity magnitude.
+        Ratio of sqrt(TKE) to horizontal velocity magnitude.
         """
         I_tke = np.ma.masked_where(
             self.U_mag < thresh, np.sqrt(2 * self.tke) / self.U_mag
@@ -482,7 +478,7 @@ class Velocity:
     def upvp_(
         self,
     ):
-        """u'v'bar Reynolds stress"""
+        """:math:`\\overline{u'v'}` Reynolds stress"""
 
         return self.ds["stress_vec"].sel(tau="upvp_").drop_vars("tau")
 
@@ -490,7 +486,7 @@ class Velocity:
     def upwp_(
         self,
     ):
-        """u'w'bar Reynolds stress"""
+        """:math:`\\overline{u'w'}` Reynolds stress"""
 
         return self.ds["stress_vec"].sel(tau="upwp_").drop_vars("tau")
 
@@ -498,7 +494,7 @@ class Velocity:
     def vpwp_(
         self,
     ):
-        """v'w'bar Reynolds stress"""
+        """:math:`\\overline{v'w'}` Reynolds stress"""
 
         return self.ds["stress_vec"].sel(tau="vpwp_").drop_vars("tau")
 
@@ -506,7 +502,7 @@ class Velocity:
     def upup_(
         self,
     ):
-        """u'u'bar component of the tke"""
+        """:math:`\\overline{u'u'}` component of the TKE vector"""
 
         return self.ds["tke_vec"].sel(tke="upup_").drop_vars("tke")
 
@@ -514,7 +510,7 @@ class Velocity:
     def vpvp_(
         self,
     ):
-        """v'v'bar component of the tke"""
+        """:math:`\\overline{v'v'}` component of the TKE vector"""
 
         return self.ds["tke_vec"].sel(tke="vpvp_").drop_vars("tke")
 
@@ -522,7 +518,7 @@ class Velocity:
     def wpwp_(
         self,
     ):
-        """w'w'bar component of the tke"""
+        """:math:`\\overline{w'w'}` component of the TKE vector"""
 
         return self.ds["tke_vec"].sel(tke="wpwp_").drop_vars("tke")
 
@@ -603,30 +599,30 @@ class VelBinner(TimeBinner):
         Parameters
         ----------
         raw_ds : xarray.Dataset
-           The raw data structure to be binned
+          The raw data structure to be binned
         out_ds : xarray.Dataset
-           The bin'd (output) data object to which averaged data is added.
+          The binned (output) data object to which averaged data is added.
         names : list of strings
-           The names of variables to be averaged.  If `names` is None,
-           all data in `raw_ds` will be binned.
+          The names of variables to be averaged.  If `names` is None,
+          all data in `raw_ds` will be binned.
 
         Returns
         -------
         out_ds : xarray.Dataset
-          The new (or updated when out_ds is not None) dataset
-          with the averages of all the variables in raw_ds.
+          The new (or updated when `out_ds` is not None) dataset
+          with the averages of all the variables in `raw_ds`.
 
         Raises
         ------
-        AttributeError : when out_ds is supplied as input (not None)
-        and the values in out_ds.attrs are inconsistent with
-        raw_ds.attrs or the properties of this VelBinner (n_bin,
-        n_fft, fs, etc.)
+        AttributeError : when `out_ds` is supplied as input (not None)
+        and the values in ``out_ds.attrs`` are inconsistent with
+        ``raw_ds.attrs`` or the properties of this VelBinner (`n_bin`,
+        `n_fft`, `fs`, etc.)
 
         Notes
         -----
-        raw_ds.attrs are copied to out_ds.attrs. Inconsistencies
-        between the two (when out_ds is specified as input) raise an
+        ``raw_ds.attrs`` are copied to ``out_ds.attrs``. Inconsistencies
+        between the two (when `out_ds` is specified as input) raise an
         AttributeError.
         """
 
@@ -675,36 +671,37 @@ class VelBinner(TimeBinner):
     def bin_variance(self, raw_ds, out_ds=None, names=None, suffix="_var"):
         """
         Bin the dataset and calculate the ensemble variances of each
-        variable. Complementary to `bin_average()`.
+        variable. Complementary to :func:`bin_average <mhkit.dolfyn.velocity.VelBinner.bin_average>`.
 
         Parameters
         ----------
         raw_ds : xarray.Dataset
-           The raw data structure to be binned.
+          The raw data structure to be binned.
         out_ds : xarray.Dataset
-           The binned (output) dataset to which variance data is added,
-           nominally dataset output from `bin_average()`
+          The binned (output) dataset to which variance data is added,
+          nominally the dataset output from
+          :func:`bin_average <mhkit.dolfyn.velocity.VelBinner.bin_average>`.
         names : list of strings
-           The names of variables of which to calculate variance.  If
-           `names` is None, all data in `raw_ds` will be binned.
+          The names of variables of which to calculate variance. If
+          `names` is None, all data in `raw_ds` will be binned.
 
         Returns
         -------
         out_ds : xarray.Dataset
-          The new (or updated when out_ds is not None) dataset
-          with the variance of all the variables in raw_ds.
+          The new (or updated when `out_ds` is not None) dataset
+          with the variance of all the variables in `raw_ds`.
 
         Raises
         ------
-        AttributeError : when out_ds is supplied as input (not None)
-        and the values in out_ds.attrs are inconsistent with
-        raw_ds.attrs or the properties of this VelBinner (n_bin,
-        n_fft, fs, etc.)
+        AttributeError : when `out_ds` is supplied as input (not None)
+        and the values in ``out_ds.attrs`` are inconsistent with
+        ``raw_ds.attrs`` or the properties of this VelBinner (`n_bin`,
+        `n_fft`, `fs`, etc.)
 
         Notes
         -----
-        raw_ds.attrs are copied to out_ds.attrs. Inconsistencies
-        between the two (when out_ds is specified as input) raise an
+        ``raw_ds.attrs`` are copied to ``out_ds.attrs``. Inconsistencies
+        between the two (when `out_ds` is specified as input) raise an
         AttributeError.
         """
 
@@ -807,21 +804,26 @@ class VelBinner(TimeBinner):
 
     def turbulence_intensity(self, U_mag, noise=0, thresh=0, detrend=False):
         """
-        Calculate noise-corrected turbulence intensity.
+        Calculate noise-corrected turbulence intensity (TI).
 
         Parameters
         ----------
         U_mag : xarray.DataArray
-          Raw horizontal velocity magnitude
+          Raw horizontal velocity magnitude (i.e., computed using
+          :func:`U_mag <mhkit.dolfyn.velocity.Velocity.U_mag>`)
         noise : numeric
           Instrument noise level in same units as velocity. Typically
-          found from `<adv or adp>.turbulence.doppler_noise_level`.
-          Default: None.
+          found from the ADV's
+          :func:`doppler_noise_level <mhkit.dolfyn.adv.turbulence.ADVBinner.doppler_noise_level>`.
+          or ADCP's
+          :func:`doppler_noise_level <mhkit.dolfyn.adp.turbulence.ADPBinner.doppler_noise_level>`.
+          Default = None
         thresh : numeric
           Theshold below which TI will not be calculated
-        detrend : bool (default: False)
+        detrend : bool
           Detrend the velocity data (True), or simply de-mean it
           (False), prior to computing TI.
+          Default = False
         """
 
         if "xarray" in type(U_mag).__module__:
@@ -861,8 +863,8 @@ class VelBinner(TimeBinner):
 
     def turbulent_kinetic_energy(self, veldat, noise=None, detrend=True):
         """
-        Calculate the turbulent kinetic energy (TKE) (variances
-        of u,v,w).
+        Calculate the turbulent kinetic energy (TKE) (:math:`\\overline{u'u'}`,
+        :math:`\\overline{v'v'}`, :math:`\\overline{w'w'}`).
 
         Parameters
         ----------
@@ -871,18 +873,22 @@ class VelBinner(TimeBinner):
           The last dimension is assumed to be time.
         noise : float or array-like
           Instrument noise level in same units as velocity. Typically
-          found from `<adv or adp>.turbulence.doppler_noise_level`.
-          Default: None.
-        detrend : bool (default: False)
-          Detrend the velocity data (True), or simply de-mean it
-          (False), prior to computing TKE. Note: the PSD routines
-          use detrend, so if you want to have the same amount of
-          variance here as there use ``detrend=True``.
+          found from the ADV's
+          :func:`doppler_noise_level <mhkit.dolfyn.adv.turbulence.ADVBinner.doppler_noise_level>`.
+          or ADCP's
+          :func:`doppler_noise_level <mhkit.dolfyn.adp.turbulence.ADPBinner.doppler_noise_level>`.
+          Default = None
+        detrend : bool
+          Detrend the velocity data (True), or simply de-mean it (False),
+          prior to computing TKE. Default = False
+
+          Note: the PSD routines use detrend, so if you want to have the same
+          amount of variance here as there use ``detrend=True``.
 
         Returns
         -------
         tke_vec : xarray.DataArray
-          dataArray containing u'u'_, v'v'_ and w'w'_
+          dataArray containing ``u'u'_``, ``v'v'_`` and ``w'w'_``
         """
 
         if "xarray" in type(veldat).__module__:
@@ -960,25 +966,24 @@ class VelBinner(TimeBinner):
 
         Parameters
         ----------
-        veldat : xr.DataArray
-          The raw velocity data (of dims 'dir' and 'time').
+        veldat : xr.DataArray (dir, time)
+          The raw velocity data
         freq_units : string
           Frequency units of the returned spectra in either Hz or rad/s
-          (`f` or :math:`\\omega`)
         fs : float (optional)
           The sample rate. Default is `binner.fs`
         window : string or array
           Specify the window function.
-          Options: 1, None, 'hann', 'hamm'
+          Options = 1, None, 'hann', 'hamm'. Default = 'hann'
         noise : numeric or array
           Instrument noise level in same units as velocity.
-          Default: 0 (ADCP) or [0, 0, 0] (ADV).
+          Default = 0 (ADCP) or [0, 0, 0] (ADV)
         n_bin : int (optional)
-          The bin-size. Default: from the binner.
+          The bin-size. Default = `self.n_bin`
         n_fft : int (optional)
-          The fft size. Default: from the binner.
+          The fft size. Default = `self.n_fft`
         n_pad : int (optional)
-          The number of values to pad with zero. Default = 0.
+          The number of values to pad with zero. Default = 0
         step : int (optional)
           Controls amount of overlap in fft. Default: the step size is
           chosen to maximize data use, minimize nens, and have a
@@ -986,7 +991,7 @@ class VelBinner(TimeBinner):
 
         Returns
         -------
-        psd : xarray.DataArray (3, M, N_FFT)
+        psd : xarray.DataArray (dir, time, freq)
           The spectra in the 'u', 'v', and 'w' directions.
         """
 
