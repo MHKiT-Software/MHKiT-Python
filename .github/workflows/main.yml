@@ -12,7 +12,7 @@ on:
 
 concurrency:
   group: ${{ github.event.pull_request.number }}  # Use the pull request number as the concurrency group
-  cancel-in-progress: true    # Cancel any in-progress jobs for the same group
+  cancel-in-progress: true # Cancel any in-progress jobs for the same group. Prevents duplicate workflows on PRs from develop into main or from main into develop.
 
 jobs:
   set-os:
