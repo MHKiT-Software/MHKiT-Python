@@ -32,18 +32,53 @@ See the [MHKiT documentation](https://mhkit-software.github.io/MHKiT) for more i
 
 ## Installation
 
-MHKiT-Python requires Python (3.10, 3.11, 3.12) along with several Python
-package dependencies. MHKiT-Python can be installed using the Conda package manager:
+[MHKiT-Python](https://github.com/MHKiT-Software/MHKiT-Python) requires [Python (3.10-3.12)](https://www.python.org/).
+It is recommended to use the [Anaconda Python Distribution](https://www.anaconda.com/distribution/) (a fully featured Python installer with a GUI) 
+or [Miniconda](https://docs.anaconda.com/miniconda/#quick-command-line-install) (a lightweight installer with the ``conda`` command line utility).  
+Both will include most of MHKiT-Python's package dependencies. 
+MHKiT can be installed several ways:
+
+### Option 1: Install from Python
+
+This option is recommended as a fast installation for MHKiT-Python users.
+To install MHKiT-Python using ``conda``, in an Anaconda Prompt:
 
 ```bash
-conda install -c conda-forge mhkit
+	conda install -c conda-forge mhkit
 ```
 
-MHKiT can alternatively be installed from PyPi using pip:
+### Option 2: Clone Repository from GitHub
+
+This option is recommended for MHKiT-Python users who want access to example notebooks and developers.
+Download and install your preferred version of [git](https://git-scm.com/).
+To clone MHKiT-Python:
 
 ```bash
-pip install mhkit
+	git clone https://github.com/MHKiT-Software/MHKiT-Python
+	cd MHKiT-Python
 ```
+
+To install a local, editable version of MHKiT-Python using [pip](https://pip.pypa.io/en/stable/):
+
+```bash
+	pip install -e .["all"]
+```
+
+An [environment YAML file](https://github.com/MHKiT-Software/MHKiT-Python/blob/main/environment.yml) is also provided that can create the base environment required by MHKiT. 
+MHKiT can then be installed into that environment using any of the provided methods.
+
+### Option 3: Module-specific Install from Python
+
+A slim version of MHKiT-Python can be installed to reduce the number of dependencies and potential conflicts with other software. 
+This installation utilizes pip's optional dependencies installation. 
+To install a single MHKiT module, e.g. the wave module, and its dependencies, use:
+
+	pip install mhkit["wave"]
+
+Note that ``pip install mhkit`` only installs the base MHKiT dependencies and not the entire software.
+To install all MHKiT dependencies use:
+
+	pip install mhkit["all"]
 
 See [installation instructions](https://mhkit-software.github.io/MHKiT/installation.html) for more information.
 
