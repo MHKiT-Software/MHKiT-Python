@@ -101,7 +101,7 @@ data_defs = {
     "pitch_std": ([], "data_vars", "float32", "degree", "Pitch Standard Deviation", ""),
     "roll_std": ([], "data_vars", "float32", "degree", "Roll Standard Deviation", ""),
     "adc": ([8], "sys", "uint8", "1", "Analog-Digital Converter Output", ""),
-    "error_status": ([], "attrs", "float32", "1", "Error Status", ""),
+    "error_status": ([], "sys", "float32", "1", "Error Status", ""),
     "pressure": ([], "data_vars", "float32", "dbar", "Pressure", "sea_water_pressure"),
     "pressure_std": (
         [],
@@ -235,7 +235,7 @@ data_defs = {
         "data_vars",
         "float32",
         "m s-1",
-        "Platform Speed Made Good",
+        "Platform Speed Made Good from Lat/Lon",
         "platform_speed_wrt_ground",
     ),
     "dir_made_good_gps": (
@@ -243,7 +243,7 @@ data_defs = {
         "data_vars",
         "float32",
         "degree",
-        "Platform Direction Made Good",
+        "Platform Direction Made Good from Lat/Lon",
         "platform_course",
     ),
     "flags_gps": ([], "data_vars", "float32", "bits", "GPS Flags", ""),
@@ -326,6 +326,47 @@ data_defs = {
         "proportion_of_acceptable_signal_returns_from_acoustic_instrument_in_sea_water",
     ),
     "status_sl": (["nc", 4], "data_vars", "float32", "1", "Surface Layer Status", ""),
+    "faults": (
+        [],
+        "data_vars",
+        "<U13",
+        "1",
+        "Fault ID . Status Code . Diagnostics Code",
+        "",
+    ),
+    "time_b5": (
+        [],
+        "coords",
+        "float64",
+        "seconds since 1970-01-01 00:00:00",
+        "Time Beam 5",
+        "time",
+    ),
+    "vel_b5": (["nc"], "data_vars", "float32", "m s-1", "Water Velocity", ""),
+    "amp_b5": (
+        ["nc"],
+        "data_vars",
+        "uint8",
+        "1",
+        "Acoustic Signal Amplitude",
+        "signal_intensity_from_multibeam_acoustic_doppler_velocity_sensor_in_sea_water",
+    ),
+    "corr_b5": (
+        ["nc"],
+        "data_vars",
+        "uint8",
+        "1",
+        "Acoustic Signal Correlation",
+        "beam_consistency_indicator_from_multibeam_acoustic_doppler_velocity_profiler_in_sea_water",
+    ),
+    "prcnt_gd_b5": (
+        ["nc"],
+        "data_vars",
+        "uint8",
+        "%",
+        "Percent Good",
+        "proportion_of_acceptable_signal_returns_from_acoustic_instrument_in_sea_water",
+    ),
 }
 
 
@@ -371,8 +412,12 @@ def read_cfgseg(rdr, bb=False):
         cfg = rdr.cfg
     fd = rdr.f
     tmp = fd.read_ui8(5)
-    prog_ver0 = tmp[0]
-    cfg["prog_ver"] = float(tmp[0] + tmp[1] * 0.01)
+    cfg["firmware_ver"] = float(tmp[0] + tmp[1] * 0.01)
+    cfg["inst_make"] = "TRDI"
+    cfg["inst_type"] = "ADCP"
+    cfg["rotate_vars"] = ["vel"]
+    # Currently RDI doesn't use IMUs
+    cfg["has_imu"] = 0
     cfg["inst_model"] = adcp_type.get(tmp[0], "unrecognized instrument")
     config = tmp[2:4]
     cfg["beam_angle"] = [15, 20, 30, [0, 25][int(tmp[0] in [11, 47, 66])]][
@@ -381,15 +426,15 @@ def read_cfgseg(rdr, bb=False):
     beam5 = [0, 1][int((config[1] & 16) == 16)]
     # Carrier frequency
     if tmp[0] in [47, 66]:  # new freqs for Sentinel Vs
-        cfg["freq"] = [38.4, 76.8, 153.6, 307.2, 491.52, 983.04, 2457.6][
+        cfg["carrier_freq"] = [38.4, 76.8, 153.6, 307.2, 491.52, 983.04, 2457.6][
             (config[0] & 7)
         ]
     elif tmp[0] == 31:
-        cfg["freq"] = 2000
+        cfg["carrier_freq"] = 2000
     elif tmp[0] == 61:
-        cfg["freq"] = 44
+        cfg["carrier_freq"] = 44
     else:
-        cfg["freq"] = [75, 150, 300, 600, 1200, 2400, 38][(config[0] & 7)]
+        cfg["carrier_freq"] = [75, 150, 300, 600, 1200, 2400, 38][(config[0] & 7)]
     cfg["beam_pattern"] = ["concave", "convex"][int((config[0] & 8) == 8)]
     cfg["orientation"] = ["down", "up"][int((config[0] & 128) == 128)]
     simflag = ["real", "simulated"][tmp[4]]
@@ -400,7 +445,7 @@ def read_cfgseg(rdr, bb=False):
     if ("n_cells" not in cfg) or (n_cells != cfg["n_cells"]):
         cfg["n_cells"] = n_cells
         if rdr._debug_level > 0:
-            logging.info(f"Number of cells set to {cfg['n_cells']}")
+            logging.debug(f"Number of cells set to {n_cells}")
     cfg["pings_per_ensemble"] = fd.read_ui16(1)
     # Check if cell size has changed
     cs = float(fd.read_ui16(1) * 0.01)
@@ -408,7 +453,7 @@ def read_cfgseg(rdr, bb=False):
         rdr.cs_diff = cs if "cell_size" not in cfg else (cs - cfg["cell_size"])
         cfg["cell_size"] = cs
         if rdr._debug_level > 0:
-            logging.info(f"Cell size set to {cfg['cell_size']}")
+            logging.debug(f"Cell size set to {cs}")
     cfg["blank_dist"] = round(float(fd.read_ui16(1) * 0.01), 2)
     cfg["profiling_mode"] = fd.read_ui8(1)
     cfg["min_corr_threshold"] = fd.read_ui8(1)
@@ -427,7 +472,13 @@ def read_cfgseg(rdr, bb=False):
     cfg["magnetic_var_deg"] = float(fd.read_i16(1) * 0.01)
     cfg["sensors_src"] = np.binary_repr(fd.read_ui8(1), 8)
     cfg["sensors_avail"] = np.binary_repr(fd.read_ui8(1), 8)
-    cfg["bin1_dist_m"] = round(float(fd.read_ui16(1) * 0.01), 4)
+    # If cell size changes, the bin1 distance will too
+    # We only want to save the largest, as we depth average smaller cells together
+    b1d = round(float(fd.read_ui16(1) * 0.01), 4)
+    if ("bin1_dist_m" not in cfg) or (b1d > cfg["bin1_dist_m"]):
+        cfg["bin1_dist_m"] = b1d
+        if rdr._debug_level > 0:
+            logging.debug(f"Bin 1 distance set to {b1d}")
     cfg["transmit_pulse_m"] = round(float(fd.read_ui16(1) * 0.01), 2)
     cfg["water_ref_cells"] = list(fd.read_ui8(2).astype(list))  # list for attrs
     cfg["false_target_threshold"] = fd.read_ui8(1)
@@ -435,13 +486,13 @@ def read_cfgseg(rdr, bb=False):
     cfg["transmit_lag_m"] = float(fd.read_ui16(1) * 0.01)
     rdr._nbyte = 40
 
-    if cfg["prog_ver"] >= 8.14:
+    if cfg["firmware_ver"] >= 8.14:
         cpu_serialnum = fd.read_ui8(8)
         rdr._nbyte += 8
-    if cfg["prog_ver"] >= 8.24:
+    if cfg["firmware_ver"] >= 8.24:
         cfg["bandwidth"] = fd.read_ui16(1)
         rdr._nbyte += 2
-    if cfg["prog_ver"] >= 9.68:
+    if cfg["firmware_ver"] >= 9.68:
         cfg["power_level"] = fd.read_ui8(1)
         # cfg['navigator_basefreqindex'] = fd.read_ui8(1)
         fd.seek(1, 1)
@@ -468,7 +519,7 @@ def read_fixed(rdr, bb=False):
         rdr.n_cells_diff = rdr.cfg["n_cells"] - rdr.ensemble["n_cells"]
         # Increase n_cells if greater than 0
         if rdr.n_cells_diff > 0:
-            rdr.ensemble = lib._ensemble(rdr.n_avg, rdr.cfg["n_cells"])
+            rdr.ensemble = lib._ensemble(rdr.cfg["n_cells"])
             if rdr._debug_level > 0:
                 logging.warning(
                     f"Maximum number of cells increased to {rdr.cfg['n_cells']}"
@@ -479,18 +530,29 @@ def read_fixed_sl(rdr):
     """Read surface layer fixed header"""
     cfg = rdr.cfg
     cfg["surface_layer"] = 1
-    n_cells = rdr.f.read_ui8(1)
     # Check if n_cells is greater than what was used in prior profiles
-    if n_cells > rdr.n_cells_sl:
-        rdr.n_cells_sl = n_cells
+    n_cells_sl = rdr.f.read_ui8(1)
+    if n_cells_sl > rdr.n_cells_sl:
+        rdr.n_cells_sl = n_cells_sl
+    if ("n_cells_sl" not in cfg) or (n_cells_sl != cfg["n_cells_sl"]):
+        cfg["n_cells_sl"] = n_cells_sl
         if rdr._debug_level > 0:
-            logging.warning(
-                f"Maximum number of surface layer cells increased to {n_cells}"
-            )
-    cfg["n_cells_sl"] = n_cells
-    # Assuming surface layer profile cell size never changes
-    cfg["cell_size_sl"] = float(rdr.f.read_ui16(1) * 0.01)
-    cfg["bin1_dist_m_sl"] = round(float(rdr.f.read_ui16(1) * 0.01), 4)
+            logging.debug(f"Number of surface cells set to {n_cells_sl}")
+    # Cell size also changes
+    cs_sl = float(rdr.f.read_ui16(1) * 0.01)
+    if ("cell_size_sl" not in cfg) or (cs_sl != cfg["cell_size_sl"]):
+        rdr.cs_sl_diff = (
+            cs_sl if "cell_size_sl" not in cfg else (cs_sl - cfg["cell_size_sl"])
+        )
+        cfg["cell_size_sl"] = cs_sl
+        if rdr._debug_level > 0:
+            logging.debug(f"Surface layer cell size set to {cs_sl}")
+    # Only save maximum bin 1 distance
+    b1d = round(float(rdr.f.read_ui16(1) * 0.01), 4)
+    if ("bin1_dist_m_sl" not in cfg) or (b1d > cfg["bin1_dist_m_sl"]):
+        cfg["bin1_dist_m_sl"] = b1d
+        if rdr._debug_level > 0:
+            logging.debug(f"Surface layer Bin 1 distance set to {b1d}")
 
     if rdr._debug_level > -1:
         logging.info("Read Surface Layer Config")
@@ -499,13 +561,11 @@ def read_fixed_sl(rdr):
 
 def read_var(rdr, bb=False):
     """Read variable header"""
-    fd = rdr.f
     if bb:
         ens = rdr.ensembleBB
     else:
         ens = rdr.ensemble
     ens.k += 1
-    ens = rdr.ensemble
     k = ens.k
     rdr.vars_read += [
         "number",
@@ -525,6 +585,7 @@ def read_var(rdr, bb=False):
         "roll_std",
         "adc",
     ]
+    fd = rdr.f
     ens.number[k] = fd.read_ui16(1)
     ens.rtc[:, k] = fd.read_ui8(7)
     ens.number[k] += 65535 * fd.read_ui8(1)
@@ -545,7 +606,7 @@ def read_var(rdr, bb=False):
 
     cfg = rdr.cfg
     if cfg["inst_model"].lower() == "broadband":
-        if cfg["prog_ver"] >= 5.55:
+        if cfg["firmware_ver"] >= 5.55:
             fd.seek(15, 1)
             cent = fd.read_ui8(1)
             ens.rtc[:, k] = fd.read_ui8(7)
@@ -554,30 +615,30 @@ def read_var(rdr, bb=False):
     elif cfg["inst_model"].lower() == "ocean surveyor":
         fd.seek(16, 1)  # 30 bytes all set to zero, 14 read above
         rdr._nbyte += 16
-        if cfg["prog_ver"] > 23:
+        if cfg["firmware_ver"] > 23:
             fd.seek(2, 1)
             rdr._nbyte += 2
     else:
         ens.error_status[k] = np.binary_repr(fd.read_ui32(1), 32)
         rdr.vars_read += ["pressure", "pressure_std"]
         rdr._nbyte += 4
-        if cfg["prog_ver"] >= 8.13:
+        if cfg["firmware_ver"] >= 8.13:
             # Added pressure sensor stuff in 8.13
             fd.seek(2, 1)
             ens.pressure[k] = fd.read_ui32(1) * 0.001  # dPa to dbar
             ens.pressure_std[k] = fd.read_ui32(1) * 0.001
             rdr._nbyte += 10
-        if cfg["prog_ver"] >= 8.24:
+        if cfg["firmware_ver"] >= 8.24:
             # Spare byte added 8.24
             fd.seek(1, 1)
             rdr._nbyte += 1
-        if cfg["prog_ver"] >= 16.05:
+        if cfg["firmware_ver"] >= 16.05:
             # Added more fields with century in clock
             cent = fd.read_ui8(1)
             ens.rtc[:, k] = fd.read_ui8(7)
             ens.rtc[0, k] = ens.rtc[0, k] + cent * 100
             rdr._nbyte += 8
-        if cfg["prog_ver"] >= 56:
+        if cfg["firmware_ver"] >= 56:
             fd.seek(1)  # lag near bottom flag
             rdr._nbyte += 1
 
@@ -591,9 +652,8 @@ def read_vel(rdr, bb=0):
     rdr.vars_read += ["vel" + tg]
     n_cells = cfg["n_cells" + tg]
 
-    k = ens.k
     vel = np.array(rdr.f.read_i16(4 * n_cells)).reshape((n_cells, 4)) * 0.001
-    ens["vel" + tg][:n_cells, :, k] = vel
+    ens["vel" + tg][:n_cells, :, ens.k] = vel
     rdr._nbyte = 2 + 4 * n_cells * 2
     if rdr._debug_level > -1:
         logging.info("Read Vel")
@@ -605,10 +665,9 @@ def read_corr(rdr, bb=0):
     rdr.vars_read += ["corr" + tg]
     n_cells = cfg["n_cells" + tg]
 
-    k = ens.k
-    ens["corr" + tg][:n_cells, :, k] = np.array(rdr.f.read_ui8(4 * n_cells)).reshape(
-        (n_cells, 4)
-    )
+    ens["corr" + tg][:n_cells, :, ens.k] = np.array(
+        rdr.f.read_ui8(4 * n_cells)
+    ).reshape((n_cells, 4))
     rdr._nbyte = 2 + 4 * n_cells
     if rdr._debug_level > -1:
         logging.info("Read Corr")
@@ -620,8 +679,7 @@ def read_amp(rdr, bb=0):
     rdr.vars_read += ["amp" + tg]
     n_cells = cfg["n_cells" + tg]
 
-    k = ens.k
-    ens["amp" + tg][:n_cells, :, k] = np.array(rdr.f.read_ui8(4 * n_cells)).reshape(
+    ens["amp" + tg][:n_cells, :, ens.k] = np.array(rdr.f.read_ui8(4 * n_cells)).reshape(
         (n_cells, 4)
     )
     rdr._nbyte = 2 + 4 * n_cells
@@ -659,11 +717,11 @@ def read_status(rdr, bb=0):
 
 def read_bottom(rdr):
     """Read bottom track block"""
-    rdr.vars_read += ["dist_bt", "vel_bt", "corr_bt", "amp_bt", "prcnt_gd_bt"]
-    fd = rdr.f
+    cfg = rdr.cfg
     ens = rdr.ensemble
     k = ens.k
-    cfg = rdr.cfg
+    rdr.vars_read += ["dist_bt", "vel_bt", "corr_bt", "amp_bt", "prcnt_gd_bt"]
+    fd = rdr.f
     if rdr._vm_source == 2:
         rdr.vars_read += ["latitude_gps", "longitude_gps"]
         fd.seek(2, 1)
@@ -702,14 +760,16 @@ def read_bottom(rdr):
         # Skip reference layer data
         fd.seek(26, 1)
         rdr._nbyte = 2 + 68
-    if cfg["prog_ver"] >= 5.3:
+    if cfg["firmware_ver"] >= 5.3:
         fd.seek(7, 1)  # skip to rangeMsb bytes
         ens.dist_bt[:, k] = ens.dist_bt[:, k] + fd.read_ui8(4) * 655.36
         rdr._nbyte += 11
-    if cfg["prog_ver"] >= 16.2 and (cfg.get("sourceprog", "").lower() != "winriver"):
+    if cfg["firmware_ver"] >= 16.2 and (
+        cfg.get("source_program", "").lower() != "winriver"
+    ):
         fd.seek(4, 1)  # not documented
         rdr._nbyte += 4
-    if cfg["prog_ver"] >= 56.1:
+    if cfg["firmware_ver"] >= 56.1:
         fd.seek(4, 1)  # not documented
         rdr._nbyte += 4
 
@@ -719,10 +779,10 @@ def read_bottom(rdr):
 
 def read_alt(rdr):
     """Read altimeter (range of vertical beam) block"""
-    fd = rdr.f
     ens = rdr.ensemble
     k = ens.k
     rdr.vars_read += ["alt_dist", "alt_rssi", "alt_eval", "alt_status"]
+    fd = rdr.f
     ens.alt_eval[k] = fd.read_ui8(1)  # evaluation amplitude
     ens.alt_rssi[k] = fd.read_ui8(1)  # RSSI amplitude
     ens.alt_dist[k] = fd.read_ui32(1) * 0.001  # range to surface/seafloor
@@ -735,7 +795,7 @@ def read_alt(rdr):
 def read_winriver(rdr):
     """Skip WinRiver1 Navigation block (outdated)"""
     rdr._winrivprob = True
-    rdr.cfg["sourceprog"] = "WINRIVER"
+    rdr.cfg["source_program"] = "WINRIVER"
     if rdr._vm_source not in [2, 3]:
         if rdr._debug_level > -1:
             logging.warning(
@@ -751,32 +811,33 @@ def read_winriver(rdr):
 
 def read_winriver2(rdr):
     """Read WinRiver2 Navigation block"""
-    startpos = rdr.f.tell()
+    fd = rdr.f
+    startpos = fd.tell()
     rdr._winrivprob = True
-    rdr.cfg["sourceprog"] = "WinRiver2"
+    rdr.cfg["source_program"] = "WinRiver2"
     ens = rdr.ensemble
     k = ens.k
     if rdr._debug_level > -1:
         logging.info("Read WinRiver2")
     rdr._vm_source = 3
 
-    spid = rdr.f.read_ui16(1)  # NMEA specific IDs
+    spid = fd.read_ui16(1)  # NMEA specific IDs
     if spid in [4, 104]:  # GGA
-        sz = rdr.f.read_ui16(1)
-        dtime = rdr.f.read_f64(1)
+        sz = fd.read_ui16(1)
+        fd.read_f64(1)  # dtime
         if sz <= 43:  # If no sentence, data is still stored in nmea format
-            empty_gps = rdr.f.reads(sz - 2)
-            rdr.f.seek(2, 1)
+            fd.reads(sz - 2)  # empty_gps
+            fd.seek(2, 1)
         else:  # TRDI rewrites the nmea string into their format if one is found
-            start_string = rdr.f.reads(6)
+            start_string = fd.reads(6)
             if not isinstance(start_string, str):
                 if rdr._debug_level > 0:
                     logging.warning(
                         f"Invalid GGA string found in ensemble {k}," " skipping..."
                     )
                 return "FAIL"
-            rdr.f.seek(1, 1)
-            gga_time = rdr.f.reads(9)
+            fd.seek(1, 1)
+            gga_time = fd.reads(9)
             time = tmlib.timedelta(
                 hours=int(gga_time[0:2]),
                 minutes=int(gga_time[2:4]),
@@ -788,25 +849,25 @@ def read_winriver2(rdr):
                 clock[0, :] += century
             date = tmlib.datetime(*clock[:3, 0]) + time
             ens.time_gps[k] = tmlib.date2epoch(date)[0]
-            rdr.f.seek(1, 1)
-            ens.latitude_gps[k] = rdr.f.read_f64(1)
-            tcNS = rdr.f.reads(1)  # 'N' or 'S'
+            fd.seek(1, 1)
+            ens.latitude_gps[k] = fd.read_f64(1)
+            tcNS = fd.reads(1)  # 'N' or 'S'
             if tcNS == "S":
                 ens.latitude_gps[k] *= -1
-            ens.longitude_gps[k] = rdr.f.read_f64(1)
-            tcEW = rdr.f.reads(1)  # 'E' or 'W'
+            ens.longitude_gps[k] = fd.read_f64(1)
+            tcEW = fd.reads(1)  # 'E' or 'W'
             if tcEW == "W":
                 ens.longitude_gps[k] *= -1
-            ens.fix_gps[k] = rdr.f.read_ui8(1)  # gps fix type/quality
-            ens.n_sat_gps[k] = rdr.f.read_ui8(1)  # of satellites
+            ens.fix_gps[k] = fd.read_ui8(1)  # gps fix type/quality
+            ens.n_sat_gps[k] = fd.read_ui8(1)  # of satellites
             # horizontal dilution of precision
-            ens.hdop_gps[k] = rdr.f.read_f32(1)
-            ens.elevation_gps[k] = rdr.f.read_f32(1)  # altitude
-            m = rdr.f.reads(1)  # altitude unit, 'm'
-            h_geoid = rdr.f.read_f32(1)  # height of geoid
-            m2 = rdr.f.reads(1)  # geoid unit, 'm'
-            ens.rtk_age_gps[k] = rdr.f.read_f32(1)
-            station_id = rdr.f.read_ui16(1)
+            ens.hdop_gps[k] = fd.read_f32(1)
+            ens.elevation_gps[k] = fd.read_f32(1)  # altitude
+            fd.reads(1)  # altitude unit, 'm'
+            fd.read_f32(1)  # height of geoid
+            fd.reads(1)  # geoid unit, 'm'
+            ens.rtk_age_gps[k] = fd.read_f32(1)
+            fd.read_ui16(1)  # station id
         rdr.vars_read += [
             "time_gps",
             "longitude_gps",
@@ -817,88 +878,88 @@ def read_winriver2(rdr):
             "elevation_gps",
             "rtk_age_gps",
         ]
-        rdr._nbyte = rdr.f.tell() - startpos + 2
+        rdr._nbyte = fd.tell() - startpos + 2
 
     elif spid in [5, 105]:  # VTG
-        sz = rdr.f.read_ui16(1)
-        dtime = rdr.f.read_f64(1)
+        sz = fd.read_ui16(1)
+        fd.read_f64(1)  # dtime
         if sz <= 22:  # if no data
-            empty_gps = rdr.f.reads(sz - 2)
-            rdr.f.seek(2, 1)
+            fd.reads(sz - 2)  # empty gps
+            fd.seek(2, 1)
         else:
-            start_string = rdr.f.reads(6)
+            start_string = fd.reads(6)
             if not isinstance(start_string, str):
                 if rdr._debug_level > 0:
                     logging.warning(
                         f"Invalid VTG string found in ensemble {k}," " skipping..."
                     )
                 return "FAIL"
-            rdr.f.seek(1, 1)
-            true_track = rdr.f.read_f32(1)
-            t = rdr.f.reads(1)  # 'T'
-            magn_track = rdr.f.read_f32(1)
-            m = rdr.f.reads(1)  # 'M'
-            speed_knot = rdr.f.read_f32(1)
-            kts = rdr.f.reads(1)  # 'N'
-            speed_kph = rdr.f.read_f32(1)
-            kph = rdr.f.reads(1)  # 'K'
-            mode = rdr.f.reads(1)
-            # knots -> m/s
+            fd.seek(1, 1)
+            true_track = fd.read_f32(1)  # track from true North
+            fd.reads(1)  # 'T'
+            fd.read_f32(1)  # track from magnetic North
+            fd.reads(1)  # 'M'
+            speed_knot = fd.read_f32(1)  # speed in knots
+            fd.reads(1)  # 'N'
+            fd.read_f32(1)  # speed in kph
+            fd.reads(1)  # 'K'
+            fd.reads(1)  # mode
+            # convert knots to m/s
             ens.speed_over_grnd_gps[k] = speed_knot / 1.944
             ens.dir_over_grnd_gps[k] = true_track
         rdr.vars_read += ["speed_over_grnd_gps", "dir_over_grnd_gps"]
-        rdr._nbyte = rdr.f.tell() - startpos + 2
+        rdr._nbyte = fd.tell() - startpos + 2
 
     elif spid in [6, 106]:  # 'DBT' depth sounder
-        sz = rdr.f.read_ui16(1)
-        dtime = rdr.f.read_f64(1)
+        sz = fd.read_ui16(1)
+        fd.read_f64(1)  # dtime
         if sz <= 20:
-            empty_gps = rdr.f.reads(sz - 2)
-            rdr.f.seek(2, 1)
+            fd.reads(sz - 2)  # empty gps
+            fd.seek(2, 1)
         else:
-            start_string = rdr.f.reads(6)
+            start_string = fd.reads(6)
             if not isinstance(start_string, str):
                 if rdr._debug_level > 0:
                     logging.warning(
                         f"Invalid DBT string found in ensemble {k}," " skipping..."
                     )
                 return "FAIL"
-            rdr.f.seek(1, 1)
-            depth_ft = rdr.f.read_f32(1)
-            ft = rdr.f.reads(1)  # 'f'
-            depth_m = rdr.f.read_f32(1)
-            m = rdr.f.reads(1)  # 'm'
-            depth_fathom = rdr.f.read_f32(1)
-            f = rdr.f.reads(1)  # 'F'
+            fd.seek(1, 1)
+            fd.read_f32(1)  # depth in feet
+            fd.reads(1)  # 'f'
+            depth_m = fd.read_f32(1)  # depth in meters
+            fd.reads(1)  # 'm'
+            fd.read_f32(1)  # depth in fathoms
+            fd.reads(1)  # 'F'
             ens.dist_nmea[k] = depth_m
         rdr.vars_read += ["dist_nmea"]
-        rdr._nbyte = rdr.f.tell() - startpos + 2
+        rdr._nbyte = fd.tell() - startpos + 2
 
     elif spid in [7, 107]:  # 'HDT'
-        sz = rdr.f.read_ui16(1)
-        dtime = rdr.f.read_f64(1)
+        sz = fd.read_ui16(1)
+        fd.read_f64(1)  # dtime
         if sz <= 14:
-            empty_gps = rdr.f.reads(sz - 2)
-            rdr.f.seek(2, 1)
+            fd.reads(sz - 2)  # empty gps
+            fd.seek(2, 1)
         else:
-            start_string = rdr.f.reads(6)
+            start_string = fd.reads(6)
             if not isinstance(start_string, str):
                 if rdr._debug_level > 0:
                     logging.warning(
                         f"Invalid HDT string found in ensemble {k}," " skipping..."
                     )
                 return "FAIL"
-            rdr.f.seek(1, 1)
-            ens.heading_gps[k] = rdr.f.read_f64(1)
-            tt = rdr.f.reads(1)
+            fd.seek(1, 1)
+            ens.heading_gps[k] = fd.read_f64(1)  # gps heading
+            fd.reads(1)  # tt
         rdr.vars_read += ["heading_gps"]
-        rdr._nbyte = rdr.f.tell() - startpos + 2
+        rdr._nbyte = fd.tell() - startpos + 2
 
 
 def read_vmdas(rdr):
     """Read VMDAS Navigation block"""
     fd = rdr.f
-    rdr.cfg["sourceprog"] = "VMDAS"
+    rdr.cfg["source_program"] = "VMDAS"
     ens = rdr.ensemble
     k = ens.k
     if rdr._vm_source != 1 and rdr._debug_level > -1:
@@ -909,8 +970,8 @@ def read_vmdas(rdr):
         "clock_offset_UTC_gps",
         "latitude_gps",
         "longitude_gps",
-        "avg_speed_gps",
-        "avg_dir_gps",
+        "speed_over_grnd_gps",
+        "dir_over_grnd_gps",
         "speed_made_good_gps",
         "dir_made_good_gps",
         "flags_gps",
@@ -932,14 +993,15 @@ def read_vmdas(rdr):
     longitude_first_gps = fd.read_i32(1) * rdr._cfac32
 
     # Last lat/lon position prior to current ADCP ping
-    utc_time_fix = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) * 0.1)))
-    ens.time_gps[k] = tmlib.date2epoch(date_utc + utc_time_fix)[0]
+    utc_time_last_fix = tmlib.timedelta(milliseconds=(int(fd.read_ui32(1) * 0.1)))
+    ens.time_gps[k] = tmlib.date2epoch(date_utc + utc_time_last_fix)[0]
     ens.latitude_gps[k] = fd.read_i32(1) * rdr._cfac32
     ens.longitude_gps[k] = fd.read_i32(1) * rdr._cfac32
-
-    ens.avg_speed_gps[k] = fd.read_ui16(1) * 0.001
-    ens.avg_dir_gps[k] = fd.read_ui16(1) * rdr._cfac16  # avg true track
+    # From VTG
+    ens.speed_over_grnd_gps[k] = fd.read_ui16(1) * 0.001
+    ens.dir_over_grnd_gps[k] = fd.read_ui16(1) * rdr._cfac16  # avg true track
     fd.seek(2, 1)  # avg magnetic track
+    # Calculated from difference between latitude and longitude
     ens.speed_made_good_gps[k] = fd.read_ui16(1) * 0.001
     ens.dir_made_good_gps[k] = fd.read_ui16(1) * rdr._cfac16
     fd.seek(2, 1)  # reserved
@@ -961,3 +1023,153 @@ def read_vmdas(rdr):
     if rdr._debug_level > -1:
         logging.info("Read VMDAS")
     rdr._read_vmdas = True
+
+
+def read_sentinelv_syscfg(rdr, bb=False):
+    """Read system configuration block for Sentinel V: 0x7000"""
+    if bb:
+        cfg = rdr.cfgbb
+    else:
+        cfg = rdr.cfg
+
+    fd = rdr.f
+    fw = fd.read_ui8(4)
+    cfg["firmware_ver"] = ".".join(fw.astype(str))
+    cfg["carrier_freq"] = fd.read_ui32(1) / 1000
+    cfg["pressure_rating_m"] = fd.read_ui16(1)
+    schema = fd.read_ui8(3)
+    cfg["schema"] = ".".join(schema.astype(str))
+    fd.seek(1, 1)
+
+    if rdr._debug_level > -1:
+        logging.info("Read Sentinel V System Configuration")
+    rdr._nbyte = 2 + 14
+
+
+def read_sentinelv_ping_setup(rdr, bb=False):
+    """Read 'ping setup' block for Sentinel V: 0x7001"""
+    if bb:
+        cfg = rdr.cfgbb
+    else:
+        cfg = rdr.cfg
+
+    fd = rdr.f
+    fd.read_ui16(1)  # ping ID
+    cfg["ensemble_interval"] = fd.read_ui32(1) * 0.001
+    cfg["pings_per_ensemble"] = fd.read_ui16(1)
+    cfg["time_between_pings_s"] = fd.read_ui32(1) * 0.001
+    cfg["sec_between_ping_groups"] = fd.read_ui32(1) * 0.001
+    fd.seek(4, 1)
+    fd.read_ui16(1)  # ping sequence number within ensemble
+    cfg["ambiguity_vel"] = fd.read_ui16(1) * 0.001
+    fd.seek(4, 1)
+    fd.read_ui32(1)  # ensemble offset
+    fd.read_ui16(1)  # ensemble count
+    clock = fd.read_ui8(8)
+    clock[1] += century
+    cfg["deployment_start"] = tmlib.date2str(
+        tmlib.datetime(*clock[1:7], microsecond=int(float(clock[7]) * 10000))
+    )[0]
+    if rdr._debug_level > -1:
+        logging.info("Read Sentinel V Ping Setup")
+    rdr._nbyte = 2 + 42
+
+
+def read_sentinelv_event_log(rdr):
+    """Read event log block for Sentinel V: 0x7004"""
+    fd = rdr.f
+    ens = rdr.ensemble
+    k = ens.k
+    n_faults = fd.read_ui16(1)
+    code = []
+    if n_faults:
+        code.append(f"{fd.read_ui16(1)}.{fd.read_ui8(1)}.{fd.read_ui8(1)}")
+    rdr.vars_read += ["faults"]
+    ens.faults[k] = ",".join(code)
+
+    if rdr._debug_level > -1:
+        logging.info("Read Sentinel V Event Log")
+    rdr._nbyte = 2 + 6 + 4 * (n_faults - 1)
+
+
+def read_vel_b5_leader(rdr):
+    """Read Sentinel V vertical beam (b5) leader: 0x0F01"""
+    cfg = rdr.cfg
+    fd = rdr.f
+    rdr.vars_read += ["time_b5"]  # Make sure this is added
+    cfg["n_cells_b5"] = fd.read_ui16(1)
+    fd.read_ui16(1)  # n_pings_b5
+    cfg["cell_size_b5"] = fd.read_ui16(1) * 0.01
+    cfg["bin1_dist_b5_m"] = fd.read_ui16(1) * 0.01
+    cfg["mode_b5"] = fd.read_ui16(1)
+    cfg["transmit_pulse_b5_m"] = fd.read_ui16(1) * 0.01
+    cfg["transmit_lag_b5_m"] = fd.read_ui16(1) * 0.01
+    fd.read_ui16(1)  # transmit_code_elements
+    fd.read_ui16(1)  # vertical_rssi_threshold
+    fd.read_ui16(1)  # vertical_shallow_bin
+    fd.read_ui16(1)  # vertical_start_bin
+    fd.read_ui16(1)  # vertical_shallow_rssi_bin
+    fd.read_ui16(1)  # max_core_threshold
+    fd.read_ui16(1)  # min_core_threshold
+    cfg["ping_offset_time_b5"] = fd.read_ui16(1) * 0.001
+    fd.seek(2, 1)
+    fd.read_ui16(1)  # depth_screen
+    cfg["min_prcnt_gd_b5"] = fd.read_ui16(1)
+    fd.read_ui16(1)  # vertical_do_proofing
+
+    if rdr._debug_level > -1:
+        logging.info("Read Sentinel V Event Log")
+    rdr._nbyte = 2 + 38
+
+
+def read_vel_b5(rdr):
+    """Read Sentinel V vertical beam water velocity block: 0x0A00"""
+    ens = rdr.ensemble
+    cfg = rdr.cfg
+    rdr.vars_read += ["vel_b5"]
+    n_cells_b5 = cfg["n_cells_b5"]
+
+    vel_b5 = np.array(rdr.f.read_i16(n_cells_b5)) * 0.001
+    ens["vel_b5"][:n_cells_b5, ens.k] = vel_b5
+    rdr._nbyte = 2 + n_cells_b5 * 2
+    if rdr._debug_level > -1:
+        logging.info("Read Vel Beam 5")
+
+
+def read_corr_b5(rdr):
+    """Read Sentinel V vertical beam acoustic signal correlation block: 0x0B00"""
+    ens = rdr.ensemble
+    cfg = rdr.cfg
+    rdr.vars_read += ["corr_b5"]
+    n_cells_b5 = cfg["n_cells_b5"]
+
+    ens["corr_b5"][:n_cells_b5, ens.k] = np.array(rdr.f.read_ui8(n_cells_b5))
+    rdr._nbyte = 2 + n_cells_b5
+    if rdr._debug_level > -1:
+        logging.info("Read Corr Beam 5")
+
+
+def read_amp_b5(rdr):
+    """Read Sentinel V vertical beam acoustic signal amplitude block: 0C00"""
+    ens = rdr.ensemble
+    cfg = rdr.cfg
+    rdr.vars_read += ["amp_b5"]
+    n_cells_b5 = cfg["n_cells_b5"]
+
+    ens["amp_b5"][:n_cells_b5, ens.k] = np.array(rdr.f.read_ui8(n_cells_b5))
+    rdr._nbyte = 2 + n_cells_b5
+    if rdr._debug_level > -1:
+        logging.info("Read Amp Beam 5")
+
+
+def read_prcnt_gd_b5(rdr):
+    """Read Sentinel V vertical beam acoustic signal 'percent good' block: 0x0D00"""
+    ens = rdr.ensemble
+    cfg = rdr.cfg
+    rdr.vars_read += ["prcnt_gd_b5"]
+    n_cells_b5 = cfg["n_cells_b5"]
+
+    ens["prcnt_gd_b5"][:n_cells_b5, ens.k] = np.array(rdr.f.read_ui8(n_cells_b5))
+    rdr._nbyte = 2 + n_cells_b5
+    if rdr._debug_level > -1:
+        logging.info("Read PG Beam 5")

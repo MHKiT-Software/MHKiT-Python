@@ -2,47 +2,12 @@
 Wind Toolkit Data Utility Functions
 ===================================
 
-This module contains a collection of utility functions designed to facilitate 
-the extraction, caching, and visualization of wind data from the WIND Toolkit 
-hindcast dataset hosted on AWS. This dataset includes offshore wind hindcast data 
+This module contains a collection of utility functions designed to facilitate
+the extraction, caching, and visualization of wind data from the WIND Toolkit
+hindcast dataset hosted on AWS. This dataset includes offshore wind hindcast data
 with various parameters like wind speed, direction, temperature, and pressure.
 
-Key Functions:
---------------
-- `region_selection`: Determines which predefined wind region a given latitude 
-  and longitude fall within.
-  
-- `get_region_data`: Retrieves latitude and longitude data points for a specified 
-  wind region. Uses caching to speed up repeated requests.
-  
-- `plot_region`: Plots the geographical extent of a specified wind region and 
-  can overlay a given latitude-longitude point.
-  
-- `elevation_to_string`: Converts a parameter (e.g., 'windspeed') and elevation 
-  values (e.g., [20, 40, 120]) to the formatted strings used in the WIND Toolkit.
-  
-- `request_wtk_point_data`: Fetches specified wind data parameters for given 
-  latitude-longitude points and years from the WIND Toolkit hindcast dataset. 
-  Supports caching for faster repeated data retrieval.
-
-Dependencies:
--------------
-- rex: Library to handle renewable energy datasets.
-- pandas: Data manipulation and analysis.
-- os, hashlib, pickle: Used for caching functionality.
-- matplotlib: Used for plotting.
-
-Notes:
-------
-- To access the WIND Toolkit hindcast data, users need to configure `h5pyd` 
-  for data access on HSDS (see the metocean_example or WPTO_hindcast_example
-  notebook for more details).
-  
-- While some functions perform basic checks (e.g., verifying that latitude 
-  and longitude are within a predefined region), it's essential to understand 
-  the boundaries of each region and the available parameters and elevations in the dataset.
-
-Author: 
+Author:
 -------
 akeeste
 ssolson
@@ -56,15 +21,17 @@ Date:
 import os
 import hashlib
 import pickle
+from typing import List, Tuple, Union, Optional, Dict
 import pandas as pd
-
-from rex import MultiYearWindX
+import numpy as np
+import xarray as xr
 import matplotlib.pyplot as plt
+from rex import MultiYearWindX
 from mhkit.utils.cache import handle_caching
 from mhkit.utils.type_handling import convert_to_dataset
 
 
-def region_selection(lat_lon, preferred_region=""):
+def region_selection(lat_lon: Tuple[float, float], preferred_region: str = "") -> str:
     """
     Returns the name of the predefined region in which the given coordinates reside.
     Can be used to check if the passed lat/lon pair is within the WIND Toolkit hindcast dataset.
@@ -105,7 +72,7 @@ def region_selection(lat_lon, preferred_region=""):
 
     # Note that this check is fast, but not robust because region are not
     # rectangular on a lat-lon grid
-    rDict = {
+    region_dict: Dict[str, Dict[str, List[float]]] = {
         "CA_NWP_overlap": {"lat": [41.213, 42.642], "lon": [-129.090, -121.672]},
         "Offshore_CA": {"lat": [31.932, 42.642], "lon": [-129.090, -115.806]},
         "Hawaii": {"lat": [15.565, 26.221], "lon": [-164.451, -151.278]},
@@ -113,15 +80,15 @@ def region_selection(lat_lon, preferred_region=""):
         "Mid_Atlantic": {"lat": [37.273, 42.211], "lon": [-76.427, -64.800]},
     }
 
-    def region_search(x):
+    def region_search(x: str) -> bool:
         return all(
             (
-                True if rDict[x][dk][0] <= d <= rDict[x][dk][1] else False
+                region_dict[x][dk][0] <= d <= region_dict[x][dk][1]
                 for dk, d in {"lat": lat_lon[0], "lon": lat_lon[1]}.items()
             )
         )
 
-    region = [key for key in rDict if region_search(key)]
+    region = [key for key in region_dict if region_search(key)]
 
     if region[0] == "CA_NWP_overlap":
         if preferred_region == "Offshore_CA":
@@ -130,16 +97,18 @@ def region_selection(lat_lon, preferred_region=""):
             region[0] = "NW_Pacific"
         else:
             raise TypeError(
-                f"Preferred_region ({preferred_region}) must be 'Offshore_CA' or 'NW_Pacific' when lat_lon {lat_lon} falls in the overlap region"
+                f"Preferred_region ({preferred_region}) must be 'Offshore_CA' or "
+                f"'NW_Pacific' when lat_lon {lat_lon} falls in the overlap region"
             )
 
     if len(region) == 0:
-        raise TypeError(f"Coordinates {lat_lon} out of bounds. Must be within {rDict}")
-    else:
-        return region[0]
+        raise TypeError(
+            f"Coordinates {lat_lon} out of bounds. Must be within {region_dict}"
+        )
+    return region[0]
 
 
-def get_region_data(region):
+def get_region_data(region: str) -> Tuple[np.ndarray, np.ndarray]:
     """
     Retrieves the latitude and longitude data points for the specified region
     from the cache if available; otherwise, fetches the data and caches it for
@@ -189,29 +158,33 @@ def get_region_data(region):
         with open(cache_file, "rb") as f:
             lats, lons = pickle.load(f)
         return lats, lons
-    else:
-        wind_path = "/nrel/wtk/" + region.lower() + "/" + region + "_*.h5"
-        windKwargs = {
-            "tree": None,
-            "unscale": True,
-            "str_decode": True,
-            "hsds": True,
-            "years": [2019],
-        }
 
-        # Get the latitude and longitude list from the region in rex
-        rex_wind = MultiYearWindX(wind_path, **windKwargs)
-        lats = rex_wind.lat_lon[:, 0]
-        lons = rex_wind.lat_lon[:, 1]
+    wind_path = "/nrel/wtk/" + region.lower() + "/" + region + "_*.h5"
+    wind_kwargs = {
+        "tree": None,
+        "unscale": True,
+        "str_decode": True,
+        "hsds": True,
+        "years": [2019],
+    }
 
-        # Save data to cache
-        with open(cache_file, "wb") as f:
-            pickle.dump((lats, lons), f)
+    # Get the latitude and longitude list from the region in rex
+    rex_wind = MultiYearWindX(wind_path, **wind_kwargs)
+    lats = rex_wind.lat_lon[:, 0]
+    lons = rex_wind.lat_lon[:, 1]
 
-        return lats, lons
+    # Save data to cache
+    with open(cache_file, "wb") as f:
+        pickle.dump((lats, lons), f)
+
+    return lats, lons
 
 
-def plot_region(region, lat_lon=None, ax=None):
+def plot_region(
+    region: str,
+    lat_lon: Optional[Tuple[float, float]] = None,
+    ax: Optional[plt.Axes] = None,
+) -> plt.Axes:
     """
     Visualizes the area that a given region covers. Can help users understand
     the extent of a region since they are not all rectangular.
@@ -244,7 +217,7 @@ def plot_region(region, lat_lon=None, ax=None):
 
     # Plot the latitude longitude pairs
     if ax is None:
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
     ax.plot(lons, lats, "o", label=f"{region} region")
     if lat_lon is not None:
         ax.plot(lat_lon[1], lat_lon[0], "o", label="Specified lat-lon point")
@@ -257,7 +230,9 @@ def plot_region(region, lat_lon=None, ax=None):
     return ax
 
 
-def elevation_to_string(parameter, elevations):
+def elevation_to_string(
+    parameter: str, elevations: Union[float, List[float]]
+) -> List[str]:
     """
     Takes in a parameter (e.g. 'windspeed') and elevations (e.g. [20, 40, 120])
     and returns the formatted strings that are input to WIND Toolkit (e.g. windspeed_10m).
@@ -297,19 +272,25 @@ def elevation_to_string(parameter, elevations):
     return parameter_list
 
 
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-locals
+# pylint: disable=too-many-branches
+# pylint: disable=too-many-statements
+# pylint: disable=too-many-positional-arguments
+# pylint: disable=duplicate-code
 def request_wtk_point_data(
-    time_interval,
-    parameter,
-    lat_lon,
-    years,
-    preferred_region="",
-    tree=None,
-    unscale=True,
-    str_decode=True,
-    hsds=True,
-    clear_cache=False,
-    to_pandas=True,
-):
+    time_interval: str,
+    parameter: Union[str, List[str]],
+    lat_lon: Union[Tuple[float, float], List[Tuple[float, float]]],
+    years: List[int],
+    preferred_region: str = "",
+    tree: Optional[str] = None,
+    unscale: bool = True,
+    str_decode: bool = True,
+    hsds: bool = True,
+    clear_cache: bool = False,
+    to_pandas: bool = True,
+) -> Tuple[Union[pd.DataFrame, xr.Dataset], pd.DataFrame]:
     """
     Returns data from the WIND Toolkit offshore wind hindcast hosted on
     AWS at the specified latitude and longitude point(s), or the closest
@@ -414,7 +395,10 @@ def request_wtk_point_data(
     cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit", "hindcast")
 
     # Construct a string representation of the function parameters
-    hash_params = f"{time_interval}_{parameter}_{lat_lon}_{years}_{preferred_region}_{tree}_{unscale}_{str_decode}_{hsds}"
+    hash_params = (
+        f"{time_interval}_{parameter}_{lat_lon}_{years}_{preferred_region}_"
+        f"{tree}_{unscale}_{str_decode}_{hsds}"
+    )
 
     # Use handle_caching to manage caching.
     data, meta, _ = handle_caching(
@@ -430,67 +414,67 @@ def request_wtk_point_data(
             data.attrs = meta
 
         return data, meta  # Return cached data and meta if available
+
+    # check for multiple region selection
+    if isinstance(lat_lon[0], float):
+        region = region_selection(lat_lon, preferred_region)
     else:
-        # check for multiple region selection
-        if isinstance(lat_lon[0], float):
-            region = region_selection(lat_lon, preferred_region)
+        reglist = []
+        for loc in lat_lon:
+            reglist.append(region_selection(loc, preferred_region))
+        if reglist.count(reglist[0]) == len(lat_lon):
+            region = reglist[0]
         else:
-            reglist = []
-            for loc in lat_lon:
-                reglist.append(region_selection(loc, preferred_region))
-            if reglist.count(reglist[0]) == len(lat_lon):
-                region = reglist[0]
-            else:
-                raise TypeError("Coordinates must be within the same region!")
+            raise TypeError("Coordinates must be within the same region!")
 
-        if time_interval == "1-hour":
-            wind_path = f"/nrel/wtk/{region.lower()}/{region}_*.h5"
-        elif time_interval == "5-minute":
-            wind_path = f"/nrel/wtk/{region.lower()}-5min/{region}_*.h5"
-        else:
-            raise TypeError(
-                f"Invalid time_interval '{time_interval}', must be '1-hour' or '5-minute'"
-            )
-        windKwargs = {
-            "tree": tree,
-            "unscale": unscale,
-            "str_decode": str_decode,
-            "hsds": hsds,
-            "years": years,
-        }
-        data_list = []
-        with MultiYearWindX(wind_path, **windKwargs) as rex_wind:
-            if isinstance(parameter, list):
-                for p in parameter:
-                    temp_data = rex_wind.get_lat_lon_df(p, lat_lon)
-                    col = temp_data.columns[:]
-                    for i, c in zip(range(len(col)), col):
-                        temp = f"{p}_{i}"
-                        temp_data = temp_data.rename(columns={c: temp})
-
-                    data_list.append(temp_data)
-                data = pd.concat(data_list, axis=1)
-
-            else:
-                data = rex_wind.get_lat_lon_df(parameter, lat_lon)
-                col = data.columns[:]
-
-                for i, c in zip(range(len(col)), col):
-                    temp = f"{parameter}_{i}"
-                    data = data.rename(columns={c: temp})
-
-            meta = rex_wind.meta.loc[col, :]
-            meta = meta.reset_index(drop=True)
-
-        # Save the retrieved data and metadata to cache.
-        handle_caching(
-            hash_params,
-            cache_dir,
-            cache_content={"data": data, "metadata": meta, "write_json": None},
+    if time_interval == "1-hour":
+        wind_path = f"/nrel/wtk/{region.lower()}/{region}_*.h5"
+    elif time_interval == "5-minute":
+        wind_path = f"/nrel/wtk/{region.lower()}-5min/{region}_*.h5"
+    else:
+        raise TypeError(
+            f"Invalid time_interval '{time_interval}', must be '1-hour' or '5-minute'"
         )
+    wind_kwargs = {
+        "tree": tree,
+        "unscale": unscale,
+        "str_decode": str_decode,
+        "hsds": hsds,
+        "years": years,
+    }
+    data_list = []
+    with MultiYearWindX(wind_path, **wind_kwargs) as rex_wind:
+        if isinstance(parameter, list):
+            for p in parameter:
+                temp_data = rex_wind.get_lat_lon_df(p, lat_lon)
+                col = temp_data.columns[:]
+                for i, c in zip(range(len(col)), col):
+                    temp = f"{p}_{i}"
+                    temp_data = temp_data.rename(columns={c: temp})
 
-        if not to_pandas:
-            data = convert_to_dataset(data)
-            data.attrs = meta
+                data_list.append(temp_data)
+            data = pd.concat(data_list, axis=1)
 
-        return data, meta
+        else:
+            data = rex_wind.get_lat_lon_df(parameter, lat_lon)
+            col = data.columns[:]
+
+            for i, c in zip(range(len(col)), col):
+                temp = f"{parameter}_{i}"
+                data = data.rename(columns={c: temp})
+
+        meta = rex_wind.meta.loc[col, :]
+        meta = meta.reset_index(drop=True)
+
+    # Save the retrieved data and metadata to cache.
+    handle_caching(
+        hash_params,
+        cache_dir,
+        cache_content={"data": data, "metadata": meta, "write_json": None},
+    )
+
+    if not to_pandas:
+        data = convert_to_dataset(data)
+        data.attrs = meta
+
+    return data, meta

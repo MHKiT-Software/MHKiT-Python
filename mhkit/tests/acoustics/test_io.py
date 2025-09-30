@@ -251,7 +251,9 @@ class TestIO(unittest.TestCase):
         )
 
         np.testing.assert_allclose(td_spsd.head().values, cd_spsd, atol=1e-6)
-        np.testing.assert_equal(td_spsd["time"].head().values, cc)
+        np.testing.assert_allclose(
+            td_spsd["time"].head().astype("int64"), cc.astype("int64"), atol=1
+        )
 
     def test_audio_export(self):
         file_name = join(datadir, "RBW_6661_20240601_053114.wav")

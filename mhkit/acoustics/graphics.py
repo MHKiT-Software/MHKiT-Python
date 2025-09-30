@@ -1,6 +1,6 @@
 """
-This submodule provides essential plotting functions for visualizing passive acoustics 
-data. The functions allow for customizable plotting of sound pressure spectral density 
+This submodule provides essential plotting functions for visualizing passive acoustics
+data. The functions allow for customizable plotting of sound pressure spectral density
 levels across time and frequency dimensions.
 
 Each plotting function leverages the flexibility of Matplotlib, allowing for passthrough
@@ -11,12 +11,12 @@ Key Functions
 -------------
 1. **plot_spectrogram**:
 
-   - Generates a spectrogram plot from sound pressure spectral density level data, 
+   - Generates a spectrogram plot from sound pressure spectral density level data,
      with a logarithmic frequency scale by default for improved readability of acoustic data.
 
 2. **plot_spectra**:
 
-   - Produces a spectral density plot with a log-transformed x-axis, allowing for clear 
+   - Produces a spectral density plot with a log-transformed x-axis, allowing for clear
      visualization of spectral density across frequency bands.
 """
 
@@ -33,7 +33,7 @@ def plot_spectrogram(
     fmax: int = 100000,
     fig: plt.figure = None,
     ax: plt.Axes = None,
-    **kwargs
+    **kwargs,
 ) -> Tuple[plt.figure, plt.Axes]:
     """
     Plots the spectrogram of the sound pressure spectral density level.
@@ -86,10 +86,10 @@ def plot_spectrogram(
         spsdl[freq].values,
         spsdl.transpose(freq, time),
         shading="nearest",
-        **kwargs
+        **kwargs,
     )
     fig.colorbar(h, ax=ax, label=getattr(spsdl, "units", None))
-    ax.set(xlabel="Time", ylabel="Frequency [Hz]")
+    ax.set(ylim=(fmin, fmax), xlabel="Time", ylabel="Frequency [Hz]")
 
     return fig, ax
 
@@ -100,7 +100,7 @@ def plot_spectra(
     fmax: int = 100000,
     fig: plt.figure = None,
     ax: plt.Axes = None,
-    **kwargs
+    **kwargs,
 ) -> Tuple[plt.figure, plt.Axes]:
     """
     Plots spectral density. X axis is log-transformed.
@@ -140,8 +140,6 @@ def plot_spectra(
     # Check fmax
     fn = spsdl[freq].max().item()
     fmax = _fmax_warning(fn, fmax)
-    # select frequency range
-    spsdl = spsdl.sel({freq: slice(fmin, fmax)})
 
     if ax is None:
         fig, ax = plt.subplots(figsize=(6, 5), subplot_kw={"xscale": "log"})

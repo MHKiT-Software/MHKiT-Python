@@ -18,8 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip wheel
-          pip install pylint
-          pip install .
+          pip install ".[all,dev]"
 
       - name: Run Pylint on mhkit/loads/
         run: |
@@ -36,3 +35,15 @@ jobs:
       - name: Run Pylint on mhkit/acoustics/
         run: |
           pylint mhkit/acoustics/
+
+      - name: Run Pylint on mhkit/tidal/
+        run: |
+          pylint mhkit/tidal/
+
+      - name: Run Pylint on mhkit/river/
+        run: |
+          pylint --extension-pkg-allow-list=netCDF4 mhkit/river/
+
+      - name: Run Pylint on mhkit/wave/io/hindcast/
+        run: |
+          pylint  mhkit/wave/io/hindcast/

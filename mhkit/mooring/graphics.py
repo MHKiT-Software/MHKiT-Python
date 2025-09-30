@@ -1,20 +1,20 @@
 """
-This module provides a function for creating animated visualizations of a 
-MoorDyn node position dataset using the matplotlib animation API. 
+This module provides a function for creating animated visualizations of a
+MoorDyn node position dataset using the matplotlib animation API.
 
-It includes the main function `animate`, which creates either 2D or 3D 
-animations depending on the input parameters. 
+It includes the main function `animate`, which creates either 2D or 3D
+animations depending on the input parameters.
 
-In the animations, the position of nodes in the MoorDyn dataset are plotted 
-over time, allowing the user to visualize how these positions change. 
+In the animations, the position of nodes in the MoorDyn dataset are plotted
+over time, allowing the user to visualize how these positions change.
 
-This module also includes several helper functions that are used by 
-`animate` to validate inputs, generate lists of nodes along each axis, 
-calculate plot limits, and set labels and titles for plots. 
+This module also includes several helper functions that are used by
+`animate` to validate inputs, generate lists of nodes along each axis,
+calculate plot limits, and set labels and titles for plots.
 
-The user can specify various parameters for the animation such as the 
-dimension (2D or 3D), the axes to plot along, the plot limits for each 
-axis, the interval between frames, whether the animation repeats, and the 
+The user can specify various parameters for the animation such as the
+dimension (2D or 3D), the axes to plot along, the plot limits for each
+axis, the interval between frames, whether the animation repeats, and the
 labels and title for the plot.
 
 Requires:

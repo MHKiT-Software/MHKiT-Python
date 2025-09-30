@@ -29,9 +29,9 @@ class TestResource(unittest.TestCase):
 
     def test_exceedance_probability(self):
         df = pd.DataFrame.from_records({"vals": np.array([1, 2, 3, 4, 5, 6, 7, 8, 9])})
-        df["F"] = tidal.resource.exceedance_probability(df.vals)
-        self.assertEqual(df["F"].min(), 10)
-        self.assertEqual(df["F"].max(), 90)
+        df["exceedance_probability"] = tidal.resource.exceedance_probability(df.vals)
+        self.assertEqual(df["exceedance_probability"].min(), 10)
+        self.assertEqual(df["exceedance_probability"].max(), 90)
 
     def test_principal_flow_directions(self):
         width_direction = 10

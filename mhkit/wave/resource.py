@@ -452,7 +452,7 @@ def frequency_moment(S, N, frequency_bins=None, frequency_dimension="", to_panda
         )
     f = S[frequency_dimension]
 
-    # Eq 8 in IEC 62600-101
+    # Eq 8 in IEC 62600-101 Ed. 2.0 en 2024
     S = S.sel({frequency_dimension: slice(1e-12, f.max())})  # omit frequency of 0
     f = S[frequency_dimension]  # reset frequency_dimension without the 0 frequency
 
@@ -507,7 +507,7 @@ def significant_wave_height(
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    # Eq 12 in IEC 62600-101
+    # Eq 12 in IEC 62600-101 Ed. 2.0 en 2024
     m0 = frequency_moment(
         S,
         0,
@@ -551,7 +551,7 @@ def average_zero_crossing_period(
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    # Eq 15 in IEC 62600-101
+    # Eq 15 in IEC 62600-101 Ed. 2.0 en 2024
     m0 = frequency_moment(
         S,
         0,
@@ -707,7 +707,7 @@ def peak_period(S, frequency_dimension="", to_pandas=True):
             f"frequency_dimension is not a dimension of S ({list(S.dims)}). Got: {frequency_dimension}."
         )
 
-    # Eq 14 in IEC 62600-101
+    # Eq 14 in IEC 62600-101 Ed. 2.0 en 2024
     fp = S.idxmax(dim=frequency_dimension)  # Hz
     Tp = 1 / fp
 
@@ -759,7 +759,7 @@ def energy_period(S, frequency_dimension="", frequency_bins=None, to_pandas=True
         to_pandas=False,
     )
 
-    # Eq 13 in IEC 62600-101
+    # Eq 13 in IEC 62600-101 Ed. 2.0 en 2024
     Te = mn1 / m0
 
     if to_pandas:
@@ -873,7 +873,7 @@ def spectral_width(S, frequency_dimension="", frequency_bins=None, to_pandas=Tru
         to_pandas=False,
     )
 
-    # Eq 16 in IEC 62600-101
+    # Eq 16 in IEC 62600-101 Ed. 2.0 en 2024
     v = np.sqrt((m0 * mn2 / np.power(mn1, 2)) - 1)
 
     if to_pandas:
@@ -949,7 +949,7 @@ def energy_flux(
     f = S[frequency_dimension]
 
     if deep:
-        # Eq 8 in IEC 62600-100, deep water simplification
+        # Eq 8 in IEC 62600-100 Ed. 2.0 en 2024, deep water simplification
         Te = energy_period(S, to_pandas=False)
         Hm0 = significant_wave_height(S, to_pandas=False)
 
@@ -964,7 +964,7 @@ def energy_flux(
         # wave celerity (group velocity)
         Cg = wave_celerity(k, h, g, depth_check=True, ratio=ratio, to_pandas=False)
 
-        # Calculating the wave energy flux, Eq 9 in IEC 62600-101
+        # Calculating the wave energy flux, Eq 9 in IEC 62600-101 Ed. 2.0 en 2024
         delta_f = f.diff(dim=frequency_dimension)
         delta_f0 = f[1] - f[0]
         delta_f0 = delta_f0.assign_coords({frequency_dimension: f[0]})
@@ -1100,7 +1100,7 @@ def wave_celerity(
         Cg.name = "Cg"
 
     else:
-        # Eq 10 in IEC 62600-101
+        # Eq 10 in IEC 62600-101 Ed. 2.0 en 2024
         Cg = (np.pi * f / k) * (1 + (2 * h * k) / np.sinh(2 * h * k))
         Cg = xr.DataArray(
             data=Cg, dims=frequency_dimension, coords={frequency_dimension: f}
@@ -1185,7 +1185,7 @@ def wave_number(f, h, rho=1025, g=9.80665, to_pandas=True):
     yi = xi * xi / np.power(1.0 - np.exp(-np.power(xi, 2.4908)), 0.4015)
     k0 = yi / h  # Initial guess without current-wave interaction
 
-    # Eq 11 in IEC 62600-101 using initial guess from Guo (2002)
+    # Eq 11 in IEC 62600-101 Ed. 2.0 en 2024 using initial guess from Guo (2002)
     def func(kk):
         val = np.power(w, 2) - g * kk * np.tanh(kk * h)
         return val
