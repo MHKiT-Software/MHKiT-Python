@@ -1,14 +1,18 @@
 name: Py 3.10, 3.11, 3.12 | Windows Mac Linux
 
 on:
-  push:
-    branches:
-      - main
-      - develop
   pull_request:
     branches:
       - main
       - develop
+  push:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ${{ github.event.pull_request.number }}  # Use the pull request number as the concurrency group
+  cancel-in-progress: true    # Cancel any in-progress jobs for the same group
 
 jobs:
   set-os:
