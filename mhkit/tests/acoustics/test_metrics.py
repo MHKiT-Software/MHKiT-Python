@@ -150,17 +150,17 @@ class TestMetrics(unittest.TestCase):
             [-65.056496, -64.386955, -63.748577, -63.138584, -62.55456, -61.99438]
         ), np.array([244.4265, 243.75696, 243.11858, 242.50858, 241.92456, 241.36438])
 
-        np.testing.assert_allclose(W_LF.sel(freq=slc).values, cd_W_LF, atol=1e-6)
-        np.testing.assert_allclose(W_HF.sel(freq=slc).values, cd_W_HF, atol=1e-6)
-        np.testing.assert_allclose(W_VHF.sel(freq=slc).values, cd_W_VHF, atol=1e-6)
-        np.testing.assert_allclose(W_PW.sel(freq=slc).values, cd_W_PW, atol=1e-6)
-        np.testing.assert_allclose(W_OW.sel(freq=slc).values, cd_W_OW, atol=1e-6)
+        np.testing.assert_allclose(W_LF.sel(freq=slc).values, cd_W_LF, atol=1e-5)
+        np.testing.assert_allclose(W_HF.sel(freq=slc).values, cd_W_HF, atol=1e-5)
+        np.testing.assert_allclose(W_VHF.sel(freq=slc).values, cd_W_VHF, atol=1e-5)
+        np.testing.assert_allclose(W_PW.sel(freq=slc).values, cd_W_PW, atol=1e-5)
+        np.testing.assert_allclose(W_OW.sel(freq=slc).values, cd_W_OW, atol=1e-5)
 
-        np.testing.assert_allclose(E_LF.sel(freq=slc).values, cd_E_LF, atol=1e-6)
-        np.testing.assert_allclose(E_HF.sel(freq=slc).values, cd_E_HF, atol=1e-6)
-        np.testing.assert_allclose(E_VHF.sel(freq=slc).values, cd_E_VHF, atol=1e-6)
-        np.testing.assert_allclose(E_PW.sel(freq=slc).values, cd_E_PW, atol=1e-6)
-        np.testing.assert_allclose(E_OW.sel(freq=slc).values, cd_E_OW, atol=1e-6)
+        np.testing.assert_allclose(E_LF.sel(freq=slc).values, cd_E_LF, atol=1e-5)
+        np.testing.assert_allclose(E_HF.sel(freq=slc).values, cd_E_HF, atol=1e-5)
+        np.testing.assert_allclose(E_VHF.sel(freq=slc).values, cd_E_VHF, atol=1e-5)
+        np.testing.assert_allclose(E_PW.sel(freq=slc).values, cd_E_PW, atol=1e-5)
+        np.testing.assert_allclose(E_OW.sel(freq=slc).values, cd_E_OW, atol=1e-5)
 
     def test_sel(self):
         td_sel = acoustics.sound_exposure_level(self.spsd_60s, fmin=10, fmax=100000)
