@@ -424,6 +424,8 @@ jobs:
           pip install pytest
 
       - name: Run tests for ${{ matrix.module }}
+        env:
+          MPLBACKEND: Agg
         run: |
           python -m pytest -c .github/workflows/pytest.ini mhkit/tests/${{ matrix.module }}/
 
