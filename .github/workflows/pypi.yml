@@ -27,6 +27,11 @@ jobs:
       - run: python -m pip install build --user
       - run: python -m build --sdist --wheel --outdir dist/ .
 
+      - name: Test wheel contents before upload
+        run: |
+          python -m pip install dist/*.whl
+          python -c "from mhkit import wave, river, tidal, dolfyn, power, loads, mooring, acoustics, qc, utils; print('All modules imported successfully')"
+
       - name: Upload to Test PyPI
         if: github.event_name != 'release' && github.repository_owner == 'MHKiT-Software'
         uses: pypa/gh-action-pypi-publish@release/v1
