@@ -29,7 +29,7 @@ jobs:
 
       - name: Test wheel contents before upload
         run: |
-          python -m pip install dist/*.whl
+          pip install 'mhkit[all]' --no-index --find-links dist/
           python -c "from mhkit import wave, river, tidal, dolfyn, power, loads, mooring, acoustics, qc, utils; print('All modules imported successfully')"
 
       - name: Upload to Test PyPI

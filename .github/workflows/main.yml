@@ -410,7 +410,11 @@ jobs:
         run: |
           python -m venv test_env
           source test_env/bin/activate
-          pip install dist/*.whl
+          # Install from build wheel in dist/ directory, not from PyPI
+           # --no-index                  Ignore package index (only looking at --find-links URLs instead).
+           # -f, --find-links <url>      If a URL or path to an html file, then parse for links to archives such as sdist (.tar.gz) or wheel (.whl) files.
+             # If a local path or file:// URL that's a directory, then look for archives in the directory listing.
+          pip install 'mhkit[all]' --no-index --find-links dist/
 
       - name: Test submodule imports
         run: |
