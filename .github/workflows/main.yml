@@ -426,6 +426,7 @@ jobs:
           path: ~/.cache/mhkit
 
       - name: Install system dependencies
+        if: matrix.module == 'wave' || matrix.module == 'tidal' || matrix.module == 'river' || matrix.module == 'dolfyn'
         run: sudo apt-get install -y libhdf5-dev libnetcdf-dev
 
       - name: Install MHKiT with optional dependency
@@ -435,6 +436,7 @@ jobs:
           pip install pytest
 
       - name: Reinstall h5py and netCDF4 with system libraries
+        if: matrix.module == 'wave' || matrix.module == 'tidal' || matrix.module == 'river' || matrix.module == 'dolfyn'
         run: "pip install --force-reinstall --no-binary=:all: h5py netCDF4"
 
       - name: Run tests for ${{ matrix.module }}
