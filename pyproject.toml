@@ -67,6 +67,7 @@ power = [
 
 loads = [
  "fatpack"
+ "statsmodels"
 ]
 
 mooring = [
