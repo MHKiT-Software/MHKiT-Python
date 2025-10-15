@@ -406,6 +406,7 @@ jobs:
     needs: [set-os, prepare-nonhindcast-cache]
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         module:
           [wave, tidal, river, dolfyn, power, loads, mooring, acoustics, utils]
