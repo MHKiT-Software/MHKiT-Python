@@ -1,31 +1,31 @@
 """
-This module contains functions for calculating various aspects of power quality, 
-particularly focusing on the analysis of harmonics and interharmonics in electrical 
-power systems. These functions are designed to assist in power quality assessments 
-by providing tools to analyze voltage and current signals for their harmonic 
-and interharmonic components based on the guidelines and methodologies 
-outlined in IEC 61000-4-7.
+This module contains functions for calculating various aspects of power quality,
+particularly focusing on the analysis of harmonics, interharmonics and distortion
+in electrical power systems. These functions are designed to assist in power
+quality assessments by providing tools to analyze voltage and current signals
+for their harmonic and interharmonic components based on the guidelines and methodologies
+outlined in IEC 61000-4-7:2008 ED2 and in IEC 62600-30:2018 ED1.
 
 Functions in this module include:
 
-- harmonics: Calculates the harmonics from time series of voltage or current. 
-  This function returns the amplitude of the time-series data harmonics indexed by 
-  the harmonic frequency, aiding in the identification of harmonic distortions 
+- harmonics: Calculates the harmonics from time series of voltage or current.
+  This function returns the amplitude of the time-series data harmonics indexed by
+  the harmonic frequency, aiding in the identification of harmonic distortions
   within the power system.
 
-- harmonic_subgroups: Computes the harmonic subgroups as per IEC 61000-4-7 standards. 
-  Harmonic subgroups provide insights into the distribution of power across 
-  different harmonic frequencies, which is crucial for understanding the behavior 
+- harmonic_subgroups: Computes the harmonic subgroups as per IEC 61000-4-7 standards.
+  Harmonic subgroups provide insights into the distribution of power across
+  different harmonic frequencies, which is crucial for understanding the behavior
   of non-linear loads and their impact on the power quality.
 
-- total_harmonic_current_distortion (THCD): Determines the total harmonic current 
-  distortion, offering a summary metric that quantifies the overall level of 
-  harmonic distortion present in the current waveform. This metric is essential 
+- total_harmonic_current_distortion (THCD): Determines the total harmonic current
+  distortion, offering a summary metric that quantifies the overall level of
+  harmonic distortion present in the current waveform. This metric is essential
   for assessing compliance with power quality standards and guidelines.
 
-- interharmonics: Identifies and calculates the interharmonics present in the 
-  power system. Interharmonics, which are frequencies that occur between the 
-  fundamental and harmonic frequencies, can arise from various sources and 
+- interharmonics: Identifies and calculates the interharmonics present in the
+  power system. Interharmonics, which are frequencies that occur between the
+  fundamental and harmonic frequencies, can arise from various sources and
   potentially lead to power quality issues.
 """
 
@@ -107,6 +107,8 @@ def harmonics(
         hertz = np.arange(0, 3060, 5)
     elif grid_freq == 50:
         hertz = np.arange(0, 2570, 5)
+    else:
+        raise ValueError(f"grid_freq must be either 50 or 60. Got {grid_freq}")
 
     harmonic_amplitudes = harmonic_amplitudes.reindex(
         {"frequency": hertz}, method="nearest"
@@ -220,7 +222,7 @@ def total_harmonic_current_distortion(
     to_pandas: bool = True,
 ) -> Union[pd.DataFrame, xr.Dataset]:
     """
-    Calculates the total harmonic current distortion (THC) based on IEC/TS 62600-30
+    Calculates the total harmonic current distortion (THC) based on IEC TS 62600-30
 
     Parameters
     ----------
@@ -322,7 +324,11 @@ def interharmonics(
             + f"xr.DataArray, or xr.Dataset. Got {type(harmonic_amplitudes)}"
         )
 
-    if grid_freq not in [50, 60]:
+    if grid_freq == 60:
+        hertz = np.arange(0, 3060, 60)
+    elif grid_freq == 50:
+        hertz = np.arange(0, 2550, 50)
+    else:
         raise ValueError(f"grid_freq must be either 50 or 60. Got {grid_freq}")
 
     if not isinstance(to_pandas, bool):
@@ -339,11 +345,6 @@ def interharmonics(
             "frequency_dimension was supplied but is not a dimension "
             + f"of harmonic_amplitudes. Got {frequency_dimension}"
         )
-
-    if grid_freq == 60:
-        hertz = np.arange(0, 3060, 60)
-    elif grid_freq == 50:
-        hertz = np.arange(0, 2550, 50)
 
     # Sort input data index
     if frequency_dimension == "":

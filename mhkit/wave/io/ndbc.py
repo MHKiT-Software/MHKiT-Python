@@ -1,7 +1,7 @@
 import os
 from collections import OrderedDict as _OrderedDict
 from collections import defaultdict as _defaultdict
-from io import BytesIO
+from io import BytesIO, StringIO
 import re
 import requests
 import zlib
@@ -18,6 +18,9 @@ from mhkit.utils import (
     convert_to_dataarray,
     convert_nested_dict_and_pandas,
 )
+
+# Set pandas option to opt-in to future behavior
+pd.set_option("future.no_silent_downcasting", True)
 
 
 def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
@@ -98,25 +101,29 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
     if header_commented:
         data = pd.read_csv(
             file_name,
-            sep="\s+",
+            sep="\\s+",
             header=None,
             names=header,
             comment="#",
-            parse_dates=[parse_vals],
         )
     # If first line is not commented, then the first row can be used as header
     else:
-        data = pd.read_csv(
-            file_name, sep="\s+", header=0, comment="#", parse_dates=[parse_vals]
-        )
+        data = pd.read_csv(file_name, sep="\\s+", header=0, comment="#")
 
     # Convert index to datetime
     date_column = "_".join(parse_vals)
+    data[date_column] = (
+        data[parse_vals].apply(lambda val: val.astype("string")).agg(" ".join, axis=1)
+    )
+
     data["Time"] = pd.to_datetime(data[date_column], format=date_format)
     data.index = data["Time"].values
+
     # Remove date columns
     del data[date_column]
     del data["Time"]
+    for val in parse_vals:
+        del data[val]
 
     # If there was a row of units, convert to dictionary
     if units_exist:
@@ -126,7 +133,11 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
 
     # Convert columns to numeric data if possible, otherwise leave as string
     for column in data:
-        data[column] = pd.to_numeric(data[column], errors="ignore")
+        try:
+            data[column] = pd.to_numeric(data[column])
+        except (ValueError, TypeError):
+            # Keep as string if conversion fails
+            pass
 
     # Convert column names to float if possible (handles frequency headers)
     # if there is non-numeric name, just leave all as strings.
@@ -136,7 +147,8 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
         data.columns = data.columns
 
     # Replace indicated missing values with nan
-    data.replace(missing_values, np.nan, inplace=True)
+    data = data.replace(missing_values, np.nan)
+    data = data.infer_objects(copy=False)
 
     if not to_pandas:
         data = convert_to_dataset(data)
@@ -207,7 +219,12 @@ def available_data(
     cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit", "ndbc")
 
     # Check the cache before making the request
-    data, _, _ = handle_caching(hash_params, cache_dir, clear_cache_file=clear_cache)
+    data, _, _ = handle_caching(
+        hash_params,
+        cache_dir,
+        cache_content={"data": None, "metadata": None, "write_json": None},
+        clear_cache_file=clear_cache,
+    )
 
     # no coverage bc in coverage runs we have already cached the data/ run this code
     if data is None:  # pragma: no cover
@@ -229,7 +246,7 @@ def available_data(
             msg = f"request.get({ndbc_data}) failed by returning code of {response.status_code}"
             raise Exception(msg)
 
-        filenames = pd.read_html(response.text)[0].Name.dropna()
+        filenames = pd.read_html(StringIO(response.text))[0].Name.dropna()
         buoys = _parse_filenames(parameter, filenames)
 
         available_data = buoys.copy(deep=True)
@@ -246,7 +263,16 @@ def available_data(
                 data = available_data[available_data.id == buoy_number[i]]
                 available_data = available_data.append(data)
         # Cache the result
-        handle_caching(hash_params, cache_dir, data=available_data)
+        handle_caching(
+            hash_params,
+            cache_dir,
+            cache_content={
+                "data": available_data,
+                "metadata": None,
+                "write_json": None,
+            },
+        )
+
     else:
         available_data = data
 
@@ -329,10 +355,10 @@ def request_data(parameter, filenames, proxy=None, clear_cache=False, to_pandas=
         'cwind' :   'Continuous Winds Current Year Historical Data'
 
     filenames: pandas Series, pandas DataFrame, xarray DataArray, or xarray Dataset
-            Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
+        Data filenames on https://www.ndbc.noaa.gov/data/historical/{parameter}/
 
     proxy: dict
-            Proxy dict passed to python requests,
+        Proxy dict passed to python requests,
         (e.g. proxy_dict= {"http": 'http:wwwproxy.yourProxy:80/'})
 
     to_pandas: bool (optional)
@@ -371,7 +397,10 @@ def request_data(parameter, filenames, proxy=None, clear_cache=False, to_pandas=
             # Create a unique filename based on the function parameters for caching
             hash_params = f"{buoy_id}_{parameter}_{year}_{filename}"
             cached_data, _, _ = handle_caching(
-                hash_params, cache_dir, clear_cache_file=clear_cache
+                hash_params,
+                cache_dir,
+                cache_content={"data": None, "metadata": None, "write_json": None},
+                clear_cache_file=clear_cache,
             )
 
             if cached_data is not None:
@@ -386,13 +415,13 @@ def request_data(parameter, filenames, proxy=None, clear_cache=False, to_pandas=
                 response = requests.get(file_url, proxies=proxy)
             try:
                 data = zlib.decompress(response.content, 16 + zlib.MAX_WBITS)
-                df = pd.read_csv(BytesIO(data), sep="\s+", low_memory=False)
+                df = pd.read_csv(BytesIO(data), sep="\\s+", low_memory=False)
 
                 # catch when units are included below the header
                 firstYear = df["MM"][0]
                 if isinstance(firstYear, str) and firstYear == "mo":
                     df = pd.read_csv(
-                        BytesIO(data), sep="\s+", low_memory=False, skiprows=[1]
+                        BytesIO(data), sep="\\s+", low_memory=False, skiprows=[1]
                     )
             except zlib.error:
                 msg = (
@@ -415,7 +444,13 @@ def request_data(parameter, filenames, proxy=None, clear_cache=False, to_pandas=
                 # Cache the data after processing it if it exists
                 if year in ndbc_data[buoy_id]:
                     handle_caching(
-                        hash_params, cache_dir, data=ndbc_data[buoy_id][year]
+                        hash_params,
+                        cache_dir,
+                        cache_content={
+                            "data": ndbc_data[buoy_id][year],
+                            "metadata": None,
+                            "write_json": None,
+                        },
                     )
 
     if buoy_id and len(ndbc_data) == 1:
@@ -631,7 +666,7 @@ def parameter_units(parameter=""):
     If no parameter is passed then an ordered dictionary of all NDBC
     parameterz specified unites is returned. If a parameter is specified
     then only the units associated with that parameter are returned.
-    Note that many NDBC paramters report multiple measurements and in
+    Note that many NDBC parameters report multiple measurements and in
     that case the returned dictionary will contain the NDBC measurement
     name and associated unit for all the measurements associated with
     the specified parameter. Optional parameter values are given below.

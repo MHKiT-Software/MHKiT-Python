@@ -83,6 +83,9 @@ def _handle_nan(data):
     Finds trailing nan's that cause issues in running the rotation
     algorithms and deletes them.
     """
+    if "time" not in data["coords"]:
+        raise Exception("No data recorded in file.")
+
     nan = np.zeros(data["coords"]["time"].shape, dtype=bool)
     l = data["coords"]["time"].size
 
@@ -112,6 +115,54 @@ def _handle_nan(data):
     return data
 
 
+def _remove_gps_duplicates(dat):
+    """
+    Removes duplicate and NaN timestamp values in the 'time_gps' coordinate
+    of the dataset and adds a hardware (ADCP DAQ) timestamp corresponding to GPS
+    acquisition in the 'hdwtime_gps' variable.
+
+    Parameters
+    ----------
+    dat : xarray.Dataset
+        Dataset containing GPS-related data and timestamps. This dataset is
+        modified in place.
+
+    Returns
+    -------
+    xarray.Dataset
+        The input dataset with duplicates and NaN values removed from the
+        'time_gps' coordinate. A new variable, 'hdwtime_gps', is added to
+        indicate the hardware timestamp corresponding to GPS acquisition.
+    """
+
+    dat["data_vars"]["hdwtime_gps"] = dat["coords"]["time"]
+
+    # If the time jumps by nearly 24 hours at any given instance, we've skipped a day
+    time_diff = np.diff(dat["coords"]["time_gps"])
+    if any(np.array(list(set(time_diff))) < -(23.9 * 3600)):
+        idx = np.where(time_diff == time_diff.min())[0]
+        dat["coords"]["time_gps"][int(idx) + 1 :] += 24 * 3600
+
+    # Remove duplicate timestamp values, if applicable
+    dat["coords"]["time_gps"], idx = np.unique(
+        dat["coords"]["time_gps"], return_index=True
+    )
+
+    # Remove nan values, if applicable
+    nan = np.zeros(dat["coords"]["time"].shape, dtype=bool)
+    if any(np.isnan(dat["coords"]["time_gps"])):
+        nan = np.isnan(dat["coords"]["time_gps"])
+        dat["coords"]["time_gps"] = dat["coords"]["time_gps"][~nan]
+
+    for key in dat["data_vars"]:
+        if ("gps" in key) or ("nmea" in key):
+            dat["data_vars"][key] = dat["data_vars"][key][idx]
+            if sum(nan) > 0:
+                dat["data_vars"][key] = dat["data_vars"][key][~nan]
+
+    return dat
+
+
 def _create_dataset(data):
     """
     Creates an xarray dataset from dictionary created from binary
@@ -120,6 +171,14 @@ def _create_dataset(data):
     """
 
     tag = ["_avg", "_b5", "_echo", "_bt", "_gps", "_altraw", "_altraw_avg", "_sl"]
+    # If burst velocity not measured
+    if "vel" not in data["data_vars"]:
+        # dual profile where burst velocity is not measured but echo sounder is
+        if "vel_avg" in data["data_vars"]:
+            data["coords"]["time"] = data["coords"]["time_avg"]
+        else:
+            t_vars = [t for t in data["coords"] if "time" in t]
+            data["coords"]["time"] = data["coords"][t_vars[0]]
 
     ds_dict = {}
     for key in data["coords"]:
@@ -254,7 +313,7 @@ def _create_dataset(data):
                         "data": data["data_vars"][key],
                     }
 
-                elif "b5" in tg:
+                elif "b5" in key:
                     ds_dict[key] = {
                         "dims": ("range_b5", "time_b5"),
                         "data": data["data_vars"][key],
@@ -280,7 +339,7 @@ def _create_dataset(data):
                     # "vel_b5" sometimes stored as (1, range_b5, time_b5)
                     ds_dict[key] = {
                         "dims": ("range_b5", "time_b5"),
-                        "data": data["data_vars"][key][0],
+                        "data": data["data_vars"][key].squeeze(),
                     }
                 elif "sl" in key:
                     ds_dict[key] = {
@@ -313,12 +372,12 @@ def _create_dataset(data):
     r_list = [r for r in ds.coords if "range" in r]
     for ky in r_list:
         ds[ky].attrs["units"] = "m"
-        ds[ky].attrs["long_name"] = "Profile Range"
+        ds[ky].attrs["long_name"] = "Profile " + ky.capitalize().replace("_", " ")
         ds[ky].attrs["description"] = "Distance to the center of each depth bin"
     time_list = [t for t in ds.coords if "time" in t]
     for ky in time_list:
         ds[ky].attrs["units"] = "seconds since 1970-01-01 00:00:00"
-        ds[ky].attrs["long_name"] = "Time"
+        ds[ky].attrs["long_name"] = ky.capitalize().replace("_", " ")
         ds[ky].attrs["standard_name"] = "time"
 
     # Set dataset metadata

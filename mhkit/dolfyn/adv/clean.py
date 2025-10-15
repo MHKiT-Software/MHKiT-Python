@@ -1,12 +1,10 @@
-"""Module containing functions to clean data
-"""
+"""Module containing functions to clean data"""
 
-import numpy as np
 import warnings
+import numpy as np
 from ..velocity import VelBinner
 from ..tools.misc import group, slice1d_along_axis
 
-warnings.filterwarnings("ignore", category=np.RankWarning)
 
 sin = np.sin
 cos = np.cos

@@ -1,9 +1,25 @@
+"""
+This module provides utility functions for converting datetime formats
+from MATLAB and Excel to Python datetime formats.
+
+Functions:
+----------
+- matlab_to_datetime: Converts MATLAB datenum format to Python datetime.
+- excel_to_datetime: Converts Excel datenum format to Python datetime.
+"""
+
+from typing import Union
 import datetime as dt
 import pandas as pd
 import numpy as np
 
+# pylint: disable=unused-import
+from pecos.utils import index_to_datetime
 
-def matlab_to_datetime(matlab_datenum):
+
+def matlab_to_datetime(
+    matlab_datenum: Union[np.ndarray, list, float, int],
+) -> pd.DatetimeIndex:
     """
     Convert MATLAB datenum format to Python datetime
 
@@ -20,10 +36,10 @@ def matlab_to_datetime(matlab_datenum):
     # Check data types
     try:
         matlab_datenum = np.array(matlab_datenum, ndmin=1)
-    except:
-        pass
+    except (TypeError, ValueError) as e:
+        raise TypeError(f"Error converting to numpy array: {e}") from e
     if not isinstance(matlab_datenum, np.ndarray):
-        raise TypeError(f"data must be of type np.ndarray. Got: {type(data)}")
+        raise TypeError(f"data must be of type np.ndarray. Got: {type(matlab_datenum)}")
 
     # Pre-allocate
     time = []
@@ -38,7 +54,9 @@ def matlab_to_datetime(matlab_datenum):
     return time
 
 
-def excel_to_datetime(excel_num):
+def excel_to_datetime(
+    excel_num: Union[np.ndarray, list, float, int],
+) -> pd.DatetimeIndex:
     """
     Convert Excel datenum format to Python datetime
 
@@ -55,8 +73,8 @@ def excel_to_datetime(excel_num):
     # Check data types
     try:
         excel_num = np.array(excel_num)
-    except:
-        pass
+    except (TypeError, ValueError) as e:
+        raise TypeError(f"Error converting to numpy array: {e}") from e
     if not isinstance(excel_num, np.ndarray):
         raise TypeError(f"excel_num must be of type np.ndarray. Got: {type(excel_num)}")
 

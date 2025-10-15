@@ -3,11 +3,12 @@ import logging
 import numpy as np
 from struct import unpack
 from pathlib import Path
-from datetime import datetime
 
-from . import nortek_defs
+
 from .. import time
-from .base import _find_userdata, _create_dataset, _handle_nan, _abspath
+from . import base
+from . import nortek_defs as defs
+from . import nortek_lib as lib
 from ..tools import misc as tbx
 from ..rotate.vector import _calc_omat
 from ..rotate.base import _set_coords
@@ -54,22 +55,22 @@ def read_nortek(
             format="%(name)s - %(levelname)s - %(message)s",
         )
 
-    userdata = _find_userdata(filename, userdata)
+    userdata = base._find_userdata(filename, userdata)
 
     rdr = _NortekReader(filename, debug=debug, do_checksum=do_checksum, nens=nens)
     rdr.readfile()
-    rdr.dat2sci()
+    rdr.cleanup()
     dat = rdr.data
 
     # Remove trailing nan's in time and orientation data
-    dat = _handle_nan(dat)
+    dat = base._handle_nan(dat)
 
     # Search for missing timestamps and interpolate them
     coords = dat["coords"]
     t_list = [t for t in coords if "time" in t]
     for ky in t_list:
         tdat = coords[ky]
-        tdat[tdat == 0] = np.NaN
+        tdat[tdat == 0] = np.nan
         if np.isnan(tdat).any():
             tag = ky.lstrip("time")
             warnings.warn(
@@ -92,7 +93,7 @@ def read_nortek(
             dat["attrs"][nm] = userdata[nm]
 
     # Create xarray dataset from upper level dictionary
-    ds = _create_dataset(dat)
+    ds = base._create_dataset(dat)
     ds = _set_coords(ds, ref_frame=ds.coord_sys)
 
     if "orientmat" not in ds:
@@ -116,27 +117,6 @@ def read_nortek(
             handler.close()
 
     return ds
-
-
-def _bcd2char(cBCD):
-    """Taken from the Nortek System Integrator Manual
-    "Example Program" Chapter.
-    """
-    cBCD = min(cBCD, 153)
-    c = cBCD & 15
-    c += 10 * (cBCD >> 4)
-    return c
-
-
-def _bitshift8(val):
-    return val >> 8
-
-
-def _int2binarray(val, n):
-    out = np.zeros(n, dtype="bool")
-    for idx, n in enumerate(range(n)):
-        out[idx] = val & (2**n)
-    return out
 
 
 class _NortekReader:
@@ -175,7 +155,7 @@ class _NortekReader:
         "0x30": "read_awac_waves",
         "0x31": "read_awac_waves_hdr",
         "0x36": "read_awac_waves",  # "SUV"
-        "0x71": "read_microstrain",
+        "0x71": "read_imu",
     }
 
     def __init__(
@@ -189,7 +169,7 @@ class _NortekReader:
     ):
         self.fname = fname
         self._bufsize = bufsize
-        self.f = open(_abspath(fname), "rb", 1000)
+        self.f = open(base._abspath(fname), "rb", 1000)
         self.do_checksum = do_checksum
         self.filesize  # initialize the filesize.
         self.debug = debug
@@ -256,7 +236,7 @@ class _NortekReader:
         getattr(self, "init_" + self._inst)()
         self.f.close()  # This has a small buffer, so close it.
         # This has a large buffer...
-        self.f = open(_abspath(fname), "rb", bufsize)
+        self.f = open(base._abspath(fname), "rb", bufsize)
         self.close = self.f.close
         if self._npings is not None:
             self.n_samp_guess = self._npings
@@ -282,6 +262,7 @@ class _NortekReader:
             self.config["coord_sys_axes"]
         ]
         da["has_imu"] = 0  # Initiate attribute
+        self._eof = self.pos
         if self.debug:
             logging.info("Init completed")
 
@@ -359,6 +340,34 @@ class _NortekReader:
         else:
             self.n_samp_guess = int(self.filesize / space + 1)
 
+    def _init_data(self, vardict):
+        """Initialize the data object according to vardict.
+
+        Parameters
+        ----------
+        vardict : (dict of :class:`<VarAttrs>`)
+          The variable definitions in the :class:`<VarAttrs>` specify
+          how to initialize each data variable.
+
+        """
+        shape_args = {"n": self.n_samp_guess}
+        try:
+            shape_args["nbins"] = self.config["usr"]["n_bins"]
+        except KeyError:
+            pass
+        for nm, va in list(vardict.items()):
+            if va.group is None:
+                # These have to stay separated.
+                if nm not in self.data:
+                    self.data[nm] = va._empty_array(**shape_args)
+            else:
+                if nm not in self.data[va.group]:
+                    self.data[va.group][nm] = va._empty_array(**shape_args)
+                    self.data["units"][nm] = va.units
+                    self.data["long_name"][nm] = va.long_name
+                    if va.standard_name:
+                        self.data["standard_name"][nm] = va.standard_name
+
     def read(self, nbyte):
         byts = self.f.read(nbyte)
         if not (len(byts) == nbyte):
@@ -371,18 +380,22 @@ class _NortekReader:
         """
         sum = np.uint16(int("0xb58c", 0))  # Initialize the sum
         cs = 0
-        func = _bitshift8
+        func = lib._bitshift8
         func2 = np.uint8
         if self.endian == "<":
             func = np.uint8
-            func2 = _bitshift8
+            func2 = lib._bitshift8
+        searching = False
         while True:
             val = unpack(self.endian + "H", self.read(2))[0]
-            if func(val) == 165 and (not do_cs or cs == np.uint16(sum)):
+            if np.array(val).astype(func) == 165 and (not do_cs or cs == sum):
                 self.f.seek(-2, 1)
                 return hex(func2(val))
             sum += cs
             cs = val
+            if self.debug and not searching:
+                logging.debug("Scanning every 2 bytes for next datablock...")
+                searching = True
 
     def read_id(self):
         """Read the next 'ID' from the file."""
@@ -428,7 +441,7 @@ class _NortekReader:
                     self.findnext()
                     retval = None
                 if self._npings is not None and self.c >= self._npings:
-                    if "microstrain" in self._dtypes:
+                    if "imu" in self._dtypes:
                         try:
                             self.readnext()
                         except:
@@ -441,13 +454,14 @@ class _NortekReader:
             if self.debug:
                 logging.info(" stopped at {} bytes.".format(self.pos))
         self.c -= 1
-        _crop_data(self.data, slice(0, self.c), self.n_samp_guess)
+        lib._crop_data(self.data, slice(0, self.c), self.n_samp_guess)
 
     def findnextid(self, id):
         if id.__class__ is str:
             id = int(id, 0)
         nowid = None
         while nowid != id:
+            pos = self.pos
             nowid = self.read_id()
             if nowid == 16:
                 shift = 22
@@ -455,6 +469,9 @@ class _NortekReader:
                 sz = 2 * unpack(self.endian + "H", self.read(2))[0]
                 shift = sz - 4
             self.f.seek(shift, 1)
+            # If we get stuck in a while loop
+            if self.pos == pos:
+                self.f.seek(2, 1)
         return self.pos
 
     def code_spacing(self, searchcode, iternum=50):
@@ -492,7 +509,7 @@ class _NortekReader:
             self.f.seek(2, 1)
 
     def read_user_cfg(self):
-        # ID: '0x00 = 00
+        """Read User configuration data block (0x00)"""
         if self.debug:
             logging.info(
                 "Reading user configuration (0x00) ping #{} @ {}...".format(
@@ -514,20 +531,20 @@ class _NortekReader:
         cfg_u["time_between_bursts"] = tmp[4]  # counts
         cfg_u["adv"]["n_pings_per_burst"] = tmp[5]
         cfg_u["awac"]["avg_interval"] = tmp[6]
-        cfg_u["usr"]["n_beams"] = tmp[7]
-        TimCtrlReg = _int2binarray(tmp[8], 16).astype(int)
+        cfg_u["usr"]["n_beams"] = int(tmp[7])
+        TimCtrlReg = lib._int2binarray(tmp[8], 16)
         # From the nortek system integrator manual
         # (note: bit numbering is zero-based)
-        cfg_u["usr"]["profile_mode"] = ["single", "continuous"][TimCtrlReg[1]]
+        cfg_u["usr"]["profile_mode"] = ["single", "continuous"][int(TimCtrlReg[1])]
         cfg_u["usr"]["burst_mode"] = str(bool(~TimCtrlReg[2]))
-        cfg_u["usr"]["power_level"] = TimCtrlReg[5] + 2 * TimCtrlReg[6] + 1
+        cfg_u["usr"]["power_level"] = int(TimCtrlReg[5] + 2 * TimCtrlReg[6] + 1)
         cfg_u["usr"]["sync_out_pos"] = [
             "middle",
             "end",
-        ][TimCtrlReg[7]]
+        ][int(TimCtrlReg[7])]
         cfg_u["usr"]["sample_on_sync"] = str(bool(TimCtrlReg[8]))
         cfg_u["usr"]["start_on_sync"] = str(bool(TimCtrlReg[9]))
-        cfg_u["PwrCtrlReg"] = _int2binarray(tmp[9], 16)
+        cfg_u["PwrCtrlReg"] = lib._int2binarray(tmp[9], 16)
         cfg_u["A1"] = tmp[10]
         cfg_u["B0"] = tmp[11]
         cfg_u["B1"] = tmp[12]
@@ -540,12 +557,12 @@ class _NortekReader:
         cfg_u["usr"]["wrap_mode"] = str(bool(tmp[19]))
         cfg_u["deployment_time"] = np.array(tmp[20:23])
         cfg_u["diagnotics_interval"] = tmp[23]
-        Mode0 = _int2binarray(tmp[24], 16)
+        Mode0 = lib._int2binarray(tmp[24], 16)
         cfg_u["user_soundspeed_adj_factor"] = tmp[25]
         cfg_u["n_samples_diag"] = tmp[26]
         cfg_u["n_beams_cells_diag"] = tmp[27]
         cfg_u["n_pings_diag_wave"] = tmp[28]
-        ModeTest = _int2binarray(tmp[29], 16)
+        ModeTest = lib._int2binarray(tmp[29], 16)
         cfg_u["usr"]["analog_in"] = tmp[30]
         sfw_ver = str(tmp[31])
         cfg_u["usr"]["software_version"] = (
@@ -561,7 +578,7 @@ class _NortekReader:
             "MLMST",
             "None",
         ][tmp[124]]
-        Mode1 = _int2binarray(tmp[125], 16)
+        Mode1 = lib._int2binarray(tmp[125], 16)
         cfg_u["awac"]["prc_dyn_wave_cell_pos"] = int(tmp[126] / 32767 * 100)
         cfg_u["wave_transmit_pulse"] = tmp[127]
         cfg_u["wave_blank_dist"] = tmp[128]
@@ -594,10 +611,11 @@ class _NortekReader:
         ]  # noqa
 
     def read_head_cfg(self):
+        """Read header configuration block (0x04)"""
         # ID: '0x04 = 04
         if self.debug:
             logging.info(
-                "Reading head configuration (0x04) ping #{} @ {}...".format(
+                "Reading header configuration (0x04) ping #{} @ {}...".format(
                     self.c, self.pos
                 )
             )
@@ -605,7 +623,7 @@ class _NortekReader:
         cfg["head"] = {}
         byts = self.read(220)
         tmp = unpack(self.endian + "2x3H12s176s22sH", byts)
-        head_config = _int2binarray(tmp[0], 16).astype(int)
+        head_config = lib._int2binarray(tmp[0], 16).astype(int)
         cfg["head"]["pressure_sensor"] = ["no", "yes"][head_config[0]]
         cfg["head"]["compass"] = ["no", "yes"][head_config[1]]
         cfg["head"]["tilt_sensor"] = ["no", "yes"][head_config[2]]
@@ -616,6 +634,7 @@ class _NortekReader:
         self.checksum(byts)
 
     def read_hw_cfg(self):
+        """Read hardware configuration block (0x05)"""
         # ID 0x05 = 05
         if self.debug:
             logging.info(
@@ -635,66 +654,55 @@ class _NortekReader:
         cfg_hw["hdw"]["PIC_version"] = tmp[3]
         cfg_hw["hdw"]["hardware_rev"] = tmp[4]
         cfg_hw["hdw"]["recorder_size_bytes"] = tmp[5] * 65536
-        status = _int2binarray(tmp[6], 16).astype(int)
+        status = lib._int2binarray(tmp[6], 16).astype(int)
         cfg_hw["hdw"]["vel_range"] = ["normal", "high"][status[0]]
         cfg_hw["hdw"]["firmware_version"] = tmp[7].decode("utf-8")
         self.checksum(byts)
 
-    def rd_time(self, strng):
-        """Read the time from the first 6bytes of the input string."""
-        min, sec, day, hour, year, month = unpack("BBBBBB", strng[:6])
-        return time.date2epoch(
-            datetime(
-                time._fullyear(_bcd2char(year)),
-                _bcd2char(month),
-                _bcd2char(day),
-                _bcd2char(hour),
-                _bcd2char(min),
-                _bcd2char(sec),
+    def read_vec_checkdata(self):
+        """Read Vector check data block (0x07)"""
+        # ID: 0x07 = 07
+        if self.debug:
+            logging.info(
+                "Reading Vector check data (0x07) ping #{} @ {}...".format(
+                    self.c, self.pos
+                )
             )
-        )[0]
-
-    def _init_data(self, vardict):
-        """Initialize the data object according to vardict.
-
-        Parameters
-        ----------
-        vardict : (dict of :class:`<VarAttrs>`)
-          The variable definitions in the :class:`<VarAttrs>` specify
-          how to initialize each data variable.
-
-        """
-        shape_args = {"n": self.n_samp_guess}
-        try:
-            shape_args["nbins"] = self.config["usr"]["n_bins"]
-        except KeyError:
-            pass
-        for nm, va in list(vardict.items()):
-            if va.group is None:
-                # These have to stay separated.
-                if nm not in self.data:
-                    self.data[nm] = va._empty_array(**shape_args)
-            else:
-                if nm not in self.data[va.group]:
-                    self.data[va.group][nm] = va._empty_array(**shape_args)
-                    self.data["units"][nm] = va.units
-                    self.data["long_name"][nm] = va.long_name
-                    if va.standard_name:
-                        self.data["standard_name"][nm] = va.standard_name
+        byts0 = self.read(6)
+        checknow = {}
+        tmp = unpack(self.endian + "2x2H", byts0)  # The first two are size.
+        checknow["Samples"] = tmp[0]
+        n = checknow["Samples"]
+        checknow["First_samp"] = tmp[1]
+        checknow["Amp1"] = tbx._nans(n, dtype=np.uint8) + 8
+        checknow["Amp2"] = tbx._nans(n, dtype=np.uint8) + 8
+        checknow["Amp3"] = tbx._nans(n, dtype=np.uint8) + 8
+        byts1 = self.read(3 * n)
+        tmp = unpack(self.endian + (3 * n * "B"), byts1)
+        for idx, nm in enumerate(["Amp1", "Amp2", "Amp3"]):
+            checknow[nm] = np.array(tmp[idx * n : (idx + 1) * n], dtype=np.uint8)
+        self.checksum(byts0 + byts1)
+        if "checkdata" not in self.config:
+            self.config["checkdata"] = checknow
+        else:
+            if not isinstance(self.config["checkdata"], list):
+                self.config["checkdata"] = [self.config["checkdata"]]
+            self.config["checkdata"] += [checknow]
 
     def read_vec_data(self):
+        """Read Vector measurement data block (0x10)"""
         # ID: 0x10 = 16
         c = self.c
         dat = self.data
         if self.debug:
             logging.info(
-                "Reading vector velocity data (0x10) ping #{} @ {}...".format(
+                "Reading Vector measurements (0x10) ping #{} @ {}...".format(
                     self.c, self.pos
                 )
             )
 
         if "vel" not in dat["data_vars"]:
-            self._init_data(nortek_defs.vec_data)
+            self._init_data(defs.vec_data)
             self._dtypes += ["vec_data"]
 
         byts = self.read(20)
@@ -721,80 +729,49 @@ class _NortekReader:
         self.checksum(byts)
         self.c += 1
 
-    def read_vec_checkdata(self):
-        # ID: 0x07 = 07
+    def read_vec_sysdata(self):
+        """Read Vector system data block (0x11)"""
+        # ID: 0x11 = 17
+        c = self.c
         if self.debug:
             logging.info(
-                "Reading vector check data (0x07) ping #{} @ {}...".format(
+                "Reading Vector system data (0x11) ping #{} @ {}...".format(
                     self.c, self.pos
                 )
             )
-        byts0 = self.read(6)
-        checknow = {}
-        tmp = unpack(self.endian + "2x2H", byts0)  # The first two are size.
-        checknow["Samples"] = tmp[0]
-        n = checknow["Samples"]
-        checknow["First_samp"] = tmp[1]
-        checknow["Amp1"] = tbx._nans(n, dtype=np.uint8) + 8
-        checknow["Amp2"] = tbx._nans(n, dtype=np.uint8) + 8
-        checknow["Amp3"] = tbx._nans(n, dtype=np.uint8) + 8
-        byts1 = self.read(3 * n)
-        tmp = unpack(self.endian + (3 * n * "B"), byts1)
-        for idx, nm in enumerate(["Amp1", "Amp2", "Amp3"]):
-            checknow[nm] = np.array(tmp[idx * n : (idx + 1) * n], dtype=np.uint8)
-        self.checksum(byts0 + byts1)
-        if "checkdata" not in self.config:
-            self.config["checkdata"] = checknow
-        else:
-            if not isinstance(self.config["checkdata"], list):
-                self.config["checkdata"] = [self.config["checkdata"]]
-            self.config["checkdata"] += [checknow]
-
-    def _sci_data(self, vardict):
-        """
-        Convert the data to scientific units accordint to vardict.
-
-        Parameters
-        ----------
-        vardict : (dict of :class:`<VarAttrs>`)
-          The variable definitions in the :class:`<VarAttrs>` specify
-          how to scale each data variable.
-        """
-
-        for nm, vd in list(vardict.items()):
-            if vd.group is None:
-                dat = self.data
-            else:
-                dat = self.data[vd.group]
-            retval = vd.sci_func(dat[nm])
-            # This checks whether a new data object was created:
-            # sci_func returns None if it modifies the existing data.
-            if retval is not None:
-                dat[nm] = retval
-
-    def sci_vec_data(self):
-        self._sci_data(nortek_defs.vec_data)
         dat = self.data
-
-        dat["data_vars"]["pressure"] = (
-            dat["data_vars"]["PressureMSB"].astype("float32") * 65536
-            + dat["data_vars"]["PressureLSW"].astype("float32")
-        ) / 1000.0
-        dat["units"]["pressure"] = "dbar"
-        dat["long_name"]["pressure"] = "Pressure"
-        dat["standard_name"]["pressure"] = "sea_water_pressure"
-
-        dat["data_vars"].pop("PressureMSB")
-        dat["data_vars"].pop("PressureLSW")
-
-        # Apply velocity scaling (1 or 0.1)
-        dat["data_vars"]["vel"] *= self.config["vel_scale_mm"]
+        if self._lastread[:2] == [
+            "vec_checkdata",
+            "vec_hdr",
+        ]:
+            self.burst_start[c] = True
+        if "time" not in dat["coords"]:
+            self._init_data(defs.vec_sysdata)
+            self._dtypes += ["vec_sysdata"]
+        byts = self.read(24)
+        # The first two are size (skip them).
+        dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
+        ds = dat["sys"]
+        dv = dat["data_vars"]
+        (
+            dv["batt"][c],
+            dv["c_sound"][c],
+            dv["heading"][c],
+            dv["pitch"][c],
+            dv["roll"][c],
+            dv["temp"][c],
+            dv["error"][c],
+            dv["status"][c],
+            ds["AnaIn"][c],
+        ) = unpack(self.endian + "3H3h2BH", byts[8:])
+        self.checksum(byts)
 
     def read_vec_hdr(self):
+        """Read Vector header block (0x12)"""
         # ID: '0x12 = 18
         if self.debug:
             logging.info(
-                "Reading vector header data (0x12) ping #{} @ {}...".format(
+                "Reading Vector header data (0x12) ping #{} @ {}...".format(
                     self.c, self.pos
                 )
             )
@@ -802,7 +779,7 @@ class _NortekReader:
         # The first two are size, the next 6 are time.
         tmp = unpack(self.endian + "8xH7B21x", byts)
         hdrnow = {}
-        hdrnow["time"] = self.rd_time(byts[2:8])
+        hdrnow["time"] = lib.rd_time(byts[2:8])
         hdrnow["NRecords"] = tmp[0]
         hdrnow["Noise1"] = tmp[1]
         hdrnow["Noise2"] = tmp[2]
@@ -820,95 +797,140 @@ class _NortekReader:
                 self.config["data_header"] = [self.config["data_header"]]
             self.config["data_header"] += [hdrnow]
 
-    def read_vec_sysdata(self):
-        # ID: 0x11 = 17
-        c = self.c
+    def read_awac_profile(self):
+        """Read AWAC profile measurements block (0x20)"""
+        # ID: '0x20' = 32
+        dat = self.data
         if self.debug:
             logging.info(
-                "Reading vector system data (0x11) ping #{} @ {}...".format(
+                "Reading AWAC velocity data (0x20) ping #{} @ {}...".format(
                     self.c, self.pos
                 )
             )
-        dat = self.data
-        if self._lastread[:2] == [
-            "vec_checkdata",
-            "vec_hdr",
-        ]:
-            self.burst_start[c] = True
-        if "time" not in dat["coords"]:
-            self._init_data(nortek_defs.vec_sysdata)
-            self._dtypes += ["vec_sysdata"]
-        byts = self.read(24)
-        # The first two are size (skip them).
-        dat["coords"]["time"][c] = self.rd_time(byts[2:8])
+        nbins = self.config["usr"]["n_bins"]
+        if "temp" not in dat["data_vars"]:
+            self._init_data(defs.awac_profile)
+            self._dtypes += ["awac_profile"]
+
+        # Note: docs state there is 'fill' byte at the end, if nbins is odd,
+        # but doesn't appear to be the case
+        n = self.config["usr"]["n_beams"]
+        byts = self.read(116 + n * 3 * nbins)
+        c = self.c
+        dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
         ds = dat["sys"]
         dv = dat["data_vars"]
         (
+            dv["error"][c],
+            ds["AnaIn1"][c],
             dv["batt"][c],
             dv["c_sound"][c],
             dv["heading"][c],
             dv["pitch"][c],
             dv["roll"][c],
-            dv["temp"][c],
-            dv["error"][c],
+            p_msb,
             dv["status"][c],
-            ds["AnaIn"][c],
-        ) = unpack(self.endian + "3H3h2BH", byts[8:])
+            p_lsw,
+            dv["temp"][c],
+        ) = unpack(self.endian + "5H2hBBHh", byts[8:28])
+        dv["pressure"][c] = 65536 * p_msb + p_lsw
+        # The nortek system integrator manual specifies an 88byte 'spare'
+        # field, therefore we start at 116.
+        tmp = unpack(
+            self.endian + str(n * nbins) + "h" + str(n * nbins) + "B",
+            byts[116 : 116 + n * 3 * nbins],
+        )
+        for idx in range(n):
+            dv["vel"][idx, :, c] = tmp[idx * nbins : (idx + 1) * nbins]
+            dv["amp"][idx, :, c] = tmp[(idx + n) * nbins : (idx + n + 1) * nbins]
         self.checksum(byts)
+        self.c += 1
 
-    def sci_vec_sysdata(self):
-        """Translate the data in the vec_sysdata structure into
-        scientific units.
-        """
+    def read_awac_waves(self):
+        """Read AWAC wave (0x30) and SUV (0x36) data blocks"""
+        # IDs: 0x30 & 0x36
+        c = self.c
         dat = self.data
-        fs = dat["attrs"]["fs"]
-        self._sci_data(nortek_defs.vec_sysdata)
-        t = dat["coords"]["time"]
+        if self.debug:
+            print(
+                "Reading AWAC wave data (0x30) ping #{} @ {}...".format(
+                    self.c, self.pos
+                )
+            )
+        if "dist1_alt" not in dat["data_vars"]:
+            self._init_data(defs.wave_data)
+            self._dtypes += ["wave_data"]
+        # The first two are size
+        byts = self.read(20)
+        ds = dat["sys"]
         dv = dat["data_vars"]
-        dat["sys"]["_sysi"] = ~np.isnan(t)
-        # These are the indices in the sysdata variables
-        # that are not interpolated.
-        nburst = self.config["n_burst"]
-        dv["orientation_down"] = tbx._nans(len(t), dtype="bool")
-        if nburst == 0:
-            num_bursts = 1
-            nburst = len(t)
+        (
+            dv["pressure"][c],  # (0.001 dbar)
+            dv["dist1_alt"][c],  # distance 1 to surface, vertical beam (mm)
+            ds["AnaIn_alt"][c],  # analog input 1
+            dv["vel_alt"][0, c],  # velocity beam 1 (mm/s) East for SUV
+            dv["vel_alt"][1, c],  # North for SUV
+            dv["vel_alt"][2, c],  # Up for SUV
+            dv["dist2_alt"][
+                c
+            ],  # distance 2 to surface, vertical beam (mm) or vel 4 for non-AST
+            dv["amp_alt"][0, c],  # amplitude beam 1 (counts)
+            dv["amp_alt"][1, c],  # amplitude beam 2 (counts)
+            dv["amp_alt"][2, c],  # amplitude beam 3 (counts)
+            # AST quality (counts) or amplitude beam 4 for non-AST
+            dv["quality_alt"][c],
+        ) = unpack(self.endian + "3H4h4B", byts)
+        self.checksum(byts)
+        self.c += 1
+
+    def read_awac_waves_hdr(self):
+        """Read AWAC header bock for wave data (0x31)"""
+        # ID: '0x31'
+        c = self.c
+        if self.debug:
+            print(
+                "Reading AWAC header data (0x31) ping #{} @ {}...".format(
+                    self.c, self.pos
+                )
+            )
+        hdrnow = {}
+        dat = self.data
+        ds = dat["sys"]
+        dv = dat["data_vars"]
+        if "time" not in dat["coords"]:
+            self._init_data(defs.waves_hdrdata)
+        byts = self.read(56)
+        # The first two are size, the next 6 are time.
+        tmp = unpack(self.endian + "8x4H3h2HhH4B6H5h", byts)
+        dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
+        hdrnow["n_records_alt"] = tmp[0]
+        hdrnow["blank_dist_alt"] = tmp[1]  # counts
+        ds["batt_alt"][c] = tmp[2]  # voltage (0.1 V)
+        dv["c_sound_alt"][c] = tmp[3]  # c (0.1 m/s)
+        dv["heading_alt"][c] = tmp[4]  # (0.1 deg)
+        dv["pitch_alt"][c] = tmp[5]  # (0.1 deg)
+        dv["roll_alt"][c] = tmp[6]  # (0.1 deg)
+        dv["pressure1_alt"][c] = tmp[7]  # min pressure previous profile (0.001 dbar)
+        dv["pressure2_alt"][c] = tmp[8]  # max pressure previous profile (0.001 dbar)
+        dv["temp_alt"][c] = tmp[9]  # (0.01 deg C)
+        hdrnow["cell_size_alt"][c] = tmp[10]  # (counts of T3)
+        hdrnow["noise_alt"][c] = tmp[11:15]  # noise amplitude beam 1-4 (counts)
+        hdrnow["proc_magn_alt"][c] = tmp[15:19]  # processing magnitude beam 1-4
+        hdrnow["n_past_window_alt"] = tmp[
+            19
+        ]  # number of samples of AST window past boundary
+        hdrnow["n_window_alt"] = tmp[20]  # AST window size (# samples)
+        hdrnow["Spare1"] = tmp[21:]
+        self.checksum(byts)
+        if "data_header" not in self.config:
+            self.config["data_header"] = hdrnow
         else:
-            num_bursts = int(len(t) // nburst + 1)
-        for nb in range(num_bursts):
-            iburst = slice(nb * nburst, (nb + 1) * nburst)
-            sysi = dat["sys"]["_sysi"][iburst]
-            if len(sysi) == 0:
-                break
-            # Skip the first entry for the interpolation process
-            inds = np.nonzero(sysi)[0][1:]
-            arng = np.arange(len(t[iburst]), dtype=np.float64)
-            if len(inds) >= 2:
-                p = np.poly1d(np.polyfit(inds, t[iburst][inds], 1))
-                t[iburst] = p(arng)
-            elif len(inds) == 1:
-                t[iburst] = (arng - inds[0]) / (fs * 3600 * 24) + t[iburst][inds[0]]
-            else:
-                t[iburst] = t[iburst][0] + arng / (fs * 24 * 3600)
+            if not isinstance(self.config["data_header"], list):
+                self.config["data_header"] = [self.config["data_header"]]
+            self.config["data_header"] += [hdrnow]
 
-            tmpd = tbx._nans_like(dv["heading"][iburst])
-            # The first status bit should be the orientation.
-            tmpd[sysi] = dv["status"][iburst][sysi] & 1
-            tbx.fillgaps(tmpd, extrapFlg=True)
-            tmpd = np.nan_to_num(tmpd, nan=0)  # nans in pitch roll heading
-            slope = np.diff(tmpd)
-            tmpd[1:][slope < 0] = 1
-            tmpd[:-1][slope > 0] = 0
-            dv["orientation_down"][iburst] = tmpd.astype("bool")
-        tbx.interpgaps(dv["batt"], t)
-        tbx.interpgaps(dv["c_sound"], t)
-        tbx.interpgaps(dv["heading"], t)
-        tbx.interpgaps(dv["pitch"], t)
-        tbx.interpgaps(dv["roll"], t)
-        tbx.interpgaps(dv["temp"], t)
-
-    def read_microstrain(self):
-        """Read ADV microstrain sensor (IMU) data"""
+    def read_imu(self):
+        """Read ADV inertial measurement unit (IMU) data block (0x71)"""
 
         def update_defs(dat, mag=False, orientmat=False):
             imu_data = {
@@ -930,14 +952,13 @@ class _NortekReader:
         # 0x71 = 113
         if self.c == 0:
             logging.warning(
-                'First "microstrain data" block '
-                'is before first "vector system data" block.'
+                'First "IMU data" block ' 'is before first "vector system data" block.'
             )
         else:
             self.c -= 1
         if self.debug:
             logging.info(
-                "Reading vector microstrain data (0x71) ping #{} @ {}...".format(
+                "Reading Vector IMU data (0x71) ping #{} @ {}...".format(
                     self.c, self.pos
                 )
             )
@@ -956,7 +977,7 @@ class _NortekReader:
         da = dat["attrs"]
         da["has_imu"] = 1  # logical
         if "accel" not in dv:
-            self._dtypes += ["microstrain"]
+            self._dtypes += ["imu"]
             if ahrsid == 195:
                 self._orient_dnames = ["accel", "angrt", "orientmat"]
                 dv["accel"] = tbx._nans((3, self.n_samp_guess), dtype=np.float32)
@@ -1026,9 +1047,128 @@ class _NortekReader:
         self.checksum(byts0 + byts)
         self.c += 1  # reset the increment
 
-    def sci_microstrain(self):
-        """Rotate orientation data into ADV coordinate system."""
-        # MS = MicroStrain
+    def cleanup(self):
+        """Convert and scale raw measurements to physical quantities."""
+        for nm in self._dtypes:
+            getattr(self, "convert_" + nm)()
+        for nm in ["data_header", "checkdata"]:
+            if nm in self.config and isinstance(self.config[nm], list):
+                self.config[nm] = lib._recatenate(self.config[nm])
+
+    def _convert_data(self, vardict):
+        """
+        Convert the data to scientific units according to 'vardict'.
+
+        Parameters
+        ----------
+        vardict : (dict of :class:`<VarAttrs>`)
+            The variable definitions in the :class:`<VarAttrs>` specify
+            how to scale each data variable.
+        """
+
+        for nm, vd in list(vardict.items()):
+            if vd.group is None:
+                dat = self.data
+            else:
+                dat = self.data[vd.group]
+            retval = vd.scale(dat[nm])
+            # This checks whether a new data object was created:
+            # 'scale' returns None if it modifies the existing data.
+            if retval is not None:
+                dat[nm] = retval
+
+    def convert_vec_sysdata(self):
+        """Convert raw Vector system data into physical quantities."""
+        dat = self.data
+        fs = dat["attrs"]["fs"]
+        self._convert_data(defs.vec_sysdata)
+        t = dat["coords"]["time"]
+        dv = dat["data_vars"]
+        dat["sys"]["_sysi"] = ~np.isnan(t)
+        # These are the indices in the sysdata variables
+        # that are not interpolated.
+        nburst = self.config["n_burst"]
+        dv["orientation_down"] = tbx._nans(len(t), dtype="bool")
+        if nburst == 0:
+            num_bursts = 1
+            nburst = len(t)
+        else:
+            num_bursts = int(len(t) // nburst + 1)
+        for nb in range(num_bursts):
+            iburst = slice(nb * nburst, (nb + 1) * nburst)
+            sysi = dat["sys"]["_sysi"][iburst]
+            if len(sysi) == 0:
+                break
+            # Skip the first entry for the interpolation process
+            inds = np.nonzero(sysi)[0][1:]
+            arng = np.arange(len(t[iburst]), dtype=np.float64)
+            if len(inds) >= 2:
+                p = np.poly1d(np.polyfit(inds, t[iburst][inds], 1))
+                t[iburst] = p(arng)
+            elif len(inds) == 1:
+                t[iburst] = (arng - inds[0]) / (fs * 3600 * 24) + t[iburst][inds[0]]
+            else:
+                t[iburst] = t[iburst][0] + arng / (fs * 24 * 3600)
+
+            tmpd = tbx._nans_like(dv["heading"][iburst])
+            # The first status bit should be the orientation.
+            tmpd[sysi] = dv["status"][iburst][sysi] & 1
+            tbx.fillgaps(tmpd, extrapFlg=True)
+            tmpd = np.nan_to_num(tmpd, nan=0)  # nans in pitch roll heading
+            slope = np.diff(tmpd)
+            tmpd[1:][slope < 0] = 1
+            tmpd[:-1][slope > 0] = 0
+            dv["orientation_down"][iburst] = tmpd.astype("bool")
+        tbx.interpgaps(dv["batt"], t)
+        tbx.interpgaps(dv["c_sound"], t)
+        tbx.interpgaps(dv["heading"], t)
+        tbx.interpgaps(dv["pitch"], t)
+        tbx.interpgaps(dv["roll"], t)
+        tbx.interpgaps(dv["temp"], t)
+
+    def convert_vec_data(self):
+        """Convert raw Vector measurements to physical quantities."""
+        self._convert_data(defs.vec_data)
+        dat = self.data
+
+        dat["data_vars"]["pressure"] = (
+            dat["data_vars"]["PressureMSB"].astype("float32") * 65536
+            + dat["data_vars"]["PressureLSW"].astype("float32")
+        ) / 1000.0
+        dat["units"]["pressure"] = "dbar"
+        dat["long_name"]["pressure"] = "Pressure"
+        dat["standard_name"]["pressure"] = "sea_water_pressure"
+
+        dat["data_vars"].pop("PressureMSB")
+        dat["data_vars"].pop("PressureLSW")
+
+        # Apply velocity scaling (1 or 0.1)
+        dat["data_vars"]["vel"] *= self.config["vel_scale_mm"]
+
+    def convert_awac_profile(self):
+        """Convert raw AWAC profile measurements to physical quantities."""
+        self._convert_data(defs.awac_profile)
+        # Calculate the ranges.
+        cs_coefs = {2000: 0.0239, 1000: 0.0478, 600: 0.0797, 400: 0.1195}
+        h_ang = 25 * (np.pi / 180)  # Head angle is 25 degrees for all awacs.
+        # Cell size
+        cs = round(
+            float(self.config["bin_length"])
+            / 256.0
+            * cs_coefs[self.config["head"]["carrier_freq_kHz"]]
+            * np.cos(h_ang),
+            ndigits=2,
+        )
+        # Blanking distance
+        bd = round(self.config["blank_dist"] * 0.0229 * np.cos(h_ang) - cs, ndigits=2)
+
+        r = (np.float32(np.arange(self.config["usr"]["n_bins"])) + 1) * cs + bd
+        self.data["coords"]["range"] = r
+        self.data["attrs"]["cell_size"] = float(cs)
+        self.data["attrs"]["blank_dist"] = float(bd)
+
+    def convert_imu(self):
+        """Rotate IMU data into ADV coordinate system."""
         dv = self.data["data_vars"]
         for nm in self._orient_dnames:
             # Rotate the MS orientation data (in MS coordinate system)
@@ -1050,180 +1190,3 @@ class _NortekReader:
             # These are DAng and DVel, so we convert them to angrt, accel here
             dv["angrt"] *= self.config["fs"]
             dv["accel"] *= self.config["fs"]
-
-    def read_awac_profile(self):
-        # ID: '0x20' = 32
-        dat = self.data
-        if self.debug:
-            logging.info(
-                "Reading AWAC velocity data (0x20) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
-            )
-        nbins = self.config["usr"]["n_bins"]
-        if "temp" not in dat["data_vars"]:
-            self._init_data(nortek_defs.awac_profile)
-            self._dtypes += ["awac_profile"]
-
-        # Note: docs state there is 'fill' byte at the end, if nbins is odd,
-        # but doesn't appear to be the case
-        n = self.config["usr"]["n_beams"]
-        byts = self.read(116 + n * 3 * nbins)
-        c = self.c
-        dat["coords"]["time"][c] = self.rd_time(byts[2:8])
-        ds = dat["sys"]
-        dv = dat["data_vars"]
-        (
-            dv["error"][c],
-            ds["AnaIn1"][c],
-            dv["batt"][c],
-            dv["c_sound"][c],
-            dv["heading"][c],
-            dv["pitch"][c],
-            dv["roll"][c],
-            p_msb,
-            dv["status"][c],
-            p_lsw,
-            dv["temp"][c],
-        ) = unpack(self.endian + "5H2hBBHh", byts[8:28])
-        dv["pressure"][c] = 65536 * p_msb + p_lsw
-        # The nortek system integrator manual specifies an 88byte 'spare'
-        # field, therefore we start at 116.
-        tmp = unpack(
-            self.endian + str(n * nbins) + "h" + str(n * nbins) + "B",
-            byts[116 : 116 + n * 3 * nbins],
-        )
-        for idx in range(n):
-            dv["vel"][idx, :, c] = tmp[idx * nbins : (idx + 1) * nbins]
-            dv["amp"][idx, :, c] = tmp[(idx + n) * nbins : (idx + n + 1) * nbins]
-        self.checksum(byts)
-        self.c += 1
-
-    def sci_awac_profile(self):
-        self._sci_data(nortek_defs.awac_profile)
-        # Calculate the ranges.
-        cs_coefs = {2000: 0.0239, 1000: 0.0478, 600: 0.0797, 400: 0.1195}
-        h_ang = 25 * (np.pi / 180)  # Head angle is 25 degrees for all awacs.
-        # Cell size
-        cs = round(
-            float(self.config["bin_length"])
-            / 256.0
-            * cs_coefs[self.config["head"]["carrier_freq_kHz"]]
-            * np.cos(h_ang),
-            ndigits=2,
-        )
-        # Blanking distance
-        bd = round(self.config["blank_dist"] * 0.0229 * np.cos(h_ang) - cs, ndigits=2)
-
-        r = (np.float32(np.arange(self.config["usr"]["n_bins"])) + 1) * cs + bd
-        self.data["coords"]["range"] = r
-        self.data["attrs"]["cell_size"] = cs
-        self.data["attrs"]["blank_dist"] = bd
-
-    def read_awac_waves_hdr(self):
-        # ID: '0x31'
-        c = self.c
-        if self.debug:
-            print(
-                "Reading vector header data (0x31) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
-            )
-        hdrnow = {}
-        dat = self.data
-        ds = dat["sys"]
-        dv = dat["data_vars"]
-        if "time" not in dat["coords"]:
-            self._init_data(nortek_defs.waves_hdrdata)
-        byts = self.read(56)
-        # The first two are size, the next 6 are time.
-        tmp = unpack(self.endian + "8x4H3h2HhH4B6H5h", byts)
-        dat["coords"]["time"][c] = self.rd_time(byts[2:8])
-        hdrnow["n_records_alt"] = tmp[0]
-        hdrnow["blank_dist_alt"] = tmp[1]  # counts
-        ds["batt_alt"][c] = tmp[2]  # voltage (0.1 V)
-        dv["c_sound_alt"][c] = tmp[3]  # c (0.1 m/s)
-        dv["heading_alt"][c] = tmp[4]  # (0.1 deg)
-        dv["pitch_alt"][c] = tmp[5]  # (0.1 deg)
-        dv["roll_alt"][c] = tmp[6]  # (0.1 deg)
-        dv["pressure1_alt"][c] = tmp[7]  # min pressure previous profile (0.001 dbar)
-        dv["pressure2_alt"][c] = tmp[8]  # max pressure previous profile (0.001 dbar)
-        dv["temp_alt"][c] = tmp[9]  # (0.01 deg C)
-        hdrnow["cell_size_alt"][c] = tmp[10]  # (counts of T3)
-        hdrnow["noise_alt"][c] = tmp[11:15]  # noise amplitude beam 1-4 (counts)
-        hdrnow["proc_magn_alt"][c] = tmp[15:19]  # processing magnitude beam 1-4
-        hdrnow["n_past_window_alt"] = tmp[
-            19
-        ]  # number of samples of AST window past boundary
-        hdrnow["n_window_alt"] = tmp[20]  # AST window size (# samples)
-        hdrnow["Spare1"] = tmp[21:]
-        self.checksum(byts)
-        if "data_header" not in self.config:
-            self.config["data_header"] = hdrnow
-        else:
-            if not isinstance(self.config["data_header"], list):
-                self.config["data_header"] = [self.config["data_header"]]
-            self.config["data_header"] += [hdrnow]
-
-    def read_awac_waves(self):
-        """Read awac wave and suv data"""
-        # IDs: 0x30 & 0x36
-        c = self.c
-        dat = self.data
-        if self.debug:
-            print(
-                "Reading awac wave data (0x30) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
-            )
-        if "dist1_alt" not in dat["data_vars"]:
-            self._init_data(nortek_defs.wave_data)
-            self._dtypes += ["wave_data"]
-        # The first two are size
-        byts = self.read(20)
-        ds = dat["sys"]
-        dv = dat["data_vars"]
-        (
-            dv["pressure"][c],  # (0.001 dbar)
-            dv["dist1_alt"][c],  # distance 1 to surface, vertical beam (mm)
-            ds["AnaIn_alt"][c],  # analog input 1
-            dv["vel_alt"][0, c],  # velocity beam 1 (mm/s) East for SUV
-            dv["vel_alt"][1, c],  # North for SUV
-            dv["vel_alt"][2, c],  # Up for SUV
-            dv["dist2_alt"][
-                c
-            ],  # distance 2 to surface, vertical beam (mm) or vel 4 for non-AST
-            dv["amp_alt"][0, c],  # amplitude beam 1 (counts)
-            dv["amp_alt"][1, c],  # amplitude beam 2 (counts)
-            dv["amp_alt"][2, c],  # amplitude beam 3 (counts)
-            # AST quality (counts) or amplitude beam 4 for non-AST
-            dv["quality_alt"][c],
-        ) = unpack(self.endian + "3H4h4B", byts)
-        self.checksum(byts)
-        self.c += 1
-
-    def dat2sci(self):
-        for nm in self._dtypes:
-            getattr(self, "sci_" + nm)()
-        for nm in ["data_header", "checkdata"]:
-            if nm in self.config and isinstance(self.config[nm], list):
-                self.config[nm] = _recatenate(self.config[nm])
-
-
-def _crop_data(obj, range, n_lastdim):
-    for nm, dat in obj.items():
-        if isinstance(dat, np.ndarray) and (dat.shape[-1] == n_lastdim):
-            obj[nm] = dat[..., range]
-
-
-def _recatenate(obj):
-    out = type(obj[0])()
-    for ky in list(obj[0].keys()):
-        if ky in ["__data_groups__", "_type"]:
-            continue
-        val0 = obj[0][ky]
-        if isinstance(val0, np.ndarray) and val0.size > 1:
-            out[ky] = np.concatenate([val[ky][..., None] for val in obj], axis=-1)
-        else:
-            out[ky] = np.array([val[ky] for val in obj])
-    return out

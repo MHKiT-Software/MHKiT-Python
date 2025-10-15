@@ -9,37 +9,36 @@ import xarray as xr
 class ADVBinner(VelBinner):
     """
     A class that builds upon `VelBinner` for calculating turbulence
-    statistics and velocity spectra from ADV data
+    statistics and velocity spectra from ADV data.
 
     Parameters
     ----------
     n_bin : int
-      The length of each `bin`, in number of points, for this averaging
+      The length of each bin, in number of points, for this averaging
       operator.
     fs : int
       Instrument sampling frequency in Hz
     n_fft : int
-      The length of the FFT for computing spectra (must be <= n_bin).
+      The length of the FFT for computing spectra (must be <= `n_bin`).
       Optional, default `n_fft` = `n_bin`
     n_fft_coh : int
-      Number of data points to use for coherence and cross-spectra fft's.
+      Number of data points to use for coherence and cross-spectra FFT's.
       Optional, default `n_fft_coh` = `n_fft`
-        noise : float or array-like
-          Instrument noise level in same units as velocity. Typically
-          found from `adv.turbulence.doppler_noise_level`.
-          Default: None.
+    noise : float or array-like
+      Instrument noise level in same units as velocity. Typically found from
+      :func:`doppler_noise_level <mhkit.dolfyn.adv.turbulence.ADVBinner.doppler_noise_level>`.
+      Default: None.
     """
 
     def __call__(self, ds, freq_units="rad/s", window="hann"):
         out = type(ds)()
         out = self.bin_average(ds, out)
 
-        noise = ds.get("doppler_noise", [0, 0, 0])
-        out["tke_vec"] = self.turbulent_kinetic_energy(ds["vel"], noise=noise)
+        out["tke_vec"] = self.turbulent_kinetic_energy(ds["vel"])
         out["stress_vec"] = self.reynolds_stress(ds["vel"])
 
         out["psd"] = self.power_spectral_density(
-            ds["vel"], window=window, freq_units=freq_units, noise=noise
+            ds["vel"], window=window, freq_units=freq_units
         )
         for key in list(ds.attrs.keys()):
             if "config" in key:
@@ -53,19 +52,18 @@ class ADVBinner(VelBinner):
 
     def reynolds_stress(self, veldat, detrend=True):
         """
-        Calculate the specific Reynolds stresses
-        (cross-covariances of u,v,w in m^2/s^2)
+        Calculate the specific Reynolds shear stresses (:math:`\\overline{u'v'}`,
+        :math:`\\overline{u'w'}`, :math:`\\overline{v'w'}`).
 
         Parameters
         ----------
         veldat : xr.DataArray
-          A velocity data array. The last dimension is assumed
-          to be time.
+          A velocity data array. The last dimension is assumed to be time.
         detrend : bool
           Detrend the velocity data (True), or simply de-mean it
           (False), prior to computing stress. Note: the psd routines
           use detrend, so if you want to have the same amount of
-          variance here as there use ``detrend=True``.
+          variance here as there use `detrend=True`.
           Default = True
 
         Returns
@@ -76,7 +74,7 @@ class ADVBinner(VelBinner):
         if not isinstance(veldat, xr.DataArray):
             raise TypeError("`veldat` must be an instance of `xarray.DataArray`.")
 
-        time = self.mean(veldat.time.values)
+        time = self.mean(veldat["time"].values)
         vel = veldat.values
 
         out = np.empty(self._outshape(vel[:3].shape)[:-1], dtype=np.float32)
@@ -121,20 +119,20 @@ class ADVBinner(VelBinner):
           Frequency units of the returned spectra in either Hz or rad/s
           (`f` or :math:`\\omega`)
         fs : float (optional)
-          The sample rate. Default = `binner.fs`
+          The sample rate. Default = `self.fs`
         window : string or array
           Specify the window function.
          Options: 1, None, 'hann', 'hamm'
         n_bin : int (optional)
-          The bin-size. Default = `binner.n_bin`
+          The bin-size. Default = `self.n_bin`
         n_fft_coh : int (optional)
-          The fft size. Default = `binner.n_fft_coh`
+          The fft size. Default = `self.n_fft_coh`
 
         Returns
         -------
         csd : xarray.DataArray (3, M, N_FFT)
           The first-dimension of the cross-spectrum is the three
-          different cross-spectra: 'uv', 'uw', 'vw'.
+          different cross-spectra: :math:`uv`, :math:`uw`, :math:`vw`.
         """
 
         if not isinstance(veldat, xr.DataArray):
@@ -144,7 +142,7 @@ class ADVBinner(VelBinner):
 
         fs_in = self._parse_fs(fs)
         n_fft = self._parse_nfft_coh(n_fft_coh)
-        time = self.mean(veldat.time.values)
+        time = self.mean(veldat["time"].values)
         veldat = veldat.values
         if len(np.shape(veldat)) != 2:
             raise Exception(
@@ -208,10 +206,11 @@ class ADVBinner(VelBinner):
 
         Parameters
         ----------
-        psd : xarray.DataArray (dir, time, f)
+        psd : xarray.DataArray (dir, time, freq)
           The ADV power spectral density of velocity (auto-spectra)
         pct_fN : float
-          Percent of Nyquist frequency to calculate characeristic frequency
+          Percent of Nyquist frequency to calculate characeristic frequency.
+          Default = 0.8 (80%)
 
         Returns
         -------
@@ -222,17 +221,17 @@ class ADVBinner(VelBinner):
         -----
         Approximates bias from
 
-        .. :math: \\sigma^{2}_{noise} = N x f_{c}
+        .. math:: \\sigma^{2}_{noise} = N * f_{c}
 
-        where :math: `\\sigma_{noise}` is the bias due to Doppler noise,
-        `N` is the constant variance or spectral density, and `f_{c}`
+        where :math:`\\sigma_{noise}` is the bias due to Doppler noise,
+        :math:`N` is the constant variance or spectral density, and :math:`f_{c}`
         is the characteristic frequency.
 
         The characteristic frequency is then found as
 
-        .. :math: f_{c} = pct_fN * (f_{s}/2)
+        .. math:: f_{c} = pct_fN * (f_{s}/2)
 
-        where `f_{s}/2` is the Nyquist frequency.
+        where :math:`f_{s}/2` is the Nyquist frequency.
 
 
         Richard, Jean-Baptiste, et al. "Method for identification of Doppler noise
@@ -284,9 +283,10 @@ class ADVBinner(VelBinner):
         ----------
         psd : xarray.DataArray ([time,] freq)
           The power spectral density (1D or 2D)
-        freq_range : iterable(2) (default: [6.28, 12.57])
+        freq_range : iterable(2)
           The range over which the isotropic turbulence cascade occurs, in
-          units of the psd frequency vector (Hz or rad/s)
+          units of the psd frequency vector (Hz or rad/s).
+          Default = [6.28, 12.57] rad/s
 
         Returns
         -------
@@ -313,7 +313,7 @@ class ADVBinner(VelBinner):
 
         Where :math:`y` is S(k) or S(f), :math:`x` is k or f, :math:`m`
         is the slope (ideally -5/3), and :math:`10^{b}` is the intercept of
-        y at x^m=1.
+        :math:`y` at :math:`x^{m}=1'.
         """
 
         if not isinstance(psd, xr.DataArray):
@@ -339,20 +339,34 @@ class ADVBinner(VelBinner):
 
         return m, b
 
-    def dissipation_rate_LT83(self, psd, U_mag, freq_range=[6.28, 12.57], noise=None):
+    def dissipation_rate_LT83(
+        self,
+        psd,
+        U_mag,
+        freq_range=[6.28, 12.57],
+        k_constant=[0.5, 0.67, 0.67],
+        noise=None,
+    ):
         """
-        Calculate the dissipation rate from the PSD
+        Calculate the dissipation rate from the power spectral density of velocity.
 
         Parameters
         ----------
-        psd : xarray.DataArray (...,time,f)
+        psd : xarray.DataArray ([dir,] time, freq)
           The power spectral density
-        U_mag : xarray.DataArray (...,time)
-          The bin-averaged horizontal velocity [m/s] (from dataset shortcut)
+        U_mag : xarray.DataArray (time)
+          The bin-averaged horizontal velocity [m/s] (i.e., computed using
+          :func:`U_mag <mhkit.dolfyn.velocity.Velocity.U_mag>`)
         freq_range : iterable(2)
           The range over which to integrate/average the spectrum, in units
           of the psd frequency vector (Hz or rad/s).
           Default = [6.28, 12.57] rad/s
+        k_constant : float or iterable(3)
+          Kolmogorov Constant (\\alpha in Notes section below) to use. If a
+          three dimensional PSD is provided, \\alpha defaults to [0.5, 0.67, 0.67];
+          i.e. 0.5 for the streamwise PSD and 0.67 for the transverse and vertical
+          PSDs. If the PSD is provided for a single velocity direction, \\alpha is
+          taken to be 0.5 unless otherwise specified.
         noise : float or array-like
           Instrument noise level in same units as velocity. Typically
           found from `adv.turbulence.calc_doppler_noise`.
@@ -360,7 +374,7 @@ class ADVBinner(VelBinner):
 
         Returns
         -------
-        epsilon : xarray.DataArray (...,n_time)
+        epsilon : xarray.DataArray ([dir,] time)
           dataArray of the dissipation rate
 
         Notes
@@ -369,10 +383,9 @@ class ADVBinner(VelBinner):
 
         .. math:: S(k) = \\alpha \\epsilon^{2/3} k^{-5/3} + N
 
-        where :math:`\\alpha = 0.5` (1.5 for all three velocity
-        components), `k` is wavenumber, `S(k)` is the turbulent
-        kinetic energy spectrum, and `N' is the doppler noise level
-        associated with the TKE spectrum.
+        where :math:`\\alpha is the Kolmogorov constant, `k` is wavenumber,
+        `S(k)` is the turbulent kinetic energy spectrum, and `N' is the
+        doppler noise level associated with the TKE spectrum.
 
         With :math:`k \\rightarrow \\omega / U`, then -- to preserve variance --
         :math:`S(k) = U S(\\omega)`, and so this becomes:
@@ -390,15 +403,19 @@ class ADVBinner(VelBinner):
         if not isinstance(psd, xr.DataArray):
             raise TypeError("`psd` must be an instance of `xarray.DataArray`.")
         if len(U_mag.shape) != 1:
-            raise Exception("U_mag should be 1-dimensional (time)")
-        if len(psd.time) != len(U_mag.time):
-            raise Exception("`U_mag` should be from ensembled-averaged dataset")
+            raise Exception("U_mag should be 1-dimensional (time).")
+        if len(psd["time"]) != len(U_mag["time"]):
+            raise Exception("`U_mag` should be from ensembled-averaged dataset.")
         if not hasattr(freq_range, "__iter__") or len(freq_range) != 2:
             raise ValueError("`freq_range` must be an iterable of length 2.")
-
+        # if the spectra are 1D, then the first dimension should be time (any length)
+        if (psd.shape[0] != 3) and (np.size(k_constant) != 1):
+            raise ValueError("`k_constant` should be a single value.")
+        elif (psd.shape[0] == 3) and (np.size(k_constant) != 3):
+            raise ValueError("`k_constant` should be an iterable of length 3.")
         if noise is not None:
-            if np.shape(noise)[0] != 3:
-                raise Exception("Noise should have same first dimension as velocity")
+            if np.shape(noise)[0] != np.shape(psd)[0]:
+                raise Exception("Noise should have same first dimension as `psd`.")
         else:
             noise = np.array([0, 0, 0])[:, None, None]
 
@@ -412,12 +429,20 @@ class ADVBinner(VelBinner):
         idx = np.where((freq_range[0] < freq) & (freq < freq_range[1]))
         idx = idx[0]
 
+        # Set the correct magnitude whether the frequency is in Hz or rad/s
         if freq.units == "Hz":
             U = U_mag / (2 * np.pi)
         else:
             U = U_mag
 
-        a = 0.5
+        # Set Kolmogorov constant
+        a = np.array(k_constant)
+        if psd.shape[0] == 3:
+            a = a[:, None, None]  # stack properly
+        else:
+            a = np.squeeze(k_constant)
+
+        # Calculate dissipation
         out = (psd.isel(freq=idx) * freq.isel(freq=idx) ** (5 / 3) / a).mean(
             axis=-1
         ) ** (3 / 2) / U
@@ -442,11 +467,12 @@ class ADVBinner(VelBinner):
         vel_raw : xarray.DataArray (time)
           The raw velocity data upon which to perform the SF technique.
         U_mag : xarray.DataArray
-          The bin-averaged horizontal velocity (from dataset shortcut)
+          The bin-averaged horizontal velocity (i.e., computed using
+          :func:`U_mag <mhkit.dolfyn.velocity.Velocity.U_mag>`)
         fs : float
-          The sample rate of `vel_raw` [Hz]
+          The sample rate of `vel_raw` in Hz
         freq_range : iterable(2)
-          The frequency range over which to compute the SF [Hz]
+          The frequency range over which to compute the SF in Hz
           (i.e. the frequency range within which the isotropic
           turbulence cascade falls).
           Default = [2., 4.] Hz
@@ -459,7 +485,7 @@ class ADVBinner(VelBinner):
 
         if not isinstance(vel_raw, xr.DataArray):
             raise TypeError("`vel_raw` must be an instance of `xarray.DataArray`.")
-        if len(vel_raw.time) == len(U_mag.time):
+        if len(vel_raw["time"]) == len(U_mag["time"]):
             raise Exception("`U_mag` should be from ensembled-averaged dataset")
         if not hasattr(freq_range, "__iter__") or len(freq_range) != 2:
             raise ValueError("`freq_range` must be an iterable of length 2.")
@@ -535,7 +561,7 @@ class ADVBinner(VelBinner):
         x = np.arange(-20, 20, 1e-2)  # I think this is a long enough range.
         out = np.empty_like(I_tke.flatten())
         for i, (b, t) in enumerate(zip(I_tke.flatten(), theta.flatten())):
-            out[i] = np.trapz(
+            out[i] = np.trapezoid(
                 cbrt(x**2 - 2 / b * np.cos(t) * x + b ** (-2)) * np.exp(-0.5 * x**2),
                 x,
             )
@@ -551,9 +577,9 @@ class ADVBinner(VelBinner):
         dat_raw : xarray.Dataset
           The raw (off the instrument) adv dataset
         dat_avg : xarray.Dataset
-          The bin-averaged adv dataset (calc'd from 'calc_turbulence' or
-          'do_avg'). The spectra (psd) and basic turbulence statistics
-          ('tke_vec' and 'stress_vec') must already be computed.
+          The bin-averaged adv dataset (calculated from `ADVBinner.calc_turbulence` or
+          `VelBinner.bin_average`). The spectra (PSD) and Reynolds stresses
+          (`tke_vec` and `stress_vec`) must already be computed.
         freq_range : iterable(2)
           The range over which to integrate/average the spectrum, in units
           of the psd frequency vector (Hz or rad/s).
@@ -578,7 +604,7 @@ class ADVBinner(VelBinner):
         theta = np.angle(dat_avg.velds.U.values) - self._up_angle(
             dat_raw.velds.U.values
         )
-        freq = dat_avg["psd"].freq.values
+        freq = dat_avg["freq"].values
 
         # Calculate constants
         alpha = 1.5
@@ -586,8 +612,8 @@ class ADVBinner(VelBinner):
 
         # Index data to be used
         inds = (freq_range[0] < freq) & (freq < freq_range[1])
-        psd = dat_avg.psd[..., inds].values
-        freq = freq[inds].reshape([1] * (dat_avg.psd.ndim - 2) + [sum(inds)])
+        psd = dat_avg["psd"][..., inds].values
+        freq = freq[inds].reshape([1] * (dat_avg["psd"].ndim - 2) + [sum(inds)])
 
         # Estimate values
         # u & v components (equation 6)
@@ -606,7 +632,7 @@ class ADVBinner(VelBinner):
 
         return xr.DataArray(
             out.astype("float32"),
-            coords={"time": dat_avg.psd.time},
+            coords={"time": dat_avg["time"]},
             dims="time",
             attrs={
                 "units": "m2 s-3",
@@ -619,44 +645,58 @@ class ADVBinner(VelBinner):
 
     def integral_length_scales(self, a_cov, U_mag, fs=None):
         """
-        Calculate integral length scales.
+        Calculate integral length scales from the autocovariance (or autocorrelation).
 
         Parameters
         ----------
-        a_cov : xarray.DataArray
-          The auto-covariance array (i.e. computed using `autocovariance`).
-        U_mag : xarray.DataArray
-          The bin-averaged horizontal velocity (from dataset shortcut)
+        a_cov : xarray.DataArray ([dir,] time, lag)
+          The autocovariance or autocorrelation array
+          (i.e., computed using
+          :func:`autocovariance <mhkit.dolfyn.velocity.VelBinner.autocovariance>`)
+        U_mag : xarray.DataArray (time)
+          The bin-averaged horizontal velocity (i.e., computed using
+          :func:`U_mag <mhkit.dolfyn.velocity.Velocity.U_mag>`)
         fs : numeric
           The raw sample rate
 
         Returns
         -------
-        L_int : numpy.ndarray (..., n_time)
-          The integral length scale (T_int*U_mag).
+        L_int : numpy.ndarray ([dir,] time)
+          The integral length scale.
 
         Notes
         ----
-        The integral time scale (T_int) is the lag-time at which the
-        auto-covariance falls to 1/e.
-
-        If T_int is not reached, L_int will default to '0'.
+        The integral time scale (:math:`T_{int}`) is integral of the normalized
+        autocovariance (autocorrelation) function, which theoretically decays to
+        zero over time. Practically, :math:`T_{int}` is the integral from zero to
+        the first zero-crossing lag-time of the autocorrelation function. The
+        integral length scale (:math:`L_{int}`) then is the integral time scale
+        multiplied by the bin speed.
         """
 
         if not isinstance(a_cov, xr.DataArray):
             raise TypeError("`a_cov` must be an instance of `xarray.DataArray`.")
-        if len(a_cov.time) != len(U_mag.time):
+        if len(a_cov["time"]) != len(U_mag["time"]):
             raise Exception("`U_mag` should be from ensembled-averaged dataset")
 
-        acov = a_cov.values
         fs = self._parse_fs(fs)
+        # Normalize autocovariance/autocorrelation
+        acov = a_cov / a_cov[..., 0]
 
-        scale = np.argmin((acov / acov[..., :1]) > (1 / np.e), axis=-1)
-        L_int = U_mag.values / fs * scale
+        # Calculate first zero crossing in auto-correlation
+        zero_crossing = np.nanargmin(~(acov < 0), axis=-1)
+
+        # Calculate integral time scale
+        T_int = np.zeros(acov.shape[:2])
+        for i in range(3):
+            for t in range(a_cov["time"].size):
+                T_int[i, t] = np.trapezoid(acov[i, t][: zero_crossing[i, t]], dx=1 / fs)
+
+        L_int = U_mag.values * T_int
 
         return xr.DataArray(
             L_int.astype("float32"),
-            coords={"dir": a_cov.dir, "time": a_cov.time},
+            coords={"dir": a_cov["dir"], "time": a_cov["time"]},
             attrs={
                 "units": "m",
                 "long_name": "Integral Length Scale",
@@ -675,20 +715,19 @@ def turbulence_statistics(
     Parameters
     ----------
     ds_raw : xarray.Dataset
-      The raw adv datset to `bin`, average and compute
-      turbulence statistics of.
+      The raw adv datset to bin, average, and compute turbulence statistics
+      from.
     freq_units : string
       Frequency units of the returned spectra in either Hz or rad/s
-      (`f` or :math:`\\omega`). Default is 'rad/s'
+      (`f` or :math:`\\omega`). Default = 'rad/s'
     window : string or array
       The window to use for calculating spectra.
-
 
     Returns
     -------
     ds : xarray.Dataset
       Returns an 'binned' (i.e. 'averaged') data object. All
-      fields (variables) of the input data object are averaged in n_bin
+      fields (variables) of the input data object are averaged in `n_bin`
       chunks. This object also computes the following items over
       those chunks:
 

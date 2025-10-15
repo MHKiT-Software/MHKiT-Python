@@ -1,28 +1,28 @@
 """
 This module provides functionality for managing cache files to optimize
 network requests and computations for handling data. The module focuses
-on enabling users to read from and write to cache files, as well as 
-perform cache clearing operations. Cache files are utilized to store data 
-temporarily, mitigating the need to re-fetch or recompute the same data multiple 
+on enabling users to read from and write to cache files, as well as
+perform cache clearing operations. Cache files are utilized to store data
+temporarily, mitigating the need to re-fetch or recompute the same data multiple
 times, which can be especially useful in network-dependent tasks.
 
 The module consists of two main functions:
 
 1. `handle_caching`:
-   This function manages the caching of data. It provides options to read from 
-   and write to cache files, depending on whether the data is already provided 
-   or if it needs to be fetched from the cache. If a cache file corresponding 
-   to the given parameters already exists, the function can either load data 
-   from it or clear it based on the parameters passed. It also offers the ability 
-   to store associated metadata along with the data and supports both JSON and 
-   pickle file formats for caching. This function returns the loaded data and 
+   This function manages the caching of data. It provides options to read from
+   and write to cache files, depending on whether the data is already provided
+   or if it needs to be fetched from the cache. If a cache file corresponding
+   to the given parameters already exists, the function can either load data
+   from it or clear it based on the parameters passed. It also offers the ability
+   to store associated metadata along with the data and supports both JSON and
+   pickle file formats for caching. This function returns the loaded data and
    metadata from the cache file, along with the cache file path.
 
 2. `clear_cache`:
-   This function enables the clearing of either specific sub-directories or the 
-   entire cache directory, depending on the parameter passed. It removes the 
-   specified directory and then recreates it to ensure future caching tasks can 
-   be executed without any issues. If the specified directory does not exist, 
+   This function enables the clearing of either specific sub-directories or the
+   entire cache directory, depending on the parameter passed. It removes the
+   specified directory and then recreates it to ensure future caching tasks can
+   be executed without any issues. If the specified directory does not exist,
    the function prints an indicative message.
 
 Module Dependencies:
@@ -39,23 +39,21 @@ Author: ssolson
 Date: 2023-09-26
 """
 
+from typing import Optional, Tuple, Dict, Any
 import hashlib
 import json
 import os
-import re
 import shutil
 import pickle
 import pandas as pd
 
 
 def handle_caching(
-    hash_params,
-    cache_dir,
-    data=None,
-    metadata=None,
-    write_json=None,
-    clear_cache_file=False,
-):
+    hash_params: str,
+    cache_dir: str,
+    cache_content: Optional[Dict[str, Any]] = None,
+    clear_cache_file: bool = False,
+) -> Tuple[Optional[pd.DataFrame], Optional[Dict[str, Any]], str]:
     """
     Handles caching of data to avoid redundant network requests or
     computations.
@@ -70,131 +68,111 @@ def handle_caching(
     Parameters
     ----------
     hash_params : str
-        The parameters to be hashed and used as the filename for the cache file.
+        Parameters to generate the cache file hash.
     cache_dir : str
-        The directory where the cache files are stored.
-    data : pandas DataFrame or None
-        The data to be stored in the cache file. If `None`, the function
-        will attempt to load data from the cache file.
-    metadata : dict or None
-        Metadata associated with the data. This will be stored in the
-        cache file along with the data.
-    write_json : str or None
-        If specified, the cache file will be copied to a file with this name.
+        Directory where cache files are stored.
+    cache_content : Optional[Dict[str, Any]], optional
+        Content to be cached. Should contain 'data', 'metadata', and 'write_json'.
     clear_cache_file : bool
-        If `True`, the cache file for the given parameters will be cleared.
+        Whether to clear the existing cache.
 
     Returns
     -------
-    data : pandas DataFrame or None
-        The data loaded from the cache file. If data was provided as a
-        parameter, the same data will be returned. If the cache file
-        does not exist and no data was provided, `None` will be returned.
-    metadata : dict or None
-        The metadata loaded from the cache file. If metadata was provided
-        as a parameter, the same metadata will be returned. If the cache
-        file does not exist and no metadata was provided, `None` will be
-        returned.
-    cache_filepath : str
-        The path to the cache file.
+    Tuple[Optional[pd.DataFrame], Optional[Dict[str, Any]], str]
+        Cached data, metadata, and cache file path.
     """
 
-    # Check if 'cdip' is in cache_dir, then use .pkl instead of .json
-    file_extension = (
-        ".pkl"
-        if "cdip" in cache_dir or "hindcast" in cache_dir or "ndbc" in cache_dir
-        else ".json"
-    )
+    data = None
+    metadata = None
 
-    # Make cache directory if it doesn't exist
-    if not os.path.isdir(cache_dir):
-        os.makedirs(cache_dir)
+    def _generate_cache_filepath():
+        """Generates the cache file path based on the hashed parameters."""
+        file_extension = (
+            ".pkl"
+            if "cdip" in cache_dir or "hindcast" in cache_dir or "ndbc" in cache_dir
+            else ".json"
+        )
+        cache_filename = (
+            hashlib.md5(hash_params.encode("utf-8")).hexdigest() + file_extension
+        )
+        return os.path.join(cache_dir, cache_filename), file_extension
 
-    # Create a unique filename based on the function parameters
-    cache_filename = (
-        hashlib.md5(hash_params.encode("utf-8")).hexdigest() + file_extension
-    )
-    cache_filepath = os.path.join(cache_dir, cache_filename)
+    def _clear_cache(cache_filepath):
+        """Clear the cache file if requested."""
+        if clear_cache_file and os.path.isfile(cache_filepath):
+            os.remove(cache_filepath)
+            print(f"Cleared cache for {cache_filepath}")
 
-    # If clear_cache_file is True, remove the cache file for this request
-    if clear_cache_file and os.path.isfile(cache_filepath):
-        os.remove(cache_filepath)
-        print(f"Cleared cache for {cache_filepath}")
-
-    # If a cached file exists, load and return the data from the file
-    if os.path.isfile(cache_filepath) and data is None:
+    def _load_cache(file_extension, cache_filepath):
+        """Load data from the cache file based on its extension."""
+        nonlocal data, metadata  # Specify that these are outer variables
         if file_extension == ".json":
             with open(cache_filepath, encoding="utf-8") as f:
-                jsonData = json.load(f)
+                json_data = json.load(f)
 
-            # Extract metadata if it exists
-            if "metadata" in jsonData:
-                metadata = jsonData.pop("metadata", None)
+            metadata = json_data.pop("metadata", None)
 
-            # Check if index is datetime formatted
-            if all(
-                re.match(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", str(dt))
-                for dt in jsonData["index"]
-            ):
-                data = pd.DataFrame(
-                    jsonData["data"],
-                    index=pd.to_datetime(jsonData["index"]),
-                    columns=jsonData["columns"],
-                )
-            else:
-                data = pd.DataFrame(
-                    jsonData["data"],
-                    index=jsonData["index"],
-                    columns=jsonData["columns"],
-                )
-
-            # Convert the rest to DataFrame
             data = pd.DataFrame(
-                jsonData["data"],
-                index=pd.to_datetime(jsonData["index"]),
-                columns=jsonData["columns"],
+                json_data["data"],
+                index=pd.to_datetime(json_data["index"]),
+                columns=json_data["columns"],
             )
-
         elif file_extension == ".pkl":
             with open(cache_filepath, "rb") as f:
                 data, metadata = pickle.load(f)
 
-        if write_json:
-            shutil.copy(cache_filepath, write_json)
+        return data, metadata
 
-        return data, metadata, cache_filepath
-
-    # If a cached file does not exist and data is provided,
-    # store the data in a cache file
-    elif data is not None:
+    def _write_cache(data, metadata, file_extension, cache_filepath):
+        """Store data in the cache file based on the extension."""
         if file_extension == ".json":
-            # Convert DataFrame to python dict
-            pyData = data.to_dict(orient="split")
-            # Add metadata to pyData
-            pyData["metadata"] = metadata
-            # Check if index is datetime indexed
+            py_data = data.to_dict(orient="split")
+            py_data["metadata"] = metadata
             if isinstance(data.index, pd.DatetimeIndex):
-                pyData["index"] = [
-                    dt.strftime("%Y-%m-%d %H:%M:%S") for dt in pyData["index"]
+                py_data["index"] = [
+                    dt.strftime("%Y-%m-%d %H:%M:%S") for dt in py_data["index"]
                 ]
             else:
-                pyData["index"] = list(data.index)
+                py_data["index"] = list(data.index)
             with open(cache_filepath, "w", encoding="utf-8") as f:
-                json.dump(pyData, f)
-
+                json.dump(py_data, f)
         elif file_extension == ".pkl":
             with open(cache_filepath, "wb") as f:
                 pickle.dump((data, metadata), f)
 
-        if write_json:
-            shutil.copy(cache_filepath, write_json)
+    # Create the cache directory if it doesn't exist
+    if not os.path.isdir(cache_dir):
+        os.makedirs(cache_dir)
 
-        return data, metadata, cache_filepath
-    # If data is not provided and the cache file doesn't exist, return cache_filepath
+    # Generate cache filepath and extension
+    cache_filepath, file_extension = _generate_cache_filepath()
+
+    # Clear cache if requested
+    _clear_cache(cache_filepath)
+
+    # If cache file exists and cache_content["data"] is None, load from cache
+    if os.path.isfile(cache_filepath) and (
+        cache_content is None or cache_content["data"] is None
+    ):
+        return _load_cache(file_extension, cache_filepath) + (cache_filepath,)
+
+    # Store data in cache if provided
+    if cache_content and cache_content["data"] is not None:
+        _write_cache(
+            cache_content["data"],
+            cache_content["metadata"],
+            file_extension,
+            cache_filepath,
+        )
+        if cache_content["write_json"]:
+            shutil.copy(cache_filepath, cache_content["write_json"])
+
+        return cache_content["data"], cache_content["metadata"], cache_filepath
+
     return None, None, cache_filepath
 
 
-def clear_cache(specific_dir=None):
+def clear_cache(specific_dir: Optional[str] = None) -> None:
     """
     Clears the cache.
 

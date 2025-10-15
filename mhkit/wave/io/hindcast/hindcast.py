@@ -5,26 +5,6 @@ available points. It includes functions to retrieve data for predefined
 regions, request point data for various parameters, and request directional
 spectrum data.
 
-Functions:
-    - region_selection(lat_lon): Returns the name of the predefined region for
-      given latitude and longitude coordinates.
-    - request_wpto_point_data(data_type, parameter, lat_lon, years, tree=None,
-      unscale=True, str_decode=True, hsds=True): Returns data from the WPTO wave
-      hindcast hosted on AWS at the specified latitude and longitude point(s) for
-      the requested data type, parameter, and years.
-    - request_wpto_directional_spectrum(lat_lon, year, tree=None, unscale=True,
-      str_decode=True, hsds=True): Returns directional spectra data from the WPTO
-      wave hindcast hosted on AWS at the specified latitude and longitude point(s)
-      for the given year.
-
-Dependencies:
-    - sys
-    - time.sleep
-    - pandas
-    - xarray
-    - numpy
-    - rex.MultiYearWaveX, rex.WaveX
-
 Author: rpauly, aidanbharath, ssolson
 Date: 2023-09-26
 """
@@ -32,6 +12,7 @@ Date: 2023-09-26
 import os
 import sys
 from time import sleep
+from typing import List, Tuple, Union, Optional, Dict
 import pandas as pd
 import xarray as xr
 import numpy as np
@@ -40,7 +21,7 @@ from mhkit.utils.cache import handle_caching
 from mhkit.utils.type_handling import convert_to_dataset
 
 
-def region_selection(lat_lon):
+def region_selection(lat_lon: Union[List[float], Tuple[float, float]]) -> str:
     """
     Returns the name of the predefined region in which the given
     coordinates reside. Can be used to check if the passed lat/lon
@@ -64,13 +45,17 @@ def region_selection(lat_lon):
             f"lat_lon values must be of type float or int. Got: {type(lat_lon[0])}"
         )
 
-    regions = {
+    regions: Dict[str, Dict[str, List[float]]] = {
         "Hawaii": {"lat": [15.0, 27.000002], "lon": [-164.0, -151.0]},
         "West_Coast": {"lat": [30.0906, 48.8641], "lon": [-130.072, -116.899]},
         "Atlantic": {"lat": [24.382, 44.8247], "lon": [-81.552, -65.721]},
     }
 
-    def region_search(lat_lon, region, regions):
+    def region_search(
+        lat_lon: Union[List[float], Tuple[float, float]],
+        region: str,
+        regions: Dict[str, Dict[str, List[float]]],
+    ) -> bool:
         return all(
             regions[region][dk][0] <= d <= regions[region][dk][1]
             for dk, d in {"lat": lat_lon[0], "lon": lat_lon[1]}.items()
@@ -84,18 +69,23 @@ def region_selection(lat_lon):
     return region[0]
 
 
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-positional-arguments
+# pylint: disable=too-many-locals
+# pylint: disable=too-many-branches
+# pylint: disable=too-many-statements
 def request_wpto_point_data(
-    data_type,
-    parameter,
-    lat_lon,
-    years,
-    tree=None,
-    unscale=True,
-    str_decode=True,
-    hsds=True,
-    path=None,
-    to_pandas=True,
-):
+    data_type: str,
+    parameter: Union[str, List[str]],
+    lat_lon: Union[Tuple[float, float], List[Tuple[float, float]]],
+    years: List[int],
+    tree: Optional[str] = None,
+    unscale: bool = True,
+    str_decode: bool = True,
+    hsds: bool = True,
+    path: Optional[str] = None,
+    to_pandas: bool = True,
+) -> Tuple[Union[pd.DataFrame, xr.Dataset], pd.DataFrame]:
     """
     Returns data from the WPTO wave hindcast hosted on AWS at the
     specified latitude and longitude point(s), or the closest
@@ -190,107 +180,118 @@ def request_wpto_point_data(
 
     # Attempt to load data from cache
     # Construct a string representation of the function parameters
-    hash_params = f"{data_type}_{parameter}_{lat_lon}_{years}_{tree}_{unscale}_{str_decode}_{hsds}_{path}_{to_pandas}"
+    hash_params = (
+        f"{data_type}_{parameter}_{lat_lon}_{years}_{tree}_{unscale}_"
+        f"{str_decode}_{hsds}_{path}_{to_pandas}"
+    )
     cache_dir = _get_cache_dir()
-    data, meta, _ = handle_caching(hash_params, cache_dir)
+    data, meta, _ = handle_caching(
+        hash_params,
+        cache_dir,
+        cache_content={"data": None, "metadata": None, "write_json": None},
+    )
 
     if data is not None:
         return data, meta
+
+    if "directional_wave_spectrum" in parameter:
+        sys.exit("This function does not support directional_wave_spectrum output")
+
+    # Check for multiple region selection
+    if isinstance(lat_lon[0], float):
+        region = region_selection(lat_lon)
     else:
-        if "directional_wave_spectrum" in parameter:
-            sys.exit("This function does not support directional_wave_spectrum output")
-
-        # Check for multiple region selection
-        if isinstance(lat_lon[0], float):
-            region = region_selection(lat_lon)
+        region_list = []
+        for loc in lat_lon:
+            region_list.append(region_selection(loc))
+        if region_list.count(region_list[0]) == len(lat_lon):
+            region = region_list[0]
         else:
-            region_list = []
-            for loc in lat_lon:
-                region_list.append(region_selection(loc))
-            if region_list.count(region_list[0]) == len(lat_lon):
-                region = region_list[0]
-            else:
-                sys.exit("Coordinates must be within the same region!")
+            sys.exit("Coordinates must be within the same region!")
 
-        if path:
-            wave_path = path
-        elif data_type == "3-hour":
-            wave_path = f"/nrel/US_wave/{region}/{region}_wave_*.h5"
-        elif data_type == "1-hour":
-            wave_path = (
-                f"/nrel/US_wave/virtual_buoy/{region}/{region}_virtual_buoy_*.h5"
-            )
-        else:
-            print("ERROR: invalid data_type")
+    if path:
+        wave_path = path
+    elif data_type == "3-hour":
+        wave_path = f"/nrel/US_wave/{region}/{region}_wave_*.h5"
+    elif data_type == "1-hour":
+        wave_path = f"/nrel/US_wave/virtual_buoy/{region}/{region}_virtual_buoy_*.h5"
+    else:
+        raise ValueError(
+            f"Invalid data_type: {data_type}. Must be '3-hour' or '1-hour'"
+        )
 
-        wave_kwargs = {
-            "tree": tree,
-            "unscale": unscale,
-            "str_decode": str_decode,
-            "hsds": hsds,
-            "years": years,
-        }
-        data_list = []
+    wave_kwargs = {
+        "tree": tree,
+        "unscale": unscale,
+        "str_decode": str_decode,
+        "hsds": hsds,
+        "years": years,
+    }
+    data_list = []
 
-        with MultiYearWaveX(wave_path, **wave_kwargs) as rex_waves:
-            if isinstance(parameter, list):
-                for param in parameter:
-                    temp_data = rex_waves.get_lat_lon_df(param, lat_lon)
-                    gid = rex_waves.lat_lon_gid(lat_lon)
-                    cols = temp_data.columns[:]
-                    for i, col in zip(range(len(cols)), cols):
-                        temp = f"{param}_{gid}"
-                        temp_data = temp_data.rename(columns={col: temp})
-
-                    data_list.append(temp_data)
-                data = pd.concat(data_list, axis=1)
-
-            else:
-                data = rex_waves.get_lat_lon_df(parameter, lat_lon)
-                cols = data.columns[:]
-
+    with MultiYearWaveX(wave_path, **wave_kwargs) as rex_waves:
+        if isinstance(parameter, list):
+            for param in parameter:
+                temp_data = rex_waves.get_lat_lon_df(param, lat_lon)
+                gid = rex_waves.lat_lon_gid(lat_lon)
+                cols = temp_data.columns[:]
                 for i, col in zip(range(len(cols)), cols):
-                    temp = f"{parameter}_{i}"
-                    data = data.rename(columns={col: temp})
+                    temp = f"{param}_{i}"
+                    temp_data = temp_data.rename(columns={col: temp})
 
-            meta = rex_waves.meta.loc[cols, :]
-            meta = meta.reset_index(drop=True)
-            gid = rex_waves.lat_lon_gid(lat_lon)
-            meta["gid"] = gid
+                data_list.append(temp_data)
+            data = pd.concat(data_list, axis=1)
 
-            if not to_pandas:
-                data = convert_to_dataset(data)
-                data["time_index"] = pd.to_datetime(data.time_index)
+        else:
+            data = rex_waves.get_lat_lon_df(parameter, lat_lon)
+            cols = data.columns[:]
 
-                if isinstance(parameter, list):
-                    param_coords = [f"{param}_{gid}" for param in parameter]
-                    data.coords["parameter"] = xr.DataArray(
-                        param_coords, dims="parameter"
-                    )
+            for i, col in zip(range(len(cols)), cols):
+                temp = f"{parameter}_{i}"
+                data = data.rename(columns={col: temp})
 
-                data.coords["year"] = xr.DataArray(years, dims="year")
+        meta = rex_waves.meta.loc[cols, :]
+        meta = meta.reset_index(drop=True)
+        gid = rex_waves.lat_lon_gid(lat_lon)
+        meta["gid"] = gid
 
-                meta_ds = meta.to_xarray()
-                data = xr.merge([data, meta_ds])
+        if not to_pandas:
+            data = convert_to_dataset(data)
+            data["time_index"] = pd.to_datetime(data.time_index)
 
-                # Remove the 'index' coordinate
-                data = data.drop_vars("index")
+            if isinstance(parameter, list):
+                param_coords = [f"{param}_{i}" for param in parameter]
+                data.coords["parameter"] = xr.DataArray(param_coords, dims="parameter")
 
-        # save_to_cache(hash_params, data, meta)
-        handle_caching(hash_params, cache_dir, data, meta)
+            data.coords["year"] = xr.DataArray(years, dims="year")
 
-        return data, meta
+            meta_ds = meta.to_xarray()
+            data = xr.merge([data, meta_ds])
+
+            # Remove the 'index' coordinate
+            data = data.drop_vars("index")
+
+    # save_to_cache(hash_params, data, meta)
+    handle_caching(
+        hash_params,
+        cache_dir,
+        cache_content={"data": data, "metadata": meta, "write_json": None},
+    )
+
+    return data, meta
 
 
+# pylint: disable=too-many-branches
+# pylint: disable=too-many-statements
 def request_wpto_directional_spectrum(
-    lat_lon,
-    year,
-    tree=None,
-    unscale=True,
-    str_decode=True,
-    hsds=True,
-    path=None,
-):
+    lat_lon: Union[Tuple[float, float], List[Tuple[float, float]]],
+    year: str,
+    tree: Optional[str] = None,
+    unscale: bool = True,
+    str_decode: bool = True,
+    hsds: bool = True,
+    path: Optional[str] = None,
+) -> Tuple[xr.Dataset, pd.DataFrame]:
     """
     Returns directional spectra data from the WPTO wave hindcast hosted
     on AWS at the specified latitude and longitude point(s),
@@ -374,7 +375,11 @@ def request_wpto_directional_spectrum(
     # Attempt to load data from cache
     hash_params = f"{lat_lon}_{year}_{tree}_{unscale}_{str_decode}_{hsds}_{path}"
     cache_dir = _get_cache_dir()
-    data, meta, _ = handle_caching(hash_params, cache_dir)
+    data, meta, _ = handle_caching(
+        hash_params,
+        cache_dir,
+        cache_content={"data": None, "metadata": None, "write_json": None},
+    )
 
     if data is not None:
         return data, meta
@@ -405,10 +410,10 @@ def request_wpto_directional_spectrum(
         )
 
         # Create bins for multiple smaller API dataset requests
-        N = 6
+        num_bins = 6
         length = len(rex_waves)
-        quotient, remainder = divmod(length, N)
-        bins = [i * quotient for i in range(N + 1)]
+        quotient, remainder = divmod(length, num_bins)
+        bins = [i * quotient for i in range(num_bins + 1)]
         bins[-1] += remainder
         index_bins = (np.array(bins) * len(frequency) * len(direction)).tolist()
 
@@ -424,7 +429,7 @@ def request_wpto_directional_spectrum(
                 try:
                     data_array = rex_waves[parameter, bins[i] : bins[i + 1], :, :, gid]
                     str_error = None
-                except Exception as err:
+                except OSError as err:
                     str_error = str(err)
 
                 if str_error:
@@ -433,7 +438,7 @@ def request_wpto_directional_spectrum(
                 else:
                     break
 
-            ax1 = np.product(data_array.shape[:3])
+            ax1 = np.prod(data_array.shape[:3])
             ax2 = data_array.shape[-1] if len(data_array.shape) == 4 else 1
             datas[i] = pd.DataFrame(
                 data_array.reshape(ax1, ax2), columns=columns, index=idx
@@ -480,12 +485,16 @@ def request_wpto_directional_spectrum(
             },
         )
 
-    handle_caching(hash_params, cache_dir, data, meta)
+    handle_caching(
+        hash_params,
+        cache_dir,
+        cache_content={"data": data, "metadata": meta, "write_json": None},
+    )
 
     return data, meta
 
 
-def _get_cache_dir():
+def _get_cache_dir() -> str:
     """
     Returns the path to the cache directory.
     """

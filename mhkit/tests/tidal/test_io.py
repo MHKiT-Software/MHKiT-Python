@@ -59,7 +59,12 @@ class TestIO(unittest.TestCase):
         """
         file_name = join(datadir, "s08010.json")
         data = tidal.io.noaa.read_noaa_json(file_name, to_pandas=False)
-        self.assertTrue(np.all(list(data.variables) == ["index", "s", "d", "b"]))
+        # Check if the variable sets are equal
+        data_variables = list(data.variables)
+        required_variables = ["index", "s", "d", "b"]
+        data_variables_set = set(data_variables)
+        required_variables_set = set(required_variables)
+        self.assertTrue(data_variables_set == required_variables_set)
         self.assertEqual(len(data["index"]), 18890)
         self.assertEqual(data.attrs["id"], "s08010")
 
@@ -69,13 +74,16 @@ class TestIO(unittest.TestCase):
         and verify that the returned DataFrame and metadata have the
         correct shape and columns.
         """
+        options = {
+            "proxy": None,
+            "write_json": None,
+        }
         data, metadata = tidal.io.noaa.request_noaa_data(
             station="s08010",
             parameter="currents",
             start_date="20180101",
             end_date="20180102",
-            proxy=None,
-            write_json=None,
+            options=options,
         )
         self.assertTrue(np.all(data.columns == ["s", "d", "b"]))
         self.assertEqual(data.shape, (183, 3))
@@ -87,16 +95,24 @@ class TestIO(unittest.TestCase):
         and verify that the returned DataFrame and metadata have the
         correct shape and columns.
         """
+        options = {
+            "proxy": None,
+            "write_json": None,
+            "to_pandas": False,
+        }
         data = tidal.io.noaa.request_noaa_data(
             station="s08010",
             parameter="currents",
             start_date="20180101",
             end_date="20180102",
-            proxy=None,
-            write_json=None,
-            to_pandas=False,
+            options=options,
         )
-        self.assertTrue(np.all(list(data.variables) == ["index", "s", "d", "b"]))
+        # Check if the variable sets are equal
+        data_variables = list(data.variables)
+        required_variables = ["index", "s", "d", "b"]
+        data_variables_set = set(data_variables)
+        required_variables_set = set(required_variables)
+        self.assertTrue(data_variables_set == required_variables_set)
         self.assertEqual(len(data["index"]), 183)
         self.assertEqual(data.attrs["id"], "s08010")
 
@@ -107,13 +123,16 @@ class TestIO(unittest.TestCase):
         and can be loaded back into a dictionary.
         """
         test_json_file = "test_noaa_data.json"
+        options = {
+            "proxy": None,
+            "write_json": test_json_file,
+        }
         _, _ = tidal.io.noaa.request_noaa_data(
             station="s08010",
             parameter="currents",
             start_date="20180101",
             end_date="20180102",
-            proxy=None,
-            write_json=test_json_file,
+            options=options,
         )
         self.assertTrue(os.path.isfile(test_json_file))
 
@@ -132,14 +151,17 @@ class TestIO(unittest.TestCase):
         Test the request_noaa_data function with an invalid date format
         and verify that it raises a ValueError.
         """
+        options = {
+            "proxy": None,
+            "write_json": None,
+        }
         with self.assertRaises(ValueError):
             tidal.io.noaa.request_noaa_data(
                 station="s08010",
                 parameter="currents",
                 start_date="2018-01-01",  # Invalid date format
                 end_date="20180102",
-                proxy=None,
-                write_json=None,
+                options=options,
             )
 
     def test_request_noaa_data_end_before_start(self):
@@ -147,14 +169,17 @@ class TestIO(unittest.TestCase):
         Test the request_noaa_data function with the end date before
         the start date and verify that it raises a ValueError.
         """
+        options = {
+            "proxy": None,
+            "write_json": None,
+        }
         with self.assertRaises(ValueError):
             tidal.io.noaa.request_noaa_data(
                 station="s08010",
                 parameter="currents",
                 start_date="20180102",
                 end_date="20180101",  # End date before start date
-                proxy=None,
-                write_json=None,
+                options=options,
             )
 
 

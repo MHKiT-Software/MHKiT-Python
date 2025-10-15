@@ -1,6 +1,6 @@
 """
 This module provides functionalities for plotting statistical data
-related to a given variable or dataset. 
+related to a given variable or dataset.
 
     - `plot_statistics` is designed to plot raw statistical measures
       (mean, maximum, minimum, and optional standard deviation) of a
@@ -9,8 +9,8 @@ related to a given variable or dataset.
 
     - `plot_bin_statistics` extends these capabilities to binned data,
       offering a way to visualize binned statistics (mean, maximum, minimum)
-      along with their respective standard deviations. This function also 
-      supports label and title customization, as well as saving the plot to 
+      along with their respective standard deviations. This function also
+      supports label and title customization, as well as saving the plot to
       a specified path.
 """
 
@@ -113,6 +113,7 @@ def plot_statistics(
 
 
 # pylint: disable=R0913
+# pylint: disable=R0917
 def plot_bin_statistics(
     bin_centers: np.ndarray,
     bin_mean: np.ndarray,

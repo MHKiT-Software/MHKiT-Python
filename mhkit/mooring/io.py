@@ -1,15 +1,13 @@
 """
-io.py
-
 This module provides functions to read and parse MoorDyn output files.
 
 The main function read_moordyn takes as input the path to a MoorDyn output file and optionally
-the path to a MoorDyn input file. It reads the data from the output file, stores it in an 
-xarray dataset, and then if provided, parses the input file for additional metadata to store 
+the path to a MoorDyn input file. It reads the data from the output file, stores it in an
+xarray dataset, and then if provided, parses the input file for additional metadata to store
 as attributes in the dataset.
 
-The helper function _moordyn_input is used to parse the MoorDyn output file. It loops through 
-each line in the output file, parses various sets of properties and parameters, and stores 
+The helper function _moordyn_input is used to parse the MoorDyn output file. It loops through
+each line in the output file, parses various sets of properties and parameters, and stores
 them as attributes in the provided dataset.
 
 Typical usage example:

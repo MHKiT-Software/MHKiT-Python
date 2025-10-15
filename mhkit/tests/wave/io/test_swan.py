@@ -35,7 +35,7 @@ class TestSWAN(unittest.TestCase):
         self.swan_block_txt_file = join(swan_datadir, "SWANOUTBlock.DAT")
         self.expected_table = pd.read_csv(
             self.table_file,
-            sep="\s+",
+            sep="\\s+",
             comment="%",
             names=["Xp", "Yp", "Hsig", "Dir", "RTpeak", "TDir"],
         )

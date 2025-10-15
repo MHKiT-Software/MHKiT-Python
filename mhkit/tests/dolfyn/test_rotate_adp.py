@@ -57,7 +57,7 @@ class rotate_adp_testcase(unittest.TestCase):
 
         # # The reverse RDI rotation doesn't work b/c of NaN's in one beam
         # # that propagate to others, so we impose that here.
-        cd_td["vel"].values[:, np.isnan(cd_td["vel"].values).any(0)] = np.NaN
+        cd_td["vel"].values[:, np.isnan(cd_td["vel"].values).any(0)] = np.nan
 
         assert_allclose(td, cd_td, atol=1e-5)
         assert_allclose(td_awac, cd_awac, atol=1e-5)
@@ -118,10 +118,15 @@ class rotate_adp_testcase(unittest.TestCase):
         rotate2(td_sig, "inst", inplace=True)
         td_sig_i = load("Sig1000_IMU_rotate_inst2earth.nc")
         rotate2(td_sig_i, "inst", inplace=True)
+        # Just check that these run without error
+        td_sig_avg = load("Sig100_avg.nc")
+        rotate2(td_sig_avg, "inst", inplace=True)
+        td_sig_dp1_ice = load("Sig500_dp_ice2.nc")
+        rotate2(td_sig_dp1_ice, "inst", inplace=True)
 
         cd_rdi = load("RDI_test01_rotate_beam2inst.nc")
         cd_wr2 = tr.dat_wr2
-        # ship and inst are considered equivalent in dolfy
+        # ship and inst are considered equivalent in dolfyn
         cd_wr2.attrs["coord_sys"] = "inst"
         cd_awac = load("AWAC_test01_earth2inst.nc")
         cd_sig = load("BenchFile01_rotate_beam2inst.nc")

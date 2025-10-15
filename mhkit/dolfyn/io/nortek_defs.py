@@ -82,14 +82,14 @@ class _VarAtts:
     def _empty_array(self, **kwargs):
         out = np.zeros(self.shape(**kwargs), dtype=self.dtype)
         try:
-            out[:] = np.NaN
+            out[:] = np.nan
         except:
             pass
         if self.view_type is not None:
             out = out.view(self.view_type)
         return out
 
-    def sci_func(self, data):
+    def scale(self, data):
         """
         Scale the data to scientific units.
 

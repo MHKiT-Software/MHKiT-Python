@@ -1,4 +1,4 @@
-# Builds mhkit and publishes to testpypi.org on every commit to master. On tagged commits, also publishes to pypi.org.
+# Builds mhkit and publishes to testpypi.org on every commit to main. On tagged commits, also publishes to pypi.org.
 # https://packaging.python.org/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
 
 name: Build and release 🐍 📦
@@ -6,7 +6,7 @@ name: Build and release 🐍 📦
 on:
   push:
     branches:
-      - master
+      - main
   release:
     types: [published]
 

@@ -1,15 +1,15 @@
 """
 This module provides utilities for analyzing wave data, specifically
 for identifying significant wave heights and estimating wave peak
-distributions using statistical methods. 
+distributions using statistical methods.
 
 Functions:
-- _calculate_window_size: Calculates the window size for peak 
+- _calculate_window_size: Calculates the window size for peak
   independence using the auto-correlation function of wave peaks.
-- _peaks_over_threshold: Identifies peaks over a specified 
+- _peaks_over_threshold: Identifies peaks over a specified
   threshold and returns independent storm peak values adjusted by
   the threshold.
-- global_peaks: Identifies global peaks in a zero-centered 
+- global_peaks: Identifies global peaks in a zero-centered
   response time-series based on consecutive zero up-crossings.
 - number_of_short_term_peaks: Estimates the number of peaks within a
  specified short-term period.
@@ -20,13 +20,13 @@ Functions:
 - automatic_hs_threshold: Determines the best significant wave height
  threshold for the peaks-over-threshold method.
 - peaks_distribution_peaks_over_threshold: Estimates the peaks
- distribution using the peaks over threshold method by fitting a 
+ distribution using the peaks over threshold method by fitting a
  generalized Pareto distribution.
 
 References:
-- Neary, V. S., S. Ahn, B. E. Seng, M. N. Allahdadi, T. Wang, Z. Yang, 
- and R. He (2020). "Characterization of Extreme Wave Conditions for 
- Wave Energy Converter Design and Project Risk Assessment.” J. Mar. 
+- Neary, V. S., S. Ahn, B. E. Seng, M. N. Allahdadi, T. Wang, Z. Yang,
+ and R. He (2020). "Characterization of Extreme Wave Conditions for
+ Wave Energy Converter Design and Project Risk Assessment.” J. Mar.
  Sci. Eng. 2020, 8(4), 289; https://doi.org/10.3390/jmse8040289.
 
 """
@@ -199,7 +199,7 @@ def number_of_short_term_peaks(n_peaks: int, time: float, time_st: float) -> flo
     return n_peaks * time_st / time
 
 
-def peaks_distribution_weibull(peaks_data: NDArray[np.float_]) -> rv_continuous:
+def peaks_distribution_weibull(peaks_data: NDArray[np.float64]) -> rv_continuous:
     """
     Estimate the peaks distribution by fitting a Weibull
     distribution to the peaks of the response.
@@ -209,7 +209,7 @@ def peaks_distribution_weibull(peaks_data: NDArray[np.float_]) -> rv_continuous:
 
     Parameters
     ----------
-    peaks_data : NDArray[np.float_]
+    peaks_data : NDArray[np.float64]
         Global peaks.
 
     Returns
@@ -234,7 +234,7 @@ def peaks_distribution_weibull(peaks_data: NDArray[np.float_]) -> rv_continuous:
 
 # pylint: disable=R0914
 def peaks_distribution_weibull_tail_fit(
-    peaks_data: NDArray[np.float_],
+    peaks_data: NDArray[np.float64],
 ) -> rv_continuous:
     """
     Estimate the peaks distribution using the Weibull tail fit
@@ -298,7 +298,7 @@ def peaks_distribution_weibull_tail_fit(
 
 # pylint: disable=R0914
 def automatic_hs_threshold(
-    peaks: NDArray[np.float_],
+    peaks: NDArray[np.float64],
     sampling_rate: float,
     initial_threshold_range: Tuple[float, float, float] = (0.990, 0.995, 0.001),
     max_refinement: int = 5,
@@ -324,7 +324,7 @@ def automatic_hs_threshold(
 
     Parameters
     ----------
-    peaks: NDArray[np.float_]
+    peaks: NDArray[np.float64]
         Peak values of the response time-series.
     sampling_rate: float
         Sampling rate in hours.
@@ -396,7 +396,7 @@ def automatic_hs_threshold(
 
 
 def peaks_distribution_peaks_over_threshold(
-    peaks_data: NDArray[np.float_], threshold: Optional[float] = None
+    peaks_data: NDArray[np.float64], threshold: Optional[float] = None
 ) -> rv_continuous:
     """
     Estimate the peaks distribution using the peaks over threshold
@@ -412,7 +412,7 @@ def peaks_distribution_peaks_over_threshold(
 
     Parameters
     ----------
-    peaks_data : NDArray[np.float_]
+    peaks_data : NDArray[np.float64]
         Global peaks.
     threshold : Optional[float]
         Threshold value. Only peaks above this value will be used.
@@ -457,14 +457,14 @@ def peaks_distribution_peaks_over_threshold(
             super().__init__(*args, **kwargs)
 
         # pylint: disable=arguments-differ
-        def _cdf(self, data_points, *args, **kwds) -> NDArray[np.float_]:
+        def _cdf(self, data_points, *args, **kwds) -> NDArray[np.float64]:
             # Convert data_points to a NumPy array if it's not already
             data_points = np.atleast_1d(data_points)
             out = np.zeros_like(data_points)
 
             # Use the instance's threshold attribute instead of passing as a parameter
             below_threshold = data_points < self.threshold
-            out[below_threshold] = np.NaN
+            out[below_threshold] = np.nan
 
             above_threshold_indices = ~below_threshold
             if np.any(above_threshold_indices):

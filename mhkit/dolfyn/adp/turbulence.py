@@ -96,39 +96,39 @@ class ADPBinner(VelBinner):
         diff_style="centered_extended",
     ):
         """
-        A class for calculating turbulence statistics from ADCP data
+        A class for calculating turbulence statistics from ADCP measurements.
 
         Parameters
         ----------
         n_bin : int
-          Number of data points to include in a 'bin' (ensemble), not the
-          number of bins
+          Number of data points to include in a 'bin' (ensemble)
         fs : int
           Instrument sampling frequency in Hz
         n_fft : int
           Number of data points to use for fft (`n_fft`<=`n_bin`).
-          Default: `n_fft`=`n_bin`
+          Default = `n_fft`=`n_bin`
         n_fft_coh : int
-          Number of data points to use for coherence and cross-spectra ffts
-          Default: `n_fft_coh`=`n_fft`
+          Number of data points to use for coherence and cross-spectra ffts.
+          Default = `n_fft_coh`=`n_fft`
         noise : float or array-like
           Instrument noise level in same units as velocity. Typically
           found from `adp.turbulence.doppler_noise_level`.
-          Default: None.
-        orientation : str, default='up'
-          Instrument's orientation, either 'up' or 'down'
-        diff_style : str, default='centered_extended'
+          Default = None
+        orientation : str
+          Instrument's orientation, either 'up' or 'down'. Default = 'up'
+        diff_style : str
           Style of numerical differentiation using Newton's Method.
           Either 'first' (first difference), 'centered' (centered difference),
           or 'centered_extended' (centered difference with first and last points
           extended using a first difference).
+          Default = 'centered_extended'
         """
 
         VelBinner.__init__(self, n_bin, fs, n_fft, n_fft_coh, noise)
         self.diff_style = diff_style
         self.orientation = orientation
 
-    def _diff_func(self, vel, u):
+    def _diff_func(self, vel, u, orientation):
         """Applies the chosen style of numerical differentiation to velocity data.
 
         This method calculates the derivative of the velocity data 'vel' with respect to the 'range'
@@ -149,26 +149,35 @@ class ADPBinner(VelBinner):
             The calculated derivative of the velocity data.
         """
 
+        if not orientation:
+            orientation = self.orientation
+        sign = 1
+        if orientation == "down":
+            sign *= -1
+
         if self.diff_style == "first":
             out = _diffz_first(vel[u].values, vel["range"].values)
-            return out, vel.range[1:]
+            return sign * out, vel.range[1:]
+
         elif self.diff_style == "centered":
             out = _diffz_centered(vel[u].values, vel["range"].values)
-            return out, vel.range[1:-1]
+            return sign * out, vel.range[1:-1]
+
         elif self.diff_style == "centered_extended":
             out = _diffz_centered_extended(vel[u].values, vel["range"].values)
-            return out, vel.range
+            return sign * out, vel.range
 
     def dudz(self, vel, orientation=None):
         """
-        The shear in the first velocity component.
+        The shear in the first velocity component (:math:`du/dz`).
 
         Parameters
         ----------
         vel : xarray.DataArray
           ADCP raw velocity
-        orientation : str, default=ADPBinner.orientation
-          Direction ADCP is facing ('up' or 'down')
+        orientation : str
+          Direction ADCP is facing ('up' or 'down').
+          Default = ADPBinner.orientation
 
         Returns
         -------
@@ -177,18 +186,12 @@ class ADPBinner(VelBinner):
 
         Notes
         -----
-        The derivative direction is along the profiler's 'z'
-        coordinate ('dz' is actually diff(self['range'])), not necessarily the
+        The derivative direction is along the profiler's :math:`z`
+        coordinate (:math:`dz` is actually `diff(self['range'])`), not necessarily the
         'true vertical' direction.
         """
 
-        if not orientation:
-            orientation = self.orientation
-        sign = 1
-        if orientation == "down":
-            sign *= -1
-
-        dudz, rng = sign * self._diff_func(vel, 0)
+        dudz, rng = self._diff_func(vel, 0, orientation)
         return xr.DataArray(
             dudz,
             coords=[rng, vel.time],
@@ -196,14 +199,17 @@ class ADPBinner(VelBinner):
             attrs={"units": "s-1", "long_name": "Shear in X-direction"},
         )
 
-    def dvdz(self, vel):
+    def dvdz(self, vel, orientation=None):
         """
-        The shear in the second velocity component.
+        The shear in the second velocity component (:math:`dv/dz`).
 
         Parameters
         ----------
         vel : xarray.DataArray
           ADCP raw velocity
+        orientation : str
+          Direction ADCP is facing ('up' or 'down').
+          Default = ADPBinner.orientation
 
         Returns
         -------
@@ -212,12 +218,12 @@ class ADPBinner(VelBinner):
 
         Notes
         -----
-        The derivative direction is along the profiler's 'z'
-        coordinate ('dz' is actually diff(self['range'])), not necessarily the
+        The derivative direction is along the profiler's :math:`z`
+        coordinate (:math:`dz` is actually `diff(self['range'])`), not necessarily the
         'true vertical' direction.
         """
 
-        dvdz, rng = self._diff_func(vel, 1)
+        dvdz, rng = self._diff_func(vel, 1, orientation)
         return xr.DataArray(
             dvdz,
             coords=[rng, vel.time],
@@ -225,14 +231,17 @@ class ADPBinner(VelBinner):
             attrs={"units": "s-1", "long_name": "Shear in Y-direction"},
         )
 
-    def dwdz(self, vel):
+    def dwdz(self, vel, orientation=None):
         """
-        The shear in the third velocity component.
+        The shear in the third velocity component (:math:`dw/dz`).
 
         Parameters
         ----------
         vel : xarray.DataArray
           ADCP raw velocity
+        orientation : str
+          Direction ADCP is facing ('up' or 'down').
+          Default = ADPBinner.orientation
 
         Returns
         -------
@@ -241,12 +250,12 @@ class ADPBinner(VelBinner):
 
         Notes
         -----
-        The derivative direction is along the profiler's 'z'
-        coordinate ('dz' is actually diff(self['range'])), not necessarily the
+        The derivative direction is along the profiler's :math:`z`
+        coordinate (:math:`dz` is actually `diff(self['range'])`), not necessarily the
         'true vertical' direction.
         """
 
-        dwdz, rng = self._diff_func(vel, 2)
+        dwdz, rng = self._diff_func(vel, 2, orientation)
         return xr.DataArray(
             dwdz,
             coords=[rng, vel.time],
@@ -270,13 +279,9 @@ class ADPBinner(VelBinner):
 
         Notes
         -----
-        This is actually (dudz)^2 + (dvdz)^2. So, if those variables
+        This is actually :math:`(du/dz)^{2} + (dv/dz)^{2}`. So, if those variables
         are not actually vertical derivatives of the horizontal
         velocity, then this is not the 'horizontal shear squared'.
-
-        See Also
-        --------
-        :math:`dudz`, :math:`dvdz`
         """
 
         shear2 = self.dudz(vel) ** 2 + self.dvdz(vel) ** 2
@@ -287,12 +292,12 @@ class ADPBinner(VelBinner):
 
     def doppler_noise_level(self, psd, pct_fN=0.8):
         """
-        Calculate bias due to Doppler noise using the noise floor
-        of the velocity spectra.
+        Calculate bias (in units of velocity) due to Doppler noise
+        using the noise floor of the velocity spectra.
 
         Parameters
         ----------
-        psd : xarray.DataArray (time, f)
+        psd : xarray.DataArray (time, freq)
           The velocity spectra from a single depth bin (range), typically
           in the mid-water range
         pct_fN : float
@@ -307,17 +312,17 @@ class ADPBinner(VelBinner):
         -----
         Approximates bias from
 
-        .. :math: \\sigma^{2}_{noise} = N x f_{c}
+        .. math:: \\sigma^{2}_{noise} = N * f_{c}
 
-        where :math: `\\sigma_{noise}` is the bias due to Doppler noise,
-        `N` is the constant variance or spectral density, and `f_{c}`
+        where :math:`\\sigma_{noise}` is the bias due to Doppler noise,
+        :math:`N` is the constant variance or spectral density, and :math:`f_{c}`
         is the characteristic frequency.
 
         The characteristic frequency is then found as
 
-        .. :math: f_{c} = pct_fN * (f_{s}/2)
+        .. math:: f_{c} = pct_fN * (f_{s}/2)
 
-        where `f_{s}/2` is the Nyquist frequency.
+        where :math:`f_{s}/2` is the Nyquist frequency.
 
 
         Richard, Jean-Baptiste, et al. "Method for identification of Doppler noise
@@ -375,8 +380,9 @@ class ADPBinner(VelBinner):
         ----------
         ds : xarray.Dataset
           Raw dataset in beam coordinates
-        beam_angle : int, default=ds.attrs['beam_angle']
-          ADCP beam angle in units of degrees
+        beam_angle : int
+          ADCP beam angle in units of degrees.
+          Default = ``ds.attrs['beam_angle']``
         noise : int or xarray.DataArray (time)
           Doppler noise level in units of m/s
         tilt_thresh: numeric
@@ -453,9 +459,10 @@ class ADPBinner(VelBinner):
           The orientation of the instrument, either 'up' or 'down'.
           If None, the orientation will be retrieved from the dataset or the
           instance's default orientation.
-        beam5 : bool, default=False
+        beam5 : bool
           A flag indicating whether a fifth beam is present.
           If True, the number 4 will be appended to the beam order.
+          Default = False
 
         Returns
         -------
@@ -466,6 +473,10 @@ class ADPBinner(VelBinner):
         phi3 : float, optional
           The mean of the pitch values in radians, negated for Nortek instruments.
           Only returned if 'beam5' is True.
+
+        Stacey, Mark T., Stephen G. Monismith, and Jon R. Burau. "Measurements
+        of Reynolds stress profiles in unstratified tidal flow." Journal of
+        Geophysical Research: Oceans 104.C5 (1999): 10933-10949.
         """
 
         if orientation is None:
@@ -537,12 +548,12 @@ class ADPBinner(VelBinner):
             )
 
         # Calculate along-beam velocity prime squared bar
-        bp2_ = np.empty((n_beams, len(ds.range), len(time))) * np.nan
+        bp2_ = np.empty((n_beams, len(ds["range"]), len(time))) * np.nan
         for i, beam in enumerate(beam_order):
             bp2_[i] = np.nanvar(self.reshape(beam_vel[beam]), axis=-1)
 
         # Remove doppler_noise
-        if type(noise) == type(ds.vel):
+        if type(noise) == type(ds["vel"]):
             noise = noise.values
         bp2_ -= noise**2
 
@@ -550,8 +561,8 @@ class ADPBinner(VelBinner):
 
     def reynolds_stress_4beam(self, ds, noise=None, orientation=None, beam_angle=None):
         """
-        Calculate the stresses from the covariance of along-beam
-        velocity measurements
+        Calculate the specific Reynolds shear stresses from the covariance of along-beam
+        velocity measurements (:math:`\\overline{u'w'}`, :math:`\\overline{v'w'}`).
 
         Parameters
         ----------
@@ -559,15 +570,17 @@ class ADPBinner(VelBinner):
           Raw dataset in beam coordinates
         noise : int or xarray.DataArray (time)
           Doppler noise level in units of m/s
-        orientation : str, default=ds.attrs['orientation']
+        orientation : str
           Direction ADCP is facing ('up' or 'down')
-        beam_angle : int, default=ds.attrs['beam_angle']
+          Default = ``ds.attrs['orientation']``
+        beam_angle : int
           ADCP beam angle in units of degrees
+          Default = ``ds.attrs['beam_angle']``
 
         Returns
         -------
         stress_vec : xarray.DataArray(s)
-          Stress vector with u'w'_ and v'w'_ components
+          Stress vector with :math:`\\overline{u'w'}` and :math:`\\overline{v'w'}` components
 
         Notes
         -----
@@ -575,10 +588,6 @@ class ADPBinner(VelBinner):
 
         Assumes ADCP instrument coordinate system is aligned with principal flow
         directions.
-
-        Stacey, Mark T., Stephen G. Monismith, and Jon R. Burau. "Measurements
-        of Reynolds stress profiles in unstratified tidal flow." Journal of
-        Geophysical Research: Oceans 104.C5 (1999): 10933-10949.
         """
 
         # Run through warnings
@@ -602,7 +611,7 @@ class ADPBinner(VelBinner):
             np.stack([upwp_ * np.nan, upwp_, vpwp_]).astype("float32"),
             coords={
                 "tau": ["upvp_", "upwp_", "vpwp_"],
-                "range": ds.range,
+                "range": ds["range"],
                 "time": time,
             },
             attrs={"units": "m2 s-2", "long_name": "Specific Reynolds Stress Vector"},
@@ -612,26 +621,31 @@ class ADPBinner(VelBinner):
         self, ds, noise=None, orientation=None, beam_angle=None, tke_only=False
     ):
         """
-        Calculate the stresses from the covariance of along-beam
-        velocity measurements
+        Calculate the specific Reynolds stresses from the covariance of along-beam
+        velocity measurements (:math:`\\overline{u'u'}`, :math:`\\overline{v'v'}`,
+        :math:`\\overline{w'w'}`, :math:`\\overline{u'w'}`, :math:`\\overline{v'w'}`).
 
         Parameters
         ----------
         ds : xarray.Dataset
           Raw dataset in beam coordinates
-        noise : int or xarray.DataArray with dim 'time', default=0
-          Doppler noise level in units of m/s
-        orientation : str, default=ds.attrs['orientation']
-          Direction ADCP is facing ('up' or 'down')
-        beam_angle : int, default=ds.attrs['beam_angle']
-          ADCP beam angle in units of degrees
-        tke_only : bool, default=False
-          If true, only calculates tke components
+        noise : int or xarray.DataArray ('time')
+          Doppler noise level in units of m/s.
+          Default = 0
+        orientation : str
+          Direction ADCP is facing ('up' or 'down').
+          Default = ``ds.attrs['orientation']``
+        beam_angle : int
+          ADCP beam angle in units of degrees.
+          Default = ``ds.attrs['beam_angle']``
+        tke_only : bool
+          If true, only calculates TKE components.
+          Default = False
 
         Returns
         -------
         tke_vec(, stress_vec) : xarray.DataArray or tuple[xarray.DataArray]
-          If tke_only is set to False, function returns `tke_vec` and `stress_vec`.
+          If `tke_only` is set to False, function returns `tke_vec` and `stress_vec`.
           Otherwise only `tke_vec` is returned
 
         Notes
@@ -639,14 +653,14 @@ class ADPBinner(VelBinner):
         Assumes small-angle approximation is applicable.
 
         Assumes ADCP instrument coordinate system is aligned with principal flow
-        directions, i.e. u', v' and w' are aligned to the instrument's (XYZ)
-        frame of reference.
+        directions, i.e., :math:`u'`, :math:`v'` and :math:`w'` are aligned to the
+        instrument's (XYZ) frame of reference.
 
-        The stress equations here utilize u'v'_ to account for small variations
-        in pitch and roll. u'v'_ cannot be directly calculated by a 5-beam ADCP,
-        so it is approximated by the covariance of `u` and `v`. The uncertainty
-        introduced by using this approximation is small if deviations from pitch
-        and roll are small (< 10 degrees).
+        The stress equations here utilize :math:`\\overline{u'v'}` to account for small
+        variations in pitch and roll. :math:`\\overline{u'v'}` cannot be directly calculated
+        by a 5-beam ADCP, (there are only 5 beams so only 5 unknowns can be found) so it is
+        approximated by the covariance of :math:`u` and :math:`v`. This approximation assumes
+        :math:`\\overline{u'v'}` is similar in magnitude to the other stress components.
 
         Dewey, R., and S. Stringer. "Reynolds stresses and turbulent kinetic
         energy estimates from various ADCP beam configurations: Theory." J. of
@@ -663,7 +677,7 @@ class ADPBinner(VelBinner):
 
         # Run through warnings
         b_angle, noise = self._stress_func_warnings(
-            ds, beam_angle, noise, tilt_thresh=10
+            ds, beam_angle, noise, tilt_thresh=5
         )
 
         # Fetch beam order
@@ -713,7 +727,7 @@ class ADPBinner(VelBinner):
             np.stack([upup_, vpvp_, wpwp_]).astype("float32"),
             coords={
                 "tke": ["upup_", "vpvp_", "wpwp_"],
-                "range": ds.range,
+                "range": ds["range"],
                 "time": time,
             },
             attrs={
@@ -752,7 +766,7 @@ class ADPBinner(VelBinner):
                 np.stack([upvp_, upwp_, vpwp_]).astype("float32"),
                 coords={
                     "tau": ["upvp_", "upwp_", "vpwp_"],
-                    "range": ds.range,
+                    "range": ds["range"],
                     "time": time,
                 },
                 attrs={
@@ -762,49 +776,6 @@ class ADPBinner(VelBinner):
             )
 
             return tke_vec, stress_vec
-
-    def total_turbulent_kinetic_energy(
-        self, ds, noise=None, orientation=None, beam_angle=None
-    ):
-        """
-        Calculate magnitude of turbulent kinetic energy from 5-beam ADCP.
-
-        Parameters
-        ----------
-        ds : xarray.Dataset
-          Raw dataset in beam coordinates
-        noise : int or xarray.DataArray, default=0 (time)
-          Doppler noise level in units of m/s
-        orientation : str, default=ds.attrs['orientation']
-          Direction ADCP is facing ('up' or 'down')
-        beam_angle : int, default=ds.attrs['beam_angle']
-          ADCP beam angle in units of degrees
-
-        Returns
-        -------
-        tke : xarray.DataArray
-          Turbulent kinetic energy magnitude
-
-        Notes
-        -----
-        This function is a wrapper around 'calc_stress_5beam' that then
-        combines the TKE components.
-
-        Warning: the integral length scale of turbulence captured by the
-        ADCP measurements (i.e. the size of turbulent structures) increases
-        with increasing range from the instrument.
-        """
-
-        tke_vec = self.stress_tensor_5beam(
-            ds, noise, orientation, beam_angle, tke_only=True
-        )
-
-        tke = tke_vec.sum("tke") / 2
-        tke.attrs["units"] = "m2 s-2"
-        tke.attrs["long_name"] = ("TKE Magnitude",)
-        tke.attrs["standard_name"] = "specific_turbulent_kinetic_energy_of_sea_water"
-
-        return tke.astype("float32")
 
     def check_turbulence_cascade_slope(self, psd, freq_range=[0.2, 0.4]):
         """
@@ -817,9 +788,10 @@ class ADPBinner(VelBinner):
         ----------
         psd : xarray.DataArray ([[range,] time,] freq)
           The power spectral density (1D, 2D or 3D)
-        freq_range : iterable(2) (default: [6.28, 12.57])
+        freq_range : iterable(2)
           The range over which the isotropic turbulence cascade occurs, in
-          units of the psd frequency vector (Hz or rad/s)
+          units of the psd frequency vector (Hz or rad/s).
+          Default = [6.28, 12.57]
 
         Returns
         -------
@@ -846,7 +818,7 @@ class ADPBinner(VelBinner):
 
         Where :math:`y` is S(k) or S(f), :math:`x` is k or f, :math:`m`
         is the slope (ideally -5/3), and :math:`10^{b}` is the intercept of
-        y at x^m=1.
+        :math:`y` at :math:`x^{m}=1'.
         """
 
         if not isinstance(psd, xr.DataArray):
@@ -872,23 +844,30 @@ class ADPBinner(VelBinner):
 
         return m, b
 
-    def dissipation_rate_LT83(self, psd, U_mag, freq_range=[0.2, 0.4], noise=None):
+    def dissipation_rate_LT83(
+        self, psd, U_mag, freq_range=[0.2, 0.4], k_constant=0.67, noise=None
+    ):
         """
         Calculate the TKE dissipation rate from the velocity spectra.
 
         Parameters
         ----------
-        psd : xarray.DataArray (time,f)
-          The power spectral density from a single depth bin (range)
+        psd : xarray.DataArray (time, freq)
+          The power spectral density from the vertical beam and depth bin (range)
         U_mag : xarray.DataArray (time)
-          The bin-averaged horizontal velocity (a.k.a. speed) from a single depth bin (range)
+          The bin-averaged horizontal velocity (a.k.a. speed) from a single
+          depth bin (range) (i.e., computed using
+          :func:`mhkit.dolfyn.velocity.Velocity.U_mag`)
         f_range : iterable(2)
           The range over which to integrate/average the spectrum, in units
           of the psd frequency vector (Hz or rad/s)
+        k_constant : float or iterable(3)
+          Kolmogorov Constant (\\alpha in Notes section below) to use. Default
+          \\alpha is 0.67.
         noise : float or array-like
-          Instrument noise level in same units as velocity. Typically
-          found from `adp.turbulence.doppler_noise_level`.
-          Default: None.
+          Instrument noise level in same units as velocity. Typically found from
+          :func:`doppler_noise_level <mhkit.dolfyn.adp.turbulence.ADPBinner.doppler_noise_level>`
+          Default = None
 
         Returns
         -------
@@ -901,10 +880,9 @@ class ADPBinner(VelBinner):
 
         .. math:: S(k) = \\alpha \\epsilon^{2/3} k^{-5/3} + N
 
-        where :math:`\\alpha = 0.5` (1.5 for all three velocity
-        components), `k` is wavenumber, `S(k)` is the turbulent
-        kinetic energy spectrum, and `N' is the doppler noise level
-        associated with the TKE spectrum.
+        where :math:`\\alpha` is the Kolmogorov constant (0.67 for vertical direction),
+        `k` is wavenumber, `S(k)` is the turbulent kinetic energy spectrum, and
+        `N' is the doppler noise level associated with the TKE spectrum.
 
         With :math:`k \\rightarrow \\omega / U`, then -- to preserve variance --
         :math:`S(k) = U S(\\omega)`, and so this becomes:
@@ -919,15 +897,19 @@ class ADPBinner(VelBinner):
         by a random wave field". JPO, 1983, vol13, pp2000-2007.
         """
 
+        if not isinstance(psd, xr.DataArray):
+            raise TypeError("`psd` must be an instance of `xarray.DataArray`.")
         if len(psd.shape) != 2:
-            raise Exception("PSD should be 2-dimensional (time, frequency)")
+            raise Exception("`psd` should be 2-dimensional (time, frequency)")
         if len(U_mag.shape) != 1:
             raise Exception("U_mag should be 1-dimensional (time)")
         if not hasattr(freq_range, "__iter__") or len(freq_range) != 2:
             raise ValueError("`freq_range` must be an iterable of length 2.")
+        if np.size(k_constant) != 1:
+            raise ValueError("`k_constant` should be a single value.")
         if noise is not None:
             if np.shape(noise)[0] != np.shape(psd)[0]:
-                raise Exception("Noise should have same first dimension as PSD")
+                raise Exception("Noise should have same first dimension as `psd`")
         else:
             noise = np.array(0)
 
@@ -941,12 +923,15 @@ class ADPBinner(VelBinner):
         idx = np.where((freq_range[0] < freq) & (freq < freq_range[1]))
         idx = idx[0]
 
+        # Set the correct magnitude whether the frequency is in Hz or rad/s
         if freq.units == "Hz":
             U = U_mag / (2 * np.pi)
         else:
             U = U_mag
 
-        a = 0.5
+        # Use the transverse value derived from the Kolmogorov constant
+        a = k_constant
+        # Calculate dissipation
         out = (psd[:, idx] * freq[idx] ** (5 / 3) / a).mean(axis=-1) ** (
             3 / 2
         ) / U.values
@@ -972,10 +957,11 @@ class ADPBinner(VelBinner):
         vel_raw : xarray.DataArray
           The raw beam velocity data (one beam, last dimension time) upon
           which to perform the SF technique.
-        r_range : numeric, default=[1,5]
+        r_range : numeric,
           Range of r in [m] to calc dissipation across. Low end of range should be
           bin size, upper end of range is limited to the length of largest eddies
           in the inertial subrange.
+          Default = [1, 5]
 
         Returns
         -------
@@ -1000,7 +986,7 @@ class ADPBinner(VelBinner):
 
         where `u'` is the velocity fluctuation `z` is the depth bin,
         `r` is the separation between depth bins, and [] denotes a time average
-        (size 'ADPBinner.n_bin').
+        (size 'self.n_bin').
 
         The stucture function can then be used to estimate the dissipation rate:
 
@@ -1027,11 +1013,11 @@ class ADPBinner(VelBinner):
             )
 
         if "range_b5" in vel_raw.dims:
-            rng = vel_raw.range_b5
-            time = self.mean(vel_raw.time_b5.values)
+            rng = vel_raw["range_b5"]
+            time = self.mean(vel_raw["time_b5"].values)
         else:
-            rng = vel_raw.range
-            time = self.mean(vel_raw.time.values)
+            rng = vel_raw["range"]
+            time = self.mean(vel_raw["time"].values)
 
         # bm shape is [range, ensemble time, 'data within ensemble']
         bm = self.demean(vel_raw.values)  # take out the ensemble mean
@@ -1055,7 +1041,7 @@ class ADPBinner(VelBinner):
 
                 # have to insert 0/nan in first bin to match length
                 spaces = np.empty((i,))
-                spaces[:] = np.NaN
+                spaces[:] = np.nan
                 D[:, i - 1, idx] = np.concatenate((spaces, d))
 
         # find best fit line y = mx + b (aka D(z,r) = A*r^2/3 + N) to solve
@@ -1118,12 +1104,12 @@ class ADPBinner(VelBinner):
         ds_avg : xarray.Dataset
           Bin-averaged dataset containing `stress_vec`
         upwp_ : xarray.DataArray
-          First component of Reynolds shear stress vector, "u-prime v-prime bar"
+          Second component of Reynolds shear stress vector, :math:`\\overline{u'w'}`
           Ex `ds_avg['stress_vec'].sel(tau='upwp_')`
-        z_inds : slice(int,int)
+        z_inds : slice(int, int)
           Depth indices to use for profile. Default = slice(1, 5)
-        H : numeric (default=`ds_avg.depth`)
-          Total water depth
+        H : numeric
+          Total water depth. Default = `ds_avg["depth"]`
 
         Returns
         -------
@@ -1139,7 +1125,7 @@ class ADPBinner(VelBinner):
             raise TypeError("`z_inds` must be an instance of `slice(int,int)`.")
 
         if not H:
-            H = ds_avg.depth.values
+            H = ds_avg["depth"].values
         z = ds_avg["range"].values
         upwp_ = upwp_.values
 
@@ -1151,6 +1137,6 @@ class ADPBinner(VelBinner):
 
         return xr.DataArray(
             u_star.astype("float32"),
-            coords={"time": ds_avg.time},
+            coords={"time": ds_avg["time"]},
             attrs={"units": "m s-1", "long_name": "Friction Velocity"},
         )

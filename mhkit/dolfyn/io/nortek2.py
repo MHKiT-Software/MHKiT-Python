@@ -1,9 +1,9 @@
-import numpy as np
-from struct import unpack, calcsize
-import warnings
-from pathlib import Path
-import logging
 import json
+import logging
+import warnings
+from struct import unpack, calcsize
+from pathlib import Path
+import numpy as np
 
 from . import nortek2_defs as defs
 from . import nortek2_lib as lib
@@ -21,7 +21,7 @@ def read_signature(
     rebuild_index=False,
     debug=False,
     dual_profile=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Read a Nortek Signature (.ad2cp) datafile
@@ -91,7 +91,7 @@ def read_signature(
     t_list = [t for t in coords if "time" in t]
     for ky in t_list:
         tdat = coords[ky]
-        tdat[tdat == 0] = np.NaN
+        tdat[tdat == 0] = np.nan
         if np.isnan(tdat).any():
             tag = ky.lstrip("time")
             warnings.warn(
@@ -113,9 +113,13 @@ def read_signature(
     ds = _create_dataset(out)
     ds = _set_coords(ds, ref_frame=ds.coord_sys)
 
-    if "orientmat" not in ds:
+    if ("orientmat" not in ds) and ("heading" in ds):
         ds["orientmat"] = _euler2orient(
             ds["time"], ds["heading"], ds["pitch"], ds["roll"]
+        )
+    elif ("orientmat_avg" not in ds) and ("heading_avg" in ds):
+        ds["orientmat_avg"] = _euler2orient(
+            ds["time_avg"], ds["heading_avg"], ds["pitch_avg"], ds["roll_avg"]
         )
 
     if declin is not None:
@@ -140,30 +144,22 @@ def read_signature(
 
 
 class _Ad2cpReader:
-    def __init__(
-        self,
-        fname,
-        endian=None,
-        bufsize=None,
-        rebuild_index=False,
-        debug=False,
-        dual_profile=False,
-    ):
+    def __init__(self, fname, rebuild_index, debug, dual_profile):
         self.fname = fname
         self.debug = debug
-        self._check_nortek(endian)
-        self.f.seek(0, 2)  # Seek to end
-        self._eof = self.f.tell()
-        self.start_pos = self._check_header()
+        # Open file, check endianess, and find filelength
+        self._check_nortek2()
+        # Generate indexing file
         self._index, self._dp = lib.get_index(
             fname,
-            pos=self.start_pos,
+            pos=0,
             eof=self._eof,
             rebuild=rebuild_index,
             debug=debug,
             dp=dual_profile,
         )
-        self._reopen(bufsize)
+        # Open file for reading
+        self._open()
         self.filehead_config = self._read_filehead_config_string()
         self._ens_pos = self._index["pos"][
             lib._boolarray_firstensemble_ping(self._index)
@@ -173,50 +169,20 @@ class _Ad2cpReader:
         self._init_burst_readers()
         self.unknown_ID_count = {}
 
-    def _calc_lastblock_iswhole(
-        self,
-    ):
-        blocksize, blocksize_count = np.unique(
-            np.diff(self._ens_pos), return_counts=True
-        )
-        standard_blocksize = blocksize[blocksize_count.argmax()]
-        return (self._eof - self._ens_pos[-1]) == standard_blocksize
-
-    def _check_nortek(self, endian):
-        self._reopen(10)
+    def _check_nortek2(self):
+        self._open(10)
         byts = self.f.read(2)
-        if endian is None:
-            if unpack("<" + "BB", byts) == (165, 10):
-                endian = "<"
-            elif unpack(">" + "BB", byts) == (165, 10):
-                endian = ">"
-            else:
-                raise Exception(
-                    "I/O error: could not determine the 'endianness' "
-                    "of the file.  Are you sure this is a Nortek "
-                    "AD2CP file?"
-                )
-        self.endian = endian
+        if not (unpack("<BB", byts) == (165, 10)):
+            raise Exception(
+                "I/O error: could not determine the 'endianness' "
+                "of the file.  Are you sure this is a Nortek "
+                "AD2CP file?"
+            )
+        self.f.seek(0, 2)  # Seek to end
+        self._eof = self.f.tell()
+        self.f.close()
 
-    def _check_header(self):
-        def find_all(s, c):
-            idx = s.find(c)
-            while idx != -1:
-                yield idx
-                idx = s.find(c, idx + 1)
-
-        # Open the entire file
-        self._reopen(self._eof)
-        pk = self.f.peek(1)
-        # Search for multiple saved headers
-        found = [i for i in find_all(pk, b"GETCLOCKSTR")]
-        if len(found) < 2:
-            return 0
-        else:
-            start_idx = found[-1] - 11
-            return start_idx
-
-    def _reopen(self, bufsize=None):
+    def _open(self, bufsize=None):
         if bufsize is None:
             bufsize = 1000000
         try:
@@ -261,6 +227,13 @@ class _Ad2cpReader:
             else:
                 out2[ky] = out[ky]
         return out2
+
+    def _calc_lastblock_iswhole(self):
+        blocksize, blocksize_count = np.unique(
+            np.diff(self._ens_pos), return_counts=True
+        )
+        standard_blocksize = blocksize[blocksize_count.argmax()]
+        return (self._eof - self._ens_pos[-1]) == standard_blocksize
 
     def _init_burst_readers(
         self,
@@ -315,6 +288,9 @@ class _Ad2cpReader:
 
     def _read_hdr(self, do_cs=False):
         res = defs.header.read2dict(self.f, cs=do_cs)
+        if res["hsz"] == 12:
+            self.f.seek(-10, 1)
+            res = defs.header12.read2dict(self.f, cs=do_cs)
         if res["sync"] != 165:
             raise Exception("Out of sync!")
         return res
@@ -478,9 +454,7 @@ def _altraw_reorg(outdat, tag=""):
     outdat["data_vars"].pop("status_altraw" + tag)
     status_alt = lib._alt_status2data(outdat["data_vars"]["status_alt" + tag])
     for ky in status_alt:
-        outdat["attrs"][ky + tag] = lib._collapse(
-            status_alt[ky].astype("uint8"), name=ky
-        )
+        outdat["attrs"][ky + tag] = int(lib._collapse(status_alt[ky], name=ky))
     outdat["data_vars"].pop("status_alt" + tag)
 
     # Power level index
@@ -543,7 +517,7 @@ def _reorg(dat):
             lib._collapse(dnow["config"], exclude=collapse_exclude, name="config")
         )
         outdat["coords"]["time" + tag] = lib._calc_time(
-            dnow["year"] + 1900,
+            dnow["year"] + np.uint16(1900),
             dnow["month"],
             dnow["day"],
             dnow["hour"],
@@ -557,19 +531,29 @@ def _reorg(dat):
             ),
             21,  # always 21 here
         )
-        cfg["n_cells" + tag] = tmp["n_cells"]
+        cfg["n_cells" + tag] = int(tmp["n_cells"])
         cfg["coord_sys_axes" + tag] = tmp["cy"]
-        cfg["n_beams" + tag] = tmp["n_beams"]
-        cfg["ambig_vel" + tag] = lib._collapse(dnow["ambig_vel"], name="ambig_vel")
+        cfg["n_beams" + tag] = int(tmp["n_beams"])
+        cfg["ambig_vel" + tag] = round(
+            float(lib._collapse(dnow["ambig_vel"], name="ambig_vel")), 3
+        )
 
         for ky in [
             "SerialNum",
+            "nominal_corr",
+        ]:
+            cfg[ky + tag] = int(
+                lib._collapse(dnow[ky], exclude=collapse_exclude, name=ky)
+            )
+
+        for ky in [
             "cell_size",
             "blank_dist",
-            "nominal_corr",
             "power_level_dB",
         ]:
-            cfg[ky + tag] = lib._collapse(dnow[ky], exclude=collapse_exclude, name=ky)
+            cfg[ky + tag] = float(
+                lib._collapse(dnow[ky], exclude=collapse_exclude, name=ky)
+            )
 
         for ky in [
             "c_sound",
@@ -674,7 +658,7 @@ def _reorg(dat):
 
     # Processor idle state - need to save as 1/0 per netcdf attribute limitations
     for ky in status0_data:
-        outdat["attrs"][ky] = lib._collapse(status0_data[ky].astype("uint8"), name=ky)
+        outdat["attrs"][ky] = int(lib._collapse(status0_data[ky], name=ky))
 
     # Remove status0 variables - keep status variables as they are useful for finding missing pings
     [outdat["data_vars"].pop(var) for var in status0_vars]
@@ -749,11 +733,18 @@ def _reduce(data):
         dc["range_avg"] = (np.arange(dv["vel_avg"].shape[1]) + 1) * da[
             "cell_size_avg"
         ] + da["blank_dist_avg"]
-        if "orientmat" not in dv:
-            dv["orientmat"] = dv.pop("orientmat_avg")
         tmat = da["filehead_config"]["XFAVG"]
-        da["fs"] = da["filehead_config"]["PLAN"]["MIAVG"]
-        da["avg_interval_sec"] = da["filehead_config"]["AVG"]["AI"]
+        da["duty_cycle_interval"] = dci = da["filehead_config"]["PLAN"]["MIAVG"]
+        da["duty_cycle_n_burst"] = da["filehead_config"]["AVG"]["NPING"]
+        da["duty_cycle_avg_interval"] = dca = da["filehead_config"]["AVG"]["AI"]
+        fs = da["duty_cycle_n_burst"] / da["duty_cycle_avg_interval"]
+        da["duty_cycle_description"] = (
+            f"Measurements collected for {dca / 60} minutes at {fs} Hz every {dci / 60} minutes"
+        )
+        if "fs" in da:
+            da["fs_avg"] = fs
+        else:
+            da["fs"] = fs
         da["bandwidth"] = da["filehead_config"]["AVG"]["BW"]
     if "vel_b5" in dv:
         # vel_b5 is sometimes shape 2 and sometimes shape 3
@@ -784,71 +775,70 @@ def _reduce(data):
             tm[irow, icol] = tmat["M" + str(irow + 1) + str(icol + 1)]
     dv["beam2inst_orientmat"] = tm
 
-    # If burst velocity isn't used, need to copy one for 'time'
-    if "time" not in dc:
-        for val in dc:
-            if "time" in val:
-                time = val
-        dc["time"] = dc[time]
-
 
 def split_dp_datasets(ds):
     """
     Splits a dataset containing dual profiles into individual profiles
     """
 
-    # Figure out which variables belong to which profile based on length of time variables
-    t_dict = {}
-    for t in ds.coords:
-        if "time" in t:
-            t_dict[t] = ds[t].size
-
-    other_coords = []
-    for key, val in t_dict.items():
-        if val != t_dict["time"]:
-            if key.endswith("altraw"):
-                # altraw goes with burst, altraw_avg goes with avg
-                continue
-            other_coords.append(key)
-    # Fetch variables, coordinates, and attrs for second profiling configuration
-    other_vars = [
-        v for v in ds.data_vars if any(x in ds[v].coords for x in other_coords)
-    ]
-    other_tags = [s.split("_")[-1] for s in other_coords]
-    other_coords += [v for v in ds.coords if any(x in v for x in other_tags)]
-    other_attrs = [s for s in ds.attrs if any(x in s for x in other_tags)]
-    critical_attrs = [
-        "inst_model",
-        "inst_make",
-        "inst_type",
-        "fs",
-        "orientation",
-        "orient_status",
-        "has_imu",
-        "beam_angle",
-    ]
-
-    # Create second dataset
     ds2 = type(ds)()
-    for a in other_attrs + critical_attrs:
-        ds2.attrs[a] = ds.attrs[a]
-    for v in other_vars:
-        ds2[v] = ds[v]
-    # Set rotate_vars
-    rotate_vars2 = [v for v in ds.attrs["rotate_vars"] if v in other_vars]
-    ds2.attrs["rotate_vars"] = rotate_vars2
-    # Set orientation matricies
-    ds2["beam2inst_orientmat"] = ds["beam2inst_orientmat"]
-    ds2 = ds2.rename({"orientmat_" + other_tags[0]: "orientmat"})
-    # Set original coordinate system
-    cy = ds2.attrs["coord_sys_axes_" + other_tags[0]]
-    ds2.attrs["coord_sys"] = {"XYZ": "inst", "ENU": "earth", "beam": "beam"}[cy]
-    ds2 = _set_coords(ds2, ref_frame=ds2.coord_sys)
+    # Get averaged time variables
+    other_coords = [t for t in ds.coords if "_avg" in t]
+    # Check if ice tracking was used
+    if ("vel" in ds.data_vars) and ("time_bt" in ds.coords):
+        if ds["time"].size != ds["time_bt"].size:
+            other_coords.append("time_bt")
 
-    # Clean up first dataset
-    [ds.attrs.pop(ky) for ky in other_attrs]
-    ds = ds.drop_vars(other_vars + other_coords)
-    for itm in rotate_vars2:
-        ds.attrs["rotate_vars"].remove(itm)
+    if other_coords:
+        # Fetch variables, coordinates, and attrs for second profiling configuration
+        other_vars = [
+            v
+            for v in ds.data_vars
+            if any(x in ds[v].coords for x in other_coords)
+            or any(ds[v].shape[-1] == ds[x].size for x in other_coords)
+        ]
+        other_attrs = [s for s in ds.attrs if ("_avg" in s) or ("duty_cycle" in s)]
+        critical_attrs = [
+            "inst_model",
+            "inst_make",
+            "inst_type",
+            "fs",
+            "orientation",
+            "orient_status",
+            "has_imu",
+            "beam_angle",
+        ]
 
-    return ds, ds2
+        # Create second dataset
+        for a in other_attrs + critical_attrs:
+            ds2.attrs[a] = ds.attrs[a]
+        for v in other_vars:
+            ds2[v] = ds[v]
+        # Set rotate_vars
+        rotate_vars2 = [v for v in ds.attrs["rotate_vars"] if v in other_vars]
+        ds2.attrs["rotate_vars"] = rotate_vars2
+        # Set orientation matricies
+        ds2["beam2inst_orientmat"] = ds["beam2inst_orientmat"]
+        # IMU versions have 'orientmat_avg' variable, but non-IMU versions do not
+        if not ds.attrs["has_imu"]:
+            ds2["orientmat_avg"] = _euler2orient(
+                ds2["time_avg"], ds2["heading_avg"], ds2["pitch_avg"], ds2["roll_avg"]
+            )
+        # Set original coordinate system
+        cy = ds2.attrs["coord_sys_axes_avg"]
+        ds2.attrs["coord_sys"] = {"XYZ": "inst", "ENU": "earth", "beam": "beam"}[cy]
+        # Need to add beam coordinate
+        if "beam" not in ds2.dims:
+            ds2 = ds2.assign_coords({"beam": ds["beam"], "dir": ds["dir"]})
+        ds2 = _set_coords(ds2, ref_frame=ds2.coord_sys)
+
+        # Clean up first dataset
+        [ds.attrs.pop(ky) for ky in other_attrs]
+        ds = ds.drop_vars(other_vars + other_coords)
+        for itm in rotate_vars2:
+            ds.attrs["rotate_vars"].remove(itm)
+
+    if ds2:
+        return ds, ds2
+    else:
+        return ds

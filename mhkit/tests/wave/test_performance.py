@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import unittest
 import os
+import pytest
 
 
 testdir = dirname(abspath(__file__))
@@ -46,20 +47,27 @@ class TestPerformance(unittest.TestCase):
     def tearDownClass(self):
         pass
 
-    def test_capture_length(self):
-        L = wave.performance.capture_length(self.data["P"], self.data["J"])
-        L_stats = wave.performance.statistics(L)
+    def test_capture_width(self):
+        with pytest.warns(FutureWarning):
+            CW = wave.performance.capture_length(self.data["P"], self.data["J"])
+        CW_stats = wave.performance.statistics(CW)
 
-        self.assertAlmostEqual(L_stats["mean"], 0.6676, 3)
+        self.assertAlmostEqual(CW_stats["mean"], 0.6676, 3)
 
-    def test_capture_length_matrix(self):
-        L = wave.performance.capture_length(self.data["P"], self.data["J"])
-        LM = wave.performance.capture_length_matrix(
-            self.data["Hm0"], self.data["Te"], L, "std", self.Hm0_bins, self.Te_bins
-        )
+    def test_capture_width_matrix(self):
+        CW = wave.performance.capture_width(self.data["P"], self.data["J"])
+        with pytest.warns(FutureWarning):
+            CWM = wave.performance.capture_length_maxtrix(
+                self.data["Hm0"],
+                self.data["Te"],
+                CW,
+                "std",
+                self.Hm0_bins,
+                self.Te_bins,
+            )
 
-        self.assertEqual(LM.shape, (38, 9))
-        self.assertEqual(LM.isna().sum().sum(), 131)
+        self.assertEqual(CWM.shape, (38, 9))
+        self.assertEqual(CWM.isna().sum().sum(), 131)
 
     def test_wave_energy_flux_matrix(self):
         JM = wave.performance.wave_energy_flux_matrix(
@@ -75,9 +83,9 @@ class TestPerformance(unittest.TestCase):
         self.assertEqual(JM.isna().sum().sum(), 131)
 
     def test_power_matrix(self):
-        L = wave.performance.capture_length(self.data["P"], self.data["J"])
-        LM = wave.performance.capture_length_matrix(
-            self.data["Hm0"], self.data["Te"], L, "mean", self.Hm0_bins, self.Te_bins
+        CW = wave.performance.capture_width(self.data["P"], self.data["J"])
+        CWM = wave.performance.capture_width_matrix(
+            self.data["Hm0"], self.data["Te"], CW, "mean", self.Hm0_bins, self.Te_bins
         )
         JM = wave.performance.wave_energy_flux_matrix(
             self.data["Hm0"],
@@ -87,15 +95,15 @@ class TestPerformance(unittest.TestCase):
             self.Hm0_bins,
             self.Te_bins,
         )
-        PM = wave.performance.power_matrix(LM, JM)
+        PM = wave.performance.power_matrix(CWM, JM)
 
         self.assertEqual(PM.shape, (38, 9))
         self.assertEqual(PM.isna().sum().sum(), 131)
 
     def test_mean_annual_energy_production(self):
-        L = wave.performance.capture_length(self.data["P"], self.data["J"])
+        CW = wave.performance.capture_width(self.data["P"], self.data["J"])
         maep = wave.performance.mean_annual_energy_production_timeseries(
-            L, self.data["J"]
+            CW, self.data["J"]
         )
 
         self.assertAlmostEqual(maep, 1754020.077, 2)
@@ -122,10 +130,11 @@ class TestPerformance(unittest.TestCase):
         self.assertTrue(isfile(filename))
 
     def test_powerperformance_workflow(self):
-        filename = abspath(join(plotdir, "Capture Length Matrix mean.png"))
+        filename = abspath(join(plotdir, "Capture Width Matrix mean.png"))
         if isfile(filename):
             os.remove(filename)
         P = pd.Series(np.random.normal(200, 40, 743), index=self.S.columns)
+        P.index.name = "variable"
         statistic = ["mean"]
         savepath = plotdir
         show_values = True

@@ -1,5 +1,5 @@
 """
-This module provides functionalities to calculate and analyze Most 
+This module provides functionalities to calculate and analyze Most
 Likely Extreme Response (MLER) coefficients for wave energy converter
 design and risk assessment. It includes functions to:
 
@@ -7,10 +7,10 @@ design and risk assessment. It includes functions to:
     spectrum and a response Amplitude Response Operator (ARO).
   - Define and manipulate simulation parameters (`mler_simulation`) used
     across various MLER analyses.
-  - Renormalize the incoming amplitude of the MLER wave 
+  - Renormalize the incoming amplitude of the MLER wave
     (`mler_wave_amp_normalize`) to match the desired peak height for more
     accurate modeling and analysis.
-  - Export the wave amplitude time series (`mler_export_time_series`) 
+  - Export the wave amplitude time series (`mler_export_time_series`)
     based on the calculated MLER coefficients for further analysis or
     visualization.
 """
@@ -61,9 +61,9 @@ def _calculate_spectral_values(
     spectrum_r = np.abs(rao_array) ** 2 * (2 * wave_spectrum)
 
     # Calculate spectral moments
-    m_0 = frequency_moment(pd.Series(spectrum_r, index=freq_hz), 0).iloc[0, 0]
-    m_1 = frequency_moment(pd.Series(spectrum_r, index=freq_hz), 1).iloc[0, 0]
-    m_2 = frequency_moment(pd.Series(spectrum_r, index=freq_hz), 2).iloc[0, 0]
+    m_0 = frequency_moment(pd.Series(spectrum_r, index=freq_hz), 0).item()
+    m_1 = frequency_moment(pd.Series(spectrum_r, index=freq_hz), 1).item()
+    m_2 = frequency_moment(pd.Series(spectrum_r, index=freq_hz), 2).item()
 
     # Calculate coefficient A_{R,n}
     coeff_a_rn = (
@@ -82,7 +82,7 @@ def _calculate_spectral_values(
 
 
 def mler_coefficients(
-    rao: Union[NDArray[np.float_], pd.Series, List[float], List[int], xr.DataArray],
+    rao: Union[NDArray[np.float64], pd.Series, List[float], List[int], xr.DataArray],
     wave_spectrum: Union[pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset],
     response_desired: Union[int, float],
     frequency_dimension: str = "",
@@ -269,7 +269,7 @@ def mler_wave_amp_normalize(
     wave_amp: float,
     mler: Union[pd.DataFrame, xr.Dataset],
     sim: SimulationParameters,
-    k: Union[NDArray[np.float_], List[float], pd.Series],
+    k: Union[NDArray[np.float64], List[float], pd.Series],
     **kwargs: Any,
 ) -> Union[pd.DataFrame, xr.Dataset]:
     """
@@ -363,10 +363,10 @@ def mler_wave_amp_normalize(
 
 
 def mler_export_time_series(
-    rao: Union[NDArray[np.float_], List[float], pd.Series],
+    rao: Union[NDArray[np.float64], List[float], pd.Series],
     mler: Union[pd.DataFrame, xr.Dataset],
     sim: SimulationParameters,
-    k: Union[NDArray[np.float_], List[float], pd.Series],
+    k: Union[NDArray[np.float64], List[float], pd.Series],
     **kwargs: Any,
 ) -> Union[pd.DataFrame, xr.Dataset]:
     """

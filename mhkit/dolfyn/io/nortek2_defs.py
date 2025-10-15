@@ -1,6 +1,7 @@
-import numpy as np
 from copy import copy
 from struct import Struct
+import numpy as np
+
 from . import nortek2_lib as lib
 
 
@@ -13,7 +14,7 @@ cs0 = int("0xb58c", 0)
 def _nans(*args, **kwargs):
     out = np.empty(*args, **kwargs)
     if out.dtype.kind == "f":
-        out[:] = np.NaN
+        out[:] = np.nan
     else:
         out[:] = 0
     return out
@@ -165,6 +166,7 @@ class _LinFunc:
         return array
 
 
+# 10 byte header
 header = _DataDef(
     [
         ("sync", "B", [], None),
@@ -172,6 +174,19 @@ header = _DataDef(
         ("id", "B", [], None),
         ("fam", "B", [], None),
         ("sz", "H", [], None),
+        ("cs", "H", [], None),
+        ("hcs", "H", [], None),
+    ]
+)
+
+# 12 byte header
+header12 = _DataDef(
+    [
+        ("sync", "B", [], None),
+        ("hsz", "B", [], None),
+        ("id", "B", [], None),
+        ("fam", "B", [], None),
+        ("sz", "I", [], None),
         ("cs", "H", [], None),
         ("hcs", "H", [], None),
     ]

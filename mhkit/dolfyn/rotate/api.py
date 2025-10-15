@@ -246,13 +246,29 @@ def set_declination(ds, declin, inplace=True):
     else:
         rotate2earth = False
 
-    ds["orientmat"].values = np.einsum(
-        "kj...,ij->ki...",
-        ds["orientmat"].values,
-        Rdec,
-    )
+    # Should only be one of these:
+    if "orientmat" in ds:
+        ds["orientmat"].values = np.einsum(
+            "kj...,ij->ki...",
+            ds["orientmat"].values,
+            Rdec,
+        ).astype(np.float32)
+    elif "orientmat_avg" in ds:
+        ds["orientmat_avg"].values = np.einsum(
+            "kj...,ij->ki...",
+            ds["orientmat_avg"].values,
+            Rdec,
+        ).astype(np.float32)
+
     if "heading" in ds:
-        ds["heading"] += angle
+        heading = ds["heading"] + angle
+        heading[heading > 180] -= 360
+        ds["heading"].values = heading
+    elif "heading_avg" in ds:
+        heading = ds["heading_avg"] + angle
+        heading[heading > 180] -= 360
+        ds["heading_avg"].values = heading
+
     if rotate2earth:
         rotate2(ds, "earth", inplace=True)
     if "principal_heading" in ds.attrs:

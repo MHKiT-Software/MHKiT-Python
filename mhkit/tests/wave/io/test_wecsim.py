@@ -56,7 +56,7 @@ class TestWECSim(unittest.TestCase):
         )
         self.assertEqual(ws_output["wave"]["elevation"].name, "elevation")
         self.assertEqual(
-            ws_output["bodies"]["body1"]["position_dof1"].name, "position_dof1"
+            ws_output["bodies"].sel(body=1, dof=1)["position"].name, "position"
         )
         self.assertEqual(len(ws_output["mooring"]), 0)
         self.assertEqual(len(ws_output["moorDyn"]), 0)
