@@ -286,19 +286,11 @@ jobs:
           name: data
           path: ~/.cache/mhkit
 
-      - name: Install system dependencies
-        if: runner.os == 'Linux'
-        run: sudo apt-get install -y libhdf5-dev libnetcdf-dev
-
       - name: Update and install packages
         shell: bash -l {0}
         run: |
           python -m pip install --upgrade pip wheel
           pip install -e  ".[all,dev]"
-
-      - name: Reinstall h5py and netCDF4 with system libraries
-        if: runner.os == 'Linux'
-        run: "pip install --force-reinstall --no-binary=:all: h5py netCDF4"
 
       - name: Install setuptools for Python 3.12
         if: matrix.python-version == '3.12'
