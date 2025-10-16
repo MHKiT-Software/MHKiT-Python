@@ -10,10 +10,6 @@ on:
       - main
       - develop
 
-concurrency:
-  group: ${{ github.event.pull_request.number }}  # Use the pull request number as the concurrency group
-  cancel-in-progress: true # Cancel any in-progress jobs for the same group. Prevents duplicate workflows on PRs from develop into main or from main into develop.
-
 jobs:
   set-os:
     runs-on: ubuntu-latest
@@ -286,11 +282,19 @@ jobs:
           name: data
           path: ~/.cache/mhkit
 
+      - name: Install system dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y libhdf5-dev libnetcdf-dev
+
       - name: Update and install packages
         shell: bash -l {0}
         run: |
           python -m pip install --upgrade pip wheel
           pip install -e  ".[all,dev]"
+
+      - name: Reinstall h5py and netCDF4 with system libraries
+        if: runner.os == 'Linux'
+        run: "pip install --force-reinstall --no-binary=:all: h5py netCDF4"
 
       - name: Install setuptools for Python 3.12
         if: matrix.python-version == '3.12'
@@ -393,6 +397,62 @@ jobs:
           flag-name: hindcast-${{ runner.os }}-py${{ matrix.python-version }}
           parallel: true
           path-to-lcov: ./coverage.lcov
+
+  test-wheel-packaging:
+    name: Test Built Wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build dependencies
+        run: python -m pip install build --user
+
+      - name: Build wheel
+        run: python -m build --wheel --outdir dist/ .
+
+      - name: Install MHKiT from built wheel
+        run: |
+          # Install from build wheel in dist/ directory, not from PyPI
+           # -f, --find-links <url>      If a URL or path to an html file, then parse for links to archives such as sdist (.tar.gz) or wheel (.whl) files.
+             # If a local path or file:// URL that's a directory, then look for archives in the directory listing.
+          pip install 'mhkit[all]' --find-links dist/
+
+      - name: Test mhkit submodule imports
+        run: |
+          python -c "
+          import mhkit
+          print(f'Version: {mhkit.__version__}')
+
+          # Test all submodules can be imported
+          modules = ['wave', 'river', 'tidal', 'dolfyn', 'power', 'loads', 'mooring', 'acoustics', 'qc', 'utils']
+          for mod in modules:
+              exec(f'from mhkit import {mod}')
+              print(f'Successfully imported mhkit.{mod}')
+
+          print('All submodules imported successfully!')
+          "
+
+      - name: Verify mhkit package structure
+        run: |
+          python -c "
+          import mhkit
+          import os
+
+          mhkit_path = os.path.dirname(mhkit.__file__)
+          expected_dirs = ['wave', 'river', 'tidal', 'dolfyn', 'power', 'loads', 'mooring', 'acoustics', 'qc', 'utils']
+
+          for d in expected_dirs:
+              dir_path = os.path.join(mhkit_path, d)
+              assert os.path.isdir(dir_path), f'Missing submodule directory: {d}'
+              init_file = os.path.join(dir_path, '__init__.py')
+              assert os.path.isfile(init_file), f'Missing __init__.py in {d}'
+
+          print('Package structure verified!')
+          "
 
   test-optional-pip-dependencies:
     needs: [set-os, prepare-nonhindcast-cache]

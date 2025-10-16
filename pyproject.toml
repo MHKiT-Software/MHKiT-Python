@@ -126,8 +126,22 @@ examples = [
 Homepage = "https://github.com/MHKiT-Software/mhkit-python"
 Documentation = "https://mhkit-software.github.io/MHKiT"
 
+[tool.setuptools.packages.find]
+# This section controls how this python package is built for pip installations
+# Getting this section wrong results in an incomplete package that is missing submodules
+# This can be tested by simply running python -m build in the root directory
+# and then inspecting the generated .tar.gz and .whl files in the dist/ directory
+#
+# https://setuptools.pypa.io/en/latest/userguide/package_discovery.html#finding-simple-packages
+# What this does: (per the above docs):
+# - `where = ["."]`: Search for packages starting from the root directory
+# - `include = ["mhkit*"]`: Only include packages that match the pattern `mhkit*`
+#     - this includes `mhkit`, `mhkit.wave`, `mhkit.river`, etc.
+# - Setuptools will automatically discover all directories containing `__init__.py` files
+where = ["."]
+include = ["mhkit*"]
+
 [tool.setuptools]
-packages = ["mhkit"]
 zip-safe = false
 include-package-data = true
 
