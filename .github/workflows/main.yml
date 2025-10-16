@@ -10,9 +10,9 @@ on:
       - main
       - develop
 
-# concurrency:
-#   group: ${{ github.event.pull_request.number }}  # Use the pull request number as the concurrency group
-#   cancel-in-progress: true # Cancel any in-progress jobs for the same group. Prevents duplicate workflows on PRs from develop into main or from main into develop.
+concurrency:
+  group: ${{ github.event.pull_request.number }}  # Use the pull request number as the concurrency group
+  cancel-in-progress: true # Cancel any in-progress jobs for the same group. Prevents duplicate workflows on PRs from develop into main or from main into develop.
 
 jobs:
   set-os:
@@ -406,7 +406,6 @@ jobs:
     needs: [set-os, prepare-nonhindcast-cache]
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
         module:
           [wave, tidal, river, dolfyn, power, loads, mooring, acoustics, utils]
@@ -427,17 +426,15 @@ jobs:
           path: ~/.cache/mhkit
 
       - name: Install system dependencies
-        if: matrix.module != 'river' || matrix.module != 'power' || matrix.module != 'utils' || matrix.module != 'loads'
         run: sudo apt-get install -y libhdf5-dev libnetcdf-dev
 
       - name: Install MHKiT with optional dependency
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[${{ matrix.module }}]"
+          pip install "mhkit[${{ matrix.module }}]"
           pip install pytest
 
       - name: Reinstall h5py and netCDF4 with system libraries
-        if: matrix.module != 'river' || matrix.module != 'power' || matrix.module != 'utils' || matrix.module != 'loads'
         run: "pip install --force-reinstall --no-binary=:all: h5py netCDF4"
 
       - name: Run tests for ${{ matrix.module }}

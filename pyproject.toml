@@ -27,7 +27,6 @@ dependencies = [
     "xarray>=2024.6.0",
     "matplotlib>=3.9.1",
     "pecos>=0.3.0",
-    "requests",
 ]
 
 [project.optional-dependencies]
@@ -39,17 +38,20 @@ wave = [
     "pytz",
     "NREL-rex>=0.2.63",
     "beautifulsoup4",
+    "requests",
     "bottleneck",
     "lxml"
 ]
 
 tidal = [
     "netCDF4>=1.7.1.post1",
+    "requests",
     "bottleneck"
 ]
 
 river = [
     "netCDF4>=1.7.1.post1",
+    "requests",
     "bottleneck",
 ]
 
@@ -64,9 +66,7 @@ power = [
 ]
 
 loads = [
-    "fatpack",
-    "statsmodels>=0.14.2",
-    "scikit-learn>=1.5.1",
+ "fatpack"
 ]
 
 mooring = [
