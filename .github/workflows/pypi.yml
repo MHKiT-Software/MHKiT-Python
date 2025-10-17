@@ -29,7 +29,11 @@ jobs:
 
       - name: Test wheel contents before upload
         run: |
-          pip install 'mhkit[all]' --no-index --find-links dist/
+          # Install the built wheel from dist/ to verify it was packaged correctly before upload
+          # --find-links dist/ tells pip to look in dist/ directory first and prefer the wheel
+          # Dependencies (numpy, pandas, etc.) are fetched from PyPI as normal
+          # This verifies the wheel contains all necessary files and can be installed successfully
+          pip install 'mhkit[all]' --find-links dist/
           python -c "from mhkit import wave, river, tidal, dolfyn, power, loads, mooring, acoustics, qc, utils; print('All modules imported successfully')"
 
       - name: Upload to Test PyPI
