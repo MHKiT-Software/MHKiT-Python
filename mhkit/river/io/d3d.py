@@ -35,8 +35,8 @@ def get_all_time(data: netCDF4.Dataset) -> NDArray:
         simulation conditions at that time.
     """
 
-    if not isinstance(data, netCDF4.Dataset):
-        raise TypeError("data must be a NetCDF4 object")
+    if not isinstance(data, (netCDF4.Dataset, xr.Dataset)):
+        raise TypeError("data must be a NetCDF4 object or xarray Dataset")
 
     seconds_run = np.ma.getdata(data.variables["time"][:], False)
 
@@ -241,6 +241,10 @@ def get_layer_data(
     if "mesh2d" in variable:
         cords_to_layers = {
             "mesh2d_face_x mesh2d_face_y": {
+                "name": "mesh2d_nLayers",
+                "coords": data.variables["mesh2d_layer_sigma"][:],
+            },
+            "mesh2d_face_x mesh2d_face_y mesh2d_layer_sigma": {
                 "name": "mesh2d_nLayers",
                 "coords": data.variables["mesh2d_layer_sigma"][:],
             },
@@ -634,6 +638,10 @@ def get_all_data_points(
     if "mesh2d" in variable:
         cords_to_layers = {
             "mesh2d_face_x mesh2d_face_y": {
+                "name": "mesh2d_nLayers",
+                "coords": data.variables["mesh2d_layer_sigma"][:],
+            },
+            "mesh2d_face_x mesh2d_face_y mesh2d_layer_sigma": {
                 "name": "mesh2d_nLayers",
                 "coords": data.variables["mesh2d_layer_sigma"][:],
             },
