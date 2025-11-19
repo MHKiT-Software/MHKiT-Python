@@ -257,7 +257,7 @@ def get_layer_data(
             data.variables["mesh2d_waterdepth"][time_index, :], False
         )
         waterlevel = np.ma.getdata(data.variables["mesh2d_s1"][time_index, :], False)
-        coords = str(data.variables["waterdepth"].coordinates).split()
+        coords = str(data.variables["mesh2d_waterdepth"].coordinates).split()
 
     elif str(data.variables[variable].coordinates) == "FlowElem_xcc FlowElem_ycc":
         cords_to_layers = {
