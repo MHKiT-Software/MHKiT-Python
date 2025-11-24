@@ -894,3 +894,29 @@ def list_variables(data: Union[netCDF4.Dataset, xr.Dataset, xr.DataArray]) -> Li
         "data must be a NetCDF4 Dataset, xarray Dataset, or "
         f"xarray DataArray. Got: {type(data)}"
     )
+def calculate_grid_convergence_index(fine_grid, coarse_grid, refinement_ratio,factor_of_safety=1.25, order=2):
+    """
+    Calculate the Grid Convergence Index (GCI) between two grid sizes. https://www.grc.nasa.gov/WWW/wind/valid/tutorial/spatconv.html
+
+    Parameters
+    ----------
+    fine_grid: numpy.ndarray
+        Results from the finer grid.
+    coarse_grid: numpy.ndarray
+        Results from the coarser grid.
+    refinement_ratio: float 
+        Refinement ratio between the grids.
+    order: int
+        Order of accuracy (default is 2).
+
+    Returns
+    -------
+    gci: float
+        Grid Convergence Index (GCI).
+    """
+    # Calculate the approximate relative error
+    error = np.abs((fine_grid - coarse_grid) / fine_grid)
+
+    # Calculate the GCI
+    gci = (factor_of_safety * error) / (refinement_ratio**order - 1)
+    return gci
