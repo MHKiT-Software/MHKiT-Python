@@ -696,6 +696,9 @@ def _clean_dp_skips(data):
     for id in data:
         if id == "filehead_config":
             continue
+        if "ver" not in data[id]:
+            warnings.warn(f"Dual-profile unknown ID: {id}")
+            continue
         # Check where 'ver' is zero (should be 1 (for bt) or 3 (everything else))
         skips = np.where(data[id]["ver"] != 0)
         for var in data[id]:

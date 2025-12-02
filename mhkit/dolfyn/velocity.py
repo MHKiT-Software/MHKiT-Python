@@ -304,7 +304,10 @@ class Velocity:
         - earth:     east
         - principal: streamwise
         """
-        return self.ds["vel"][0].drop_vars("dir")
+        try:
+            return self.ds["vel"][0].drop_vars("dir")
+        except:
+            return self.ds["vel_avg"][0].drop_vars("dir")
 
     @property
     def v(
@@ -322,7 +325,10 @@ class Velocity:
         - earth:     north
         - principal: cross-stream
         """
-        return self.ds["vel"][1].drop_vars("dir")
+        try:
+            return self.ds["vel"][1].drop_vars("dir")
+        except:
+            return self.ds["vel_avg"][1].drop_vars("dir")
 
     @property
     def w(
@@ -340,7 +346,10 @@ class Velocity:
         - earth:     up
         - principal: up
         """
-        return self.ds["vel"][2].drop_vars("dir")
+        try:
+            return self.ds["vel"][2].drop_vars("dir")
+        except:
+            return self.ds["vel_avg"][2].drop_vars("dir")
 
     @property
     def U(
@@ -659,7 +668,7 @@ class VelBinner(TimeBinner):
         std = self.standard_deviation(raw_ds.velds.U_mag.values)
         out_ds["U_std"] = xr.DataArray(
             std.astype("float32"),
-            dims=raw_ds.vel.dims[1:],
+            dims=raw_ds.velds.U_mag.dims,
             attrs={
                 "units": "m s-1",
                 "long_name": "Water Velocity Standard Deviation",
