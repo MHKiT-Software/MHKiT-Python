@@ -306,7 +306,7 @@ class Velocity:
         """
         try:
             return self.ds["vel"][0].drop_vars("dir")
-        except:
+        except KeyError:
             return self.ds["vel_avg"][0].drop_vars("dir")
 
     @property
@@ -327,7 +327,7 @@ class Velocity:
         """
         try:
             return self.ds["vel"][1].drop_vars("dir")
-        except:
+        except KeyError:
             return self.ds["vel_avg"][1].drop_vars("dir")
 
     @property
@@ -348,7 +348,7 @@ class Velocity:
         """
         try:
             return self.ds["vel"][2].drop_vars("dir")
-        except:
+        except KeyError:
             return self.ds["vel_avg"][2].drop_vars("dir")
 
     @property
@@ -967,7 +967,6 @@ class VelBinner(TimeBinner):
         noise=0,
         n_bin=None,
         n_fft=None,
-        n_pad=None,
         step=None,
     ):
         """
@@ -991,8 +990,6 @@ class VelBinner(TimeBinner):
           The bin-size. Default = `self.n_bin`
         n_fft : int (optional)
           The fft size. Default = `self.n_fft`
-        n_pad : int (optional)
-          The number of values to pad with zero. Default = 0
         step : int (optional)
           Controls amount of overlap in fft. Default: the step size is
           chosen to maximize data use, minimize nens, and have a
@@ -1056,7 +1053,6 @@ class VelBinner(TimeBinner):
                     noise=noise[idx],
                     window=window,
                     n_bin=n_bin,
-                    n_pad=n_pad,
                     n_fft=n_fft,
                     step=step,
                 )
@@ -1076,7 +1072,6 @@ class VelBinner(TimeBinner):
                 noise=noise,
                 window=window,
                 n_bin=n_bin,
-                n_pad=n_pad,
                 n_fft=n_fft,
                 step=step,
             )
