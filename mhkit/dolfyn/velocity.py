@@ -421,10 +421,10 @@ class Velocity:
         """
         Coherent turbulent energy
 
-        Niel Kelley's 'coherent turbulence energy', which is the
+        Neil Kelley's 'coherent turbulence energy', which is the
         root-mean-square of the Reynold's stresses.
 
-        See: NREL Technical Report TP-500-52353
+        See: NLR Technical Report TP-500-52353
         """
         E_coh = (self.upwp_**2 + self.upvp_**2 + self.vpwp_**2) ** (0.5)
 
