@@ -304,7 +304,10 @@ class Velocity:
         - earth:     east
         - principal: streamwise
         """
-        return self.ds["vel"][0].drop_vars("dir")
+        try:
+            return self.ds["vel"][0].drop_vars("dir")
+        except KeyError:
+            return self.ds["vel_avg"][0].drop_vars("dir")
 
     @property
     def v(
@@ -322,7 +325,10 @@ class Velocity:
         - earth:     north
         - principal: cross-stream
         """
-        return self.ds["vel"][1].drop_vars("dir")
+        try:
+            return self.ds["vel"][1].drop_vars("dir")
+        except KeyError:
+            return self.ds["vel_avg"][1].drop_vars("dir")
 
     @property
     def w(
@@ -340,7 +346,10 @@ class Velocity:
         - earth:     up
         - principal: up
         """
-        return self.ds["vel"][2].drop_vars("dir")
+        try:
+            return self.ds["vel"][2].drop_vars("dir")
+        except KeyError:
+            return self.ds["vel_avg"][2].drop_vars("dir")
 
     @property
     def U(
@@ -659,7 +668,7 @@ class VelBinner(TimeBinner):
         std = self.standard_deviation(raw_ds.velds.U_mag.values)
         out_ds["U_std"] = xr.DataArray(
             std.astype("float32"),
-            dims=raw_ds.vel.dims[1:],
+            dims=raw_ds.velds.U_mag.dims,
             attrs={
                 "units": "m s-1",
                 "long_name": "Water Velocity Standard Deviation",
@@ -958,7 +967,6 @@ class VelBinner(TimeBinner):
         noise=0,
         n_bin=None,
         n_fft=None,
-        n_pad=None,
         step=None,
     ):
         """
@@ -982,8 +990,6 @@ class VelBinner(TimeBinner):
           The bin-size. Default = `self.n_bin`
         n_fft : int (optional)
           The fft size. Default = `self.n_fft`
-        n_pad : int (optional)
-          The number of values to pad with zero. Default = 0
         step : int (optional)
           Controls amount of overlap in fft. Default: the step size is
           chosen to maximize data use, minimize nens, and have a
@@ -1047,7 +1053,6 @@ class VelBinner(TimeBinner):
                     noise=noise[idx],
                     window=window,
                     n_bin=n_bin,
-                    n_pad=n_pad,
                     n_fft=n_fft,
                     step=step,
                 )
@@ -1067,7 +1072,6 @@ class VelBinner(TimeBinner):
                 noise=noise,
                 window=window,
                 n_bin=n_bin,
-                n_pad=n_pad,
                 n_fft=n_fft,
                 step=step,
             )
