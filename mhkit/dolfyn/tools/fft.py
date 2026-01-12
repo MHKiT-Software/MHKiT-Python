@@ -246,11 +246,13 @@ def cpsd_1D(a, b, nfft, fs, window="hann", step=None):
     window = _getwindow(window, nfft)
     fft_inds = slice(1, int(nfft / 2.0 + 1))
     wght = 2.0 / (window**2).sum()
+    # Take FFT of first segment
     s1 = fft(detrend_array(a[0:nfft]) * window)[fft_inds]
     if auto_psd:
         pwr = np.abs(s1) ** 2
     else:
         pwr = s1 * np.conj(fft(detrend_array(b[0:nfft]) * window)[fft_inds])
+    # take FFT of remaining segments
     if nens - 1:
         for i in range(step, l - nfft + 1, step):
             s1 = fft(detrend_array(a[i : (i + nfft)]) * window)[fft_inds]
