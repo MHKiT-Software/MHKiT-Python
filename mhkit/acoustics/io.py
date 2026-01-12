@@ -49,6 +49,8 @@ import pandas as pd
 import xarray as xr
 from scipy.io import wavfile
 
+from mhkit.acoustics.analysis import _check_numeric
+
 
 def _read_wav_metadata(f: BinaryIO) -> dict:
     """
@@ -132,10 +134,9 @@ def _calculate_voltage_and_time(
         raise TypeError("Raw audio data 'raw' must be a numpy.ndarray.")
     if not isinstance(bits_per_sample, int):
         raise TypeError("'bits_per_sample' must be an integer.")
-    if not isinstance(peak_voltage, (int, float)):
-        raise TypeError("'peak_voltage' must be numeric (int or float).")
     if not isinstance(start_time, (str, np.datetime64)):
         raise TypeError("'start_time' must be a string or np.datetime64.")
+    _check_numeric(peak_voltage, "peak_voltage")
 
     length = raw.shape[0] // fs  # length of recording in seconds
 
@@ -196,15 +197,12 @@ def read_hydrophone(
 
     if not isinstance(filename, (str, Path)):
         raise TypeError("Filename must be a string or a pathlib.Path object.")
-    if not isinstance(peak_voltage, (int, float)):
-        raise TypeError("'peak_voltage' must be numeric (int or float).")
-    if sensitivity is not None and not isinstance(sensitivity, (int, float)):
-        raise TypeError("'sensitivity' must be numeric (int, float) or None.")
-    if not isinstance(gain, (int, float)):
-        raise TypeError("'gain' must be numeric (int or float).")
+    if sensitivity is not None:
+        _check_numeric(sensitivity, "sensitivity")
+    _check_numeric(peak_voltage, "peak_voltage")
+    _check_numeric(gain, "gain")
     if not isinstance(start_time, (str, np.datetime64)):
         raise TypeError("'start_time' must be a string or np.datetime64")
-
     if (sensitivity is not None) and (sensitivity > 0):
         raise ValueError(
             "Hydrophone calibrated sensitivity should be entered as a negative number."
@@ -225,9 +223,9 @@ def read_hydrophone(
     # If sensitivity is provided, convert to sound pressure
     if sensitivity is not None:
         # Subtract gain
-        # Hydrophone with sensitivity of -177 dB and gain of -3 dB = sensitivity of -174 dB
+        # Hydrophone with sensitivity of -177 dB and gain of 3 dB = sensitivity of -174 dB
         if gain:
-            sensitivity -= gain
+            sensitivity += gain
         # Convert calibration from dB rel 1 V/uPa into ratio
         sensitivity = 10 ** (sensitivity / 20)  # V/uPa
 
@@ -511,25 +509,18 @@ def export_audio(
     -------
     None
     """
+
     if not isinstance(filename, str):
         raise TypeError("'filename' must be a string.")
-
     if not isinstance(pressure, xr.DataArray):
         raise TypeError("'pressure' must be an xarray.DataArray.")
-
     if not hasattr(pressure, "values") or not isinstance(pressure.values, np.ndarray):
         raise TypeError("'pressure.values' must be a numpy.ndarray.")
-
-    if not hasattr(pressure, "sensitivity") or not isinstance(
-        pressure.sensitivity, (int, float)
-    ):
-        raise TypeError("'pressure.sensitivity' must be a numeric type (int or float).")
-
-    if not hasattr(pressure, "fs") or not isinstance(pressure.fs, (int, float)):
-        raise TypeError("'pressure.fs' must be a numeric type (int or float).")
-
-    if not isinstance(gain, (int, float)):
-        raise TypeError("'gain' must be a numeric type (int or float).")
+    if not hasattr(pressure, "sensitivity"):
+        _check_numeric(pressure.sensitivity, "pressure.sensitivity")
+    if not hasattr(pressure, "fs"):
+        _check_numeric(pressure.fs, "pressure.fs")
+    _check_numeric(gain, "gain")
 
     # Convert from Pascals to UPa
     upa = pressure.values.T * 1e6

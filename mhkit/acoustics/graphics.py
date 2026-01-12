@@ -21,10 +21,11 @@ Key Functions
 """
 
 from typing import Tuple
+import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 
-from .analysis import _fmax_warning
+from .analysis import _fmax_warning, _check_numeric
 
 
 def plot_spectrogram(
@@ -61,8 +62,9 @@ def plot_spectrogram(
         Figure plot axis
     """
 
-    if not isinstance(fmin, (int, float)) or not isinstance(fmax, (int, float)):
-        raise TypeError("fmin and fmax must be numeric types.")
+    # Type checks
+    _check_numeric(fmin, "fmin")
+    _check_numeric(fmax, "fmax")
     if fmin >= fmax:
         raise ValueError("fmin must be less than fmax.")
 
@@ -128,8 +130,8 @@ def plot_spectra(
         Figure plot axis
     """
 
-    if not isinstance(fmin, (int, float)) or not isinstance(fmax, (int, float)):
-        raise TypeError("fmin and fmax must be numeric types.")
+    _check_numeric(fmin, "fmin")
+    _check_numeric(fmax, "fmax")
     if fmin >= fmax:
         raise ValueError("fmin must be less than fmax.")
 

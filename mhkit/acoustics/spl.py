@@ -19,7 +19,7 @@ from sound pressure data.
 import numpy as np
 import xarray as xr
 
-from .analysis import _fmax_warning, _create_frequency_bands
+from .analysis import _check_numeric, _fmax_warning, _create_frequency_bands
 
 
 def _argument_check(spsd, fmin, fmax):
@@ -45,10 +45,8 @@ def _argument_check(spsd, fmin, fmax):
     # Type checks
     if not isinstance(spsd, xr.DataArray):
         raise TypeError("'spsd' must be an xarray.DataArray.")
-    if not isinstance(fmin, int):
-        raise TypeError("'fmin' must be an integer.")
-    if not isinstance(fmax, int):
-        raise TypeError("'fmax' must be an integer.")
+    _check_numeric(fmin, "fmin")
+    _check_numeric(fmax, "fmax")
 
     # Ensure 'freq' and 'time' dimensions are present
     if ("freq" not in spsd.dims) or ("time" not in spsd.dims):
