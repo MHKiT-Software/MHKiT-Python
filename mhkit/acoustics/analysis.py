@@ -231,9 +231,9 @@ def sound_pressure_spectral_density(
             "units": pressure.units + "^2/Hz",
             "long_name": long_name,
             "fs": fs,
-            "nbin": str(bin_length) + " s",
+            "nbin": bin_length,
             "overlap": "50%",
-            "nfft": nbin,
+            "nfft": nfft,
         },
     )
 

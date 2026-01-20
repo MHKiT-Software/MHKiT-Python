@@ -52,7 +52,7 @@ class TestAnalysis(unittest.TestCase):
         self.assertIn("freq", spsd.dims)
         self.assertIn("time", spsd.dims)
         self.assertEqual(spsd.attrs["units"], "Pa^2/Hz")
-        self.assertEqual(spsd.attrs["nbin"], f"{bin_length} s")
+        self.assertEqual(spsd.attrs["nbin"], bin_length)
 
         # Calculate expected number of segments
         overlap = 0.0

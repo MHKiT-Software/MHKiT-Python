@@ -21,7 +21,6 @@ Key Functions
 """
 
 from typing import Tuple
-import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 

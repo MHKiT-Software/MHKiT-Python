@@ -134,9 +134,7 @@ def sound_exposure_level(
     exposure = np.trapezoid(band * w, band["freq"])
 
     # Sound exposure level (L_{E,p}) = (L_{p,rms} + 10log10(t))
-    sel = 10 * np.log10(exposure / reference) + 10 * np.log10(
-        spsd.attrs["nfft"] / spsd.attrs["fs"]  # n_points / (n_points/s)
-    )
+    sel = 10 * np.log10(exposure / reference) + 10 * np.log10(spsd.attrs["nbin"])
 
     out = xr.DataArray(
         sel.astype(np.float32),
