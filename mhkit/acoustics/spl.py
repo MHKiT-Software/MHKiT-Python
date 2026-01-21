@@ -57,9 +57,9 @@ def _argument_check(spsd, fmin, fmax):
         raise ValueError(
             "'spsd' must have 'fs' (sampling frequency) in its attributes."
         )
-    if "nfft" not in spsd.attrs:
+    if "n_fft" not in spsd.attrs:
         raise ValueError(
-            "'spsd' must have 'nfft' (sampling frequency) in its attributes."
+            "'spsd' must have 'n_fft' (number of points in each FFT) in its attributes."
         )
 
     # Value checks
@@ -117,6 +117,7 @@ def sound_pressure_level(
         attrs={
             "units": "dB re 1 uPa",
             "long_name": "Sound Pressure Level",
+            "time_interval": spsd.attrs["bin_length"],
             "freq_band_min": fmin,
             "freq_band_max": fmax,
         },
@@ -233,6 +234,7 @@ def third_octave_sound_pressure_level(
         {
             "units": "dB re 1 uPa",
             "long_name": "Third Octave Sound Pressure Level",
+            "time_interval": spsd.attrs["bin_length"],
         }
     )
 
@@ -270,6 +272,7 @@ def decidecade_sound_pressure_level(
         {
             "units": "dB re 1 uPa",
             "long_name": "Decidecade Sound Pressure Level",
+            "time_interval": spsd.attrs["bin_length"],
         }
     )
 
