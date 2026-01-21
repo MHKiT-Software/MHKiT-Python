@@ -353,6 +353,7 @@ def sound_pressure_spectral_density_level(spsd: xr.DataArray) -> xr.DataArray:
         attrs={
             "units": "dB re 1 uPa^2/Hz",
             "long_name": "Sound Pressure Spectral Density Level",
+            "time_resolution": spsd.attrs["bin_length"],
         },
     )
 

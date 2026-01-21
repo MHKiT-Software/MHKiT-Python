@@ -117,7 +117,7 @@ def sound_pressure_level(
         attrs={
             "units": "dB re 1 uPa",
             "long_name": "Sound Pressure Level",
-            "time_interval": spsd.attrs["bin_length"],
+            "time_resolution": spsd.attrs["bin_length"],
             "freq_band_min": fmin,
             "freq_band_max": fmax,
         },
@@ -234,7 +234,7 @@ def third_octave_sound_pressure_level(
         {
             "units": "dB re 1 uPa",
             "long_name": "Third Octave Sound Pressure Level",
-            "time_interval": spsd.attrs["bin_length"],
+            "time_resolution": spsd.attrs["bin_length"],
         }
     )
 
@@ -272,7 +272,7 @@ def decidecade_sound_pressure_level(
         {
             "units": "dB re 1 uPa",
             "long_name": "Decidecade Sound Pressure Level",
-            "time_interval": spsd.attrs["bin_length"],
+            "time_resolution": spsd.attrs["bin_length"],
         }
     )
 
