@@ -296,7 +296,7 @@ class TestIO(unittest.TestCase):
         ucx = river.io.d3d.get_all_data_points(data, "ucx", time_index)
         ucx_size = np.size(ucx["ucx"])
         self.assertEqual(TI_size, ucx_size)
-    
+
     def test_calculate_grid_convergence_index(self):
         fine_grid = np.array([1.0, 2.0, 3.0])
         coarse_grid = np.array([0.5, 1.5, 2.5])
@@ -304,7 +304,8 @@ class TestIO(unittest.TestCase):
         gci = river.io.d3d.calculate_grid_convergence_index(
             fine_grid, coarse_grid, refinement_ratio
         )
-        self.assertAlmostEqual(gci, np.array([0.2083, 0.1042, 0.0694]))
+        assert_array_almost_equal(gci, np.array([0.2083, 0.1042, 0.0694]), decimal=3)
+
 
 if __name__ == "__main__":
     unittest.main()
