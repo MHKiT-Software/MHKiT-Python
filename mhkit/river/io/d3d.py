@@ -118,8 +118,8 @@ def _convert_time(
         provided, returns the closest matching time_index.
     """
 
-    if not isinstance(data, netCDF4.Dataset):
-        raise TypeError("data must be NetCDF4 object")
+    if not isinstance(data, (netCDF4.Dataset, xr.Dataset)):
+        raise TypeError("data must be NetCDF4 object or xarray Dataset")
 
     if not (time_index or seconds_run):
         raise ValueError("Input of time_index or seconds_run needed")
@@ -199,8 +199,8 @@ def get_layer_data(
     if not isinstance(layer_index, int):
         raise TypeError("layer_index must be an int")
 
-    if not isinstance(data, netCDF4.Dataset):
-        raise TypeError("data must be NetCDF4 object")
+    if not isinstance(data, (netCDF4.Dataset, xr.Dataset)):
+        raise TypeError("data must be NetCDF4 object or xarray Dataset")
 
     if variable not in data.variables.keys():
         raise ValueError("variable not recognized")
@@ -538,8 +538,10 @@ def variable_interpolation(
                 f"If a string, points must be cells or faces. Got {points}"
             )
 
-    if not isinstance(data, netCDF4.Dataset):
-        raise TypeError(f"data must be netCDF4 object. Got {type(data)}")
+    if not isinstance(data, (netCDF4.Dataset, xr.Dataset)):
+        raise TypeError(
+            f"data must be netCDF4 object or xarray Dataset. Got {type(data)}"
+        )
 
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
@@ -620,8 +622,8 @@ def get_all_data_points(
     if not isinstance(time_index, int):
         raise TypeError("time_index must be an int")
 
-    if not isinstance(data, netCDF4.Dataset):
-        raise TypeError("data must be NetCDF4 object")
+    if not isinstance(data, (netCDF4.Dataset, xr.Dataset)):
+        raise TypeError("data must be NetCDF4 object or xarray Dataset")
 
     if variable not in data.variables.keys():
         raise ValueError("variable not recognized")
@@ -792,8 +794,8 @@ def turbulent_intensity(
             f"value of the max time index {max_time_index}"
         )
 
-    if not isinstance(data, netCDF4.Dataset):
-        raise TypeError("data must be netCDF4 object")
+    if not isinstance(data, (netCDF4.Dataset, xr.Dataset)):
+        raise TypeError("data must be netCDF4 object or xarray Dataset")
 
     for variable in ["turkin1", "ucx", "ucy", "ucz"]:
         if variable not in data.variables.keys():
@@ -886,7 +888,10 @@ def list_variables(data: Union[netCDF4.Dataset, xr.Dataset, xr.DataArray]) -> Li
     >>> print(variables)
     ['time', 'x', 'y', 'waterdepth', 'ucx', 'ucy', 'ucz', 'turkin1']
     """
-    if isinstance(data, netCDF4.Dataset):
+    if isinstance(
+        data,
+        netCDF4.Dataset,
+    ):
         return list(data.variables.keys())
     if isinstance(data, (xr.Dataset, xr.DataArray)):
         return list(data.variables.keys())
