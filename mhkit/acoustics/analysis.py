@@ -585,7 +585,7 @@ def band_aggregate(
     for val in octave:
         if not isinstance(val, int) or (val <= 0):
             raise TypeError("'octave' must contain positive integers.")
-    _check_numeric(fmin, "fmax")
+    _check_numeric(fmin, "fmin")
     _check_numeric(fmax, "fmax")
     if fmax <= fmin:  # also checks that fmax is positive
         raise ValueError("'fmax' must be greater than 'fmin'.")
