@@ -905,7 +905,9 @@ def calculate_grid_convergence_index(
     fine_grid, coarse_grid, refinement_ratio, factor_of_safety=1.25, order=2
 ):
     """
-    Calculate the Grid Convergence Index (GCI) between two grid sizes. https://www.grc.nasa.gov/WWW/wind/valid/tutorial/spatconv.html
+    Calculate the Grid Convergence Index (GCI) between two grid sizes. 
+
+    NASA. (n.d.). Examining spatial (grid) convergence. Acessed Febuary 3, 2026. NASA. https://www.grc.nasa.gov/WWW/wind/valid/tutorial/spatconv.html 
 
     Parameters
     ----------
