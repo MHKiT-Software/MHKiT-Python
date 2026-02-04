@@ -1,5 +1,5 @@
 """
-This module provides functionalities to calculate and analyze Most 
+This module provides functionalities to calculate and analyze Most
 Likely Extreme Response (MLER) coefficients for wave energy converter
 design and risk assessment. It includes functions to:
 
@@ -7,10 +7,10 @@ design and risk assessment. It includes functions to:
     spectrum and a response Amplitude Response Operator (ARO).
   - Define and manipulate simulation parameters (`mler_simulation`) used
     across various MLER analyses.
-  - Renormalize the incoming amplitude of the MLER wave 
+  - Renormalize the incoming amplitude of the MLER wave
     (`mler_wave_amp_normalize`) to match the desired peak height for more
     accurate modeling and analysis.
-  - Export the wave amplitude time series (`mler_export_time_series`) 
+  - Export the wave amplitude time series (`mler_export_time_series`)
     based on the calculated MLER coefficients for further analysis or
     visualization.
 """

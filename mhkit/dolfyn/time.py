@@ -123,18 +123,17 @@ def epoch2date(ep_time, offset_hr=0, to_str=False):
     elif not isinstance(ep_time, (np.ndarray, list)):
         ep_time = [ep_time]
 
-    ######### IMPORTANT #########
-    # Note the use of `utcfromtimestamp` here, rather than `fromtimestamp`
-    # This is CRITICAL! See the difference between those functions here:
-    #    https://docs.python.org/3/library/datetime.html#datetime.datetime.fromtimestamp
-    # Long story short: `fromtimestamp` used system-specific timezone
-    # info to calculate the datetime object, but returns a
-    # timezone-agnostic object.
     if offset_hr != 0:
         delta = timedelta(hours=offset_hr)
-        time = [datetime.utcfromtimestamp(t) + delta for t in ep_time]
+        time = [
+            datetime.fromtimestamp(t, timezone.utc).replace(tzinfo=None) + delta
+            for t in ep_time
+        ]
     else:
-        time = [datetime.utcfromtimestamp(t) for t in ep_time]
+        time = [
+            datetime.fromtimestamp(t, timezone.utc).replace(tzinfo=None)
+            for t in ep_time
+        ]
 
     if to_str:
         time = date2str(time)

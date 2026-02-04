@@ -1,7 +1,7 @@
 """
 Upcrossing Analysis Functions
 =============================
-This module contains a collection of functions that facilitate upcrossing 
+This module contains a collection of functions that facilitate upcrossing
 analyses.
 
 Key Functions:
@@ -12,8 +12,8 @@ Key Functions:
 - `heights`: Calculates the height between zero crossings.
 - `periods`: Calculates the period between zero crossings.
 - `custom`: Applies a custom, user-defined function between zero crossings.
-   
-Author: 
+
+Author:
 -------
 mbruggs
 akeeste

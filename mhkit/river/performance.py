@@ -1,7 +1,14 @@
+"""
+Computes device metrics such as equivalent diameter, tip speed ratio,
+and capture area. Calculations are based on IEC TS 62600-300:2019 ED1.
+
+"""
+
+from typing import Union, Tuple, List
 import numpy as np
 
 
-def circular(diameter):
+def circular(diameter: Union[int, float]) -> Tuple[float, float]:
     """
     Calculates the equivalent diameter and projected capture area of a
     circular turbine
@@ -27,7 +34,7 @@ def circular(diameter):
     return equivalent_diameter, projected_capture_area
 
 
-def ducted(duct_diameter):
+def ducted(duct_diameter: Union[int, float]) -> Tuple[float, float]:
     """
     Calculates the equivalent diameter and projected capture area of a
     ducted turbine
@@ -55,7 +62,7 @@ def ducted(duct_diameter):
     return equivalent_diameter, projected_capture_area
 
 
-def rectangular(h, w):
+def rectangular(h: Union[int, float], w: Union[int, float]) -> Tuple[float, float]:
     """
     Calculates the equivalent diameter and projected capture area of a
     retangular turbine
@@ -85,7 +92,7 @@ def rectangular(h, w):
     return equivalent_diameter, projected_capture_area
 
 
-def multiple_circular(diameters):
+def multiple_circular(diameters: List[Union[int, float]]) -> Tuple[float, float]:
     """
     Calculates the equivalent diameter and projected capture area of a
     multiple circular turbine
@@ -112,7 +119,11 @@ def multiple_circular(diameters):
     return equivalent_diameter, projected_capture_area
 
 
-def tip_speed_ratio(rotor_speed, rotor_diameter, inflow_speed):
+def tip_speed_ratio(
+    rotor_speed: Union[np.ndarray, List[Union[int, float]]],
+    rotor_diameter: Union[int, float],
+    inflow_speed: Union[np.ndarray, List[Union[int, float]]],
+) -> np.ndarray:
     """
     Function used to calculate the tip speed ratio (TSR) of a MEC device with rotor
 
@@ -127,18 +138,19 @@ def tip_speed_ratio(rotor_speed, rotor_diameter, inflow_speed):
 
     Returns
     --------
-    TSR : numpy array
+    tip_speed_ratio_values : numpy array
         Calculated tip speed ratio (TSR)
     """
 
     try:
         rotor_speed = np.asarray(rotor_speed)
-    except:
-        "rotor_speed must be of type np.ndarray"
+    except (ValueError, TypeError) as exc:
+        raise TypeError("rotor_speed must be convertible to np.ndarray") from exc
+
     try:
         inflow_speed = np.asarray(inflow_speed)
-    except:
-        "inflow_speed must be of type np.ndarray"
+    except (ValueError, TypeError) as exc:
+        raise TypeError("inflow_speed must be convertible to np.ndarray") from exc
 
     if not isinstance(rotor_diameter, (float, int)):
         raise TypeError(
@@ -147,12 +159,17 @@ def tip_speed_ratio(rotor_speed, rotor_diameter, inflow_speed):
 
     rotor_velocity = rotor_speed * np.pi * rotor_diameter
 
-    TSR = rotor_velocity / inflow_speed
+    tip_speed_ratio_values = rotor_velocity / inflow_speed
 
-    return TSR
+    return tip_speed_ratio_values
 
 
-def power_coefficient(power, inflow_speed, capture_area, rho):
+def power_coefficient(
+    power: Union[np.ndarray, List[Union[int, float]]],
+    inflow_speed: Union[np.ndarray, List[Union[int, float]]],
+    capture_area: Union[int, float],
+    rho: Union[int, float],
+) -> np.ndarray:
     """
     Function that calculates the power coefficient of MEC device
 
@@ -169,18 +186,19 @@ def power_coefficient(power, inflow_speed, capture_area, rho):
 
     Returns
     --------
-    Cp : numpy array
+    power_coeff : numpy array
         Power coefficient of device [-]
     """
 
     try:
         power = np.asarray(power)
-    except:
-        "power must be of type np.ndarray"
+    except (ValueError, TypeError) as exc:
+        raise TypeError("power must be convertible to np.ndarray") from exc
+
     try:
         inflow_speed = np.asarray(inflow_speed)
-    except:
-        "inflow_speed must be of type np.ndarray"
+    except (ValueError, TypeError) as exc:
+        raise TypeError("inflow_speed must be convertible to np.ndarray") from exc
 
     if not isinstance(capture_area, (float, int)):
         raise TypeError(
@@ -192,6 +210,6 @@ def power_coefficient(power, inflow_speed, capture_area, rho):
     # Predicted power from inflow
     power_in = 0.5 * rho * capture_area * inflow_speed**3
 
-    Cp = power / power_in
+    power_coeff = power / power_in
 
-    return Cp
+    return power_coeff

@@ -345,7 +345,7 @@ def _euler2orient(time, heading, pitch, roll, units="degree"):
     )
     return xr.DataArray(
         omat,
-        coords={"earth": earth, "inst": inst, "time": time},
-        dims=["earth", "inst", "time"],
+        coords={"earth": earth, "inst": inst, time.name: time},
+        dims=["earth", "inst", time.name],
         attrs={"units": "1", "long_name": "Orientation Matrix"},
     )

@@ -1,17 +1,17 @@
 """
-This module contains unit tests for the WPTO hindcast data retrieval 
+This module contains unit tests for the WPTO hindcast data retrieval
 functions in the mhkit.wave package. The tests are designed to verify
 the correct functioning of the following functionalities:
 
 1. Retrieval of multiple years of data for a single data type,
     latitude-longitude pair, and parameter.
-2. Retrieval of multiple parameters for a single data type, year, 
+2. Retrieval of multiple parameters for a single data type, year,
     and latitude-longitude pair.
 3. Retrieval of data for multiple locations for point data and
     directional spectrum at a single data type, year, and parameter.
 
-The tests use the unittest framework and compare the output of the 
-hindcast retrieval functions with expected output data. The expected 
+The tests use the unittest framework and compare the output of the
+hindcast retrieval functions with expected output data. The expected
 data is read from CSV files located in the examples/data/wave directory.
 
 Functions tested:
@@ -19,7 +19,7 @@ Functions tested:
 - wave.io.hindcast.hindcast.request_wpto_directional_spectrum
 
 Usage:
-Run the script directly as a standalone program, or import the 
+Run the script directly as a standalone program, or import the
 TestWPTOhindcast class in another test suite.
 """
 

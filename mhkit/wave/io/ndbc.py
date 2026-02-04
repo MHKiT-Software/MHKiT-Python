@@ -1,7 +1,7 @@
 import os
 from collections import OrderedDict as _OrderedDict
 from collections import defaultdict as _defaultdict
-from io import BytesIO
+from io import BytesIO, StringIO
 import re
 import requests
 import zlib
@@ -18,6 +18,9 @@ from mhkit.utils import (
     convert_to_dataarray,
     convert_nested_dict_and_pandas,
 )
+
+# Set pandas option to opt-in to future behavior
+pd.set_option("future.no_silent_downcasting", True)
 
 
 def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
@@ -102,21 +105,25 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
             header=None,
             names=header,
             comment="#",
-            parse_dates=[parse_vals],
         )
     # If first line is not commented, then the first row can be used as header
     else:
-        data = pd.read_csv(
-            file_name, sep="\\s+", header=0, comment="#", parse_dates=[parse_vals]
-        )
+        data = pd.read_csv(file_name, sep="\\s+", header=0, comment="#")
 
     # Convert index to datetime
     date_column = "_".join(parse_vals)
+    data[date_column] = (
+        data[parse_vals].apply(lambda val: val.astype("string")).agg(" ".join, axis=1)
+    )
+
     data["Time"] = pd.to_datetime(data[date_column], format=date_format)
     data.index = data["Time"].values
+
     # Remove date columns
     del data[date_column]
     del data["Time"]
+    for val in parse_vals:
+        del data[val]
 
     # If there was a row of units, convert to dictionary
     if units_exist:
@@ -126,7 +133,11 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
 
     # Convert columns to numeric data if possible, otherwise leave as string
     for column in data:
-        data[column] = pd.to_numeric(data[column], errors="ignore")
+        try:
+            data[column] = pd.to_numeric(data[column])
+        except (ValueError, TypeError):
+            # Keep as string if conversion fails
+            pass
 
     # Convert column names to float if possible (handles frequency headers)
     # if there is non-numeric name, just leave all as strings.
@@ -136,7 +147,8 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
         data.columns = data.columns
 
     # Replace indicated missing values with nan
-    data.replace(missing_values, np.nan, inplace=True)
+    data = data.replace(missing_values, np.nan)
+    data = data.infer_objects(copy=False)
 
     if not to_pandas:
         data = convert_to_dataset(data)
@@ -234,7 +246,7 @@ def available_data(
             msg = f"request.get({ndbc_data}) failed by returning code of {response.status_code}"
             raise Exception(msg)
 
-        filenames = pd.read_html(response.text)[0].Name.dropna()
+        filenames = pd.read_html(StringIO(response.text))[0].Name.dropna()
         buoys = _parse_filenames(parameter, filenames)
 
         available_data = buoys.copy(deep=True)

@@ -1,5 +1,4 @@
-"""Module containing functions to clean data
-"""
+"""Module containing functions to clean data"""
 
 import warnings
 import numpy as np

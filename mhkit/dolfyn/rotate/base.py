@@ -49,7 +49,7 @@ def _set_coords(ds, ref_frame, forced=False):
 
     XYZ = ["X", "Y", "Z"]
     ENU = ["E", "N", "U"]
-    beam = ds.beam.values
+    beam = ds["beam"].values
     principal = ["streamwise", "x-stream", "vert"]
 
     # check make/model

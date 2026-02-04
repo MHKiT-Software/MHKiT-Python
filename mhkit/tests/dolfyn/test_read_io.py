@@ -84,7 +84,7 @@ class io_testcase(unittest.TestCase):
             os.remove(exdt(fname))
 
         nens = 100
-        wh.read_rdi(exdt("RDI_withBT.000"), nens, debug_level=3)
+        wh.read_rdi(exdt("RDI_withBT.000"), nens, debug=3)
         awac.read_nortek(exdt("AWAC_test01.wpr"), nens, debug=True, do_checksum=True)
         awac.read_nortek(
             exdt("vector_data_imu01.VEC"), nens, debug=True, do_checksum=True
@@ -115,5 +115,6 @@ class io_testcase(unittest.TestCase):
             sig.read_signature(exdt("AWAC_test01.wpr"))
         with self.assertRaises(IOError):
             read(rfnm("AWAC_test01.nc"))
+
         with self.assertRaises(Exception):
             save_netcdf(tp.dat_rdi, "test_save.fail")

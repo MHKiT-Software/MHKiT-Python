@@ -2,7 +2,7 @@
 This module provides tools for analyzing and processing data signals
 related to turbine blade performance and fatigue analysis. It implements
 methodologies based on standards such as IEC TS 62600-3:2020 ED1,
-incorporating statistical binning, moment calculations, and fatigue 
+incorporating statistical binning, moment calculations, and fatigue
 damage estimation using the rainflow counting algorithm. Key
 functionalities include:
 
@@ -11,8 +11,8 @@ functionalities include:
       for each bin, following IEC TS 62600-3:2020 ED1 guidelines. It supports
       output in both pandas DataFrame and xarray Dataset formats.
 
-    - `blade_moments`: Calculates the flapwise and edgewise moments of turbine 
-      blades using derived calibration coefficients and raw strain signals. 
+    - `blade_moments`: Calculates the flapwise and edgewise moments of turbine
+      blades using derived calibration coefficients and raw strain signals.
       This function is crucial for understanding the loading and performance
       characteristics of turbine blades.
 

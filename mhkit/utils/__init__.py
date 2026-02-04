@@ -1,6 +1,6 @@
 """
-This module initializes and imports the essential utility functions for data 
-conversion, statistical analysis, caching, and event detection for the 
+This module initializes and imports the essential utility functions for data
+conversion, statistical analysis, caching, and event detection for the
 MHKiT library.
 """
 

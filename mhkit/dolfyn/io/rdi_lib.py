@@ -128,16 +128,13 @@ class _ensemble:
     def __getitem__(self, nm):
         return getattr(self, nm)
 
-    def __init__(self, navg, n_cells):
-        if navg is None or navg == 0:
-            navg = 1
-        self.n_avg = navg
+    def __init__(self, n_cells):
         self.n_cells = n_cells
         for nm in data_defs:
             setattr(
                 self,
                 nm,
-                np.zeros(_get_size(nm, n=navg, ncell=n_cells), dtype=data_defs[nm][2]),
+                np.zeros(_get_size(nm, n=1, ncell=n_cells), dtype=data_defs[nm][2]),
             )
 
     def clean_data(self):

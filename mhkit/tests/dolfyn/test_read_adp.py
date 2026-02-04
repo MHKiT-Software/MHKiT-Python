@@ -7,6 +7,8 @@ import warnings
 import unittest
 import pytest
 import os
+import numpy as np
+from unittest.mock import patch
 
 make_data = False
 load = tb.load_netcdf
@@ -22,6 +24,7 @@ dat_wr1 = load("winriver01.nc")
 dat_wr2 = load("winriver02.nc")
 dat_rp = load("RiverPro_test01.nc")
 dat_transect = load("winriver02_transect.nc")
+dat_senb5 = load("sentinelv_b5.nc")
 
 dat_awac = load("AWAC_test01.nc")
 dat_awac_ud = load("AWAC_test01_ud.nc")
@@ -32,10 +35,16 @@ dat_sig_i_ud = load("Sig1000_IMU_ud.nc")
 dat_sig_ieb = load("VelEchoBT01.nc")
 dat_sig_ie = load("Sig500_Echo.nc")
 dat_sig_tide = load("Sig1000_tidal.nc")
+dat_sig_raw_avg = load("Sig100_raw_avg.nc")
+dat_sig_avg = load("Sig100_avg.nc")
+dat_sig_rt = load("Sig1000_online.nc")
 dat_sig_skip = load("Sig_SkippedPings01.nc")
 dat_sig_badt = load("Sig1000_BadTime01.nc")
 dat_sig5_leiw = load("Sig500_last_ensemble_is_whole.nc")
-dat_sig_dp2 = load("dual_profile.nc")
+dat_sig_dp1_all = load("Sig500_dp_ice1.nc")
+dat_sig_dp1_ice = load("Sig500_dp_ice2.nc")
+dat_sig_dp2_echo = load("Sig1000_dp_echo1.nc")
+dat_sig_dp2_avg = load("Sig1000_dp_echo2.nc")
 
 
 class io_adp_testcase(unittest.TestCase):
@@ -52,6 +61,7 @@ class io_adp_testcase(unittest.TestCase):
         td_wr2 = read("winriver02.PD0")
         td_rp = read("RiverPro_test01.PD0")
         td_transect = read("winriver02_transect.PD0", nens=nens)
+        td_senb5 = read("sentinelv_b5.pd0")
 
         if make_data:
             save(td_rdi, "RDI_test01.nc")
@@ -64,6 +74,7 @@ class io_adp_testcase(unittest.TestCase):
             save(td_wr2, "winriver02.nc")
             save(td_rp, "RiverPro_test01.nc")
             save(td_transect, "winriver02_transect.nc")
+            save(td_senb5, "sentinelv_b5.nc")
             return
 
         assert_allclose(td_rdi, dat_rdi, atol=1e-6)
@@ -76,6 +87,48 @@ class io_adp_testcase(unittest.TestCase):
         assert_allclose(td_wr2, dat_wr2, atol=1e-6)
         assert_allclose(td_rp, dat_rp, atol=1e-6)
         assert_allclose(td_transect, dat_transect, atol=1e-6)
+        assert_allclose(td_senb5, dat_senb5, atol=1e-6)
+
+    def test_rdi_sec_btw_ping_division_by_zero(self):
+        """Test fix for issue #408: RDI burst mode division by zero
+
+        Issue #408 reported that RDI Pinnacle 45 in continuous burst mode
+        sets sec_between_ping_groups=0 while pings_per_ensemble=1, causing
+        ZeroDivisionError in sampling rate calculation.
+        """
+        # First verify normal operation with a regular RDI file
+        td_rdi_normal = read("RDI_test01.000", nens=10)
+
+        # Verify normal file has valid fs (not NaN)
+        assert not np.isnan(td_rdi_normal.attrs["fs"])
+        assert td_rdi_normal.attrs["fs"] > 0
+
+        # Now test the warning condition mode by patching the RDI reader
+        import mhkit.dolfyn.io.rdi as rdi_module
+
+        original_finalize = rdi_module._RDIReader.finalize
+
+        def mock_finalize_sec_btw_ping(self, data, cfg):
+            # Force config reported in issue #408
+            cfg["sec_between_ping_groups"] = 0
+            cfg["pings_per_ensemble"] = 1
+            return original_finalize(self, data, cfg)
+
+        # Test scenario with patching
+        with patch.object(
+            rdi_module._RDIReader, "finalize", mock_finalize_sec_btw_ping
+        ):
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+
+                # Read the same file but with reported config
+                td_rdi_burst = read("RDI_test01.000", nens=10)
+
+                # Check that warning was issued
+                assert len(w) > 0
+
+                # Check that fs exists and is valid
+                assert td_rdi_burst.attrs["fs"] > 0
 
     def test_io_nortek(self):
         nens = 100
@@ -104,8 +157,13 @@ class io_adp_testcase(unittest.TestCase):
         td_sig_ieb = read("VelEchoBT01.ad2cp", nens=nens, rebuild_index=True)
         td_sig_ie = read("Sig500_Echo.ad2cp", nens=nens, rebuild_index=True)
         td_sig_tide = read("Sig1000_tidal.ad2cp", nens=nens, rebuild_index=True)
-        # Only need to test 2nd dataset
-        td_sig_dp1, td_sig_dp2 = read("dual_profile.ad2cp")
+        td_sig_raw_avg = read("Sig100_raw_avg.ad2cp", nens=nens, rebuild_index=True)
+        td_sig_avg = read("Sig100_avg.ad2cp", nens=nens, rebuild_index=True)
+        td_sig_rt = read("Sig1000_online.ad2cp", nens=nens, rebuild_index=True)
+        td_sig_dp1_all, td_sig_dp1_ice = read("Sig500_dp_ice.ad2cp", rebuild_index=True)
+        td_sig_dp2_echo, td_sig_dp2_avg = read(
+            "Sig1000_dp_echo.ad2cp", rebuild_index=True
+        )
 
         with pytest.warns(UserWarning):
             # This issues a warning...
@@ -123,10 +181,14 @@ class io_adp_testcase(unittest.TestCase):
         os.remove(tb.exdt("VelEchoBT01.ad2cp.index"))
         os.remove(tb.exdt("Sig500_Echo.ad2cp.index"))
         os.remove(tb.exdt("Sig1000_tidal.ad2cp.index"))
+        os.remove(tb.exdt("Sig100_raw_avg.ad2cp.index"))
+        os.remove(tb.exdt("Sig100_avg.ad2cp.index"))
+        os.remove(tb.exdt("Sig1000_online.ad2cp.index"))
         os.remove(tb.exdt("Sig_SkippedPings01.ad2cp.index"))
         os.remove(tb.exdt("Sig500_last_ensemble_is_whole.ad2cp.index"))
         os.remove(tb.rfnm("Sig1000_BadTime01.ad2cp.index"))
-        os.remove(tb.exdt("dual_profile.ad2cp.index"))
+        os.remove(tb.exdt("Sig500_dp_ice.ad2cp.index"))
+        os.remove(tb.exdt("Sig1000_dp_echo.ad2cp.index"))
 
         if make_data:
             save(td_sig, "BenchFile01.nc")
@@ -135,10 +197,16 @@ class io_adp_testcase(unittest.TestCase):
             save(td_sig_ieb, "VelEchoBT01.nc")
             save(td_sig_ie, "Sig500_Echo.nc")
             save(td_sig_tide, "Sig1000_tidal.nc")
+            save(td_sig_raw_avg, "Sig100_raw_avg.nc")
+            save(td_sig_avg, "Sig100_avg.nc")
+            save(td_sig_rt, "Sig1000_online.nc")
             save(td_sig_skip, "Sig_SkippedPings01.nc")
             save(td_sig_badt, "Sig1000_BadTime01.nc")
             save(td_sig5_leiw, "Sig500_last_ensemble_is_whole.nc")
-            save(td_sig_dp2, "dual_profile.nc")
+            save(td_sig_dp1_all, "Sig500_dp_ice1.nc")
+            save(td_sig_dp1_ice, "Sig500_dp_ice2.nc")
+            save(td_sig_dp2_echo, "Sig1000_dp_echo1.nc")
+            save(td_sig_dp2_avg, "Sig1000_dp_echo2.nc")
             return
 
         assert_allclose(td_sig, dat_sig, atol=1e-6)
@@ -147,10 +215,16 @@ class io_adp_testcase(unittest.TestCase):
         assert_allclose(td_sig_ieb, dat_sig_ieb, atol=1e-6)
         assert_allclose(td_sig_ie, dat_sig_ie, atol=1e-6)
         assert_allclose(td_sig_tide, dat_sig_tide, atol=1e-6)
+        assert_allclose(td_sig_raw_avg, dat_sig_raw_avg, atol=1e-6)
+        assert_allclose(td_sig_avg, dat_sig_avg, atol=1e-6)
+        assert_allclose(td_sig_rt, dat_sig_rt, atol=1e-6)
         assert_allclose(td_sig5_leiw, dat_sig5_leiw, atol=1e-6)
         assert_allclose(td_sig_skip, dat_sig_skip, atol=1e-6)
         assert_allclose(td_sig_badt, dat_sig_badt, atol=1e-6)
-        assert_allclose(td_sig_dp2, dat_sig_dp2, atol=1e-6)
+        assert_allclose(td_sig_dp1_all, dat_sig_dp1_all, atol=1e-6)
+        assert_allclose(td_sig_dp1_ice, dat_sig_dp1_ice, atol=1e-6)
+        assert_allclose(td_sig_dp2_echo, dat_sig_dp2_echo, atol=1e-6)
+        assert_allclose(td_sig_dp2_avg, dat_sig_dp2_avg, atol=1e-6)
 
     def test_nortek2_crop(self):
         # Test file cropping function

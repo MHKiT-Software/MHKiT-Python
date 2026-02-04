@@ -1,0 +1,152 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mhkit"
+# `version` is read from `[tools.setuptools.dynamic] version` during build: https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
+dynamic = ["version"]
+description = "Marine and Hydrokinetic Toolkit"
+readme = "README.md"
+authors = [
+    {name = "MHKiT developers"}
+]
+license = {text = "Revised BSD"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=2.0.0",
+    "pandas>=2.2.2",
+    "scipy>=1.14.0",
+    "xarray>=2024.6.0",
+    "matplotlib>=3.9.1",
+    "pecos>=0.3.0",
+    "requests",
+]
+
+[project.optional-dependencies]
+# Core dependencies for each module
+wave = [
+    "scikit-learn>=1.5.1",
+    "statsmodels>=0.14.2",
+    "netCDF4>=1.7.1.post1",
+    "pytz",
+    "NREL-rex>=0.2.63",
+    "beautifulsoup4",
+    "bottleneck",
+    "lxml"
+]
+
+tidal = [
+    "netCDF4>=1.7.1.post1",
+    "bottleneck"
+]
+
+river = [
+    "netCDF4>=1.7.1.post1",
+    "bottleneck",
+]
+
+dolfyn = [
+    "h5py>=3.11.0",
+    "h5pyd>=0.18.0",
+    "netCDF4>=1.7.1.post1",
+    "cartopy",
+]
+
+power = [
+]
+
+loads = [
+    "fatpack",
+    "statsmodels>=0.14.2",
+    "scikit-learn>=1.5.1",
+]
+
+mooring = [
+]
+
+acoustics = [
+
+]
+
+qc = [
+
+]
+
+utils = [
+
+]
+
+# Development dependencies
+dev = [
+    "pytest",
+    "pylint",
+    "pytest-cov",
+    "pre-commit",
+    "coverage",
+    "coveralls"
+]
+
+
+
+# Install all optional dependencies
+all = [
+    "mhkit[wave]",
+    "mhkit[tidal]",
+    "mhkit[river]",
+    "mhkit[dolfyn]",
+    "mhkit[power]",
+    "mhkit[loads]",
+    "mhkit[mooring]",
+    "mhkit[acoustics]",
+    "mhkit[qc]",
+    "mhkit[utils]",
+]
+
+# Examples dependencies
+examples = [
+    "jupyter",
+    "notebook",
+    "ipykernel",
+    "nbval",
+    "utm",
+    "folium",
+    "mhkit[all]",
+
+]
+
+[project.urls]
+Homepage = "https://github.com/MHKiT-Software/mhkit-python"
+Documentation = "https://mhkit-software.github.io/MHKiT"
+
+[tool.setuptools.packages.find]
+# This section controls how this python package is built for pip installations
+# Getting this section wrong results in an incomplete package that is missing submodules
+# This can be tested by simply running python -m build in the root directory
+# and then inspecting the generated .tar.gz and .whl files in the dist/ directory
+#
+# https://setuptools.pypa.io/en/latest/userguide/package_discovery.html#finding-simple-packages
+# What this does: (per the above docs):
+# - `where = ["."]`: Search for packages starting from the root directory
+# - `include = ["mhkit*"]`: Only include packages that match the pattern `mhkit*`
+#     - this includes `mhkit`, `mhkit.wave`, `mhkit.river`, etc.
+# - Setuptools will automatically discover all directories containing `__init__.py` files
+where = ["."]
+include = ["mhkit*"]
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = {attr = "mhkit.__version__"} 
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"

@@ -1,21 +1,21 @@
 """
-This module contains functions for calculating electrical power metrics from 
-measured voltage and current data. It supports both direct current (DC) and 
-alternating current (AC) calculations, including instantaneous frequency 
-analysis for AC signals and power calculations for three-phase AC systems. 
-The calculations can accommodate both line-to-neutral and line-to-line voltage 
-measurements and offer flexibility in output formats, allowing results to be 
+This module contains functions for calculating electrical power metrics from
+measured voltage and current data. It supports both direct current (DC) and
+alternating current (AC) calculations, including instantaneous frequency
+analysis for AC signals and power calculations for three-phase AC systems.
+The calculations can accommodate both line-to-neutral and line-to-line voltage
+measurements and offer flexibility in output formats, allowing results to be
 saved as either pandas DataFrames or xarray Datasets.
 
 Functions:
     instantaneous_frequency: Calculates the instantaneous frequency of a measured
     voltage signal over time.
-    
+
     dc_power: Computes the DC power from voltage and current measurements, providing
     both individual channel outputs and a gross power calculation.
-    
+
     ac_power_three_phase: Calculates the magnitude of active AC power for three-phase
-    systems, considering the power factor and voltage measurement configuration 
+    systems, considering the power factor and voltage measurement configuration
     (line-to-neutral or line-to-line).
 """
 

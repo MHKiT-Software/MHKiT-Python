@@ -188,7 +188,7 @@ class TimeBinner:
           corners of the matrix (beginning/end of timeseries).  In
           this case, the array shape will be (...,`n`,`n_pad`+`n_bin`)
         n_bin : int
-          Override this binner's n_bin. Default is `binner.n_bin`
+          Override this binner's n_bin. Default is `self.n_bin`
 
         Returns
         -------
@@ -256,7 +256,7 @@ class TimeBinner:
           this case, the array shape will be (...,`n`,`n_pad`+`n_bin`).
           Default = 0
         n_bin : int
-          Override this binner's n_bin. Default is `binner.n_bin`
+          Override this binner's n_bin. Default is `self.n_bin`
 
         Returns
         -------
@@ -284,7 +284,7 @@ class TimeBinner:
           this case, the array shape will be (...,`n`,`n_pad`+`n_bin`).
           Default = 0
         n_bin : int
-          Override this binner's n_bin. Default is `binner.n_bin`
+          Override this binner's n_bin. Default is `self.n_bin`
 
         Returns
         -------
@@ -305,7 +305,7 @@ class TimeBinner:
         axis : int
           Axis along which to take mean. Default = -1
         n_bin : int
-          Override this binner's n_bin. Default is `binner.n_bin`
+          Override this binner's n_bin. Default is `self.n_bin`
 
         Returns
         -------
@@ -332,7 +332,7 @@ class TimeBinner:
         axis : int
           Axis along which to take variance. Default = -1
         n_bin : int
-          Override this binner's n_bin. Default is `binner.n_bin`
+          Override this binner's n_bin. Default is `self.n_bin`
 
         Returns
         -------
@@ -353,7 +353,7 @@ class TimeBinner:
         axis : int
           Axis along which to take std dev. Default = -1
         n_bin : int
-          Override this binner's n_bin. Default is `binner.n_bin`
+          Override this binner's n_bin. Default is `self.n_bin`
 
         Returns
         -------
@@ -370,7 +370,6 @@ class TimeBinner:
         noise=0,
         n_bin=None,
         n_fft=None,
-        n_pad=None,
         step=None,
     ):
         """
@@ -393,8 +392,6 @@ class TimeBinner:
         n_fft : int
           n_fft of veldat2, number of elements per bin if 'None' is taken
           from VelBinner
-        n_pad : int (optional)
-          The number of values to pad with zero. Default = 0
         step : int (optional)
           Controls amount of overlap in fft. Default: the step size is
           chosen to maximize data use, minimize nens, and have a
@@ -413,11 +410,9 @@ class TimeBinner:
         fs = self._parse_fs(fs)
         n_bin = self._parse_nbin(n_bin)
         n_fft = self._parse_nfft(n_fft)
-        if n_pad is None:
-            n_pad = min(n_bin - n_fft, n_fft)
         out = np.empty(self._outshape_fft(dat.shape, n_fft=n_fft, n_bin=n_bin))
         # The data is detrended in psd, so we don't need to do it here.
-        dat = self.reshape(dat, n_pad=n_pad)
+        dat = self.reshape(dat)
 
         for slc in slice1d_along_axis(dat.shape, -1):
             out[slc] = psd_1D(dat[slc], n_fft, fs, window=window, step=step)
@@ -474,8 +469,8 @@ class TimeBinner:
         oshp[-2] = np.min([oshp[-2], int(dat2.shape[-1] // n_bin2)])
 
         # The data is detrended in psd, so we don't need to do it here:
-        dat1 = self.reshape(dat1, n_pad=n_fft)
-        dat2 = self.reshape(dat2, n_pad=n_fft)
+        dat1 = self.reshape(dat1)
+        dat2 = self.reshape(dat2)
         out = np.empty(oshp, dtype="c{}".format(dat1.dtype.itemsize * 2))
         if dat1.shape == dat2.shape:
             cross = cpsd_1D

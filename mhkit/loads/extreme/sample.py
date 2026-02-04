@@ -2,10 +2,10 @@
 This module provides statistical analysis tools for extreme value
 analysis in environmental and engineering applications. It focuses on
 estimating values corresponding to specific return periods based on
-the statistical distribution of observed or simulated data. 
+the statistical distribution of observed or simulated data.
 
 Functionality:
-- return_year_value: Calculates the value from a given distribution 
+- return_year_value: Calculates the value from a given distribution
  corresponding to a specified return year. This function is particularly
  useful for determining design values for engineering structures or for
  risk assessment in environmental studies.

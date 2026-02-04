@@ -57,12 +57,21 @@ def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
 
     if "orientmat" in adcpo:
         omat = adcpo["orientmat"]
-    else:
+    elif "orientmat_avg" in adcpo:
+        omat = adcpo["orientmat_avg"]
+    elif "time" in adcpo:
         omat = _euler2orient(
             adcpo["time"],
             adcpo["heading"].values,
             adcpo["pitch"].values,
             adcpo["roll"].values,
+        )
+    elif "time_avg" in adcpo:
+        omat = _euler2orient(
+            adcpo["time_avg"],
+            adcpo["heading_avg"].values,
+            adcpo["pitch_avg"].values,
+            adcpo["roll_avg"].values,
         )
 
     # Take the transpose of the orientation to get the inst->earth rotation

@@ -3,7 +3,7 @@ This package provides tools and functions for extreme value analysis
 and wave data statistics.
 
 It includes methods for calculating peaks over threshold, estimating
-short-term extreme distributions,and performing wave amplitude 
+short-term extreme distributions,and performing wave amplitude
 normalization for most likely extreme response analysis.
 """
 

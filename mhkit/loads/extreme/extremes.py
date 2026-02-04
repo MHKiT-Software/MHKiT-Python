@@ -1,29 +1,29 @@
 """
 This module provides functionality for estimating the short-term and
-long-term extreme distributions of responses in a time series. It 
-includes methods for analyzing peaks, block maxima, and applying 
-statistical distributions to model extreme events. The module supports 
-various methods for short-term extreme estimation, including peaks 
-fitting with Weibull, tail fitting, peaks over threshold, and block 
-maxima methods with GEV (Generalized Extreme Value) and Gumbel 
-distributions. Additionally, it offers functionality to approximate 
-the long-term extreme distribution by weighting short-term extremes 
+long-term extreme distributions of responses in a time series. It
+includes methods for analyzing peaks, block maxima, and applying
+statistical distributions to model extreme events. The module supports
+various methods for short-term extreme estimation, including peaks
+fitting with Weibull, tail fitting, peaks over threshold, and block
+maxima methods with GEV (Generalized Extreme Value) and Gumbel
+distributions. Additionally, it offers functionality to approximate
+the long-term extreme distribution by weighting short-term extremes
 across different sea states.
 
 Functions:
-- ste_peaks: Estimates the short-term extreme distribution from peaks 
+- ste_peaks: Estimates the short-term extreme distribution from peaks
     distribution using specified statistical methods.
 - block_maxima: Finds the block maxima in a time-series data to be used
     in block maxima methods.
-- ste_block_maxima_gev: Approximates the short-term extreme distribution 
+- ste_block_maxima_gev: Approximates the short-term extreme distribution
     using the block maxima method with the GEV distribution.
-- ste_block_maxima_gumbel: Approximates the short-term extreme 
+- ste_block_maxima_gumbel: Approximates the short-term extreme
     distribution using the block maxima method with the Gumbel distribution.
-- ste: Alias for `short_term_extreme`, facilitating easier access to the 
+- ste: Alias for `short_term_extreme`, facilitating easier access to the
     primary functionality of estimating short-term extremes.
-- short_term_extreme: Core function to approximate the short-term extreme 
+- short_term_extreme: Core function to approximate the short-term extreme
     distribution from a time series using chosen methods.
-- full_seastate_long_term_extreme: Combines short-term extreme 
+- full_seastate_long_term_extreme: Combines short-term extreme
     distributions using weights to estimate the long-term extreme distribution.
 """
 

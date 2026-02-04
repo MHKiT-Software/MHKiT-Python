@@ -77,8 +77,8 @@ class TestIOcdip(unittest.TestCase):
             self.test_nc, start_date=start_date, end_date=end_date
         )
 
-        start_dt = datetime.utcfromtimestamp(start_stamp).replace(tzinfo=pytz.UTC)
-        end_dt = datetime.utcfromtimestamp(end_stamp).replace(tzinfo=pytz.UTC)
+        start_dt = datetime.fromtimestamp(start_stamp, pytz.UTC)
+        end_dt = datetime.fromtimestamp(end_stamp, pytz.UTC)
 
         self.assertEqual(start_dt, start_date)
         self.assertEqual(end_dt, end_date)
