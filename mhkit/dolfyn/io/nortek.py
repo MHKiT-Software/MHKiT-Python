@@ -97,12 +97,16 @@ def read_nortek(
     ds = _set_coords(ds, ref_frame=ds.coord_sys)
 
     if "orientmat" not in ds:
+        if "vector" in ds.attrs["inst_model"].lower():
+            orientation_down = ds.attrs["orientation_down"]
+        else:
+            orientation_down = None
         ds["orientmat"] = _calc_omat(
             ds["time"],
             ds["heading"],
             ds["pitch"],
             ds["roll"],
-            ds.get("orientation_down", None),
+            orientation_down,
         )
 
     if rotmat is not None:
@@ -154,10 +158,10 @@ class _NortekReader:
         "0x11": "read_vec_sys",  # Vector system data
         "0x12": "read_vec_hdr",  # Vector header
         "0x20": "read_awac_profile",  # AWAC profile
-        "0x21": "read_aqd_profile",  # Aquadopp profile
-        "0x2a": "read_aqd_profile_hr",  # Aquadopp high-res profile
-        "0x30": "read_awac_waves",  # AWAC waves
-        "0x31": "read_awac_waves_hdr",  # AWAC waves header
+        "0x21": "read_aqd_profile",  # Aquadopp profiler velocity
+        "0x2a": "read_aqd_profile_hr",  # Aquadopp profiler high-res velocity
+        "0x30": "read_awac_waves",  # AWAC and Aquadopp waves
+        "0x31": "read_awac_waves_hdr",  # AWAC and Aquadopp waves header
         "0x36": "read_awac_waves",  # AWAC waves + "SUV"
         "0x42": "read_awac_stage",  # AWAC stage data (altimeter AST)
         "0x71": "read_imu",  # Vector IMU
@@ -251,12 +255,12 @@ class _NortekReader:
         self.f.seek(pnow, 0)  # Seek to the previous position.
 
         da = self.data["attrs"]
-        if self.config["n_burst"] > 0:
+        if (self.config["adv"]["n_burst"] > 0) and ("ADV" in da["inst_type"]):
             fs = round(self.config["fs"], 7)
-            da["duty_cycle_n_burst"] = self.config["n_burst"]
+            da["duty_cycle_n_burst"] = self.config["adv"]["n_burst"]
             da["duty_cycle_interval"] = self.config["burst_interval"]
             if fs > 1:
-                burst_seconds = self.config["n_burst"] / fs
+                burst_seconds = self.config["adv"]["n_burst"] / fs
             else:
                 burst_seconds = round(1 / fs, 3)
             da["duty_cycle_description"] = (
@@ -264,6 +268,7 @@ class _NortekReader:
                     burst_seconds, fs, self.config["burst_interval"] / 60
                 )
             )
+
         self.burst_start = np.zeros(self.n_samp_guess, dtype="bool")
         da["fs"] = self.config["fs"]
         da["coord_sys"] = {"XYZ": "inst", "ENU": "earth", "beam": "beam"}[
@@ -335,9 +340,14 @@ class _NortekReader:
         da["inst_type"] = "ADCP"
         dv["beam2inst_orientmat"] = self.config.pop("beam2inst_orientmat")
         da["rotate_vars"] = ["vel"]
-        self.config["fs"] = 1.0 / self.config["avg_interval"]
+        if self.config["avg_interval"] <= 1:
+            self.config["fs"] = 1 / (self.config["time_between_bursts"] / 512)
+        else:
+            self.config["fs"] = 1.0 / self.config["avg_interval"]
         da.update(self.config["usr"])
-        da.update(self.config["awac"])
+        da.update(self.config["adp"])
+        if self.config["adp"]["wave_mode"] == "Enabled":
+            da.update(self.config["waves"])
         da.update(self.config["hdr"])
         da.update(self.config["hdw"])
 
@@ -359,13 +369,18 @@ class _NortekReader:
         da = dat["attrs"]
         dv = dat["data_vars"]
         da["inst_make"] = "Nortek"
-        da["inst_model"] = "AquaDopp"
+        da["inst_model"] = "Aquadopp"
         da["inst_type"] = "ADCP"
         dv["beam2inst_orientmat"] = self.config.pop("beam2inst_orientmat")
         da["rotate_vars"] = ["vel"]
-        self.config["fs"] = 1.0 / self.config["avg_interval"]
+        if self.config["avg_interval"] <= 1:
+            self.config["fs"] = 1 / (self.config["time_between_bursts"] / 512)
+        else:
+            self.config["fs"] = 1.0 / self.config["avg_interval"]
         da.update(self.config["usr"])
-        da.update(self.config["awac"])
+        da.update(self.config["adp"])
+        if self.config["adp"]["wave_mode"] == "Enabled":
+            da.update(self.config["waves"])
         da.update(self.config["hdr"])
         da.update(self.config["hdw"])
 
@@ -566,21 +581,22 @@ class _NortekReader:
         tmp = unpack(self.endian + "2x18H6s4HI9H90H80s48xH50x6H4xH2x2H2xH30x8H", byts)
         cfg_u["usr"] = {}
         cfg_u["adv"] = {}
-        cfg_u["awac"] = {}
+        cfg_u["adp"] = {}
+        cfg_u["waves"] = {}
 
         cfg_u["transmit_pulse_length_m"] = tmp[0]  # counts
         cfg_u["blank_dist"] = tmp[1]  # overridden below
         cfg_u["receive_length_m"] = tmp[2]  # counts
         cfg_u["time_between_pings"] = tmp[3]  # counts
         cfg_u["time_between_bursts"] = tmp[4]  # counts
-        cfg_u["adv"]["n_pings_per_burst"] = tmp[5]
-        cfg_u["avg_interval"] = tmp[6]
+        cfg_u["n_pings_per_burst"] = tmp[5]
+        cfg_u["avg_interval"] = tmp[6]  # s
         cfg_u["usr"]["n_beams"] = int(tmp[7])
         TimCtrlReg = lib._int2binarray(tmp[8], 16)
         # From the nortek system integrator manual
         # (note: bit numbering is zero-based)
         cfg_u["usr"]["profile_mode"] = ["single", "continuous"][int(TimCtrlReg[1])]
-        cfg_u["usr"]["burst_mode"] = str(bool(~TimCtrlReg[2]))
+        cfg_u["usr"]["burst_mode"] = ["burst", "continuous"][int(TimCtrlReg[2])]
         cfg_u["usr"]["power_level"] = int(TimCtrlReg[5] + 2 * TimCtrlReg[6] + 1)
         cfg_u["usr"]["sync_out_pos"] = [
             "middle",
@@ -601,12 +617,12 @@ class _NortekReader:
         cfg_u["usr"]["wrap_mode"] = str(bool(tmp[19]))
         cfg_u["deployment_time"] = np.array(tmp[20:23])
         cfg_u["diagnotics_interval"] = tmp[23]
-        Mode0 = lib._int2binarray(tmp[24], 16)
+        mode = lib._int2binarray(tmp[24], 16)
         cfg_u["user_soundspeed_adj_factor"] = tmp[25]
         cfg_u["n_samples_diag"] = tmp[26]
         cfg_u["n_beams_cells_diag"] = tmp[27]
         cfg_u["n_pings_diag_wave"] = tmp[28]
-        ModeTest = lib._int2binarray(tmp[29], 16)
+        mode_test = lib._int2binarray(tmp[29], 16)
         cfg_u["usr"]["analog_in"] = tmp[30]
         sfw_ver = str(tmp[31])
         cfg_u["usr"]["software_version"] = (
@@ -615,43 +631,50 @@ class _NortekReader:
         cfg_u["usr"]["salinity"] = tmp[32] / 10
         cfg_u["VelAdjTable"] = np.array(tmp[33:123])
         cfg_u["usr"]["comments"] = tmp[123].partition(b"\x00")[0].decode("utf-8")
-        cfg_u["awac"]["wave_processing_method"] = [
+        cfg_u["waves"]["wave_processing_method"] = [
             "PUV",
             "SUV",
             "MLM",
             "MLMST",
             "None",
         ][tmp[124]]
-        Mode1 = lib._int2binarray(tmp[125], 16)
-        cfg_u["awac"]["prc_dyn_wave_cell_pos"] = int(tmp[126] / 32767 * 100)
-        cfg_u["wave_transmit_pulse"] = tmp[127]
-        cfg_u["wave_blank_dist"] = tmp[128]
-        cfg_u["awac"]["wave_cell_size"] = tmp[129]
-        cfg_u["awac"]["n_samples_wave"] = tmp[130]
-        cfg_u["n_burst"] = tmp[131]
+        wave_meas_mode = lib._int2binarray(tmp[125], 16)
+        cfg_u["waves"]["prc_dyn_wave_cell_pos"] = int(tmp[126] / 32767 * 100)
+        cfg_u["waves"]["wave_transmit_pulse"] = tmp[127]
+        cfg_u["waves"]["wave_blank_dist"] = tmp[128]
+        cfg_u["waves"]["wave_cell_size"] = tmp[129]
+        cfg_u["waves"]["n_samples_wave"] = tmp[130]
+        cfg_u["adv"]["n_burst"] = tmp[131]
         cfg_u["analog_out_scale"] = tmp[132]
         cfg_u["corr_thresh"] = tmp[133]
         cfg_u["transmit_pulse_lag2"] = tmp[134]  # counts
         cfg_u["QualConst"] = np.array(tmp[135:143])
         self.checksum(byts)
-        cfg_u["usr"]["user_specified_sound_speed"] = str(Mode0[0])
-        cfg_u["awac"]["wave_mode"] = ["Disabled", "Enabled"][int(Mode0[1])]
-        cfg_u["usr"]["analog_output"] = str(Mode0[2])
-        cfg_u["usr"]["output_format"] = ["Vector", "ADV"][int(Mode0[3])]  # noqa
-        cfg_u["vel_scale_mm"] = [1, 0.1][int(Mode0[4])]
-        cfg_u["usr"]["serial_output"] = str(Mode0[5])
-        cfg_u["reserved_EasyQ"] = str(Mode0[6])
-        cfg_u["usr"]["power_output_analog"] = str(Mode0[8])
-        cfg_u["mode_test_use_DSP"] = str(ModeTest[0])
+
+        cfg_u["usr"]["user_specified_sound_speed"] = str(mode[0])
+        cfg_u["adp"]["wave_mode"] = ["Disabled", "Enabled"][int(mode[1])]
+        cfg_u["usr"]["analog_output"] = str(mode[2])
+        cfg_u["output_format"] = ["Vector", "ADV"][int(mode[3])]  # noqa
+        cfg_u["vel_scale_mm"] = [1, 0.1][int(mode[4])]
+        cfg_u["usr"]["serial_output"] = str(mode[5])
+        reserved_EasyQ = str(mode[6])
+        cfg_u["stage"] = str(mode[7])
+        cfg_u["usr"]["power_output_analog"] = str(mode[8])
+
+        cfg_u["mode_test_use_DSP"] = str(mode_test[0])
         cfg_u["mode_test_filter_output"] = ["total", "correction_only"][
-            int(ModeTest[1])
+            int(mode_test[1])
         ]  # noqa
-        cfg_u["awac"]["wave_fs"] = ["1 Hz", "2 Hz"][int(Mode1[0])]
-        cfg_u["awac"]["wave_cell_position"] = ["fixed", "dynamic"][
-            int(Mode1[1])
+
+        cfg_u["waves"]["wave_fs"] = ["1 Hz", "2 Hz"][int(wave_meas_mode[0])]
+        cfg_u["waves"]["wave_cell_position"] = ["fixed", "dynamic"][
+            int(wave_meas_mode[1])
         ]  # noqa
-        cfg_u["awac"]["type_wave_cell_pos"] = ["pct_of_mean_pressure", "pct_of_min_re"][
-            int(Mode1[2])
+        cfg_u["waves"]["type_wave_cell_pos"] = [
+            "pct_of_mean_pressure",
+            "pct_of_min_re",
+        ][
+            int(wave_meas_mode[2])
         ]  # noqa
 
     def read_hdr_cfg(self):
@@ -671,6 +694,7 @@ class _NortekReader:
         cfg["hdr"]["pressure_sensor"] = ["no", "yes"][head_config[0]]
         cfg["hdr"]["compass"] = ["no", "yes"][head_config[1]]
         cfg["hdr"]["tilt_sensor"] = ["no", "yes"][head_config[2]]
+        cfg["hdr"]["orientation_down"] = int(head_config[2])
         cfg["hdr"]["carrier_freq_kHz"] = tmp[1]
         cfg["beam2inst_orientmat"] = (
             np.array(unpack(self.endian + "9h", tmp[4][8:26])).reshape(3, 3) / 4096.0
@@ -738,9 +762,8 @@ class _NortekReader:
             dv["amp"][0, c],
             dv["amp"][1, c],
             dv["amp"][2, c],
-        ) = unpack(self.endian + "5H2h2BH4h3B", byts[8:37])
+        ) = unpack(self.endian + "5H2h2BH4h3Bx", byts[8:38])
         dv["pressure"][c] = 65536 * p_msb + p_lsw
-
         self.checksum(byts)
         self.c += 1
 
@@ -757,20 +780,20 @@ class _NortekReader:
         # The first two are size, the next 6 are time.
         tmp = unpack(self.endian + "2x2H4B8H6x", byts)
         hdrnow = {}
-        hdrnow["NRecords"] = tmp[0]
-        hdrnow["Cell"] = tmp[1]
-        hdrnow["Noise1"] = tmp[2]
-        hdrnow["Noise2"] = tmp[3]
-        hdrnow["Noise3"] = tmp[4]
-        hdrnow["Noise4"] = tmp[5]
-        hdrnow["ProcMagn1"] = tmp[6]
-        hdrnow["ProcMagn2"] = tmp[7]
-        hdrnow["ProcMagn3"] = tmp[8]
-        hdrnow["ProcMagn4"] = tmp[9]
-        hdrnow["Distance1"] = tmp[10]
-        hdrnow["Distance2"] = tmp[11]
-        hdrnow["Distance3"] = tmp[12]
-        hdrnow["Distance4"] = tmp[13]
+        hdrnow["n_records"] = tmp[0]
+        hdrnow["cell_size_diag"] = tmp[1]
+        hdrnow["noise1"] = tmp[2]
+        hdrnow["noise2"] = tmp[3]
+        hdrnow["noise3"] = tmp[4]
+        hdrnow["noise4"] = tmp[5]
+        hdrnow["proc_magn1"] = tmp[6]
+        hdrnow["proc_magn2"] = tmp[7]
+        hdrnow["proc_magn3"] = tmp[8]
+        hdrnow["proc_magn4"] = tmp[9]
+        hdrnow["distance1"] = tmp[10]
+        hdrnow["distance2"] = tmp[11]
+        hdrnow["distance3"] = tmp[12]
+        hdrnow["distance4"] = tmp[13]
         self.checksum(byts)
         if "data_header" not in self.config:
             self.config["data_header"] = hdrnow
@@ -895,21 +918,20 @@ class _NortekReader:
                     self.c, self.pos
                 )
             )
-        byts = self.read(38)
-        # The first two are size, the next 6 are time.
-        tmp = unpack(self.endian + "8xH7B21x", byts)
         hdrnow = {}
+        byts = self.read(38)
         hdrnow["time"] = lib.rd_time(byts[2:8])
-        hdrnow["NRecords"] = tmp[0]
-        hdrnow["Noise1"] = tmp[1]
-        hdrnow["Noise2"] = tmp[2]
-        hdrnow["Noise3"] = tmp[3]
-        hdrnow["Spare0"] = byts[13:14].decode("utf-8")
-        hdrnow["Corr1"] = tmp[5]
-        hdrnow["Corr2"] = tmp[6]
-        hdrnow["Corr3"] = tmp[7]
-        spare1 = byts[17:].decode("utf-8")
+        # The first two are size, the next 6 are time.
+        tmp = unpack(self.endian + "H3Bx3B21x", byts[8:38])
+        hdrnow["n_records"] = tmp[0]
+        hdrnow["noise1"] = tmp[1]
+        hdrnow["noise2"] = tmp[2]
+        hdrnow["noise3"] = tmp[3]
+        hdrnow["corr1"] = tmp[4]
+        hdrnow["corr2"] = tmp[5]
+        hdrnow["corr3"] = tmp[6]
         self.checksum(byts)
+
         if "data_header" not in self.config:
             self.config["data_header"] = hdrnow
         else:
@@ -944,6 +966,7 @@ class _NortekReader:
             dv["temp"][c],
         ) = unpack(self.endian + "5H2h2BHh", byts[8:28])
         dv["pressure"][c] = 65536 * p_msb + p_lsw
+
         tmp = unpack(
             self.endian + str(n * nbins) + "h" + str(n * nbins) + "B",
             byts[init_bytes : init_bytes + n * 3 * nbins],  # 3 b/c 3 bytes per row
@@ -1025,6 +1048,7 @@ class _NortekReader:
         ) = unpack(self.endian + "5H2h2BHh2H2B", byts[8:34])
         dat["coords"]["time"][c] += milliseconds / 1000
         dv["pressure"][c] = 65536 * p_msb + p_lsw
+
         hr_bytes = self.read(nbeams * ncells * 4)
         tmp = unpack(
             self.endian + str(nbeams * ncells) + "h" + str(2 * nbeams * ncells) + "B",
@@ -1053,7 +1077,7 @@ class _NortekReader:
                     self.c, self.pos
                 )
             )
-        if "dist1_alt" not in dat["data_vars"]:
+        if "dist1" not in dat["data_vars"]:
             self._init_data(defs.wave_data)
             self._dtypes += ["wave_data"]
         # The first two are size
@@ -1062,19 +1086,19 @@ class _NortekReader:
         dv = dat["data_vars"]
         (
             dv["pressure"][c],  # (0.001 dbar)
-            dv["dist1_alt"][c],  # distance 1 to surface, vertical beam (mm)
-            ds["AnaIn_alt"][c],  # analog input 1
-            dv["vel_alt"][0, c],  # velocity beam 1 (mm/s) East for SUV
-            dv["vel_alt"][1, c],  # North for SUV
-            dv["vel_alt"][2, c],  # Up for SUV
-            dv["dist2_alt"][
+            dv["dist1"][c],  # distance 1 to surface, vertical beam (mm)
+            ds["AnaIn1"][c],  # analog input 1
+            dv["vel"][0, c],  # velocity beam 1 (mm/s) East for SUV
+            dv["vel"][1, c],  # North for SUV
+            dv["vel"][2, c],  # Up for SUV
+            dv["dist2"][
                 c
             ],  # distance 2 to surface, vertical beam (mm) or vel 4 for non-AST
-            dv["amp_alt"][0, c],  # amplitude beam 1 (counts)
-            dv["amp_alt"][1, c],  # amplitude beam 2 (counts)
-            dv["amp_alt"][2, c],  # amplitude beam 3 (counts)
+            dv["amp"][0, c],  # amplitude beam 1 (counts)
+            dv["amp"][1, c],  # amplitude beam 2 (counts)
+            dv["amp"][2, c],  # amplitude beam 3 (counts)
             # AST quality (counts) or amplitude beam 4 for non-AST
-            dv["quality_alt"][c],
+            dv["quality"][c],
         ) = unpack(self.endian + "h2H4h4B", byts)
         self.checksum(byts)
         self.c += 1
@@ -1082,7 +1106,6 @@ class _NortekReader:
     def read_awac_waves_hdr(self):
         """Read AWAC header bock for wave data (0x31)"""
         # ID: '0x31' == 49
-        c = self.c
         if self.debug:
             print(
                 "Reading AWAC header data (0x31) ping #{} @ {}...".format(
@@ -1090,33 +1113,29 @@ class _NortekReader:
                 )
             )
         hdrnow = {}
-        dat = self.data
-        ds = dat["sys"]
-        dv = dat["data_vars"]
-        if "time" not in dat["coords"]:
-            self._init_data(defs.waves_hdrdata)
         byts = self.read(56)
         # The first two are size, the next 6 are time.
-        tmp = unpack(self.endian + "8x4H3h2HhH4B6H5h", byts)
-        dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
-        hdrnow["n_records_alt"] = tmp[0]
-        hdrnow["blank_dist_alt"] = tmp[1]  # counts
-        ds["batt_alt"][c] = tmp[2]  # voltage (0.1 V)
-        dv["c_sound_alt"][c] = tmp[3]  # c (0.1 m/s)
-        dv["heading_alt"][c] = tmp[4]  # (0.1 deg)
-        dv["pitch_alt"][c] = tmp[5]  # (0.1 deg)
-        dv["roll_alt"][c] = tmp[6]  # (0.1 deg)
-        dv["pressure1_alt"][c] = tmp[7]  # min pressure previous profile (0.001 dbar)
-        dv["pressure2_alt"][c] = tmp[8]  # max pressure previous profile (0.001 dbar)
-        dv["temp_alt"][c] = tmp[9]  # (0.01 deg C)
-        hdrnow["cell_size_alt"][c] = tmp[10]  # (counts of T3)
-        hdrnow["noise_alt"][c] = tmp[11:15]  # noise amplitude beam 1-4 (counts)
-        hdrnow["proc_magn_alt"][c] = tmp[15:19]  # processing magnitude beam 1-4
-        hdrnow["n_past_window_alt"] = tmp[
-            19
-        ]  # number of samples of AST window past boundary
-        hdrnow["n_window_alt"] = tmp[20]  # AST window size (# samples)
-        spare = tmp[21:]
+        hdrnow["time"] = lib.rd_time(byts[2:8])
+        tmp = unpack(self.endian + "5H2h2HhH4B4H14x", byts[8:56])
+        hdrnow["n_records"] = tmp[0]
+        hdrnow["blank_dist"] = tmp[1]  # counts
+        hdrnow["batt"] = tmp[2]  # voltage (0.1 V)
+        hdrnow["c_sound"] = tmp[3]  # c (0.1 m/s)
+        hdrnow["heading"] = tmp[4]  # (0.1 deg)
+        hdrnow["pitch"] = tmp[5]  # (0.1 deg)
+        hdrnow["roll"] = tmp[6]  # (0.1 deg)
+        hdrnow["pressure1"] = tmp[7]  # min pressure previous profile (0.001 dbar)
+        hdrnow["pressure2"] = tmp[8]  # max pressure previous profile (0.001 dbar)
+        hdrnow["temp"] = tmp[9]  # (0.01 deg C)
+        hdrnow["cell_size"] = tmp[10]  # (counts of T3)
+        hdrnow["noise1"] = tmp[11]
+        hdrnow["noise2"] = tmp[12]
+        hdrnow["noise3"] = tmp[13]
+        hdrnow["noise4"] = tmp[14]
+        hdrnow["proc_magn1"] = tmp[15]
+        hdrnow["proc_magn2"] = tmp[16]
+        hdrnow["proc_magn3"] = tmp[17]
+        hdrnow["proc_magn4"] = tmp[18]
         self.checksum(byts)
         if "data_header" not in self.config:
             self.config["data_header"] = hdrnow
@@ -1140,24 +1159,24 @@ class _NortekReader:
                     self._inst, self.c, self.pos
                 )
             )
-        if "dist1_alt" not in dat["data_vars"]:
+        if "dist1" not in dat["data_vars"]:
             self._init_data(defs.stage_data)
             self._dtypes += ["stage_data"]
         # The first two are size
         byts = self.read(30)
         dv = dat["data_vars"]
         (
-            dv["amp_alt"][0, c],  # amplitude beam 1 (counts)
-            dv["amp_alt"][1, c],  # amplitude beam 2 (counts)
-            dv["amp_alt"][2, c],  # amplitude beam 3 (counts)
+            dv["amp"][0, c],  # amplitude beam 1 (counts)
+            dv["amp"][1, c],  # amplitude beam 2 (counts)
+            dv["amp"][2, c],  # amplitude beam 3 (counts)
             dv["pressure"][c],  # (0.001 dbar)
-            dv["ast_dist1_alt"][c],  # altimeter range estimate (1 mm) using AST
-            dv["ast_quality_alt"][c],  # alimeter quality for AST algorithm
+            dv["ast_dist1"][c],  # altimeter range estimate (1 mm) using AST
+            dv["ast_quality"][c],  # alimeter quality for AST algorithm
             dv["c_sound"][c],  # speed of sound (0.1 m/s)
-            dv["ast_dist2_alt"][c],  # altimeter range estimate (1 mm) using AST
-            dv["vel_alt"][0, c],  # velocity beam 1 (mm/s) East for SUV
-            dv["vel_alt"][1, c],  # North for SUV
-            dv["vel_alt"][2, c],  # Up for SUV
+            dv["ast_dist2"][c],  # altimeter range estimate (1 mm) using AST
+            dv["vel"][0, c],  # velocity beam 1 (mm/s) East for SUV
+            dv["vel"][1, c],  # North for SUV
+            dv["vel"][2, c],  # Up for SUV
         ) = unpack(self.endian + "4x3B2x2hH2h2x3h3x", byts)
         alt_bytes = self.read(nbeams * nbins)
         tmp = unpack(
@@ -1328,8 +1347,9 @@ class _NortekReader:
             dv["amp"][0, c],
             dv["amp"][1, c],
             dv["amp"][2, c],
-        ) = unpack(self.endian + "5H2h2BHhH7h3B", byts[8:49])
+        ) = unpack(self.endian + "5H2h2BHhH7h3Bx", byts[8:48])
         dv["pressure"][c] = 65536 * p_msb + p_lsw
+        status = bin(status)[2:].zfill(8)
 
         self.checksum(byts)
         self.c += 1
@@ -1374,8 +1394,7 @@ class _NortekReader:
         dat["sys"]["_sysi"] = ~np.isnan(t)
         # These are the indices in the sysdata variables
         # that are not interpolated.
-        nburst = self.config["n_burst"]
-        dv["orientation_down"] = tbx._nans(len(t), dtype="bool")
+        nburst = self.config["adv"]["n_burst"]
         if nburst == 0:
             num_bursts = 1
             nburst = len(t)
@@ -1397,15 +1416,6 @@ class _NortekReader:
             else:
                 t[iburst] = t[iburst][0] + arng / (fs * 24 * 3600)
 
-            tmpd = tbx._nans_like(dv["heading"][iburst])
-            # The first status bit should be the orientation.
-            tmpd[sysi] = dv["status"][iburst][sysi] & 1
-            tbx.fillgaps(tmpd, extrapFlg=True)
-            tmpd = np.nan_to_num(tmpd, nan=0)  # nans in pitch roll heading
-            slope = np.diff(tmpd)
-            tmpd[1:][slope < 0] = 1
-            tmpd[:-1][slope > 0] = 0
-            dv["orientation_down"][iburst] = tmpd.astype("bool")
         tbx.interpgaps(dv["batt"], t)
         tbx.interpgaps(dv["c_sound"], t)
         tbx.interpgaps(dv["heading"], t)

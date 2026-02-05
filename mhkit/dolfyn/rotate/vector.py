@@ -140,7 +140,7 @@ def _inst2earth(advo, reverse=False, rotate_vars=None, force=False):
         omat = advo["orientmat"]
     else:
         if "vector" in advo.inst_model.lower():
-            orientation_down = advo["orientation_down"]
+            orientation_down = advo.attrs["orientation_down"]
 
         omat = _calc_omat(
             advo["time"], advo["heading"], advo["pitch"], advo["roll"], orientation_down
@@ -252,7 +252,7 @@ def _calc_omat(time, hh, pp, rr, orientation_down=None):
       Roll Euler angle in degrees.
 
     orientation_down: array-like or bool, optional
-      Set to true if instrument is facing downwards
+      Set to true if non-cabled ADV is facing downwards
 
     Returns
     -------
@@ -270,11 +270,11 @@ def _calc_omat(time, hh, pp, rr, orientation_down=None):
         pp[lastgd:] = pp[lastgd]
         hh[lastgd:] = hh[lastgd]
     if orientation_down is not None:
-        # For Nortek Vector ADVs: 'down' configuration means the head was
-        # pointing 'up', where the 'up' orientation corresponds to the
-        # communication cable being up.  Check the Nortek coordinate
+        # For non-cabled Nortek Vector ADVs: 'down' configuration means th
+        # probe was pointing 'up', where the 'up' orientation corresponds
+        # to the communication cable being up.  Check the Nortek coordinate
         # transform matlab script for more info.
-        rr[orientation_down.astype(bool)] += 180
+        rr += 180
 
     return _euler2orient(time, hh, pp, rr)
 

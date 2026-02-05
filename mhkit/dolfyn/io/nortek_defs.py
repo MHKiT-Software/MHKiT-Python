@@ -259,13 +259,6 @@ vec_sysdata = {
         group="sys",
         default_val=nan,
     ),
-    "orientation_down": _VarAtts(
-        dims=[],
-        dtype=bool,
-        group="data_vars",
-        default_val=nan,
-        long_name="Orientation of ADV Communication Cable",
-    ),
 }
 
 awac_profile = {
@@ -385,99 +378,8 @@ awac_profile = {
     ),
 }
 
-waves_hdrdata = {
-    "time_alt": _VarAtts(
-        dims=[],
-        dtype=np.float64,
-        group="coords",
-        default_val=nan,
-        units="seconds since 1970-01-01 00:00:00 UTC",
-        long_name="Time",
-        standard_name="time",
-    ),
-    "batt_alt": _VarAtts(
-        dims=[],
-        dtype=np.uint16,
-        group="data_vars",
-        default_val=nan,
-        factor=0.1,
-        units="V",
-        long_name="Battery Voltage",
-    ),
-    "c_sound_alt": _VarAtts(
-        dims=[],
-        dtype=np.float32,
-        group="data_vars",
-        default_val=nan,
-        factor=0.1,
-        units="m s-1",
-        long_name="Speed of Sound",
-        standard_name="speed_of_sound_in_sea_water",
-    ),
-    "heading_alt": _VarAtts(
-        dims=[],
-        dtype=np.float32,
-        group="data_vars",
-        default_val=nan,
-        factor=0.1,
-        units="degree",
-        long_name="Heading",
-        standard_name="platform_orientation",
-    ),
-    "pitch_alt": _VarAtts(
-        dims=[],
-        dtype=np.float32,
-        group="data_vars",
-        default_val=nan,
-        factor=0.1,
-        units="degree",
-        long_name="Pitch",
-        standard_name="platform_pitch",
-    ),
-    "roll_alt": _VarAtts(
-        dims=[],
-        dtype=np.float32,
-        group="data_vars",
-        default_val=nan,
-        factor=0.1,
-        units="degree",
-        long_name="Roll",
-        standard_name="platform_roll",
-    ),
-    "pressure1_alt": _VarAtts(
-        dims=[],
-        dtype=np.float32,
-        group="data_vars",
-        default_val=nan,
-        factor=0.001,
-        units="dbar",
-        long_name="Pressure Min",
-        standard_name="sea_water_pressure",
-    ),
-    "pressure2_alt": _VarAtts(
-        dims=[],
-        dtype=np.float32,
-        group="data_vars",
-        default_val=nan,
-        factor=0.001,
-        units="dbar",
-        long_name="Pressure Max",
-        standard_name="sea_water_pressure",
-    ),
-    "temp_alt": _VarAtts(
-        dims=[],
-        dtype=np.float32,
-        group="data_vars",
-        default_val=nan,
-        factor=0.01,
-        units="degree_C",
-        long_name="Temperature",
-        standard_name="sea_water_temperature",
-    ),
-}
-
 waves_data = {
-    "pressure_alt": _VarAtts(
+    "pressure": _VarAtts(
         dims=[],
         dtype=np.float32,
         group="data_vars",
@@ -487,7 +389,7 @@ waves_data = {
         long_name="Pressure",
         standard_name="sea_water_pressure",
     ),
-    "dist1_alt": _VarAtts(
+    "dist1": _VarAtts(
         dims=[],
         dtype=np.uint16,
         group="data_vars",
@@ -497,7 +399,7 @@ waves_data = {
         long_name="AST distance1 on vertical beam",
         standard_name="altimeter_range",
     ),
-    "dist2_alt": _VarAtts(
+    "dist2": _VarAtts(
         dims=[],
         dtype=np.uint16,
         group="data_vars",
@@ -507,14 +409,14 @@ waves_data = {
         long_name="AST distance2 on vertical beam",
         standard_name="altimeter_range",
     ),
-    "AnaIn1_alt": _VarAtts(
+    "AnaIn1": _VarAtts(
         dims=[],
         dtype=np.float32,
         group="sys",
         default_val=nan,
         units="n/a",
     ),
-    "vel_alt": _VarAtts(
+    "vel": _VarAtts(
         dims=[4, "n"],
         dtype=np.float32,
         group="data_vars",
@@ -523,7 +425,7 @@ waves_data = {
         units="m s-1",
         long_name="Water Velocity",
     ),
-    "amp_alt": _VarAtts(
+    "amp": _VarAtts(
         dims=[4, "n"],
         dtype=np.uint8,
         group="data_vars",
@@ -532,7 +434,7 @@ waves_data = {
         long_name="Acoustic Signal Amplitude",
         standard_name="signal_intensity_from_multibeam_acoustic_doppler_velocity_sensor_in_sea_water",
     ),
-    "quality_alt": _VarAtts(
+    "quality": _VarAtts(
         dims=[],
         dtype=np.float32,
         group="data_vars",
@@ -543,7 +445,7 @@ waves_data = {
 }
 
 stage_data = {
-    "amp_alt": _VarAtts(
+    "amp": _VarAtts(
         dims=[4],
         dtype=np.uint8,
         group="data_vars",
@@ -552,7 +454,7 @@ stage_data = {
         long_name="Acoustic Signal Amplitude",
         standard_name="signal_intensity_from_multibeam_acoustic_doppler_velocity_sensor_in_sea_water",
     ),
-    "pressure_alt": _VarAtts(
+    "pressure": _VarAtts(
         dims=[],
         dtype=np.float32,
         group="data_vars",
@@ -562,7 +464,7 @@ stage_data = {
         long_name="Pressure",
         standard_name="sea_water_pressure",
     ),
-    "ast_dist1_alt": _VarAtts(
+    "ast_dist1": _VarAtts(
         dims=[],
         dtype=np.uint16,
         group="data_vars",
@@ -572,7 +474,7 @@ stage_data = {
         long_name="Altimeter Range Acoustic Surface Tracking 1",
         standard_name="altimeter_range",
     ),
-    "ast_quality_alt": _VarAtts(
+    "ast_quality": _VarAtts(
         dims=[],
         dtype=np.float32,
         group="data_vars",
@@ -590,7 +492,7 @@ stage_data = {
         long_name="Speed of Sound",
         standard_name="speed_of_sound_in_sea_water",
     ),
-    "ast_dist2_alt": _VarAtts(
+    "ast_dist2": _VarAtts(
         dims=[],
         dtype=np.uint16,
         group="data_vars",
@@ -600,7 +502,7 @@ stage_data = {
         long_name="Altimeter Range Acoustic Surface Tracking 2",
         standard_name="altimeter_range",
     ),
-    "vel_alt": _VarAtts(
+    "vel": _VarAtts(
         dims=[4],
         dtype=np.float32,
         group="data_vars",
