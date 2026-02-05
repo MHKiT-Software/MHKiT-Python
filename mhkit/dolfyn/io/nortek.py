@@ -145,23 +145,24 @@ class _NortekReader:
     _lastread = [None, None, None, None, None]
     fun_map = {
         "0x00": "read_user_cfg",  # User configuration
-        "0x04": "read_head_cfg",  # Header configuration
-        "0x05": "read_hw_cfg",  # Hardware configuration
-        "0x01": "read_adopp",  # Aquadopp velocity
-        "0x06": "read_adopp_diag_hdr",  # Aquadopp diagnostics header
+        "0x01": "read_aqd",  # Aquadopp velocity
+        "0x04": "read_hdr_cfg",  # Header configuration
+        "0x05": "read_hdw_cfg",  # Hardware configuration
+        "0x06": "read_aqd_diag_hdr",  # Aquadopp diagnostics header
         "0x07": "read_vec_check",  # Vector probe check
         "0x10": "read_vec",  # Vector velocity
         "0x11": "read_vec_sys",  # Vector system data
         "0x12": "read_vec_hdr",  # Vector header
         "0x20": "read_awac_profile",  # AWAC profile
-        "0x21": "read_adopp_profile",  # Aquadopp profile
-        "0x2a": "read_adopp_profile_hr",  # Aquadopp high-res profile
+        "0x21": "read_aqd_profile",  # Aquadopp profile
+        "0x2a": "read_aqd_profile_hr",  # Aquadopp high-res profile
         "0x30": "read_awac_waves",  # AWAC waves
         "0x31": "read_awac_waves_hdr",  # AWAC waves header
         "0x36": "read_awac_waves",  # AWAC waves + "SUV"
+        "0x42": "read_awac_stage",  # AWAC stage data (altimeter AST)
         "0x71": "read_imu",  # Vector IMU
-        "0x80": "read_adopp",  # Aquadopp diagnostics
-        "0x81": "read_adopp_mag",  # Aquadopp with magnetometer
+        "0x80": "read_aqd",  # Aquadopp diagnostics
+        "0x81": "read_aqd_mag",  # Aquadopp with magnetometer
     }
 
     def __init__(
@@ -217,25 +218,24 @@ class _NortekReader:
         err_msg = "I/O error: The file does not " "appear to be a Nortek data file."
         # Read the header:
         if self.read_id() == 5:
-            self.read_hw_cfg()
+            self.read_hdw_cfg()
         else:
             raise Exception()
         if self.read_id() == 4:
-            self.read_head_cfg()
+            self.read_hdr_cfg()
         else:
             raise Exception(err_msg)
         if self.read_id() == 0:
             self.read_user_cfg()
         else:
             raise Exception(err_msg)
-        if self.config["hdw"]["serial_number"][0:3].upper() == "WPR":
-            self.config["config_type"] = "AWAC"
-        elif self.config["hdw"]["serial_number"][0:3].upper() == "VEC":
-            self.config["config_type"] = "ADV"
-        elif self.config["hdw"]["serial_number"][0:3].upper() in ["AQD", "PRF"]:
-            self.config["config_type"] = "Aquadopp"
         # Initialize the instrument type:
-        self._inst = self.config.pop("config_type")
+        if self.config["hdw"]["serial_number"][0:3].upper() == "WPR":
+            self._inst = "AWAC"
+        elif self.config["hdw"]["serial_number"][0:3].upper() == "VEC":
+            self._inst = "ADV"
+        elif self.config["hdw"]["serial_number"][0:3].upper() in ["AQD", "PRF"]:
+            self._inst = "AQD"  # Use AWAC configuration for Aquadopp
         # This is the position after reading the 'hardware',
         # 'head', and 'user' configuration.
         pnow = self.pos
@@ -307,16 +307,16 @@ class _NortekReader:
         da["inst_type"] = "ADV"
         da["rotate_vars"] = ["vel"]
         dv["beam2inst_orientmat"] = self.config.pop("beam2inst_orientmat")
-        self.config["fs"] = 512 / self.config["awac"]["avg_interval"]
+        self.config["fs"] = 512 / self.config["avg_interval"]
         da.update(self.config["usr"])
         da.update(self.config["adv"])
-        da.update(self.config["head"])
+        da.update(self.config["hdr"])
         da.update(self.config["hdw"])
 
         # No apparent way to determine how many samples are in a file
-        dlta = self.code_spacing("0x11")
-        self.n_samp_guess = int(self.filesize / dlta + 1)
-        self.n_samp_guess *= int(self.config["fs"])
+        p0 = self.pos
+        sample_block_size = self.sample_spacing()
+        self.n_samp_guess = (self.filesize - p0) // sample_block_size
 
     def init_AWAC(self):
         dat = self.data = {
@@ -335,18 +335,44 @@ class _NortekReader:
         da["inst_type"] = "ADCP"
         dv["beam2inst_orientmat"] = self.config.pop("beam2inst_orientmat")
         da["rotate_vars"] = ["vel"]
-        self.config["fs"] = 1.0 / self.config["awac"]["avg_interval"]
+        self.config["fs"] = 1.0 / self.config["avg_interval"]
         da.update(self.config["usr"])
         da.update(self.config["awac"])
-        da.update(self.config["head"])
+        da.update(self.config["hdr"])
         da.update(self.config["hdw"])
 
-        space = self.code_spacing("0x20")
-        if space == 0:
-            # code spacing is zero if there's only 1 profile
-            self.n_samp_guess = 1
-        else:
-            self.n_samp_guess = int(self.filesize / space + 1)
+        # No apparent way to determine how many samples are in a file
+        p0 = self.pos
+        sample_block_size = self.sample_spacing()
+        self.n_samp_guess = (self.filesize - p0) // sample_block_size
+
+    def init_AQD(self):
+        dat = self.data = {
+            "data_vars": {},
+            "coords": {},
+            "attrs": {},
+            "units": {},
+            "long_name": {},
+            "standard_name": {},
+            "sys": {},
+        }
+        da = dat["attrs"]
+        dv = dat["data_vars"]
+        da["inst_make"] = "Nortek"
+        da["inst_model"] = "AquaDopp"
+        da["inst_type"] = "ADCP"
+        dv["beam2inst_orientmat"] = self.config.pop("beam2inst_orientmat")
+        da["rotate_vars"] = ["vel"]
+        self.config["fs"] = 1.0 / self.config["avg_interval"]
+        da.update(self.config["usr"])
+        da.update(self.config["awac"])
+        da.update(self.config["hdr"])
+        da.update(self.config["hdw"])
+
+        # No apparent way to determine how many samples are in a file
+        p0 = self.pos
+        sample_block_size = self.sample_spacing()
+        self.n_samp_guess = (self.filesize - p0) // sample_block_size
 
     def _init_data(self, vardict):
         """Initialize the data object according to vardict.
@@ -405,11 +431,11 @@ class _NortekReader:
                 logging.debug("Scanning every 2 bytes for next datablock...")
                 searching = True
 
-    def read_id(self):
+    def read_id(self, log=True):
         """Read the next 'ID' from the file."""
         self._thisid_bytes = bts = self.read(2)
         tmp = unpack(self.endian + "BB", bts)
-        if self.debug:
+        if self.debug and log:
             logging.info("Position: {}, codes: {}".format(self.f.tell(), tmp))
         if tmp[0] != 165:  # This catches a corrupted data block.
             if self.debug:
@@ -464,40 +490,50 @@ class _NortekReader:
         self.c -= 1
         lib._crop_data(self.data, slice(0, self.c), self.n_samp_guess)
 
-    def findnextid(self, id):
-        if id.__class__ is str:
-            id = int(id, 0)
-        nowid = None
-        while nowid != id:
-            pos = self.pos
-            nowid = self.read_id()
-            if nowid == 16:
-                shift = 22
-            else:
-                sz = 2 * unpack(self.endian + "H", self.read(2))[0]
-                shift = sz - 4
-            self.f.seek(shift, 1)
-            # If we get stuck in a while loop
-            if self.pos == pos:
-                self.f.seek(2, 1)
-        return self.pos
+    def sample_spacing(self):
+        """
+        Find the spacing, in bytes, between each set of samples.
+        """
 
-    def code_spacing(self, searchcode, iternum=50):
-        """
-        Find the spacing, in bytes, between a specific hardware code.
-        Repeat this * iternum * times(default 50).
-        Returns the average spacing, in bytes, between the code.
-        """
-        p0 = self.findnextid(searchcode)
-        for i in range(iternum):
+        id_count = {}
+        id_size = {}
+        while True:
             try:
-                self.findnextid(searchcode)
+                pos = self.pos
+                nowid = self.read_id(log=False)  # read the ID
+                if nowid == 16:
+                    shift = 22
+                else:
+                    # now read the next byte, which is the size of the data block
+                    sz = 2 * unpack(self.endian + "H", self.read(2))[0]
+                    shift = sz - 4
+
+                if nowid not in id_count:
+                    id_count[nowid] = 1
+                else:
+                    id_count[nowid] += 1
+
+                if nowid not in id_size:
+                    id_size[nowid] = [sz]
+                else:
+                    id_size[nowid].append(sz)
+
+                self.f.seek(shift, 1)
+                # If we get stuck in a while loop
+                if self.pos == pos:
+                    self.f.seek(2, 1)
             except EOFError:
                 break
-        if self.debug:
-            logging.info("p0={}, pos={}, i={}".format(p0, self.pos, i))
-        # Compute the average of the data size:
-        return (self.pos - p0) / (i + 1)
+
+        # Take median size of each ID data block
+        for id in id_size:
+            id_size[id] = int(np.median(id_size[id]))
+
+        # Return size of most common data block found
+        if len(id_count) >= 1:
+            return id_size[max(id_count, key=id_count.get)]
+        else:
+            raise Exception("No data blocks found in file.")
 
     def checksum(self, byts):
         """Perform a checksum on `byts` and read the checksum value."""
@@ -538,7 +574,7 @@ class _NortekReader:
         cfg_u["time_between_pings"] = tmp[3]  # counts
         cfg_u["time_between_bursts"] = tmp[4]  # counts
         cfg_u["adv"]["n_pings_per_burst"] = tmp[5]
-        cfg_u["awac"]["avg_interval"] = tmp[6]
+        cfg_u["avg_interval"] = tmp[6]
         cfg_u["usr"]["n_beams"] = int(tmp[7])
         TimCtrlReg = lib._int2binarray(tmp[8], 16)
         # From the nortek system integrator manual
@@ -618,7 +654,7 @@ class _NortekReader:
             int(Mode1[2])
         ]  # noqa
 
-    def read_head_cfg(self):
+    def read_hdr_cfg(self):
         """Read header configuration block (0x04)"""
         # ID: '0x04' = 04
         if self.debug:
@@ -628,20 +664,20 @@ class _NortekReader:
                 )
             )
         cfg = self.config
-        cfg["head"] = {}
+        cfg["hdr"] = {}
         byts = self.read(220)
         tmp = unpack(self.endian + "2x3H12s176s22sH", byts)
         head_config = lib._int2binarray(tmp[0], 16).astype(int)
-        cfg["head"]["pressure_sensor"] = ["no", "yes"][head_config[0]]
-        cfg["head"]["compass"] = ["no", "yes"][head_config[1]]
-        cfg["head"]["tilt_sensor"] = ["no", "yes"][head_config[2]]
-        cfg["head"]["carrier_freq_kHz"] = tmp[1]
+        cfg["hdr"]["pressure_sensor"] = ["no", "yes"][head_config[0]]
+        cfg["hdr"]["compass"] = ["no", "yes"][head_config[1]]
+        cfg["hdr"]["tilt_sensor"] = ["no", "yes"][head_config[2]]
+        cfg["hdr"]["carrier_freq_kHz"] = tmp[1]
         cfg["beam2inst_orientmat"] = (
             np.array(unpack(self.endian + "9h", tmp[4][8:26])).reshape(3, 3) / 4096.0
         )
         self.checksum(byts)
 
-    def read_hw_cfg(self):
+    def read_hdw_cfg(self):
         """Read hardware configuration block (0x05)"""
         # ID '0x05' = 05
         if self.debug:
@@ -667,7 +703,7 @@ class _NortekReader:
         cfg_hw["hdw"]["firmware_version"] = tmp[7].decode("utf-8")
         self.checksum(byts)
 
-    def read_adopp(self):
+    def read_aqd(self):
         """Read Aquadopp velocity block (0x01)"""
         # ID: '0x01' & '0x80' = 1 & 128
         c = self.c
@@ -677,7 +713,7 @@ class _NortekReader:
                 "Reading Aquadopp (0x01) ping #{} @ {}...".format(self.c, self.pos)
             )
         if "temp" not in self.data["data_vars"]:
-            self._init_data(defs.vec_profile)
+            self._init_data(defs.vec_data)
             self._dtypes += ["vec_data"]
 
         byts = self.read(38)
@@ -708,7 +744,7 @@ class _NortekReader:
         self.checksum(byts)
         self.c += 1
 
-    def read_adopp_diag_hdr(self):
+    def read_aqd_diag_hdr(self):
         """Read Aquadopp diagnostics header block (0x06)"""
         # ID: '0x06' = 6
         if self.debug:
@@ -719,7 +755,7 @@ class _NortekReader:
             )
         byts = self.read(32)
         # The first two are size, the next 6 are time.
-        tmp = unpack(self.endian + "2H4B8H6x", byts)
+        tmp = unpack(self.endian + "2x2H4B8H6x", byts)
         hdrnow = {}
         hdrnow["NRecords"] = tmp[0]
         hdrnow["Cell"] = tmp[1]
@@ -872,7 +908,7 @@ class _NortekReader:
         hdrnow["Corr1"] = tmp[5]
         hdrnow["Corr2"] = tmp[6]
         hdrnow["Corr3"] = tmp[7]
-        hdrnow["Spare1"] = byts[17:].decode("utf-8")
+        spare1 = byts[17:].decode("utf-8")
         self.checksum(byts)
         if "data_header" not in self.config:
             self.config["data_header"] = hdrnow
@@ -910,7 +946,7 @@ class _NortekReader:
         dv["pressure"][c] = 65536 * p_msb + p_lsw
         tmp = unpack(
             self.endian + str(n * nbins) + "h" + str(n * nbins) + "B",
-            byts[init_bytes : init_bytes + n * 3 * nbins],
+            byts[init_bytes : init_bytes + n * 3 * nbins],  # 3 b/c 3 bytes per row
         )
         for idx in range(n):
             dv["vel"][idx, :, c] = tmp[idx * nbins : (idx + 1) * nbins]
@@ -935,7 +971,7 @@ class _NortekReader:
         # field, therefore we start at 116.
         self.read_profile(skip_bytes=88)
 
-    def read_adopp_profile(self):
+    def read_aqd_profile(self):
         """Read Aquadopp profile measurements block (0x21)"""
         # ID: '0x21' = 33
         if self.debug:
@@ -946,11 +982,11 @@ class _NortekReader:
             )
         if "temp" not in self.data["data_vars"]:
             self._init_data(defs.awac_profile)
-            self._dtypes += ["adopp_profile"]
+            self._dtypes += ["awac_profile"]
 
         self.read_profile(skip_bytes=0)
 
-    def read_adopp_profile_hr(self):
+    def read_aqd_profile_hr(self):
         """Read high resolution Aquadopp profile measurements block (0x2a)"""
         # ID: '0x2a' = 42
         dat = self.data
@@ -961,16 +997,17 @@ class _NortekReader:
                 )
             )
         if "temp" not in dat["data_vars"]:
-            self._init_data(defs.awac_profile)
+            self._init_data(defs.aqd_hr_profile)
             self._dtypes += ["awac_profile"]
 
         byts = self.read(52)
         c = self.c
+        # first two bytes are the data block size
         dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
         ds = dat["sys"]
         dv = dat["data_vars"]
         (
-            dv["milliseconds"][c],
+            milliseconds,
             dv["error"][c],
             dv["batt"][c],
             dv["c_sound"][c],
@@ -985,17 +1022,21 @@ class _NortekReader:
             ds["AnaIn2"][c],
             nbeams,
             ncells,
-        ) = unpack(self.endian + "5H2h2BHh2H2B", byts[8:35])
+        ) = unpack(self.endian + "5H2h2BHh2H2B", byts[8:34])
+        dat["coords"]["time"][c] += milliseconds / 1000
         dv["pressure"][c] = 65536 * p_msb + p_lsw
-        hr_bytes = self.read(nbeams * ncells)
+        hr_bytes = self.read(nbeams * ncells * 4)
         tmp = unpack(
-            self.endian + str(nbeams * ncells) + "h" + str(nbeams * ncells) + "B",
+            self.endian + str(nbeams * ncells) + "h" + str(2 * nbeams * ncells) + "B",
             hr_bytes,
         )
         for idx in range(nbeams):
-            dv["vel_hr"][idx, :, c] = tmp[idx * ncells : (idx + 1) * ncells]
-            dv["amp_hr"][idx, :, c] = tmp[
+            dv["vel"][idx, :, c] = tmp[idx * ncells : (idx + 1) * ncells]
+            dv["amp"][idx, :, c] = tmp[
                 (idx + nbeams) * ncells : (idx + nbeams + 1) * ncells
+            ]
+            dv["corr"][idx, :, c] = tmp[
+                (idx + 2 * nbeams) * ncells : (idx + 2 * nbeams + 1) * ncells
             ]
         self.checksum(byts)
         self.c += 1
@@ -1005,6 +1046,7 @@ class _NortekReader:
         # IDs: '0x30' & '0x36'  == 48 & 54
         c = self.c
         dat = self.data
+        nbeams = self.config["usr"]["n_beams"]
         if self.debug:
             print(
                 "Reading AWAC wave data (0x30) ping #{} @ {}...".format(
@@ -1033,7 +1075,7 @@ class _NortekReader:
             dv["amp_alt"][2, c],  # amplitude beam 3 (counts)
             # AST quality (counts) or amplitude beam 4 for non-AST
             dv["quality_alt"][c],
-        ) = unpack(self.endian + "3H4h4B", byts)
+        ) = unpack(self.endian + "h2H4h4B", byts)
         self.checksum(byts)
         self.c += 1
 
@@ -1074,7 +1116,7 @@ class _NortekReader:
             19
         ]  # number of samples of AST window past boundary
         hdrnow["n_window_alt"] = tmp[20]  # AST window size (# samples)
-        hdrnow["Spare1"] = tmp[21:]
+        spare = tmp[21:]
         self.checksum(byts)
         if "data_header" not in self.config:
             self.config["data_header"] = hdrnow
@@ -1082,6 +1124,50 @@ class _NortekReader:
             if not isinstance(self.config["data_header"], list):
                 self.config["data_header"] = [self.config["data_header"]]
             self.config["data_header"] += [hdrnow]
+
+    def read_awac_stage(self):
+        """Read AWAC and AQD altimeter (0x42) data blocks"""
+        # IDs: '0x42'  == 66
+        c = self.c
+        dat = self.data
+        # Note: docs state there is 'fill' byte at the end, if nbins is odd,
+        # but doesn't appear to be the case
+        nbins = self.config["usr"]["n_bins"]
+        nbeams = self.config["usr"]["n_beams"]
+        if self.debug:
+            print(
+                "Reading {} wave data (0x42) ping #{} @ {}...".format(
+                    self._inst, self.c, self.pos
+                )
+            )
+        if "dist1_alt" not in dat["data_vars"]:
+            self._init_data(defs.stage_data)
+            self._dtypes += ["stage_data"]
+        # The first two are size
+        byts = self.read(30)
+        dv = dat["data_vars"]
+        (
+            dv["amp_alt"][0, c],  # amplitude beam 1 (counts)
+            dv["amp_alt"][1, c],  # amplitude beam 2 (counts)
+            dv["amp_alt"][2, c],  # amplitude beam 3 (counts)
+            dv["pressure"][c],  # (0.001 dbar)
+            dv["ast_dist1_alt"][c],  # altimeter range estimate (1 mm) using AST
+            dv["ast_quality_alt"][c],  # alimeter quality for AST algorithm
+            dv["c_sound"][c],  # speed of sound (0.1 m/s)
+            dv["ast_dist2_alt"][c],  # altimeter range estimate (1 mm) using AST
+            dv["vel_alt"][0, c],  # velocity beam 1 (mm/s) East for SUV
+            dv["vel_alt"][1, c],  # North for SUV
+            dv["vel_alt"][2, c],  # Up for SUV
+        ) = unpack(self.endian + "4x3B2x2hH2h2x3h3x", byts)
+        alt_bytes = self.read(nbeams * nbins)
+        tmp = unpack(
+            self.endian + str(nbeams * nbins) + "B",
+            alt_bytes,
+        )
+        for idx in range(nbeams):
+            dv["amp"][idx, :, c] = tmp[idx * nbins : (idx + 1) * nbins]
+        self.checksum(byts)
+        self.c += 1
 
     def read_imu(self):
         """Read ADV inertial measurement unit (IMU) data block (0x71)"""
@@ -1202,7 +1288,7 @@ class _NortekReader:
         self.checksum(byts0 + byts)
         self.c += 1  # reset the increment
 
-    def read_adopp_mag(self):
+    def read_aqd_mag(self):
         """Read Aquadopp velocity and magnetometer block (0x81)"""
         # ID: '0x81' = 129
         c = self.c
@@ -1212,7 +1298,7 @@ class _NortekReader:
                 "Reading Aquadopp (0x81) ping #{} @ {}...".format(self.c, self.pos)
             )
         if "temp" not in self.data["data_vars"]:
-            self._init_data(defs.vec_profile)
+            self._init_data(defs.vec_data)
             self._dtypes += ["vec_data"]
 
         byts = self.read(48)
@@ -1223,7 +1309,7 @@ class _NortekReader:
             dv["error"][c],
             ds["AnaIn1"][c],
             dv["batt"][c],
-            ds["AnaIn2"][c],
+            AnaIn2,
             dv["heading"][c],
             dv["pitch"][c],
             dv["roll"][c],
@@ -1356,7 +1442,7 @@ class _NortekReader:
         cs = round(
             float(self.config["bin_length"])
             / 256.0
-            * cs_coefs[self.config["head"]["carrier_freq_kHz"]]
+            * cs_coefs[self.config["hdr"]["carrier_freq_kHz"]]
             * np.cos(h_ang),
             ndigits=2,
         )
