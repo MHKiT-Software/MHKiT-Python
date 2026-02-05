@@ -1276,7 +1276,7 @@ class _NortekReader:
         if ahrsid == 195:  # 0xc3
             byts = self.read(64)
             dt = unpack(self.endian + "6f9f4x", byts)
-            (dv["angrt"][:, c], dv["accel"][:, c]) = (
+            dv["angrt"][:, c], dv["accel"][:, c] = (
                 dt[0:3],
                 dt[3:6],
             )
@@ -1286,7 +1286,7 @@ class _NortekReader:
             # This skips the "DWORD" (4 bytes) and the AHRS checksum
             # (2 bytes)
             dt = unpack(self.endian + "18f6x", byts)
-            (dv["accel"][:, c], dv["angrt"][:, c], dv["mag"][:, c]) = (
+            dv["accel"][:, c], dv["angrt"][:, c], dv["mag"][:, c] = (
                 dt[0:3],
                 dt[3:6],
                 dt[6:9],
@@ -1295,7 +1295,7 @@ class _NortekReader:
         elif ahrsid == 211:
             byts = self.read(42)
             dt = unpack(self.endian + "9f6x", byts)
-            (dv["angrt"][:, c], dv["accel"][:, c], dv["mag"][:, c]) = (
+            dv["angrt"][:, c], dv["accel"][:, c], dv["mag"][:, c] = (
                 dt[0:3],
                 dt[3:6],
                 dt[6:9],
@@ -1349,8 +1349,6 @@ class _NortekReader:
             dv["amp"][2, c],
         ) = unpack(self.endian + "5H2h2BHhH7h3Bx", byts[8:48])
         dv["pressure"][c] = 65536 * p_msb + p_lsw
-        status = bin(status)[2:].zfill(8)
-
         self.checksum(byts)
         self.c += 1
 
@@ -1471,12 +1469,12 @@ class _NortekReader:
             # Rotate the MS orientation data (in MS coordinate system)
             # to be consistent with the ADV coordinate system.
             # (x,y,-z)_ms = (z,y,x)_adv
-            (dv[nm][2], dv[nm][0]) = (dv[nm][0], -dv[nm][2].copy())
+            dv[nm][2], dv[nm][0] = (dv[nm][0], -dv[nm][2].copy())
         if "orientmat" in self._orient_dnames:
             # MS coordinate system is in North-East-Down (NED),
             # we want East-North-Up (ENU)
             dv["orientmat"][:, 2] *= -1
-            (dv["orientmat"][:, 0], dv["orientmat"][:, 1]) = (
+            dv["orientmat"][:, 0], dv["orientmat"][:, 1] = (
                 dv["orientmat"][:, 1],
                 dv["orientmat"][:, 0].copy(),
             )

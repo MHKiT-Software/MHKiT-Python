@@ -512,10 +512,8 @@ class TimeBinner:
         fs = self._parse_fs(fs)
 
         if ("Hz" not in units) and ("rad" not in units):
-            raise Exception(
-                "Valid fft frequency vector units are Hz \
-                            or rad/s"
-            )
+            raise Exception("Valid fft frequency vector units are Hz \
+                            or rad/s")
 
         if "rad" in units:
             return fft_frequency(n_fft, 2 * np.pi * fs)
