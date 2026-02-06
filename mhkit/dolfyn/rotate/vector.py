@@ -252,12 +252,19 @@ def _calc_omat(time, hh, pp, rr, orientation_down=None):
       Roll Euler angle in degrees.
 
     orientation_down: array-like or bool, optional
-      Set to true if non-cabled ADV is facing downwards
+      Set to true if non-cabled ADV is facing upwards.
+      Leave as None for all other Nortek instruments.
 
     Returns
     -------
     omat: array-like
       The calculated orientation matrix.
+
+    Notes
+    -----
+    For non-cabled Nortek Vector ADVs: 'down' configuration means the
+    probe was pointing 'up', where the 'up' orientation corresponds
+    to the communication cable being up.
     """
 
     rr = rr.data.copy()
@@ -270,10 +277,6 @@ def _calc_omat(time, hh, pp, rr, orientation_down=None):
         pp[lastgd:] = pp[lastgd]
         hh[lastgd:] = hh[lastgd]
     if orientation_down is not None:
-        # For non-cabled Nortek Vector ADVs: 'down' configuration means th
-        # probe was pointing 'up', where the 'up' orientation corresponds
-        # to the communication cable being up.  Check the Nortek coordinate
-        # transform matlab script for more info.
         rr += 180
 
     return _euler2orient(time, hh, pp, rr)

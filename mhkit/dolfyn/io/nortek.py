@@ -509,7 +509,6 @@ class _NortekReader:
         """
         Find the spacing, in bytes, between each set of samples.
         """
-
         id_count = {}
         id_size = {}
         while True:
@@ -522,28 +521,23 @@ class _NortekReader:
                     # now read the next byte, which is the size of the data block
                     sz = 2 * unpack(self.endian + "H", self.read(2))[0]
                     shift = sz - 4
-
                 if nowid not in id_count:
                     id_count[nowid] = 1
                 else:
                     id_count[nowid] += 1
-
                 if nowid not in id_size:
                     id_size[nowid] = [sz]
                 else:
                     id_size[nowid].append(sz)
-
                 self.f.seek(shift, 1)
                 # If we get stuck in a while loop
                 if self.pos == pos:
                     self.f.seek(2, 1)
             except EOFError:
                 break
-
         # Take median size of each ID data block
         for id in id_size:
             id_size[id] = int(np.median(id_size[id]))
-
         # Return size of most common data block found
         if len(id_count) >= 1:
             return id_size[max(id_count, key=id_count.get)]
@@ -585,7 +579,7 @@ class _NortekReader:
         cfg_u["waves"] = {}
 
         cfg_u["transmit_pulse_length_m"] = tmp[0]  # counts
-        cfg_u["blank_dist"] = tmp[1]  # overridden below
+        cfg_u["blank_dist"] = tmp[1]  # counts
         cfg_u["receive_length_m"] = tmp[2]  # counts
         cfg_u["time_between_pings"] = tmp[3]  # counts
         cfg_u["time_between_bursts"] = tmp[4]  # counts
@@ -889,8 +883,8 @@ class _NortekReader:
         ]:
             self.burst_start[c] = True
         if "time" not in dat["coords"]:
-            self._init_data(defs.vec_sysdata)
-            self._dtypes += ["vec_sysdata"]
+            self._init_data(defs.vec_sys)
+            self._dtypes += ["vec_sys"]
         byts = self.read(24)
         # The first two are size (skip them).
         dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
@@ -1022,6 +1016,7 @@ class _NortekReader:
         if "temp" not in dat["data_vars"]:
             self._init_data(defs.aqd_hr_profile)
             self._dtypes += ["awac_profile"]
+            self.data["attrs"]["hr_profile"] = 1
 
         byts = self.read(52)
         c = self.c
@@ -1166,17 +1161,17 @@ class _NortekReader:
         byts = self.read(30)
         dv = dat["data_vars"]
         (
-            dv["amp"][0, c],  # amplitude beam 1 (counts)
-            dv["amp"][1, c],  # amplitude beam 2 (counts)
-            dv["amp"][2, c],  # amplitude beam 3 (counts)
+            dv["amp_alt"][0, c],  # amplitude beam 1 (counts)
+            dv["amp_alt"][1, c],  # amplitude beam 2 (counts)
+            dv["amp_alt"][2, c],  # amplitude beam 3 (counts)
             dv["pressure"][c],  # (0.001 dbar)
             dv["ast_dist1"][c],  # altimeter range estimate (1 mm) using AST
             dv["ast_quality"][c],  # alimeter quality for AST algorithm
             dv["c_sound"][c],  # speed of sound (0.1 m/s)
             dv["ast_dist2"][c],  # altimeter range estimate (1 mm) using AST
-            dv["vel"][0, c],  # velocity beam 1 (mm/s) East for SUV
-            dv["vel"][1, c],  # North for SUV
-            dv["vel"][2, c],  # Up for SUV
+            dv["vel_alt"][0, c],  # velocity beam 1 (mm/s) East for SUV
+            dv["vel_alt"][1, c],  # North for SUV
+            dv["vel_alt"][2, c],  # Up for SUV
         ) = unpack(self.endian + "4x3B2x2hH2h2x3h3x", byts)
         alt_bytes = self.read(nbeams * nbins)
         tmp = unpack(
@@ -1382,15 +1377,15 @@ class _NortekReader:
             if retval is not None:
                 dat[nm] = retval
 
-    def convert_vec_sysdata(self):
+    def convert_vec_sys(self):
         """Convert raw Vector system data into physical quantities."""
         dat = self.data
         fs = dat["attrs"]["fs"]
-        self._convert_data(defs.vec_sysdata)
+        self._convert_data(defs.vec_sys)
         t = dat["coords"]["time"]
         dv = dat["data_vars"]
         dat["sys"]["_sysi"] = ~np.isnan(t)
-        # These are the indices in the sysdata variables
+        # These are the indices in the system variables
         # that are not interpolated.
         nburst = self.config["adv"]["n_burst"]
         if nburst == 0:
@@ -1443,20 +1438,28 @@ class _NortekReader:
     def convert_awac_profile(self):
         """Convert raw AWAC profile measurements to physical quantities."""
         self._convert_data(defs.awac_profile)
-        # Calculate the ranges.
-        cs_coefs = {2000: 0.0239, 1000: 0.0478, 600: 0.0797, 400: 0.1195}
-        h_ang = 25 * (np.pi / 180)  # Head angle is 25 degrees for all awacs.
+        # Calculate the ranges. (Manually calculated)
+        if "hr_profile" in self.data["attrs"]:
+            cs_coefs = {2000: 0.00675, 1000: 0.01350}
+            bd_coef = 0.00662
+            n_digits = 3
+        else:
+            cs_coefs = {2000: 0.0239, 1000: 0.0478, 600: 0.0797, 400: 0.1195}
+            bd_coef = 0.02289
+            n_digits = 2
+        # Head angle is 25 degrees for all awacs.
+        h_ang = 25 * (np.pi / 180)
         # Cell size
         cs = round(
-            float(self.config["bin_length"])
-            / 256.0
+            self.config["bin_length"]
+            / 256
             * cs_coefs[self.config["hdr"]["carrier_freq_kHz"]]
             * np.cos(h_ang),
-            ndigits=2,
+            n_digits,
         )
         # Blanking distance
-        bd = round(self.config["blank_dist"] * 0.0229 * np.cos(h_ang) - cs, ndigits=2)
-
+        bd = round(self.config["blank_dist"] * bd_coef * np.cos(h_ang) - cs, n_digits)
+        # Profile range
         r = (np.float32(np.arange(self.config["usr"]["n_bins"])) + 1) * cs + bd
         self.data["coords"]["range"] = r
         self.data["attrs"]["cell_size"] = float(cs)

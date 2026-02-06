@@ -170,7 +170,7 @@ vec_data = {
     ),
 }
 
-vec_sysdata = {
+vec_sys = {
     "time": _VarAtts(
         dims=[],
         dtype=np.float64,
@@ -445,7 +445,7 @@ waves_data = {
 }
 
 stage_data = {
-    "amp": _VarAtts(
+    "amp_alt": _VarAtts(
         dims=[4],
         dtype=np.uint8,
         group="data_vars",
@@ -502,7 +502,7 @@ stage_data = {
         long_name="Altimeter Range Acoustic Surface Tracking 2",
         standard_name="altimeter_range",
     ),
-    "vel": _VarAtts(
+    "vel_alt": _VarAtts(
         dims=[4],
         dtype=np.float32,
         group="data_vars",
