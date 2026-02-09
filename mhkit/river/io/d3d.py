@@ -229,6 +229,14 @@ def get_layer_data(
 
         v = np.ma.getdata(var[time_index, :, layer_index], False)
         dimensions = 3
+    elif isinstance(var[0][0], xr.core.variable.Variable):
+        max_layer = var[0][0].shape[0]
+
+        if abs(layer_index) > max_layer:
+            raise ValueError(f"layer_index must be less than the max layer {max_layer}")
+
+        v = np.ma.getdata(var[time_index, :, layer_index], False)
+        dimensions = 3
 
     else:
         if not isinstance(var[0][0], np.float64):
