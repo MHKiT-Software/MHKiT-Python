@@ -1440,26 +1440,29 @@ class _NortekReader:
         self._convert_data(defs.awac_profile)
         # Calculate the ranges. (Manually calculated)
         if "hr_profile" in self.data["attrs"]:
-            cs_coefs = {2000: 0.00675, 1000: 0.01350}
-            bd_coef = 0.00662
-            n_digits = 3
+            cs_coeff = {2000: 0.00675, 1000: 0.01350}
+            bd_coeff = {2000: 0.00662, 1000: 0.00673}
         else:
-            cs_coefs = {2000: 0.0239, 1000: 0.0478, 600: 0.0797, 400: 0.1195}
-            bd_coef = 0.02289
-            n_digits = 2
+            cs_coeff = {2000: 0.0239, 1000: 0.0478, 600: 0.0797, 400: 0.1195}
+            bd_coeff = {2000: 0.02228, 1000: 0.02266, 600: 0.02281, 400: 0.02289}
         # Head angle is 25 degrees for all awacs.
         h_ang = 25 * (np.pi / 180)
         # Cell size
         cs = round(
             self.config["bin_length"]
             / 256
-            * cs_coefs[self.config["hdr"]["carrier_freq_kHz"]]
+            * cs_coeff[self.config["hdr"]["carrier_freq_kHz"]]
             * np.cos(h_ang),
-            n_digits,
+            ndigits=2,
         )
         # Blanking distance
-        bd = round(self.config["blank_dist"] * bd_coef * np.cos(h_ang) - cs, n_digits)
-        # Profile range
+        bd = round(
+            self.config["blank_dist"]
+            * bd_coeff[self.config["hdr"]["carrier_freq_kHz"]]
+            * np.cos(h_ang)
+            - cs,
+            ndigits=2,
+        )
         r = (np.float32(np.arange(self.config["usr"]["n_bins"])) + 1) * cs + bd
         self.data["coords"]["range"] = r
         self.data["attrs"]["cell_size"] = float(cs)
