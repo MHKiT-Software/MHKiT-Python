@@ -516,10 +516,14 @@ def export_audio(
         raise TypeError("'pressure' must be an xarray.DataArray.")
     if not hasattr(pressure, "values") or not isinstance(pressure.values, np.ndarray):
         raise TypeError("'pressure.values' must be a numpy.ndarray.")
-    if not hasattr(pressure, "sensitivity"):
+    if hasattr(pressure, "sensitivity"):
         _check_numeric(pressure.sensitivity, "pressure.sensitivity")
-    if not hasattr(pressure, "fs"):
+    else:
+        raise AttributeError("'pressure' must have a 'sensitivity' attribute.")
+    if hasattr(pressure, "fs"):
         _check_numeric(pressure.fs, "pressure.fs")
+    else:
+        raise AttributeError("'pressure' must have a 'fs' attribute.")
     _check_numeric(gain, "gain")
 
     # Convert from Pascals to UPa
