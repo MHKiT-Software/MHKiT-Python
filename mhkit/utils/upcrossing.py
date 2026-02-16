@@ -94,7 +94,8 @@ def upcrossing(t: np.ndarray, data: np.ndarray) -> np.ndarray:
     # eliminate zeros
     zero_mask = data == 0
     if any(zero_mask):
-        data[zero_mask] = 0.5 * np.min(np.abs(data)) # avoid double counting zeros by making them small and positive
+        # avoid double counting zeros by making them small and positive
+        data[zero_mask] = 0.5 * np.min(np.abs(data))
 
     # zero up-crossings
     diff = np.diff(np.sign(data))
