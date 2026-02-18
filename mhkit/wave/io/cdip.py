@@ -378,20 +378,20 @@ def request_parse_workflow(
                         "write_json": None,
                     },
                 )
-            multiyear_data[year] = year_data["data"]
+            multiyear_data[year] = year_data
 
-        for data_key in year_data["data"].keys():
+        for data_key in year_data.keys():
             if data_key.endswith("2D"):
-                data["data"][data_key] = {}
-                for data_key2D in year_data["data"][data_key].keys():
+                data[data_key] = {}
+                for data_key2D in year_data[data_key].keys():
                     data_list = []
                     for year in years:
                         data2D = multiyear_data[year][data_key][data_key2D]
                         data_list.append(data2D)
-                    data["data"][data_key][data_key2D] = pd.concat(data_list)
+                    data[data_key][data_key2D] = pd.concat(data_list)
             else:
                 data_list = [multiyear_data[year][data_key] for year in years]
-                data["data"][data_key] = pd.concat(data_list)
+                data[data_key] = pd.concat(data_list)
 
     if buoy_name:
         try:

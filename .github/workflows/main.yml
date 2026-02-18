@@ -83,7 +83,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e  ".[all,dev]"
+          pip install -e ".[all,dev]"
 
       - name: Prepare non-hindcast API data
         shell: bash -l {0}
@@ -134,7 +134,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e  ".[all,dev]"
+          pip install -e ".[all,dev]"
 
       - name: Prepare Wave Hindcast data
         shell: bash -l {0}
@@ -183,7 +183,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e  ".[all,dev]"
+          pip install -e ".[all,dev]"
 
       - name: Prepare Wind Hindcast data
         shell: bash -l {0}
@@ -238,7 +238,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e . --no-deps
+          pip install -e ".[all,dev]"
 
       - name: Run pytest & generate coverage report
         shell: bash -l {0}
@@ -290,7 +290,7 @@ jobs:
         shell: bash -l {0}
         run: |
           python -m pip install --upgrade pip wheel
-          pip install -e  ".[all,dev]"
+          pip install -e ".[all,dev]"
 
       - name: Reinstall h5py and netCDF4 with system libraries
         if: runner.os == 'Linux'
@@ -362,7 +362,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e  ".[all,dev]" --no-deps
+          pip install -e ".[all,dev]" --no-deps
 
       - name: Download Wave Hindcast data from artifact
         uses: actions/download-artifact@v4
@@ -514,7 +514,7 @@ jobs:
           needs.prepare-nonhindcast-cache.result == 'success' &&
           needs.prepare-wave-hindcast-cache.result == 'skipped' &&
           needs.prepare-wind-hindcast-cache.result == 'skipped' &&
-          needs.check-changes.outputs.should-run-hindcast == 'false'    
+          needs.check-changes.outputs.should-run-hindcast == 'false'
         ) ||
         (
           needs.prepare-nonhindcast-cache.result == 'success' &&
@@ -584,7 +584,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e  ".[all,dev]" --no-deps
+          pip install -e ".[all,dev]"
 
       - name: Download non-hindcast data
         uses: actions/download-artifact@v4
