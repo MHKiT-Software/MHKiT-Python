@@ -119,9 +119,9 @@ def handle_caching(
             )
         elif file_extension == ".pkl":
             with open(cache_filepath, "rb") as f:
-                data, metadata = pickle.load(f)
+                data = pickle.load(f)  # dictionary with 'data' and 'metadata' keys
 
-        return data, metadata
+        return data
 
     def _write_cache(data, metadata, file_extension, cache_filepath):
         """Store data in the cache file based on the extension."""
