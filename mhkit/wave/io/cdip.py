@@ -310,28 +310,25 @@ def request_parse_workflow(
         nc.variables["metaStationName"][:].compressed().tobytes().decode("utf-8")
     )
 
-    multiyear = False
     if years:
         if isinstance(years, int):
-            start_date = datetime.datetime(years, 1, 1, tzinfo=pytz.UTC)
-            end_date = datetime.datetime(years + 1, 1, 1, tzinfo=pytz.UTC)
-        elif isinstance(years, list):
-            if len(years) == 1:
-                start_date = datetime.datetime(years[0], 1, 1, tzinfo=pytz.UTC)
-                end_date = datetime.datetime(years[0] + 1, 1, 1, tzinfo=pytz.UTC)
-            else:
-                multiyear = True
-    if not multiyear:
-        # Check the cache first
+            years = [years]
+
+    data = {"data": {}, "metadata": {}}
+    multiyear_data = {}
+    for year in years:
+        start_date = datetime.datetime(year, 1, 1, tzinfo=pytz.UTC)
+        end_date = datetime.datetime(year + 1, 1, 1, tzinfo=pytz.UTC)
+
+        # Check the cache for each individual year
         hash_params = f"{station_number}-{parameters}-{start_date}-{end_date}"
-        data, _, _ = handle_caching(
+        year_data, _, _ = handle_caching(
             hash_params,
             cache_dir,
             cache_content={"data": None, "metadata": None, "write_json": None},
         )
-
-        if data is None:
-            data = get_netcdf_variables(
+        if year_data is None:
+            new_data = get_netcdf_variables(
                 nc,
                 start_date=start_date,
                 end_date=end_date,
@@ -339,59 +336,38 @@ def request_parse_workflow(
                 all_2D_variables=all_2D_variables,
                 silent=silent,
             )
+            year_data = new_data["data"]
+            # If waveFrequency is in the metadata, move it to the top level of metadata
+            if "wave" in new_data["metadata"]:
+                if "waveFrequency" in new_data["metadata"]["wave"]:
+                    new_data["metadata"]["waveFrequency"] = new_data["metadata"][
+                        "wave"
+                    ]["waveFrequency"]
+                new_data["metadata"].pop("wave")
+            # Cache the individual year's data
             handle_caching(
                 hash_params,
                 cache_dir,
-                cache_content={"data": data, "metadata": None, "write_json": None},
+                cache_content={
+                    "data": year_data,
+                    "metadata": new_data["metadata"],
+                    "write_json": None,
+                },
             )
+        multiyear_data[year] = year_data
 
-    else:
-        data = {"data": {}, "metadata": {}}
-        multiyear_data = {}
-        for year in years:
-            start_date = datetime.datetime(year, 1, 1, tzinfo=pytz.UTC)
-            end_date = datetime.datetime(year + 1, 1, 1, tzinfo=pytz.UTC)
-
-            # Check the cache for each individual year
-            hash_params = f"{station_number}-{parameters}-{start_date}-{end_date}"
-            year_data, _, _ = handle_caching(
-                hash_params,
-                cache_dir,
-                cache_content={"data": None, "metadata": None, "write_json": None},
-            )
-            if year_data is None:
-                year_data = get_netcdf_variables(
-                    nc,
-                    start_date=start_date,
-                    end_date=end_date,
-                    parameters=parameters,
-                    all_2D_variables=all_2D_variables,
-                    silent=silent,
-                )
-                # Cache the individual year's data
-                handle_caching(
-                    hash_params,
-                    cache_dir,
-                    cache_content={
-                        "data": year_data,
-                        "metadata": None,
-                        "write_json": None,
-                    },
-                )
-            multiyear_data[year] = year_data
-
-        for data_key in year_data.keys():
-            if data_key.endswith("2D"):
-                data[data_key] = {}
-                for data_key2D in year_data[data_key].keys():
-                    data_list = []
-                    for year in years:
-                        data2D = multiyear_data[year][data_key][data_key2D]
-                        data_list.append(data2D)
-                    data[data_key][data_key2D] = pd.concat(data_list)
-            else:
-                data_list = [multiyear_data[year][data_key] for year in years]
-                data[data_key] = pd.concat(data_list)
+    for data_key in year_data.keys():
+        if data_key.endswith("2D"):
+            data[data_key] = {}
+            for data_key2D in year_data[data_key].keys():
+                data_list = []
+                for year in years:
+                    data2D = multiyear_data[year][data_key][data_key2D]
+                    data_list.append(data2D)
+                data[data_key][data_key2D] = pd.concat(data_list)
+        else:
+            data_list = [multiyear_data[year][data_key] for year in years]
+            data[data_key] = pd.concat(data_list)
 
     if buoy_name:
         try:
