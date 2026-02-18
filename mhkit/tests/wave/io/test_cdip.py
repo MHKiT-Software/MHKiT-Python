@@ -130,18 +130,18 @@ class TestIOcdip(unittest.TestCase):
         expected_index_final = datetime(year2, 12, 31)
 
         wave1D = data["data"]["wave"]
-        self.assertEqual(wave1D.index[0].floor("d").to_pydatetime(), expected_index0)
+        self.assertEqual(wave1D.index[0].floor("D").to_pydatetime(), expected_index0)
 
         self.assertEqual(
-            wave1D.index[-1].floor("d").to_pydatetime(), expected_index_final
+            wave1D.index[-1].floor("D").to_pydatetime(), expected_index_final
         )
 
         for key, wave2D in data["data"]["wave2D"].items():
             self.assertEqual(
-                wave2D.index[0].floor("d").to_pydatetime(), expected_index0
+                wave2D.index[0].floor("D").to_pydatetime(), expected_index0
             )
             self.assertEqual(
-                wave2D.index[-1].floor("d").to_pydatetime(), expected_index_final
+                wave2D.index[-1].floor("D").to_pydatetime(), expected_index_final
             )
 
     def test_plot_boxplot(self):
