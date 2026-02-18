@@ -121,12 +121,8 @@ def handle_caching(
             with open(cache_filepath, "rb") as f:
                 data_dict = pickle.load(f)  # some format of 'data' and 'metadata'
                 if isinstance(data_dict, tuple):
-                    # CDIP call returns dictionary in size 2 tuple with the dict in first element
-                    if isinstance(data_dict[0], dict):
-                        data_dict = data_dict[0]
-                    # WPTO hindcast call returns size 2 tuple with data and metadata as elements
-                    elif len(data_dict) == 2:
-                        return data_dict[0], data_dict[1]
+                    # CDIP and WPTO hindcast call returns size 2 tuple
+                    return data_dict[0], data_dict[1]
                 data, metadata = data_dict["data"], data_dict["metadata"]
 
         return data, metadata
