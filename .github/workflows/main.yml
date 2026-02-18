@@ -31,7 +31,7 @@ jobs:
       should-run-hindcast: ${{ steps.hindcast-logic.outputs.should-run-hindcast }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check for changes in wave/io/hindcast
         id: changes
@@ -56,12 +56,12 @@ jobs:
       PYTHON_VER: 3.11
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: 'latest'
+          miniconda-version: "latest"
           auto-update-conda: true
           python-version: ${{ env.PYTHON_VER }}
           activate-environment: TESTconda
@@ -83,7 +83,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e  ".[all,dev]" --no-deps
+          pip install -e  ".[all,dev]"
 
       - name: Prepare non-hindcast API data
         shell: bash -l {0}
@@ -107,12 +107,12 @@ jobs:
     if: (needs.check-changes.outputs.should-run-hindcast == 'true')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: 'latest'
+          miniconda-version: "latest"
           auto-update-conda: true
           activate-environment: TEST
           python-version: ${{ env.PYTHON_VER }}
@@ -134,7 +134,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e  ".[all,dev]" --no-deps
+          pip install -e  ".[all,dev]"
 
       - name: Prepare Wave Hindcast data
         shell: bash -l {0}
@@ -156,12 +156,12 @@ jobs:
     if: (needs.check-changes.outputs.should-run-hindcast == 'true')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: 'latest'
+          miniconda-version: "latest"
           auto-update-conda: true
           activate-environment: TEST
           python-version: ${{ env.PYTHON_VER }}
@@ -183,7 +183,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e  ".[all,dev]" --no-deps
+          pip install -e  ".[all,dev]"
 
       - name: Prepare Wind Hindcast data
         shell: bash -l {0}
@@ -205,17 +205,17 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ["3.10", "3.11", "3.12"]
     env:
       PYTHON_VER: ${{ matrix.python-version }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: 'latest'
+          miniconda-version: "latest"
           auto-update-conda: true
           environment-file: environment.yml
           activate-environment: TEST
@@ -263,18 +263,18 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
       - uses: conda-incubator/setup-miniconda@v3
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Set up Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download data from artifact
         uses: actions/download-artifact@v4
@@ -331,15 +331,15 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: 'latest'
+          miniconda-version: "latest"
           auto-update-conda: true
           environment-file: environment.yml
           activate-environment: TEST
@@ -402,11 +402,11 @@ jobs:
     name: Test Built Wheel
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install build dependencies
         run: python -m pip install build --user
@@ -462,13 +462,13 @@ jobs:
       matrix:
         module:
           [wave, tidal, river, dolfyn, power, loads, mooring, acoustics, utils]
-        python-version: ['3.12']
+        python-version: ["3.12"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -527,12 +527,12 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Generate matrix
         id: set-matrix
@@ -556,14 +556,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: 'latest'
+          miniconda-version: "latest"
           auto-update-conda: true
-          python-version: '3.12'
+          python-version: "3.12"
           channels: conda-forge
           activate-environment: TESTconda
           use-only-tar-bz2: false
