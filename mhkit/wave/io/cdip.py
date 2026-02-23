@@ -310,18 +310,23 @@ def request_parse_workflow(
         nc.variables["metaStationName"][:].compressed().tobytes().decode("utf-8")
     )
 
-    if years:
+    if years is not None:
+        start_date = []
+        end_date = []
         if isinstance(years, int):
             years = [years]
+        for year in years:
+            start_date.append(datetime.datetime(year, 1, 1, tzinfo=pytz.UTC))
+            end_date.append(datetime.datetime(year + 1, 1, 1, tzinfo=pytz.UTC))
+    else:
+        start_date = [start_date]
+        end_date = [end_date]
 
-    data = {"data": {}, "metadata": {}}
+    data = {"metadata": {}}
     multiyear_data = {}
-    for year in years:
-        start_date = datetime.datetime(year, 1, 1, tzinfo=pytz.UTC)
-        end_date = datetime.datetime(year + 1, 1, 1, tzinfo=pytz.UTC)
-
+    for start, end in zip(start_date, end_date):
         # Check the cache for each individual year
-        hash_params = f"{station_number}-{parameters}-{start_date}-{end_date}"
+        hash_params = f"{station_number}-{parameters}-{start}-{end}"
         year_data, _, _ = handle_caching(
             hash_params,
             cache_dir,
@@ -330,8 +335,8 @@ def request_parse_workflow(
         if year_data is None:
             new_data = get_netcdf_variables(
                 nc,
-                start_date=start_date,
-                end_date=end_date,
+                start_date=start,
+                end_date=end,
                 parameters=parameters,
                 all_2D_variables=all_2D_variables,
                 silent=silent,
@@ -354,6 +359,7 @@ def request_parse_workflow(
                     "write_json": None,
                 },
             )
+        year = start.year
         multiyear_data[year] = year_data
 
     for data_key in year_data.keys():
@@ -361,12 +367,14 @@ def request_parse_workflow(
             data[data_key] = {}
             for data_key2D in year_data[data_key].keys():
                 data_list = []
-                for year in years:
+                for year in multiyear_data.keys():
                     data2D = multiyear_data[year][data_key][data_key2D]
                     data_list.append(data2D)
                 data[data_key][data_key2D] = pd.concat(data_list)
         else:
-            data_list = [multiyear_data[year][data_key] for year in years]
+            data_list = [
+                multiyear_data[year][data_key] for year in multiyear_data.keys()
+            ]
             data[data_key] = pd.concat(data_list)
 
     if buoy_name:
