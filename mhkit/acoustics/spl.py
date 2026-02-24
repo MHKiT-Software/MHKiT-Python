@@ -19,7 +19,7 @@ from sound pressure data.
 import numpy as np
 import xarray as xr
 
-from .analysis import _fmax_warning, _create_frequency_bands
+from .analysis import _check_numeric, _fmax_warning, _create_frequency_bands
 
 
 def _argument_check(spsd, fmin, fmax):
@@ -45,10 +45,8 @@ def _argument_check(spsd, fmin, fmax):
     # Type checks
     if not isinstance(spsd, xr.DataArray):
         raise TypeError("'spsd' must be an xarray.DataArray.")
-    if not isinstance(fmin, int):
-        raise TypeError("'fmin' must be an integer.")
-    if not isinstance(fmax, int):
-        raise TypeError("'fmax' must be an integer.")
+    _check_numeric(fmin, "fmin")
+    _check_numeric(fmax, "fmax")
 
     # Ensure 'freq' and 'time' dimensions are present
     if ("freq" not in spsd.dims) or ("time" not in spsd.dims):
@@ -59,9 +57,9 @@ def _argument_check(spsd, fmin, fmax):
         raise ValueError(
             "'spsd' must have 'fs' (sampling frequency) in its attributes."
         )
-    if "nfft" not in spsd.attrs:
+    if "n_fft" not in spsd.attrs:
         raise ValueError(
-            "'spsd' must have 'nfft' (sampling frequency) in its attributes."
+            "'spsd' must have 'n_fft' (number of points in each FFT) in its attributes."
         )
 
     # Value checks
@@ -119,6 +117,7 @@ def sound_pressure_level(
         attrs={
             "units": "dB re 1 uPa",
             "long_name": "Sound Pressure Level",
+            "time_resolution": spsd.attrs["bin_length"],
             "freq_band_min": fmin,
             "freq_band_max": fmax,
         },
@@ -235,6 +234,7 @@ def third_octave_sound_pressure_level(
         {
             "units": "dB re 1 uPa",
             "long_name": "Third Octave Sound Pressure Level",
+            "time_resolution": spsd.attrs["bin_length"],
         }
     )
 
@@ -272,6 +272,7 @@ def decidecade_sound_pressure_level(
         {
             "units": "dB re 1 uPa",
             "long_name": "Decidecade Sound Pressure Level",
+            "time_resolution": spsd.attrs["bin_length"],
         }
     )
 
