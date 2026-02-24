@@ -82,6 +82,35 @@ To install all MHKiT dependencies use:
 
 See [installation instructions](https://mhkit-software.github.io/MHKiT/installation.html) for more information.
 
+### Development Installation
+
+For developers contributing to MHKiT, there are three development installation strategies after
+cloning the repository locally:
+
+**Pip development** (no conda):
+
+```bash
+pip install -e ".[all,dev]"
+```
+
+**Conda development** (minimal conda + pip resolves deps):
+
+```bash
+conda env create -f environment.yml
+conda activate mhkit-env
+pip install -e ".[all,dev]"
+```
+
+**Conda-forge development** (all deps from conda-forge, mirrors production deployment):
+
+```bash
+conda env create -f environment-dev.yml
+conda activate mhkit-env
+pip install -e ".[all,dev]" --no-deps
+```
+
+The conda-forge option mirrors how users install MHKiT via `conda install -c conda-forge mhkit`, ensuring all dependencies come from the conda-forge channel. The `--no-deps` flag prevents pip from resolving dependencies, relying entirely on the conda environment (which is a [conda requirement]()). The conda-forge build and deployment happens in separate repository: [https://github.com/conda-forge/mhkit-feedstock]
+
 ## Copyright and license
 
 MHKiT-Python is copyright through the National Laboratory of the Rockies,
