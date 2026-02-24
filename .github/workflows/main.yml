@@ -430,7 +430,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e ".[all,dev]" --no-deps
+          pip install -e ".[all,dev]"
 
       - name: Download Wave Hindcast data from artifact
         uses: actions/download-artifact@v4
