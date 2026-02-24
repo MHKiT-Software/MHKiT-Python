@@ -23,7 +23,7 @@ requires-python = ">=3.10"
 dependencies = [
     "numpy>=2.0.0",
     "numexpr>=2.10.0",
-    "pandas>=2.2.2",
+    "pandas>=2.2.2,<3.0",
     "scipy>=1.14.0",
     "xarray>=2024.6.0",
     "matplotlib>=3.9.1",
@@ -42,7 +42,6 @@ wave = [
     "beautifulsoup4",
     "bottleneck",
     "lxml",
-    "pyarrow",
     "h5py>=3.11.0",
     "h5pyd>=0.18.0",
 ]
