@@ -197,7 +197,7 @@ jobs:
           name: wind-hindcast-data
           path: ~/.cache/mhkit
 
-  conda-build:
+  conda-user-build:
     name: conda-${{ matrix.os }}/${{ matrix.python-version }}
     needs: [set-os, prepare-nonhindcast-cache]
     runs-on: ${{ matrix.os }}
@@ -217,7 +217,7 @@ jobs:
         with:
           miniconda-version: "latest"
           auto-update-conda: true
-          environment-file: mhkit/tests/conda-forge/environment.yml
+          environment-file: environment.yml
           activate-environment: TEST
           python-version: ${{ matrix.python-version }}
           use-only-tar-bz2: false
@@ -225,7 +225,7 @@ jobs:
       - name: Create MHKiT Conda environment
         shell: bash -l {0}
         run: |
-          conda env create -f mhkit/tests/conda-forge/environment.yml
+          conda env create -f environment.yml
           conda activate mhkit-env
 
       - name: Install testing dependencies
@@ -238,7 +238,13 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate mhkit-env
-          pip install -e ".[all,dev]" --no-deps
+          pip install -e ".[all,dev]"
+
+      - name: Download data from artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: data
+          path: ~/.cache/mhkit
 
       - name: Run pytest & generate coverage report
         shell: bash -l {0}
