@@ -261,6 +261,70 @@ jobs:
           parallel: true
           path-to-lcov: ./coverage.lcov
 
+  conda-forge-build:
+    name: conda-forge-${{ matrix.os }}/${{ matrix.python-version }}
+    needs: [set-os, prepare-nonhindcast-cache]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
+        python-version: ["3.10", "3.11", "3.12"]
+    env:
+      PYTHON_VER: ${{ matrix.python-version }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: "latest"
+          auto-update-conda: true
+          environment-file: environment-dev.yml
+          activate-environment: TEST
+          python-version: ${{ matrix.python-version }}
+          use-only-tar-bz2: false
+
+      - name: Create MHKiT Conda environment
+        shell: bash -l {0}
+        run: |
+          conda env create -f environment-dev.yml
+          conda activate mhkit-env
+
+      - name: Install testing dependencies
+        shell: bash -l {0}
+        run: |
+          conda activate mhkit-env
+          conda install -y pytest coverage coveralls
+
+      - name: Install mhkit
+        shell: bash -l {0}
+        run: |
+          conda activate mhkit-env
+          pip install -e ".[all,dev]" --no-deps
+
+      - name: Download data from artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: data
+          path: ~/.cache/mhkit
+
+      - name: Run pytest & generate coverage report
+        shell: bash -l {0}
+        run: |
+          conda activate mhkit-env
+          coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/ -m pytest -c .github/workflows/pytest.ini
+          coverage lcov
+
+      - name: Upload coverage data to coveralls.io
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          flag-name: conda-forge-${{ runner.os }}-py${{ matrix.python-version }}
+          parallel: true
+          path-to-lcov: ./coverage.lcov
+
   pip-build:
     name: pip-${{ matrix.os }}/${{ matrix.python-version }}
     needs: [set-os, prepare-nonhindcast-cache]
