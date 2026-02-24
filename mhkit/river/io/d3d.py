@@ -94,7 +94,7 @@ def seconds_to_index(data: netCDF4.Dataset, seconds_run: Union[int, float]) -> i
 def _convert_time(
     data: netCDF4.Dataset or xr.Dataset,
     time_index: Optional[Union[int, float]] = None,
-    seconds_run: Optional[Union[int, float]] = None,
+    seconds_run: Optional[Union[int, float, np.datetime64]] = None,
 ) -> Union[int, float]:
     """
     Converts a time index to seconds or seconds to a time index. The user
@@ -393,8 +393,7 @@ def get_layer_data(
     if isinstance(data, netCDF4.Dataset):
         time = np.ma.getdata(data.variables["time"][time_index], False) * np.ones(len(x))
     elif isinstance(data, xr.Dataset):
-        time= [data.time.values[time_index]] * len(x)
-        
+        time=(data.time.values[time_index] - data.time.values[0]).astype('timedelta64[s]').astype(int) * np.ones(len(x))
 
     index = np.arange(0, len(time))
     layer_data = xr.Dataset(
@@ -596,10 +595,8 @@ def variable_interpolation(
                 f"If a string, points must be cells or faces. Got {points}"
             )
 
-    if not isinstance(data, (netCDF4.Dataset, xr.Dataset)):
-        raise TypeError(
-            f"data must be netCDF4 object or xarray Dataset. Got {type(data)}"
-        )
+    if not isinstance(data, netCDF4.Dataset):
+        raise TypeError(f"data must be netCDF4 object. Got {type(data)}")
 
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
@@ -648,7 +645,7 @@ def variable_interpolation(
 
 
 def get_all_data_points(
-    data: netCDF4.Dataset, variable: str, time_index: int = -1, to_pandas: bool = True
+    data: (netCDF4.Dataset, xr.Dataset), variable: str, time_index: int = -1, to_pandas: bool = True
 ) -> Union[pd.DataFrame, xr.Dataset]:
     """
     Get data points for a passed variable for all layers at a specified time from
@@ -694,53 +691,83 @@ def get_all_data_points(
         raise ValueError(
             f"time_index must be less than the max time index {max_time_index}"
         )
+    if isinstance(data, netCDF4.Dataset):
+        if "mesh2d" in variable:
+            cords_to_layers = {
+                "mesh2d_face_x mesh2d_face_y": {
+                    "name": "mesh2d_nLayers",
+                    "coords": data.variables["mesh2d_layer_sigma"][:],
+                },
+                "mesh2d_edge_x mesh2d_edge_y": {
+                    "name": "mesh2d_nInterfaces",
+                    "coords": data.variables["mesh2d_interface_sigma"][:],
+                },
+            }
 
-    if "mesh2d" in variable:
-        cords_to_layers = {
-            "mesh2d_face_x mesh2d_face_y": {
-                "name": "mesh2d_nLayers",
-                "coords": data.variables["mesh2d_layer_sigma"][:],
-            },
-            "mesh2d_face_x mesh2d_face_y mesh2d_layer_sigma": {
-                "name": "mesh2d_nLayers",
-                "coords": data.variables["mesh2d_layer_sigma"][:],
-            },
-            "mesh2d_edge_x mesh2d_edge_y": {
-                "name": "mesh2d_nInterfaces",
-                "coords": data.variables["mesh2d_interface_sigma"][:],
-            },
-        }
+        elif str(data.variables[variable].coordinates) == "FlowElem_xcc FlowElem_ycc":
+            cords_to_layers = {
+                "FlowElem_xcc FlowElem_ycc": {
+                    "name": "laydim",
+                    "coords": data.variables["LayCoord_cc"][:],
+                },
+                "FlowLink_xu FlowLink_yu": {
+                    "name": "wdim",
+                    "coords": data.variables["LayCoord_w"][:],
+                },
+            }
+        else:
+            cords_to_layers = {
+                "FlowElem_xcc FlowElem_ycc LayCoord_cc LayCoord_cc": {
+                    "name": "laydim",
+                    "coords": data.variables["LayCoord_cc"][:],
+                },
+                "FlowLink_xu FlowLink_yu": {
+                    "name": "wdim",
+                    "coords": data.variables["LayCoord_w"][:],
+                },
+            }
 
-    elif str(data.variables[variable].coordinates) == "FlowElem_xcc FlowElem_ycc":
-        cords_to_layers = {
-            "FlowElem_xcc FlowElem_ycc": {
-                "name": "laydim",
-                "coords": data.variables["LayCoord_cc"][:],
-            },
-            "FlowLink_xu FlowLink_yu": {
-                "name": "wdim",
-                "coords": data.variables["LayCoord_w"][:],
-            },
-        }
-    else:
-        cords_to_layers = {
-            "FlowElem_xcc FlowElem_ycc LayCoord_cc LayCoord_cc": {
-                "name": "laydim",
-                "coords": data.variables["LayCoord_cc"][:],
-            },
-            "FlowLink_xu FlowLink_yu": {
-                "name": "wdim",
-                "coords": data.variables["LayCoord_w"][:],
-            },
-        }
-
-    layer_dim = str(data.variables[variable].coordinates)
+        layer_dim = str(data.variables[variable].coordinates)
+    elif isinstance(data, xr.Dataset):
+            if "mesh2d" in variable:
+                cords_to_layers = {
+                    "mesh2d_face_x mesh2d_face_y": {
+                        "name": "mesh2d_nLayers",
+                        "coords": data.variables["mesh2d_layer_sigma"][:],
+                    },
+                    "mesh2d_edge_x mesh2d_edge_y": {
+                        "name": "mesh2d_nInterfaces",
+                        "coords": data.variables["mesh2d_interface_sigma"][:],
+                    },
+                    }
+                bottom_depth = data["mesh2d_waterdepth"].values[time_index, :]
+                waterlevel = data["mesh2d_s1"].values[time_index, :]
+                coords = list(data["waterdepth"].coords)
+            elif str(list(data[variable].coords)) == "['FlowElem_xcc', 'FlowElem_ycc', 'time']":
+                cords_to_layers = {
+                    "FlowElem_xcc FlowElem_ycc": {
+                        "name": "laydim",
+                        "coords": data.variables["LayCoord_cc"][:],
+                    },
+                    "FlowLink_xu FlowLink_yu": {
+                        "name": "wdim",
+                        "coords": data.variables["LayCoord_w"][:],
+                        },
+                    }
+                bottom_depth = data["waterdepth"].values[time_index, :]
+                waterlevel = data["s1"].values[time_index, :]
+                coords = list(data["waterdepth"].coords)
+                
+            layer_dim = " ".join(map(str, list(data[variable].coords)[0:2]))
 
     try:
         cord_sys = cords_to_layers[layer_dim]["coords"]
     except KeyError as exc:
         raise ValueError("Coordinates not recognized.") from exc
-    layer_percentages = np.ma.getdata(cord_sys, False)
+    if isinstance(data, netCDF4.Dataset):
+        layer_percentages = np.ma.getdata(cord_sys, False)  # accumulative
+    elif isinstance(data, xr.Dataset):
+        layer_percentages= cord_sys.values  # accumulative
 
     x_all = []
     y_all = []
@@ -758,7 +785,7 @@ def get_all_data_points(
         depth_all = np.append(depth_all, layer_data.waterdepth)
         water_level_all = np.append(water_level_all, layer_data.waterlevel)
         v_all = np.append(v_all, layer_data.v)
-        time_all = np.append(time_all, layer_data.time)
+        time_all = np.append(time_all, np.asarray(layer_data.time))
 
     index = np.arange(0, len(time_all))
     all_data = xr.Dataset(
@@ -852,8 +879,8 @@ def turbulent_intensity(
             f"value of the max time index {max_time_index}"
         )
 
-    if not isinstance(data, (netCDF4.Dataset, xr.Dataset)):
-        raise TypeError("data must be netCDF4 object or xarray Dataset")
+    if not isinstance(data, netCDF4.Dataset):
+        raise TypeError("data must be netCDF4 object")
 
     for variable in ["turkin1", "ucx", "ucy", "ucz"]:
         if variable not in data.variables.keys():
@@ -946,10 +973,7 @@ def list_variables(data: Union[netCDF4.Dataset, xr.Dataset, xr.DataArray]) -> Li
     >>> print(variables)
     ['time', 'x', 'y', 'waterdepth', 'ucx', 'ucy', 'ucz', 'turkin1']
     """
-    if isinstance(
-        data,
-        netCDF4.Dataset,
-    ):
+    if isinstance(data, netCDF4.Dataset):
         return list(data.variables.keys())
     if isinstance(data, (xr.Dataset, xr.DataArray)):
         return list(data.variables.keys())
@@ -957,50 +981,3 @@ def list_variables(data: Union[netCDF4.Dataset, xr.Dataset, xr.DataArray]) -> Li
         "data must be a NetCDF4 Dataset, xarray Dataset, or "
         f"xarray DataArray. Got: {type(data)}"
     )
-
-
-def calculate_grid_convergence_index(
-    fine_grid, coarse_grid, refinement_ratio, factor_of_safety=1.25, order=2
-):
-    """
-    Calculate the Grid Convergence Index (GCI) between two grid sizes. 
-
-         NASA. (n.d.). Examining spatial (grid) convergence. Accessed Febuary 3, 2026. NASA. https://www.grc.nasa.gov/WWW/wind/valid/tutorial/spatconv.html 
-
-    Parameters
-    ----------
-    fine_grid: numpy.ndarray
-        Results from the finer grid.
-    coarse_grid: numpy.ndarray
-        Results from the coarser grid.
-    refinement_ratio: float
-        Refinement ratio between the grids.
-    factor_of_safety: float
-        Factor of safety (default is 1.25).
-    order: int
-        Order of accuracy (default is 2).
-
-    Returns
-    -------
-    gci: float
-        Grid Convergence Index (GCI).
-    """
-
-    # Validate inputs
-    if not (np.issubdtype(refinement_ratio.dtype, np.number)):
-        raise TypeError("refinement_ratio must be a numeric values")
-    if not (np.issubdtype(factor_of_safety.dtype, np.number)):
-        raise TypeError("factor_of_safety must be a numeric values")
-    if not (np.issubdtype(order.dtype, np.number)):
-        raise TypeError("order must be a numeric values")
-    if not (np.issubdtype(fine_grid.dtype, np.number) and np.issubdtype(coarse_grid.dtype, np.number)):
-        raise TypeError("fine_grid and coarse_grid must contain numeric values")
-    if fine_grid.shape != coarse_grid.shape:
-        raise ValueError("fine_grid and coarse_grid must have the same shape")
-
-    # Calculate the approximate relative error
-    error = np.abs((fine_grid - coarse_grid) / fine_grid)
-
-    # Calculate the GCI
-    gci = (factor_of_safety * error) / (refinement_ratio**order - 1)
-    return gci
