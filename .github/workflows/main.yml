@@ -12,8 +12,8 @@ on:
       - package-cleanup
 
 jobs:
-  # PRs to develop run on Ubuntu only for faster feedback.
-  # PRs to main and pushes run on all OSes.
+  # Only PRs to main run on all OSes. Everything else (PRs to
+  # develop, pushes) runs on Ubuntu only for faster feedback.
   set-os:
     runs-on: ubuntu-latest
     outputs:
@@ -21,10 +21,10 @@ jobs:
     steps:
       - id: set-matrix
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "develop" ]]; then
-            echo "matrix_os=[ \"ubuntu-latest\"]" >> $GITHUB_OUTPUT
-          else
+          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "main" ]]; then
             echo "matrix_os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_OUTPUT
+          else
+            echo "matrix_os=[\"ubuntu-latest\"]" >> $GITHUB_OUTPUT
           fi
 
   check-changes:
