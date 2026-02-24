@@ -707,7 +707,8 @@ jobs:
       [
         prepare-wave-hindcast-cache,
         prepare-wind-hindcast-cache,
-        conda-build,
+        conda-user-build,
+        conda-forge-build,
         pip-build,
         hindcast-calls,
       ]
@@ -715,14 +716,16 @@ jobs:
       always() &&
       (
         (
-          needs.conda-build.result == 'success' &&
+          needs.conda-user-build.result == 'success' &&
+          needs.conda-forge-build.result == 'success' &&
           needs.pip-build.result == 'success' &&
           needs.prepare-wave-hindcast-cache.result == 'skipped' &&
           needs.prepare-wind-hindcast-cache.result == 'skipped' &&
           needs.hindcast-calls.result == 'skipped'
         ) ||
         (
-          needs.conda-build.result == 'success' &&
+          needs.conda-user-build.result == 'success' &&
+          needs.conda-forge-build.result == 'success' &&
           needs.pip-build.result == 'success' &&
           needs.prepare-wave-hindcast-cache.result == 'success' &&
           needs.prepare-wind-hindcast-cache.result == 'success' &&
