@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - develop
+      - package-cleanup
 
 jobs:
   set-os:
