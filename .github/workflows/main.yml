@@ -12,6 +12,8 @@ on:
       - package-cleanup
 
 jobs:
+  # PRs to develop run on Ubuntu only for faster feedback.
+  # PRs to main and pushes run on all OSes.
   set-os:
     runs-on: ubuntu-latest
     outputs:
