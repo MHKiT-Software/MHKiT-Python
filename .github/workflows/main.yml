@@ -27,6 +27,9 @@ jobs:
             echo "matrix_os=[\"ubuntu-latest\"]" >> $GITHUB_OUTPUT
           fi
 
+  # Hindcast tests only run on pull requests. On push events,
+  # dorny/paths-filter compares against the previous branch HEAD
+  # (not the target branch), which causes false positives.
   check-changes:
     runs-on: ubuntu-latest
     outputs:
@@ -34,10 +37,12 @@ jobs:
       should-run-hindcast: ${{ steps.hindcast-logic.outputs.should-run-hindcast }}
     steps:
       - name: Checkout code
+        if: github.event_name == 'pull_request'
         uses: actions/checkout@v6
 
       - name: Check for changes in wave/io/hindcast
         id: changes
+        if: github.event_name == 'pull_request'
         uses: dorny/paths-filter@v3
         with:
           filters: |
@@ -45,7 +50,9 @@ jobs:
               - 'mhkit/wave/io/hindcast/**'
               - 'mhkit/tests/wave/io/hindcast/**'
 
-      - id: hindcast-logic
+      - name: Determine if hindcast tests should run
+        id: hindcast-logic
+        if: github.event_name == 'pull_request'
         run: |
           if [[ "${{ github.event.pull_request.base.ref }}" == "main" || "${{ steps.changes.outputs.wave_io_hindcast }}" == "true" ]]; then
             echo "should-run-hindcast=true" >> "$GITHUB_OUTPUT"
