@@ -10,6 +10,12 @@ on:
       - main
       - develop
 
+# Coveralls coverage reporting toggle.
+# Set to true when coveralls is healthy; false during outages.
+# Check status: https://status.coveralls.io/
+env:
+  COVERALLS_FAIL_ON_ERROR: false
+
 jobs:
   # Only PRs to main run on all OSes. Everything else (PRs to
   # develop, pushes) runs on Ubuntu only for faster feedback.
@@ -270,6 +276,7 @@ jobs:
           flag-name: conda-${{ runner.os }}-py${{ matrix.python-version }}
           parallel: true
           path-to-lcov: ./coverage.lcov
+          fail-on-error: ${{ env.COVERALLS_FAIL_ON_ERROR }}
 
   conda-forge-build:
     name: conda-forge-${{ matrix.os }}/${{ matrix.python-version }}
@@ -334,6 +341,7 @@ jobs:
           flag-name: conda-forge-${{ runner.os }}-py${{ matrix.python-version }}
           parallel: true
           path-to-lcov: ./coverage.lcov
+          fail-on-error: ${{ env.COVERALLS_FAIL_ON_ERROR }}
 
   pip-build:
     name: pip-${{ matrix.os }}/${{ matrix.python-version }}
@@ -391,6 +399,7 @@ jobs:
           flag-name: pip-${{ runner.os }}-py${{ matrix.python-version }}
           parallel: true
           path-to-lcov: ./coverage.lcov
+          fail-on-error: ${{ env.COVERALLS_FAIL_ON_ERROR }}
 
   hindcast-calls:
     name: hindcast-${{ matrix.os }}/${{ matrix.python-version }}
@@ -475,6 +484,7 @@ jobs:
           flag-name: hindcast-${{ runner.os }}-py${{ matrix.python-version }}
           parallel: true
           path-to-lcov: ./coverage.lcov
+          fail-on-error: ${{ env.COVERALLS_FAIL_ON_ERROR }}
 
   test-wheel-packaging:
     name: Test Built Wheel
