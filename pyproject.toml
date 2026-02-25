@@ -21,11 +21,17 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
+    # MHKiT-Python uses xarray everywhere, which leverages netcdf and h5 behind the
+    # scenes. xarray, netcdf4, and h5 dependencies should all be synced to avoid
+    # compatibility issues with individual modules.
+    "xarray>=2024.6.0",
+    "netCDF4>=1.7.1.post1",
+    "h5py>=3.11.0",
+    "h5pyd>=0.18.0",
     "numpy>=2.0.0",
     "numexpr>=2.10.0",
     "pandas>=2.2.2,<3.0",
     "scipy>=1.14.0",
-    "xarray>=2024.6.0",
     "matplotlib>=3.9.1",
     "pecos>=0.3.0",
     "requests",
@@ -36,28 +42,22 @@ dependencies = [
 wave = [
     "scikit-learn>=1.5.1",
     "statsmodels>=0.14.2",
-    "netCDF4>=1.7.1.post1",
     "pytz",
     "NREL-rex>=0.2.63",
     "beautifulsoup4",
     "bottleneck",
     "lxml",
-    "h5py>=3.11.0",
-    "h5pyd>=0.18.0",
 ]
 
 tidal = [
-    "netCDF4>=1.7.1.post1",
     "bottleneck",
 ]
 
 river = [
-    "netCDF4>=1.7.1.post1",
     "bottleneck",
 ]
 
 dolfyn = [
-    "netCDF4>=1.7.1.post1",
     "cartopy",
 ]
 
