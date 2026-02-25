@@ -82,6 +82,7 @@ jobs:
           activate-environment: TESTconda
           use-only-tar-bz2: false
           channels: conda-forge
+          conda-remove-defaults: true
 
       - name: Create MHKiT Conda environment
         shell: bash -l {0}
