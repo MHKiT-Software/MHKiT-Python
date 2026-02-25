@@ -70,7 +70,7 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: "latest"
+          miniconda-version: 'latest'
           auto-update-conda: true
           python-version: ${{ env.PYTHON_VER }}
           activate-environment: TESTconda
@@ -121,7 +121,7 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: "latest"
+          miniconda-version: 'latest'
           auto-update-conda: true
           activate-environment: TEST
           python-version: ${{ env.PYTHON_VER }}
@@ -170,7 +170,7 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: "latest"
+          miniconda-version: 'latest'
           auto-update-conda: true
           activate-environment: TEST
           python-version: ${{ env.PYTHON_VER }}
@@ -214,7 +214,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ['3.10', '3.11', '3.12']
     env:
       PYTHON_VER: ${{ matrix.python-version }}
 
@@ -224,7 +224,7 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: "latest"
+          miniconda-version: 'latest'
           auto-update-conda: true
           environment-file: environment.yml
           activate-environment: TEST
@@ -278,7 +278,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ['3.10', '3.11', '3.12']
     env:
       PYTHON_VER: ${{ matrix.python-version }}
 
@@ -288,7 +288,7 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: "latest"
+          miniconda-version: 'latest'
           auto-update-conda: true
           environment-file: environment-dev.yml
           activate-environment: TEST
@@ -342,7 +342,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ['3.10', '3.11', '3.12']
 
     steps:
       - name: Set up Python ${{ matrix.python-version }}
@@ -408,7 +408,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ['3.10', '3.11', '3.12']
 
     steps:
       - uses: actions/checkout@v6
@@ -416,7 +416,7 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: "latest"
+          miniconda-version: 'latest'
           auto-update-conda: true
           environment-file: environment.yml
           activate-environment: TEST
@@ -483,7 +483,7 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
       - name: Install build dependencies
         run: python -m pip install build --user
@@ -539,7 +539,7 @@ jobs:
       matrix:
         module:
           [wave, tidal, river, dolfyn, power, loads, mooring, acoustics, utils]
-        python-version: ["3.12"]
+        python-version: ['3.12']
 
     steps:
       - uses: actions/checkout@v6
@@ -609,7 +609,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
       - name: Generate matrix
         id: set-matrix
@@ -638,9 +638,9 @@ jobs:
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniconda-version: "latest"
+          miniconda-version: 'latest'
           auto-update-conda: true
-          python-version: "3.12"
+          python-version: '3.12'
           channels: conda-forge
           activate-environment: TESTconda
           use-only-tar-bz2: false
