@@ -271,7 +271,7 @@ jobs:
           coverage lcov
 
       - name: Upload coverage data to coveralls.io
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: conda-${{ runner.os }}-py${{ matrix.python-version }}
@@ -336,7 +336,7 @@ jobs:
           coverage lcov
 
       - name: Upload coverage data to coveralls.io
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: conda-forge-${{ runner.os }}-py${{ matrix.python-version }}
@@ -394,7 +394,7 @@ jobs:
           coverage lcov
 
       - name: Upload coverage data to coveralls.io
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: pip-${{ runner.os }}-py${{ matrix.python-version }}
@@ -479,7 +479,7 @@ jobs:
           coverage lcov
 
       - name: Upload coverage data to coveralls.io
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: hindcast-${{ runner.os }}-py${{ matrix.python-version }}
@@ -757,7 +757,7 @@ jobs:
     container: python:3-slim
     steps:
       - name: Coveralls Finished
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           parallel-finished: true
         env:
