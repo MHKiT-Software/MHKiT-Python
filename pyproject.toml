@@ -29,7 +29,6 @@ dependencies = [
     "h5py>=3.11.0",
     "h5pyd>=0.18.0",
     "numpy>=2.0.0",
-    "numexpr>=2.10.0",
     "pandas>=2.2.2,<3.0",
     "scipy>=1.14.0",
     "matplotlib>=3.9.1",
