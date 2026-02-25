@@ -11,7 +11,7 @@ on:
       - develop
 
 # Coveralls coverage reporting toggle.
-# Set to true when coveralls is healthy; false during outages.
+# Set to false to ignore coveralls upload failures during outages.
 # Check status: https://status.coveralls.io/
 env:
   COVERALLS_FAIL_ON_ERROR: false
