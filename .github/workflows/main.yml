@@ -75,7 +75,7 @@ jobs:
           python-version: ${{ env.PYTHON_VER }}
           activate-environment: TESTconda
           use-only-tar-bz2: false
-          conda-remove-defaults: true
+          channels: conda-forge
 
       - name: Create MHKiT Conda environment
         shell: bash -l {0}
