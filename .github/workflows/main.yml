@@ -760,3 +760,4 @@ jobs:
         with:
           parallel-finished: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          fail-on-error: ${{ env.COVERALLS_FAIL_ON_ERROR }}
