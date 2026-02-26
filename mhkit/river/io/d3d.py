@@ -364,54 +364,35 @@ def get_layer_data(
     elif isinstance(data, xr.Dataset):
         layer_percentages= cord_sys.values  # accumulative
         
-    if isinstance(data, netCDF4.Dataset):
-        if layer_dim == "FlowLink_xu FlowLink_yu":
-            # interpolate
+    if layer_dim == "FlowLink_xu FlowLink_yu":
+        # interpolate
+        if isinstance(data, netCDF4.Dataset):
             x_laydim = np.ma.getdata(data.variables[coords[0]][:], False)
             y_laydim = np.ma.getdata(data.variables[coords[1]][:], False)
-            points_laydim = np.array([[x, y] for x, y in zip(x_laydim, y_laydim)])
-
             coords_request = str(data.variables[variable].coordinates).split()
             x_wdim = np.ma.getdata(data.variables[coords_request[0]][:], False)
             y_wdim = np.ma.getdata(data.variables[coords_request[1]][:], False)
-            points_wdim = np.array([[x, y] for x, y in zip(x_wdim, y_wdim)])
-
-            bottom_depth_wdim = interp.griddata(points_laydim, bottom_depth, points_wdim)
-            water_level_wdim = interp.griddata(points_laydim, waterlevel, points_wdim)
-
-            idx_bd = np.where(np.isnan(bottom_depth_wdim))
-
-            for i in idx_bd:
-                bottom_depth_wdim[i] = interp.griddata(
-                    points_laydim, bottom_depth, points_wdim[i], method="nearest"
-                )
-                water_level_wdim[i] = interp.griddata(
-                    points_laydim, waterlevel, points_wdim[i], method="nearest"
-                )
-    elif isinstance(data, xr.Dataset):
-        if layer_dim == "FlowLink_xu FlowLink_yu":
-            # interpolate
+        elif isinstance(data, xr.Dataset):
             x_laydim = data[coords[0]].values
             y_laydim = data[coords[1]].values
-            points_laydim = np.array([[x, y] for x, y in zip(x_laydim, y_laydim)])
-
             coords_request = list(data[variable].coords)[0:2]
             x_wdim = data[coords_request[0]].values
             y_wdim = data[coords_request[1]].values
-            points_wdim = np.array([[x, y] for x, y in zip(x_wdim, y_wdim)])
 
-            bottom_depth_wdim = interp.griddata(points_laydim, bottom_depth, points_wdim)
-            water_level_wdim = interp.griddata(points_laydim, waterlevel, points_wdim)
+        points_laydim = np.array([[x, y] for x, y in zip(x_laydim, y_laydim)])
+        points_wdim = np.array([[x, y] for x, y in zip(x_wdim, y_wdim)])
 
-            idx_bd = np.where(np.isnan(bottom_depth_wdim))
+        bottom_depth_wdim = interp.griddata(points_laydim, bottom_depth, points_wdim)
+        water_level_wdim = interp.griddata(points_laydim, waterlevel, points_wdim)
 
-            for i in idx_bd:
-                bottom_depth_wdim[i] = interp.griddata(
-                    points_laydim, bottom_depth, points_wdim[i], method="nearest"
-                )
-                water_level_wdim[i] = interp.griddata(
-                    points_laydim, waterlevel, points_wdim[i], method="nearest"
-                )
+        idx_bd = np.where(np.isnan(bottom_depth_wdim))
+        for i in idx_bd:
+            bottom_depth_wdim[i] = interp.griddata(
+                points_laydim, bottom_depth, points_wdim[i], method="nearest"
+            )
+            water_level_wdim[i] = interp.griddata(
+                points_laydim, waterlevel, points_wdim[i], method="nearest"
+            )
 
     waterdepth = []
 
