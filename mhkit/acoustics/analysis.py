@@ -50,6 +50,17 @@ from mhkit.dolfyn import VelBinner
 from mhkit.dolfyn.time import epoch2dt64, dt642epoch
 
 
+def _check_numeric(value, name: str):
+    if np.issubdtype(type(value), np.ndarray):
+        value = value.item()
+    if not (
+        isinstance(value, (int, float))
+        or np.issubdtype(type(value), np.integer)
+        or np.issubdtype(type(value), np.floating)
+    ):
+        raise TypeError(f"{name} must be a numeric type (int or float).")
+
+
 def _fmax_warning(
     fn: Union[int, float, np.ndarray], fmax: Union[int, float, np.ndarray]
 ) -> Union[int, float, np.ndarray]:
@@ -68,11 +79,6 @@ def _fmax_warning(
     fmax: float
         The adjusted maximum frequency limit, ensuring it does not exceed the Nyquist frequency.
     """
-
-    if not isinstance(fn, (int, float, np.ndarray)):
-        raise TypeError("'fn' must be a numeric type (int or float).")
-    if not isinstance(fmax, (int, float, np.ndarray)):
-        raise TypeError("'fmax' must be a numeric type (int or float).")
 
     if fmax > fn:
         warnings.warn(
@@ -120,10 +126,8 @@ def minimum_frequency(
     if not np.issubdtype(water_depth.dtype, np.number):
         raise TypeError("'water_depth' must be a numeric type or array of numerics.")
 
-    if not isinstance(c, (int, float)):
-        raise TypeError("'c' must be a numeric type (int or float).")
-    if not isinstance(c_seabed, (int, float)):
-        raise TypeError("'c_seabed' must be a numeric type (int or float).")
+    _check_numeric(c, "c")
+    _check_numeric(c_seabed, "c_seabed")
 
     if np.any(water_depth <= 0):
         raise ValueError("All elements of 'water_depth' must be positive numbers.")
@@ -143,6 +147,7 @@ def sound_pressure_spectral_density(
     pressure: xr.DataArray,
     fs: Union[int, float],
     bin_length: Union[int, float] = 1,
+    fft_length: Optional[Union[int, float]] = None,
     rms: bool = True,
 ) -> xr.DataArray:
     """
@@ -167,6 +172,8 @@ def sound_pressure_spectral_density(
         Data collection sampling rate [Hz]
     bin_length: int or float
         Length of time in seconds to create FFTs. Default: 1.
+    fft_length: int or float, optional
+        Length of FFT to use. If None, uses bin_length * fs. Default: None.
     rms: bool
         If True, calculates the mean-squared SPSD. Set to False to
         calculate standard SPSD. Default: True.
@@ -180,10 +187,8 @@ def sound_pressure_spectral_density(
     # Type checks
     if not isinstance(pressure, xr.DataArray):
         raise TypeError("'pressure' must be an xarray.DataArray.")
-    if not isinstance(fs, (int, float)):
-        raise TypeError("'fs' must be a numeric type (int or float).")
-    if not isinstance(bin_length, (int, float)):
-        raise TypeError("'bin_length' must be a numeric type (int or float).")
+    _check_numeric(fs, "fs")
+    _check_numeric(bin_length, "bin_length")
 
     # Ensure that 'pressure' has a 'time' coordinate
     if "time" not in pressure.dims:
@@ -191,9 +196,14 @@ def sound_pressure_spectral_density(
 
     # window length of each time series
     nbin = bin_length * fs
+    if fft_length is not None:
+        _check_numeric(fft_length, "fft_length")
+        nfft = fft_length
+    else:
+        nfft = nbin
 
     # Use dolfyn PSD functionality
-    binner = VelBinner(n_bin=nbin, fs=fs, n_fft=nbin)
+    binner = VelBinner(n_bin=nbin, fs=fs, n_fft=nfft)
     # Always 50% overlap if numbers reshape perfectly
     # Mean square sound pressure
     psd = binner.power_spectral_density(pressure, freq_units="Hz")
@@ -221,9 +231,9 @@ def sound_pressure_spectral_density(
             "units": pressure.units + "^2/Hz",
             "long_name": long_name,
             "fs": fs,
-            "nbin": str(bin_length) + " s",
+            "bin_length": bin_length,
             "overlap": "50%",
-            "nfft": nbin,
+            "n_fft": nfft,
         },
     )
 
@@ -234,6 +244,7 @@ def apply_calibration(
     spsd: xr.DataArray,
     sensitivity_curve: xr.DataArray,
     fill_value: Union[float, int, np.ndarray],
+    interp_method: str = "linear",
 ) -> xr.DataArray:
     """
     Applies custom calibration to spectral density values.
@@ -248,6 +259,9 @@ def apply_calibration(
     fill_value: float or int
         Value with which to fill missing values from the calibration curve,
         in units of dB rel 1 V^2/uPa^2.
+    interp_method: str
+        Interpolation method to use when interpolating the calibration curve
+        to the frequencies in 'spsd'. Default is 'linear'.
 
     Returns
     -------
@@ -259,8 +273,7 @@ def apply_calibration(
         raise TypeError("'spsd' must be an xarray.DataArray.")
     if not isinstance(sensitivity_curve, xr.DataArray):
         raise TypeError("'sensitivity_curve' must be an xarray.DataArray.")
-    if not isinstance(fill_value, (int, float, np.ndarray)):
-        raise TypeError("'fill_value' must be a numeric type (int or float).")
+    _check_numeric(fill_value, "fill_value")
 
     # Ensure 'freq' dimension exists in 'spsd'
     if "freq" not in spsd.dims:
@@ -295,7 +308,7 @@ def apply_calibration(
     freq = sensitivity_curve.dims[0]
     # Interpolate calibration curve to desired value
     calibration = sensitivity_curve.interp(
-        {freq: spsd_calibrated["freq"]}, method="linear"
+        {freq: spsd_calibrated["freq"]}, method=interp_method
     )
     # Fill missing with provided value
     calibration = calibration.fillna(fill_value)
@@ -340,6 +353,7 @@ def sound_pressure_spectral_density_level(spsd: xr.DataArray) -> xr.DataArray:
         attrs={
             "units": "dB re 1 uPa^2/Hz",
             "long_name": "Sound Pressure Spectral Density Level",
+            "time_resolution": spsd.attrs["bin_length"],
         },
     )
 
@@ -571,8 +585,8 @@ def band_aggregate(
     for val in octave:
         if not isinstance(val, int) or (val <= 0):
             raise TypeError("'octave' must contain positive integers.")
-    if not isinstance(fmin, int) or (fmin <= 0):
-        raise TypeError("'fmin' must be a positive integer.")
+    _check_numeric(fmin, "fmin")
+    _check_numeric(fmax, "fmax")
     if fmax <= fmin:  # also checks that fmax is positive
         raise ValueError("'fmax' must be greater than 'fmin'.")
 
