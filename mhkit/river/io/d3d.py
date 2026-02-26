@@ -322,7 +322,8 @@ def get_layer_data(
             bottom_depth = data["mesh2d_waterdepth"].values[time_index, :]
             waterlevel = data["mesh2d_s1"].values[time_index, :]
             coords = list(data["waterdepth"].coords)
-        elif str(list(data[variable].coords)) == "['FlowElem_xcc', 'FlowElem_ycc', 'time']":
+        elif str(list(data[variable].coords)) == "['FlowElem_xcc', 'FlowElem_ycc', 'time']" or \
+             str(list(data[variable].coords)) == "['FlowLink_xu', 'FlowLink_yu', 'time']":
             cords_to_layers = {
                 "FlowElem_xcc FlowElem_ycc": {
                     "name": "laydim",
@@ -333,6 +334,20 @@ def get_layer_data(
                     "coords": data.variables["LayCoord_w"][:],
                     },
                 }
+            bottom_depth = data["waterdepth"].values[time_index, :]
+            waterlevel = data["s1"].values[time_index, :]
+            coords = list(data["waterdepth"].coords)
+        else:
+            cords_to_layers = {
+                "FlowElem_xcc FlowElem_ycc LayCoord_cc LayCoord_cc": {
+                    "name": "laydim",
+                    "coords": data.variables["LayCoord_cc"][:],
+                },
+                "FlowLink_xu FlowLink_yu": {
+                    "name": "wdim",
+                    "coords": data.variables["LayCoord_w"][:],
+                },
+            }
             bottom_depth = data["waterdepth"].values[time_index, :]
             waterlevel = data["s1"].values[time_index, :]
             coords = list(data["waterdepth"].coords)
@@ -349,30 +364,54 @@ def get_layer_data(
     elif isinstance(data, xr.Dataset):
         layer_percentages= cord_sys.values  # accumulative
         
+    if isinstance(data, netCDF4.Dataset):
+        if layer_dim == "FlowLink_xu FlowLink_yu":
+            # interpolate
+            x_laydim = np.ma.getdata(data.variables[coords[0]][:], False)
+            y_laydim = np.ma.getdata(data.variables[coords[1]][:], False)
+            points_laydim = np.array([[x, y] for x, y in zip(x_laydim, y_laydim)])
 
-    if layer_dim == "FlowLink_xu FlowLink_yu":
-        # interpolate
-        x_laydim = np.ma.getdata(data.variables[coords[0]][:], False)
-        y_laydim = np.ma.getdata(data.variables[coords[1]][:], False)
-        points_laydim = np.array([[x, y] for x, y in zip(x_laydim, y_laydim)])
+            coords_request = str(data.variables[variable].coordinates).split()
+            x_wdim = np.ma.getdata(data.variables[coords_request[0]][:], False)
+            y_wdim = np.ma.getdata(data.variables[coords_request[1]][:], False)
+            points_wdim = np.array([[x, y] for x, y in zip(x_wdim, y_wdim)])
 
-        coords_request = str(data.variables[variable].coordinates).split()
-        x_wdim = np.ma.getdata(data.variables[coords_request[0]][:], False)
-        y_wdim = np.ma.getdata(data.variables[coords_request[1]][:], False)
-        points_wdim = np.array([[x, y] for x, y in zip(x_wdim, y_wdim)])
+            bottom_depth_wdim = interp.griddata(points_laydim, bottom_depth, points_wdim)
+            water_level_wdim = interp.griddata(points_laydim, waterlevel, points_wdim)
 
-        bottom_depth_wdim = interp.griddata(points_laydim, bottom_depth, points_wdim)
-        water_level_wdim = interp.griddata(points_laydim, waterlevel, points_wdim)
+            idx_bd = np.where(np.isnan(bottom_depth_wdim))
 
-        idx_bd = np.where(np.isnan(bottom_depth_wdim))
+            for i in idx_bd:
+                bottom_depth_wdim[i] = interp.griddata(
+                    points_laydim, bottom_depth, points_wdim[i], method="nearest"
+                )
+                water_level_wdim[i] = interp.griddata(
+                    points_laydim, waterlevel, points_wdim[i], method="nearest"
+                )
+    elif isinstance(data, xr.Dataset):
+        if layer_dim == "FlowLink_xu FlowLink_yu":
+            # interpolate
+            x_laydim = data[coords[0]].values
+            y_laydim = data[coords[1]].values
+            points_laydim = np.array([[x, y] for x, y in zip(x_laydim, y_laydim)])
 
-        for i in idx_bd:
-            bottom_depth_wdim[i] = interp.griddata(
-                points_laydim, bottom_depth, points_wdim[i], method="nearest"
-            )
-            water_level_wdim[i] = interp.griddata(
-                points_laydim, waterlevel, points_wdim[i], method="nearest"
-            )
+            coords_request = list(data[variable].coords)[0:2]
+            x_wdim = data[coords_request[0]].values
+            y_wdim = data[coords_request[1]].values
+            points_wdim = np.array([[x, y] for x, y in zip(x_wdim, y_wdim)])
+
+            bottom_depth_wdim = interp.griddata(points_laydim, bottom_depth, points_wdim)
+            water_level_wdim = interp.griddata(points_laydim, waterlevel, points_wdim)
+
+            idx_bd = np.where(np.isnan(bottom_depth_wdim))
+
+            for i in idx_bd:
+                bottom_depth_wdim[i] = interp.griddata(
+                    points_laydim, bottom_depth, points_wdim[i], method="nearest"
+                )
+                water_level_wdim[i] = interp.griddata(
+                    points_laydim, waterlevel, points_wdim[i], method="nearest"
+                )
 
     waterdepth = []
 
@@ -595,8 +634,8 @@ def variable_interpolation(
                 f"If a string, points must be cells or faces. Got {points}"
             )
 
-    if not isinstance(data, netCDF4.Dataset):
-        raise TypeError(f"data must be netCDF4 object. Got {type(data)}")
+    if not isinstance(data, (netCDF4.Dataset, xr.Dataset)):
+        raise TypeError(f"data must be netCDF4 or xarray Dataset object. Got {type(data)}")
 
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
@@ -743,7 +782,8 @@ def get_all_data_points(
                 bottom_depth = data["mesh2d_waterdepth"].values[time_index, :]
                 waterlevel = data["mesh2d_s1"].values[time_index, :]
                 coords = list(data["waterdepth"].coords)
-            elif str(list(data[variable].coords)) == "['FlowElem_xcc', 'FlowElem_ycc', 'time']":
+            elif str(list(data[variable].coords)) == "['FlowElem_xcc', 'FlowElem_ycc', 'time']" or \
+                str(list(data[variable].coords)) == "['FlowLink_xu', 'FlowLink_yu', 'time']":
                 cords_to_layers = {
                     "FlowElem_xcc FlowElem_ycc": {
                         "name": "laydim",
@@ -754,6 +794,20 @@ def get_all_data_points(
                         "coords": data.variables["LayCoord_w"][:],
                         },
                     }
+                bottom_depth = data["waterdepth"].values[time_index, :]
+                waterlevel = data["s1"].values[time_index, :]
+                coords = list(data["waterdepth"].coords)
+            else:
+                cords_to_layers = {
+                    "FlowElem_xcc FlowElem_ycc LayCoord_cc LayCoord_cc": {
+                        "name": "laydim",
+                        "coords": data.variables["LayCoord_cc"][:],
+                    },
+                    "FlowLink_xu FlowLink_yu": {
+                        "name": "wdim",
+                        "coords": data.variables["LayCoord_w"][:],
+                    },
+                }
                 bottom_depth = data["waterdepth"].values[time_index, :]
                 waterlevel = data["s1"].values[time_index, :]
                 coords = list(data["waterdepth"].coords)
@@ -879,8 +933,8 @@ def turbulent_intensity(
             f"value of the max time index {max_time_index}"
         )
 
-    if not isinstance(data, netCDF4.Dataset):
-        raise TypeError("data must be netCDF4 object")
+    if not isinstance(data, (netCDF4.Dataset, xr.Dataset)):
+        raise TypeError("data must be netCDF4 object or xarray Dataset")
 
     for variable in ["turkin1", "ucx", "ucy", "ucz"]:
         if variable not in data.variables.keys():
