@@ -321,7 +321,7 @@ def get_layer_data(
                 }
             bottom_depth = data["mesh2d_waterdepth"].values[time_index, :]
             waterlevel = data["mesh2d_s1"].values[time_index, :]
-            coords = list(data["waterdepth"].coords)
+            coords = list(data["mesh2d_waterdepth"].coords)
         elif str(list(data[variable].coords)) == "['FlowElem_xcc', 'FlowElem_ycc', 'time']" or \
              str(list(data[variable].coords)) == "['FlowLink_xu', 'FlowLink_yu', 'time']":
             cords_to_layers = {
@@ -561,7 +561,7 @@ def create_points(
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-positional-arguments
 def variable_interpolation(
-    data: netCDF4.Dataset,
+    data: Union[netCDF4.Dataset, xr.Dataset],
     variables: List[str],
     points: Union[str, pd.DataFrame, xr.Dataset] = "cells",
     edges: str = "none",
@@ -762,7 +762,7 @@ def get_all_data_points(
                     }
                 bottom_depth = data["mesh2d_waterdepth"].values[time_index, :]
                 waterlevel = data["mesh2d_s1"].values[time_index, :]
-                coords = list(data["waterdepth"].coords)
+                coords = list(data["mesh2d_waterdepth"].coords)
             elif str(list(data[variable].coords)) == "['FlowElem_xcc', 'FlowElem_ycc', 'time']" or \
                 str(list(data[variable].coords)) == "['FlowLink_xu', 'FlowLink_yu', 'time']":
                 cords_to_layers = {
