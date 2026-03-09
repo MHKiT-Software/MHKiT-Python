@@ -17,7 +17,7 @@ env:
   CONDA_REMOVE_DEFAULTS: true
   # Coveralls: Set to false to ignore upload failures during outages.
   #   Check status: https://status.coveralls.io/
-  COVERALLS_FAIL_ON_ERROR: false
+  COVERALLS_FAIL_ON_ERROR: true
 
 jobs:
   # Only PRs to main run on all OSes. Everything else (PRs to
