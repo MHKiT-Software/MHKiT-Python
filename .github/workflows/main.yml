@@ -59,11 +59,23 @@ jobs:
 
       - name: Determine if hindcast tests should run
         id: hindcast-logic
-        if: github.event_name == 'pull_request'
         run: |
-          if [[ "${{ github.event.pull_request.base.ref }}" == "main" || "${{ steps.changes.outputs.wave_io_hindcast }}" == "true" ]]; then
+          # Case 1: A push (merge) to a primary branch. Always run.
+          if [[ "${{ github.event_name }}" == "push" && ("${{ github.ref_name }}" == "main" || "${{ github.ref_name }}" == "develop") ]]; then
+            echo "Push to main or develop detected. Forcing hindcast tests to run."
             echo "should-run-hindcast=true" >> "$GITHUB_OUTPUT"
+          # Case 2: A pull request. Use the original logic.
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            if [[ "${{ github.base_ref }}" == "main" || "${{ steps.changes.outputs.wave_io_hindcast }}" == "true" ]]; then
+              echo "PR to main or with hindcast changes detected. Running hindcast tests."
+              echo "should-run-hindcast=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "PR does not require hindcast tests."
+              echo "should-run-hindcast=false" >> "$GITHUB_OUTPUT"
+            fi
+          # Default case: Don't run tests.
           else
+            echo "Event is not a push to a primary branch or a pull request. Skipping hindcast tests."
             echo "should-run-hindcast=false" >> "$GITHUB_OUTPUT"
           fi
 
