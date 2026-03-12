@@ -1,4 +1,4 @@
-name: mhkit-env
+name: mhkit-dev-env
 channels:
   - conda-forge
   - defaults
