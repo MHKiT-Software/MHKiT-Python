@@ -329,18 +329,18 @@ jobs:
         shell: bash -l {0}
         run: |
           conda env create -f environment-dev.yml
-          conda activate mhkit-env
+          conda activate mhkit-dev-env
 
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
+          conda activate mhkit-dev-env
           conda install -y pytest coverage coveralls
 
       - name: Install mhkit
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
+          conda activate mhkit-dev-env
           pip install -e ".[all,dev]" --no-deps
 
       - name: Download data from artifact
@@ -352,7 +352,7 @@ jobs:
       - name: Run pytest & generate coverage report
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
+          conda activate mhkit-dev-env
           coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/ -m pytest -c .github/workflows/pytest.ini
           coverage lcov
 
