@@ -20,20 +20,19 @@ env:
   COVERALLS_FAIL_ON_ERROR: true
 
 jobs:
-  # Only PRs to main run on all OSes. Everything else (PRs to
-  # develop, pushes) runs on Ubuntu only for faster feedback.
+  # This sets the the operating systems in one place, which is used the following jobs/tests
+  # conda-user-build
+  # conda-forge-build
+  # pip-build
+  # hindcast-calls
   set-os:
     runs-on: ubuntu-latest
     outputs:
       matrix_os: ${{ steps.set-matrix.outputs.matrix_os }}
     steps:
       - id: set-matrix
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "main" ]]; then
-            echo "matrix_os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_OUTPUT
-          else
-            echo "matrix_os=[\"ubuntu-latest\"]" >> $GITHUB_OUTPUT
-          fi
+        run: echo "matrix_os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_OUTPUT
+
 
   # Hindcast tests only run on pull requests. On push events,
   # dorny/paths-filter compares against the previous branch HEAD
