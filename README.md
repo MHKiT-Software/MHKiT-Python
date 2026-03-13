@@ -33,19 +33,29 @@ See the [MHKiT documentation](https://mhkit-software.github.io/MHKiT) for more i
 ## Installation
 
 [MHKiT-Python](https://github.com/MHKiT-Software/MHKiT-Python) requires [Python (3.10-3.12)](https://www.python.org/).
-It is recommended to use the [Anaconda Python Distribution](https://www.anaconda.com/distribution/) (a fully featured Python installer with a GUI) 
-or [Miniconda](https://docs.anaconda.com/miniconda/#quick-command-line-install) (a lightweight installer with the ``conda`` command line utility).  
-Both will include most of MHKiT-Python's package dependencies. 
+It is recommended to use the [Anaconda Python Distribution](https://www.anaconda.com/distribution/) (a fully featured Python installer with a GUI)
+or [Miniconda](https://docs.anaconda.com/miniconda/#quick-command-line-install) (a lightweight installer with the `conda` command line utility).  
+Both will include most of MHKiT-Python's package dependencies.
+
 MHKiT can be installed several ways:
 
-### Option 1: Install from Python
+### Option 1: Install With Anaconda/Miniconda
 
-This option is recommended as a fast installation for MHKiT-Python users.
-To install MHKiT-Python using ``conda``, in an Anaconda Prompt:
+This option is recommended for most MHKiT-Python users.
+To install MHKiT-Python using `conda`, in an Anaconda Prompt:
 
 ```bash
-	conda install -c conda-forge mhkit
+conda env create mhkit-env --python=3.11
+conda activate mhkit-env
+conda install -c conda-forge mhkit
 ```
+
+Note: To use MHKiT users must activate the `mhkit-env` environment each time, using `conda activate
+mhkit-env` in each new shell/terminal to use MHKiT.
+To avoid this, users can install MHKiT into their base conda environment, but this is not
+recommended as it may cause dependency conflicts with other software.
+
+Visual Studio Code has [instructions for using Python environments in VS Code](https://code.visualstudio.com/docs/python/environments).
 
 ### Option 2: Clone Repository from GitHub
 
@@ -54,31 +64,76 @@ Download and install your preferred version of [git](https://git-scm.com/).
 To clone MHKiT-Python:
 
 ```bash
-	git clone https://github.com/MHKiT-Software/MHKiT-Python
-	cd MHKiT-Python
+git clone https://github.com/MHKiT-Software/MHKiT-Python
+cd MHKiT-Python
 ```
+
+#### Virtual Environment Setup
+
+A virtual environment is a self-contained directory that contains a Python installation for a
+particular version of Python, plus a number of additional packages. Using a virtual environment
+allows you to manage dependencies for different projects separately, avoiding conflicts between
+packages and ensuring that your project has access to the specific versions of packages it needs.
+
+Use of a virtual environment is recommended to avoid dependency conflicts with other python
+packages (this environment must be activated in each new shell/terminal before using MHKiT).:
+
+##### Python `venv` (built into python)
+
+Python venv (built into python)
+
+Windows
+
+```
+python -m venv mhkit-env
+`.\mhkit-env\Scripts\activate`
+```
+
+Linux/MacOS:
+
+```
+python -m venv mhkit-env
+source mhkit-env/bin/activate
+```
+
+##### Conda (requires separate installation of Anaconda or Miniconda):
+
+```
+conda create -n mhkit-env python=3.11
+conda activate mhkit-env
+```
+
+#### Install MHKiT-Python with pip
 
 To install a local, editable version of MHKiT-Python using [pip](https://pip.pypa.io/en/stable/):
 
 ```bash
-	pip install -e .["all"]
+pip install -e .["all"]
 ```
 
-An [environment YAML file](https://github.com/MHKiT-Software/MHKiT-Python/blob/main/environment.yml) is also provided that can create the base environment required by MHKiT. 
+An [environment YAML file](https://github.com/MHKiT-Software/MHKiT-Python/blob/main/environment.yml) is also provided that can create the base environment required by MHKiT.
 MHKiT can then be installed into that environment using any of the provided methods.
 
 ### Option 3: Module-specific Install from Python
 
-A slim version of MHKiT-Python can be installed to reduce the number of dependencies and potential conflicts with other software. 
-This installation utilizes pip's optional dependencies installation. 
+A slim version of MHKiT-Python can be installed to reduce the number of dependencies and potential conflicts with other software.
+This installation utilizes pip's optional dependencies installation.
+
+Note: Use of a virtual environment is recommended to avoid dependency conflicts with other python.
+See Option 2 installation instructions for virtual environment setup.
+
 To install a single MHKiT module, e.g. the wave module, and its dependencies, use:
 
-	pip install mhkit["wave"]
+```
+pip install mhkit["wave"]
+```
 
-Note that ``pip install mhkit`` only installs the base MHKiT dependencies and not the entire software.
+Note that `pip install mhkit` only installs the base MHKiT dependencies and not the entire software.
 To install all MHKiT dependencies use:
 
-	pip install mhkit["all"]
+```
+pip install mhkit["all"]
+```
 
 See [installation instructions](https://mhkit-software.github.io/MHKiT/installation.html) for more information.
 
@@ -86,6 +141,9 @@ See [installation instructions](https://mhkit-software.github.io/MHKiT/installat
 
 For developers contributing to MHKiT, there are three development installation strategies after
 cloning the repository locally:
+
+Note: Use of a virtual environment is recommended to avoid dependency conflicts with other python.
+See Option 2 installation instructions for virtual environment setup.
 
 **Pip development** (no conda):
 
@@ -109,7 +167,7 @@ conda activate mhkit-env
 pip install -e ".[all,dev]" --no-deps
 ```
 
-The conda-forge option mirrors how users install MHKiT via `conda install -c conda-forge mhkit`, ensuring all dependencies come from the conda-forge channel. The `--no-deps` flag prevents pip from resolving dependencies, relying entirely on the conda environment (which is a [conda requirement]()). The conda-forge build and deployment happens in separate repository: [https://github.com/conda-forge/mhkit-feedstock]
+The conda-forge option mirrors how users install MHKiT via `conda install -c conda-forge mhkit`, ensuring all dependencies come from the conda-forge channel. The `--no-deps` flag prevents pip from resolving dependencies, relying entirely on the conda-forge packages for dependencies. The conda-forge build and deployment happens in separate repository: [https://github.com/conda-forge/mhkit-feedstock] which is updated with each MHKiT release.
 
 ## Copyright and license
 
