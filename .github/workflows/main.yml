@@ -86,7 +86,7 @@ jobs:
           environment-file: ${{ env.CONDA_ENVIRONMENT_FILE }}
           activate-environment: ${{ env.CONDA_ENVIRONMENT_NAME }}
           python-version: ${{ matrix.python-version }}
-          use_only_tar_bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
+          use-only-tar-bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
           channels: ${{ env.CONDA_CHANNELS }}
           conda-remove-defaults: ${{ env.CONDA_REMOVE_DEFAULTS }}
 
@@ -131,7 +131,7 @@ jobs:
           environment-file: ${{ env.CONDA_ENVIRONMENT_FILE }}
           activate-environment: ${{ env.CONDA_ENVIRONMENT_NAME }}
           python-version: ${{ matrix.python-version }}
-          use_only_tar_bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
+          use-only-tar-bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
           channels: ${{ env.CONDA_CHANNELS }}
           conda-remove-defaults: ${{ env.CONDA_REMOVE_DEFAULTS }}
 
@@ -174,7 +174,7 @@ jobs:
           environment-file: ${{ env.CONDA_ENVIRONMENT_FILE }}
           activate-environment: ${{ env.CONDA_ENVIRONMENT_NAME }}
           python-version: ${{ matrix.python-version }}
-          use_only_tar_bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
+          use-only-tar-bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
           channels: ${{ env.CONDA_CHANNELS }}
           conda-remove-defaults: ${{ env.CONDA_REMOVE_DEFAULTS }}
 
@@ -222,7 +222,7 @@ jobs:
           environment-file: ${{ env.CONDA_ENVIRONMENT_FILE }}
           activate-environment: ${{ env.CONDA_ENVIRONMENT_NAME }}
           python-version: ${{ matrix.python-version }}
-          use_only_tar_bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
+          use-only-tar-bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
           channels: ${{ env.CONDA_CHANNELS }}
           conda-remove-defaults: ${{ env.CONDA_REMOVE_DEFAULTS }}
 
@@ -361,7 +361,7 @@ jobs:
           environment-file: ${{ env.CONDA_ENVIRONMENT_FILE }}
           activate-environment: ${{ env.CONDA_ENVIRONMENT_NAME }}
           python-version: ${{ matrix.python-version }}
-          use_only_tar_bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
+          use-only-tar-bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
           channels: ${{ env.CONDA_CHANNELS }}
           conda-remove-defaults: ${{ env.CONDA_REMOVE_DEFAULTS }}
 
@@ -580,7 +580,7 @@ jobs:
           environment-file: ${{ env.CONDA_ENVIRONMENT_FILE }}
           activate-environment: ${{ env.CONDA_ENVIRONMENT_NAME }}
           python-version: ${{ matrix.python-version }}
-          use_only_tar_bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
+          use-only-tar-bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
           channels: ${{ env.CONDA_CHANNELS }}
           conda-remove-defaults: ${{ env.CONDA_REMOVE_DEFAULTS }}
 
