@@ -380,7 +380,10 @@ jobs:
 
       - name: Install system dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get install -y libhdf5-dev libnetcdf-dev
+        run: |
+          # Update apt-get cache
+          sudo apt-get update
+          sudo apt-get install -y libhdf5-dev libnetcdf-dev
 
       - name: Update and install packages
         shell: bash -l {0}
