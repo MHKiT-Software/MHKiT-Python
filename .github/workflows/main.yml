@@ -21,7 +21,6 @@ env:
 
 jobs:
   # Set the operating system matrix for the following jobs/tests
-  # conda-user-build
   # conda-forge-build
   # pip-build
   # hindcast-calls
@@ -218,73 +217,6 @@ jobs:
         with:
           name: wind-hindcast-data
           path: ~/.cache/mhkit
-
-  conda-user-build:
-    name: conda-${{ matrix.os }}/${{ matrix.python-version }}
-    needs: [set-os, prepare-nonhindcast-cache]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11', '3.12']
-    env:
-      PYTHON_VER: ${{ matrix.python-version }}
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniconda-version: 'latest'
-          auto-update-conda: true
-          environment-file: environment.yml
-          activate-environment: TEST
-          python-version: ${{ matrix.python-version }}
-          use-only-tar-bz2: false
-          channels: ${{ env.CONDA_CHANNELS }}
-          conda-remove-defaults: ${{ env.CONDA_REMOVE_DEFAULTS }}
-
-      - name: Create MHKiT Conda environment
-        shell: bash -l {0}
-        run: |
-          conda env create -f environment.yml
-          conda activate mhkit-env
-
-      - name: Install testing dependencies
-        shell: bash -l {0}
-        run: |
-          conda activate mhkit-env
-          conda install -y pytest coverage coveralls
-
-      - name: Install mhkit
-        shell: bash -l {0}
-        run: |
-          conda activate mhkit-env
-          pip install -e ".[all,dev]"
-
-      - name: Download data from artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: data
-          path: ~/.cache/mhkit
-
-      - name: Run pytest & generate coverage report
-        shell: bash -l {0}
-        run: |
-          conda activate mhkit-env
-          coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/ -m pytest -c .github/workflows/pytest.ini
-          coverage lcov
-
-      - name: Upload coverage data to coveralls.io
-        uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: conda-${{ runner.os }}-py${{ matrix.python-version }}
-          parallel: true
-          path-to-lcov: ./coverage.lcov
-          fail-on-error: ${{ env.COVERALLS_FAIL_ON_ERROR }}
 
   conda-forge-build:
     name: conda-forge-${{ matrix.os }}/${{ matrix.python-version }}
@@ -746,7 +678,6 @@ jobs:
       [
         prepare-wave-hindcast-cache,
         prepare-wind-hindcast-cache,
-        conda-user-build,
         conda-forge-build,
         pip-build,
         hindcast-calls,
@@ -755,7 +686,6 @@ jobs:
       always() &&
       (
         (
-          needs.conda-user-build.result == 'success' &&
           needs.conda-forge-build.result == 'success' &&
           needs.pip-build.result == 'success' &&
           needs.prepare-wave-hindcast-cache.result == 'skipped' &&
@@ -763,7 +693,6 @@ jobs:
           needs.hindcast-calls.result == 'skipped'
         ) ||
         (
-          needs.conda-user-build.result == 'success' &&
           needs.conda-forge-build.result == 'success' &&
           needs.pip-build.result == 'success' &&
           needs.prepare-wave-hindcast-cache.result == 'success' &&
