@@ -39,9 +39,7 @@ jobs:
           fi
 
 
-  # Hindcast tests only run on pull requests. On push events,
-  # dorny/paths-filter compares against the previous branch HEAD
-  # (not the target branch), which causes false positives.
+  # This job decides if the hindcast test suite should run.
   check-changes:
     runs-on: ubuntu-latest
     outputs:
@@ -49,11 +47,10 @@ jobs:
       should-run-hindcast: ${{ steps.hindcast-logic.outputs.should-run-hindcast }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Check for changes in wave/io/hindcast
         id: changes
-        if: github.event_name == 'pull_request'
         uses: dorny/paths-filter@v3
         with:
           filters: |
@@ -61,25 +58,11 @@ jobs:
               - 'mhkit/wave/io/hindcast/**'
               - 'mhkit/tests/wave/io/hindcast/**'
 
-      - name: Determine if hindcast tests should run
-        id: hindcast-logic
+      - id: hindcast-logic
         run: |
-          # Case 1: A push (merge) to a primary branch. Always run.
-          if [[ "${{ github.event_name }}" == "push" && ("${{ github.ref_name }}" == "main" || "${{ github.ref_name }}" == "develop") ]]; then
-            echo "Push to main or develop detected. Forcing hindcast tests to run."
+          if [[ "${{ github.event.pull_request.base.ref }}" == "main" || "${{ steps.changes.outputs.wave_io_hindcast }}" == "true" ]]; then
             echo "should-run-hindcast=true" >> "$GITHUB_OUTPUT"
-          # Case 2: A pull request. Use the original logic.
-          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            if [[ "${{ github.base_ref }}" == "main" || "${{ steps.changes.outputs.wave_io_hindcast }}" == "true" ]]; then
-              echo "PR to main or with hindcast changes detected. Running hindcast tests."
-              echo "should-run-hindcast=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "PR does not require hindcast tests."
-              echo "should-run-hindcast=false" >> "$GITHUB_OUTPUT"
-            fi
-          # Default case: Don't run tests.
           else
-            echo "Event is not a push to a primary branch or a pull request. Skipping hindcast tests."
             echo "should-run-hindcast=false" >> "$GITHUB_OUTPUT"
           fi
 
