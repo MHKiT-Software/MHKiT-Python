@@ -15,7 +15,7 @@
     </a>
 </p>
 
-MHKiT-Python is a Python package designed for marine renewable energy applications to assist in
+MHKiT-Python is a Python package designed for marine energy applications to assist in
 data processing and visualization. The software package include functionality for:
 
 - Data processing
