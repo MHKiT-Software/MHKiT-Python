@@ -274,16 +274,18 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Setup Python Virtual Environment
-        working-directory: ${{ github.workspace }}
         shell: bash
-        run: python -m venv venv
+        # The second command puts the venv bin directory on the PATH for
+        # subsequent steps in the job, which ensures that the correct Python
+        # version and installed packages are used.
+        run: |
+          python -m venv venv
+          echo "$PWD/venv/bin" >> $GITHUB_PATH
 
       - name: Set up Git repository
-        working-directory: ${{ github.workspace }}
         uses: actions/checkout@v6
 
       - name: Download data from artifact
-        working-directory: ${{ github.workspace }}
         uses: actions/download-artifact@v4
         with:
           name: data
@@ -297,39 +299,30 @@ jobs:
           sudo apt-get install -y libhdf5-dev libnetcdf-dev
 
       - name: Update and install packages
-        working-directory: ${{ github.workspace }}
         shell: bash
         run: |
-          source venv/bin/activate
           python -m pip install --upgrade pip wheel
           pip install -e ".[all,dev]"
 
       - name: Reinstall h5py and netCDF4 with system libraries
-        working-directory: ${{ github.workspace }}
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          source venv/bin/activate
           pip install --force-reinstall --no-binary=:all: h5py netCDF4
 
       - name: Install setuptools for Python 3.12
-        working-directory: ${{ github.workspace }}
         if: matrix.python-version == '3.12'
         shell: bash
         run: |
-          source venv/bin/activate
           pip install setuptools
 
       - name: Run pytest & generate coverage report
-        working-directory: ${{ github.workspace }}
         shell: bash
         run: |
-          source venv/bin/activate
           coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/ -m pytest -c .github/workflows/pytest.ini
           coverage lcov
 
       - name: Upload coverage data to coveralls.io
-        working-directory: ${{ github.workspace }}
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
