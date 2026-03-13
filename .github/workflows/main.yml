@@ -20,7 +20,7 @@ env:
   COVERALLS_FAIL_ON_ERROR: true
 
 jobs:
-  # This sets the the operating systems in one place, which is used the following jobs/tests
+  # Set the operating system matrix for the following jobs/tests
   # conda-user-build
   # conda-forge-build
   # pip-build
@@ -31,7 +31,12 @@ jobs:
       matrix_os: ${{ steps.set-matrix.outputs.matrix_os }}
     steps:
       - id: set-matrix
-        run: echo "matrix_os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_OUTPUT
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "develop" ]]; then
+            echo "matrix_os=[ \"ubuntu-latest\"]" >> $GITHUB_OUTPUT
+          else
+            echo "matrix_os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_OUTPUT
+          fi
 
 
   # Hindcast tests only run on pull requests. On push events,
