@@ -29,6 +29,8 @@ dat_senb5 = load("sentinelv_b5.nc")
 dat_awac = load("AWAC_test01.nc")
 dat_awac_ud = load("AWAC_test01_ud.nc")
 dat_hwac = load("H-AWAC_test01.nc")
+dat_aqd = load("AQD_test01.nc")
+dat_aqd_hr = load("AQD_HR.nc")
 dat_sig = load("BenchFile01.nc")
 dat_sig_i = load("Sig1000_IMU.nc")
 dat_sig_i_ud = load("Sig1000_IMU_ud.nc")
@@ -136,16 +138,22 @@ class io_adp_testcase(unittest.TestCase):
             td_awac = read("AWAC_test01.wpr", userdata=False, nens=[0, nens])
         td_awac_ud = read("AWAC_test01.wpr", nens=nens)
         td_hwac = read("H-AWAC_test01.wpr")
+        td_aqd = read("AQD_test01.prf")
+        td_aqd_hr = read("AQD_HR.prf")
 
         if make_data:
             save(td_awac, "AWAC_test01.nc")
             save(td_awac_ud, "AWAC_test01_ud.nc")
             save(td_hwac, "H-AWAC_test01.nc")
+            save(td_aqd, "AQD_test01.nc")
+            save(td_aqd_hr, "AQD_HR.nc")
             return
 
         assert_allclose(td_awac, dat_awac, atol=1e-6)
         assert_allclose(td_awac_ud, dat_awac_ud, atol=1e-6)
         assert_allclose(td_hwac, dat_hwac, atol=1e-6)
+        assert_allclose(td_aqd, dat_aqd, atol=1e-6)
+        assert_allclose(td_aqd_hr, dat_aqd_hr, atol=1e-6)
 
     def test_io_nortek2(self):
         nens = 100

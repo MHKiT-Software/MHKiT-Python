@@ -4,7 +4,6 @@ import logging
 from . import rdi_lib as lib
 from .. import time as tmlib
 
-
 century = np.uint16(2000)
 adcp_type = {
     4: "Broadband",
