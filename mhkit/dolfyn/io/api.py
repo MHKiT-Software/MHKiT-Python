@@ -399,9 +399,6 @@ def load_mat(filename, datenum=True):
         ]:
             ds.attrs[nm] = [ds.attrs[nm]]
 
-    if hasattr(ds, "orientation_down"):
-        ds["orientation_down"] = ds["orientation_down"].astype(bool)
-
     if datenum:
         func = matlab2date
     else:

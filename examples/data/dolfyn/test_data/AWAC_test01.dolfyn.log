@@ -4,58 +4,6 @@ root - INFO - Position: 50, codes: (165, 4)
 root - INFO - Reading header configuration (0x04) ping #0 @ 50...
 root - INFO - Position: 274, codes: (165, 0)
 root - INFO - Reading user configuration (0x00) ping #0 @ 274...
-root - INFO - Position: 786, codes: (165, 32)
-root - INFO - Position: 1086, codes: (165, 32)
-root - INFO - Position: 1386, codes: (165, 32)
-root - INFO - Position: 1686, codes: (165, 32)
-root - INFO - Position: 1986, codes: (165, 32)
-root - INFO - Position: 2286, codes: (165, 32)
-root - INFO - Position: 2586, codes: (165, 32)
-root - INFO - Position: 2886, codes: (165, 32)
-root - INFO - Position: 3186, codes: (165, 32)
-root - INFO - Position: 3486, codes: (165, 32)
-root - INFO - Position: 3786, codes: (165, 32)
-root - INFO - Position: 4086, codes: (165, 32)
-root - INFO - Position: 4386, codes: (165, 32)
-root - INFO - Position: 4686, codes: (165, 32)
-root - INFO - Position: 4986, codes: (165, 32)
-root - INFO - Position: 5286, codes: (165, 32)
-root - INFO - Position: 5586, codes: (165, 32)
-root - INFO - Position: 5886, codes: (165, 32)
-root - INFO - Position: 6186, codes: (165, 32)
-root - INFO - Position: 6486, codes: (165, 32)
-root - INFO - Position: 6786, codes: (165, 32)
-root - INFO - Position: 7086, codes: (165, 32)
-root - INFO - Position: 7386, codes: (165, 32)
-root - INFO - Position: 7686, codes: (165, 32)
-root - INFO - Position: 7986, codes: (165, 32)
-root - INFO - Position: 8286, codes: (165, 32)
-root - INFO - Position: 8586, codes: (165, 32)
-root - INFO - Position: 8886, codes: (165, 32)
-root - INFO - Position: 9186, codes: (165, 32)
-root - INFO - Position: 9486, codes: (165, 32)
-root - INFO - Position: 9786, codes: (165, 32)
-root - INFO - Position: 10086, codes: (165, 32)
-root - INFO - Position: 10386, codes: (165, 32)
-root - INFO - Position: 10686, codes: (165, 32)
-root - INFO - Position: 10986, codes: (165, 32)
-root - INFO - Position: 11286, codes: (165, 32)
-root - INFO - Position: 11586, codes: (165, 32)
-root - INFO - Position: 11886, codes: (165, 32)
-root - INFO - Position: 12186, codes: (165, 32)
-root - INFO - Position: 12486, codes: (165, 32)
-root - INFO - Position: 12786, codes: (165, 32)
-root - INFO - Position: 13086, codes: (165, 32)
-root - INFO - Position: 13386, codes: (165, 32)
-root - INFO - Position: 13686, codes: (165, 32)
-root - INFO - Position: 13986, codes: (165, 32)
-root - INFO - Position: 14286, codes: (165, 32)
-root - INFO - Position: 14586, codes: (165, 32)
-root - INFO - Position: 14886, codes: (165, 32)
-root - INFO - Position: 15186, codes: (165, 32)
-root - INFO - Position: 15486, codes: (165, 32)
-root - INFO - Position: 15786, codes: (165, 32)
-root - INFO - p0=1084, pos=16084, i=49
 root - INFO - Init completed
 root - INFO - Position: 786, codes: (165, 32)
 root - INFO - Reading AWAC velocity data (0x20) ping #0 @ 786...
@@ -99,3 +47,55 @@ root - INFO - Position: 6486, codes: (165, 32)
 root - INFO - Reading AWAC velocity data (0x20) ping #19 @ 6486...
 root - INFO - Position: 6786, codes: (165, 32)
 root - INFO - Reading AWAC velocity data (0x20) ping #20 @ 6786...
+root - INFO - Position: 7086, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #21 @ 7086...
+root - INFO - Position: 7386, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #22 @ 7386...
+root - INFO - Position: 7686, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #23 @ 7686...
+root - INFO - Position: 7986, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #24 @ 7986...
+root - INFO - Position: 8286, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #25 @ 8286...
+root - INFO - Position: 8586, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #26 @ 8586...
+root - INFO - Position: 8886, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #27 @ 8886...
+root - INFO - Position: 9186, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #28 @ 9186...
+root - INFO - Position: 9486, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #29 @ 9486...
+root - INFO - Position: 9786, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #30 @ 9786...
+root - INFO - Position: 10086, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #31 @ 10086...
+root - INFO - Position: 10386, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #32 @ 10386...
+root - INFO - Position: 10686, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #33 @ 10686...
+root - INFO - Position: 10986, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #34 @ 10986...
+root - INFO - Position: 11286, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #35 @ 11286...
+root - INFO - Position: 11586, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #36 @ 11586...
+root - INFO - Position: 11886, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #37 @ 11886...
+root - INFO - Position: 12186, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #38 @ 12186...
+root - INFO - Position: 12486, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #39 @ 12486...
+root - INFO - Position: 12786, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #40 @ 12786...
+root - INFO - Position: 13086, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #41 @ 13086...
+root - INFO - Position: 13386, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #42 @ 13386...
+root - INFO - Position: 13686, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #43 @ 13686...
+root - INFO - Position: 13986, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #44 @ 13986...
+root - INFO - Position: 14286, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #45 @ 14286...
+root - INFO - Position: 14586, codes: (165, 32)
+root - INFO - Reading AWAC velocity data (0x20) ping #46 @ 14586...
