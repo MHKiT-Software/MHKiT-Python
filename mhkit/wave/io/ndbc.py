@@ -57,7 +57,13 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
     metadata: dict or None
         Dictionary with {column name: units} key value pairs when the NDBC file
         contains unit information, otherwise None is returned
+
+    Notes
+    -----
+    NDBC documentation of measurement descriptions and units can be found here:
+    https://www.ndbc.noaa.gov/faq/measdes.shtml
     """
+
     if not isinstance(file_name, str):
         raise TypeError(f"file_name must be of type str. Got: {type(file_name)}")
     if not isinstance(missing_values, list):
@@ -705,14 +711,14 @@ def parameter_units(parameter=""):
     if parameter == "adcp":
         units = {
             "DEP01": "m",
-            "DIR01": "deg",
+            "DIR01": "degree",
             "SPD01": "cm/s",
         }
     elif parameter == "cwind":
         units = {
-            "WDIR": "degT",
+            "WDIR": "degree_N",
             "WSPD": "m/s",
-            "GDR": "degT",
+            "GDR": "degree_N",
             "GST": "m/s",
             "GTIME": "hhmm",
         }
@@ -723,8 +729,8 @@ def parameter_units(parameter=""):
         }
     elif parameter == "derived2":
         units = {
-            "CHILL": "degC",
-            "HEAT": "degC",
+            "CHILL": "degree_C",
+            "HEAT": "degree_C",
             "ICE": "cm/hr",
             "WSPD10": "m/s",
             "WSPD20": "m/s",
@@ -732,7 +738,7 @@ def parameter_units(parameter=""):
     elif parameter == "ocean":
         units = {
             "DEPTH": "m",
-            "OTMP": "degC",
+            "OTMP": "degree_C",
             "COND": "mS/cm",
             "SAL": "psu",
             "O2%": "%",
@@ -760,34 +766,34 @@ def parameter_units(parameter=""):
         units = {
             "WVHT": "m",
             "SwH": "m",
-            "SwP": "sec",
+            "SwP": "s",
             "WWH": "m",
-            "WWP": "sec",
+            "WWP": "s",
             "SwD": "-",
-            "WWD": "degT",
+            "WWD": "degree_N",
             "STEEPNESS": "-",
-            "APD": "sec",
-            "MWD": "degT",
+            "APD": "s",
+            "MWD": "degree_N",
         }
     elif parameter == "srad":
         units = {
-            "SRAD1": "w/m2",
-            "SRAD2": "w/m2",
-            "SRAD3": "w/m2",
+            "SRAD1": "W/m^2",
+            "SRAD2": "W/m^2",
+            "SRAD3": "W/m^2",
         }
     elif parameter == "stdmet":
         units = {
-            "WDIR": "degT",
+            "WDIR": "degree_N",
             "WSPD": "m/s",
             "GST": "m/s",
             "WVHT": "m",
-            "DPD": "sec",
-            "APD": "sec",
-            "MWD": "degT",
+            "DPD": "s",
+            "APD": "s",
+            "MWD": "degree_N",
             "PRES": "hPa",
-            "ATMP": "degC",
-            "WTMP": "degC",
-            "DEWP": "degC",
+            "ATMP": "degree_C",
+            "WTMP": "degree_C",
+            "DEWP": "degree_C",
             "VIS": "nmi",
             "PTDY": "hPa",
             "TIDE": "ft",
@@ -797,52 +803,52 @@ def parameter_units(parameter=""):
             "PRES": "hPa",
             "PTIME": "hhmm",
             "WSPD": "m/s",
-            "WDIR": "degT",
+            "WDIR": "degree_N",
             "WTIME": "hhmm",
         }
     elif parameter == "swden":
-        units = {"swden": "(m*m)/Hz"}
+        units = {"swden": "m^2/Hz"}
     elif parameter == "swdir":
-        units = {"swdir": "deg"}
+        units = {"swdir": "degree"}
     elif parameter == "swdir2":
-        units = {"swdir2": "deg"}
+        units = {"swdir2": "degree"}
     elif parameter == "swr1":
         units = {"swr1": ""}
     elif parameter == "swr2":
         units = {"swr2": ""}
     else:
         units = {
-            "swden": "(m*m)/Hz",
+            "swden": "m^2/Hz",
             "PRES": "hPa",
             "PTIME": "hhmm",
-            "WDIR": "degT",
+            "WDIR": "degree_N",
             "WTIME": "hhmm",
-            "DPD": "sec",
-            "MWD": "degT",
-            "ATMP": "degC",
-            "WTMP": "degC",
-            "DEWP": "degC",
+            "DPD": "s",
+            "MWD": "degree_N",
+            "ATMP": "degree_C",
+            "WTMP": "degree_C",
+            "DEWP": "degree_C",
             "VIS": "nmi",
             "PTDY": "hPa",
             "TIDE": "ft",
-            "SRAD1": "w/m2",
-            "SRAD2": "w/m2",
-            "SRAD3": "w/m2",
+            "SRAD1": "W/m^2",
+            "SRAD2": "W/m^2",
+            "SRAD3": "W/m^2",
             "WVHT": "m",
             "SwH": "m",
-            "SwP": "sec",
+            "SwP": "s",
             "WWH": "m",
-            "WWP": "sec",
+            "WWP": "s",
             "SwD": "-",
-            "WWD": "degT",
+            "WWD": "degree_N",
             "STEEPNESS": "-",
-            "APD": "sec",
+            "APD": "s",
             "RATE": "mm/h",
             "PCT": "%",
             "SDEV": "-",
             "ACCUM": "mm",
             "DEPTH": "m",
-            "OTMP": "degC",
+            "OTMP": "degree_C",
             "COND": "mS/cm",
             "SAL": "psu",
             "O2%": "%",
@@ -851,19 +857,19 @@ def parameter_units(parameter=""):
             "TURB": "FTU",
             "PH": "-",
             "EH": "mv",
-            "CHILL": "degC",
-            "HEAT": "degC",
+            "CHILL": "degree_C",
+            "HEAT": "degree_C",
             "ICE": "cm/hr",
             "WSPD": "m/s",
             "WSPD10": "m/s",
             "WSPD20": "m/s",
             "T": "-",
             "HEIGHT": "m",
-            "GDR": "degT",
+            "GDR": "degree_N",
             "GST": "m/s",
             "GTIME": "hhmm",
             "DEP01": "m",
-            "DIR01": "deg",
+            "DIR01": "degree",
             "SPD01": "cm/s",
         }
 
@@ -1026,20 +1032,20 @@ def request_directional_data(buoy, year):
 
     data_dict["swden"].attrs = {
         "units": "m^2/Hz",
-        "long_name": "omnidirecational spectrum",
+        "long_name": "omnidirectional spectrum",
         "standard_name": "S",
         "description": "Omnidirectional *sea surface elevation variance (m^2)* spectrum (/Hz).",
     }
 
     data_dict["swdir"].attrs = {
-        "units": "deg",
+        "units": "degree",
         "long_name": "mean wave direction",
         "standard_name": "α1",
         "description": "Mean wave direction.",
     }
 
     data_dict["swdir2"].attrs = {
-        "units": "deg",
+        "units": "degree",
         "long_name": "principal wave direction",
         "standard_name": "α2",
         "description": "Principal wave direction.",
@@ -1062,7 +1068,7 @@ def request_directional_data(buoy, year):
     return xr.Dataset(data_dict)
 
 
-def _create_spectrum(data, frequencies, directions, name, units):
+def _create_spectrum_dataarray(data, frequencies, directions, name, units):
     """
     Create an xarray.DataArray for storing spectrum data with correct
     dimensions, coordinates, names, and units.
@@ -1110,7 +1116,7 @@ def _create_spectrum(data, frequencies, directions, name, units):
         raise ValueError(msg)
 
     direction_attrs = {
-        "units": "deg",
+        "units": "degree",
         "long_name": "wave direction",
         "standard_name": "direction",
     }
@@ -1128,10 +1134,10 @@ def _create_spectrum(data, frequencies, directions, name, units):
             "direction": ("direction", directions, direction_attrs),
         },
         attrs={
-            "units": f"{units}/Hz/deg",
+            "units": f"{units}/Hz/degree",
             "long_name": f"{name} spectrum",
             "standard_name": "spectrum",
-            "description": f"*{name} ({units})* spectrum (/Hz/deg).",
+            "description": f"*{name} ({units})* spectrum (/Hz/degree).",
         },
     )
     return spectrum
@@ -1166,16 +1172,18 @@ def create_spread_function(data, directions):
 
     r1 = data["swr1"].data.reshape(-1, 1)
     r2 = data["swr2"].data.reshape(-1, 1)
+    # a1 = degrees CW from N, according to NDBC documentation
     a1 = data["swdir"].data.reshape(-1, 1)
+    # a2 degrees CW from N, according to NDBC documentation
     a2 = data["swdir2"].data.reshape(-1, 1)
-    a = directions.reshape(1, -1)
+    a = directions.reshape(1, -1)  # degrees
     spread = (
         1
         / np.pi
         * (0.5 + r1 * np.cos(np.deg2rad(a - a1)) + r2 * np.cos(2 * np.deg2rad(a - a2)))
     )
-    spread = _create_spectrum(
-        spread, data.frequency.values, directions, name="Spread", units="1"
+    spread = _create_spectrum_dataarray(
+        np.rad2deg(spread), data.frequency.values, directions, name="Spread", units="1"
     )
     return spread
 
@@ -1209,9 +1217,9 @@ def create_directional_spectrum(data, directions):
     spread = create_spread_function(data, directions).values
     omnidirectional_spectrum = data["swden"].data.reshape(-1, 1)
     spectrum = omnidirectional_spectrum * spread
-    spectrum = _create_spectrum(
+    spectrum = _create_spectrum_dataarray(
         spectrum,
-        data.frequency.values,
+        data["frequency"].values,
         directions,
         name="Elevation variance",
         units="m^2",
