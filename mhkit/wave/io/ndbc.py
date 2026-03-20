@@ -711,7 +711,7 @@ def parameter_units(parameter=""):
     if parameter == "adcp":
         units = {
             "DEP01": "m",
-            "DIR01": "degree",
+            "DIR01": "deg",
             "SPD01": "cm/s",
         }
     elif parameter == "cwind":
@@ -809,9 +809,9 @@ def parameter_units(parameter=""):
     elif parameter == "swden":
         units = {"swden": "m^2/Hz"}
     elif parameter == "swdir":
-        units = {"swdir": "degree"}
+        units = {"swdir": "deg"}
     elif parameter == "swdir2":
-        units = {"swdir2": "degree"}
+        units = {"swdir2": "deg"}
     elif parameter == "swr1":
         units = {"swr1": ""}
     elif parameter == "swr2":
@@ -869,7 +869,7 @@ def parameter_units(parameter=""):
             "GST": "m/s",
             "GTIME": "hhmm",
             "DEP01": "m",
-            "DIR01": "degree",
+            "DIR01": "deg",
             "SPD01": "cm/s",
         }
 
@@ -1038,14 +1038,14 @@ def request_directional_data(buoy, year):
     }
 
     data_dict["swdir"].attrs = {
-        "units": "degree",
+        "units": "deg",
         "long_name": "mean wave direction",
         "standard_name": "α1",
         "description": "Mean wave direction.",
     }
 
     data_dict["swdir2"].attrs = {
-        "units": "degree",
+        "units": "deg",
         "long_name": "principal wave direction",
         "standard_name": "α2",
         "description": "Principal wave direction.",
@@ -1116,7 +1116,7 @@ def _create_spectrum_dataarray(data, frequencies, directions, name, units):
         raise ValueError(msg)
 
     direction_attrs = {
-        "units": "degree",
+        "units": "deg",
         "long_name": "wave direction",
         "standard_name": "direction",
     }
@@ -1134,10 +1134,10 @@ def _create_spectrum_dataarray(data, frequencies, directions, name, units):
             "direction": ("direction", directions, direction_attrs),
         },
         attrs={
-            "units": f"{units}/Hz/degree",
+            "units": f"{units}/Hz/deg",
             "long_name": f"{name} spectrum",
             "standard_name": "spectrum",
-            "description": f"*{name} ({units})* spectrum (/Hz/degree).",
+            "description": f"*{name} ({units})* spectrum (/Hz/deg).",
         },
     )
     return spectrum
