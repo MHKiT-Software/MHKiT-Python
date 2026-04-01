@@ -46,7 +46,13 @@ To install MHKiT-Python using `conda`, in an Anaconda Prompt:
 
 ```bash
 conda env create mhkit-env --python=3.11
+```
+
+```bash
 conda activate mhkit-env
+```
+
+```bash
 conda install -c conda-forge mhkit
 ```
 
@@ -65,6 +71,9 @@ To clone MHKiT-Python:
 
 ```bash
 git clone https://github.com/MHKiT-Software/MHKiT-Python
+```
+
+```bash
 cd MHKiT-Python
 ```
 
@@ -84,22 +93,33 @@ Python venv (built into python)
 
 Windows
 
-```
+Note: A supported version of Python ([see installation for supported versions](#installation)) must be installed and added to the system PATH for venv to work in Git Bash or WSL. Use of Git Bash or WSL is recommended for Windows users to avoid issues with activating the virtual environment in Command Prompt or PowerShell.
+
+```sh
 python -m venv mhkit-env
-`.\mhkit-env\Scripts\activate`
+```
+
+```sh
+.\mhkit-env\Scripts\activate
 ```
 
 Linux/MacOS:
 
-```
+```bash
 python -m venv mhkit-env
+```
+
+```bash
 source mhkit-env/bin/activate
 ```
 
 ##### Conda (requires separate installation of Anaconda or Miniconda):
 
-```
+```bash
 conda create -n mhkit-env python=3.11
+```
+
+```bash
 conda activate mhkit-env
 ```
 
@@ -155,7 +175,13 @@ pip install -e ".[all,dev]"
 
 ```bash
 conda env create -f environment.yml
+```
+
+```bash
 conda activate mhkit-env
+```
+
+```bash
 pip install -e ".[all,dev]"
 ```
 
