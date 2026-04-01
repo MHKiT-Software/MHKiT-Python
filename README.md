@@ -258,7 +258,7 @@ The GitHub platform has the Fork feature that facilitates code modification and 
 
 ## Creating a branch
 
-The GitHub platform has the branch feature that facilitates code contributions and collaboration amongst developers. A branch isolates development work without affecting other branches in the repository. Each repository has one default branch, and can have multiple other branches. To create a branch of your forked MHKiT-Python repository, follow the steps below. More information about GitHub branches can be found [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-branches)
+The GitHub platform has the branch feature that facilitates code contributions and collaboration. A branch isolates development work without affecting other branches in the repository. Each repository has one default branch, and can have multiple other branches. To create a branch of your forked MHKiT-Python repository, follow the steps below. More information about GitHub branches can be found [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-branches)
 
 1. Navigate to your fork of MHKiT-Python (see instructions above)
 2. Above the list of files, click **Branches**.
@@ -272,13 +272,13 @@ The GitHub platform has the pull request feature that allows you to propose chan
 
 1. Navigate to the [MHKiT-Python main page](https://github.com/MHKiT-Software/MHKiT-Python)
 2. Above the list of files, click **Pull request**.
-3. On the compare page, click **Compare accross forks**.
+3. On the compare page, click **Compare across forks**.
 4. In the "base branch" drop-down menu, select the branch of the upstream repository you'd like to merge changes into.
 5. In the "head fork" drop-down menu, select your fork, then use the "compare branch" drop-down menu to select the branch you made your changes in.
 6. Type a title and description for your pull request.
 7. If you want to allow anyone with push access to the upstream repository to make changes to your pull request, select **Allow edits from maintainers**.
 8. To create a pull request that is ready for review, click **Create Pull Request**. To create a draft pull request, use the drop-down and select **Create Draft Pull Request**, then click **Draft Pull Request**. More information about draft pull requests can be found [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests)
-9. MHKiT-Python adminstrators will review your pull request and contact you if needed.
+9. MHKiT-Python administrators will review your pull request and contact you if needed.
 
 ## Code Formatting in MHKiT
 
