@@ -67,7 +67,7 @@ mhkit-env` in each new shell/terminal to use MHKiT.
 To avoid this, users can install MHKiT into their base conda environment, but this is not
 recommended as it may cause dependency conflicts with other software.
 
-Visual Studio Code has [instructions for using Python environments in VS Code](https://code.visualstudio.com/docs/python/environments).
+Visual Studio Code has [instructions for using Python environments in VS Code](https://code.visualstudio.com/docs/python/environments) that support conda environment discovery.
 
 ### Option 2: Clone Repository from GitHub
 
