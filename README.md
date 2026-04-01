@@ -157,7 +157,25 @@ To install a single MHKiT module, e.g. the wave module, and its dependencies, us
 pip install mhkit["wave"]
 ```
 
-Note that `pip install mhkit` only installs the base MHKiT dependencies and not the entire software.
+Note that `pip install mhkit` does not install any MHKiT dependencies, so users must specify which
+module(s) they want to install with the optional dependencies installation syntax, `pip install
+mhkit "[<module>]"` or multiple modules with `pip install mhkit "[<module>,<module>]"`.
+
+Supported modules are:
+
+- `dolfyn`
+- `wave`
+- `tidal`
+- `river`
+- `power`
+- `loads`
+- `mooring`
+- `acoustics`
+- `qc`
+- `all` (includes the above modules and their dependencies)
+- `dev` (includes development dependencies for contributing to MHKiT)
+- `examples` (includes dependencies for running MHKiT example notebooks)
+
 To install all MHKiT dependencies use:
 
 ```bash
