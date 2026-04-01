@@ -72,6 +72,9 @@ Visual Studio Code has [instructions for using Python environments in VS Code](h
 ### Option 2: Clone Repository from GitHub
 
 This option is recommended for MHKiT-Python users who want access to example notebooks and developers.
+
+#### Step 1: Clone Repository
+
 Download and install your preferred version of [git](https://git-scm.com/).
 To clone MHKiT-Python:
 
@@ -83,7 +86,7 @@ git clone https://github.com/MHKiT-Software/MHKiT-Python
 cd MHKiT-Python
 ```
 
-#### Virtual Environment Setup
+#### Step 2: Setup a Virtual Environment
 
 A virtual environment is a self-contained directory that contains a Python installation for a
 particular version of Python, plus a number of additional packages. Using a virtual environment
@@ -93,11 +96,11 @@ packages and ensuring that your project has access to the specific versions of p
 Use of a virtual environment is recommended to avoid dependency conflicts with other python
 packages (this environment must be activated in each new shell/terminal before using MHKiT).:
 
-##### Python `venv` (built into python)
+##### Option A: Python `venv`
 
-Python venv (built into python)
+Using Python venv (built into python) to create a virtual environment:
 
-Windows
+###### Windows
 
 Note: A supported version of Python ([see installation for supported versions](#installation)) must be installed and added to the system PATH for venv to work in Git Bash or WSL. Use of Git Bash or WSL is recommended for Windows users to avoid issues with activating the virtual environment in Command Prompt or PowerShell.
 
@@ -119,7 +122,7 @@ python -m venv mhkit-env
 source mhkit-env/bin/activate
 ```
 
-##### Conda (requires separate installation of Anaconda or Miniconda):
+##### Option B: Conda (requires separate installation of Anaconda or Miniconda):
 
 ```bash
 conda create -n mhkit-env python=3.11
@@ -129,12 +132,12 @@ conda create -n mhkit-env python=3.11
 conda activate mhkit-env
 ```
 
-#### Install MHKiT-Python with pip
+#### Step 3: Install MHKiT-Python with pip
 
 To install a local, editable version of MHKiT-Python using [pip](https://pip.pypa.io/en/stable/):
 
 ```bash
-pip install -e .["all"]
+pip install -e .["all,dev"]
 ```
 
 An [environment YAML file](https://github.com/MHKiT-Software/MHKiT-Python/blob/main/environment.yml) is also provided that can create the base environment required by MHKiT.
