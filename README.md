@@ -194,6 +194,10 @@ See Option 2 installation instructions for virtual environment setup.
 
 **Pip development** (no conda):
 
+Setup and activate virtual environment using Python venv using [the instructions above](#python-venv) and then:
+
+Note: Developers can create multiple virtual environments by changing the name, `python -m venv <name>`, install isolated versions of MHKiT, and switch between them by activating the desired environment. This allows developers to test different versions of MHKiT and its dependencies without conflicts.
+
 ```bash
 pip install -e ".[all,dev]"
 ```
