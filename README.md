@@ -56,7 +56,13 @@ conda activate mhkit-env
 conda install -c conda-forge mhkit
 ```
 
-Note: To use MHKiT users must activate the `mhkit-env` environment each time, using `conda activate
+Optional: Installing dependencies to run mhkit examples and development dependencies:
+
+```bash
+pip install mhkit["examples"]
+```
+
+Note: To use the above installed version of MHKiT-Python users must activate the `mhkit-env` environment each time, using `conda activate
 mhkit-env` in each new shell/terminal to use MHKiT.
 To avoid this, users can install MHKiT into their base conda environment, but this is not
 recommended as it may cause dependency conflicts with other software.
