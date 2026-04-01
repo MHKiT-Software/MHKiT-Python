@@ -153,14 +153,14 @@ See Option 2 installation instructions for virtual environment setup.
 
 To install a single MHKiT module, e.g. the wave module, and its dependencies, use:
 
-```
+```bash
 pip install mhkit["wave"]
 ```
 
 Note that `pip install mhkit` only installs the base MHKiT dependencies and not the entire software.
 To install all MHKiT dependencies use:
 
-```
+```bash
 pip install mhkit["all"]
 ```
 
