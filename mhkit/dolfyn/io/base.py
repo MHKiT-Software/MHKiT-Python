@@ -62,10 +62,8 @@ def _read_userdata(fname):
     for nm in ["body2head_rotmat", "body2head_vec"]:
         if nm in data:
             new_name = "inst" + nm[4:]
-            warnings.warn(
-                f"{nm} has been deprecated, please change this to {new_name} \
-                    in {fname}."
-            )
+            warnings.warn(f"{nm} has been deprecated, please change this to {new_name} \
+                    in {fname}.")
             data[new_name] = data.pop(nm)
     if "inst2head_rotmat" in data:
         if data["inst2head_rotmat"] in ["identity", "eye", 1, 1.0]:
