@@ -7,6 +7,7 @@ import netCDF4
 import pytz
 import os
 
+
 testdir = dirname(abspath(__file__))
 datadir = normpath(join(testdir, "..", "..", "..", "..", "examples", "data", "wave"))
 
@@ -128,19 +129,19 @@ class TestIOcdip(unittest.TestCase):
         expected_index0 = datetime(year1, 1, 1)
         expected_index_final = datetime(year2, 12, 31)
 
-        wave1D = data["wave"]
-        self.assertEqual(wave1D.index[0].floor("D").to_pydatetime(), expected_index0)
+        wave1D = data["data"]["wave"]
+        self.assertEqual(wave1D.index[0].floor("d").to_pydatetime(), expected_index0)
 
         self.assertEqual(
-            wave1D.index[-1].floor("D").to_pydatetime(), expected_index_final
+            wave1D.index[-1].floor("d").to_pydatetime(), expected_index_final
         )
 
-        for key, wave2D in data["wave2D"].items():
+        for key, wave2D in data["data"]["wave2D"].items():
             self.assertEqual(
-                wave2D.index[0].floor("D").to_pydatetime(), expected_index0
+                wave2D.index[0].floor("d").to_pydatetime(), expected_index0
             )
             self.assertEqual(
-                wave2D.index[-1].floor("D").to_pydatetime(), expected_index_final
+                wave2D.index[-1].floor("d").to_pydatetime(), expected_index_final
             )
 
     def test_plot_boxplot(self):
@@ -158,7 +159,7 @@ class TestIOcdip(unittest.TestCase):
         )
 
         plt.figure()
-        wave.graphics.plot_boxplot(data["wave"]["waveHs"])
+        wave.graphics.plot_boxplot(data["data"]["wave"]["waveHs"])
         plt.savefig(filename, format="png")
         plt.close()
 
@@ -181,9 +182,9 @@ class TestIOcdip(unittest.TestCase):
 
         plt.figure()
         wave.graphics.plot_compendium(
-            data["wave"]["waveHs"],
-            data["wave"]["waveTp"],
-            data["wave"]["waveDp"],
+            data["data"]["wave"]["waveHs"],
+            data["data"]["wave"]["waveTp"],
+            data["data"]["wave"]["waveDp"],
         )
         plt.savefig(filename, format="png")
         plt.close()
