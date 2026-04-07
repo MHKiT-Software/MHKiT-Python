@@ -168,9 +168,25 @@ To install a single MHKiT module, e.g. the wave module, and its dependencies, us
 pip install mhkit["wave"]
 ```
 
-Note that `pip install mhkit` does not install any MHKiT dependencies, so users must specify which
-module(s) they want to install with the optional dependencies installation syntax, `pip install
-mhkit "[<module>]"` or multiple modules with `pip install mhkit "[<module>,<module>]"`.
+To install all MHKiT modules use:
+
+```bash
+pip install mhkit["all"]
+```
+
+Note: `pip install mhkit` does not install any MHKiT dependencies and will not work without installing dependencies separately.
+
+To install specific modules users must specify which module(s) they want to install with the optional dependencies installation syntax:
+
+```bash
+pip install mhkit "[<module>]"
+```
+
+Or multiple modules with:
+
+```bash
+pip install mhkit "[<module>,<module>]"
+```
 
 Supported modules are:
 
