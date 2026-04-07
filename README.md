@@ -34,11 +34,13 @@ See the [MHKiT documentation](https://mhkit-software.github.io/MHKiT) for more i
 
 [MHKiT-Python](https://github.com/MHKiT-Software/MHKiT-Python) requires [Python (3.10-3.12)](https://www.python.org/).
 
+See [installation instructions](https://mhkit-software.github.io/MHKiT/installation.html) for more information.
+
 <details>
 
-<summary>Option 1: Install with Anaconda/Miniconda (Recommended)</summary>
+<summary>Install with Anaconda/Miniconda (Recommended)</summary>
 
-### Option 1: Install With Anaconda/Miniconda
+### Install With Anaconda/Miniconda
 
 It is recommended to use the [Anaconda Python Distribution](https://www.anaconda.com/distribution/) (a fully featured Python installer with a GUI)
 or [Miniconda](https://docs.anaconda.com/miniconda/#quick-command-line-install) (a lightweight installer with the `conda` command line utility).  
@@ -70,9 +72,9 @@ Visual Studio Code has [instructions for using Python environments in VS Code](h
 
 <details>
 
-<summary>Option 2: Clone Repository from GitHub</summary>
+<summary>Clone Repository from GitHub</summary>
 
-### Option 2: Clone Repository from GitHub
+### Clone Repository from GitHub
 
 This option is recommended for MHKiT-Python users who want access to example notebooks and developers.
 
@@ -150,9 +152,9 @@ MHKiT can then be installed into that environment using any of the provided meth
 
 <details>
 
-<summary>Option 3: Module-specific Install from Python</summary>
+<summary>Module-specific Install using Pip</summary>
 
-### Option 3: Module-specific Install from Python
+### Module-specific Install using Pip
 
 A slim version of MHKiT-Python can be installed to reduce the number of dependencies and potential conflicts with other software.
 This installation utilizes pip's optional dependencies installation.
