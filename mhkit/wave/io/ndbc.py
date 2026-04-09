@@ -716,9 +716,9 @@ def parameter_units(parameter=""):
         }
     elif parameter == "cwind":
         units = {
-            "WDIR": "degree_N",
+            "WDIR": "degT",  # degree True North
             "WSPD": "m/s",
-            "GDR": "degree_N",
+            "GDR": "degT",  # degree True North
             "GST": "m/s",
             "GTIME": "hhmm",
         }
@@ -729,8 +729,8 @@ def parameter_units(parameter=""):
         }
     elif parameter == "derived2":
         units = {
-            "CHILL": "degree_C",
-            "HEAT": "degree_C",
+            "CHILL": "degC",
+            "HEAT": "degC",
             "ICE": "cm/hr",
             "WSPD10": "m/s",
             "WSPD20": "m/s",
@@ -738,7 +738,7 @@ def parameter_units(parameter=""):
     elif parameter == "ocean":
         units = {
             "DEPTH": "m",
-            "OTMP": "degree_C",
+            "OTMP": "degC",
             "COND": "mS/cm",
             "SAL": "psu",
             "O2%": "%",
@@ -766,34 +766,34 @@ def parameter_units(parameter=""):
         units = {
             "WVHT": "m",
             "SwH": "m",
-            "SwP": "s",
+            "SwP": "sec",
             "WWH": "m",
-            "WWP": "s",
+            "WWP": "sec",
             "SwD": "-",
-            "WWD": "degree_N",
+            "WWD": "degT",  # degree True North
             "STEEPNESS": "-",
-            "APD": "s",
-            "MWD": "degree_N",
+            "APD": "sec",
+            "MWD": "degT",  # degree True North
         }
     elif parameter == "srad":
         units = {
-            "SRAD1": "W/m^2",
-            "SRAD2": "W/m^2",
-            "SRAD3": "W/m^2",
+            "SRAD1": "w/m2",
+            "SRAD2": "w/m2",
+            "SRAD3": "w/m2",
         }
     elif parameter == "stdmet":
         units = {
-            "WDIR": "degree_N",
+            "WDIR": "degT",  # degree True North
             "WSPD": "m/s",
             "GST": "m/s",
             "WVHT": "m",
-            "DPD": "s",
-            "APD": "s",
-            "MWD": "degree_N",
+            "DPD": "sec",
+            "APD": "sec",
+            "MWD": "degT",  # degree True North
             "PRES": "hPa",
-            "ATMP": "degree_C",
-            "WTMP": "degree_C",
-            "DEWP": "degree_C",
+            "ATMP": "degC",
+            "WTMP": "degC",
+            "DEWP": "degC",
             "VIS": "nmi",
             "PTDY": "hPa",
             "TIDE": "ft",
@@ -803,7 +803,7 @@ def parameter_units(parameter=""):
             "PRES": "hPa",
             "PTIME": "hhmm",
             "WSPD": "m/s",
-            "WDIR": "degree_N",
+            "WDIR": "degT",  # degree True North
             "WTIME": "hhmm",
         }
     elif parameter == "swden":
@@ -821,34 +821,34 @@ def parameter_units(parameter=""):
             "swden": "m^2/Hz",
             "PRES": "hPa",
             "PTIME": "hhmm",
-            "WDIR": "degree_N",
+            "WDIR": "degT",  # degree True North
             "WTIME": "hhmm",
-            "DPD": "s",
-            "MWD": "degree_N",
-            "ATMP": "degree_C",
-            "WTMP": "degree_C",
-            "DEWP": "degree_C",
+            "DPD": "sec",
+            "MWD": "degT",  # degree True North
+            "ATMP": "degC",
+            "WTMP": "degC",
+            "DEWP": "degC",
             "VIS": "nmi",
             "PTDY": "hPa",
             "TIDE": "ft",
-            "SRAD1": "W/m^2",
-            "SRAD2": "W/m^2",
-            "SRAD3": "W/m^2",
+            "SRAD1": "w/m2",
+            "SRAD2": "w/m2",
+            "SRAD3": "w/m2",
             "WVHT": "m",
             "SwH": "m",
-            "SwP": "s",
+            "SwP": "sec",
             "WWH": "m",
-            "WWP": "s",
+            "WWP": "sec",
             "SwD": "-",
-            "WWD": "degree_N",
+            "WWD": "degT",  # degree True North
             "STEEPNESS": "-",
-            "APD": "s",
+            "APD": "sec",
             "RATE": "mm/h",
             "PCT": "%",
             "SDEV": "-",
             "ACCUM": "mm",
             "DEPTH": "m",
-            "OTMP": "degree_C",
+            "OTMP": "degC",
             "COND": "mS/cm",
             "SAL": "psu",
             "O2%": "%",
@@ -857,15 +857,15 @@ def parameter_units(parameter=""):
             "TURB": "FTU",
             "PH": "-",
             "EH": "mv",
-            "CHILL": "degree_C",
-            "HEAT": "degree_C",
+            "CHILL": "degC",
+            "HEAT": "degC",
             "ICE": "cm/hr",
             "WSPD": "m/s",
             "WSPD10": "m/s",
             "WSPD20": "m/s",
             "T": "-",
             "HEIGHT": "m",
-            "GDR": "degree_N",
+            "GDR": "degT",  # degree True North
             "GST": "m/s",
             "GTIME": "hhmm",
             "DEP01": "m",
