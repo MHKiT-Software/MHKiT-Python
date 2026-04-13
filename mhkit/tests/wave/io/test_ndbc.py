@@ -11,7 +11,6 @@ import contextlib
 import unittest
 import os
 
-
 testdir = dirname(abspath(__file__))
 datadir = normpath(join(testdir, "..", "..", "..", "..", "examples", "data", "wave"))
 
