@@ -119,7 +119,11 @@ def handle_caching(
             )
         elif file_extension == ".pkl":
             with open(cache_filepath, "rb") as f:
-                data, metadata = pickle.load(f)
+                data_dict = pickle.load(f)  # some format of 'data' and 'metadata'
+                if isinstance(data_dict, tuple):
+                    # CDIP and WPTO hindcast call returns size 2 tuple
+                    return data_dict[0], data_dict[1]
+                data, metadata = data_dict["data"], data_dict["metadata"]
 
         return data, metadata
 
@@ -154,7 +158,8 @@ def handle_caching(
     if os.path.isfile(cache_filepath) and (
         cache_content is None or cache_content["data"] is None
     ):
-        return _load_cache(file_extension, cache_filepath) + (cache_filepath,)
+        data, metadata = _load_cache(file_extension, cache_filepath)
+        return data, metadata, cache_filepath
 
     # Store data in cache if provided
     if cache_content and cache_content["data"] is not None:
