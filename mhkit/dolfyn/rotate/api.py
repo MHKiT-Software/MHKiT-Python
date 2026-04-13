@@ -7,7 +7,6 @@ import numpy as np
 import xarray as xr
 import warnings
 
-
 # The 'rotation chain'
 rc = ["beam", "inst", "earth", "principal"]
 

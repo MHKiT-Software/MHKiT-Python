@@ -5,7 +5,6 @@ import numpy as np
 from ..velocity import VelBinner
 from ..tools.misc import group, slice1d_along_axis
 
-
 sin = np.sin
 cos = np.cos
 

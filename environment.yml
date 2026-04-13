@@ -3,26 +3,5 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python>=3.10,<3.13
+  - python=3.11
   - pip
-  - numpy>=2.0.0
-  - pandas>=2.2.2
-  - scipy>=1.14.0
-  - xarray>=2024.6.0
-  - scikit-learn>=1.5.1
-  - h5py>=3.11.0
-  - h5pyd>=0.18.0
-  - netCDF4>=1.6.5
-  - hdf5>=1.14.3,<1.14.5.0a0
-  - statsmodels>=0.14.2
-  - requests
-  - beautifulsoup4
-  - numexpr>=2.10.0
-  - lxml
-  - bottleneck
-  - pecos>=0.3.0
-  - notebook
-  - matplotlib>=3.9.1
-  - fatpack
-  - nrel-rex
-  - cartopy
