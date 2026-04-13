@@ -15,7 +15,7 @@
     </a>
 </p>
 
-MHKiT-Python is a Python package designed for marine renewable energy applications to assist in
+MHKiT-Python is a Python package designed for marine energy applications to assist in
 data processing and visualization. The software package include functionality for:
 
 - Data processing
@@ -33,54 +33,233 @@ See the [MHKiT documentation](https://mhkit-software.github.io/MHKiT) for more i
 ## Installation
 
 [MHKiT-Python](https://github.com/MHKiT-Software/MHKiT-Python) requires [Python (3.10-3.12)](https://www.python.org/).
-It is recommended to use the [Anaconda Python Distribution](https://www.anaconda.com/distribution/) (a fully featured Python installer with a GUI) 
-or [Miniconda](https://docs.anaconda.com/miniconda/#quick-command-line-install) (a lightweight installer with the ``conda`` command line utility).  
-Both will include most of MHKiT-Python's package dependencies. 
-MHKiT can be installed several ways:
 
-### Option 1: Install from Python
+See [installation instructions](https://mhkit-software.github.io/MHKiT/installation.html) for more information.
 
-This option is recommended as a fast installation for MHKiT-Python users.
-To install MHKiT-Python using ``conda``, in an Anaconda Prompt:
+<details>
+
+<summary>Install with Anaconda/Miniconda (Recommended)</summary>
+
+### Install With Anaconda/Miniconda
+
+It is recommended to use the [Anaconda Python Distribution](https://www.anaconda.com/distribution/) (a fully featured Python installer with a GUI)
+or [Miniconda](https://docs.anaconda.com/miniconda/#quick-command-line-install) (a lightweight installer with the `conda` command line utility).  
+Both will include most of MHKiT-Python's package dependencies.
+
+This option is recommended for most MHKiT-Python users.
+To install MHKiT-Python using `conda`, in an Anaconda Prompt:
 
 ```bash
-	conda install -c conda-forge mhkit
+conda env create mhkit-env --python=3.11
 ```
 
-### Option 2: Clone Repository from GitHub
+```bash
+conda activate mhkit-env
+```
+
+```bash
+conda install -c conda-forge mhkit
+```
+
+Note: To use the above installed version of MHKiT-Python users must activate the `mhkit-env` environment each time, using `conda activate
+mhkit-env` in each new shell/terminal to use MHKiT.
+To avoid this, users can install MHKiT into their base conda environment, but this is not
+recommended as it may cause dependency conflicts with other software.
+
+Visual Studio Code has [instructions for using Python environments in VS Code](https://code.visualstudio.com/docs/python/environments) that support conda environment discovery.
+
+</details>
+
+<details>
+
+<summary>Clone Repository from GitHub</summary>
+
+### Clone Repository from GitHub
 
 This option is recommended for MHKiT-Python users who want access to example notebooks and developers.
+
+#### Step 1: Clone Repository
+
 Download and install your preferred version of [git](https://git-scm.com/).
 To clone MHKiT-Python:
 
 ```bash
-	git clone https://github.com/MHKiT-Software/MHKiT-Python
-	cd MHKiT-Python
+git clone https://github.com/MHKiT-Software/MHKiT-Python
 ```
+
+```bash
+cd MHKiT-Python
+```
+
+#### Step 2: Setup a Virtual Environment
+
+A virtual environment is a self-contained directory that contains a Python installation for a
+particular version of Python, plus a number of additional packages. Using a virtual environment
+allows you to manage dependencies for different projects separately, avoiding conflicts between
+packages and ensuring that your project has access to the specific versions of packages it needs.
+
+Use of a virtual environment is recommended to avoid dependency conflicts with other python
+packages (this environment must be activated in each new shell/terminal before using MHKiT).:
+
+##### Option A: Python `venv`
+
+Using Python venv (built into python) to create a virtual environment:
+
+###### Windows
+
+Note: A supported version of Python ([see installation for supported versions](#installation)) must be installed and added to the system PATH for venv to work in Git Bash or WSL. Use of Git Bash or WSL is recommended for Windows users to avoid issues with activating the virtual environment in Command Prompt or PowerShell.
+
+```sh
+python -m venv mhkit-env
+```
+
+```sh
+.\mhkit-env\Scripts\activate
+```
+
+Linux/MacOS:
+
+```bash
+python -m venv mhkit-env
+```
+
+```bash
+source mhkit-env/bin/activate
+```
+
+##### Option B: Conda (requires separate installation of Anaconda or Miniconda):
+
+```bash
+conda create -n mhkit-env python=3.11
+```
+
+```bash
+conda activate mhkit-env
+```
+
+#### Step 3: Install MHKiT-Python with pip
 
 To install a local, editable version of MHKiT-Python using [pip](https://pip.pypa.io/en/stable/):
 
 ```bash
-	pip install -e .["all"]
+pip install -e .["all,dev"]
 ```
 
-An [environment YAML file](https://github.com/MHKiT-Software/MHKiT-Python/blob/main/environment.yml) is also provided that can create the base environment required by MHKiT. 
+An [environment YAML file](https://github.com/MHKiT-Software/MHKiT-Python/blob/main/environment.yml) is also provided that can create the base environment required by MHKiT.
 MHKiT can then be installed into that environment using any of the provided methods.
 
-### Option 3: Module-specific Install from Python
+</details>
 
-A slim version of MHKiT-Python can be installed to reduce the number of dependencies and potential conflicts with other software. 
-This installation utilizes pip's optional dependencies installation. 
+<details>
+
+<summary>Module-specific Install using Pip</summary>
+
+### Module-specific Install using Pip
+
+A slim version of MHKiT-Python can be installed to reduce the number of dependencies and potential conflicts with other software.
+This installation utilizes pip's optional dependencies installation.
+
+Note: Use of a virtual environment is recommended to avoid dependency conflicts with other python.
+See Option 2 installation instructions for virtual environment setup.
+
 To install a single MHKiT module, e.g. the wave module, and its dependencies, use:
 
-	pip install mhkit["wave"]
+```bash
+pip install mhkit["wave"]
+```
 
-Note that ``pip install mhkit`` only installs the base MHKiT dependencies and not the entire software.
+To install all MHKiT modules use:
+
+```bash
+pip install mhkit["all"]
+```
+
+Note: `pip install mhkit` does not install any MHKiT dependencies and will not work without installing dependencies separately.
+
+To install specific modules users must specify which module(s) they want to install with the optional dependencies installation syntax:
+
+```bash
+pip install mhkit "[<module>]"
+```
+
+Or multiple modules with:
+
+```bash
+pip install mhkit "[<module>,<module>]"
+```
+
+Supported modules are:
+
+- `dolfyn`
+- `wave`
+- `tidal`
+- `river`
+- `power`
+- `loads`
+- `mooring`
+- `acoustics`
+- `qc`
+- `all` (includes the above modules and their dependencies)
+- `dev` (includes development dependencies for contributing to MHKiT)
+- `examples` (includes dependencies for running MHKiT example notebooks)
+
 To install all MHKiT dependencies use:
 
-	pip install mhkit["all"]
+```bash
+pip install mhkit["all"]
+```
 
 See [installation instructions](https://mhkit-software.github.io/MHKiT/installation.html) for more information.
+
+</details>
+
+<details>
+
+<summary>Development Installation</summary>
+
+### Development Installation
+
+For developers contributing to MHKiT, there are three development installation strategies after
+cloning the repository locally:
+
+Note: Use of a virtual environment is recommended to avoid dependency conflicts with other python.
+See Option 2 installation instructions for virtual environment setup.
+
+**Pip development** (no conda):
+
+Setup and activate virtual environment using Python venv using [the instructions above](#python-venv) and then:
+
+Note: Developers can create multiple virtual environments by changing the name, `python -m venv <name>`, install isolated versions of MHKiT, and switch between them by activating the desired environment. This allows developers to test different versions of MHKiT and its dependencies without conflicts.
+
+```bash
+pip install -e ".[all,dev]"
+```
+
+**Conda development** (minimal conda + pip resolves deps):
+
+```bash
+conda env create -f environment.yml
+```
+
+```bash
+conda activate mhkit-env
+```
+
+```bash
+pip install -e ".[all,dev]"
+```
+
+**Conda-forge development** (all deps from conda-forge, mirrors production deployment):
+
+```bash
+conda env create -f environment-dev.yml
+conda activate mhkit-env
+pip install -e ".[all,dev]" --no-deps
+```
+
+The conda-forge option mirrors how users install MHKiT via `conda install -c conda-forge mhkit`, ensuring all dependencies come from the conda-forge channel. The `--no-deps` flag prevents pip from resolving dependencies, relying entirely on the conda-forge packages for dependencies. The conda-forge build and deployment happens in separate repository: [https://github.com/conda-forge/mhkit-feedstock] which is updated with each MHKiT release.
+
+</details>
 
 ## Copyright and license
 
@@ -114,7 +293,7 @@ The GitHub platform has the Fork feature that facilitates code modification and 
 
 ## Creating a branch
 
-The GitHub platform has the branch feature that facilitates code contributions and collaboration amongst developers. A branch isolates development work without affecting other branches in the repository. Each repository has one default branch, and can have multiple other branches. To create a branch of your forked MHKiT-Python repository, follow the steps below. More information about GitHub branches can be found [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-branches)
+The GitHub platform has the branch feature that facilitates code contributions and collaboration. A branch isolates development work without affecting other branches in the repository. Each repository has one default branch, and can have multiple other branches. To create a branch of your forked MHKiT-Python repository, follow the steps below. More information about GitHub branches can be found [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-branches)
 
 1. Navigate to your fork of MHKiT-Python (see instructions above)
 2. Above the list of files, click **Branches**.
@@ -128,13 +307,13 @@ The GitHub platform has the pull request feature that allows you to propose chan
 
 1. Navigate to the [MHKiT-Python main page](https://github.com/MHKiT-Software/MHKiT-Python)
 2. Above the list of files, click **Pull request**.
-3. On the compare page, click **Compare accross forks**.
+3. On the compare page, click **Compare across forks**.
 4. In the "base branch" drop-down menu, select the branch of the upstream repository you'd like to merge changes into.
 5. In the "head fork" drop-down menu, select your fork, then use the "compare branch" drop-down menu to select the branch you made your changes in.
 6. Type a title and description for your pull request.
 7. If you want to allow anyone with push access to the upstream repository to make changes to your pull request, select **Allow edits from maintainers**.
 8. To create a pull request that is ready for review, click **Create Pull Request**. To create a draft pull request, use the drop-down and select **Create Draft Pull Request**, then click **Draft Pull Request**. More information about draft pull requests can be found [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests)
-9. MHKiT-Python adminstrators will review your pull request and contact you if needed.
+9. MHKiT-Python administrators will review your pull request and contact you if needed.
 
 ## Code Formatting in MHKiT
 
