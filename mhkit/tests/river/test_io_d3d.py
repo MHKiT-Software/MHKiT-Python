@@ -10,7 +10,6 @@ import unittest
 import netCDF4
 import os
 
-
 testdir = dirname(abspath(__file__))
 plotdir = join(testdir, "plots")
 isdir = os.path.isdir(plotdir)
@@ -103,10 +102,15 @@ class TestIO(unittest.TestCase):
             layer_data_expected_xr = river.io.d3d.get_layer_data(
                 data_xr, var, layer_compare, time_index_compare
             )
-            assert_array_almost_equal(layer_data_xr.x, layer_data_expected_xr.x, decimal=2)
-            assert_array_almost_equal(layer_data_xr.y, layer_data_expected_xr.y, decimal=2)
-            assert_array_almost_equal(layer_data_xr.v, layer_data_expected_xr.v, decimal=2)
-            
+            assert_array_almost_equal(
+                layer_data_xr.x, layer_data_expected_xr.x, decimal=2
+            )
+            assert_array_almost_equal(
+                layer_data_xr.y, layer_data_expected_xr.y, decimal=2
+            )
+            assert_array_almost_equal(
+                layer_data_xr.v, layer_data_expected_xr.v, decimal=2
+            )
 
     def test_create_points_three_points(self):
         """
@@ -275,7 +279,7 @@ class TestIO(unittest.TestCase):
         self.assertEqual(size_output, size_output_expected)
 
     def test_get_all_data_points_xr(self):
-        data_xr = self.d3d_flume_data_xr    
+        data_xr = self.d3d_flume_data_xr
         variable = "ucx"
         time_step = 3
         output = river.io.d3d.get_all_data_points(data_xr, variable, time_step)

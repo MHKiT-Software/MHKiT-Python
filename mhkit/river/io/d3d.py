@@ -42,7 +42,11 @@ def get_all_time(data: (netCDF4.Dataset, xr.Dataset)) -> NDArray:
         seconds_run = np.ma.getdata(data.variables["time"][:], False)
 
     elif isinstance(data, xr.Dataset):
-        seconds_run = (data.time.values - data.time.values[0]).astype('timedelta64[s]').astype(int)
+        seconds_run = (
+            (data.time.values - data.time.values[0])
+            .astype("timedelta64[s]")
+            .astype(int)
+        )
 
     return seconds_run
 
@@ -273,7 +277,9 @@ def get_layer_data(
             bottom_depth = np.ma.getdata(
                 data.variables["mesh2d_waterdepth"][time_index, :], False
             )
-            waterlevel = np.ma.getdata(data.variables["mesh2d_s1"][time_index, :], False)
+            waterlevel = np.ma.getdata(
+                data.variables["mesh2d_s1"][time_index, :], False
+            )
             coords = str(data.variables["waterdepth"].coordinates).split()
 
         elif str(data.variables[variable].coordinates) == "FlowElem_xcc FlowElem_ycc":
@@ -287,7 +293,9 @@ def get_layer_data(
                     "coords": data.variables["LayCoord_w"][:],
                 },
             }
-            bottom_depth = np.ma.getdata(data.variables["waterdepth"][time_index, :], False)
+            bottom_depth = np.ma.getdata(
+                data.variables["waterdepth"][time_index, :], False
+            )
             waterlevel = np.ma.getdata(data.variables["s1"][time_index, :], False)
             coords = str(data.variables["waterdepth"].coordinates).split()
         else:
@@ -301,7 +309,9 @@ def get_layer_data(
                     "coords": data.variables["LayCoord_w"][:],
                 },
             }
-            bottom_depth = np.ma.getdata(data.variables["waterdepth"][time_index, :], False)
+            bottom_depth = np.ma.getdata(
+                data.variables["waterdepth"][time_index, :], False
+            )
             waterlevel = np.ma.getdata(data.variables["s1"][time_index, :], False)
             coords = str(data.variables["waterdepth"].coordinates).split()
 
@@ -318,12 +328,16 @@ def get_layer_data(
                     "name": "mesh2d_nInterfaces",
                     "coords": data.variables["mesh2d_interface_sigma"][:],
                 },
-                }
+            }
             bottom_depth = data["mesh2d_waterdepth"].values[time_index, :]
             waterlevel = data["mesh2d_s1"].values[time_index, :]
             coords = list(data["waterdepth"].coords)
-        elif str(list(data[variable].coords)) == "['FlowElem_xcc', 'FlowElem_ycc', 'time']" or \
-             str(list(data[variable].coords)) == "['FlowLink_xu', 'FlowLink_yu', 'time']":
+        elif (
+            str(list(data[variable].coords))
+            == "['FlowElem_xcc', 'FlowElem_ycc', 'time']"
+            or str(list(data[variable].coords))
+            == "['FlowLink_xu', 'FlowLink_yu', 'time']"
+        ):
             cords_to_layers = {
                 "FlowElem_xcc FlowElem_ycc": {
                     "name": "laydim",
@@ -332,8 +346,8 @@ def get_layer_data(
                 "FlowLink_xu FlowLink_yu": {
                     "name": "wdim",
                     "coords": data.variables["LayCoord_w"][:],
-                    },
-                }
+                },
+            }
             bottom_depth = data["waterdepth"].values[time_index, :]
             waterlevel = data["s1"].values[time_index, :]
             coords = list(data["waterdepth"].coords)
@@ -351,19 +365,19 @@ def get_layer_data(
             bottom_depth = data["waterdepth"].values[time_index, :]
             waterlevel = data["s1"].values[time_index, :]
             coords = list(data["waterdepth"].coords)
-            
+
         layer_dim = " ".join(map(str, list(data[variable].coords)[0:2]))
 
     try:
         cord_sys = cords_to_layers[layer_dim]["coords"]
     except KeyError as exc:
         raise ValueError("Coordinates not recognized.") from exc
-    
+
     if isinstance(data, netCDF4.Dataset):
         layer_percentages = np.ma.getdata(cord_sys, False)  # accumulative
     elif isinstance(data, xr.Dataset):
-        layer_percentages= cord_sys.values  # accumulative
-        
+        layer_percentages = cord_sys.values  # accumulative
+
     if layer_dim == "FlowLink_xu FlowLink_yu":
         # interpolate
         if isinstance(data, netCDF4.Dataset):
@@ -411,9 +425,13 @@ def get_layer_data(
     waterdepth = np.append(waterdepth, z)
 
     if isinstance(data, netCDF4.Dataset):
-        time = np.ma.getdata(data.variables["time"][time_index], False) * np.ones(len(x))
+        time = np.ma.getdata(data.variables["time"][time_index], False) * np.ones(
+            len(x)
+        )
     elif isinstance(data, xr.Dataset):
-        time=(data.time.values[time_index] - data.time.values[0]).astype('timedelta64[s]').astype(int) * np.ones(len(x))
+        time = (data.time.values[time_index] - data.time.values[0]).astype(
+            "timedelta64[s]"
+        ).astype(int) * np.ones(len(x))
 
     index = np.arange(0, len(time))
     layer_data = xr.Dataset(
@@ -616,7 +634,9 @@ def variable_interpolation(
             )
 
     if not isinstance(data, (netCDF4.Dataset, xr.Dataset)):
-        raise TypeError(f"data must be netCDF4 or xarray Dataset object. Got {type(data)}")
+        raise TypeError(
+            f"data must be netCDF4 or xarray Dataset object. Got {type(data)}"
+        )
 
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
@@ -665,7 +685,10 @@ def variable_interpolation(
 
 
 def get_all_data_points(
-    data: (netCDF4.Dataset, xr.Dataset), variable: str, time_index: int = -1, to_pandas: bool = True
+    data: (netCDF4.Dataset, xr.Dataset),
+    variable: str,
+    time_index: int = -1,
+    to_pandas: bool = True,
 ) -> Union[pd.DataFrame, xr.Dataset]:
     """
     Get data points for a passed variable for all layers at a specified time from
@@ -749,51 +772,55 @@ def get_all_data_points(
 
         layer_dim = str(data.variables[variable].coordinates)
     elif isinstance(data, xr.Dataset):
-            if "mesh2d" in variable:
-                cords_to_layers = {
-                    "mesh2d_face_x mesh2d_face_y": {
-                        "name": "mesh2d_nLayers",
-                        "coords": data.variables["mesh2d_layer_sigma"][:],
-                    },
-                    "mesh2d_edge_x mesh2d_edge_y": {
-                        "name": "mesh2d_nInterfaces",
-                        "coords": data.variables["mesh2d_interface_sigma"][:],
-                    },
-                    }
-                bottom_depth = data["mesh2d_waterdepth"].values[time_index, :]
-                waterlevel = data["mesh2d_s1"].values[time_index, :]
-                coords = list(data["waterdepth"].coords)
-            elif str(list(data[variable].coords)) == "['FlowElem_xcc', 'FlowElem_ycc', 'time']" or \
-                str(list(data[variable].coords)) == "['FlowLink_xu', 'FlowLink_yu', 'time']":
-                cords_to_layers = {
-                    "FlowElem_xcc FlowElem_ycc": {
-                        "name": "laydim",
-                        "coords": data.variables["LayCoord_cc"][:],
-                    },
-                    "FlowLink_xu FlowLink_yu": {
-                        "name": "wdim",
-                        "coords": data.variables["LayCoord_w"][:],
-                        },
-                    }
-                bottom_depth = data["waterdepth"].values[time_index, :]
-                waterlevel = data["s1"].values[time_index, :]
-                coords = list(data["waterdepth"].coords)
-            else:
-                cords_to_layers = {
-                    "FlowElem_xcc FlowElem_ycc LayCoord_cc LayCoord_cc": {
-                        "name": "laydim",
-                        "coords": data.variables["LayCoord_cc"][:],
-                    },
-                    "FlowLink_xu FlowLink_yu": {
-                        "name": "wdim",
-                        "coords": data.variables["LayCoord_w"][:],
-                    },
-                }
-                bottom_depth = data["waterdepth"].values[time_index, :]
-                waterlevel = data["s1"].values[time_index, :]
-                coords = list(data["waterdepth"].coords)
-                
-            layer_dim = " ".join(map(str, list(data[variable].coords)[0:2]))
+        if "mesh2d" in variable:
+            cords_to_layers = {
+                "mesh2d_face_x mesh2d_face_y": {
+                    "name": "mesh2d_nLayers",
+                    "coords": data.variables["mesh2d_layer_sigma"][:],
+                },
+                "mesh2d_edge_x mesh2d_edge_y": {
+                    "name": "mesh2d_nInterfaces",
+                    "coords": data.variables["mesh2d_interface_sigma"][:],
+                },
+            }
+            bottom_depth = data["mesh2d_waterdepth"].values[time_index, :]
+            waterlevel = data["mesh2d_s1"].values[time_index, :]
+            coords = list(data["waterdepth"].coords)
+        elif (
+            str(list(data[variable].coords))
+            == "['FlowElem_xcc', 'FlowElem_ycc', 'time']"
+            or str(list(data[variable].coords))
+            == "['FlowLink_xu', 'FlowLink_yu', 'time']"
+        ):
+            cords_to_layers = {
+                "FlowElem_xcc FlowElem_ycc": {
+                    "name": "laydim",
+                    "coords": data.variables["LayCoord_cc"][:],
+                },
+                "FlowLink_xu FlowLink_yu": {
+                    "name": "wdim",
+                    "coords": data.variables["LayCoord_w"][:],
+                },
+            }
+            bottom_depth = data["waterdepth"].values[time_index, :]
+            waterlevel = data["s1"].values[time_index, :]
+            coords = list(data["waterdepth"].coords)
+        else:
+            cords_to_layers = {
+                "FlowElem_xcc FlowElem_ycc LayCoord_cc LayCoord_cc": {
+                    "name": "laydim",
+                    "coords": data.variables["LayCoord_cc"][:],
+                },
+                "FlowLink_xu FlowLink_yu": {
+                    "name": "wdim",
+                    "coords": data.variables["LayCoord_w"][:],
+                },
+            }
+            bottom_depth = data["waterdepth"].values[time_index, :]
+            waterlevel = data["s1"].values[time_index, :]
+            coords = list(data["waterdepth"].coords)
+
+        layer_dim = " ".join(map(str, list(data[variable].coords)[0:2]))
 
     try:
         cord_sys = cords_to_layers[layer_dim]["coords"]
@@ -802,7 +829,7 @@ def get_all_data_points(
     if isinstance(data, netCDF4.Dataset):
         layer_percentages = np.ma.getdata(cord_sys, False)  # accumulative
     elif isinstance(data, xr.Dataset):
-        layer_percentages= cord_sys.values  # accumulative
+        layer_percentages = cord_sys.values  # accumulative
 
     x_all = []
     y_all = []
