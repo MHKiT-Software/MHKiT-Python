@@ -15,6 +15,7 @@ import scipy.interpolate as interp
 from numpy.typing import ArrayLike, NDArray
 from mhkit.utils import unorm
 
+
 # pylint: disable=too-many-lines
 # pylint: disable=possibly-used-before-assignment
 def get_all_time(data: (netCDF4.Dataset, xr.Dataset)) -> NDArray:
@@ -162,6 +163,7 @@ def _convert_time(
             )
 
     return converted_value
+
 
 # pylint: disable=unused-variable
 # pylint: disable=too-many-locals
@@ -1050,7 +1052,10 @@ def list_variables(data: Union[netCDF4.Dataset, xr.Dataset, xr.DataArray]) -> Li
         f"xarray DataArray. Got: {type(data)}"
     )
 
-def calculate_grid_convergence_index(fine_grid, coarse_grid, refinement_ratio,factor_of_safety=1.25, order=2):
+
+def calculate_grid_convergence_index(
+    fine_grid, coarse_grid, refinement_ratio, factor_of_safety=1.25, order=2
+):
     """
     Calculate the Grid Convergence Index (GCI) between two grid sizes. https://www.grc.nasa.gov/WWW/wind/valid/tutorial/spatconv.html
 
@@ -1060,7 +1065,7 @@ def calculate_grid_convergence_index(fine_grid, coarse_grid, refinement_ratio,fa
         Results from the finer grid.
     coarse_grid: numpy.ndarray
         Results from the coarser grid.
-    refinement_ratio: float 
+    refinement_ratio: float
         Refinement ratio between the grids.
     order: int
         Order of accuracy (default is 2).
