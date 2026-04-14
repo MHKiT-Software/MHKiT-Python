@@ -15,7 +15,8 @@ import scipy.interpolate as interp
 from numpy.typing import ArrayLike, NDArray
 from mhkit.utils import unorm
 
-
+# pylint: disable=too-many-lines
+# pylint: disable=possibly-used-before-assignment
 def get_all_time(data: (netCDF4.Dataset, xr.Dataset)) -> NDArray:
     """
     Returns all of the time stamps from a D3D simulation passed to the function
@@ -71,7 +72,7 @@ def index_to_seconds(data: netCDF4.Dataset, time_index: int) -> Union[int, float
     """
     return _convert_time(data, time_index=time_index)
 
-
+# pylint: disable=possibly-used-before-assignment
 def seconds_to_index(data: netCDF4.Dataset, seconds_run: Union[int, float]) -> int:
     """
     The function will return the nearest 'time_index' in the data if passed an
@@ -94,7 +95,7 @@ def seconds_to_index(data: netCDF4.Dataset, seconds_run: Union[int, float]) -> i
     """
     return _convert_time(data, seconds_run=seconds_run)
 
-
+# pylint: disable=possibly-used-before-assignment
 def _convert_time(
     data: netCDF4.Dataset or xr.Dataset,
     time_index: Optional[Union[int, float]] = None,
@@ -164,6 +165,7 @@ def _convert_time(
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-statements
+# pylint: disable=possibly-used-before-assignment
 def get_layer_data(
     data: Union[netCDF4.Dataset, xr.Dataset],
     variable: str,
@@ -683,7 +685,7 @@ def variable_interpolation(
 
     return transformed_data
 
-
+# pylint: disable=possibly-used-before-assignment
 def get_all_data_points(
     data: (netCDF4.Dataset, xr.Dataset),
     variable: str,
