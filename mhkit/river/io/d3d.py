@@ -72,6 +72,7 @@ def index_to_seconds(data: netCDF4.Dataset, time_index: int) -> Union[int, float
     """
     return _convert_time(data, time_index=time_index)
 
+
 # pylint: disable=possibly-used-before-assignment
 def seconds_to_index(data: netCDF4.Dataset, seconds_run: Union[int, float]) -> int:
     """
@@ -94,6 +95,7 @@ def seconds_to_index(data: netCDF4.Dataset, seconds_run: Union[int, float]) -> i
         and incrementing until in simulation is complete.
     """
     return _convert_time(data, seconds_run=seconds_run)
+
 
 # pylint: disable=possibly-used-before-assignment
 def _convert_time(
@@ -161,10 +163,11 @@ def _convert_time(
 
     return converted_value
 
-
+# pylint: disable=unused-variable
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-statements
+# pylint: disable=used-before-assignment
 # pylint: disable=possibly-used-before-assignment
 def get_layer_data(
     data: Union[netCDF4.Dataset, xr.Dataset],
@@ -685,6 +688,7 @@ def variable_interpolation(
 
     return transformed_data
 
+
 # pylint: disable=possibly-used-before-assignment
 def get_all_data_points(
     data: (netCDF4.Dataset, xr.Dataset),
@@ -1045,3 +1049,30 @@ def list_variables(data: Union[netCDF4.Dataset, xr.Dataset, xr.DataArray]) -> Li
         "data must be a NetCDF4 Dataset, xarray Dataset, or "
         f"xarray DataArray. Got: {type(data)}"
     )
+
+def calculate_grid_convergence_index(fine_grid, coarse_grid, refinement_ratio,factor_of_safety=1.25, order=2):
+    """
+    Calculate the Grid Convergence Index (GCI) between two grid sizes. https://www.grc.nasa.gov/WWW/wind/valid/tutorial/spatconv.html
+
+    Parameters
+    ----------
+    fine_grid: numpy.ndarray
+        Results from the finer grid.
+    coarse_grid: numpy.ndarray
+        Results from the coarser grid.
+    refinement_ratio: float 
+        Refinement ratio between the grids.
+    order: int
+        Order of accuracy (default is 2).
+
+    Returns
+    -------
+    gci: float
+        Grid Convergence Index (GCI).
+    """
+    # Calculate the approximate relative error
+    error = np.abs((fine_grid - coarse_grid) / fine_grid)
+
+    # Calculate the GCI
+    gci = (factor_of_safety * error) / (refinement_ratio**order - 1)
+    return gci
