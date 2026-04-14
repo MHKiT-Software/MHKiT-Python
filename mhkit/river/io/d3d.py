@@ -873,7 +873,7 @@ def get_all_data_points(
 
     return all_data
 
-
+# pylint: disable=too-many-lines
 def turbulent_intensity(
     data: netCDF4.Dataset,
     points: Union[str, pd.DataFrame, xr.Dataset] = "cells",
@@ -1014,7 +1014,7 @@ def turbulent_intensity(
 
     return turbulent_data
 
-
+# pylint: disable=too-many-lines
 def list_variables(data: Union[netCDF4.Dataset, xr.Dataset, xr.DataArray]) -> List[str]:
     """
     List all variables in a DataArray, Dataset, or NetCDF4 Dataset.
@@ -1050,7 +1050,7 @@ def list_variables(data: Union[netCDF4.Dataset, xr.Dataset, xr.DataArray]) -> Li
         f"xarray DataArray. Got: {type(data)}"
     )
 
-
+# pylint: disable=too-many-lines
 def calculate_grid_convergence_index(
     fine_grid, coarse_grid, refinement_ratio, factor_of_safety=1.25, order=2
 ):
@@ -1093,4 +1093,3 @@ def calculate_grid_convergence_index(
     gci = (factor_of_safety * error) / (refinement_ratio**order - 1)
     return gci
 
-# pylint: disable=too-many-lines
