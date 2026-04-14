@@ -15,8 +15,6 @@ import scipy.interpolate as interp
 from numpy.typing import ArrayLike, NDArray
 from mhkit.utils import unorm
 
-
-# pylint: disable=too-many-lines
 # pylint: disable=possibly-used-before-assignment
 def get_all_time(data: (netCDF4.Dataset, xr.Dataset)) -> NDArray:
     """
@@ -1081,3 +1079,5 @@ def calculate_grid_convergence_index(
     # Calculate the GCI
     gci = (factor_of_safety * error) / (refinement_ratio**order - 1)
     return gci
+
+# pylint: disable=too-many-lines
