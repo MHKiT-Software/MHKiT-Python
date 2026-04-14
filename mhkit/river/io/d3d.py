@@ -278,6 +278,10 @@ def get_layer_data(
                     "name": "mesh2d_nInterfaces",
                     "coords": data.variables["mesh2d_interface_sigma"][:],
                 },
+                "mesh2d_face_x mesh2d_face_y mesh2d_layer_sigma": {
+                    "name": "mesh2d_nLayers",
+                    "coords": data.variables["mesh2d_layer_sigma"][:],
+                },
             }
             bottom_depth = np.ma.getdata(
                 data.variables["mesh2d_waterdepth"][time_index, :], False
@@ -285,7 +289,7 @@ def get_layer_data(
             waterlevel = np.ma.getdata(
                 data.variables["mesh2d_s1"][time_index, :], False
             )
-            coords = str(data.variables["waterdepth"].coordinates).split()
+            coords = str(data.variables["mesh2d_waterdepth"].coordinates).split()
 
         elif str(data.variables[variable].coordinates) == "FlowElem_xcc FlowElem_ycc":
             cords_to_layers = {
@@ -336,7 +340,7 @@ def get_layer_data(
             }
             bottom_depth = data["mesh2d_waterdepth"].values[time_index, :]
             waterlevel = data["mesh2d_s1"].values[time_index, :]
-            coords = list(data["waterdepth"].coords)
+            coords = list(data["mesh2d_waterdepth"].coords)
         elif (
             str(list(data[variable].coords))
             == "['FlowElem_xcc', 'FlowElem_ycc', 'time']"
@@ -788,10 +792,14 @@ def get_all_data_points(
                     "name": "mesh2d_nInterfaces",
                     "coords": data.variables["mesh2d_interface_sigma"][:],
                 },
+                "mesh2d_face_x mesh2d_face_y mesh2d_layer_sigma": {
+                    "name": "mesh2d_nLayers",
+                    "coords": data.variables["mesh2d_layer_sigma"][:],
+                },
             }
             bottom_depth = data["mesh2d_waterdepth"].values[time_index, :]
             waterlevel = data["mesh2d_s1"].values[time_index, :]
-            coords = list(data["waterdepth"].coords)
+            coords = list(data["mesh2d_waterdepth"].coords)
         elif (
             str(list(data[variable].coords))
             == "['FlowElem_xcc', 'FlowElem_ycc', 'time']"
@@ -1055,7 +1063,8 @@ def calculate_grid_convergence_index(
     fine_grid, coarse_grid, refinement_ratio, factor_of_safety=1.25, order=2
 ):
     """
-    Calculate the Grid Convergence Index (GCI) between two grid sizes. https://www.grc.nasa.gov/WWW/wind/valid/tutorial/spatconv.html
+    Calculate the Grid Convergence Index (GCI) between two grid sizes.
+    https://www.grc.nasa.gov/WWW/wind/valid/tutorial/spatconv.html
 
     Parameters
     ----------
@@ -1081,7 +1090,8 @@ def calculate_grid_convergence_index(
         raise TypeError("factor_of_safety must be a numeric values")
     if not (np.issubdtype(type(order), np.number)):
         raise TypeError("order must be a numeric values")
-    if not (np.issubdtype(fine_grid.dtype, np.number) and np.issubdtype(coarse_grid.dtype, np.number)):
+    if not (np.issubdtype(fine_grid.dtype, np.number) and
+             np.issubdtype(coarse_grid.dtype, np.number)):
         raise TypeError("fine_grid and coarse_grid must contain numeric values")
     if fine_grid.shape != coarse_grid.shape:
         raise ValueError("fine_grid and coarse_grid must have the same shape")
@@ -1092,4 +1102,3 @@ def calculate_grid_convergence_index(
     # Calculate the GCI
     gci = (factor_of_safety * error) / (refinement_ratio**order - 1)
     return gci
-
