@@ -15,6 +15,7 @@ import scipy.interpolate as interp
 from numpy.typing import ArrayLike, NDArray
 from mhkit.utils import unorm
 
+
 # pylint: disable=possibly-used-before-assignment
 def get_all_time(data: (netCDF4.Dataset, xr.Dataset)) -> NDArray:
     """
@@ -885,6 +886,7 @@ def get_all_data_points(
 
     return all_data
 
+
 # pylint: disable=too-many-lines
 def turbulent_intensity(
     data: netCDF4.Dataset,
@@ -1026,6 +1028,7 @@ def turbulent_intensity(
 
     return turbulent_data
 
+
 # pylint: disable=too-many-lines
 def list_variables(data: Union[netCDF4.Dataset, xr.Dataset, xr.DataArray]) -> List[str]:
     """
@@ -1062,6 +1065,7 @@ def list_variables(data: Union[netCDF4.Dataset, xr.Dataset, xr.DataArray]) -> Li
         f"xarray DataArray. Got: {type(data)}"
     )
 
+
 # pylint: disable=too-many-lines
 def calculate_grid_convergence_index(
     fine_grid, coarse_grid, refinement_ratio, factor_of_safety=1.25, order=2
@@ -1094,12 +1098,14 @@ def calculate_grid_convergence_index(
         raise TypeError("factor_of_safety must be a numeric values")
     if not (np.issubdtype(type(order), np.number)):
         raise TypeError("order must be a numeric values")
-    if not (np.issubdtype(fine_grid.dtype, np.number) and
-             np.issubdtype(coarse_grid.dtype, np.number)):
+    if not (
+        np.issubdtype(fine_grid.dtype, np.number)
+        and np.issubdtype(coarse_grid.dtype, np.number)
+    ):
         raise TypeError("fine_grid and coarse_grid must contain numeric values")
     if fine_grid.shape != coarse_grid.shape:
         raise ValueError("fine_grid and coarse_grid must have the same shape")
-    
+
     # Calculate the approximate relative error
     error = np.abs((fine_grid - coarse_grid) / fine_grid)
 
