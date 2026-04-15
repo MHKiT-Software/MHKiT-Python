@@ -755,6 +755,10 @@ def get_all_data_points(
                     "name": "mesh2d_nInterfaces",
                     "coords": data.variables["mesh2d_interface_sigma"][:],
                 },
+                "mesh2d_face_x mesh2d_face_y mesh2d_layer_sigma": {
+                    "name": "mesh2d_nLayers",
+                    "coords": data.variables["mesh2d_layer_sigma"][:],
+                },
             }
 
         elif str(data.variables[variable].coordinates) == "FlowElem_xcc FlowElem_ycc":
