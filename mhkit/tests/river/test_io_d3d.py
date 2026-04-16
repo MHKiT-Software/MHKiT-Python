@@ -10,7 +10,6 @@ import unittest
 import netCDF4
 import os
 
-
 testdir = dirname(abspath(__file__))
 plotdir = join(testdir, "plots")
 isdir = os.path.isdir(plotdir)
@@ -26,6 +25,7 @@ class TestIO(unittest.TestCase):
 
         filename = "turbineTest_map.nc"
         self.d3d_flume_data = netCDF4.Dataset(join(d3ddatadir, filename))
+        self.d3d_flume_data_xr = xr.open_dataset(join(d3ddatadir, filename))
 
     @classmethod
     def tearDownClass(self):
@@ -33,24 +33,33 @@ class TestIO(unittest.TestCase):
 
     def test_get_all_time(self):
         data = self.d3d_flume_data
+        data_xr = self.d3d_flume_data_xr
         seconds_run = river.io.d3d.get_all_time(data)
+        seconds_run_xr = river.io.d3d.get_all_time(data_xr)
         seconds_run_expected = np.ndarray(
             shape=(5,), buffer=np.array([0, 60, 120, 180, 240]), dtype=int
         )
         np.testing.assert_array_equal(seconds_run, seconds_run_expected)
+        np.testing.assert_array_equal(seconds_run_xr, seconds_run_expected)
 
     def test_convert_time(self):
         data = self.d3d_flume_data
+        data_xr = self.d3d_flume_data_xr
         time_index = 2
         seconds_run = river.io.d3d.index_to_seconds(data, time_index=time_index)
+        seconds_run_xr = river.io.d3d.index_to_seconds(data_xr, time_index=time_index)
         seconds_run_expected = 120
         self.assertEqual(seconds_run, seconds_run_expected)
+        self.assertEqual(seconds_run_xr, seconds_run_expected)
         seconds_run = 60
         time_index = river.io.d3d.seconds_to_index(data, seconds_run=seconds_run)
+        time_index_xr = river.io.d3d.seconds_to_index(data_xr, seconds_run=seconds_run)
         time_index_expected = 1
         self.assertEqual(time_index, time_index_expected)
+        self.assertEqual(time_index_xr, time_index_expected)
         seconds_run = 62
         time_index = river.io.d3d.seconds_to_index(data, seconds_run=seconds_run)
+        time_index_xr = river.io.d3d.seconds_to_index(data_xr, seconds_run=seconds_run)
         time_index_expected = 1
         output_expected = f"ERROR: invalid seconds_run. Closest seconds_run found {time_index_expected}"
         self.assertWarns(UserWarning)
@@ -60,13 +69,17 @@ class TestIO(unittest.TestCase):
         Test the conversion of time from using tidal import of d3d
         """
         data = self.d3d_flume_data
+        data_xr = self.d3d_flume_data_xr
         time_index = 2
         seconds_run = tidal.io.d3d.index_to_seconds(data, time_index=time_index)
+        seconds_run_xr = tidal.io.d3d.index_to_seconds(data_xr, time_index=time_index)
         seconds_run_expected = 120
         self.assertEqual(seconds_run, seconds_run_expected)
+        self.assertEqual(seconds_run_xr, seconds_run_expected)
 
     def test_layer_data(self):
         data = self.d3d_flume_data
+        data_xr = self.d3d_flume_data_xr
         variable = ["ucx", "s1"]
         for var in variable:
             layer = 2
@@ -77,10 +90,27 @@ class TestIO(unittest.TestCase):
             layer_data_expected = river.io.d3d.get_layer_data(
                 data, var, layer_compare, time_index_compare
             )
-
             assert_array_almost_equal(layer_data.x, layer_data_expected.x, decimal=2)
             assert_array_almost_equal(layer_data.y, layer_data_expected.y, decimal=2)
             assert_array_almost_equal(layer_data.v, layer_data_expected.v, decimal=2)
+        for var in variable:
+            layer = 2
+            time_index = 3
+            layer_data_xr = river.io.d3d.get_layer_data(data_xr, var, layer, time_index)
+            layer_compare = 2
+            time_index_compare = 4
+            layer_data_expected_xr = river.io.d3d.get_layer_data(
+                data_xr, var, layer_compare, time_index_compare
+            )
+            assert_array_almost_equal(
+                layer_data_xr.x, layer_data_expected_xr.x, decimal=2
+            )
+            assert_array_almost_equal(
+                layer_data_xr.y, layer_data_expected_xr.y, decimal=2
+            )
+            assert_array_almost_equal(
+                layer_data_xr.v, layer_data_expected_xr.v, decimal=2
+            )
 
     def test_create_points_three_points(self):
         """
@@ -209,6 +239,32 @@ class TestIO(unittest.TestCase):
             np.size(transformes_data["ucx"]), np.size(transformes_data["turkin1"])
         )
 
+    def test_variable_interpolation_xr(self):
+        data_xr = self.d3d_flume_data_xr
+        variables = ["ucx", "turkin1"]
+        transformes_data = river.io.d3d.variable_interpolation(
+            data_xr, variables, points="faces", edges="nearest"
+        )
+        self.assertEqual(
+            np.size(transformes_data["ucx"]), np.size(transformes_data["turkin1"])
+        )
+        transformes_data = river.io.d3d.variable_interpolation(
+            data_xr, variables, points="cells", edges="nearest"
+        )
+        self.assertEqual(
+            np.size(transformes_data["ucx"]), np.size(transformes_data["turkin1"])
+        )
+        x = np.linspace(1, 3, num=3)
+        y = np.linspace(1, 3, num=3)
+        waterdepth = 1
+        points = river.io.d3d.create_points(x, y, waterdepth)
+        transformes_data = river.io.d3d.variable_interpolation(
+            data_xr, variables, points=points
+        )
+        self.assertEqual(
+            np.size(transformes_data["ucx"]), np.size(transformes_data["turkin1"])
+        )
+
     def test_get_all_data_points(self):
         data = self.d3d_flume_data
         variable = "ucx"
@@ -218,6 +274,19 @@ class TestIO(unittest.TestCase):
         time_step_compair = 4
         output_expected = river.io.d3d.get_all_data_points(
             data, variable, time_step_compair
+        )
+        size_output_expected = np.size(output_expected)
+        self.assertEqual(size_output, size_output_expected)
+
+    def test_get_all_data_points_xr(self):
+        data_xr = self.d3d_flume_data_xr
+        variable = "ucx"
+        time_step = 3
+        output = river.io.d3d.get_all_data_points(data_xr, variable, time_step)
+        size_output = np.size(output)
+        time_step_compair = 4
+        output_expected = river.io.d3d.get_all_data_points(
+            data_xr, variable, time_step_compair
         )
         size_output_expected = np.size(output_expected)
         self.assertEqual(size_output, size_output_expected)
@@ -236,6 +305,7 @@ class TestIO(unittest.TestCase):
 
     def test_turbulent_intensity(self):
         data = self.d3d_flume_data
+        data_xr = self.d3d_flume_data_xr
         time_index = -1
         x_test = np.linspace(1, 17, num=10)
         y_test = np.linspace(3, 3, num=10)
@@ -250,7 +320,7 @@ class TestIO(unittest.TestCase):
         points = pd.DataFrame(test_points, columns=["x", "y", "waterdepth"])
 
         TI = river.io.d3d.turbulent_intensity(data, points, time_index)
-
+        TI_xr = river.io.d3d.turbulent_intensity(data_xr, points, time_index)
         TI_vars = ["turkin1", "ucx", "ucy", "ucz"]
         TI_data_raw = {}
         for var in TI_vars:
@@ -284,18 +354,31 @@ class TestIO(unittest.TestCase):
         assert_array_almost_equal(
             TI.turbulent_intensity, turbulent_intensity_expected, decimal=2
         )
-
+        assert_array_almost_equal(
+            TI_xr.turbulent_intensity, turbulent_intensity_expected, decimal=2
+        )
         TI = river.io.d3d.turbulent_intensity(data, points="faces")
+        TI_xr = river.io.d3d.turbulent_intensity(data_xr, points="faces")
         TI_size = np.size(TI["turbulent_intensity"])
         turkin1 = river.io.d3d.get_all_data_points(data, "turkin1", time_index)
         turkin1_size = np.size(turkin1["turkin1"])
         self.assertEqual(TI_size, turkin1_size)
+        self.assertEqual(TI_size, np.size(TI_xr["turbulent_intensity"]))
 
         TI = river.io.d3d.turbulent_intensity(data, points="cells")
         TI_size = np.size(TI["turbulent_intensity"])
         ucx = river.io.d3d.get_all_data_points(data, "ucx", time_index)
         ucx_size = np.size(ucx["ucx"])
         self.assertEqual(TI_size, ucx_size)
+
+    def test_calculate_grid_convergence_index(self):
+        fine_grid = np.array([1.0, 2.0, 3.0])
+        coarse_grid = np.array([0.5, 1.5, 2.5])
+        refinement_ratio = 2.0
+        gci = river.io.d3d.calculate_grid_convergence_index(
+            fine_grid, coarse_grid, refinement_ratio
+        )
+        assert_array_almost_equal(gci, np.array([0.2083, 0.1042, 0.0694]), decimal=3)
 
 
 if __name__ == "__main__":
