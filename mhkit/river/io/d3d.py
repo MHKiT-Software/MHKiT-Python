@@ -1067,6 +1067,7 @@ def list_variables(data: Union[netCDF4.Dataset, xr.Dataset, xr.DataArray]) -> Li
 
 
 # pylint: disable=too-many-lines
+# pylint: disable=superfluous-parens
 def calculate_grid_convergence_index(
     fine_grid, coarse_grid, refinement_ratio, factor_of_safety=1.25, order=2
 ):
