@@ -17,37 +17,36 @@ The following functionality is provided:
    - `minimum_frequency`: Calculates the minimum frequency cutoff based on water depth and the
      speed of sound in water and seabed materials.
 
-3. **Spectral Density Calculations**:
+3. **Calculation of Frequency Bands**:
 
-   - `sound_pressure_spectral_density`: Computes the mean square sound pressure spectral density
-     using FFT binning with Hanning windowing and 50% overlap.
+    - `create_frequency_bands`: Generates frequency bands based on specified octave divisions,
+      minimum and maximum frequency limits, and the chosen base (e.g., 2 for octaves, 10 for decades).
 
-4. **Calibration**:
+4. **Sound Pressure Spectral Density Calculation**:
+
+    - `sound_pressure_spectral_density`: Computes the mean square sound pressure spectral density
+      using FFT binning with Hanning windowing and 50% overlap.
+
+5. **Calibration**:
 
    - `apply_calibration`: Applies calibration adjustments to the spectral density data using
      a sensitivity curve, filling missing values as specified.
 
-5. **Spectral Density Level Calculation**:
+6. **Band-Averaged Spectral Density**:
 
-   - `sound_pressure_spectral_density_level`: Converts mean square spectral density values to
-     sound pressure spectral density levels in dB.
+    - `_get_band_table`: Generates a table of frequency bands for logarithmically spaced divisions.
+    - `_band_mean_power_spectral_density`: Computes the mean power spectral density within specified bands.
+    - `convert_to_millidecade`, `convert_to_decidecade`, `convert_to_third_octave`: Convenience functions to convert
+      spectral density to millidecade, decidecade, and third octave banded spectral densities, respectively.
 
-6. **Spectral Density Aggregation**:
-
-   - `band_aggregate`: Aggregates spectral density data into fractional octave bands using
-     specified statistical methods (e.g., median, mean).
-
-   - `time_aggregate`: Aggregates spectral density data into specified time windows using
-     similar statistical methods.
 """
 
-from typing import Union, Dict, Tuple, Optional
+from typing import Union, Optional
 import warnings
 import numpy as np
 import xarray as xr
 
 from mhkit.dolfyn import VelBinner
-from mhkit.dolfyn.time import epoch2dt64, dt642epoch
 
 
 def _check_numeric(value, name: str):
@@ -141,6 +140,47 @@ def minimum_frequency(
     fmin = c / (4 * water_depth * np.sqrt(1 - (c / c_seabed) ** 2))
 
     return fmin
+
+
+def create_frequency_bands(octave, base, fmin, fmax):
+    """
+    Calculates frequency bands based on the specified octave, minimum and
+    maximum frequency limits.
+
+    Parameters
+    ----------
+    octave: int
+        Octave to subdivide spectral density level by.
+    base : int, optional
+        Octave base. Set to 2 for the true octave band; set to base 10 for
+        the decidecade octave band. Default: 2
+    fmin : int, optional
+        Lower frequency band limit (lower limit of the hydrophone). Default is 10 Hz.
+    fmax : int, optional
+        Upper frequency band limit (Nyquist frequency). Default is 100,000 Hz.
+
+    Returns
+    -------
+    octave_bins: numpy.array
+        Array of octave bin edges
+    band: dict(str, numpy.array)
+        Dictionary containing the frequency band edges and center frequency
+    """
+
+    bandwidth = base ** (1 / octave)
+    half_bandwidth = base ** (1 / (octave * 2))
+
+    band = {}
+    band["center_freq"] = 10 ** np.arange(
+        np.log10(fmin),
+        np.log10(fmax * bandwidth),
+        step=np.log10(bandwidth),
+    )
+    band["lower_limit"] = band["center_freq"] / half_bandwidth
+    band["upper_limit"] = band["center_freq"] * half_bandwidth
+    octave_bins = np.append(band["lower_limit"], band["upper_limit"][-1])
+
+    return octave_bins, band
 
 
 def sound_pressure_spectral_density(
@@ -324,387 +364,333 @@ def apply_calibration(
     return spsd_calibrated
 
 
-def sound_pressure_spectral_density_level(spsd: xr.DataArray) -> xr.DataArray:
+def _get_band_table(
+    fft_bin_size: int,
+    bin1_center_freq: float,
+    fs: float,
+    base: int,
+    bands_per_division: int,
+    first_output_band_center_freq: float,
+    use_fft_res_at_bottom: bool,
+):
     """
-    Calculates the sound pressure spectral density level from
-    the mean square sound pressure spectral density.
+    Returns a three column array with the start, center, stop frequecies for
+    logarthimically spaced frequency bands such as millidecades, decidecades,
+    or third octaves base 2. These tables are passed to
+    `band_squared_sound_pressure` to convert square spectra to band
+    levels. The squared pressure can be converted to power spectral
+    density by dividing by the band_widths.
 
-    Parameters
-    ----------
-    spsd: xarray.DataArray (time, freq)
-        Mean square sound pressure spectral density in Pa^2/Hz
+    Inputs:
+        "fft_bin_size" - the size of the FFT bins in Hz that subsequent
+                  processing of data will use.
+        "bin1_center_freq" - this is the center frequency in Hz of the FFT
+            spectra that will be passed to subsequent processing, normally
+                  this should be zero.
+        "fs" - data sampling frequency in Hz
+        "base" - base for the band levels, generally 10 or 2.
+        "bands_per_division" - the number of bands to divide the spectrum into
+            per increase by a factor of 'base'. A base of 2 and
+            "bands_per_division" of 3 results in third octaves base 2. Base 10
+            and "bands_per_division" of 1000 results in millidecades.
+        "first_output_band_center_freq": this is the frequency where the output
+                  bands will start.
+        "use_fft_res_at_bottom": In some cases, like millidecades, we do not want
+            to have logarithmically spaced frequency bands across the full
+            spectrum, instead we have the option to have bands that are equal
+            'fft_bin_size'. The switch to log spacing is made at the band that
+                  has a bandwidth greater than 'fft_bin_size' and such that the
+            frequency space between band center frequencies is at least
+                  'fft_bin_size'.
 
-    Returns
-    -------
-    spsdl: xarray.DataArray (time, freq)
-        Sound pressure spectral density level [dB re 1 uPa^2/Hz]
-        indexed by time and frequency
-    """
+    Outputs:
+          Three column array where column 1 is the lowest frequency of the
+          band, column 2 is the center frequency, and 3 is the highest
+          frequency
+    Example Usage:
+       fft_bin_size = fs/fftSize # fs is sample rate,
+             fftSize is number of points in your FFT
+       millidecade_bands = get_band_table(fft_bin_size, 0, fs, 10, 1000, 1, 1)
+       decidecade_bands = get_band_table(fft_bin_size, 0, fs, 10, 10, 1, 0)
+       third_octave_bands = get_band_table(fft_bin_size, 0, fs, 2, 3, 1, 0)
 
-    # Reference value of sound pressure
-    reference = 1e-12  # Pa^2 to 1 uPa^2
+    Author: Bruce Martin, JASCO Applied Sciences, Feb 2020.
+             bruce.martin@jasco.com.
+    get_band_table(1, 0, 50000, 10, 1000, 1, 1)
 
-    # Sound pressure spectral density level from mean square values
-    lpf = 10 * np.log10(spsd.values / reference)
-
-    spsdl = xr.DataArray(
-        lpf.astype(np.float32),
-        coords={"time": spsd["time"], "freq": spsd["freq"]},
-        attrs={
-            "units": "dB re 1 uPa^2/Hz",
-            "long_name": "Sound Pressure Spectral Density Level",
-            "time_resolution": spsd.attrs["bin_length"],
-        },
-    )
-
-    return spsdl
-
-
-def _validate_method(
-    method: Union[str, Dict[str, Union[float, int]]],
-) -> Tuple[str, Optional[Union[float, int]]]:
-    """
-    Validates the 'method' parameter and returns the method name and its argument (if any)
-    for an xarray.core.groupby.DataArrayGroupBy method.
-
-    Parameters
-    ----------
-    method : str or dict
-        The aggregation method to validate. It can be either:
-          - A string representing one of the supported methods without additional arguments,
-            e.g., 'mean', 'sum'.
-          - A dictionary with a single key-value pair where the key is the method name and
-            the value is its argument, e.g., {'quantile': 0.25}.
-
-        Supported methods are:
-          - 'all'
-          - 'any'
-          - 'assign_coords' (requires coordinate argument)
-          - 'count'
-          - 'cumprod'
-          - 'fillna'
-          - 'first'
-          - 'last'
-          - 'map' (requires custom function argument)
-          - 'max'
-          - 'mean'
-          - 'median'
-          - 'min'
-          - 'prod'
-          - 'quantile' (requires a quantile between 0 and 1)
-          - 'reduce' (requires custom function argument)
-          - 'std'
-          - 'sum'
-          - 'var'
-          - 'where' (requires condition argument)
-
-    Returns
-    -------
-    method_name : str
-        The validated method name in lowercase.
-    method_arg : float, int, or None
-        The argument associated with the method, if applicableotherwise, None.
-
-    Raises
-    ------
-    ValueError
-        - If the method name is not supported.
-        - If the 'quantile' method is provided without an argument or with an invalid argument.
-        - If the 'method' dictionary does not contain exactly one key-value pair.
-        - If 'method' is of an unsupported type.
-    TypeError
-        - If the key in the 'method' dictionary is not a string.
-
-    Examples
-    --------
-    >>> _validate_method('mean')
-    ('mean', None)
-
-    >>> _validate_method({'quantile': 0.75})
-    ('quantile', 0.75)
-
-    >>> _validate_method('quantile')
-    ValueError: The 'quantile' method must be provided as a dictionary with the quantile value,
-        e.g., {'quantile': 0.25}.
-
-    >>> _validate_method({'quantile': 1.5})
-    ValueError: The 'quantile' method must have a float between 0 and 1 as an argument.
-
-    >>> _validate_method({'unsupported_method': None})
-    ValueError: Method 'unsupported_method' is not supported.
-        Supported methods are:
-        ['median', 'mean', 'min', 'max', 'sum', 'quantile', 'std', 'var', 'count']
+    Converted and adapted to Python by MHKiT Team, May 28, 2026
     """
 
-    allowed_methods = [
-        "all",
-        "any",
-        "assign_coords",
-        "count",
-        "cumsum",
-        "fillna",
-        "first",
-        "last",
-        "map",
-        "max",
-        "mean",
-        "median",
-        "min",
-        "prod",
-        "quantile",
-        "reduce",
-        "sum",
-        "std",
-        "sum",
-        "var",
-        "where",
-    ]
-    if not isinstance(method, (str, dict)):
-        raise TypeError("'method' must be a string or a dictionary.")
-    if isinstance(method, str):
-        method_name = method.lower()
-        if method_name not in allowed_methods:
-            raise ValueError(
-                f"Method '{method}' is not supported. Supported methods are: {allowed_methods}"
+    band_count = 0
+    maxFreq = fs / 2
+    low_side_multiplier = base ** (-1 / (2 * bands_per_division))
+    high_side_multiplier = base ** (1 / (2 * bands_per_division))
+
+    # Count the number of bands:
+    linear_bin_count = 0
+    log_bin_count = 0
+    center_freq = 0
+
+    # For millidecades
+    if use_fft_res_at_bottom:
+        bin_width = 0
+        while bin_width < fft_bin_size:
+            band_count += 1
+            center_freq = first_output_band_center_freq * base ** (
+                band_count / bands_per_division
             )
-        if method_name == "quantile":
-            raise ValueError(
-                "The 'quantile' method must be provided as a dictionary with "
-                "the quantile value, e.g., {'quantile': 0.25}."
+            bin_width = (
+                high_side_multiplier * center_freq - low_side_multiplier * center_freq
             )
-        method_arg = None
-    elif isinstance(method, dict):
-        if len(method) != 1:
-            raise ValueError(
-                "'method' dictionary must contain exactly one key-value pair."
-            )
-        method_name, method_arg = list(method.items())[0]
-        if not isinstance(method_name, str):
-            raise TypeError("Key in 'method' dictionary must be a string.")
-        method_name = method_name.lower()
-        if method_name not in allowed_methods:
-            raise ValueError(
-                f"Method '{method_name}' is not supported. Supported methods are: {allowed_methods}"
-            )
-        if method_name == "quantile":
-            if not isinstance(method_arg, (float, int)) or not 0 <= method_arg <= 1:
-                raise ValueError(
-                    "The 'quantile' method must have a float between 0 and 1 as an argument."
-                )
-    else:
-        raise ValueError(
-            f"Unsupported method type: {type(method)}. Must be a string or dictionary."
+
+        # Now keep counting until the difference between the log spaced
+        # center frequency and new frequency is greater than .025
+        center_freq = first_output_band_center_freq * base ** (
+            band_count / bands_per_division
         )
-    return method_name, method_arg
+        linear_bin_count = np.ceil(center_freq / fft_bin_size)
+        while (linear_bin_count * fft_bin_size - center_freq) > 0:
+            band_count = band_count + 1
+            linear_bin_count = linear_bin_count + 1
+            center_freq = first_output_band_center_freq * base ** (
+                band_count / bands_per_division
+            )
+
+        if (fft_bin_size * linear_bin_count) > maxFreq:
+            linear_bin_count = maxFreq / fft_bin_size + 1
+
+    linear_bin_count = int(linear_bin_count)
+    log_band1 = band_count
+
+    # Count the log space frequencies
+    while maxFreq > center_freq:
+        band_count = band_count + 1
+        log_bin_count = log_bin_count + 1
+        center_freq = first_output_band_center_freq * base ** (
+            band_count / bands_per_division
+        )
+
+    # Generate the linear frequencies (For millidecades)
+    bands = np.zeros(((linear_bin_count + log_bin_count), 3))
+    for i in range(linear_bin_count):
+        bands[i, 1] = bin1_center_freq + i * fft_bin_size
+        bands[i, 0] = bands[i, 1] - fft_bin_size / 2
+        bands[i, 2] = bands[i, 1] + fft_bin_size / 2
+
+    # Generate the log-spaced bands
+    for i in range(log_bin_count):
+        out_band_num = linear_bin_count + i
+        m_dec_num = log_band1 + i
+        bands[out_band_num, 1] = first_output_band_center_freq * base ** (
+            m_dec_num / bands_per_division
+        )
+        bands[out_band_num, 0] = bands[out_band_num, 1] * low_side_multiplier
+        bands[out_band_num, 2] = bands[out_band_num, 1] * high_side_multiplier
+
+    if log_bin_count > 0:
+        bands[out_band_num, 2] = maxFreq
+
+    return bands
 
 
-def _create_frequency_bands(octave, base, fmin, fmax):
+def _band_mean_power_spectral_density(
+    input_spsd,
+    fft_bin_size,
+    bin1_center_freq,
+    first_band_idx,
+    last_band_idx,
+    freq_table,
+):
     """
-    Calculates frequency bands based on the specified octave, minimum and
-    maximum frequency limits.
+    Sums squared sound pressures to determine the in-band totals then divides by the
+    band_widths to get PSD. The band edges are normally obtained from a call to `get_band_table`
+    `band_squared_sound_pressure` is called to get the band SPLs
 
-    Parameters
-    ----------
-    octave: int
-        Octave to subdivide spectral density level by.
-    base : int, optional
-        Octave base. Set to 2 for the true octave band; set to base 10 for
-        the decidecade octave band. Default: 2
-    fmin : int, optional
-        Lower frequency band limit (lower limit of the hydrophone). Default is 10 Hz.
-    fmax : int, optional
-        Upper frequency band limit (Nyquist frequency). Default is 100,000 Hz.
+    Note that the output of `band_squared_sound_pressure` should satisfy
+    Parseval's theorem, but the output of `band_mean_power_spectral_density`
+    will not unless the bands are re-multiplied by the band widths.
+    Results are returned as linear units, not levels.
 
-    Returns
-    -------
-    octave_bins: numpy.array
-        Array of octave bin edges
-    band: dict(str, numpy.array)
-        Dictionary containing the frequency band edges and center frequency
+    Inputs:
+        "input_spsd" - array of squared pressures from an FFT with a frequency
+              step size index 1 (rows) are time, index 2 (columns) are freq.
+        "fft_bin_size" - the size of the FFT bins in Hz.
+        "bin1_center_freq": the freq in Hz of the first element of the FFT
+              array - normally this is frequency zero.
+        "first_band_idx": the index in 'freq_table' of the first band to compute and
+              output
+        "last_band_idx": the index in 'freq_table' of the last band to compute and
+            output
+        "freq_table" - the list of band edges - Nx3 array where column 1 is the
+            lowest band frquency, column 2 is the center frequency and 3 is
+                  the maximum.
+
+    Outputs:  band squared sound pressure array with the same number of rows as
+         input_spsd and one column per band.
+
+    Bruce Martin, JASCO Applied Sciences, Feb 2020.
+
+    Converted and adapted to Python by MHKiT Team, May 28, 2026
     """
 
-    bandwidth = base ** (1 / octave)
-    half_bandwidth = base ** (1 / (octave * 2))
+    out_spsd = np.zeros((input_spsd.shape[0], last_band_idx - first_band_idx))
+    step = fft_bin_size / 2
+    n_fft_bins = input_spsd.shape[1]
+    start_offset = np.floor(bin1_center_freq / fft_bin_size)
 
-    band = {}
-    band["center_freq"] = 10 ** np.arange(
-        np.log10(fmin),
-        np.log10(fmax * bandwidth),
-        step=np.log10(bandwidth),
-    )
-    band["lower_limit"] = band["center_freq"] / half_bandwidth
-    band["upper_limit"] = band["center_freq"] * half_bandwidth
-    octave_bins = np.append(band["lower_limit"], band["upper_limit"][-1])
-
-    return octave_bins, band
-
-
-def band_aggregate(
-    spsdl: xr.DataArray,
-    octave: Tuple[int, int] = None,
-    fmin: int = 10,
-    fmax: int = 100000,
-    method: Union[str, Dict[str, Union[float, int]]] = "median",
-) -> xr.DataArray:
-    """
-    Reorganizes spectral density level frequency tensor into
-    fractional octave bands and applies a function to them.
-
-    Parameters
-    ----------
-    spsdl: xarray.DataArray (time, freq)
-        Mean square sound pressure spectral density level in dB rel 1 uPa^2/Hz
-    octave: [int, int]
-        Octave and octave base to subdivide spectral density level by. Set to
-        octave base to 2 for the true octave band; set to base 10 for
-        the decidecade octave band.
-        Default = [3, 2] (true third octave)
-    fmin: int
-        Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
-    fmax: int
-        Upper frequency band limit (Nyquist frequency). Default: 100000 Hz
-    method: str or dict
-        Method to run on the binned data. Can be a string (e.g., "median") or a dict
-        where the key is the method and the value is its argument (e.g., {"quantile": 0.25}).
-        Options: [median, mean, min, max, sum, quantile, std, var, count]
-
-    Returns
-    -------
-    out: xarray.DataArray (time, freq_bins)
-        Frequency band-averaged sound pressure spectral density level [dB re 1 uPa^2/Hz]
-        indexed by time and frequency
-    """
-
-    # Type checks
-    if not isinstance(spsdl, xr.DataArray):
-        raise TypeError("'spsdl' must be an xarray.DataArray.")
-    if octave is None:
-        octave = [3, 2]
-    if not isinstance(octave, list) and not isinstance(octave, tuple):
-        raise TypeError("'octave' must be a list or tuple of two integers.")
-    for val in octave:
-        if not isinstance(val, int) or (val <= 0):
-            raise TypeError("'octave' must contain positive integers.")
-    _check_numeric(fmin, "fmin")
-    _check_numeric(fmax, "fmax")
-    if fmax <= fmin:  # also checks that fmax is positive
-        raise ValueError("'fmax' must be greater than 'fmin'.")
-
-    # Value checks
-    if ("freq" not in spsdl.dims) or ("time" not in spsdl.dims):
-        raise ValueError("'spsdl' must have 'time' and 'freq' as dimensions.")
-
-    # Validate method and get method_name and method_arg
-    method_name, method_arg = _validate_method(method)
-
-    # Check fmax
-    fn = spsdl["freq"].max().values
-    fmax = _fmax_warning(fn, fmax)
-
-    octave_bins, band = _create_frequency_bands(octave[0], octave[1], fmin, fmax)
-
-    # Use xarray binning methods
-    spsdl_group = spsdl.groupby_bins("freq", octave_bins, labels=band["center_freq"])
-
-    # Handle method being a string or a dict
-    if isinstance(method, str):
-        func = getattr(spsdl_group, method.lower())
-        out = func()
-    else:
-        method_name, method_arg = list(method.items())[0]
-        func = getattr(spsdl_group, method_name.lower())
-        if isinstance(method_arg, (list, tuple)):
-            out = func(*method_arg)
+    for j in range(first_band_idx, last_band_idx):
+        min_fft_bin = int(
+            np.floor((freq_table[j, 0] / fft_bin_size) + step) + 1 - start_offset
+        )
+        max_fft_bin = int(
+            np.floor((freq_table[j, 2] / fft_bin_size) + step) - start_offset
+        )
+        if max_fft_bin > n_fft_bins:
+            max_fft_bin = n_fft_bins
+        if min_fft_bin < 0:
+            min_fft_bin = 0
+        if min_fft_bin == max_fft_bin:
+            out_spsd[:, j] = input_spsd[:, min_fft_bin] * (
+                (freq_table[j, 2] - freq_table[j, 0]) / fft_bin_size
+            )
         else:
-            out = func(method_arg)
+            # Add the first partial FFT bin - take the top of the bin and
+            # subtract the lower freq to get the amount we will use:
+            # the top freq of a bin is bin# * step size - binSize/2 since bin
+            # centers are at bin# * step size. We also need to subtract the start
+            # offset to get the correct bin number since the first bin may not be at 0 Hz.
+            lower_factor = (min_fft_bin + 1 - step) * fft_bin_size - freq_table[j, 0]
+            out_spsd[:, j] = input_spsd[:, min_fft_bin] * lower_factor
 
-    # Update attributes
-    out.attrs["units"] = spsdl.units
+            # Add the last partial FFT bin.
+            upper_factor = (
+                freq_table[j, 2] - (max_fft_bin + 1 - 1.5 * fft_bin_size) * fft_bin_size
+            )
+            out_spsd[:, j] = out_spsd[:, j] + input_spsd[:, max_fft_bin] * upper_factor
+            #
+            # Add any FFT bins in between min and max.
+            if (max_fft_bin - min_fft_bin) > 1:
+                out_spsd[:, j] += np.nansum(
+                    input_spsd[:, np.arange(min_fft_bin + 1, max_fft_bin)], axis=1
+                )
+
+    # Take means
+    band_widths = freq_table[:, 2] - freq_table[:, 0]
+    out_spsd /= band_widths
+
+    return out_spsd
+
+
+def _convert_to_band_spectral_density(
+    spsd: xr.DataArray, base: int, bands_per_division: int, use_fft_res_at_bottom: bool
+) -> xr.DataArray:
+    """Convert sound pressure spectral density to banded spectral density based on
+    the specified base and bands per division.
+
+    Args:
+        spsd (xr.DataArray): DataArray with frequency dimension.
+        base (int): Base for the band levels, generally 10 or 2.
+        bands_per_division (int): The number of bands to divide the spectrum into
+            per increase by a factor of 'base'. A base of 2 and
+            "bands_per_division" of 3 results in third octaves base 2. Base 10
+            and "bands_per_division" of 1000 results in millidecades.
+        use_fft_res_at_bottom (bool): In some cases, like millidecades, we do not want
+            to have logarithmically spaced frequency bands across the full
+            spectrum, instead we have the option to have bands that are equal
+            'fft_bin_size'. The switch to log spacing is made at the band that
+                  has a bandwidth greater than 'fft_bin_size' and such that the
+            frequency space between band center frequencies is at least
+                  'fft_bin_size'.
+
+    Returns:
+        xr.DataArray: DataArray with frequency dimension converted to banded spectral density.
+    """
+    # Get original frequencies
+    freq = spsd["freq"].values
+    # Get bands
+    bands = _get_band_table(
+        fft_bin_size=freq[1] - freq[0],
+        bin1_center_freq=freq[0],
+        fs=spsd.fs,
+        base=base,
+        bands_per_division=bands_per_division,
+        first_output_band_center_freq=freq[0],
+        use_fft_res_at_bottom=use_fft_res_at_bottom,
+    )
+    band_spsd = _band_mean_power_spectral_density(
+        spsd.values,
+        fft_bin_size=freq[1] - freq[0],
+        bin1_center_freq=freq[0],
+        first_band_idx=0,
+        last_band_idx=bands.shape[0],
+        freq_table=bands,
+    )
+    out = xr.DataArray(
+        band_spsd,
+        coords={"time": spsd["time"], "freq": bands[:, 1]},
+        dims=["time", "freq"],
+        attrs=spsd.attrs,
+    )
 
     return out
 
 
-def time_aggregate(
-    spsdl: xr.DataArray,
-    window: int = 60,
-    method: Union[str, Dict[str, Union[float, int]]] = "median",
+def convert_to_millidecade(spsd: xr.DataArray) -> xr.DataArray:
+    """Convert sound pressure spectral density to millidecade spacing with base 10."""
+
+    out = _convert_to_band_spectral_density(
+        spsd=spsd, base=10, bands_per_division=1000, use_fft_res_at_bottom=True
+    )
+    return out
+
+
+def convert_to_third_octave(spsd: xr.DataArray) -> xr.DataArray:
+    """Convert sound pressure spectral density to third octave spacing with base 2."""
+
+    out = _convert_to_band_spectral_density(
+        spsd=spsd, base=2, bands_per_division=3, use_fft_res_at_bottom=False
+    )
+    return out
+
+
+def convert_to_decidecade(spsd: xr.DataArray) -> xr.DataArray:
+    """Convert sound pressure spectral density to decidecade spacing with base 10."""
+
+    out = _convert_to_band_spectral_density(
+        spsd=spsd, base=10, bands_per_division=10, use_fft_res_at_bottom=False
+    )
+    return out
+
+
+def convert_to_custom_bands(
+    spsd: xr.DataArray,
+    base: int,
+    bands_per_division: int,
+    use_fft_res_at_bottom: bool = False,
 ) -> xr.DataArray:
-    """
-    Reorganizes spectral density level frequency tensor into
-    time windows and applies a function to them.
-
-    If the window length is equivalent to the size of spsdl["time"],
-    this function is equivalent to spsdl.<method>("time")
-
-    Parameters
-    ----------
-    spsdl: xarray.DataArray (time, freq)
-        Mean square sound pressure spectral density level in dB rel 1 uPa^2/Hz
-    window: int
-        Time in seconds to subdivide spectral density level into. Default: 60 s.
-    method: str or dict
-        Method to run on the binned data. Can be a string (e.g., "median") or a dict
-        where the key is the method and the value is its argument (e.g., {"quantile": 0.25}).
-        Options: [median, mean, min, max, sum, quantile, std, var, count]
-
-    Returns
-    -------
-    out: xarray.DataArray (time_bins, freq)
-        Time-averaged sound pressure spectral density level [dB re 1 uPa^2/Hz]
-        indexed by time and frequency
+    """Convert sound pressure spectral density to custom band spacing based on specified parameters.
+    Parameters:
+        spsd (xr.DataArray): DataArray with frequency dimension.
+        base (int): Base for the band levels, generally 10 or 2.
+        bands_per_division (int): The number of bands to divide the spectrum into
+            per increase by a factor of 'base'. A base of 2 and
+            "bands_per_division" of 3 results in third octaves. Base 10
+            and "bands_per_division" of 1000 results in millidecades.
+        use_fft_res_at_bottom (bool): In some cases, like millidecades, we do not want
+            to have logarithmically spaced frequency bands across the full
+            spectrum, instead we have the option to have bands that are equal
+            'fft_bin_size'. The switch to log spacing is made at the band that
+            has a bandwidth greater than 'fft_bin_size' and such that the
+            frequency space between band center frequencies is at least
+            'fft_bin_size'.
+    Returns:
+        xr.DataArray: DataArray with frequency dimension converted to custom banded spectral density.
     """
 
-    # Type checks
-    if not isinstance(spsdl, xr.DataArray):
-        raise TypeError("'spsdl' must be an xarray.DataArray.")
-    if not isinstance(window, int):
-        raise TypeError("'window' must be an integer.")
-    if not isinstance(method, (str, dict)):
-        raise TypeError("'method' must be a string or dictionary.")
-    if "time" not in spsdl.dims:
-        raise ValueError("'spsdl' must have 'time' dimension.")
-
-    # Value checks
-    if window <= 0:
-        raise ValueError("'window' must be a positive integer.")
-
-    # Ensure 'time' coordinate is of datetime64 dtype
-    if not np.issubdtype(spsdl["time"].dtype, np.datetime64):
-        raise TypeError("'spsdl['time']' must be of dtype 'datetime64'.")
-
-    # Validate method and get method_name and method_arg
-    method_name, method_arg = _validate_method(method)
-
-    window = np.timedelta64(window, "s")
-    time_bins_lower = np.arange(
-        spsdl["time"][0].values, spsdl["time"][-1].values, window
+    out = _convert_to_band_spectral_density(
+        spsd=spsd,
+        base=base,
+        bands_per_division=bands_per_division,
+        use_fft_res_at_bottom=use_fft_res_at_bottom,
     )
-    time_bins_upper = time_bins_lower + window
-    time_bins = np.append(time_bins_lower, time_bins_upper[-1])
-    center_time = epoch2dt64(
-        0.5 * (dt642epoch(time_bins_lower) + dt642epoch(time_bins_upper))
-    )
-
-    # Use xarray binning methods
-    spsdl_group = spsdl.groupby_bins("time", time_bins, labels=center_time)
-
-    # Handle method being a string or a dict
-    if isinstance(method, str):
-        func = getattr(spsdl_group, method.lower())
-        out = func()
-    else:
-        method_name, method_arg = list(method.items())[0]
-        func = getattr(spsdl_group, method_name.lower())
-        if isinstance(method_arg, (list, tuple)):
-            out = func(*method_arg)
-        else:
-            out = func(method_arg)
-
-    # Update attributes
-    out.attrs["units"] = spsdl.units
-
-    # Remove 'quantile' coordinate if present
-    if method == "quantile":
-        out = out.drop_vars("quantile")
-
     return out

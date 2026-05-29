@@ -19,7 +19,7 @@ from sound pressure data.
 import numpy as np
 import xarray as xr
 
-from .analysis import _check_numeric, _fmax_warning, _create_frequency_bands
+from .analysis import _check_numeric, _fmax_warning, create_frequency_bands
 
 
 def _argument_check(spsd, fmin, fmax):
@@ -168,7 +168,7 @@ def _band_sound_pressure_level(
     # Reference value of sound pressure
     reference = 1e-12  # Pa^2, = 1 uPa^2
 
-    _, band = _create_frequency_bands(octave, base, fmin, fmax)
+    _, band = create_frequency_bands(octave, base, fmin, fmax)
 
     # Manual trapezoidal rule to get Pa^2
     pressure_squared = xr.DataArray(
@@ -227,6 +227,7 @@ def third_octave_sound_pressure_level(
     mspl: xarray.DataArray (time, freq_bins)
         Sound pressure level [dB re 1 uPa] indexed by time and third octave bands
     """
+
     octave = 3
     base = 2
     mspl = _band_sound_pressure_level(spsd, octave, base, fmin, fmax)
