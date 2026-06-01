@@ -6,7 +6,6 @@ import unittest
 
 import mhkit.acoustics as acoustics
 
-
 testdir = dirname(abspath(__file__))
 plotdir = join(testdir, "plots")
 isdir = os.path.isdir(plotdir)
@@ -224,7 +223,7 @@ class TestAnalysis(unittest.TestCase):
         """
         Test the validation of the 'method' parameter in band_aggregate or time_aggregate.
         """
-        from mhkit.acoustics.analysis import _validate_method
+        from mhkit.acoustics.spsdl import _validate_method
 
         # Valid method string
         method_name, method_arg = _validate_method("median")

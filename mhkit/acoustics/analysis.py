@@ -20,7 +20,8 @@ The following functionality is provided:
 3. **Calculation of Frequency Bands**:
 
     - `create_frequency_bands`: Generates frequency bands based on specified octave divisions,
-      minimum and maximum frequency limits, and the chosen base (e.g., 2 for octaves, 10 for decades).
+      minimum and maximum frequency limits, and the chosen base
+      (e.g., 2 for octaves, 10 for decades).
 
 4. **Sound Pressure Spectral Density Calculation**:
 
@@ -34,10 +35,13 @@ The following functionality is provided:
 
 6. **Band-Averaged Spectral Density**:
 
-    - `_get_band_table`: Generates a table of frequency bands for logarithmically spaced divisions.
-    - `_band_mean_power_spectral_density`: Computes the mean power spectral density within specified bands.
-    - `convert_to_millidecade`, `convert_to_decidecade`, `convert_to_third_octave`: Convenience functions to convert
-      spectral density to millidecade, decidecade, and third octave banded spectral densities, respectively.
+    - `_get_band_table`: Generates a table of frequency bands for logarithmically
+      spaced divisions.
+    - `_band_mean_power_spectral_density`: Computes the mean power spectral density
+      within specified bands.
+    - `convert_to_millidecade`, `convert_to_decidecade`, `convert_to_third_octave`:
+      Convenience functions to convert spectral density to millidecade, decidecade,
+      and third octave banded spectral densities, respectively.
 
 """
 
@@ -421,8 +425,9 @@ def _get_band_table(
     Converted and adapted to Python by MHKiT Team, May 28, 2026
     """
 
+    ## For millidecades
     band_count = 0
-    maxFreq = fs / 2
+    max_freq = fs / 2
     low_side_multiplier = base ** (-1 / (2 * bands_per_division))
     high_side_multiplier = base ** (1 / (2 * bands_per_division))
 
@@ -431,7 +436,6 @@ def _get_band_table(
     log_bin_count = 0
     center_freq = 0
 
-    # For millidecades
     if use_fft_res_at_bottom:
         bin_width = 0
         while bin_width < fft_bin_size:
@@ -456,39 +460,42 @@ def _get_band_table(
                 band_count / bands_per_division
             )
 
-        if (fft_bin_size * linear_bin_count) > maxFreq:
-            linear_bin_count = maxFreq / fft_bin_size + 1
+        if (fft_bin_size * linear_bin_count) > max_freq:
+            linear_bin_count = max_freq / fft_bin_size + 1
 
     linear_bin_count = int(linear_bin_count)
-    log_band1 = band_count
 
     # Count the log space frequencies
-    while maxFreq > center_freq:
+    while max_freq > center_freq:
         band_count = band_count + 1
         log_bin_count = log_bin_count + 1
         center_freq = first_output_band_center_freq * base ** (
             band_count / bands_per_division
         )
 
-    # Generate the linear frequencies (For millidecades)
+    # Generate the linear frequencies
     bands = np.zeros(((linear_bin_count + log_bin_count), 3))
     for i in range(linear_bin_count):
         bands[i, 1] = bin1_center_freq + i * fft_bin_size
         bands[i, 0] = bands[i, 1] - fft_bin_size / 2
         bands[i, 2] = bands[i, 1] + fft_bin_size / 2
 
-    # Generate the log-spaced bands
-    for i in range(log_bin_count):
-        out_band_num = linear_bin_count + i
-        m_dec_num = log_band1 + i
-        bands[out_band_num, 1] = first_output_band_center_freq * base ** (
-            m_dec_num / bands_per_division
-        )
-        bands[out_band_num, 0] = bands[out_band_num, 1] * low_side_multiplier
-        bands[out_band_num, 2] = bands[out_band_num, 1] * high_side_multiplier
+    ## Generate the log-spaced bands (for all other band types)
+    _, band_dict = create_frequency_bands(
+        octave=bands_per_division,
+        base=base,
+        fmin=max(bands[linear_bin_count, 1], 1),
+        fmax=max_freq,
+    )
+    # Convert to array
+    log_bands = np.column_stack(
+        (band_dict["lower_limit"], band_dict["center_freq"], band_dict["upper_limit"])
+    )
+    # Store the log spaced bands in the output array
+    bands[linear_bin_count:, :] = log_bands[:log_bin_count, :]
 
     if log_bin_count > 0:
-        bands[out_band_num, 2] = maxFreq
+        bands[-1, 2] = max_freq
 
     return bands
 
@@ -545,10 +552,8 @@ def _band_mean_power_spectral_density(
         max_fft_bin = int(
             np.floor((freq_table[j, 2] / fft_bin_size) + step) - start_offset
         )
-        if max_fft_bin > n_fft_bins:
-            max_fft_bin = n_fft_bins
-        if min_fft_bin < 0:
-            min_fft_bin = 0
+        max_fft_bin = min(max_fft_bin, n_fft_bins)
+        min_fft_bin = max(min_fft_bin, 0)
         if min_fft_bin == max_fft_bin:
             out_spsd[:, j] = input_spsd[:, min_fft_bin] * (
                 (freq_table[j, 2] - freq_table[j, 0]) / fft_bin_size
@@ -668,8 +673,12 @@ def convert_to_custom_bands(
     bands_per_division: int,
     use_fft_res_at_bottom: bool = False,
 ) -> xr.DataArray:
-    """Convert sound pressure spectral density to custom band spacing based on specified parameters.
-    Parameters:
+    """
+    Convert sound pressure spectral density to custom band spacing based on specified
+    parameters.
+
+    Parameters
+    ----------
         spsd (xr.DataArray): DataArray with frequency dimension.
         base (int): Base for the band levels, generally 10 or 2.
         bands_per_division (int): The number of bands to divide the spectrum into
@@ -683,8 +692,10 @@ def convert_to_custom_bands(
             has a bandwidth greater than 'fft_bin_size' and such that the
             frequency space between band center frequencies is at least
             'fft_bin_size'.
-    Returns:
-        xr.DataArray: DataArray with frequency dimension converted to custom banded spectral density.
+    Returns
+    -------
+        xr.DataArray: DataArray with frequency dimension converted to custom banded spectral
+            density.
     """
 
     out = _convert_to_band_spectral_density(

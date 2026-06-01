@@ -233,11 +233,12 @@ def band_aggregate(
     """
     warnings.warn(
         "The 'band_aggregate' function is deprecated and will be removed in a future release. "
-        "Please use one of the following alternatives instead to convert the SPSD to the appropriate\n"
-        "band before calculating the SPSDL using 'sound_pressure_spectral_density_level':\n"
-        "- For third octave band aggregation, use 'mhkit.acoustics.convert_to_third_octave' function.\n"
-        "- For decidecade octave band aggregation, use 'mhkit.acoustics.convert_to_decidecade' function.\n"
-        "- For millidecade octave band aggregation, use 'mhkit.acoustics.convert_to_millidecade' function.\n"
+        "Please use one of the following alternatives instead to convert the SPSD to the \n"
+        "appropriate band before calculating the SPSDL using \n"
+        "'sound_pressure_spectral_density_level':\n"
+        "- For third octaves, use 'mhkit.acoustics.convert_to_third_octave' function.\n"
+        "- For decidecades, use 'mhkit.acoustics.convert_to_decidecade' function.\n"
+        "- For millidecades, use 'mhkit.acoustics.convert_to_millidecade' function.\n"
         "- For custom band aggregation, use 'mhkit.acoustics.convert_to_custom_bands.'\n",
         DeprecationWarning,
         stacklevel=2,
@@ -298,7 +299,7 @@ def time_aggregate(
     method: Union[str, Dict[str, Union[float, int]]] = "median",
 ) -> xr.DataArray:
     """
-    Reorganizes spectral density level frequency tensor into
+    Deprecated. Reorganizes spectral density level frequency tensor into
     time windows and applies a function to them.
 
     If the window length is equivalent to the size of spsdl["time"],
@@ -321,6 +322,18 @@ def time_aggregate(
         Time-averaged sound pressure spectral density level [dB re 1 uPa^2/Hz]
         indexed by time and frequency
     """
+    warnings.warn(
+        "The 'time_aggregate' function is deprecated and will be removed in a future release. "
+        "Please use one of the following alternatives instead to convert the SPSD to the \n"
+        "appropriate time-aggregated form before calculating the SPSDL using \n"
+        "'sound_pressure_spectral_density_level':\n"
+        "- For time-averaged SPSDLs, use the 'mhkit.acoustics.time_average' function.\n"
+        "- For time-summed SPSDLs, use the 'mhkit.acoustics.time_summation' function.\n"
+        "If you are using this function for a different purpose, please reach out to the MHKiT \n"
+        "developers to discuss how we can support your use case with a more specific function.\n",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
     # Type checks
     if not isinstance(spsdl, xr.DataArray):
@@ -384,6 +397,19 @@ def time_average(spsdl, window):
     spectral average of all of the inputs along the time dimension. This is effectively
     time-averaging the original SPSDs.
     Note: 'window' must be larger than the original 'bin_length' of the SPSD
+
+    Parameters
+    ----------
+    spsdl: xarray.DataArray
+        Sound pressure spectral density level with dimensions (time, freq)
+    window: int
+        Time in seconds to group spectral density level into.
+
+    Returns
+    -------
+    xarray.DataArray
+        Time-averaged sound pressure spectral density level [dB re 1 uPa^2/Hz] indexed
+        by time and frequency
     """
 
     def spectral_average(x):
@@ -408,6 +434,19 @@ def time_summation(spsdl, window):
     `mhkit.acoustics.sound_presssure_spectral_density` with 'bin_length=window' instead
     of the original 'bin_length'.
     Note: 'window' must be larger than the original 'bin_length' of the SPSD
+
+    Parameters
+    ----------
+    spsdl: xarray.DataArray
+        Sound pressure spectral density level with dimensions (time, freq)
+    window: int
+        Time in seconds to group spectral density level into.
+
+    Returns
+    -------
+    xarray.DataArray
+        Time-summed sound pressure spectral density level [dB re 1 uPa^2/Hz] indexed
+        by time and frequency
     """
 
     def spectral_sum(x):
