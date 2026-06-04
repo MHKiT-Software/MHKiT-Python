@@ -522,18 +522,20 @@ def _band_mean_power_spectral_density(
     """
 
     fft_bin_size = original_freq[1] - original_freq[0]
+    start_offset = int(np.floor(original_freq[0] / fft_bin_size))
     out_spsd = np.zeros((input_spsd.shape[0], freq_table.shape[0]))
     step = fft_bin_size / 2
     n_fft_bins = input_spsd.shape[1]
 
-    # Something strange going on here with the indexing and the step and start_offset,
-    # but this is what Bruce's original code does and it seems to work, so I have left
-    # it as is.
-    # Primarily, the "min_fft_bin" and "max_fft_bin" are combinations of both an FFT
-    # frequency and an array index, which is confusing
+    # Something strange going on here, primarily, the "min_fft_bin" and "max_fft_bin"
+    # are combinations of both an FFT frequency and an array index, which is confusing
     for j in range(freq_table.shape[0]):
-        min_fft_bin = int(np.floor((freq_table[j, 0] / fft_bin_size) + step))
-        max_fft_bin = int(np.floor((freq_table[j, 2] / fft_bin_size) + step))
+        min_fft_bin = (
+            int(np.floor((freq_table[j, 0] / fft_bin_size) + step)) + 1 - start_offset
+        )
+        max_fft_bin = (
+            int(np.floor((freq_table[j, 2] / fft_bin_size) + step)) + 1 - start_offset
+        )
         max_fft_bin = min(max_fft_bin, n_fft_bins)
         min_fft_bin = max(min_fft_bin, 0)
         if min_fft_bin == max_fft_bin:
