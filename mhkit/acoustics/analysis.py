@@ -369,77 +369,66 @@ def apply_calibration(
 
 
 def _get_band_table(
-    fft_bin_size: int,
-    bin1_center_freq: float,
-    fs: float,
+    freq: np.ndarray,
     base: int,
     bands_per_division: int,
-    first_output_band_center_freq: float,
     use_fft_res_at_bottom: bool,
 ):
     """
-    Returns a three column array with the start, center, stop frequecies for
-    logarthimically spaced frequency bands such as millidecades, decidecades,
+    Returns a three column array with the start, center, stop frequencies for
+    logarithmically spaced frequency bands such as millidecades, decidecades,
     or third octaves base 2. These tables are passed to
     `band_squared_sound_pressure` to convert square spectra to band
     levels. The squared pressure can be converted to power spectral
     density by dividing by the band_widths.
 
-    Inputs:
-        "fft_bin_size" - the size of the FFT bins in Hz that subsequent
-                  processing of data will use.
-        "bin1_center_freq" - this is the center frequency in Hz of the FFT
-            spectra that will be passed to subsequent processing, normally
-                  this should be zero.
-        "fs" - data sampling frequency in Hz
-        "base" - base for the band levels, generally 10 or 2.
-        "bands_per_division" - the number of bands to divide the spectrum into
-            per increase by a factor of 'base'. A base of 2 and
-            "bands_per_division" of 3 results in third octaves base 2. Base 10
-            and "bands_per_division" of 1000 results in millidecades.
-        "first_output_band_center_freq": this is the frequency where the output
-                  bands will start.
-        "use_fft_res_at_bottom": In some cases, like millidecades, we do not want
-            to have logarithmically spaced frequency bands across the full
-            spectrum, instead we have the option to have bands that are equal
-            'fft_bin_size'. The switch to log spacing is made at the band that
-                  has a bandwidth greater than 'fft_bin_size' and such that the
-            frequency space between band center frequencies is at least
-                  'fft_bin_size'.
+    Parameters:
+        freq : np.ndarray
+            Array of frequency values in Hz from the FFT.
+        base : int
+            Base for the band levels, generally 10 or 2.
+        bands_per_division : int
+            The number of bands to divide the spectrum into per increase by
+            a factor of 'base'. A base of 2 and bands_per_division of 3
+            results in third octaves base 2. Base 10 and bands_per_division
+            of 1000 results in millidecades.
+        use_fft_res_at_bottom : bool
+            In some cases, like millidecades, we do not want to have
+            logarithmically spaced frequency bands across the full spectrum.
+            When True, bands at lower frequencies use linear spacing (equal
+            to the FFT bin size), and transition to log spacing at the band
+            where the bandwidth exceeds the FFT bin size and the frequency
+            space between band center frequencies is at least the FFT bin size.
 
-    Outputs:
-          Three column array where column 1 is the lowest frequency of the
-          band, column 2 is the center frequency, and 3 is the highest
-          frequency
-    Example Usage:
-       fft_bin_size = fs/fftSize # fs is sample rate,
-             fftSize is number of points in your FFT
-       millidecade_bands = get_band_table(fft_bin_size, 0, fs, 10, 1000, 1, 1)
-       decidecade_bands = get_band_table(fft_bin_size, 0, fs, 10, 10, 1, 0)
-       third_octave_bands = get_band_table(fft_bin_size, 0, fs, 2, 3, 1, 0)
+    Returns:
+        Three column array where column 1 is the lowest frequency of the
+        band, column 2 is the center frequency, and column 3 is the highest
+        frequency.
 
-    Author: Bruce Martin, JASCO Applied Sciences, Feb 2020.
-             bruce.martin@jasco.com.
-    get_band_table(1, 0, 50000, 10, 1000, 1, 1)
+    Originally created by Bruce Martin, JASCO Applied Sciences, Feb 2020.
+        bruce.martin@jasco.com.
 
-    Converted and adapted to Python by MHKiT Team, May 28, 2026
+    Converted to Python and refactored by MHKiT Team, June, 2026
     """
 
     band_count = 0
-    max_freq = fs / 2
     linear_bin_count = 0
     log_bin_count = 0
-    center_freq = 0
     max_linear_bin_hz = 0
 
-    # Generate the log-spaced bands (for all other band types)
+    fft_bin_size = freq[1] - freq[0]
+    bin1_center_freq = freq[0]
+    max_freq = freq[-1]
+
+    # Generate the log-spaced bands
     _, band_dict = create_frequency_bands(
         octave=bands_per_division,
         base=base,
-        fmin=first_output_band_center_freq,
-        fmax=max_freq,
+        fmin=freq[0],
+        fmax=freq[-1],
     )
 
+    # For millidecades and similar
     if use_fft_res_at_bottom:
         # Find the first band where the bandwidth is greater than the FFT bin size
         # and the frequency space between band center frequencies is at least the FFT bin size
@@ -452,9 +441,7 @@ def _get_band_table(
         while (max_linear_bin_hz * fft_bin_size - center_freq) > 0:
             band_count += 1
             max_linear_bin_hz += 1
-            center_freq = first_output_band_center_freq * base ** (
-                band_count / bands_per_division
-            )
+            center_freq = bin1_center_freq * base ** (band_count / bands_per_division)
 
         if (fft_bin_size * max_linear_bin_hz) > max_freq:
             max_linear_bin_hz = max_freq / fft_bin_size + 1
@@ -502,44 +489,43 @@ def _get_band_table(
 
 def _band_mean_power_spectral_density(
     input_spsd,
-    fft_bin_size,
-    bin1_center_freq,
-    first_band_idx,
-    last_band_idx,
+    original_freq,
     freq_table,
 ):
     """
     Sums squared sound pressures to determine the in-band totals then divides by the
-    band_widths to get PSD. The band edges are normally obtained from a call to `get_band_table`
-    `band_squared_sound_pressure` is called to get the band SPLs
+    band_widths to get PSD. The band edges are normally obtained from a call to `get_band_table`.
 
     Note that the output of `band_squared_sound_pressure` should satisfy
     Parseval's theorem, but the output of `band_mean_power_spectral_density`
     will not unless the bands are re-multiplied by the band widths.
     Results are returned as linear units, not levels.
 
-    Inputs:
-        "input_spsd" - array of squared pressures from an FFT with a frequency
-              step size index 1 (rows) are time, index 2 (columns) are freq.
-        "fft_bin_size" - the size of the FFT bins in Hz.
-        "bin1_center_freq": the freq in Hz of the first element of the FFT
-              array - normally this is frequency zero.
-        "first_band_idx": the index in 'freq_table' of the first band to compute and
-              output
-        "last_band_idx": the index in 'freq_table' of the last band to compute and
-            output
-        "freq_table" - the list of band edges - Nx3 array where column 1 is the
-            lowest band frquency, column 2 is the center frequency and 3 is
-                  the maximum.
+    Parameters:
+        input_spsd : ndarray
+            Array of squared pressures from an FFT with frequency step size.
+            Rows represent time, columns represent frequency.
+        original_freq : ndarray
+            Frequency array from the FFT used to determine fft_bin_size.
+        freq_table : ndarray
+            Nx3 array where column 0 is the lowest band frequency, column 1 is
+            the center frequency, and column 2 is the maximum frequency.
 
-    Outputs:  band squared sound pressure array with the same number of rows as
-         input_spsd and one column per band.
+    Returns:
+        ndarray
+            Band squared sound pressure array with the same number of rows as
+            input_spsd and one column per band.
 
     Bruce Martin, JASCO Applied Sciences, Feb 2020.
 
-    Converted and adapted to Python by MHKiT Team, May 28, 2026
+    Converted to Python and refactored by MHKiT Team, June 2026.
     """
 
+    fft_bin_size = original_freq[1] - original_freq[0]
+    bin1_center_freq = original_freq[0]
+
+    first_band_idx = 0
+    last_band_idx = freq_table.shape[0]
     out_spsd = np.zeros((input_spsd.shape[0], last_band_idx - first_band_idx))
     step = fft_bin_size / 2
     n_fft_bins = input_spsd.shape[1]
@@ -592,42 +578,41 @@ def _convert_to_band_spectral_density(
     """Convert sound pressure spectral density to banded spectral density based on
     the specified base and bands per division.
 
-    Args:
-        spsd (xr.DataArray): DataArray with frequency dimension.
-        base (int): Base for the band levels, generally 10 or 2.
-        bands_per_division (int): The number of bands to divide the spectrum into
-            per increase by a factor of 'base'. A base of 2 and
-            "bands_per_division" of 3 results in third octaves base 2. Base 10
-            and "bands_per_division" of 1000 results in millidecades.
-        use_fft_res_at_bottom (bool): In some cases, like millidecades, we do not want
-            to have logarithmically spaced frequency bands across the full
-            spectrum, instead we have the option to have bands that are equal
-            'fft_bin_size'. The switch to log spacing is made at the band that
-                  has a bandwidth greater than 'fft_bin_size' and such that the
-            frequency space between band center frequencies is at least
-                  'fft_bin_size'.
+    Parameters
+    ----------
+    spsd: xr.DataArray
+        DataArray with frequency dimension.
+    base: int
+        Base for the band levels, generally 10 or 2.
+    bands_per_division: int
+        The number of bands to divide the spectrum into per increase by a factor
+        of 'base'. A base of 2 and "bands_per_division" of 3 results in third
+        octaves base 2. Base 10 and "bands_per_division" of 1000 results in
+        millidecades.
+    use_fft_res_at_bottom: bool
+        In some cases, like millidecades, we do not want to have logarithmically
+        spaced frequency bands across the full spectrum, instead we have the option
+        to have bands that are equal 'fft_bin_size'. The switch to log spacing is
+        made at the band that has a bandwidth greater than 'fft_bin_size' and such
+        that the frequency space between band center frequencies is at least
+        'fft_bin_size'.
 
-    Returns:
-        xr.DataArray: DataArray with frequency dimension converted to banded spectral density.
+    Returns
+    -------
+    xr.DataArray
+        DataArray with frequency dimension converted to banded spectral density.
     """
-    # Get original frequencies
-    freq = spsd["freq"].values
+
     # Get bands
     bands = _get_band_table(
-        fft_bin_size=freq[1] - freq[0],
-        bin1_center_freq=freq[0],
-        fs=spsd.fs,
+        freq=spsd["freq"].values,
         base=base,
         bands_per_division=bands_per_division,
-        first_output_band_center_freq=freq[0],
         use_fft_res_at_bottom=use_fft_res_at_bottom,
     )
     band_spsd = _band_mean_power_spectral_density(
         spsd.values,
-        fft_bin_size=freq[1] - freq[0],
-        bin1_center_freq=freq[0],
-        first_band_idx=0,
-        last_band_idx=bands.shape[0],
+        original_freq=spsd["freq"].values,
         freq_table=bands,
     )
     out = xr.DataArray(
