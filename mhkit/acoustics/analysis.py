@@ -537,9 +537,9 @@ def _band_mean_power_spectral_density(
             int(np.floor((freq_table[j, 2] / fft_bin_size) + step)) + 1 - start_offset
         )
         max_fft_bin = min(max_fft_bin, n_fft_bins)
-        min_fft_bin = max(min_fft_bin, 0)
+        min_fft_bin = max(min_fft_bin, 1)
         if min_fft_bin == max_fft_bin:
-            out_spsd[:, j] = input_spsd[:, min_fft_bin] * (
+            out_spsd[:, j] = input_spsd[:, min_fft_bin - 1] * (
                 (freq_table[j, 2] - freq_table[j, 0]) / fft_bin_size
             )
         else:
@@ -559,7 +559,7 @@ def _band_mean_power_spectral_density(
             # Add any FFT bins in between min and max.
             if (max_fft_bin - min_fft_bin) > 1:
                 out_spsd[:, j] += np.nansum(
-                    input_spsd[:, np.arange(min_fft_bin + 1, max_fft_bin)], axis=1
+                    input_spsd[:, np.arange(min_fft_bin, max_fft_bin - 1)], axis=1
                 )
 
     # Take means
