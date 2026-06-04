@@ -522,9 +522,7 @@ def _band_mean_power_spectral_density(
     """
 
     fft_bin_size = original_freq[1] - original_freq[0]
-    first_band_idx = 0
-    last_band_idx = freq_table.shape[0]
-    out_spsd = np.zeros((input_spsd.shape[0], last_band_idx - first_band_idx))
+    out_spsd = np.zeros((input_spsd.shape[0], freq_table.shape[0]))
     step = fft_bin_size / 2
     n_fft_bins = input_spsd.shape[1]
 
@@ -533,7 +531,7 @@ def _band_mean_power_spectral_density(
     # it as is.
     # Primarily, the "min_fft_bin" and "max_fft_bin" are combinations of both an FFT
     # frequency and an array index, which is confusing
-    for j in range(first_band_idx, last_band_idx):
+    for j in range(freq_table.shape[0]):
         min_fft_bin = int(np.floor((freq_table[j, 0] / fft_bin_size) + step))
         max_fft_bin = int(np.floor((freq_table[j, 2] / fft_bin_size) + step))
         max_fft_bin = min(max_fft_bin, n_fft_bins)
@@ -546,7 +544,7 @@ def _band_mean_power_spectral_density(
             # Add the first partial FFT bin - take the top of the bin and
             # subtract the lower freq to get the amount we will use.
             lower_factor = (min_fft_bin + 1 - step) * fft_bin_size - freq_table[j, 0]
-            out_spsd[:, j] = input_spsd[:, min_fft_bin] * lower_factor
+            out_spsd[:, j] = input_spsd[:, min_fft_bin - 1] * lower_factor
 
             # Add the last partial FFT bin.
             upper_factor = (
