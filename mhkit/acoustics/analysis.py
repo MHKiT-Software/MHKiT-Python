@@ -177,7 +177,7 @@ def create_frequency_bands(octave, base, fmin, fmax):
     band = {}
     band["center_freq"] = 10 ** np.arange(
         np.log10(fmin),
-        np.log10(fmax * bandwidth),
+        np.log10(fmax),
         step=np.log10(bandwidth),
     )
     band["lower_limit"] = band["center_freq"] / half_bandwidth
@@ -425,74 +425,74 @@ def _get_band_table(
     Converted and adapted to Python by MHKiT Team, May 28, 2026
     """
 
-    ## For millidecades
     band_count = 0
     max_freq = fs / 2
-    low_side_multiplier = base ** (-1 / (2 * bands_per_division))
-    high_side_multiplier = base ** (1 / (2 * bands_per_division))
-
-    # Count the number of bands:
     linear_bin_count = 0
     log_bin_count = 0
     center_freq = 0
+    max_linear_bin_hz = 0
 
-    if use_fft_res_at_bottom:
-        bin_width = 0
-        while bin_width < fft_bin_size:
-            band_count += 1
-            center_freq = first_output_band_center_freq * base ** (
-                band_count / bands_per_division
-            )
-            bin_width = (
-                high_side_multiplier * center_freq - low_side_multiplier * center_freq
-            )
-
-        # Now keep counting until the difference between the log spaced
-        # center frequency and new frequency is greater than .025
-        center_freq = first_output_band_center_freq * base ** (
-            band_count / bands_per_division
-        )
-        linear_bin_count = np.ceil(center_freq / fft_bin_size)
-        while (linear_bin_count * fft_bin_size - center_freq) > 0:
-            band_count = band_count + 1
-            linear_bin_count = linear_bin_count + 1
-            center_freq = first_output_band_center_freq * base ** (
-                band_count / bands_per_division
-            )
-
-        if (fft_bin_size * linear_bin_count) > max_freq:
-            linear_bin_count = max_freq / fft_bin_size + 1
-
-    linear_bin_count = int(linear_bin_count)
-
-    # Count the log space frequencies
-    while max_freq > center_freq:
-        band_count = band_count + 1
-        log_bin_count = log_bin_count + 1
-        center_freq = first_output_band_center_freq * base ** (
-            band_count / bands_per_division
-        )
-
-    # Generate the linear frequencies
-    bands = np.zeros(((linear_bin_count + log_bin_count), 3))
-    for i in range(linear_bin_count):
-        bands[i, 1] = bin1_center_freq + i * fft_bin_size
-        bands[i, 0] = bands[i, 1] - fft_bin_size / 2
-        bands[i, 2] = bands[i, 1] + fft_bin_size / 2
-
-    ## Generate the log-spaced bands (for all other band types)
+    # Generate the log-spaced bands (for all other band types)
     _, band_dict = create_frequency_bands(
         octave=bands_per_division,
         base=base,
-        fmin=max(bands[linear_bin_count, 1], 1),
+        fmin=first_output_band_center_freq,
         fmax=max_freq,
     )
-    # Convert to array
-    log_bands = np.column_stack(
-        (band_dict["lower_limit"], band_dict["center_freq"], band_dict["upper_limit"])
-    )
-    # Store the log spaced bands in the output array
-    bands[linear_bin_count:, :] = log_bands[:log_bin_count, :]
+
+    if use_fft_res_at_bottom:
+        # Find the first band where the bandwidth is greater than the FFT bin size
+        # and the frequency space between band center frequencies is at least the FFT bin size
+        band_count = np.where(np.diff(band_dict["center_freq"]) >= fft_bin_size)[0][1]
+        center_freq = band_dict["center_freq"][band_count]
+
+        # Now keep counting until the difference between the log spaced
+        # center frequency and new frequency is greater than .025
+        max_linear_bin_hz = np.ceil(center_freq / fft_bin_size)
+        while (max_linear_bin_hz * fft_bin_size - center_freq) > 0:
+            band_count += 1
+            max_linear_bin_hz += 1
+            center_freq = first_output_band_center_freq * base ** (
+                band_count / bands_per_division
+            )
+
+        if (fft_bin_size * max_linear_bin_hz) > max_freq:
+            max_linear_bin_hz = max_freq / fft_bin_size + 1
+
+        linear_bin_count = int(max_linear_bin_hz / fft_bin_size - 1)
+
+    # Count the log space frequencies
+    log_bin_count = len(np.arange(band_count, band_dict["center_freq"].size, 1))
+
+    # Generate the linear frequencies
+    bands = np.zeros(((linear_bin_count + log_bin_count), 3))
+    if linear_bin_count:
+        bands[:linear_bin_count, 1] = (
+            np.arange(0, linear_bin_count * fft_bin_size, fft_bin_size)
+            + bin1_center_freq
+        )
+        bands[:linear_bin_count, 0] = (
+            np.arange(
+                -fft_bin_size / 2,
+                linear_bin_count * fft_bin_size - fft_bin_size / 2,
+                fft_bin_size,
+            )
+            + bin1_center_freq
+        )
+        bands[:linear_bin_count, 2] = (
+            np.arange(
+                fft_bin_size / 2,
+                (linear_bin_count + 1) * fft_bin_size - fft_bin_size / 2,
+                fft_bin_size,
+            )
+            + bin1_center_freq
+        )
+
+    # Trim log spaced bands to start the first band after the linear bands if they exist
+    idx = np.where(band_dict["center_freq"] > max_linear_bin_hz)[0]
+    bands[linear_bin_count:, 1] = band_dict["center_freq"][idx]
+    bands[linear_bin_count:, 0] = band_dict["lower_limit"][idx]
+    bands[linear_bin_count:, 2] = band_dict["upper_limit"][idx]
 
     if log_bin_count > 0:
         bands[-1, 2] = max_freq
