@@ -516,9 +516,13 @@ def _band_mean_power_spectral_density(
             Band squared sound pressure array with the same number of rows as
             input_spsd and one column per band.
 
+    Notes:
     Bruce Martin, JASCO Applied Sciences, Feb 2020.
 
     Converted to Python and refactored by MHKiT Team, June 2026.
+    Something strange going on here, primarily, the "min_fft_bin" and "max_fft_bin"
+    are combinations of both an FFT frequency and an array index. This will cause
+    it to fail for data with a fundamental FFT frequency any different than 1 Hz.
     """
 
     fft_bin_size = original_freq[1] - original_freq[0]
@@ -569,6 +573,120 @@ def _band_mean_power_spectral_density(
     return out_spsd
 
 
+def _band_mean_power_spectral_density_v2(input_spsd, freq_fft, freq_table):
+    """
+    Sum squared sound pressures to determine in-band totals.
+
+    Band edges are normally obtained from a call to ``get_band_table``.
+
+    Parameters
+    ----------
+    input_spsd : np.ndarray
+        2D array of squared pressures from an FFT. Axis 0 (rows) is time,
+        axis 1 (columns) is frequency.
+    freq_fft : np.ndarray
+        1D array of center frequencies produced by the FFT call [Hz].
+    freq_table : np.ndarray
+        Nx3 array of band edges where column 0 is the lower limit [Hz],
+        column 1 is the center frequency [Hz], and column 2 is the upper
+        limit [Hz].
+
+    Returns
+    -------
+    out_spsd : np.ndarray
+        2D array of band mean PSD with the same number of rows as
+        ``input_spsd`` and ``freq_table.shape[0]`` columns (one per band).
+
+    Notes
+    -----
+    The summation converts from PSD to level by multiplying by the FFT
+    frequency bin size. Full bins (entirely within a band) are summed
+    directly; partial bins (overlapping a band edge) are weighted
+    proportionally to the fraction of the bin that falls within the band.
+    The result is then divided by each band's bandwidth to return mean PSD.
+
+    Original code by Bruce Martin, JASCO Applied Sciences, Feb 2020
+
+    Updated to use FFT-generated frequencies as input to handle time-resolved
+    spectral processing with a fundamental FFT frequency of 10 Hz by
+    Brian Polayge, University of Washington, 2025.
+
+    Converted to Python by MHKiT Team, June 2026.
+    """
+
+    out_spsd = np.zeros((input_spsd.shape[0], freq_table.shape[0]))
+    fft_bin_size = freq_fft[1] - freq_fft[0]
+
+    # Pre-compute full and partial bin indices for each band.
+    # This is band-invariant across time windows, so it is done once.
+    full_pts = {}
+    partial_pts = {}
+
+    for j in range(freq_table.shape[0]):
+        f_lo = freq_table[j, 0]
+        f_hi = freq_table[j, 2]
+
+        # FFT bins whose extent falls entirely within the frequency band
+        full_mask = (freq_fft - fft_bin_size / 2 >= f_lo) & (
+            freq_fft + fft_bin_size / 2 <= f_hi
+        )
+        full_pts[j] = np.where(full_mask)[0]
+
+        # FFT bins that overlap the frequency band at all (full or partial)
+        overlap_mask = ((freq_fft >= f_lo) & (freq_fft <= f_hi)) | (
+            (freq_fft + fft_bin_size / 2 > f_lo) & (freq_fft - fft_bin_size / 2 < f_hi)
+        )
+        overlap_idx = np.where(overlap_mask)[0]
+
+        # Partial bins = overlapping minus fully-contained
+        partial_pts[j] = np.setdiff1d(overlap_idx, full_pts[j])
+
+    # Compute fractional weights for partial bins
+    weights = {}
+    for j in range(freq_table.shape[0]):
+        temp = partial_pts[j]
+        temp_weight = np.zeros(len(temp))
+
+        for k, idx in enumerate(temp):
+            bin_lo = freq_fft[idx] - fft_bin_size / 2
+            bin_hi = freq_fft[idx] + fft_bin_size / 2
+
+            if bin_lo < freq_table[j, 0]:
+                # Bin extends below the band's lower edge
+                temp_weight[k] = (
+                    fft_bin_size - (freq_table[j, 0] - bin_lo)
+                ) / fft_bin_size
+            elif bin_hi > freq_table[j, 2]:
+                # Bin extends above the band's upper edge
+                temp_weight[k] = (
+                    fft_bin_size - (bin_hi - freq_table[j, 2])
+                ) / fft_bin_size
+
+        weights[j] = temp_weight
+
+    # Accumulate band-squared pressure; vectorised over the time (row) axis
+    for j in range(freq_table.shape[0]):
+
+        # Contribution from fully-contained FFT bins
+        if len(full_pts[j]) > 0:
+            out_spsd[:, j] = np.sum(input_spsd[:, full_pts[j]], axis=1) * fft_bin_size
+
+        # Contribution from partial FFT bins
+        if len(partial_pts[j]) > 0:
+            out_spsd[:, j] += (
+                np.sum(
+                    input_spsd[:, partial_pts[j]] * weights[j][np.newaxis, :], axis=1
+                )
+                * fft_bin_size
+            )
+
+    # Take means
+    band_widths = freq_table[:, 2] - freq_table[:, 0]
+    out_spsd /= band_widths
+
+    return out_spsd
+
+
 def _convert_to_band_spectral_density(
     spsd: xr.DataArray, base: int, bands_per_division: int, use_fft_res_at_bottom: bool
 ) -> xr.DataArray:
@@ -607,9 +725,9 @@ def _convert_to_band_spectral_density(
         bands_per_division=bands_per_division,
         use_fft_res_at_bottom=use_fft_res_at_bottom,
     )
-    band_spsd = _band_mean_power_spectral_density(
+    band_spsd = _band_mean_power_spectral_density_v2(
         spsd.values,
-        original_freq=spsd["freq"].values,
+        freq_fft=spsd["freq"].values,
         freq_table=bands,
     )
     out = xr.DataArray(
