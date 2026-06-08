@@ -25,7 +25,7 @@ dependencies = [
     # scenes. xarray, netcdf4, and h5 dependencies should all be synced to avoid
     # compatibility issues with individual modules.
     "xarray>=2024.6.0",
-    "netCDF4>=1.7.1.post1",
+    "netCDF4>=1.6.5",
     "h5py>=3.11.0",
     "h5pyd>=0.18.0",
     "numpy>=2.0.0",
