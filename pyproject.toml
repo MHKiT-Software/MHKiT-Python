@@ -30,6 +30,11 @@ dependencies = [
     "h5pyd>=0.18.0",
     "numpy>=2.0.0",
     "pandas>=2.2.2",
+    # pandas 3.0+ uses a new string dtype by default and stores it using pyarrow
+    # when pyarrow is installed, otherwise a more limited numpy fallback. pandas
+    # keeps pyarrow optional, so we require it here to always get the reliable
+    # pyarrow storage. pyarrow 16.0.0 is the first version that supports numpy 2.
+    "pyarrow>=16.0.0",
     "scipy>=1.14.0",
     "matplotlib>=3.9.1",
     "pecos>=0.3.0",
