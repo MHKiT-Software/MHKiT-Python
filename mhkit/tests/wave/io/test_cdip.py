@@ -7,7 +7,6 @@ import netCDF4
 import pytz
 import os
 
-
 testdir = dirname(abspath(__file__))
 datadir = normpath(join(testdir, "..", "..", "..", "..", "examples", "data", "wave"))
 
