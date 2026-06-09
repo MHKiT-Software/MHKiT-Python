@@ -460,7 +460,7 @@ jobs:
       matrix:
         module:
           [wave, tidal, river, dolfyn, power, loads, mooring, acoustics, utils]
-        python-version: ['3.12', '3.13']
+        python-version: ['3.13']
 
     steps:
       - uses: actions/checkout@v6
