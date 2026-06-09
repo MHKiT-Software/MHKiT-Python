@@ -19,8 +19,40 @@ from mhkit.utils import (
     convert_nested_dict_and_pandas,
 )
 
-# Set pandas option to opt-in to future behavior
-pd.set_option("future.no_silent_downcasting", True)
+
+def replace_pandas_missing_values_with_nan(data, missing_values):
+    """
+    Replace missing values with NaN without silently downcasting dtypes.
+
+    Parameters
+    ------------
+    data: pandas DataFrame
+        Data in which to replace missing values
+
+    missing_values: list of values
+        List of values that denote missing data
+
+    Returns
+    ---------
+    data: pandas DataFrame
+        Data with missing values replaced by NaN and object columns converted
+        to their best-fit dtypes
+
+    Notes
+    -----
+    pandas versions above 2.x do not silently downcast in ``replace`` and
+    dropped the ``future.no_silent_downcasting`` option. On pandas 2.x the same
+    forward-looking behavior is opted into so the result is identical across
+    supported pandas versions and no deprecation warning is emitted.
+    ``infer_objects`` then converts the resulting object columns explicitly.
+    """
+    pandas_major = int(pd.__version__.split(".")[0])
+    if pandas_major <= 2:
+        with pd.option_context("future.no_silent_downcasting", True):
+            data = data.replace(missing_values, np.nan)
+    else:
+        data = data.replace(missing_values, np.nan)
+    return data.infer_objects()
 
 
 def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
@@ -153,8 +185,7 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
         data.columns = data.columns
 
     # Replace indicated missing values with nan
-    data = data.replace(missing_values, np.nan)
-    data = data.infer_objects(copy=False)
+    data = replace_pandas_missing_values_with_nan(data, missing_values)
 
     if not to_pandas:
         data = convert_to_dataset(data)
