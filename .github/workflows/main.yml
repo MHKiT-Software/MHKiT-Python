@@ -80,7 +80,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
           auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
@@ -125,7 +125,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
           auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
@@ -168,7 +168,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
           auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
@@ -216,7 +216,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
           auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
@@ -342,7 +342,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
           auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
@@ -561,7 +561,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
           auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
