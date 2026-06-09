@@ -1,4 +1,4 @@
-name: Py 3.10, 3.11, 3.12 | Windows Mac Linux
+name: Py 3.10, 3.11, 3.12, 3.13 | Windows Mac Linux
 
 on:
   pull_request:
@@ -207,7 +207,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
     env:
       PYTHON_VER: ${{ matrix.python-version }}
 
@@ -265,7 +265,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
 
     steps:
       - name: Set up Python ${{ matrix.python-version }}
@@ -335,7 +335,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
 
     steps:
       - uses: actions/checkout@v6
@@ -460,7 +460,7 @@ jobs:
       matrix:
         module:
           [wave, tidal, river, dolfyn, power, loads, mooring, acoustics, utils]
-        python-version: ['3.12']
+        python-version: ['3.12', '3.13']
 
     steps:
       - uses: actions/checkout@v6
