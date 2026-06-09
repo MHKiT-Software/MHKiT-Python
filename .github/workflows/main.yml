@@ -36,7 +36,8 @@ jobs:
     steps:
       - id: set-matrix
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "develop" ]]; then
+          # Force the full OS matrix for the pandas 3.0 PR
+          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "develop" && "${{ github.head_ref }}" != "feat_add_pandas_3.0_support" ]]; then
             echo "matrix_os=[ \"ubuntu-latest\"]" >> $GITHUB_OUTPUT
           else
             echo "matrix_os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_OUTPUT
