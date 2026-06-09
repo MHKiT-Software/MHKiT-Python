@@ -94,7 +94,7 @@ jobs:
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda install -y pytest coverage coveralls
+          conda install -y pytest coverage
 
       - name: Install mhkit
         shell: bash -l {0}
@@ -139,7 +139,7 @@ jobs:
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda install -y pytest coverage coveralls
+          conda install -y pytest coverage
 
       - name: Install mhkit
         shell: bash -l {0}
@@ -182,7 +182,7 @@ jobs:
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda install -y pytest coverage coveralls
+          conda install -y pytest coverage
 
       - name: Install mhkit
         shell: bash -l {0}
@@ -230,7 +230,7 @@ jobs:
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda install -y pytest coverage coveralls
+          conda install -y pytest coverage
 
       - name: Install mhkit
         shell: bash -l {0}
@@ -356,7 +356,7 @@ jobs:
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda install -y pytest coverage coveralls
+          conda install -y pytest coverage
 
       - name: Install mhkit
         shell: bash -l {0}
@@ -575,7 +575,7 @@ jobs:
       - name: Install notebook testing dependencies
         shell: bash -l {0}
         run: |
-          conda install -y pytest coverage coveralls nbval jupyter utm folium
+          conda install -y pytest coverage nbval jupyter utm folium
 
       - name: Install mhkit
         shell: bash -l {0}

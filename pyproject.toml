@@ -96,7 +96,6 @@ dev = [
     "pytest-cov",
     "pre-commit",
     "coverage",
-    "coveralls",
     "black",
 ]
 
