@@ -93,7 +93,7 @@ jobs:
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda install -y pytest coverage coveralls
+          conda install -y pytest coverage
 
       - name: Install mhkit
         shell: bash -l {0}
@@ -138,7 +138,7 @@ jobs:
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda install -y pytest coverage coveralls
+          conda install -y pytest coverage
 
       - name: Install mhkit
         shell: bash -l {0}
@@ -181,7 +181,7 @@ jobs:
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda install -y pytest coverage coveralls
+          conda install -y pytest coverage
 
       - name: Install mhkit
         shell: bash -l {0}
@@ -229,7 +229,7 @@ jobs:
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda install -y pytest coverage coveralls
+          conda install -y pytest coverage
 
       - name: Install mhkit
         shell: bash -l {0}
@@ -291,24 +291,11 @@ jobs:
           name: data
           path: ~/.cache/mhkit
 
-      - name: Install system dependencies
-        if: runner.os == 'Linux'
-        run: |
-          # Update apt-get cache
-          sudo apt-get update
-          sudo apt-get install -y libhdf5-dev libnetcdf-dev
-
       - name: Update and install packages
         shell: bash
         run: |
           python -m pip install --upgrade pip wheel
           pip install -e ".[all,dev]"
-
-      - name: Reinstall h5py and netCDF4 with system libraries
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          pip install --force-reinstall --no-binary=:all: h5py netCDF4
 
       - name: Install setuptools for Python 3.12
         if: matrix.python-version == '3.12'
@@ -368,7 +355,7 @@ jobs:
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda install -y pytest coverage coveralls
+          conda install -y pytest coverage
 
       - name: Install mhkit
         shell: bash -l {0}
@@ -587,7 +574,7 @@ jobs:
       - name: Install notebook testing dependencies
         shell: bash -l {0}
         run: |
-          conda install -y pytest coverage coveralls nbval jupyter utm folium
+          conda install -y pytest coverage nbval jupyter utm folium
 
       - name: Install mhkit
         shell: bash -l {0}
