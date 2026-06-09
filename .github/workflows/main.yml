@@ -36,8 +36,7 @@ jobs:
     steps:
       - id: set-matrix
         run: |
-          # TEMP: run all OSes for feat_add_python_3_13_support PR - remove after merge
-          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "develop" && "${{ github.head_ref }}" != "feat_add_python_3_13_support" ]]; then
+          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "develop" ]]; then
             echo "matrix_os=[ \"ubuntu-latest\"]" >> $GITHUB_OUTPUT
           else
             echo "matrix_os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_OUTPUT
