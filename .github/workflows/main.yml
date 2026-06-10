@@ -1,4 +1,4 @@
-name: Py 3.10, 3.11, 3.12 | Windows Mac Linux
+name: Py 3.10, 3.11, 3.12, 3.13 | Windows Mac Linux
 
 on:
   pull_request:
@@ -79,7 +79,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
           auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
@@ -124,7 +124,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
           auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
@@ -167,7 +167,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
           auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
@@ -207,7 +207,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
     env:
       PYTHON_VER: ${{ matrix.python-version }}
 
@@ -215,7 +215,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
           auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
@@ -237,7 +237,7 @@ jobs:
           pip install -e ".[all,dev]" --no-deps
 
       - name: Download data from artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: data
           path: ~/.cache/mhkit
@@ -265,7 +265,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
 
     steps:
       - name: Set up Python ${{ matrix.python-version }}
@@ -286,7 +286,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Download data from artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: data
           path: ~/.cache/mhkit
@@ -335,13 +335,13 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
 
     steps:
       - uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
           auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
@@ -363,13 +363,13 @@ jobs:
           pip install -e ".[all,dev]" --no-deps
 
       - name: Download Wave Hindcast data from artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wave-hindcast-data
           path: ~/.cache/mhkit/wave-hindcast
 
       - name: Download Wind Hindcast data from artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wind-hindcast-data
           path: ~/.cache/mhkit/wind-hindcast
@@ -460,7 +460,7 @@ jobs:
       matrix:
         module:
           [wave, tidal, river, dolfyn, power, loads, mooring, acoustics, utils]
-        python-version: ['3.12']
+        python-version: ['3.13']
 
     steps:
       - uses: actions/checkout@v6
@@ -471,7 +471,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Download non-hindcast data
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: data
           path: ~/.cache/mhkit
@@ -560,7 +560,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
           auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
@@ -582,21 +582,21 @@ jobs:
           pip install -e ".[all,dev]" --no-deps
 
       - name: Download non-hindcast data
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: data
           path: ~/.cache/mhkit
 
       - name: Download Wave Hindcast data (if available)
         if: (needs.check-changes.outputs.should-run-hindcast == 'true')
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wave-hindcast-data
           path: ~/.cache/mhkit/wave-hindcast
 
       - name: Download Wind Hindcast data (if available)
         if: (needs.check-changes.outputs.should-run-hindcast == 'true')
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wind-hindcast-data
           path: ~/.cache/mhkit/wind-hindcast

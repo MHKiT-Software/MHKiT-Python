@@ -32,7 +32,7 @@ See the [MHKiT documentation](https://mhkit-software.github.io/MHKiT) for more i
 
 ## Installation
 
-[MHKiT-Python](https://github.com/MHKiT-Software/MHKiT-Python) requires [Python (3.10-3.12)](https://www.python.org/).
+[MHKiT-Python](https://github.com/MHKiT-Software/MHKiT-Python) requires [Python (3.10-3.13)](https://www.python.org/).
 
 See [installation instructions](https://mhkit-software.github.io/MHKiT/installation.html) for more information.
 
