@@ -53,10 +53,10 @@ class TestIO(unittest.TestCase):
         np.testing.assert_allclose(raw_voltage, expected_raw_voltage, atol=1e-6)
 
         # Expected time array
-        time_interval = pd.Timedelta(seconds=1 / fs)
-        expected_time = pd.date_range(
-            start=start_time, periods=len(raw) + 1, freq=time_interval
+        end_time = np.datetime64(start_time) + np.timedelta64(
+            raw.size * 1000000000, "ns"
         )
+        expected_time = pd.date_range(start_time, end_time, raw.size + 1)
         pd.testing.assert_index_equal(time, expected_time)
 
     def test_read_iclisten_metadata(self):

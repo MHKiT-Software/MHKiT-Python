@@ -1,4 +1,4 @@
-name: Py 3.10, 3.11, 3.12 | Windows Mac Linux
+name: Py 3.10, 3.11, 3.12, 3.13 | Windows Mac Linux
 
 on:
   pull_request:
@@ -10,7 +10,25 @@ on:
       - main
       - develop
 
+# Global configuration for all jobs. Can be overridden at the job level if needed.
+env:
+  # Conda channels: Set conda forge as only channel and disable defaults channel
+  CONDA_MINICONDA_VERSION: latest
+  CONDA_AUTO_UPDATE_CONDA: true
+  CONDA_CHANNELS: conda-forge
+  CONDA_REMOVE_DEFAULTS: true
+  CONDA_USE_ONLY_TAR_BZ2: false
+  CONDA_ENVIRONMENT_FILE: environment-dev.yml
+  CONDA_ENVIRONMENT_NAME: mhkit-dev-env
+  # Coveralls: Set to false to ignore upload failures during outages.
+  #   Check status: https://status.coveralls.io/
+  COVERALLS_FAIL_ON_ERROR: true
+
 jobs:
+  # Set the operating system matrix for the following jobs/tests
+  # conda-forge-build
+  # pip-build
+  # hindcast-calls
   set-os:
     runs-on: ubuntu-latest
     outputs:
@@ -24,6 +42,8 @@ jobs:
             echo "matrix_os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_OUTPUT
           fi
 
+
+  # This job decides if the hindcast test suite should run.
   check-changes:
     runs-on: ubuntu-latest
     outputs:
@@ -31,11 +51,11 @@ jobs:
       should-run-hindcast: ${{ steps.hindcast-logic.outputs.should-run-hindcast }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check for changes in wave/io/hindcast
         id: changes
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: |
             wave_io_hindcast:
@@ -56,45 +76,39 @@ jobs:
       PYTHON_VER: 3.11
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
-          miniconda-version: 'latest'
-          auto-update-conda: true
-          python-version: ${{ env.PYTHON_VER }}
-          activate-environment: TESTconda
-          use-only-tar-bz2: false
-
-      - name: Create MHKiT Conda environment
-        shell: bash -l {0}
-        run: |
-          conda env create -f environment.yml
-          conda activate mhkit-env
+          miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
+          auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
+          environment-file: ${{ env.CONDA_ENVIRONMENT_FILE }}
+          activate-environment: ${{ env.CONDA_ENVIRONMENT_NAME }}
+          python-version: ${{ matrix.python-version }}
+          use-only-tar-bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
+          channels: ${{ env.CONDA_CHANNELS }}
+          conda-remove-defaults: ${{ env.CONDA_REMOVE_DEFAULTS }}
 
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
-          conda install -y pytest coverage coveralls
+          conda install -y pytest coverage
 
       - name: Install mhkit
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
-          pip install -e  ".[all,dev]" --no-deps
+          pip install -e ".[all,dev]" --no-deps
 
       - name: Prepare non-hindcast API data
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
           pytest mhkit/tests/river/test_io_usgs.py
           pytest mhkit/tests/tidal/test_io.py
           pytest mhkit/tests/wave/io/test_cdip.py
 
       - name: Upload data as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: data
           path: ~/.cache/mhkit
@@ -107,43 +121,37 @@ jobs:
     if: (needs.check-changes.outputs.should-run-hindcast == 'true')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
-          miniconda-version: 'latest'
-          auto-update-conda: true
-          activate-environment: TEST
-          python-version: ${{ env.PYTHON_VER }}
-          use-only-tar-bz2: false
-
-      - name: Create MHKiT Conda environment
-        shell: bash -l {0}
-        run: |
-          conda env create -f environment.yml
-          conda activate mhkit-env
+          miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
+          auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
+          environment-file: ${{ env.CONDA_ENVIRONMENT_FILE }}
+          activate-environment: ${{ env.CONDA_ENVIRONMENT_NAME }}
+          python-version: ${{ matrix.python-version }}
+          use-only-tar-bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
+          channels: ${{ env.CONDA_CHANNELS }}
+          conda-remove-defaults: ${{ env.CONDA_REMOVE_DEFAULTS }}
 
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
-          conda install -y pytest coverage coveralls
+          conda install -y pytest coverage
 
       - name: Install mhkit
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
-          pip install -e  ".[all,dev]" --no-deps
+          pip install -e ".[all,dev]" --no-deps
 
       - name: Prepare Wave Hindcast data
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
           pytest mhkit/tests/wave/io/hindcast/test_hindcast.py
 
       - name: Upload Wave Hindcast data as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wave-hindcast-data
           path: ~/.cache/mhkit
@@ -156,104 +164,98 @@ jobs:
     if: (needs.check-changes.outputs.should-run-hindcast == 'true')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
-          miniconda-version: 'latest'
-          auto-update-conda: true
-          activate-environment: TEST
-          python-version: ${{ env.PYTHON_VER }}
-          use-only-tar-bz2: false
-
-      - name: Create MHKiT Conda environment
-        shell: bash -l {0}
-        run: |
-          conda env create -f environment.yml
-          conda activate mhkit-env
+          miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
+          auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
+          environment-file: ${{ env.CONDA_ENVIRONMENT_FILE }}
+          activate-environment: ${{ env.CONDA_ENVIRONMENT_NAME }}
+          python-version: ${{ matrix.python-version }}
+          use-only-tar-bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
+          channels: ${{ env.CONDA_CHANNELS }}
+          conda-remove-defaults: ${{ env.CONDA_REMOVE_DEFAULTS }}
 
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
-          conda install -y pytest coverage coveralls
+          conda install -y pytest coverage
 
       - name: Install mhkit
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
-          pip install -e  ".[all,dev]" --no-deps
+          pip install -e ".[all,dev]" --no-deps
 
       - name: Prepare Wind Hindcast data
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
           pytest mhkit/tests/wave/io/hindcast/test_wind_toolkit.py
 
       - name: Upload Wind Hindcast data as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wind-hindcast-data
           path: ~/.cache/mhkit
 
-  conda-build:
-    name: conda-${{ matrix.os }}/${{ matrix.python-version }}
+  conda-forge-build:
+    name: conda-forge-${{ matrix.os }}/${{ matrix.python-version }}
     needs: [set-os, prepare-nonhindcast-cache]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
     env:
       PYTHON_VER: ${{ matrix.python-version }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
-          miniconda-version: 'latest'
-          auto-update-conda: true
-          environment-file: environment.yml
-          activate-environment: TEST
+          miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
+          auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
+          environment-file: ${{ env.CONDA_ENVIRONMENT_FILE }}
+          activate-environment: ${{ env.CONDA_ENVIRONMENT_NAME }}
           python-version: ${{ matrix.python-version }}
-          use-only-tar-bz2: false
-
-      - name: Create MHKiT Conda environment
-        shell: bash -l {0}
-        run: |
-          conda env create -f environment.yml
-          conda activate mhkit-env
+          use-only-tar-bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
+          channels: ${{ env.CONDA_CHANNELS }}
+          conda-remove-defaults: ${{ env.CONDA_REMOVE_DEFAULTS }}
 
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
-          conda install -y pytest coverage coveralls
+          conda install -y pytest coverage
 
       - name: Install mhkit
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
-          pip install -e . --no-deps
+          pip install -e ".[all,dev]" --no-deps
+
+      - name: Download data from artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: data
+          path: ~/.cache/mhkit
 
       - name: Run pytest & generate coverage report
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
           coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/ -m pytest -c .github/workflows/pytest.ini
           coverage lcov
 
       - name: Upload coverage data to coveralls.io
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: conda-${{ runner.os }}-py${{ matrix.python-version }}
+          flag-name: conda-forge-${{ runner.os }}-py${{ matrix.python-version }}
           parallel: true
           path-to-lcov: ./coverage.lcov
+          fail-on-error: ${{ env.COVERALLS_FAIL_ON_ERROR }}
 
   pip-build:
     name: pip-${{ matrix.os }}/${{ matrix.python-version }}
@@ -263,56 +265,58 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
 
     steps:
-      - uses: conda-incubator/setup-miniconda@v3
-
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Setup Python Virtual Environment
+        shell: bash
+        # The second command puts the venv bin directory on the PATH for
+        # subsequent steps in the job, which ensures that the correct Python
+        # version and installed packages are used.
+        run: |
+          python -m venv venv
+          echo "$PWD/venv/bin" >> $GITHUB_PATH
+
       - name: Set up Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download data from artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: data
           path: ~/.cache/mhkit
 
-      - name: Install system dependencies
-        if: runner.os == 'Linux'
-        run: sudo apt-get install -y libhdf5-dev libnetcdf-dev
-
       - name: Update and install packages
-        shell: bash -l {0}
+        shell: bash
         run: |
           python -m pip install --upgrade pip wheel
-          pip install -e  ".[all,dev]"
-
-      - name: Reinstall h5py and netCDF4 with system libraries
-        if: runner.os == 'Linux'
-        run: "pip install --force-reinstall --no-binary=:all: h5py netCDF4"
+          pip install -e ".[all,dev]"
 
       - name: Install setuptools for Python 3.12
         if: matrix.python-version == '3.12'
-        run: pip install setuptools
+        shell: bash
+        run: |
+          pip install setuptools
 
       - name: Run pytest & generate coverage report
-        shell: bash -l {0}
+        shell: bash
         run: |
           coverage run --rcfile=.github/workflows/.coveragerc --source=./mhkit/ -m pytest -c .github/workflows/pytest.ini
           coverage lcov
 
       - name: Upload coverage data to coveralls.io
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: pip-${{ runner.os }}-py${{ matrix.python-version }}
           parallel: true
           path-to-lcov: ./coverage.lcov
+          fail-on-error: ${{ env.COVERALLS_FAIL_ON_ERROR }}
 
   hindcast-calls:
     name: hindcast-${{ matrix.os }}/${{ matrix.python-version }}
@@ -331,47 +335,41 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{fromJson(needs.set-os.outputs.matrix_os)}}
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
-          miniconda-version: 'latest'
-          auto-update-conda: true
-          environment-file: environment.yml
-          activate-environment: TEST
+          miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
+          auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
+          environment-file: ${{ env.CONDA_ENVIRONMENT_FILE }}
+          activate-environment: ${{ env.CONDA_ENVIRONMENT_NAME }}
           python-version: ${{ matrix.python-version }}
-          use-only-tar-bz2: false
-
-      - name: Create MHKiT Conda environment
-        shell: bash -l {0}
-        run: |
-          conda env create -f environment.yml
-          conda activate mhkit-env
+          use-only-tar-bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
+          channels: ${{ env.CONDA_CHANNELS }}
+          conda-remove-defaults: ${{ env.CONDA_REMOVE_DEFAULTS }}
 
       - name: Install testing dependencies
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
-          conda install -y pytest coverage coveralls
+          conda install -y pytest coverage
 
       - name: Install mhkit
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
-          pip install -e  ".[all,dev]" --no-deps
+          pip install -e ".[all,dev]" --no-deps
 
       - name: Download Wave Hindcast data from artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wave-hindcast-data
           path: ~/.cache/mhkit/wave-hindcast
 
       - name: Download Wind Hindcast data from artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wind-hindcast-data
           path: ~/.cache/mhkit/wind-hindcast
@@ -386,25 +384,25 @@ jobs:
       - name: Run hindcast pytest
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
           coverage run --rcfile=.github/workflows/.coveragehindcastrc -m pytest -c .github/workflows/pytest-hindcast.ini
           coverage lcov
 
       - name: Upload coverage data to coveralls.io
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: hindcast-${{ runner.os }}-py${{ matrix.python-version }}
           parallel: true
           path-to-lcov: ./coverage.lcov
+          fail-on-error: ${{ env.COVERALLS_FAIL_ON_ERROR }}
 
   test-wheel-packaging:
     name: Test Built Wheel
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -462,25 +460,28 @@ jobs:
       matrix:
         module:
           [wave, tidal, river, dolfyn, power, loads, mooring, acoustics, utils]
-        python-version: ['3.12']
+        python-version: ['3.13']
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Download non-hindcast data
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: data
           path: ~/.cache/mhkit
 
       - name: Install system dependencies
         if: matrix.module != 'river' || matrix.module != 'power' || matrix.module != 'utils' || matrix.module != 'loads'
-        run: sudo apt-get install -y libhdf5-dev libnetcdf-dev
+        run: |
+          # Update apt-get cache
+          sudo apt-get update
+          sudo apt-get install -y libhdf5-dev libnetcdf-dev
 
       - name: Install MHKiT with optional dependency
         run: |
@@ -514,7 +515,7 @@ jobs:
           needs.prepare-nonhindcast-cache.result == 'success' &&
           needs.prepare-wave-hindcast-cache.result == 'skipped' &&
           needs.prepare-wind-hindcast-cache.result == 'skipped' &&
-          needs.check-changes.outputs.should-run-hindcast == 'false'    
+          needs.check-changes.outputs.should-run-hindcast == 'false'
         ) ||
         (
           needs.prepare-nonhindcast-cache.result == 'success' &&
@@ -527,10 +528,10 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -556,52 +557,46 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v4
         with:
-          miniconda-version: 'latest'
-          auto-update-conda: true
-          python-version: '3.12'
-          channels: conda-forge
-          activate-environment: TESTconda
-          use-only-tar-bz2: false
-
-      - name: Create MHKiT Conda environment
-        shell: bash -l {0}
-        run: |
-          conda env create -f environment.yml
-          conda activate mhkit-env
+          miniconda-version: ${{ env.CONDA_MINICONDA_VERSION }}
+          auto-update-conda: ${{ env.CONDA_AUTO_UPDATE_CONDA }}
+          environment-file: ${{ env.CONDA_ENVIRONMENT_FILE }}
+          activate-environment: ${{ env.CONDA_ENVIRONMENT_NAME }}
+          python-version: ${{ matrix.python-version }}
+          use-only-tar-bz2: ${{ env.CONDA_USE_ONLY_TAR_BZ2 }}
+          channels: ${{ env.CONDA_CHANNELS }}
+          conda-remove-defaults: ${{ env.CONDA_REMOVE_DEFAULTS }}
 
       - name: Install notebook testing dependencies
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
-          conda install -y pytest coverage coveralls nbval jupyter utm folium
+          conda install -y pytest coverage nbval jupyter utm folium
 
       - name: Install mhkit
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
-          pip install -e  ".[all,dev]" --no-deps
+          pip install -e ".[all,dev]" --no-deps
 
       - name: Download non-hindcast data
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: data
           path: ~/.cache/mhkit
 
       - name: Download Wave Hindcast data (if available)
         if: (needs.check-changes.outputs.should-run-hindcast == 'true')
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wave-hindcast-data
           path: ~/.cache/mhkit/wave-hindcast
 
       - name: Download Wind Hindcast data (if available)
         if: (needs.check-changes.outputs.should-run-hindcast == 'true')
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wind-hindcast-data
           path: ~/.cache/mhkit/wind-hindcast
@@ -622,7 +617,6 @@ jobs:
       - name: Run notebook
         shell: bash -l {0}
         run: |
-          conda activate mhkit-env
           if [[ "${{ matrix.notebook }}" == "examples/metocean_example.ipynb" || "${{ matrix.notebook }}" == "examples/WPTO_hindcast_example.ipynb" ]]; then
             if [[ "${{ needs.check-changes.outputs.should-run-hindcast }}" == 'true' ]]; then
               jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=${{ matrix.timeout }} "${{ matrix.notebook }}"
@@ -639,7 +633,7 @@ jobs:
       [
         prepare-wave-hindcast-cache,
         prepare-wind-hindcast-cache,
-        conda-build,
+        conda-forge-build,
         pip-build,
         hindcast-calls,
       ]
@@ -647,14 +641,14 @@ jobs:
       always() &&
       (
         (
-          needs.conda-build.result == 'success' &&
+          needs.conda-forge-build.result == 'success' &&
           needs.pip-build.result == 'success' &&
           needs.prepare-wave-hindcast-cache.result == 'skipped' &&
           needs.prepare-wind-hindcast-cache.result == 'skipped' &&
           needs.hindcast-calls.result == 'skipped'
         ) ||
         (
-          needs.conda-build.result == 'success' &&
+          needs.conda-forge-build.result == 'success' &&
           needs.pip-build.result == 'success' &&
           needs.prepare-wave-hindcast-cache.result == 'success' &&
           needs.prepare-wind-hindcast-cache.result == 'success' &&
@@ -662,11 +656,10 @@ jobs:
         )
       )
     runs-on: ubuntu-latest
-    container: python:3-slim
     steps:
       - name: Coveralls Finished
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           parallel-finished: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fail-on-error: ${{ env.COVERALLS_FAIL_ON_ERROR }}

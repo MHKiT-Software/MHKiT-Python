@@ -10,6 +10,8 @@ $ cat .gitignore
 *.tws
 *~
 *.png
+*.index
+*.dolfyn.log
 
 # Directories
 **/__pycache__/
@@ -33,6 +35,8 @@ $ cat .gitignore
 # Exemptions
 !**/examples/data/wave/*.mat
 !**/tests/data/wave/*.mat
+!**/examples/data/dolfyn/test_data/*.dolfyn.log
 
 # Files created during tests
 mhkit/tests/wave/plots/
+**/examples/data/dolfyn/test_data/test_save.nc

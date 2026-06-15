@@ -128,7 +128,7 @@ class ADPBinner(VelBinner):
         self.diff_style = diff_style
         self.orientation = orientation
 
-    def _diff_func(self, vel, u, orientation):
+    def _diff_func(self, vel, u, orientation, tag):
         """Applies the chosen style of numerical differentiation to velocity data.
 
         This method calculates the derivative of the velocity data 'vel' with respect to the 'range'
@@ -156,16 +156,16 @@ class ADPBinner(VelBinner):
             sign *= -1
 
         if self.diff_style == "first":
-            out = _diffz_first(vel[u].values, vel["range"].values)
-            return sign * out, vel.range[1:]
+            out = _diffz_first(vel[u].values, vel["range" + tag].values)
+            return sign * out, vel["range" + tag][1:]
 
         elif self.diff_style == "centered":
-            out = _diffz_centered(vel[u].values, vel["range"].values)
-            return sign * out, vel.range[1:-1]
+            out = _diffz_centered(vel[u].values, vel["range" + tag].values)
+            return sign * out, vel["range" + tag][1:-1]
 
         elif self.diff_style == "centered_extended":
-            out = _diffz_centered_extended(vel[u].values, vel["range"].values)
-            return sign * out, vel.range
+            out = _diffz_centered_extended(vel[u].values, vel["range" + tag].values)
+            return sign * out, vel["range" + tag]
 
     def dudz(self, vel, orientation=None):
         """
@@ -191,11 +191,16 @@ class ADPBinner(VelBinner):
         'true vertical' direction.
         """
 
-        dudz, rng = self._diff_func(vel, 0, orientation)
+        if "_" in vel.name:
+            tag = "_" + vel.name.split("_")[-1]
+        else:
+            tag = ""
+
+        dudz, rng = self._diff_func(vel, 0, orientation, tag)
         return xr.DataArray(
             dudz,
-            coords=[rng, vel.time],
-            dims=["range", "time"],
+            coords=[rng, vel["time" + tag]],
+            dims=["range" + tag, "time" + tag],
             attrs={"units": "s-1", "long_name": "Shear in X-direction"},
         )
 
@@ -223,11 +228,16 @@ class ADPBinner(VelBinner):
         'true vertical' direction.
         """
 
-        dvdz, rng = self._diff_func(vel, 1, orientation)
+        if "_" in vel.name:
+            tag = "_" + vel.name.split("_")[-1]
+        else:
+            tag = ""
+
+        dvdz, rng = self._diff_func(vel, 1, orientation, tag)
         return xr.DataArray(
             dvdz,
-            coords=[rng, vel.time],
-            dims=["range", "time"],
+            coords=[rng, vel["time" + tag]],
+            dims=["range" + tag, "time" + tag],
             attrs={"units": "s-1", "long_name": "Shear in Y-direction"},
         )
 
@@ -255,11 +265,16 @@ class ADPBinner(VelBinner):
         'true vertical' direction.
         """
 
-        dwdz, rng = self._diff_func(vel, 2, orientation)
+        if "_" in vel.name:
+            tag = "_" + vel.name.split("_")[-1]
+        else:
+            tag = ""
+
+        dwdz, rng = self._diff_func(vel, 2, orientation, tag)
         return xr.DataArray(
             dwdz,
-            coords=[rng, vel.time],
-            dims=["range", "time"],
+            coords=[rng, vel["time" + tag]],
+            dims=["range" + tag, "time" + tag],
             attrs={"units": "s-1", "long_name": "Shear in Z-direction"},
         )
 

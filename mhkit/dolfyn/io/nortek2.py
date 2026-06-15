@@ -450,6 +450,12 @@ def _altraw_reorg(outdat, tag=""):
         outdat["data_vars"]["samp_altraw" + tag].astype("float32") / 2**8
     )
 
+    # Make sure altraw variables get variable metadata copied over
+    for ky in ["units", "long_name", "standard_name"]:
+        for dky in list(outdat[ky]):
+            if dky.endswith("alt"):
+                outdat[ky][dky + "raw"] = outdat[ky][dky]
+
     # Read altimeter status
     outdat["data_vars"].pop("status_altraw" + tag)
     status_alt = lib._alt_status2data(outdat["data_vars"]["status_alt" + tag])
@@ -695,6 +701,9 @@ def _clean_dp_skips(data):
 
     for id in data:
         if id == "filehead_config":
+            continue
+        if "ver" not in data[id]:
+            warnings.warn(f"Dual-profile unknown ID: {id}")
             continue
         # Check where 'ver' is zero (should be 1 (for bt) or 3 (everything else))
         skips = np.where(data[id]["ver"] != 0)
