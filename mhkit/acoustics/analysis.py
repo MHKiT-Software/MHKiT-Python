@@ -93,6 +93,47 @@ def _fmax_warning(
     return fmax
 
 
+def create_frequency_bands(octave, base, fmin, fmax):
+    """
+    Calculates frequency bands based on the specified octave, minimum and
+    maximum frequency limits.
+
+    Parameters
+    ----------
+    octave: int
+        Octave to subdivide spectral density level by.
+    base : int, optional
+        Octave base. Set to 2 for the true octave band; set to base 10 for
+        the decidecade octave band. Default: 2
+    fmin : int, optional
+        Lower frequency band limit (lower limit of the hydrophone). Default is 10 Hz.
+    fmax : int, optional
+        Upper frequency band limit (Nyquist frequency). Default is 100,000 Hz.
+
+    Returns
+    -------
+    octave_bins: numpy.array
+        Array of octave bin edges
+    band: dict(str, numpy.array)
+        Dictionary containing the frequency band edges and center frequency
+    """
+
+    bandwidth = base ** (1 / octave)
+    half_bandwidth = base ** (1 / (octave * 2))
+
+    band = {}
+    band["center_freq"] = 10 ** np.arange(
+        np.log10(fmin),
+        np.log10(fmax),
+        step=np.log10(bandwidth),
+    )
+    band["lower_limit"] = band["center_freq"] / half_bandwidth
+    band["upper_limit"] = band["center_freq"] * half_bandwidth
+    octave_bins = np.append(band["lower_limit"], band["upper_limit"][-1])
+
+    return octave_bins, band
+
+
 def minimum_frequency(
     water_depth: Union[int, float, np.ndarray, list],
     c: Union[int, float] = 1500,
@@ -144,47 +185,6 @@ def minimum_frequency(
     fmin = c / (4 * water_depth * np.sqrt(1 - (c / c_seabed) ** 2))
 
     return fmin
-
-
-def create_frequency_bands(octave, base, fmin, fmax):
-    """
-    Calculates frequency bands based on the specified octave, minimum and
-    maximum frequency limits.
-
-    Parameters
-    ----------
-    octave: int
-        Octave to subdivide spectral density level by.
-    base : int, optional
-        Octave base. Set to 2 for the true octave band; set to base 10 for
-        the decidecade octave band. Default: 2
-    fmin : int, optional
-        Lower frequency band limit (lower limit of the hydrophone). Default is 10 Hz.
-    fmax : int, optional
-        Upper frequency band limit (Nyquist frequency). Default is 100,000 Hz.
-
-    Returns
-    -------
-    octave_bins: numpy.array
-        Array of octave bin edges
-    band: dict(str, numpy.array)
-        Dictionary containing the frequency band edges and center frequency
-    """
-
-    bandwidth = base ** (1 / octave)
-    half_bandwidth = base ** (1 / (octave * 2))
-
-    band = {}
-    band["center_freq"] = 10 ** np.arange(
-        np.log10(fmin),
-        np.log10(fmax),
-        step=np.log10(bandwidth),
-    )
-    band["lower_limit"] = band["center_freq"] / half_bandwidth
-    band["upper_limit"] = band["center_freq"] * half_bandwidth
-    octave_bins = np.append(band["lower_limit"], band["upper_limit"][-1])
-
-    return octave_bins, band
 
 
 def sound_pressure_spectral_density(
@@ -487,90 +487,90 @@ def _get_band_table(
     return bands
 
 
-def _band_mean_power_spectral_density(
-    input_spsd,
-    original_freq,
-    freq_table,
-):
-    """
-    Sums squared sound pressures to determine the in-band totals then divides by the
-    band_widths to get PSD. The band edges are normally obtained from a call to `get_band_table`.
+# def _band_mean_power_spectral_density(
+#     input_spsd,
+#     original_freq,
+#     freq_table,
+# ):
+#     """
+#     Sums squared sound pressures to determine the in-band totals then divides by the
+#     band_widths to get PSD. The band edges are normally obtained from a call to `get_band_table`.
 
-    Note that the output of `band_squared_sound_pressure` should satisfy
-    Parseval's theorem, but the output of `band_mean_power_spectral_density`
-    will not unless the bands are re-multiplied by the band widths.
-    Results are returned as linear units, not levels.
+#     Note that the output of `band_squared_sound_pressure` should satisfy
+#     Parseval's theorem, but the output of `band_mean_power_spectral_density`
+#     will not unless the bands are re-multiplied by the band widths.
+#     Results are returned as linear units, not levels.
 
-    Parameters:
-        input_spsd : ndarray
-            Array of squared pressures from an FFT with frequency step size.
-            Rows represent time, columns represent frequency.
-        original_freq : ndarray
-            Frequency array from the FFT used to determine fft_bin_size.
-        freq_table : ndarray
-            Nx3 array where column 0 is the lowest band frequency, column 1 is
-            the center frequency, and column 2 is the maximum frequency.
+#     Parameters:
+#         input_spsd : ndarray
+#             Array of squared pressures from an FFT with frequency step size.
+#             Rows represent time, columns represent frequency.
+#         original_freq : ndarray
+#             Frequency array from the FFT used to determine fft_bin_size.
+#         freq_table : ndarray
+#             Nx3 array where column 0 is the lowest band frequency, column 1 is
+#             the center frequency, and column 2 is the maximum frequency.
 
-    Returns:
-        ndarray
-            Band squared sound pressure array with the same number of rows as
-            input_spsd and one column per band.
+#     Returns:
+#         ndarray
+#             Band squared sound pressure array with the same number of rows as
+#             input_spsd and one column per band.
 
-    Notes:
-    Bruce Martin, JASCO Applied Sciences, Feb 2020.
+#     Notes:
+#     Bruce Martin, JASCO Applied Sciences, Feb 2020.
 
-    Converted to Python and refactored by MHKiT Team, June 2026.
-    Something strange going on here, primarily, the "min_fft_bin" and "max_fft_bin"
-    are combinations of both an FFT frequency and an array index. This will cause
-    it to fail for data with a fundamental FFT frequency any different than 1 Hz.
-    """
+#     Converted to Python and refactored by MHKiT Team, June 2026.
+#     Something strange going on here, primarily, the "min_fft_bin" and "max_fft_bin"
+#     are combinations of both an FFT frequency and an array index. This will cause
+#     it to fail for data with a fundamental FFT frequency any different than 1 Hz.
+#     """
 
-    fft_bin_size = original_freq[1] - original_freq[0]
-    start_offset = int(np.floor(original_freq[0] / fft_bin_size))
-    out_spsd = np.zeros((input_spsd.shape[0], freq_table.shape[0]))
-    step = fft_bin_size / 2
-    n_fft_bins = input_spsd.shape[1]
+#     fft_bin_size = original_freq[1] - original_freq[0]
+#     start_offset = int(np.floor(original_freq[0] / fft_bin_size))
+#     out_spsd = np.zeros((input_spsd.shape[0], freq_table.shape[0]))
+#     step = fft_bin_size / 2
+#     n_fft_bins = input_spsd.shape[1]
 
-    # Something strange going on here, primarily, the "min_fft_bin" and "max_fft_bin"
-    # are combinations of both an FFT frequency and an array index, which is confusing
-    for j in range(freq_table.shape[0]):
-        min_fft_bin = (
-            int(np.floor((freq_table[j, 0] / fft_bin_size) + step)) + 1 - start_offset
-        )
-        max_fft_bin = (
-            int(np.floor((freq_table[j, 2] / fft_bin_size) + step)) + 1 - start_offset
-        )
-        max_fft_bin = min(max_fft_bin, n_fft_bins)
-        min_fft_bin = max(min_fft_bin, 1)
-        if min_fft_bin == max_fft_bin:
-            out_spsd[:, j] = input_spsd[:, min_fft_bin - 1] * (
-                (freq_table[j, 2] - freq_table[j, 0]) / fft_bin_size
-            )
-        else:
-            # Add the first partial FFT bin - take the top of the bin and
-            # subtract the lower freq to get the amount we will use.
-            lower_factor = (min_fft_bin + 1 - step) * fft_bin_size - freq_table[j, 0]
-            out_spsd[:, j] = input_spsd[:, min_fft_bin - 1] * lower_factor
+#     # Something strange going on here, primarily, the "min_fft_bin" and "max_fft_bin"
+#     # are combinations of both an FFT frequency and an array index, which is confusing
+#     for j in range(freq_table.shape[0]):
+#         min_fft_bin = (
+#             int(np.floor((freq_table[j, 0] / fft_bin_size) + step)) + 1 - start_offset
+#         )
+#         max_fft_bin = (
+#             int(np.floor((freq_table[j, 2] / fft_bin_size) + step)) + 1 - start_offset
+#         )
+#         max_fft_bin = min(max_fft_bin, n_fft_bins)
+#         min_fft_bin = max(min_fft_bin, 1)
+#         if min_fft_bin == max_fft_bin:
+#             out_spsd[:, j] = input_spsd[:, min_fft_bin - 1] * (
+#                 (freq_table[j, 2] - freq_table[j, 0]) / fft_bin_size
+#             )
+#         else:
+#             # Add the first partial FFT bin - take the top of the bin and
+#             # subtract the lower freq to get the amount we will use.
+#             lower_factor = (min_fft_bin + 1 - step) * fft_bin_size - freq_table[j, 0]
+#             out_spsd[:, j] = input_spsd[:, min_fft_bin - 1] * lower_factor
 
-            # Add the last partial FFT bin.
-            upper_factor = (
-                freq_table[j, 2] - (max_fft_bin + 1 - 1.5 * fft_bin_size) * fft_bin_size
-            )
-            out_spsd[:, j] = (
-                out_spsd[:, j] + input_spsd[:, max_fft_bin - 1] * upper_factor
-            )
+#             # Add the last partial FFT bin.
+#             upper_factor = (
+#                 freq_table[j, 2] - (max_fft_bin + 1 - 1.5 * fft_bin_size) * fft_bin_size
+#             )
+#             out_spsd[:, j] = (
+#                 out_spsd[:, j] + input_spsd[:, max_fft_bin - 1] * upper_factor
+#             )
 
-            # Add any FFT bins in between min and max.
-            if (max_fft_bin - min_fft_bin) > 1:
-                out_spsd[:, j] += np.nansum(
-                    input_spsd[:, np.arange(min_fft_bin, max_fft_bin - 1)], axis=1
-                )
+#             # Add any FFT bins in between min and max.
+#             if (max_fft_bin - min_fft_bin) > 1:
+#                 out_spsd[:, j] += np.nansum(
+#                     input_spsd[:, np.arange(min_fft_bin, max_fft_bin - 1)], axis=1
+#                 )
 
-    # Take means
-    band_widths = freq_table[:, 2] - freq_table[:, 0]
-    out_spsd /= band_widths
+#     # Take means
+#     band_widths = freq_table[:, 2] - freq_table[:, 0]
+#     out_spsd /= band_widths
 
-    return out_spsd
+#     return out_spsd
 
 
 def _band_mean_power_spectral_density_v2(input_spsd, freq_fft, freq_table):
