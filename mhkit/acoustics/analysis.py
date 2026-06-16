@@ -567,33 +567,30 @@ def _band_power_spectral_density_v3(freq_fft, freq_table):
         overlap_mask = ((freq_fft >= f_lo) & (freq_fft <= f_hi)) | (
             (freq_fft + fft_bin_size / 2 > f_lo) & (freq_fft - fft_bin_size / 2 < f_hi)
         )
-        overlap_idx = np.where(overlap_mask)[0]
 
         # Partial bins = overlapping minus fully-contained
-        partial_pts[j] = np.setdiff1d(overlap_idx, full_pts[j])
+        partial_pts[j] = np.setdiff1d(np.where(overlap_mask)[0], full_pts[j])
 
     # Compute fractional weights for partial bins
     weights = {}
     for j in range(freq_table.shape[0]):
-        temp = partial_pts[j]
-        temp_weight = np.zeros(len(temp))
+        weights[j] = np.zeros(partial_pts[j].size)
 
-        for k, idx in enumerate(temp):
+        for k, idx in enumerate(partial_pts[j]):
             bin_lo = freq_fft[idx] - fft_bin_size / 2
             bin_hi = freq_fft[idx] + fft_bin_size / 2
 
             if bin_lo < freq_table[j, 0]:
                 # Bin extends below the band's lower edge
-                temp_weight[k] = (
+                weights[j][k] = (
                     fft_bin_size - (freq_table[j, 0] - bin_lo)
                 ) / fft_bin_size
+
             elif bin_hi > freq_table[j, 2]:
                 # Bin extends above the band's upper edge
-                temp_weight[k] = (
+                weights[j][k] = (
                     fft_bin_size - (bin_hi - freq_table[j, 2])
                 ) / fft_bin_size
-
-        weights[j] = temp_weight
 
     return full_pts, partial_pts, weights
 
