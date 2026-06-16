@@ -7,41 +7,50 @@ input audio data.
 
 The following functionality is provided:
 
-1. **Frequency Validation and Warning**:
+1. **Type Validation**:
+
+   - `_check_numeric`: Validates that a value is of numeric type (int or float).
+
+2. **Frequency Validation and Warning**:
 
    - `_fmax_warning`: Ensures specified maximum frequency does not exceed the Nyquist frequency,
      adjusting if necessary to avoid aliasing.
 
-2. **Shallow Water Cutoff Frequency**:
+3. **Shallow Water Cutoff Frequency**:
 
    - `minimum_frequency`: Calculates the minimum frequency cutoff based on water depth and the
      speed of sound in water and seabed materials.
 
-3. **Calculation of Frequency Bands**:
+4. **Calculation of Frequency Bands**:
 
     - `create_frequency_bands`: Generates frequency bands based on specified octave divisions,
       minimum and maximum frequency limits, and the chosen base
       (e.g., 2 for octaves, 10 for decades).
 
-4. **Sound Pressure Spectral Density Calculation**:
+5. **Sound Pressure Spectral Density Calculation**:
 
     - `sound_pressure_spectral_density`: Computes the mean square sound pressure spectral density
       using FFT binning with Hanning windowing and 50% overlap.
 
-5. **Calibration**:
+6. **Calibration**:
 
    - `apply_calibration`: Applies calibration adjustments to the spectral density data using
      a sensitivity curve, filling missing values as specified.
 
-6. **Band-Averaged Spectral Density**:
+7. **Band-Averaged Spectral Density**:
 
     - `_get_band_table`: Generates a table of frequency bands for logarithmically
-      spaced divisions.
-    - `_band_mean_power_spectral_density`: Computes the mean power spectral density
+      spaced divisions with optional linear spacing at lower frequencies.
+    - `_band_power_spectral_density_v3`: Pre-computes bin indices and weights for band averaging.
+    - `_band_mean_power_spectral_density_v2`: Computes the mean power spectral density
       within specified bands.
+    - `_convert_to_band_spectral_density`: Generic function to convert spectral density
+      to custom banded spectral densities.
     - `convert_to_millidecade`, `convert_to_decidecade`, `convert_to_third_octave`:
       Convenience functions to convert spectral density to millidecade, decidecade,
-      and third octave banded spectral densities, respectively.
+      and third-octave banded spectral densities, respectively.
+    - `convert_to_custom_bands`: Convert spectral density to custom band spacing with
+      user-specified parameters.
 
 """
 
@@ -370,8 +379,8 @@ def apply_calibration(
 
 def _get_band_table(
     freq: np.ndarray,
-    base: int,
     bands_per_division: int,
+    base: int,
     use_fft_res_at_bottom: bool,
 ):
     """
@@ -382,25 +391,28 @@ def _get_band_table(
     levels. The squared pressure can be converted to power spectral
     density by dividing by the band_widths.
 
-    Parameters:
-        freq : np.ndarray
-            Array of frequency values in Hz from the FFT.
-        base : int
-            Base for the band levels, generally 10 or 2.
-        bands_per_division : int
-            The number of bands to divide the spectrum into per increase by
-            a factor of 'base'. A base of 2 and bands_per_division of 3
-            results in third octaves base 2. Base 10 and bands_per_division
-            of 1000 results in millidecades.
-        use_fft_res_at_bottom : bool
-            In some cases, like millidecades, we do not want to have
-            logarithmically spaced frequency bands across the full spectrum.
-            When True, bands at lower frequencies use linear spacing (equal
-            to the FFT bin size), and transition to log spacing at the band
-            where the bandwidth exceeds the FFT bin size and the frequency
-            space between band center frequencies is at least the FFT bin size.
+    Parameters
+    ----------
+    freq : np.ndarray
+        Array of frequency values in Hz from the FFT.
+    bands_per_division : int
+        The number of bands to divide the spectrum into per increase by
+        a factor of 'base'. A base of 2 and bands_per_division of 3
+        results in third octaves base 2. Base 10 and bands_per_division
+        of 1000 results in millidecades.
+    base : int
+        Base for the band levels, generally 10 or 2.
+    use_fft_res_at_bottom : bool
+        In some cases, like millidecades, we do not want to have
+        logarithmically spaced frequency bands across the full spectrum.
+        When True, bands at lower frequencies use linear spacing (equal
+        to the FFT bin size), and transition to log spacing at the band
+        where the bandwidth exceeds the FFT bin size and the frequency
+        space between band center frequencies is at least the FFT bin size.
 
-    Returns:
+    Returns
+    -------
+    bands : np.ndarray
         Three column array where column 1 is the lowest frequency of the
         band, column 2 is the center frequency, and column 3 is the highest
         frequency.
@@ -487,103 +499,13 @@ def _get_band_table(
     return bands
 
 
-# def _band_mean_power_spectral_density(
-#     input_spsd,
-#     original_freq,
-#     freq_table,
-# ):
-#     """
-#     Sums squared sound pressures to determine the in-band totals then divides by the
-#     band_widths to get PSD. The band edges are normally obtained from a call to `get_band_table`.
-
-#     Note that the output of `band_squared_sound_pressure` should satisfy
-#     Parseval's theorem, but the output of `band_mean_power_spectral_density`
-#     will not unless the bands are re-multiplied by the band widths.
-#     Results are returned as linear units, not levels.
-
-#     Parameters:
-#         input_spsd : ndarray
-#             Array of squared pressures from an FFT with frequency step size.
-#             Rows represent time, columns represent frequency.
-#         original_freq : ndarray
-#             Frequency array from the FFT used to determine fft_bin_size.
-#         freq_table : ndarray
-#             Nx3 array where column 0 is the lowest band frequency, column 1 is
-#             the center frequency, and column 2 is the maximum frequency.
-
-#     Returns:
-#         ndarray
-#             Band squared sound pressure array with the same number of rows as
-#             input_spsd and one column per band.
-
-#     Notes:
-#     Bruce Martin, JASCO Applied Sciences, Feb 2020.
-
-#     Converted to Python and refactored by MHKiT Team, June 2026.
-#     Something strange going on here, primarily, the "min_fft_bin" and "max_fft_bin"
-#     are combinations of both an FFT frequency and an array index. This will cause
-#     it to fail for data with a fundamental FFT frequency any different than 1 Hz.
-#     """
-
-#     fft_bin_size = original_freq[1] - original_freq[0]
-#     start_offset = int(np.floor(original_freq[0] / fft_bin_size))
-#     out_spsd = np.zeros((input_spsd.shape[0], freq_table.shape[0]))
-#     step = fft_bin_size / 2
-#     n_fft_bins = input_spsd.shape[1]
-
-#     # Something strange going on here, primarily, the "min_fft_bin" and "max_fft_bin"
-#     # are combinations of both an FFT frequency and an array index, which is confusing
-#     for j in range(freq_table.shape[0]):
-#         min_fft_bin = (
-#             int(np.floor((freq_table[j, 0] / fft_bin_size) + step)) + 1 - start_offset
-#         )
-#         max_fft_bin = (
-#             int(np.floor((freq_table[j, 2] / fft_bin_size) + step)) + 1 - start_offset
-#         )
-#         max_fft_bin = min(max_fft_bin, n_fft_bins)
-#         min_fft_bin = max(min_fft_bin, 1)
-#         if min_fft_bin == max_fft_bin:
-#             out_spsd[:, j] = input_spsd[:, min_fft_bin - 1] * (
-#                 (freq_table[j, 2] - freq_table[j, 0]) / fft_bin_size
-#             )
-#         else:
-#             # Add the first partial FFT bin - take the top of the bin and
-#             # subtract the lower freq to get the amount we will use.
-#             lower_factor = (min_fft_bin + 1 - step) * fft_bin_size - freq_table[j, 0]
-#             out_spsd[:, j] = input_spsd[:, min_fft_bin - 1] * lower_factor
-
-#             # Add the last partial FFT bin.
-#             upper_factor = (
-#                 freq_table[j, 2] - (max_fft_bin + 1 - 1.5 * fft_bin_size) * fft_bin_size
-#             )
-#             out_spsd[:, j] = (
-#                 out_spsd[:, j] + input_spsd[:, max_fft_bin - 1] * upper_factor
-#             )
-
-#             # Add any FFT bins in between min and max.
-#             if (max_fft_bin - min_fft_bin) > 1:
-#                 out_spsd[:, j] += np.nansum(
-#                     input_spsd[:, np.arange(min_fft_bin, max_fft_bin - 1)], axis=1
-#                 )
-
-#     # Take means
-#     band_widths = freq_table[:, 2] - freq_table[:, 0]
-#     out_spsd /= band_widths
-
-#     return out_spsd
-
-
-def _band_mean_power_spectral_density_v2(input_spsd, freq_fft, freq_table):
+def _band_power_spectral_density_v3(freq_fft, freq_table):
     """
-    Sum squared sound pressures to determine in-band totals.
-
-    Band edges are normally obtained from a call to ``get_band_table``.
+    Sums squared sound pressures to determine in-band totals.
+    The band edges are normally obtained from a call to ``get_band_table``.
 
     Parameters
     ----------
-    input_spsd : np.ndarray
-        2D array of squared pressures from an FFT. Axis 0 (rows) is time,
-        axis 1 (columns) is frequency.
     freq_fft : np.ndarray
         1D array of center frequencies produced by the FFT call [Hz].
     freq_table : np.ndarray
@@ -593,14 +515,20 @@ def _band_mean_power_spectral_density_v2(input_spsd, freq_fft, freq_table):
 
     Returns
     -------
-    out_spsd : np.ndarray
-        2D array of band mean PSD with the same number of rows as
-        ``input_spsd`` and ``freq_table.shape[0]`` columns (one per band).
+    full_pts : dict
+        Dictionary where keys are band indices and values are arrays of FFT bin
+        indices that fall fully within the band.
+    partial_pts : dict
+        Dictionary where keys are band indices and values are arrays of FFT bin
+        indices that partially overlap the band.
+    weights : dict
+        Dictionary where keys are band indices and values are arrays of weights
+        for the partial bins, proportional to the fraction of the bin that falls
+        within the band.
 
     Notes
     -----
-    The summation converts from PSD to level by multiplying by the FFT
-    frequency bin size. Full bins (entirely within a band) are summed
+    Full bins (entirely within a band) are summed
     directly; partial bins (overlapping a band edge) are weighted
     proportionally to the fraction of the bin that falls within the band.
     The result is then divided by each band's bandwidth to return mean PSD.
@@ -611,10 +539,13 @@ def _band_mean_power_spectral_density_v2(input_spsd, freq_fft, freq_table):
     spectral processing with a fundamental FFT frequency of 10 Hz by
     Brian Polayge, University of Washington, 2025.
 
-    Converted to Python by MHKiT Team, June 2026.
+    Converted to Python.
+    Split into two functions to pre-compute bin indices and weights in
+    ``_band_power_spectral_density_v3``, then compute band averaged PSD
+    in ``band_mean_power_spectral_density_v2``.
+    MHKiT Team, June 2026.
     """
 
-    out_spsd = np.zeros((input_spsd.shape[0], freq_table.shape[0]))
     fft_bin_size = freq_fft[1] - freq_fft[0]
 
     # Pre-compute full and partial bin indices for each band.
@@ -664,9 +595,70 @@ def _band_mean_power_spectral_density_v2(input_spsd, freq_fft, freq_table):
 
         weights[j] = temp_weight
 
+    return full_pts, partial_pts, weights
+
+
+def _band_mean_power_spectral_density_v2(
+    input_spsd, freq_table, full_pts, partial_pts, weights
+):
+    """
+    Sums squared sound pressures to determine in-band totals, then divides by
+    the band widths to return mean power spectral density.
+    The band edges are normally obtained from a call to ``get_band_table`` and
+    the full and partial bin indices and weights are obtained from a call to
+    ``band_power_spectral_density_v3``.
+
+    Parameters
+    ----------
+    input_spsd : np.ndarray
+        2D array of sound pressure spectral density values with dimensions (time, freq).
+    freq_table : np.ndarray
+        Nx3 array of band edges where column 0 is the lower limit [Hz],
+        column 1 is the center frequency [Hz], and column 2 is the upper
+        limit [Hz].
+    full_pts : dict
+        Dictionary where keys are band indices and values are arrays of FFT bin
+        indices that fall fully within the band.
+    partial_pts : dict
+        Dictionary where keys are band indices and values are arrays of FFT bin
+        indices that partially overlap the band.
+    weights : dict
+        Dictionary where keys are band indices and values are arrays of weights
+        for the partial bins, proportional to the fraction of the bin that falls
+        within the band.
+
+    Returns
+    -------
+    out_spsd : np.ndarray
+        2D array of band-averaged sound pressure spectral density values with dimensions
+        (time, band), where 'band' corresponds to the center frequencies in 'freq_table'.
+
+    Notes
+    -----
+    Full bins (entirely within a band) are summed
+    directly; partial bins (overlapping a band edge) are weighted
+    proportionally to the fraction of the bin that falls within the band.
+    The result is then divided by each band's bandwidth to return mean PSD.
+
+    Original code by Bruce Martin, JASCO Applied Sciences, Feb 2020
+
+    Updated to use FFT-generated frequencies as input to handle time-resolved
+    spectral processing with a fundamental FFT frequency of 10 Hz by
+    Brian Polayge, University of Washington, 2025.
+
+    Converted to Python.
+    Split into two functions to pre-compute bin indices and weights in
+    ``_band_power_spectral_density_v3``, then compute band averaged PSD
+    in ``band_mean_power_spectral_density_v2``.
+    MHKiT Team, June 2026.
+    """
+
+    fft_bin_size = input_spsd["freq"].values[1] - input_spsd["freq"].values[0]
+    input_spsd = input_spsd.values
+    out_spsd = np.zeros((input_spsd.shape[0], freq_table.shape[0]))
+
     # Accumulate band-squared pressure; vectorised over the time (row) axis
     for j in range(freq_table.shape[0]):
-
         # Contribution from fully-contained FFT bins
         if len(full_pts[j]) > 0:
             out_spsd[:, j] = np.sum(input_spsd[:, full_pts[j]], axis=1) * fft_bin_size
@@ -688,22 +680,23 @@ def _band_mean_power_spectral_density_v2(input_spsd, freq_fft, freq_table):
 
 
 def _convert_to_band_spectral_density(
-    spsd: xr.DataArray, base: int, bands_per_division: int, use_fft_res_at_bottom: bool
+    spsd: xr.DataArray, bands_per_division: int, base: int, use_fft_res_at_bottom: bool
 ) -> xr.DataArray:
-    """Convert sound pressure spectral density to banded spectral density based on
+    """
+    Convert sound pressure spectral density to banded spectral density based on
     the specified base and bands per division.
 
     Parameters
     ----------
     spsd: xr.DataArray
         DataArray with frequency dimension.
-    base: int
-        Base for the band levels, generally 10 or 2.
     bands_per_division: int
         The number of bands to divide the spectrum into per increase by a factor
         of 'base'. A base of 2 and "bands_per_division" of 3 results in third
         octaves base 2. Base 10 and "bands_per_division" of 1000 results in
         millidecades.
+    base: int
+        Base for the band levels, generally 10 or 2.
     use_fft_res_at_bottom: bool
         In some cases, like millidecades, we do not want to have logarithmically
         spaced frequency bands across the full spectrum, instead we have the option
@@ -721,14 +714,20 @@ def _convert_to_band_spectral_density(
     # Get bands
     bands = _get_band_table(
         freq=spsd["freq"].values,
-        base=base,
         bands_per_division=bands_per_division,
+        base=base,
         use_fft_res_at_bottom=use_fft_res_at_bottom,
     )
-    band_spsd = _band_mean_power_spectral_density_v2(
-        spsd.values,
+    full_pts, partial_pts, weights = _band_power_spectral_density_v3(
         freq_fft=spsd["freq"].values,
         freq_table=bands,
+    )
+    band_spsd = _band_mean_power_spectral_density_v2(
+        input_spsd=spsd,
+        freq_table=bands,
+        full_pts=full_pts,
+        partial_pts=partial_pts,
+        weights=weights,
     )
     out = xr.DataArray(
         band_spsd,
@@ -741,36 +740,36 @@ def _convert_to_band_spectral_density(
 
 
 def convert_to_millidecade(spsd: xr.DataArray) -> xr.DataArray:
-    """Convert sound pressure spectral density to millidecade spacing with base 10."""
+    """Convert sound pressure spectral density to millidecade spacing."""
 
     out = _convert_to_band_spectral_density(
-        spsd=spsd, base=10, bands_per_division=1000, use_fft_res_at_bottom=True
+        spsd=spsd, bands_per_division=1000, base=10, use_fft_res_at_bottom=True
     )
     return out
 
 
 def convert_to_third_octave(spsd: xr.DataArray) -> xr.DataArray:
-    """Convert sound pressure spectral density to third octave spacing with base 2."""
+    """Convert sound pressure spectral density to third octave spacing."""
 
     out = _convert_to_band_spectral_density(
-        spsd=spsd, base=2, bands_per_division=3, use_fft_res_at_bottom=False
+        spsd=spsd, bands_per_division=3, base=2, use_fft_res_at_bottom=False
     )
     return out
 
 
 def convert_to_decidecade(spsd: xr.DataArray) -> xr.DataArray:
-    """Convert sound pressure spectral density to decidecade spacing with base 10."""
+    """Convert sound pressure spectral density to decidecade spacing."""
 
     out = _convert_to_band_spectral_density(
-        spsd=spsd, base=10, bands_per_division=10, use_fft_res_at_bottom=False
+        spsd=spsd, bands_per_division=10, base=10, use_fft_res_at_bottom=False
     )
     return out
 
 
 def convert_to_custom_bands(
     spsd: xr.DataArray,
-    base: int,
     bands_per_division: int,
+    base: int,
     use_fft_res_at_bottom: bool = False,
 ) -> xr.DataArray:
     """
@@ -779,29 +778,30 @@ def convert_to_custom_bands(
 
     Parameters
     ----------
-        spsd (xr.DataArray): DataArray with frequency dimension.
-        base (int): Base for the band levels, generally 10 or 2.
-        bands_per_division (int): The number of bands to divide the spectrum into
-            per increase by a factor of 'base'. A base of 2 and
-            "bands_per_division" of 3 results in third octaves. Base 10
-            and "bands_per_division" of 1000 results in millidecades.
-        use_fft_res_at_bottom (bool): In some cases, like millidecades, we do not want
-            to have logarithmically spaced frequency bands across the full
-            spectrum, instead we have the option to have bands that are equal
-            'fft_bin_size'. The switch to log spacing is made at the band that
-            has a bandwidth greater than 'fft_bin_size' and such that the
-            frequency space between band center frequencies is at least
-            'fft_bin_size'.
+    spsd (xr.DataArray): DataArray with frequency dimension.
+    bands_per_division (int): The number of bands to divide the spectrum into
+        per increase by a factor of 'base'. A base of 2 and
+        "bands_per_division" of 3 results in third octaves. Base 10
+        and "bands_per_division" of 1000 results in millidecades.
+    base (int): Base for the band levels, generally 10 or 2.
+    use_fft_res_at_bottom (bool): In some cases, like millidecades, we do not want
+        to have logarithmically spaced frequency bands across the full
+        spectrum, instead we have the option to have bands that are equal
+        'fft_bin_size'. The switch to log spacing is made at the band that
+        has a bandwidth greater than 'fft_bin_size' and such that the
+        frequency space between band center frequencies is at least
+        'fft_bin_size'.
+
     Returns
     -------
-        xr.DataArray: DataArray with frequency dimension converted to custom banded spectral
-            density.
+    xr.DataArray: DataArray with frequency dimension converted to custom banded spectral
+        density.
     """
 
     out = _convert_to_band_spectral_density(
         spsd=spsd,
-        base=base,
         bands_per_division=bands_per_division,
+        base=base,
         use_fft_res_at_bottom=use_fft_res_at_bottom,
     )
     return out

@@ -19,7 +19,12 @@ from sound pressure data.
 import numpy as np
 import xarray as xr
 
-from .analysis import _check_numeric, _fmax_warning, create_frequency_bands
+from .analysis import (
+    _check_numeric,
+    _fmax_warning,
+    _get_band_table,
+    _band_power_spectral_density_v3,
+)
 
 
 def _argument_check(spsd, fmin, fmax):
@@ -126,13 +131,7 @@ def sound_pressure_level(
     return out
 
 
-def _band_sound_pressure_level(
-    spsd: xr.DataArray,
-    octave: int,
-    base: int = 2,
-    fmin: int = 10,
-    fmax: int = 100000,
-) -> xr.DataArray:
+def _band_sound_pressure_level(spsd: xr.DataArray, octave: int, base: int):
     """
     Calculates band-averaged sound pressure levels from the
     mean square sound pressure spectral density (SPSD).
@@ -145,63 +144,62 @@ def _band_sound_pressure_level(
         Octave subdivision (1 = full octave, 3 = third-octave, etc.)
     base: int
         Octave base subdivision (2 = true octave, 10 = decade octave, etc.)
-    fmin : int, optional
-        Lower frequency band limit (lower limit of the hydrophone).
-        Default is 10 Hz.
-    fmax : int, optional
-        Upper frequency band limit (Nyquist frequency).
-        Default is 100,000 Hz.
 
     Returns
     -------
     out: xarray.DataArray (time, freq_bins)
         Sound pressure level [dB re 1 uPa] indexed by time and frequency of specified bandwidth
+
+    Notes
+    -----
+    Assumes constant spacing in FFT frequency vector.
     """
-
-    # Type checks
-    if not isinstance(octave, int) or (octave <= 0):
-        raise TypeError("'octave' must be a positive integer.")
-
-    # Argument checks
-    fmax = _argument_check(spsd, fmin, fmax)
 
     # Reference value of sound pressure
     reference = 1e-12  # Pa^2, = 1 uPa^2
+    # Frequency vector
+    freq = spsd["freq"].values
 
-    _, band = create_frequency_bands(octave, base, fmin, fmax)
-
-    # Manual trapezoidal rule to get Pa^2
-    pressure_squared = xr.DataArray(
-        coords={"time": spsd["time"], "freq_bins": band["center_freq"]},
-        dims=["time", "freq_bins"],
+    # Get bands
+    bands = _get_band_table(
+        freq=freq,
+        bands_per_division=octave,
+        base=base,
+        use_fft_res_at_bottom=False,
     )
-    for i, key in enumerate(band["center_freq"]):
-        # Min and max band limits
-        band_range = [band["lower_limit"][i], band["upper_limit"][i]]
+    full_pts, partial_pts, weights = _band_power_spectral_density_v3(
+        freq_fft=freq, freq_table=bands
+    )
 
-        # Integrate spectral density by frequency
-        x = spsd["freq"].sel(freq=slice(*band_range))
-        if len(x) < 2:
-            # Interpolate between band frequencies if width is narrow
-            bandwidth = band_range[1] / band_range[0]
-            # Use smaller set of dataset to speed up interpolation
-            spsd_slc = spsd.sel(
-                freq=slice(
-                    None,  # Only happens at low frequency
-                    band_range[1] * bandwidth * 2,
-                )
+    input_spsd = spsd.values
+    out_sp = np.zeros((input_spsd.shape[0], bands.shape[0]))
+
+    # Integrate band-squared pressure by frequency; vectorised over the time (row) axis
+    for j in range(bands.shape[0]):
+        # Contribution from fully-contained FFT bins
+        if len(full_pts[j]) > 0:
+            out_sp[:, j] = np.trapezoid(
+                input_spsd[:, full_pts[j]], freq[full_pts[j]], axis=1
             )
-            spsd_slc = spsd_slc.interp(freq=band_range)
-            x = band_range
-        else:
-            spsd_slc = spsd.sel(freq=slice(*band_range))
 
-        pressure_squared.loc[{"freq_bins": key}] = np.trapezoid(spsd_slc, x)
+        # Contribution from partial FFT bins
+        if len(partial_pts[j]) > 0:
+            out_sp[:, j] += np.trapezoid(
+                input_spsd[:, partial_pts[j]] * weights[j][np.newaxis, :],
+                dx=freq[1] - freq[0],
+                axis=1,
+            )
 
     # Mean square sound pressure level in dB rel 1 uPa
-    mspl = 10 * np.log10(pressure_squared / reference)
-
-    return mspl
+    out_spl = xr.DataArray(
+        10 * np.log10(out_sp / reference),
+        coords={
+            "time": spsd["time"],
+            "freq_bins": bands[:, 1],
+        },
+        dims=["time", "freq_bins"],
+    )
+    return out_spl
 
 
 def third_octave_sound_pressure_level(
@@ -228,9 +226,12 @@ def third_octave_sound_pressure_level(
         Sound pressure level [dB re 1 uPa] indexed by time and third octave bands
     """
 
+    # Argument checks
+    fmax = _argument_check(spsd, fmin, fmax)
+
     octave = 3
     base = 2
-    mspl = _band_sound_pressure_level(spsd, octave, base, fmin, fmax)
+    mspl = _band_sound_pressure_level(spsd, octave, base)
     mspl.attrs.update(
         {
             "units": "dB re 1 uPa",
@@ -239,6 +240,7 @@ def third_octave_sound_pressure_level(
         }
     )
 
+    mspl = mspl.sel(freq_bins=slice(fmin, fmax))
     return mspl.astype(np.float32)
 
 
@@ -266,9 +268,12 @@ def decidecade_sound_pressure_level(
         Sound pressure level [dB re 1 uPa] indexed by time and decidecade bands
     """
 
+    # Argument checks
+    fmax = _argument_check(spsd, fmin, fmax)
+
     octave = 10
     base = 10
-    mspl = _band_sound_pressure_level(spsd, octave, base, fmin, fmax)
+    mspl = _band_sound_pressure_level(spsd, octave, base)
     mspl.attrs.update(
         {
             "units": "dB re 1 uPa",
@@ -277,4 +282,5 @@ def decidecade_sound_pressure_level(
         }
     )
 
+    mspl = mspl.sel(freq_bins=slice(fmin, fmax))
     return mspl.astype(np.float32)

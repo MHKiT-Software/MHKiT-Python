@@ -104,6 +104,10 @@ class TestMetrics(unittest.TestCase):
         np.testing.assert_allclose(td_spl.head().values, cd_spl_head, atol=1e-6)
         np.testing.assert_allclose(td_spl.tail().values, cd_spl_tail, atol=1e-6)
         np.testing.assert_allclose(
+            td_spl["time"].head().astype("int64"), cc.astype("int64"), atol=1
+        )
+
+        np.testing.assert_allclose(
             td_spl10["freq_bins"].head().values, cd_spl10_freq_head, atol=1e-6
         )
         np.testing.assert_allclose(td_spl10.head().values, cd_spl10_head, atol=1e-6)
@@ -111,6 +115,7 @@ class TestMetrics(unittest.TestCase):
             td_spl10["freq_bins"].tail().values, cd_spl10_freq_tail, atol=1e-6
         )
         np.testing.assert_allclose(td_spl10.tail().values, cd_spl10_tail, atol=1e-6)
+
         np.testing.assert_allclose(
             td_spl3["freq_bins"].head().values, cd_spl3_freq_head, atol=1e-6
         )
@@ -119,9 +124,6 @@ class TestMetrics(unittest.TestCase):
             td_spl3["freq_bins"].tail().values, cd_spl3_freq_tail, atol=1e-6
         )
         np.testing.assert_allclose(td_spl3.tail().values, cd_spl3_tail, atol=1e-6)
-        np.testing.assert_allclose(
-            td_spl["time"].head().astype("int64"), cc.astype("int64"), atol=1
-        )
 
     def test_nmfs_weighting(self):
         freq = self.spsd["freq"]

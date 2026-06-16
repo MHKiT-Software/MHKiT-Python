@@ -30,8 +30,8 @@ class TestAnalysis(unittest.TestCase):
         _, decidecades = acoustics.create_frequency_bands(10, 10, fmin=1, fmax=48000)
         millidecades = acoustics.analysis._get_band_table(
             self.spsd["freq"][:460].values,
-            base=10,
             bands_per_division=1000,
+            base=10,
             use_fft_res_at_bottom=True,
         )[:, 1]
 
