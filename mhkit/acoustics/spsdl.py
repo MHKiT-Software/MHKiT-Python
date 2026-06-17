@@ -233,13 +233,13 @@ def band_aggregate(
     """
     warnings.warn(
         "The 'band_aggregate' function is deprecated and will be removed in a future release. "
-        "Please use one of the following alternatives instead to convert the SPSD to the \n"
-        "appropriate band before calculating the SPSDL using \n"
+        "Please use one of the following alternatives instead to convert the SPSD to the "
+        "appropriate band before calculating the SPSDL using "
         "'sound_pressure_spectral_density_level':\n"
         "- For third octaves, use 'mhkit.acoustics.convert_to_third_octave' function.\n"
         "- For decidecades, use 'mhkit.acoustics.convert_to_decidecade' function.\n"
         "- For millidecades, use 'mhkit.acoustics.convert_to_millidecade' function.\n"
-        "- For custom band aggregation, use 'mhkit.acoustics.convert_to_custom_bands.'\n",
+        "- For custom band aggregation, use 'mhkit.acoustics.convert_to_custom_bands.'",
         DeprecationWarning,
         stacklevel=2,
     )
@@ -324,13 +324,13 @@ def time_aggregate(
     """
     warnings.warn(
         "The 'time_aggregate' function is deprecated and will be removed in a future release. "
-        "Please use one of the following alternatives instead to convert the SPSD to the \n"
-        "appropriate time-aggregated form before calculating the SPSDL using \n"
+        "Please use one of the following alternatives instead to convert the SPSD to the "
+        "appropriate time-aggregated form before calculating the SPSDL using "
         "'sound_pressure_spectral_density_level':\n"
         "- For time-averaged SPSDLs, use the 'mhkit.acoustics.time_average' function.\n"
         "- For time-summed SPSDLs, use the 'mhkit.acoustics.time_summation' function.\n"
-        "If you are using this function for a different purpose, please reach out to the MHKiT \n"
-        "developers to discuss how we can support your use case with a more specific function.\n",
+        "If you are using this function for a different purpose, please reach out to the MHKiT "
+        "developers to discuss how we can support your use case with a more specific function.",
         DeprecationWarning,
         stacklevel=2,
     )
