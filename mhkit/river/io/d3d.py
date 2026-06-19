@@ -388,7 +388,10 @@ def get_layer_data(
     elif isinstance(data, xr.Dataset):
         layer_percentages = cord_sys.values  # accumulative
 
-    if layer_dim == "FlowLink_xu FlowLink_yu" or layer_dim == 'mesh2d_edge_x mesh2d_edge_y':
+    if (
+        layer_dim == "FlowLink_xu FlowLink_yu"
+        or layer_dim == "mesh2d_edge_x mesh2d_edge_y"
+    ):
         # interpolate
         if isinstance(data, netCDF4.Dataset):
             x_laydim = np.ma.getdata(data.variables[coords[0]][:], False)
@@ -421,13 +424,19 @@ def get_layer_data(
     waterdepth = []
 
     if dimensions == 2:
-        if layer_dim == "FlowLink_xu FlowLink_yu" or layer_dim == 'mesh2d_edge_x mesh2d_edge_y':
+        if (
+            layer_dim == "FlowLink_xu FlowLink_yu"
+            or layer_dim == "mesh2d_edge_x mesh2d_edge_y"
+        ):
             z = [bottom_depth_wdim]
             waterlevel = water_level_wdim
         else:
             z = [bottom_depth]
     else:
-        if layer_dim == "FlowLink_xu FlowLink_yu" or layer_dim == 'mesh2d_edge_x mesh2d_edge_y':
+        if (
+            layer_dim == "FlowLink_xu FlowLink_yu"
+            or layer_dim == "mesh2d_edge_x mesh2d_edge_y"
+        ):
             z = [bottom_depth_wdim * layer_percentages[layer_index]]
             waterlevel = water_level_wdim
         else:
