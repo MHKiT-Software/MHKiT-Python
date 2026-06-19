@@ -651,7 +651,7 @@ def variable_interpolation(
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
 
-    # Avoid Quhall errors by filling in bad sigma values 
+    # Avoid Quhall errors by filling in bad sigma values
     if "mesh2d_interface_sigma" in data.variables:
         sigma = data["mesh2d_interface_sigma"].values
         bad = ~np.isfinite(sigma) | (np.abs(sigma) > 0.1)
@@ -667,9 +667,9 @@ def variable_interpolation(
                 if neighbors:
                     avg_neighbor = np.mean(neighbors)
                     if np.abs(avg_neighbor - (-1.0)) < np.abs(avg_neighbor):
-                        sigma[idx] = -1.0 # sea bed
+                        sigma[idx] = -1.0  # sea bed
                     else:
-                        sigma[idx] = 0.0 # water surface
+                        sigma[idx] = 0.0  # water surface
                 else:
                     sigma[idx] = -1.0
 
