@@ -735,10 +735,8 @@ def export_audio(
         pressure = pressure.interp(time=resample_time)
 
     if pressure.attrs["units"] == "Pa":
-        # Convert from Pascals to microPa
-        uPa = pressure.T * 1e6
-        # Change to voltage waveform
-        pressure = uPa * 10 ** (pressure.sensitivity / 20)  # in V
+        # Convert from Pascals to microPa and change to voltage waveform
+        pressure = (pressure.T * 1e6) * 10 ** (pressure.sensitivity / 20)
 
     v = pressure.values
     # Normalize
