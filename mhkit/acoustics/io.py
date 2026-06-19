@@ -661,7 +661,7 @@ def read_wispr(file_path):
 
 def export_audio(
     filename: str,
-    signal: xr.DataArray,
+    pressure: xr.DataArray,
     peak_voltage: Union[int, float] = None,
     gain: Union[int, float] = 1,
     resample_multiplier: int = 1,
@@ -673,7 +673,7 @@ def export_audio(
     ----------
     filename : str
         Output filename for the WAV file (without extension).
-    signal : xarray.DataArray
+    pressure : xarray.DataArray
         Sound pressure or voltage data with attributes:
             - 'sensitivity' (int or float): Sensitivity of the hydrophone in dB.
             - 'fs' (int or float): Sampling frequency in Hz.
@@ -684,61 +684,63 @@ def export_audio(
     gain : int or float, optional
         Gain to multiply the original time series by. Default is 1.
     resample_multiplier : int, optional
-        Multiplier for resampling the signal to speed up the recording,
+        Multiplier for resampling the pressure to speed up the recording,
         which is useful for listening to low frequency sound. Default is 1 (no resampling).
     """
 
     if not isinstance(filename, str):
         raise TypeError("'filename' must be a string.")
-    if not isinstance(signal, xr.DataArray):
-        raise TypeError("'signal' must be an xarray.DataArray.")
-    if hasattr(signal, "sensitivity"):
-        _check_numeric(signal.sensitivity, "signal.sensitivity")
+    if not isinstance(pressure, xr.DataArray):
+        raise TypeError("'pressure' must be an xarray.DataArray.")
+    if hasattr(pressure, "sensitivity"):
+        _check_numeric(pressure.sensitivity, "pressure.sensitivity")
     else:
-        raise AttributeError("'signal' must have a 'sensitivity' attribute.")
-    if hasattr(signal, "fs"):
-        _check_numeric(signal.fs, "signal.fs")
+        raise AttributeError("'pressure' must have a 'sensitivity' attribute.")
+    if hasattr(pressure, "fs"):
+        _check_numeric(pressure.fs, "pressure.fs")
+        fs = pressure.fs
     else:
-        raise AttributeError("'signal' must have a 'fs' attribute.")
-    if "peak_voltage" in signal.attrs:
-        peak_voltage = signal.attrs["peak_voltage"]
-    elif "valid_max" in signal.attrs:
-        peak_voltage = signal.attrs["valid_max"]
+        raise AttributeError("'pressure' must have a 'fs' attribute.")
+    if "peak_voltage" in pressure.attrs:
+        peak_voltage = pressure.attrs["peak_voltage"]
+    elif "valid_max" in pressure.attrs:
+        peak_voltage = pressure.attrs["valid_max"]
     else:
         if peak_voltage is None:
             raise AttributeError(
-                "'signal' must have a 'peak_voltage' attribute or 'peak_voltage' must be provided."
+                "'pressure' must have a 'peak_voltage' attribute or 'peak_voltage' must be "
+                "provided."
             )
         _check_numeric(peak_voltage, "peak_voltage")
     _check_numeric(gain, "gain")
     _check_numeric(resample_multiplier, "resample_multiplier")
 
-    if signal.attrs["units"] == "Pa":
-        # Convert from Pascals to UPa
-        pressure = signal.T * 1e6
-        # Change to voltage waveform
-        signal = pressure * 10 ** (signal.sensitivity / 20)  # in V
-
     # To resample
     if resample_multiplier > 1:
-        total_time = signal.time[-1] - signal.time[0]
+        total_time = pressure.time[-1] - pressure.time[0]
         # Shorten time coordinate based on 10x speed up
         new_time = pd.date_range(
-            start=signal["time"][0].values,
-            end=signal["time"][0].values + (total_time.values / resample_multiplier),
-            periods=signal.size + 1,
+            start=pressure["time"][0].values,
+            end=pressure["time"][0].values + (total_time.values / resample_multiplier),
+            periods=pressure.size + 1,
         )[:-1]
-        signal = signal.assign_coords({"time": new_time})
+        pressure = pressure.assign_coords({"time": new_time})
 
         # Resample to keep sampling frequency unchanged
         resample_time = pd.date_range(
-            start=signal["time"][0].values,
-            end=signal["time"][-1].values,
-            periods=signal.size // resample_multiplier + 1,
+            start=pressure["time"][0].values,
+            end=pressure["time"][-1].values,
+            periods=pressure.size // resample_multiplier + 1,
         )[:-1]
-        signal = signal.interp(time=resample_time)
+        pressure = pressure.interp(time=resample_time)
 
-    v = signal.values
+    if pressure.attrs["units"] == "Pa":
+        # Convert from Pascals to microPa
+        uPa = pressure.T * 1e6
+        # Change to voltage waveform
+        pressure = uPa * 10 ** (pressure.sensitivity / 20)  # in V
+
+    v = pressure.values
     # Normalize
     v = v / min(max(abs(v)) * gain, peak_voltage)
     # Convert to (little-endian) 16 bit integers.
@@ -748,5 +750,5 @@ def export_audio(
     with wave.open(f"{filename}.wav", mode="w") as f:
         f.setnchannels(1)  # pylint: disable=no-member
         f.setsampwidth(2)  # pylint: disable=no-member
-        f.setframerate(signal.fs)  # pylint: disable=no-member
+        f.setframerate(fs)  # pylint: disable=no-member
         f.writeframes(audio.tobytes())  # pylint: disable=no-member
