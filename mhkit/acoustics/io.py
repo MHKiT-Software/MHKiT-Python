@@ -488,28 +488,84 @@ def read_iclisten(
     return out
 
 
+def _read_wispr_metadata(f: io.BufferedIOBase) -> Dict[str, Any]:
+    """
+    Reads the metadata from the WISPR .dat file and
+    returns the metadata in a dictionary.
+
+    Parameters
+    ----------
+    f: io.BufferedIOBase
+        Opened .dat file for reading metadata.
+
+    Returns
+    -------
+    metadata: dict
+        A dictionary containing metadata such as sampling_rate,
+        adc_vref, gain, etc.
+    """
+
+    # Read metadata off wispr file header and store in dictionary
+    metadata = {}
+    for row in f.readlines():
+        try:
+            row = row.decode().strip().split("=")
+        except UnicodeDecodeError:
+            break
+        if len(row) == 2:
+            key, value = row
+            if "'" in value:
+                value = value.replace("'", "")
+                dtype = str
+            else:
+                dtype = np.float32
+            metadata[key.strip()] = dtype(value.strip().rstrip(";"))
+        elif "WISPR" in row[0]:
+            metadata["version"] = row[0].split(" ")[-1]
+
+    if "file_length_sec" not in metadata:
+        metadata["file_length_sec"] = (
+            metadata["file_size"]
+            * 512
+            / metadata["sample_size"]
+            / metadata["sampling_rate"]
+        )
+
+    return metadata
+
+
 def read_wispr(file_path):
     """
     Read WISPR .dat file and return xarray DataArray with voltage time series.
 
-    Args:
-        file_path (str): Path to WISPR .dat file.
+    Parameters
+    ----------
+    file_path : str
+        Path to WISPR .dat file.
 
-    Returns:
-        xr.DataArray: DataArray containing voltage time series and metadata.
+    Returns
+    -------
+    xr.DataArray
+        DataArray containing voltage time series and metadata.
     """
 
     def read_24bit_data(filename, is_signed=True, endian="<"):
         """
         Reads 24-bit data from a binary file into a 32-bit NumPy array.
 
-        Args:
-            filename (str): The path to the binary file.
-            is_signed (bool): True if the data is signed 24-bit PCM, False if unsigned.
-            endian (str): Byte order, '<' for little-endian, '>' for big-endian.
+        Parameters
+        ----------
+        filename : str
+            The path to the binary file.
+        is_signed : bool
+            True if the data is signed 24-bit PCM, False if unsigned.
+        endian : str
+            Byte order, '<' for little-endian, '>' for big-endian.
 
-        Returns:
-            np.ndarray: A 32-bit integer NumPy array containing the data.
+        Returns
+        -------
+        np.ndarray
+            A 32-bit integer NumPy array containing the data.
         """
         # Read the raw data as bytes
         with open(filename, "rb") as f:
@@ -542,33 +598,14 @@ def read_wispr(file_path):
 
         return data_int32
 
-    # Read metadata off wispr file header and store in dictionary
-    metadata = {}
     with open(file_path, "rb") as f:
-        for row in f.readlines():
-            try:
-                row = row.decode().strip().split("=")
-            except UnicodeDecodeError:
-                break
-            if len(row) == 2:
-                key, value = row
-                if "'" in value:
-                    value = value.replace("'", "")
-                    dtype = str
-                else:
-                    dtype = np.float32
-                metadata[key.strip()] = dtype(value.strip().rstrip(";"))
-            elif "WISPR" in row[0]:
-                metadata["wispr_version"] = row[0].split(" ")[-1]
+        metadata = _read_wispr_metadata(f)
 
     # Clean up metadata
     start_time = np.datetime64(datetime.strptime(metadata["time"], "%m:%d:%y:%H:%M:%S"))
     fs = int(metadata["sampling_rate"])
     peak_voltage = int(metadata["adc_vref"])
     bits_per_sample = int(metadata["sample_size"] * 8)
-    metadata["file_length_sec"] = (
-        metadata["file_size"] * 512 / metadata["sample_size"] / fs
-    )
 
     # Read binary data from wispr file
     # Data is recorded in 16 or 24-bit by the ADC, saved in 32-bit format by the microcontroller,
@@ -607,12 +644,12 @@ def read_wispr(file_path):
             # Voltage at which sensor is saturated
             "valid_max": peak_voltage,
             "fs": fs,
-            "gain": int(metadata["gain"]),
             "filename": Path(file_path).stem,
+            "gain": int(metadata["gain"]),
+            "peak_voltage": peak_voltage,
             "file_length_sec": metadata["file_length_sec"],
-            "hdw_version": metadata["wispr_version"],
-            "sfw_version": metadata["version"],
             "instrument_id": metadata["instrument_id"],
+            "sfw_version": metadata["version"],
             "location_id": metadata["location_id"],
         },
     )
@@ -634,10 +671,11 @@ def export_audio(
     filename : str
         Output filename for the WAV file (without extension).
     signal : xarray.DataArray
-        Sound pressure data with attributes:
+        Sound pressure or voltage data with attributes:
             - 'sensitivity' (int or float): Sensitivity of the hydrophone in dB.
             - 'fs' (int or float): Sampling frequency in Hz.
-            - 'peak_voltage' (int or float): Peak voltage of the analog-to-digital converter.
+            - 'peak_voltage' or 'valid_max' (int or float): Peak voltage of the analog-to-digital
+               converter.
     peak_voltage : int or float
         Peak voltage of the analog-to-digital converter.
     gain : int or float, optional
@@ -650,21 +688,23 @@ def export_audio(
     if not isinstance(filename, str):
         raise TypeError("'filename' must be a string.")
     if not isinstance(signal, xr.DataArray):
-        raise TypeError("'pressure' must be an xarray.DataArray.")
+        raise TypeError("'signal' must be an xarray.DataArray.")
     if hasattr(signal, "sensitivity"):
-        _check_numeric(signal.sensitivity, "pressure.sensitivity")
+        _check_numeric(signal.sensitivity, "signal.sensitivity")
     else:
-        raise AttributeError("'pressure' must have a 'sensitivity' attribute.")
+        raise AttributeError("'signal' must have a 'sensitivity' attribute.")
     if hasattr(signal, "fs"):
-        _check_numeric(signal.fs, "pressure.fs")
+        _check_numeric(signal.fs, "signal.fs")
     else:
-        raise AttributeError("'pressure' must have a 'fs' attribute.")
+        raise AttributeError("'signal' must have a 'fs' attribute.")
     if "peak_voltage" in signal.attrs:
         peak_voltage = signal.attrs["peak_voltage"]
+    elif "valid_max" in signal.attrs:
+        peak_voltage = signal.attrs["valid_max"]
     else:
         if peak_voltage is None:
             raise AttributeError(
-                "'pressure' must have a 'peak_voltage' attribute or 'peak_voltage' must be provided."
+                "'signal' must have a 'peak_voltage' attribute or 'peak_voltage' must be provided."
             )
         _check_numeric(peak_voltage, "peak_voltage")
     _check_numeric(gain, "gain")
