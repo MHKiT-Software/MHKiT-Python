@@ -240,6 +240,7 @@ def read_hydrophone(
             attrs={
                 "units": "Pa",
                 "sensitivity": np.round(sensitivity, 12),
+                "gain": gain,
                 # Pressure min resolution
                 "resolution": np.round(peak_voltage / max_count / sensitivity / 1e6, 9),
                 # Minimum pressure sensor can read
@@ -256,6 +257,7 @@ def read_hydrophone(
             coords={"time": time[:-1]},
             attrs={
                 "units": "V",
+                "gain": gain,
                 # Voltage min resolution
                 "resolution": np.round(peak_voltage / max_count, 6),
                 # Minimum voltage sensor can read
@@ -645,7 +647,8 @@ def read_wispr(file_path):
             "valid_max": peak_voltage,
             "fs": fs,
             "filename": Path(file_path).stem,
-            "gain": int(metadata["gain"]),
+            # Gain setting in header is in 6 dB intervals
+            "gain": int(metadata["gain"]) * 6,
             "peak_voltage": peak_voltage,
             "file_length_sec": metadata["file_length_sec"],
             "instrument_id": metadata["instrument_id"],
