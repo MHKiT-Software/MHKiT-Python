@@ -417,10 +417,13 @@ def _get_band_table(
         band, column 2 is the center frequency, and column 3 is the highest
         frequency.
 
-    Originally created by Bruce Martin, JASCO Applied Sciences, Feb 2020.
-        bruce.martin@jasco.com.
+    Originally created by Bruce Martin, JASCO Applied Sciences, Feb 2020:
 
-    Converted to Python and refactored by MHKiT Team, June, 2026
+    Martin, S. Bruce, et al. "Hybrid millidecade spectra: A practical format
+        for exchange of long-term ambient sound data." JASA Express Letters
+        1.1 (2021).
+
+    Converted to Python and refactored by MHKiT Team, June 2026.
     """
 
     band_count = 0
@@ -533,7 +536,11 @@ def _band_power_spectral_density_v3(freq_fft, freq_table):
     proportionally to the fraction of the bin that falls within the band.
     The result is then divided by each band's bandwidth to return mean PSD.
 
-    Original code by Bruce Martin, JASCO Applied Sciences, Feb 2020
+    Original code by Bruce Martin, JASCO Applied Sciences, Feb 2020:
+
+    Martin, S. Bruce, et al. "Hybrid millidecade spectra: A practical format
+        for exchange of long-term ambient sound data." JASA Express Letters
+        1.1 (2021).
 
     Updated to use FFT-generated frequencies as input to handle time-resolved
     spectral processing with a fundamental FFT frequency of 10 Hz by
@@ -637,7 +644,11 @@ def _band_mean_power_spectral_density_v2(
     proportionally to the fraction of the bin that falls within the band.
     The result is then divided by each band's bandwidth to return mean PSD.
 
-    Original code by Bruce Martin, JASCO Applied Sciences, Feb 2020
+    Original code by Bruce Martin, JASCO Applied Sciences, Feb 2020:
+
+    Martin, S. Bruce, et al. "Hybrid millidecade spectra: A practical format
+        for exchange of long-term ambient sound data." JASA Express Letters
+        1.1 (2021).
 
     Updated to use FFT-generated frequencies as input to handle time-resolved
     spectral processing with a fundamental FFT frequency of 10 Hz by
