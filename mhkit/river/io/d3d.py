@@ -388,7 +388,7 @@ def get_layer_data(
     elif isinstance(data, xr.Dataset):
         layer_percentages = cord_sys.values  # accumulative
 
-    if layer_dim == "FlowLink_xu FlowLink_yu":
+    if layer_dim in ("FlowLink_xu FlowLink_yu", "mesh2d_edge_x mesh2d_edge_y"):
         # interpolate
         if isinstance(data, netCDF4.Dataset):
             x_laydim = np.ma.getdata(data.variables[coords[0]][:], False)
@@ -421,13 +421,13 @@ def get_layer_data(
     waterdepth = []
 
     if dimensions == 2:
-        if layer_dim == "FlowLink_xu FlowLink_yu":
+        if layer_dim in ("FlowLink_xu FlowLink_yu", "mesh2d_edge_x mesh2d_edge_y"):
             z = [bottom_depth_wdim]
             waterlevel = water_level_wdim
         else:
             z = [bottom_depth]
     else:
-        if layer_dim == "FlowLink_xu FlowLink_yu":
+        if layer_dim in ("FlowLink_xu FlowLink_yu", "mesh2d_edge_x mesh2d_edge_y"):
             z = [bottom_depth_wdim * layer_percentages[layer_index]]
             waterlevel = water_level_wdim
         else:
@@ -650,6 +650,17 @@ def variable_interpolation(
 
     if not isinstance(to_pandas, bool):
         raise TypeError(f"to_pandas must be of type bool. Got: {type(to_pandas)}")
+
+    # Avoid Quhall errors by filling in bad sigma values
+    if "mesh2d_interface_sigma" in data.variables:
+        sigma = data["mesh2d_interface_sigma"].values
+        sigma = np.clip(sigma, -1.0, 0.0)
+
+        data["mesh2d_interface_sigma"] = xr.DataArray(
+            sigma,
+            dims=data["mesh2d_interface_sigma"].dims,
+            attrs=data["mesh2d_interface_sigma"].attrs,
+        )
 
     data_raw = {}
     for var in variables:
