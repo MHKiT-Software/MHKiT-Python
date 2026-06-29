@@ -23,6 +23,10 @@ env:
   # Coveralls: Set to false to ignore upload failures during outages.
   #   Check status: https://status.coveralls.io/
   COVERALLS_FAIL_ON_ERROR: true
+  # HSDS API key for the wave/wind hindcast reads. h5pyd reads HS_API_KEY from
+  # the environment and it overrides the (blank) hs_api_key in .hscfg, so the
+  # key stays out of the repo. Set the HSDS_API_KEY secret in repo settings.
+  HS_API_KEY: ${{ secrets.HSDS_API_KEY }}
 
 jobs:
   # Set the operating system matrix for the following jobs/tests
