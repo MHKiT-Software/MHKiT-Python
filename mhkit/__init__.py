@@ -11,7 +11,7 @@ from mhkit.warnings import configure_warnings
 
 configure_warnings()
 
-__version__ = "v1.0.1"
+__version__ = "v1.1.0"
 
 __copyright__ = """
 Copyright 2019, Alliance for Energy Innovation, LLC under the terms of 
