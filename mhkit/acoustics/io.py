@@ -44,6 +44,7 @@ import io
 import struct
 import wave
 from pathlib import Path
+from datetime import datetime
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -239,6 +240,7 @@ def read_hydrophone(
             attrs={
                 "units": "Pa",
                 "sensitivity": np.round(sensitivity, 12),
+                "gain": gain,
                 # Pressure min resolution
                 "resolution": np.round(peak_voltage / max_count / sensitivity / 1e6, 9),
                 # Minimum pressure sensor can read
@@ -255,6 +257,7 @@ def read_hydrophone(
             coords={"time": time[:-1]},
             attrs={
                 "units": "V",
+                "gain": gain,
                 # Voltage min resolution
                 "resolution": np.round(peak_voltage / max_count, 6),
                 # Minimum voltage sensor can read
@@ -487,51 +490,257 @@ def read_iclisten(
     return out
 
 
+def _read_wispr_metadata(f: io.BufferedIOBase) -> Dict[str, Any]:
+    """
+    Reads the metadata from the WISPR .dat file and
+    returns the metadata in a dictionary.
+
+    Parameters
+    ----------
+    f: io.BufferedIOBase
+        Opened .dat file for reading metadata.
+
+    Returns
+    -------
+    metadata: dict
+        A dictionary containing metadata such as sampling_rate,
+        adc_vref, gain, etc.
+    """
+
+    # Read metadata off wispr file header and store in dictionary
+    metadata = {}
+    for row in f.readlines():
+        try:
+            row = row.decode().strip().split("=")
+        except UnicodeDecodeError:
+            break
+        if len(row) == 2:
+            key, value = row
+            if "'" in value:
+                value = value.replace("'", "")
+                dtype = str
+            else:
+                dtype = np.float32
+            metadata[key.strip()] = dtype(value.strip().rstrip(";"))
+        elif "WISPR" in row[0]:
+            metadata["version"] = row[0].split(" ")[-1]
+
+    if "file_length_sec" not in metadata:
+        metadata["file_length_sec"] = (
+            metadata["file_size"]
+            * 512
+            / metadata["sample_size"]
+            / metadata["sampling_rate"]
+        )
+
+    return metadata
+
+
+def read_wispr(file_path):
+    """
+    Read WISPR .dat file and return xarray DataArray with voltage time series.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to WISPR .dat file.
+
+    Returns
+    -------
+    xr.DataArray
+        DataArray containing voltage time series and metadata.
+    """
+
+    def read_24bit_data(filename, is_signed=True, endian="<"):
+        """
+        Reads 24-bit data from a binary file into a 32-bit NumPy array.
+
+        Parameters
+        ----------
+        filename : str
+            The path to the binary file.
+        is_signed : bool
+            True if the data is signed 24-bit PCM, False if unsigned.
+        endian : str
+            Byte order, '<' for little-endian, '>' for big-endian.
+
+        Returns
+        -------
+        np.ndarray
+            A 32-bit integer NumPy array containing the data.
+        """
+        # Read the raw data as bytes
+        with open(filename, "rb") as f:
+            raw_bytes = f.read()
+
+        # Ensure the file size is a multiple of 3 bytes
+        if len(raw_bytes) % 3 != 0:
+            raise ValueError("File size is not a multiple of 3 bytes (24 bits)")
+
+        # Convert raw bytes into a 1D numpy array of 8-bit integers (uint8)
+        data_int8 = np.frombuffer(raw_bytes, dtype=np.uint8)
+
+        # Reshape the 8-bit array into N rows of 3 bytes each
+        data_3bytes = data_int8.reshape(-1, 3)
+
+        # Create an empty array to hold the final 32-bit integers
+        # Use the appropriate dtype based on 'is_signed'
+        dtype_str = f"{endian}i4" if is_signed else f"{endian}u4"
+        data_int32 = np.zeros(len(data_3bytes), dtype=dtype_str)
+
+        # Use vectorized slicing to copy the 3 bytes into the lower 3 bytes of the 32-bit array
+        data_int32.view(np.uint8)[:, :3] = data_3bytes
+
+        # Handle signed data sign extension if necessary
+        if is_signed and endian == "<":
+            # If little-endian and the original 24-bit number was negative, the
+            # most significant byte (index 2) will have the sign bit set.
+            # We correct this by shifting and logical ORing.
+            data_int32 = (data_int32 << 8) >> 8
+
+        return data_int32
+
+    with open(file_path, "rb") as f:
+        metadata = _read_wispr_metadata(f)
+
+    # Clean up metadata
+    start_time = np.datetime64(datetime.strptime(metadata["time"], "%m:%d:%y:%H:%M:%S"))
+    fs = int(metadata["sampling_rate"])
+    peak_voltage = int(metadata["adc_vref"])
+    bits_per_sample = int(metadata["sample_size"] * 8)
+
+    # Read binary data from wispr file
+    # Data is recorded in 16 or 24-bit by the ADC, saved in 32-bit format by the microcontroller,
+    # and finally converted to 16-bit within the WISPR code before being written to file.
+    with open(file_path, "rb") as f:
+        # skip header lines
+        f.seek(512)
+        # read binary data (datatype determined by bits per sample)
+        if bits_per_sample == 24:
+            # 24-bit data is stored as 24-bit signed integers in little-endian format
+            data = read_24bit_data(file_path, is_signed=True, endian="<")
+        else:
+            data = np.fromfile(f, dtype=np.int16, offset=0)
+
+    # Normalize and then scale to peak voltage
+    max_count = 2 ** (bits_per_sample - 1)
+    # Use 64 bit float for decimal accuracy
+    raw_voltage = data.astype(float) / max_count * peak_voltage
+
+    # Set time
+    end_time = np.datetime64(start_time) + np.timedelta64(
+        int(metadata["file_length_sec"] * 1000), "ms"
+    )
+    time = pd.date_range(start_time, end_time, data.size + 1)
+
+    # metadata attributes are hardcoded in wispr .dat file
+    out = xr.DataArray(
+        raw_voltage,
+        coords={"time": time[:-1]},
+        attrs={
+            "units": "V",
+            # Voltage min resolution
+            "resolution": np.round(peak_voltage / max_count, 9),
+            # Minimum voltage sensor can read
+            "valid_min": -peak_voltage,
+            # Voltage at which sensor is saturated
+            "valid_max": peak_voltage,
+            "fs": fs,
+            "filename": Path(file_path).stem,
+            # Gain setting in header is in 6 dB intervals
+            "gain": int(metadata["gain"]) * 6,
+            "peak_voltage": peak_voltage,
+            "file_length_sec": metadata["file_length_sec"],
+            "instrument_id": metadata["instrument_id"],
+            "sfw_version": metadata["version"],
+            "location_id": metadata["location_id"],
+        },
+    )
+    return out
+
+
 def export_audio(
-    filename: str, pressure: xr.DataArray, gain: Union[int, float] = 1
+    filename: str,
+    pressure: xr.DataArray,
+    peak_voltage: Union[int, float] = None,
+    gain: Union[int, float] = 1,
+    resample_multiplier: int = 1,
 ) -> None:
     """
-    Creates human-scaled audio file from underwater recording.
+    Creates an audio file from an underwater recording.
 
     Parameters
     ----------
     filename : str
         Output filename for the WAV file (without extension).
     pressure : xarray.DataArray
-        Sound pressure data with attributes:
-            - 'values' (numpy.ndarray): Pressure data array.
+        Sound pressure or voltage data with attributes:
             - 'sensitivity' (int or float): Sensitivity of the hydrophone in dB.
             - 'fs' (int or float): Sampling frequency in Hz.
+            - 'peak_voltage' or 'valid_max' (int or float): Peak voltage of the analog-to-digital
+               converter.
+    peak_voltage : int or float
+        Peak voltage of the analog-to-digital converter.
     gain : int or float, optional
         Gain to multiply the original time series by. Default is 1.
-
-    Returns
-    -------
-    None
+    resample_multiplier : int, optional
+        Multiplier for resampling the pressure to speed up the recording,
+        which is useful for listening to low frequency sound. Default is 1 (no resampling).
     """
 
     if not isinstance(filename, str):
         raise TypeError("'filename' must be a string.")
     if not isinstance(pressure, xr.DataArray):
         raise TypeError("'pressure' must be an xarray.DataArray.")
-    if not hasattr(pressure, "values") or not isinstance(pressure.values, np.ndarray):
-        raise TypeError("'pressure.values' must be a numpy.ndarray.")
     if hasattr(pressure, "sensitivity"):
         _check_numeric(pressure.sensitivity, "pressure.sensitivity")
     else:
         raise AttributeError("'pressure' must have a 'sensitivity' attribute.")
     if hasattr(pressure, "fs"):
         _check_numeric(pressure.fs, "pressure.fs")
+        fs = pressure.fs
     else:
         raise AttributeError("'pressure' must have a 'fs' attribute.")
+    if "peak_voltage" in pressure.attrs:
+        peak_voltage = pressure.attrs["peak_voltage"]
+    elif "valid_max" in pressure.attrs:
+        peak_voltage = pressure.attrs["valid_max"]
+    else:
+        if peak_voltage is None:
+            raise AttributeError(
+                "'pressure' must have a 'peak_voltage' attribute or 'peak_voltage' must be "
+                "provided."
+            )
+        _check_numeric(peak_voltage, "peak_voltage")
     _check_numeric(gain, "gain")
+    _check_numeric(resample_multiplier, "resample_multiplier")
 
-    # Convert from Pascals to UPa
-    upa = pressure.values.T * 1e6
-    # Change to voltage waveform
-    v = upa * 10 ** (pressure.sensitivity / 20)  # in V
+    # To resample
+    if resample_multiplier > 1:
+        total_time = pressure.time[-1] - pressure.time[0]
+        # Shorten time coordinate based on 10x speed up
+        new_time = pd.date_range(
+            start=pressure["time"][0].values,
+            end=pressure["time"][0].values + (total_time.values / resample_multiplier),
+            periods=pressure.size + 1,
+        )[:-1]
+        pressure = pressure.assign_coords({"time": new_time})
+
+        # Resample to keep sampling frequency unchanged
+        resample_time = pd.date_range(
+            start=pressure["time"][0].values,
+            end=pressure["time"][-1].values,
+            periods=pressure.size // resample_multiplier + 1,
+        )[:-1]
+        pressure = pressure.interp(time=resample_time)
+
+    if pressure.attrs["units"] == "Pa":
+        # Convert from Pascals to microPa and change to voltage waveform
+        pressure = (pressure.T * 1e6) * 10 ** (pressure.sensitivity / 20)
+
+    v = pressure.values
     # Normalize
-    v = v / max(abs(v)) * gain
+    v = v / min(max(abs(v)) * gain, peak_voltage)
     # Convert to (little-endian) 16 bit integers.
     audio = (v * (2**16 - 1)).astype("<h")
 
@@ -539,5 +748,5 @@ def export_audio(
     with wave.open(f"{filename}.wav", mode="w") as f:
         f.setnchannels(1)  # pylint: disable=no-member
         f.setsampwidth(2)  # pylint: disable=no-member
-        f.setframerate(pressure.fs)  # pylint: disable=no-member
+        f.setframerate(fs)  # pylint: disable=no-member
         f.writeframes(audio.tobytes())  # pylint: disable=no-member

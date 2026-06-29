@@ -6,7 +6,6 @@ import unittest
 
 import mhkit.acoustics as acoustics
 
-
 testdir = dirname(abspath(__file__))
 plotdir = join(testdir, "plots")
 isdir = os.path.isdir(plotdir)
@@ -254,6 +253,61 @@ class TestIO(unittest.TestCase):
         np.testing.assert_allclose(
             td_spsd["time"].head().astype("int64"), cc.astype("int64"), atol=1
         )
+
+    def test_wispr(self):
+        file_name = join(datadir, "WISPR_230825_003936.dat")
+        td = acoustics.io.read_wispr(file_name)
+
+        # Check time coordinate
+        cc = np.array(
+            [
+                "2023-08-25T00:39:36.000000000",
+                "2023-08-25T00:39:36.000020000",
+                "2023-08-25T00:39:36.000040000",
+                "2023-08-25T00:39:36.000060000",
+                "2023-08-25T00:39:36.000080000",
+            ],
+            dtype="datetime64[ns]",
+        )
+        # Check data
+        cd = np.array([-0.00167847, -0.00167847, -0.00152588, -0.00183105, -0.00106812])
+
+        np.testing.assert_allclose(td.head().values, cd, atol=1e-6)
+        np.testing.assert_equal(td["time"].head().values, cc)
+
+    def test_read_wispr_metadata(self):
+        from mhkit.acoustics.io import _read_wispr_metadata
+
+        file_name = join(datadir, "WISPR_230825_003936.dat")
+
+        with open(file_name, "rb") as f:
+            metadata = _read_wispr_metadata(f)
+
+        expected_metadata = {
+            "version": 1.2,
+            "time": "08:25:23:00:39:36",
+            "instrument_id": "PERI_1",
+            "location_id": "PWSPNE",
+            "volts": 15.77,
+            "blocks_free": 20.98,
+            "file_size": 58575,
+            "buffer_size": 16896,
+            "samples_per_buffer": 8448,
+            "sample_size": 2,
+            "sampling_rate": 50000,
+            "gain": 0,
+            "decimation": 16,
+            "adc_vref": 5.0,
+            "file_length_sec": 299.904,
+        }
+
+        # Assertions to check if metadata matches expected values
+        for key, expected_value in expected_metadata.items():
+            self.assertIn(key, metadata)
+            if isinstance(expected_value, float):
+                self.assertAlmostEqual(metadata[key], expected_value, places=6)
+            else:
+                self.assertEqual(metadata[key], expected_value)
 
     def test_audio_export(self):
         file_name = join(datadir, "RBW_6661_20240601_053114.wav")
