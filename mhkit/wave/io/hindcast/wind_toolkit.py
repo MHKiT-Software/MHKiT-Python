@@ -427,6 +427,9 @@ def request_wtk_point_data(
         else:
             raise TypeError("Coordinates must be within the same region!")
 
+    # NOTE: NREL to NLR name changes
+    #   * developer.nlr.gov must be configured via ~/.hscfg
+    #   * As of June 2026 the HSDS data domain is still "/nrel/...".
     if time_interval == "1-hour":
         wind_path = f"/nrel/wtk/{region.lower()}/{region}_*.h5"
     elif time_interval == "5-minute":
