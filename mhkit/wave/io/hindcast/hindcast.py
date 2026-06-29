@@ -77,14 +77,62 @@ def _meta_for_gids(rex_waves: Union[WaveX, MultiYearWaveX], gids) -> pd.DataFram
     gids = [int(g) for g in np.atleast_1d(gids)]
     try:
         meta = rex_waves.meta
-    except ResourceRuntimeError:
+    except (ResourceRuntimeError, IOError):
         # Reading the meta dataset over HSDS returns an empty response for the
-        # West_Coast and Atlantic regions, raised here as ResourceRuntimeError.
-        # Their data reads fine over HSDS, only the meta read fails. Fall back
-        # to reading the requested rows directly from the AWS .h5 file on S3.
+        # West_Coast and Atlantic regions. rex and h5pyd surface this as either
+        # ResourceRuntimeError or IOError depending on the installed version.
+        # The data reads fine over HSDS, only the meta read fails. Fall back to
+        # reading the requested rows directly from the AWS .h5 file on S3.
         with WaveX(_meta_s3_uri(rex_waves), hsds=False) as s3_waves:
             return s3_waves["meta", gids].reset_index(drop=True)
     return meta.loc[gids, :].reset_index(drop=True)
+
+
+def _read_point_data(
+    rex_waves: Union[WaveX, MultiYearWaveX],
+    parameter: Union[str, List[str]],
+    lat_lon,
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Read renamed point time-series data and meta (with gid) from an open rex
+    resource. Works against either an HSDS-backed or S3-backed resource.
+
+    Parameters
+    ----------
+    rex_waves : WaveX or MultiYearWaveX
+        Open rex resource
+    parameter : string or list of strings
+        Parameter(s) to read
+    lat_lon : tuple or list of tuples
+        Latitude/longitude point(s) to read
+
+    Returns
+    -------
+    data : pandas.DataFrame
+        Time-series data with columns renamed to ``{parameter}_{i}``
+    meta : pandas.DataFrame
+        Meta rows for the read columns, with a ``gid`` column
+    """
+    if isinstance(parameter, list):
+        data_list = []
+        for param in parameter:
+            temp_data = rex_waves.get_lat_lon_df(param, lat_lon)
+            cols = temp_data.columns[:]
+            temp_data = temp_data.rename(
+                columns={col: f"{param}_{i}" for i, col in enumerate(cols)}
+            )
+            data_list.append(temp_data)
+        data = pd.concat(data_list, axis=1)
+    else:
+        data = rex_waves.get_lat_lon_df(parameter, lat_lon)
+        cols = data.columns[:]
+        data = data.rename(
+            columns={col: f"{parameter}_{i}" for i, col in enumerate(cols)}
+        )
+
+    meta = _meta_for_gids(rex_waves, cols)
+    meta["gid"] = rex_waves.lat_lon_gid(lat_lon)
+    return data, meta
 
 
 def region_selection(lat_lon: Union[List[float], Tuple[float, float]]) -> str:
@@ -293,48 +341,25 @@ def request_wpto_point_data(
         "hsds": hsds,
         "years": years,
     }
-    data_list = []
-
     with MultiYearWaveX(wave_path, **wave_kwargs) as rex_waves:
+        data, meta = _read_point_data(rex_waves, parameter, lat_lon)
+
+    if not to_pandas:
+        data = convert_to_dataset(data)
+        data["time_index"] = pd.to_datetime(data.time_index)
+
         if isinstance(parameter, list):
-            for param in parameter:
-                temp_data = rex_waves.get_lat_lon_df(param, lat_lon)
-                gid = rex_waves.lat_lon_gid(lat_lon)
-                cols = temp_data.columns[:]
-                for i, col in zip(range(len(cols)), cols):
-                    temp = f"{param}_{i}"
-                    temp_data = temp_data.rename(columns={col: temp})
+            n_loc = 1 if isinstance(lat_lon[0], float) else len(lat_lon)
+            param_coords = [f"{param}_{n_loc - 1}" for param in parameter]
+            data.coords["parameter"] = xr.DataArray(param_coords, dims="parameter")
 
-                data_list.append(temp_data)
-            data = pd.concat(data_list, axis=1)
+        data.coords["year"] = xr.DataArray(years, dims="year")
 
-        else:
-            data = rex_waves.get_lat_lon_df(parameter, lat_lon)
-            cols = data.columns[:]
+        meta_ds = meta.to_xarray()
+        data = xr.merge([data, meta_ds])
 
-            for i, col in zip(range(len(cols)), cols):
-                temp = f"{parameter}_{i}"
-                data = data.rename(columns={col: temp})
-
-        meta = _meta_for_gids(rex_waves, cols)
-        gid = rex_waves.lat_lon_gid(lat_lon)
-        meta["gid"] = gid
-
-        if not to_pandas:
-            data = convert_to_dataset(data)
-            data["time_index"] = pd.to_datetime(data.time_index)
-
-            if isinstance(parameter, list):
-                param_coords = [f"{param}_{i}" for param in parameter]
-                data.coords["parameter"] = xr.DataArray(param_coords, dims="parameter")
-
-            data.coords["year"] = xr.DataArray(years, dims="year")
-
-            meta_ds = meta.to_xarray()
-            data = xr.merge([data, meta_ds])
-
-            # Remove the 'index' coordinate
-            data = data.drop_vars("index")
+        # Remove the 'index' coordinate
+        data = data.drop_vars("index")
 
     # save_to_cache(hash_params, data, meta)
     handle_caching(
@@ -494,7 +519,7 @@ def request_wpto_directional_spectrum(
                 try:
                     data_array = rex_waves[parameter, bins[i] : bins[i + 1], :, :, gid]
                     str_error = None
-                except OSError as err:
+                except IOError as err:
                     str_error = str(err)
 
                 if str_error:
