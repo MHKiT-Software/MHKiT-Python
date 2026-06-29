@@ -654,30 +654,13 @@ def variable_interpolation(
     # Avoid Quhall errors by filling in bad sigma values
     if "mesh2d_interface_sigma" in data.variables:
         sigma = data["mesh2d_interface_sigma"].values
-        bad = ~np.isfinite(sigma) | (np.abs(sigma) > 0.1)
-        if bad.any():
-            # Check neighboring values to determine if sigma should be -1 or 0
-            for idx in np.where(bad)[0]:
-                neighbors = []
-                if idx > 0:
-                    neighbors.append(sigma[idx - 1])
-                if idx < len(sigma) - 1:
-                    neighbors.append(sigma[idx + 1])
+        sigma = np.clip(sigma, -1.0, 0.0)
 
-                if neighbors:
-                    avg_neighbor = np.mean(neighbors)
-                    if np.abs(avg_neighbor - (-1.0)) < np.abs(avg_neighbor):
-                        sigma[idx] = -1.0  # sea bed
-                    else:
-                        sigma[idx] = 0.0  # water surface
-                else:
-                    sigma[idx] = -1.0
-
-            data["mesh2d_interface_sigma"] = xr.DataArray(
-                sigma,
-                dims=data["mesh2d_interface_sigma"].dims,
-                attrs=data["mesh2d_interface_sigma"].attrs,
-            )
+        data["mesh2d_interface_sigma"] = xr.DataArray(
+            sigma,
+            dims=data["mesh2d_interface_sigma"].dims,
+            attrs=data["mesh2d_interface_sigma"].attrs,
+        )
 
     data_raw = {}
     for var in variables:
