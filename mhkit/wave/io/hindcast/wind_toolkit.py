@@ -210,7 +210,7 @@ def plot_region(
     supported_regions = ["Offshore_CA", "Hawaii", "Mid_Atlantic", "NW_Pacific"]
     if region not in supported_regions:
         raise ValueError(
-            f'{region} not in list of supported regions: {", ".join(supported_regions)}'
+            f"{region} not in list of supported regions: {', '.join(supported_regions)}"
         )
 
     lats, lons = get_region_data(region)
