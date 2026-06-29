@@ -5,8 +5,8 @@ available points. It includes functions to retrieve data for predefined
 regions, request point data for various parameters, and request directional
 spectrum data.
 
-Author: rpauly, aidanbharath, ssolson
-Date: 2023-09-26
+Author: rpauly, aidanbharath, ssolson, simmsa
+Date: 2026-06-29
 """
 
 import os
@@ -16,9 +16,75 @@ from typing import List, Tuple, Union, Optional, Dict
 import pandas as pd
 import xarray as xr
 import numpy as np
+import h5pyd
 from rex import MultiYearWaveX, WaveX
+from rex.utilities.exceptions import ResourceRuntimeError
 from mhkit.utils.cache import handle_caching
 from mhkit.utils.type_handling import convert_to_dataset
+
+
+def _meta_s3_uri(rex_waves: Union[WaveX, MultiYearWaveX]) -> str:
+    """
+    Extract the object store (AWS S3) uri from the metadata of rex h5/HSDS file object
+
+    HSDS serves a virtual file whose bytes live in a separate S3 .h5 object.
+    In rex the domain/dataset name does not reveal that object's S3 uri but
+    HSDS records the S3 path per dataset as metadata.
+
+    Parameters
+    ----------
+    rex_waves : WaveX or MultiYearWaveX
+        Open rex resource on HSDS
+
+    Returns
+    -------
+    s3_uri : string
+        s3:// path of the underlying .h5 file
+    """
+    # rex exposes the h5 object differentely by resource type: a
+    # single-year WaveX is the h5pyd file itself (has `.filename`), while
+    # MultiYearWaveX wraps one WaveResource per year in a MultiYearH5 (has
+    # `.h5_files`). This works with both types of inputs to yield a single h5py filename
+    h5 = rex_waves.h5
+    domain = h5.h5_files[0] if hasattr(h5, "h5_files") else h5.filename
+    with h5pyd.File(domain, mode="r") as h5_file:
+        # The h5 object metadata holds file information in the id.dcpl_json object
+        # DCPL = Dataset Creation Property List
+        #   dcpl_json spec layout.file_uri spec:
+        #     https://github.com/HDFGroup/hsds/blob/master/docs/design/single_object/SingleObject.md
+        return h5_file["meta"].id.dcpl_json["layout"]["file_uri"]
+
+
+def _meta_for_gids(rex_waves: Union[WaveX, MultiYearWaveX], gids) -> pd.DataFrame:
+    """
+    Returns meta rows for the given grid ids.
+
+    Reads meta over HSDS, falling back to reading directly from the AWS .h5
+    file on S3 when the HSDS read fails.
+
+    Parameters
+    ----------
+    rex_waves : WaveX or MultiYearWaveX
+        Open rex resource on HSDS
+    gids : int, list, or array of int
+        Grid ids to read
+
+    Returns
+    -------
+    meta : pandas.DataFrame
+        Meta rows for the given grid ids, indexed from 0
+    """
+    gids = [int(g) for g in np.atleast_1d(gids)]
+    try:
+        meta = rex_waves.meta
+    except ResourceRuntimeError:
+        # Reading the meta dataset over HSDS returns an empty response for the
+        # West_Coast and Atlantic regions, raised here as ResourceRuntimeError.
+        # Their data reads fine over HSDS, only the meta read fails. Fall back
+        # to reading the requested rows directly from the AWS .h5 file on S3.
+        with WaveX(_meta_s3_uri(rex_waves), hsds=False) as s3_waves:
+            return s3_waves["meta", gids].reset_index(drop=True)
+    return meta.loc[gids, :].reset_index(drop=True)
 
 
 def region_selection(lat_lon: Union[List[float], Tuple[float, float]]) -> str:
@@ -250,8 +316,7 @@ def request_wpto_point_data(
                 temp = f"{parameter}_{i}"
                 data = data.rename(columns={col: temp})
 
-        meta = rex_waves.meta.loc[cols, :]
-        meta = meta.reset_index(drop=True)
+        meta = _meta_for_gids(rex_waves, cols)
         gid = rex_waves.lat_lon_gid(lat_lon)
         meta["gid"] = gid
 
@@ -449,8 +514,7 @@ def request_wpto_directional_spectrum(
         data["time_index"] = pd.to_datetime(data.time_index)
 
         # Get metadata
-        meta = rex_waves.meta.loc[columns, :]
-        meta = meta.reset_index(drop=True)
+        meta = _meta_for_gids(rex_waves, columns)
         meta["gid"] = gid
 
         # Convert gid to integer or list of integers
