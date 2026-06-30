@@ -1,7 +1,7 @@
 import numpy as np
 import warnings
-from .tools.fft import fft_frequency, psd_1D, cpsd_1D
-from .tools.misc import slice1d_along_axis, detrend_array
+import scipy
+from .tools import slice1d_along_axis, detrend_array
 from .time import epoch2dt64, dt642epoch
 
 warnings.simplefilter("ignore", RuntimeWarning)
@@ -370,10 +370,9 @@ class TimeBinner:
         noise=0,
         n_bin=None,
         n_fft=None,
-        step=None,
     ):
         """
-        Calculate power spectral density of `dat`
+        Calculate the power spectral density of `dat`
 
         Parameters
         ----------
@@ -381,8 +380,11 @@ class TimeBinner:
           The raw dataArray of which to calculate the psd.
         fs : float (optional)
           The sample rate (Hz).
-        window : str
-          String indicating the window function to use. Default is 'hanning'
+        window : {None, 1, 'hann', numpy.ndarray}
+          The window to use (default: 'hann'). Valid entries are:
+            - None,1               : uses a 'boxcar' or ones window.
+            - 'hann'               : hanning window.
+            - a length(nfft) array : use this as the window directly.
         noise  : float
           The white-noise level of the measurement (in the same units
           as `dat`).
@@ -392,10 +394,6 @@ class TimeBinner:
         n_fft : int
           n_fft of veldat2, number of elements per bin if 'None' is taken
           from VelBinner
-        step : int (optional)
-          Controls amount of overlap in fft. Default: the step size is
-          chosen to maximize data use, minimize nens, and have a
-          minimum of 50% overlap.
 
         Returns
         -------
@@ -412,13 +410,20 @@ class TimeBinner:
         n_fft = self._parse_nfft(n_fft)
         out = np.empty(self._outshape_fft(dat.shape, n_fft=n_fft, n_bin=n_bin))
         # The data is detrended in psd, so we don't need to do it here.
-        # When n_fft==n_bin, each bin produces a single Bartlett window (no
-        # within-bin overlap). Use n_fft < n_bin to enable within-bin Welch
-        # averaging without cross-bin contamination.
         dat = self.reshape(dat, n_bin=n_bin)
-
         for slc in slice1d_along_axis(dat.shape, -1):
-            out[slc] = psd_1D(dat[slc], n_fft, fs, window=window, step=step)
+            _, psd = scipy.signal.welch(
+                dat[slc],
+                fs=fs,
+                window=window,
+                nperseg=n_fft,
+                noverlap=n_fft // 2,
+                detrend="linear",
+                return_onesided=True,
+                scaling="density",
+            )
+            # Drop DC bin (index 0): always ~0 after linear detrending, excluded by convention
+            out[slc] = psd[1:]
         if np.any(noise):
             out -= noise**2 / (fs / 2)
             # Make sure all values of the PSD are >0 (but still small):
@@ -427,25 +432,26 @@ class TimeBinner:
 
     def _csd_base(self, dat1, dat2, fs=None, window="hann", n_fft=None, n_bin=None):
         """
-        Calculate the cross power spectral density of `dat`.
+        Compute the cross power spectral density (CPSD) of the signals dat1 and dat2.
 
         Parameters
         ----------
         dat1 : numpy.ndarray
-          The first (shorter, if applicable) raw dataArray of which to
-          calculate the cpsd.
+          The first raw dataArray of which to calculate the cpsd.
         dat2 : numpy.ndarray
-          The second (the shorter, if applicable) raw dataArray of which to
-          calculate the cpsd.
+          The second raw dataArray of which to calculate the cpsd.
         fs : float (optional)
           The sample rate (Hz).
-        window : str
-          String indicating the window function to use. Default is 'hanning'
+        window : {None, 1, 'hann', numpy.ndarray}
+          The window to use (default: 'hann'). Valid entries are:
+            - None,1               : uses a 'boxcar' or ones window.
+            - 'hann'               : hanning window.
+            - a length(nfft) array : use this as the window directly.
         n_fft : int
-          n_fft of veldat2, number of elements per bin if 'None' is taken
+          Number of elements in the FFT. If 'None', is taken
           from VelBinner
         n_bin : int
-          n_bin of veldat2, number of elements per bin if 'None' is taken
+          Number of elements per bin. If 'None', is taken
           from VelBinner
 
         Returns
@@ -455,10 +461,22 @@ class TimeBinner:
 
         Notes
         -----
-        PSD's are calculated based on sample rate units
+        PSDs are calculated based on sample rate units.
+        This removes a linear trend from the signals and uses a 50% overlap between FFT windows.
+        The two signals should be the same length, and should both be real.
 
-        The two velocity inputs do not have to be perfectly synchronized, but
-        they should have the same start and end timestamps
+        This performs:
+
+        .. math::
+
+            fft(a)*conj(fft(b))
+
+        This implementation is consistent with the numpy.correlate
+        definition of correlation.  (The conjugate of D.B. Chelton's
+        definition of correlation.)
+
+        The units of the spectra is the product of the units of `a` and
+        `b`, divided by the units of fs.
         """
 
         fs = self._parse_fs(fs)
@@ -479,14 +497,29 @@ class TimeBinner:
                 "Cross-spectral density requires equal-length input arrays. "
                 "Quasi-synchronized (different sample rate) inputs are not supported."
             )
+        if np.iscomplexobj(dat1) or np.iscomplexobj(dat2):
+            raise ValueError("Velocity cannot be complex")
         out = np.empty(oshp, dtype="c{}".format(dat1.dtype.itemsize * 2))
         for slc in slice1d_along_axis(out.shape, -1):
-            out[slc] = cpsd_1D(dat1[slc], dat2[slc], n_fft, fs, window=window)
+            _, cpsd = scipy.signal.csd(
+                dat1[slc],
+                dat2[slc],
+                fs=fs,
+                window=window,
+                nperseg=n_fft,
+                noverlap=n_fft // 2,
+                detrend="linear",
+                return_onesided=True,
+                scaling="density",
+            )
+            # Drop DC bin (index 0): always ~0 after linear detrending, excluded by convention
+            out[slc] = cpsd[1:]
         return out
 
     def _fft_freq(self, fs=None, units="Hz", n_fft=None, coh=False):
         """
-        Wrapper to calculate the ordinary or radial frequency vector
+        Calculate the ordinary or radial half-frequency vector for
+        a given sample rate and FFT size.
 
         Parameters
         ----------
@@ -513,13 +546,14 @@ class TimeBinner:
             if coh:
                 n_fft = self.n_fft_coh
 
-        fs = self._parse_fs(fs)
+        fs = float(self._parse_fs(fs))
 
         if ("Hz" not in units) and ("rad" not in units):
             raise Exception("Valid fft frequency vector units are Hz \
                             or rad/s")
-
         if "rad" in units:
-            return fft_frequency(n_fft, 2 * np.pi * fs)
-        else:
-            return fft_frequency(n_fft, fs)
+            fs = 2 * np.pi * fs
+
+        f = np.fft.fftfreq(int(n_fft), 1 / fs)
+
+        return np.abs(f[1 : int(n_fft / 2.0 + 1)])

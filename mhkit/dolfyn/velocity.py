@@ -4,7 +4,7 @@ from .binned import TimeBinner
 from .time import dt642epoch, dt642date
 from .rotate.api import rotate2, set_declination, set_inst2head_rotmat
 from .io.api import save
-from .tools.misc import slice1d_along_axis, convert_degrees
+from .tools import slice1d_along_axis, convert_degrees
 
 
 @xr.register_dataset_accessor("velds")  # 'vel dataset'
@@ -1074,7 +1074,6 @@ class VelBinner(TimeBinner):
                 window=window,
                 n_bin=n_bin,
                 n_fft=n_fft,
-                step=step,
             )
             coords = {
                 veldat.dims[-1]: self.mean(veldat[veldat.dims[-1]].values),

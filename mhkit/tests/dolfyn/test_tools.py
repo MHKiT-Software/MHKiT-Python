@@ -15,12 +15,12 @@ class tools_testcase(unittest.TestCase):
         pass
 
     def test_detrend_array(self):
-        d = tools.misc.detrend_array(self.array)
+        d = tools.detrend_array(self.array)
         assert_allclose(d, np.zeros(10), atol=1e-10)
 
     def test_group(self):
         array = np.concatenate((self.array, self.array))
-        d = tools.misc.group(array)
+        d = tools.group(array)
 
         out = np.array([slice(1, 20, None)], dtype=object)
         assert_equal(d, out)
@@ -35,7 +35,7 @@ class tools_testcase(unittest.TestCase):
         )
         out = np.zeros((3, 3, 3))
         slices = list()
-        for slc in tools.misc.slice1d_along_axis((3, 3, 3), axis=-1):
+        for slc in tools.slice1d_along_axis((3, 3, 3), axis=-1):
             slices.append(slc)
             out[slc] = tensor[slc]
 
@@ -56,8 +56,8 @@ class tools_testcase(unittest.TestCase):
 
     def test_fillgaps(self):
         arr = np.concatenate((self.array, self.nan, self.array))
-        d1 = tools.misc.fillgaps(arr.copy())
-        d2 = tools.misc.fillgaps(arr.copy(), maxgap=1)
+        d1 = tools.fillgaps(arr.copy())
+        d2 = tools.fillgaps(arr.copy(), maxgap=1)
 
         out1 = np.array(
             [
@@ -121,8 +121,8 @@ class tools_testcase(unittest.TestCase):
         arr = np.concatenate((self.array, self.nan, self.array, self.nan))
 
         t = np.arange(0, arr.shape[0], 0.1)
-        d1 = tools.misc.interpgaps(arr.copy(), t, extrapFlg=True)
-        d2 = tools.misc.interpgaps(arr.copy(), t, maxgap=1)
+        d1 = tools.interpgaps(arr.copy(), t, extrapFlg=True)
+        d2 = tools.interpgaps(arr.copy(), t, maxgap=1)
 
         out1 = np.array(
             [
@@ -192,7 +192,7 @@ class tools_testcase(unittest.TestCase):
         arr = np.concatenate((self.array, self.nan, self.array))
         a = np.concatenate((arr[None, :], arr[None, :]), axis=0)
 
-        d = tools.misc.medfiltnan(a, [1, 5], thresh=3)
+        d = tools.medfiltnan(a, [1, 5], thresh=3)
 
         out = np.array(
             [
@@ -252,7 +252,7 @@ class tools_testcase(unittest.TestCase):
         assert_allclose(d, out, atol=1e-10)
 
     def test_deg_conv(self):
-        d = tools.misc.convert_degrees(self.array)
+        d = tools.convert_degrees(self.array)
 
         out = np.array([90.0, 89.0, 88.0, 87.0, 86.0, 85.0, 84.0, 83.0, 82.0, 81.0])
 

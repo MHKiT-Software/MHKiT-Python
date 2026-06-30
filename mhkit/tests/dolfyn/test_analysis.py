@@ -69,7 +69,7 @@ class analysis_testcase(unittest.TestCase):
 
         # Test ADCP single vector spectra, cross-spectra to test radians code
         test_ds_adp["psd_b5"] = c2.power_spectral_density(
-            self.adp.vel_b5.isel(range_b5=5), freq_units="rad", window="hamm"
+            self.adp.vel_b5.isel(range_b5=5), freq_units="rad", window="hamming"
         )
         test_ds_adp["tke_b5"] = c2.turbulent_kinetic_energy(self.adp.vel_b5)
 
@@ -99,7 +99,7 @@ class analysis_testcase(unittest.TestCase):
         tdat["stress_detrend"] = bnr.reynolds_stress(dat["vel"])
         tdat["stress_demean"] = bnr.reynolds_stress(dat["vel"], detrend=False)
         tdat["csd"] = bnr.cross_spectral_density(
-            dat["vel"], freq_units="rad", window="hamm", n_fft_coh=10
+            dat["vel"], freq_units="rad", window="hamming", n_fft_coh=10
         )
         tdat["LT83"] = bnr.dissipation_rate_LT83(tdat["psd"], tdat.velds.U_mag)
         tdat["noise"] = bnr.doppler_noise_level(tdat["psd"], pct_fN=0.8)

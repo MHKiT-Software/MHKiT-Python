@@ -1,7 +1,7 @@
 import numpy as np
 from ..velocity import VelBinner
 import warnings
-from ..tools.misc import slice1d_along_axis, _nans_like
+from ..tools import slice1d_along_axis, _nans_like
 from scipy.special import cbrt
 import xarray as xr
 
