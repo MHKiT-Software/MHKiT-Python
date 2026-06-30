@@ -1,7 +1,6 @@
+import warnings
 import numpy as np
-from .misc import detrend_array
-
-fft = np.fft.fft
+import scipy.signal
 
 
 def fft_frequency(nfft, fs, full=False):
@@ -32,149 +31,66 @@ def fft_frequency(nfft, fs, full=False):
         return np.abs(f[1 : int(nfft / 2.0 + 1)])
 
 
-def _getwindow(window, nfft):
-    if window is None:
-        window = np.ones(nfft)
-    elif isinstance(window, (int, float)) and window == 1:
-        window = np.ones(nfft)
-    elif isinstance(window, str):
-        if "hann" in window:
-            window = np.hanning(nfft)
-        elif "hamm" in window:
-            window = np.hamming(nfft)
-        else:
-            raise ValueError("Unsupported window type: {}".format(window))
-    elif isinstance(window, np.ndarray):
-        if len(window) != nfft:
-            raise ValueError("Custom window length must be equal to nfft")
-    else:
-        raise ValueError("Invalid window parameter")
-
-    return window
-
-
-def _stepsize(l, nfft, nens=None, step=None):
+def _normalize_window(window, nfft):
     """
-    Calculates the fft-step size for a length *l* array.
-
-    If nens is None, the step size is chosen to maximize data use,
-    minimize nens and have a minimum of 50% overlap.
-
-    If nens is specified, the step-size is computed directly.
+    Convert a dolfyn window specification to a form scipy.signal accepts.
 
     Parameters
     ----------
-    l       : The length of the array.
-    nfft    : The number of points in the fft.
-    nens : The number of nens to perform (default compute this).
-
-    Returns
-    -------
-    step    : The step size.
-    nens    : The number of ensemble ffts to average together.
-    nfft    : The number of points in the fft (set to l if nfft>l).
-    """
-
-    if l < nfft:
-        nfft = l
-    if nens is None and step is None:
-        if l == nfft:
-            return 0, 1, int(nfft)
-        nens = int(2.0 * l / nfft)
-        return int((l - nfft) / (nens - 1)), nens, int(nfft)
-    elif nens is None:
-        return int(step), int((l - nfft) / step + 1), int(nfft)
-    else:
-        if nens == 1:
-            return 0, 1, int(nfft)
-        return int((l - nfft) / (nens - 1)), int(nens), int(nfft)
-
-
-def cpsd_quasisync_1D(a, b, nfft, fs, window="hann"):
-    """
-    Compute the cross power spectral density (CPSD) of the signals `a` and `b`.
-
-    Parameters
-    ----------
-    a : numpy.ndarray
-      The first signal.
-    b : numpy.ndarray
-      The second signal.
+    window : {None, 1, 'hann', 'hamm', numpy.ndarray}
+      Window specification used by dolfyn (None/1 = boxcar).
     nfft : int
-      The number of points in the fft.
-    fs : float
-      The sample rate (e.g. sample/second).
-    window : {None, 1, 'hann', numpy.ndarray}
-      The window to use (default: 'hann'). Valid entries are:
-      - None,1               : uses a 'boxcar' or ones window.
-      - 'hann'               : hanning window.
-      - a length(nfft) array : use this as the window directly.
+      FFT length (used only to validate array windows).
 
     Returns
     -------
-    cpsd : numpy.ndarray
-      The cross-spectral density of `a` and `b`.
-
-    See Also
-    ---------
-    :func:`psd`,
-    :func:`coherence_1D`,
-    :func:`cpsd_1D`,
-    numpy.fft
-
-    Notes
-    -----
-    `a` and `b` do not need to be 'tightly' synchronized, and can even
-    be different lengths, but the first- and last-index of both series
-    should be synchronized (to whatever degree you want unbiased
-    phases).
-
-    This performs:
-
-    .. math::
-
-        fft(a)*conj(fft(b))
-
-    Note that this is consistent with :func:`numpy.correlate`.
-
-    It detrends the data and uses a minimum of 50% overlap for the
-    shorter of `a` and `b`. For the longer, the overlap depends on the
-    difference in size.  1-(l_short/l_long) data will be underutilized
-    (where l_short and l_long are the length of the shorter and longer
-    series, respectively).
-
-    The units of the spectra is the product of the units of `a` and
-    `b`, divided by the units of fs.
+    window : str or numpy.ndarray
+      Window specification accepted by scipy.signal.
     """
+    if window is None or (isinstance(window, (int, float)) and window == 1):
+        return "boxcar"
+    if isinstance(window, str):
+        if "hann" in window:
+            return "hann"
+        if "hamm" in window:
+            return "hamming"
+        return window  # pass other strings directly to scipy
+    if isinstance(window, np.ndarray):
+        if len(window) != nfft:
+            raise ValueError("Custom window length must equal nfft")
+    return window  # ndarray: pass through
 
-    if np.iscomplexobj(a) or np.iscomplexobj(b):
-        raise Exception("Velocity cannot be complex")
-    l = [len(a), len(b)]
-    if l[0] == l[1]:
-        return cpsd_1D(a, b, nfft, fs, window=window)
-    elif l[0] > l[1]:
-        a, b = b, a
-        l = l[::-1]
-    step = [0, 0]
-    step[0], nens, nfft = _stepsize(l[0], nfft)
-    step[1], nens, nfft = _stepsize(l[1], nfft, nens=nens)
-    fs = np.float64(fs)
-    window = _getwindow(window, nfft)
-    fft_inds = slice(1, int(nfft / 2.0 + 1))
-    wght = 2.0 / (window**2).sum()
-    pwr = fft(detrend_array(a[0:nfft]) * window)[fft_inds] * np.conj(
-        fft(detrend_array(b[0:nfft]) * window)[fft_inds]
-    )
-    if nens - 1:
-        for i1, i2 in zip(
-            range(step[0], l[0] - nfft + 1, step[0]),
-            range(step[1], l[1] - nfft + 1, step[1]),
-        ):
-            pwr += fft(detrend_array(a[i1 : (i1 + nfft)]) * window)[fft_inds] * np.conj(
-                fft(detrend_array(b[i2 : (i2 + nfft)]) * window)[fft_inds]
-            )
-    pwr *= wght / nens / fs
-    return pwr
+
+def _step_to_noverlap(step, nfft):
+    """
+    Validate a dolfyn step (integer sample count) and convert to scipy noverlap.
+
+    Parameters
+    ----------
+    step : int or None
+      Number of samples to advance between FFT windows.  None lets scipy
+      choose its default (50% overlap).
+    nfft : int
+      FFT window length.
+
+    Returns
+    -------
+    noverlap : int or None
+    """
+    if step is None:
+        return None
+    step = int(step)
+    if step < 1:
+        raise ValueError(
+            f"step must be a positive integer number of samples, got {step}. "
+            "For exactly 50% overlap use step=n_fft//2."
+        )
+    if step > nfft / 2:
+        warnings.warn(
+            f"Specified step ({step}) is greater than nfft/2 ({nfft / 2}), "
+            "resulting in less than 50% overlap between FFT windows."
+        )
+    return nfft - step
 
 
 def cpsd_1D(a, b, nfft, fs, window="hann", step=None):
@@ -236,34 +152,21 @@ def cpsd_1D(a, b, nfft, fs, window="hann", step=None):
     """
 
     if np.iscomplexobj(a) or np.iscomplexobj(b):
-        raise Exception("Velocity cannot be complex")
-    auto_psd = False
-    if a is b:
-        auto_psd = True
-    l = len(a)
-    step, nens, nfft = _stepsize(l, nfft, step=step)
-    fs = np.float64(fs)
-    window = _getwindow(window, nfft)
-    fft_inds = slice(1, int(nfft / 2.0 + 1))
-    wght = 2.0 / (window**2).sum()
-    # Take FFT of first segment
-    s1 = fft(detrend_array(a[0:nfft]) * window)[fft_inds]
-    if auto_psd:
-        pwr = np.abs(s1) ** 2
-    else:
-        pwr = s1 * np.conj(fft(detrend_array(b[0:nfft]) * window)[fft_inds])
-    # take FFT of remaining segments
-    if nens - 1:
-        for i in range(step, l - nfft + 1, step):
-            s1 = fft(detrend_array(a[i : (i + nfft)]) * window)[fft_inds]
-            if auto_psd:
-                pwr += np.abs(s1) ** 2
-            else:
-                pwr += s1 * np.conj(
-                    fft(detrend_array(b[i : (i + nfft)]) * window)[fft_inds]
-                )
-    pwr *= wght / nens / fs
-    return pwr
+        raise ValueError("Velocity cannot be complex")
+    noverlap = _step_to_noverlap(step, nfft)
+    _, cpsd = scipy.signal.csd(
+        a,
+        b,
+        fs=fs,
+        window=_normalize_window(window, nfft),
+        nperseg=nfft,
+        noverlap=noverlap,
+        detrend="linear",
+        return_onesided=True,
+        scaling="density",
+    )
+    # Drop DC bin (index 0): always ~0 after linear detrending, excluded by convention
+    return cpsd[1:]
 
 
 def psd_1D(a, nfft, fs, window="hann", step=None):
@@ -313,4 +216,16 @@ def psd_1D(a, nfft, fs, window="hann", step=None):
     `numpy.fft`
     """
 
-    return np.abs(cpsd_1D(a, a, nfft, fs, window=window, step=step))
+    noverlap = _step_to_noverlap(step, nfft)
+    _, psd = scipy.signal.welch(
+        a,
+        fs=fs,
+        window=_normalize_window(window, nfft),
+        nperseg=nfft,
+        noverlap=noverlap,
+        detrend="linear",
+        return_onesided=True,
+        scaling="density",
+    )
+    # Drop DC bin (index 0): always ~0 after linear detrending, excluded by convention
+    return psd[1:]

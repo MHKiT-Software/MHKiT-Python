@@ -47,7 +47,7 @@ def sound_pressure_spectral_density_level(spsd: xr.DataArray) -> xr.DataArray:
 
     spsdl = xr.DataArray(
         lpf.astype(np.float32),
-        coords={"time": spsd["time"], "freq": spsd["freq"]},
+        coords=spsd.coords,
         attrs={
             "units": "dB re 1 uPa^2/Hz",
             "long_name": "Sound Pressure Spectral Density Level",

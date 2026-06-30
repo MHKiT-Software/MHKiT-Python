@@ -991,9 +991,10 @@ class VelBinner(TimeBinner):
         n_fft : int (optional)
           The fft size. Default = `self.n_fft`
         step : int (optional)
-          Controls amount of overlap in fft. Default: the step size is
-          chosen to maximize data use, minimize nens, and have a
-          minimum of 50% overlap.
+          Number of samples to advance between FFT windows (integer sample
+          count, not a fraction). Use ``step=n_fft//2`` for exactly 50%
+          overlap. Default: chosen to maximize data use, minimize nens, and
+          guarantee a minimum of 50% overlap.
 
         Returns
         -------

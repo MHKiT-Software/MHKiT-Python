@@ -261,18 +261,8 @@ def sound_pressure_spectral_density(
     # Mean square sound pressure
     psd = binner.power_spectral_density(pressure, freq_units="Hz")
     if rms:
-        # Scale PSD by mean square of original signal
-        samples = (
-            binner.reshape(pressure.values) - binner.mean(pressure.values)[:, None]
-        )
-        # mean squared pressure ("power") in time domain
-        t_power = np.sum(samples**2, axis=1) / nbin
-        # pressure ("power") in frequency domain
-        f_power = psd.sum("freq") * (fs / nbin)
-        # Adjust the amplitude of the PSD to return the mean-squared PSD
-        # based on Parseval's theorem: total energy computed in the time
-        # domain must equal the total energy computed in the frequency domain
-        psd = psd * t_power[:, None] / f_power
+        # Scale PSD by frequency bin width
+        psd = psd * (psd["freq"][1] - psd["freq"][0])
         long_name = "Mean Square Sound Pressure Spectral Density"
     else:
         long_name = "Sound Pressure Spectral Density"

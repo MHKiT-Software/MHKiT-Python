@@ -1,6 +1,6 @@
 import numpy as np
 import warnings
-from .tools.fft import fft_frequency, psd_1D, cpsd_1D, cpsd_quasisync_1D
+from .tools.fft import fft_frequency, psd_1D, cpsd_1D
 from .tools.misc import slice1d_along_axis, detrend_array
 from .time import epoch2dt64, dt642epoch
 
@@ -412,7 +412,10 @@ class TimeBinner:
         n_fft = self._parse_nfft(n_fft)
         out = np.empty(self._outshape_fft(dat.shape, n_fft=n_fft, n_bin=n_bin))
         # The data is detrended in psd, so we don't need to do it here.
-        dat = self.reshape(dat)
+        # When n_fft==n_bin, each bin produces a single Bartlett window (no
+        # within-bin overlap). Use n_fft < n_bin to enable within-bin Welch
+        # averaging without cross-bin contamination.
+        dat = self.reshape(dat, n_bin=n_bin)
 
         for slc in slice1d_along_axis(dat.shape, -1):
             out[slc] = psd_1D(dat[slc], n_fft, fs, window=window, step=step)
@@ -471,13 +474,14 @@ class TimeBinner:
         # The data is detrended in psd, so we don't need to do it here:
         dat1 = self.reshape(dat1)
         dat2 = self.reshape(dat2)
+        if dat1.shape != dat2.shape:
+            raise ValueError(
+                "Cross-spectral density requires equal-length input arrays. "
+                "Quasi-synchronized (different sample rate) inputs are not supported."
+            )
         out = np.empty(oshp, dtype="c{}".format(dat1.dtype.itemsize * 2))
-        if dat1.shape == dat2.shape:
-            cross = cpsd_1D
-        else:
-            cross = cpsd_quasisync_1D
         for slc in slice1d_along_axis(out.shape, -1):
-            out[slc] = cross(dat1[slc], dat2[slc], n_fft, fs, window=window)
+            out[slc] = cpsd_1D(dat1[slc], dat2[slc], n_fft, fs, window=window)
         return out
 
     def _fft_freq(self, fs=None, units="Hz", n_fft=None, coh=False):
