@@ -1,0 +1,32 @@
+name: Upload coverage to Coveralls
+description: Install the macOS reporter if needed and upload lcov coverage to Coveralls.
+
+inputs:
+  github-token:
+    description: Token used to authenticate with Coveralls.
+    required: true
+  flag-name:
+    description: Unique flag identifying this coverage job.
+    required: true
+  fail-on-error:
+    description: Whether an upload failure should fail the job.
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    # Fix for coveralls on homebrew 6+: https://github.com/coverallsapp/github-action/pull/265
+    - name: Install coveralls reporter (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: brew install coverallsapp/coveralls/coveralls --quiet
+
+    - name: Upload coverage data to coveralls.io
+      uses: coverallsapp/github-action@v2
+      with:
+        github-token: ${{ inputs.github-token }}
+        flag-name: ${{ inputs.flag-name }}
+        parallel: true
+        path-to-lcov: ./coverage.lcov
+        fail-on-error: ${{ inputs.fail-on-error }}
