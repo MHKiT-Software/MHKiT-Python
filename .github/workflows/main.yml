@@ -22,6 +22,7 @@ env:
   CONDA_ENVIRONMENT_NAME: mhkit-dev-env
   # Coveralls: Set to false to ignore upload failures during outages.
   #   Check status: https://status.coveralls.io/
+  # Note this only affects the code coverage percentage badge in the README, nothing else
   COVERALLS_FAIL_ON_ERROR: true
 
 jobs:
@@ -45,6 +46,31 @@ jobs:
           #   echo "matrix_os=[\"windows-latest\", \"ubuntu-latest\", \"macos-latest\"]" >> $GITHUB_OUTPUT
           # fi
 
+
+  # `coveralls-gate` controls whether code coverage data is uploaded to coveralls.
+  # The README code coverage badge is main-only. Because this is a simple metric we don't need to
+  # calculate this for every code push, just the ones that can change the badge coverage percentage
+  #
+  #   Specific code changes that require coveralls are:
+  #     * a PR targeting main
+  #     * a push to main
+  # Coveralls badge:
+  #   <img src="https://github.com/MHKiT-Software/MHKiT-Python/actions/workflows/main.yml/badge.svg">
+  coveralls-gate:
+    runs-on: ubuntu-latest
+    outputs:
+      should-upload: ${{ steps.gate.outputs.should-upload }}
+    steps:
+      - id: gate
+        run: |
+          should_upload=false
+          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "main" ]]; then
+            should_upload=true
+          fi
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            should_upload=true
+          fi
+          echo "should-upload=$should_upload" >> "$GITHUB_OUTPUT"
 
   # This job decides if the hindcast test suite should run.
   check-changes:
@@ -208,7 +234,7 @@ jobs:
 
   conda-forge-build:
     name: conda-forge-${{ matrix.os }}/${{ matrix.python-version }}
-    needs: [set-os, prepare-nonhindcast-cache]
+    needs: [set-os, prepare-nonhindcast-cache, coveralls-gate]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -256,6 +282,7 @@ jobs:
           coverage lcov
 
       - name: Upload coverage data to coveralls.io
+        if: needs.coveralls-gate.outputs.should-upload == 'true'
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -266,7 +293,7 @@ jobs:
 
   pip-build:
     name: pip-${{ matrix.os }}/${{ matrix.python-version }}
-    needs: [set-os, prepare-nonhindcast-cache]
+    needs: [set-os, prepare-nonhindcast-cache, coveralls-gate]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -317,6 +344,7 @@ jobs:
           coverage lcov
 
       - name: Upload coverage data to coveralls.io
+        if: needs.coveralls-gate.outputs.should-upload == 'true'
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -333,6 +361,7 @@ jobs:
         prepare-wave-hindcast-cache,
         prepare-wind-hindcast-cache,
         set-os,
+        coveralls-gate,
       ]
     if: (needs.check-changes.outputs.should-run-hindcast == 'true')
 
@@ -395,6 +424,7 @@ jobs:
           coverage lcov
 
       - name: Upload coverage data to coveralls.io
+        if: needs.coveralls-gate.outputs.should-upload == 'true'
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -643,9 +673,11 @@ jobs:
         conda-forge-build,
         pip-build,
         hindcast-calls,
+        coveralls-gate,
       ]
     if: |
       always() &&
+      needs.coveralls-gate.outputs.should-upload == 'true' &&
       (
         (
           needs.conda-forge-build.result == 'success' &&
