@@ -438,6 +438,7 @@ def _make_request(
     requests.exceptions.RequestException
         If an error occurs during the request and all retries are exhausted.
     """
+    last_err = None
     for attempt in range(max_retries):
         try:
             response = requests.get(url=data_url, proxies=proxy, timeout=60)
@@ -446,13 +447,14 @@ def _make_request(
                 raise requests.exceptions.RequestException(response.content.decode())
             return response
         except requests.exceptions.RequestException as err:
+            last_err = err
             print(f"Request error occurred: {err}")
-            # Last attempt failed, give up and re-raise.
-            if attempt == max_retries - 1:
-                raise
-            delay = retry_delay * (2**attempt)
-            print(f"Retrying in {delay:.1f}s...\n")
-            time.sleep(delay)
+            if attempt < max_retries - 1:
+                delay = retry_delay * (2**attempt)
+                print(f"Retrying in {delay:.1f}s...\n")
+                time.sleep(delay)
+    # All attempts failed; re-raise the last error.
+    raise last_err
 
 
 def _concatenate_data_frames(data_frames: list[pd.DataFrame]) -> pd.DataFrame:
