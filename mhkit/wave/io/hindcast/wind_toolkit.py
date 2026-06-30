@@ -30,6 +30,8 @@ from rex import MultiYearWindX
 from mhkit.utils.cache import handle_caching
 from mhkit.utils.type_handling import convert_to_dataset
 
+from mhkit.wave.io.hindcast.hindcast_exceptions import hindcast_guard
+
 
 def region_selection(lat_lon: Tuple[float, float], preferred_region: str = "") -> str:
     """
@@ -108,6 +110,7 @@ def region_selection(lat_lon: Tuple[float, float], preferred_region: str = "") -
     return region[0]
 
 
+@hindcast_guard
 def get_region_data(region: str) -> Tuple[np.ndarray, np.ndarray]:
     """
     Retrieves the latitude and longitude data points for the specified region
@@ -278,6 +281,7 @@ def elevation_to_string(
 # pylint: disable=too-many-statements
 # pylint: disable=too-many-positional-arguments
 # pylint: disable=duplicate-code
+@hindcast_guard
 def request_wtk_point_data(
     time_interval: str,
     parameter: Union[str, List[str]],
@@ -369,7 +373,6 @@ def request_wtk_point_data(
     meta: DataFrame
         Location metadata for the requested data location
     """
-
     if not isinstance(parameter, (str, list)):
         raise TypeError("parameter must be of type string or list")
     if not isinstance(lat_lon, (list, tuple)):
