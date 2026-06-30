@@ -21,7 +21,6 @@ import json
 import numpy as np
 import mhkit.tidal as tidal
 
-
 testdir = dirname(abspath(__file__))
 plotdir = join(testdir, "plots")
 isdir = os.path.isdir(plotdir)
