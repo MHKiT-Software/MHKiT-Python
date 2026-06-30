@@ -9,6 +9,7 @@ or xarray Dataset, and saving it as a JSON file for future use.
 """
 
 import os
+import time
 import xml.etree.ElementTree as ET
 import datetime
 import json
@@ -402,9 +403,18 @@ def _build_data_url(
     return f"https://tidesandcurrents.noaa.gov/api/datagetter?{api_query}"
 
 
-def _make_request(data_url: str, proxy: dict) -> requests.Response:
+def _make_request(
+    data_url: str,
+    proxy: dict,
+    max_retries: int = 5,
+    retry_delay: float = 2.0,
+) -> requests.Response:
     """
     Makes an HTTP request to the specified data URL using optional proxy settings.
+
+    The NOAA Tides and Currents API intermittently fails with transient errors
+    (e.g. 504 Gateway Timeout). To make requests resilient to these temporary
+    outages, failed requests are retried with exponential backoff.
 
     Parameters
     ----------
@@ -412,6 +422,11 @@ def _make_request(data_url: str, proxy: dict) -> requests.Response:
         The URL to request data from.
     proxy : dict
         Proxy settings for the request.
+    max_retries : int, optional
+        Maximum number of attempts before giving up.
+    retry_delay : float, optional
+        Base delay in seconds between retries. The delay grows exponentially
+        (retry_delay * 2 ** attempt) with each successive retry.
 
     Returns
     -------
@@ -421,22 +436,23 @@ def _make_request(data_url: str, proxy: dict) -> requests.Response:
     Raises
     ------
     requests.exceptions.RequestException
-        If an error occurs during the request.
+        If an error occurs during the request and all retries are exhausted.
     """
-    try:
-        response = requests.get(url=data_url, proxies=proxy, timeout=60)
-        response.raise_for_status()
-        if "error" in response.content.decode():
-            raise requests.exceptions.RequestException(response.content.decode())
-    except requests.exceptions.HTTPError as http_err:
-        print(f"HTTP error occurred: {http_err}")
-        print(f"Error message: {response.content.decode()}\n")
-        raise
-    except requests.exceptions.RequestException as req_err:
-        print(f"Requests error occurred: {req_err}")
-        print(f"Error message: {response.content.decode()}\n")
-        raise
-    return response
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url=data_url, proxies=proxy, timeout=60)
+            response.raise_for_status()
+            if "error" in response.content.decode():
+                raise requests.exceptions.RequestException(response.content.decode())
+            return response
+        except requests.exceptions.RequestException as err:
+            print(f"Request error occurred: {err}")
+            # Last attempt failed, give up and re-raise.
+            if attempt == max_retries - 1:
+                raise
+            delay = retry_delay * (2**attempt)
+            print(f"Retrying in {delay:.1f}s...\n")
+            time.sleep(delay)
 
 
 def _concatenate_data_frames(data_frames: list[pd.DataFrame]) -> pd.DataFrame:
