@@ -64,11 +64,15 @@ jobs:
 
       - id: hindcast-logic
         run: |
-          if [[ "${{ github.event.pull_request.base.ref }}" == "main" || "${{ steps.changes.outputs.wave_io_hindcast }}" == "true" ]]; then
-            echo "should-run-hindcast=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "should-run-hindcast=false" >> "$GITHUB_OUTPUT"
-          fi
+          # TODO(restore-hindcast): NLR HSDS endpoint is down for v1.1, so hindcast
+          # jobs are disabled. Restore the logic below when the service is back online.
+          # See https://github.com/MHKiT-Software/MHKiT-Python/issues/450
+          echo "should-run-hindcast=false" >> "$GITHUB_OUTPUT"
+          # if [[ "${{ github.event.pull_request.base.ref }}" == "main" || "${{ steps.changes.outputs.wave_io_hindcast }}" == "true" ]]; then
+          #   echo "should-run-hindcast=true" >> "$GITHUB_OUTPUT"
+          # else
+          #   echo "should-run-hindcast=false" >> "$GITHUB_OUTPUT"
+          # fi
 
   prepare-nonhindcast-cache:
     runs-on: ubuntu-latest
