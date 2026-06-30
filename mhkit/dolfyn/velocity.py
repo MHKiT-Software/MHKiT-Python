@@ -1055,7 +1055,6 @@ class VelBinner(TimeBinner):
                     window=window,
                     n_bin=n_bin,
                     n_fft=n_fft,
-                    step=step,
                 )
             coords = {
                 "S": self.S,
