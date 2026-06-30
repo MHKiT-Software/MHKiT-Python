@@ -63,14 +63,17 @@ jobs:
     steps:
       - id: gate
         run: |
-          should_upload=false
-          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "main" ]]; then
-            should_upload=true
-          fi
-          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
-            should_upload=true
-          fi
-          echo "should-upload=$should_upload" >> "$GITHUB_OUTPUT"
+          # TEMP(test-coveralls): Force coveralls upload on every run to test the
+          # macOS reporter fix. Restore the gate logic below when done.
+          echo "should-upload=true" >> "$GITHUB_OUTPUT"
+          # should_upload=false
+          # if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "main" ]]; then
+          #   should_upload=true
+          # fi
+          # if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+          #   should_upload=true
+          # fi
+          # echo "should-upload=$should_upload" >> "$GITHUB_OUTPUT"
 
   # This job decides if the hindcast test suite should run.
   check-changes:
