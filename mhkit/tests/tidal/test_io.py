@@ -68,6 +68,11 @@ class TestIO(unittest.TestCase):
         self.assertEqual(len(data["index"]), 18890)
         self.assertEqual(data.attrs["id"], "s08010")
 
+    # TODO(noaa_api_failures): NOAA Tides and Currents API intermittently
+    # returns 504 Gateway Timeout, causing this test to fail in CI. Re-enable
+    # once the upstream API is reliable. See
+    # https://github.com/MHKiT-Software/MHKiT-Python/issues/451
+    @unittest.skip("NOAA API intermittently unavailable; see issue #451")
     def test_request_noaa_data_basic(self):
         """
         Test the request_noaa_data function with basic input parameters
@@ -89,6 +94,11 @@ class TestIO(unittest.TestCase):
         self.assertEqual(data.shape, (183, 3))
         self.assertEqual(metadata["id"], "s08010")
 
+    # TODO(noaa_api_failures): NOAA Tides and Currents API intermittently
+    # returns 504 Gateway Timeout, causing this test to fail in CI. Re-enable
+    # once the upstream API is reliable. See
+    # https://github.com/MHKiT-Software/MHKiT-Python/issues/451
+    @unittest.skip("NOAA API intermittently unavailable; see issue #451")
     def test_request_noaa_data_basic_xarray(self):
         """
         Test the request_noaa_data function with basic input parameters
@@ -116,6 +126,11 @@ class TestIO(unittest.TestCase):
         self.assertEqual(len(data["index"]), 183)
         self.assertEqual(data.attrs["id"], "s08010")
 
+    # TODO(noaa_api_failures): NOAA Tides and Currents API intermittently
+    # returns 504 Gateway Timeout, causing this test to fail in CI. Re-enable
+    # once the upstream API is reliable. See
+    # https://github.com/MHKiT-Software/MHKiT-Python/issues/451
+    @unittest.skip("NOAA API intermittently unavailable; see issue #451")
     def test_request_noaa_data_write_json(self):
         """
         Test the request_noaa_data function with the write_json parameter
