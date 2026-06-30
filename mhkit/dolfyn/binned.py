@@ -370,6 +370,7 @@ class TimeBinner:
         noise=0,
         n_bin=None,
         n_fft=None,
+        pct_overlap=0.5,
     ):
         """
         Calculate the power spectral density of `dat`
@@ -394,6 +395,8 @@ class TimeBinner:
         n_fft : int
           n_fft of veldat2, number of elements per bin if 'None' is taken
           from VelBinner
+        pct_overlap : float
+          The percent overlap between FFT windows (default: 0.5)
 
         Returns
         -------
@@ -406,24 +409,44 @@ class TimeBinner:
         """
 
         fs = self._parse_fs(fs)
+        # n_bin determines the number of time bins in the output
         n_bin = self._parse_nbin(n_bin)
+        # n_fft determines the length and resolution of the frequency vector
         n_fft = self._parse_nfft(n_fft)
         out = np.empty(self._outshape_fft(dat.shape, n_fft=n_fft, n_bin=n_bin))
-        # The data is detrended in psd, so we don't need to do it here.
-        dat = self.reshape(dat, n_bin=n_bin)
-        for slc in slice1d_along_axis(dat.shape, -1):
+        step = int(pct_overlap * n_bin)
+        n_samples = out.shape[0]  # chops off last bin
+        for i in range(n_samples):
+            sample_slice = slice(i * step, i * step + int(n_bin))
             _, psd = scipy.signal.welch(
-                dat[slc],
+                dat[sample_slice],
                 fs=fs,
                 window=window,
                 nperseg=n_fft,
-                noverlap=n_fft // 2,
+                noverlap=pct_overlap * n_fft,
+                nfft=n_fft,
                 detrend="linear",
                 return_onesided=True,
                 scaling="density",
             )
             # Drop DC bin (index 0): always ~0 after linear detrending, excluded by convention
-            out[slc] = psd[1:]
+            out[i, :] = psd[1:]
+
+        # # The data is detrended in psd, so we don't need to do it here.
+        # dat = self.reshape(dat, n_bin=n_bin, n_pad=int(n_bin_psd - n_fft))
+        # for slc in slice1d_along_axis(dat.shape, -1):
+        #     _, psd = scipy.signal.welch(
+        #         dat[slc],
+        #         fs=fs,
+        #         window=window,
+        #         nperseg=n_fft,
+        #         noverlap=pct_overlap * n_fft,
+        #         detrend="linear",
+        #         return_onesided=True,
+        #         scaling="density",
+        #     )
+        #     # Drop DC bin (index 0): always ~0 after linear detrending, excluded by convention
+        #     out[slc] = psd[1:]
         if np.any(noise):
             out -= noise**2 / (fs / 2)
             # Make sure all values of the PSD are >0 (but still small):
