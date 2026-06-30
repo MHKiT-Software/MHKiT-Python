@@ -26,7 +26,6 @@ TestWPTOhindcast class in another test suite.
 import unittest
 from os.path import abspath, dirname, join, normpath
 from pandas.testing import assert_frame_equal
-import xarray.testing as xrt
 import pandas as pd
 import mhkit.wave as wave
 import xarray as xr
@@ -37,6 +36,12 @@ datadir = normpath(
 )
 
 
+# TODO(restore-hindcast): 6/30/2026, NLR HSDS endpoint is non functional
+# https://github.com/MHKiT-Software/MHKiT-Python/issues/450
+@unittest.skip(
+    "TODO(restore-hindcast): NLR HSDS endpoint unavailable. See "
+    "https://github.com/MHKiT-Software/MHKiT-Python/issues/450"
+)
 class TestWPTOhindcast(unittest.TestCase):
     """
     A test call designed to check the WPTO hindcast retrival
