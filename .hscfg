@@ -1,8 +1,4 @@
 hs_endpoint = https://developer.nlr.gov/api/hsds
 hs_username =
 hs_password =
-# hs_api_key is intentionally blank. It is provided at runtime via the
-# HS_API_KEY environment variable (the HSDS_API_KEY GitHub secret in CI, or
-# your own HS_API_KEY / ~/.hscfg locally), which h5pyd reads in preference to
-# this file. Do not commit a real key here.
-hs_api_key =
+hs_api_key = jODGciIBnejrYd9GXxgXjbbAjMDLBMWQer05P98N 
