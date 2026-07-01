@@ -201,21 +201,13 @@ def sound_pressure_spectral_density(
     fs: Union[int, float],
     bin_length: Union[int, float] = 1,
     fft_length: Optional[Union[int, float]] = None,
-    rms: bool = True,
+    pct_overlap: float = 0.5,
 ) -> xr.DataArray:
     """
     Calculates the sound pressure spectral density (SPSD) from audio
     samples split into FFTs with a specified bin length in seconds,
-    using Hanning windowing with 50% overlap.
-
-    By default (`rms=True`), this function returns the mean-squared SPSD,
-    which found by scaling the total spectral power (frequency domain) with
-    the time-domain averaged mean-squared power, in accordance with
-    Parseval's theorem.
-
-    Setting `rms=False` disables this scaling and returns the
-    power spectral density of the sound pressure signal.
-    Both forms have units of [Pa^2/Hz] or [V^2/Hz].
+    using Hanning windowing with 50% overlap. Uses Welch's method to
+    average overlapping FFT windows within each bin.
 
     Parameters
     ----------
@@ -227,14 +219,11 @@ def sound_pressure_spectral_density(
         Length of time in seconds to create FFTs. Default: 1.
     fft_length: int or float, optional
         Length of FFT to use. If None, uses bin_length * fs. Default: None.
-    rms: bool
-        If True, calculates the mean-squared SPSD. Set to False to
-        calculate standard SPSD. Default: True.
 
     Returns
     -------
     spsd: xarray.DataArray (time, freq)
-        Spectral density [Pa^2/Hz] indexed by time and frequency
+        Spectral density [Pa^2/Hz] or [V^2/Hz] indexed by time and frequency
     """
 
     # Type checks
@@ -256,22 +245,18 @@ def sound_pressure_spectral_density(
         nfft = nbin
 
     # Use dolfyn PSD functionality
-    binner = VelBinner(n_bin=nbin, fs=fs, n_fft=nfft)
-    # Mean square sound pressure
-    psd = binner.power_spectral_density(pressure, freq_units="Hz")
-    if rms:
-        # Scale PSD by frequency bin width
-        psd = psd * (psd["freq"][1] - psd["freq"][0])
-        long_name = "Mean Square Sound Pressure Spectral Density"
-    else:
-        long_name = "Sound Pressure Spectral Density"
+    binner = VelBinner(fs=fs, n_bin=nbin, n_fft=nfft)
+    # Sound pressure spectral densities with 50% overlap between FFT windows
+    psd = binner.power_spectral_density(
+        pressure, freq_units="Hz", window="hann", pct_overlap=pct_overlap
+    )
 
     out = xr.DataArray(
         psd,
         coords={"time": psd["time"], "freq": psd["freq"]},
         attrs={
             "units": pressure.units + "^2/Hz",
-            "long_name": long_name,
+            "long_name": "Mean Square Sound Pressure Spectral Density",
             "fs": fs,
             "bin_length": bin_length,
             "overlap": "50%",

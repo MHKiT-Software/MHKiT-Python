@@ -21,7 +21,7 @@ class TestMetrics(unittest.TestCase):
         P = acoustics.io.read_soundtrap(file_name, sensitivity=-177)
         self.spsd = acoustics.sound_pressure_spectral_density(P, P.fs, bin_length=1)
         self.spsd_60s = acoustics.sound_pressure_spectral_density(
-            P, P.fs, bin_length=60, rms=True
+            P, P.fs, bin_length=60
         )
 
     @classmethod

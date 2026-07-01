@@ -275,7 +275,9 @@ class TimeBinner:
         """
 
         if np.issubdtype(arr.dtype, np.datetime64):
-            return epoch2dt64(self.mean(dt642epoch(arr), axis=axis, n_bin=n_bin))
+            return epoch2dt64(
+                self.mean(dt642epoch(arr), axis=axis, step=step, n_bin=n_bin)
+            )
         if axis != -1:
             arr = np.swapaxes(arr, axis, -1)
         n_bin = self._parse_nbin(n_bin)

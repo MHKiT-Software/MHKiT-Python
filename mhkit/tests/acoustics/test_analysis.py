@@ -19,7 +19,9 @@ class TestAnalysis(unittest.TestCase):
     def setUpClass(self):
         file_name = join(datadir, "6247.230204150508.wav")
         P = acoustics.io.read_soundtrap(file_name, sensitivity=-177)
-        self.spsd = acoustics.sound_pressure_spectral_density(P, P.fs, bin_length=1)
+        self.spsd = acoustics.sound_pressure_spectral_density(
+            P, P.fs, bin_length=1, pct_overlap=0.5
+        )
 
     @classmethod
     def tearDownClass(self):
@@ -94,13 +96,10 @@ class TestAnalysis(unittest.TestCase):
         self.assertEqual(spsd.attrs["bin_length"], bin_length)
         self.assertEqual(spsd.attrs["n_fft"], bin_length * fs)
 
-        # Calculate expected number of segments
-        overlap = 0.0
-        step = int(win_samples * (1 - overlap))
+        # Calculate expected number of segments using the default pct_overlap=0.5
+        default_pct_overlap = 0.5
+        step = int(win_samples * (1 - default_pct_overlap))
         expected_segments = (len(pressure) - win_samples) // step + 1
-
-        # Calculate expected number of segments without overlap
-        expected_segments = len(pressure) // win_samples
         self.assertEqual(spsd.shape[0], expected_segments)
 
     def test_apply_calibration(self):
