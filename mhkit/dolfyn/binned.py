@@ -1,6 +1,6 @@
 import numpy as np
 import warnings
-import scipy
+from scipy import signal
 from .tools import slice1d_along_axis, detrend_array
 from .time import epoch2dt64, dt642epoch
 
@@ -396,7 +396,7 @@ class TimeBinner:
         n_samples = out.shape[-2]
         for i in range(n_samples):
             sample_slice = slice(i * step, i * step + int(n_bin))
-            _, psd = scipy.signal.welch(
+            _, psd = signal.welch(
                 dat[sample_slice],
                 fs=fs,
                 window=window,
@@ -492,7 +492,7 @@ class TimeBinner:
         n_samples = oshp[-2]
         for i in range(n_samples):
             sample_slice = slice(i * step, i * step + int(n_bin))
-            _, cpsd = scipy.signal.csd(
+            _, cpsd = signal.csd(
                 dat1[sample_slice],
                 dat2[sample_slice],
                 fs=fs,
