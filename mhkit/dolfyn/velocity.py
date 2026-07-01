@@ -780,7 +780,16 @@ class VelBinner(TimeBinner):
             self._outshape(indat.shape, n_bin=n_bin)[:-1] + [int(n_bin // 4)],
             dtype=indat.dtype,
         )
-        dt1 = self.reshape(indat, n_pad=n_bin / 2 - 2)
+        # Need to pad velocity timeseries with zeros to incoporate the full range of
+        # the auto-covariance.
+        n_pad = int(n_bin / 2 - 2)
+        npd0 = n_pad // 2
+        npd1 = (n_pad + 1) // 2
+        # Pad with zeros at boundaries to replicate the original n_pad behavior
+        indat_padded = np.pad(
+            indat, pad_width=[(0, 0)] * (indat.ndim - 1) + [(npd0, npd1)]
+        )
+        dt1 = self.reshape(indat_padded, step=int(n_bin), n_bin=int(n_bin + n_pad))
         # Here we de-mean only on the 'valid' range:
         dt1 = dt1 - dt1[..., :, int(n_bin // 4) : int(-n_bin // 4)].mean(-1)[..., None]
         dt2 = self.demean(indat)
@@ -968,7 +977,7 @@ class VelBinner(TimeBinner):
         noise=0,
         n_bin=None,
         n_fft=None,
-        pct_overlap=0.5,
+        pct_overlap=0,
     ):
         """
         Calculate the power spectral density of velocity.
@@ -994,7 +1003,8 @@ class VelBinner(TimeBinner):
         pct_overlap : float (optional)
           Fractional overlap between consecutive sliding windows, in [0, 1).
           Controls both the bin-to-bin advance and the within-bin FFT overlap
-          passed to scipy.signal.welch. Default = 0.667 (66.7% overlap).
+          passed to scipy.signal.welch. Industry standard is 50%.
+          Default = 0 (0% overlap).
 
         Returns
         -------
@@ -1067,14 +1077,10 @@ class VelBinner(TimeBinner):
                     n_fft=n_fft,
                     pct_overlap=pct_overlap,
                 )
-            time = veldat["time"].values
-            # !!! Refactor self.reshape to use "step", and then all the functions that rely on it to take "step" as input
-            time_coords = np.array(
-                [time[i * step + int(n_bin) // 2] for i in range(out.shape[1])]
-            )
+            time_coord = self.mean(veldat["time"].values, step=step, n_bin=n_bin)
             coords = {
                 "S": self.S,
-                "time": time_coords,
+                "time": time_coord,
                 "freq": freq,
             }
             dims = ["S", "time", "freq"]
@@ -1092,11 +1098,9 @@ class VelBinner(TimeBinner):
                 pct_overlap=pct_overlap,
             )
             time = veldat[veldat.dims[-1]].values
-            time_coords = np.array(
-                [time[i * step + int(n_bin) // 2] for i in range(out.shape[0])]
-            )
+            time_coord = self.mean(time, step=step, n_bin=n_bin)
             coords = {
-                veldat.dims[-1]: time_coords,
+                veldat.dims[-1]: time_coord,
                 "freq": freq,
             }
             dims = [veldat.dims[-1], "freq"]

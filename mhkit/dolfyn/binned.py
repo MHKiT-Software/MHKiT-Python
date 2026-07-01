@@ -176,88 +176,49 @@ class TimeBinner:
 
         return dims_list, coords_dict
 
-    def reshape(self, arr, n_pad=0, n_bin=None):
+    def reshape(self, arr, step=None, n_bin=None):
         """
-        Reshape the array `arr` to shape (...,n,n_bin+n_pad).
+        Reshape the array `arr` into sliding windows of shape (..., n_slices, n_bin).
 
         Parameters
         ----------
         arr : numpy.ndarray
-        n_pad : int
-          Is used to add `n_pad`/2 points from the end of the previous
-          ensemble to the top of the current, and `n_pad`/2 points
-          from the top of the next ensemble to the bottom of the
-          current.  Zeros are padded in the upper-left and lower-right
-          corners of the matrix (beginning/end of timeseries).  In
-          this case, the array shape will be (...,`n`,`n_pad`+`n_bin`)
+        step : int
+          Number of samples to advance between consecutive windows.
+          Default: n_bin (non-overlapping windows).
         n_bin : int
-          Override this binner's n_bin. Default is `self.n_bin`
+          Window (bin) size. Default is `self.n_bin`
 
         Returns
         -------
         out : numpy.ndarray
-
-        Notes
-        -----
-        `n_bin` can be non-integer, in which case the output array
-        size will be `n_pad`+`n_bin`, and the decimal will
-        cause skipping of some data points in `arr`.  In particular,
-        every mod(`n_bin`,1) bins will have a skipped point. For
-        example:
-        - for n_bin=2048.2 every 1/5 bins will have a skipped point.
-        - for n_bin=4096.9 every 9/10 bins will have a skipped point.
+          Shape (..., n_slices, n_bin) where
+          n_slices = (N - n_bin) // step + 1
         """
 
-        n_bin = self._parse_nbin(n_bin)
+        n_bin = int(self._parse_nbin(n_bin))
         if arr.shape[-1] < n_bin:
             raise Exception("n_bin is larger than length of input array")
-        npd0 = int(n_pad // 2)
-        npd1 = int((n_pad + 1) // 2)
-        shp = self._outshape(arr.shape, n_pad=0, n_bin=n_bin)
-        out = np.zeros(
-            self._outshape(arr.shape, n_pad=n_pad, n_bin=n_bin), dtype=arr.dtype
-        )
-        if np.mod(n_bin, 1) == 0:
-            # n_bin needs to be int
-            n_bin = int(n_bin)
-            # If n_bin is an integer, we can do this simply.
-            out[..., npd0 : n_bin + npd0] = (arr[..., : (shp[-2] * shp[-1])]).reshape(
-                shp, order="C"
-            )
-        else:
-            inds = (np.arange(np.prod(shp[-2:])) * n_bin // int(n_bin)).astype(int)
-            # If there are too many indices, drop one bin
-            if inds[-1] >= arr.shape[-1]:
-                inds = inds[: -int(n_bin)]
-                shp[-2] -= 1
-                out = out[..., 1:, :]
-            n_bin = int(n_bin)
-            out[..., npd0 : n_bin + npd0] = (arr[..., inds]).reshape(shp, order="C")
-            n_bin = int(n_bin)
-        if n_pad != 0:
-            out[..., 1:, :npd0] = out[..., :-1, n_bin : n_bin + npd0]
-            out[..., :-1, -npd1:] = out[..., 1:, npd0 : npd0 + npd1]
-
+        if step is None:
+            step = n_bin
+        step = int(step)
+        sliding_window = np.lib.stride_tricks.sliding_window_view(arr, n_bin, axis=-1)
+        out = sliding_window[..., ::step, :].copy()
         return out
 
-    def detrend(self, arr, axis=-1, n_pad=0, n_bin=None):
+    def detrend(self, arr, axis=-1, step=None, n_bin=None):
         """
-        Reshape the array `arr` to shape (...,n,n_bin+n_pad)
-        and remove the best-fit trend line from each bin.
+        Reshape the array `arr` into sliding windows and remove the
+        best-fit trend line from each window.
 
         Parameters
         ----------
         arr : numpy.ndarray
         axis : int
-          Axis along which to take mean. Default = -1
-        n_pad : int
-          Is used to add `n_pad`/2 points from the end of the previous
-          ensemble to the top of the current, and `n_pad`/2 points
-          from the top of the next ensemble to the bottom of the
-          current.  Zeros are padded in the upper-left and lower-right
-          corners of the matrix (beginning/end of timeseries).  In
-          this case, the array shape will be (...,`n`,`n_pad`+`n_bin`).
-          Default = 0
+          Axis along which to detrend. Default = -1
+        step : int
+          Number of samples to advance between consecutive windows.
+          Default: n_bin (non-overlapping windows).
         n_bin : int
           Override this binner's n_bin. Default is `self.n_bin`
 
@@ -266,26 +227,21 @@ class TimeBinner:
         out : numpy.ndarray
         """
 
-        return detrend_array(self.reshape(arr, n_pad=n_pad, n_bin=n_bin), axis=axis)
+        return detrend_array(self.reshape(arr, step=step, n_bin=n_bin), axis=axis)
 
-    def demean(self, arr, axis=-1, n_pad=0, n_bin=None):
+    def demean(self, arr, axis=-1, step=None, n_bin=None):
         """
-        Reshape the array `arr` to shape (...,n,n_bin+n_pad)
-        and remove the mean from each bin.
+        Reshape the array `arr` into sliding windows and remove the
+        mean from each window.
 
         Parameters
         ----------
         arr : numpy.ndarray
         axis : int
           Axis along which to take mean. Default = -1
-        n_pad : int
-          Is used to add `n_pad`/2 points from the end of the previous
-          ensemble to the top of the current, and `n_pad`/2 points
-          from the top of the next ensemble to the bottom of the
-          current.  Zeros are padded in the upper-left and lower-right
-          corners of the matrix (beginning/end of timeseries).  In
-          this case, the array shape will be (...,`n`,`n_pad`+`n_bin`).
-          Default = 0
+        step : int
+          Number of samples to advance between consecutive windows.
+          Default: n_bin (non-overlapping windows).
         n_bin : int
           Override this binner's n_bin. Default is `self.n_bin`
 
@@ -294,10 +250,10 @@ class TimeBinner:
         out : numpy.ndarray
         """
 
-        dt = self.reshape(arr, n_pad=n_pad, n_bin=n_bin)
+        dt = self.reshape(arr, step=step, n_bin=n_bin)
         return dt - np.nanmean(dt, axis)[..., None]
 
-    def mean(self, arr, axis=-1, n_bin=None):
+    def mean(self, arr, axis=-1, step=None, n_bin=None):
         """
         Reshape the array `arr` to shape (...,n,n_bin+n_pad)
         and take the mean of each bin along the specified `axis`.
@@ -307,6 +263,9 @@ class TimeBinner:
         arr : numpy.ndarray
         axis : int
           Axis along which to take mean. Default = -1
+        step : int
+          Number of samples to advance between consecutive windows.
+          Default: n_bin (non-overlapping windows).
         n_bin : int
           Override this binner's n_bin. Default is `self.n_bin`
 
@@ -320,11 +279,11 @@ class TimeBinner:
         if axis != -1:
             arr = np.swapaxes(arr, axis, -1)
         n_bin = self._parse_nbin(n_bin)
-        tmp = self.reshape(arr, n_bin=n_bin)
+        tmp = self.reshape(arr, step=step, n_bin=n_bin)
 
         return np.nanmean(tmp, -1)
 
-    def variance(self, arr, axis=-1, n_bin=None):
+    def variance(self, arr, axis=-1, step=None, n_bin=None):
         """
         Reshape the array `arr` to shape (...,n,n_bin+n_pad)
         and take the variance of each bin along the specified `axis`.
@@ -334,6 +293,9 @@ class TimeBinner:
         arr : numpy.ndarray
         axis : int
           Axis along which to take variance. Default = -1
+        step : int
+          Number of samples to advance between consecutive windows.
+          Default: n_bin (non-overlapping windows).
         n_bin : int
           Override this binner's n_bin. Default is `self.n_bin`
 
@@ -342,9 +304,11 @@ class TimeBinner:
         out : numpy.ndarray
         """
 
-        return np.nanvar(self.reshape(arr, n_bin=n_bin), axis=axis, dtype=np.float32)
+        return np.nanvar(
+            self.reshape(arr, step=step, n_bin=n_bin), axis=axis, dtype=np.float32
+        )
 
-    def standard_deviation(self, arr, axis=-1, n_bin=None):
+    def standard_deviation(self, arr, axis=-1, step=None, n_bin=None):
         """
         Reshape the array `arr` to shape (...,n,n_bin+n_pad)
         and take the standard deviation of each bin along the
@@ -355,6 +319,9 @@ class TimeBinner:
         arr : numpy.ndarray
         axis : int
           Axis along which to take std dev. Default = -1
+        step : int
+          Number of samples to advance between consecutive windows.
+          Default: n_bin (non-overlapping windows).
         n_bin : int
           Override this binner's n_bin. Default is `self.n_bin`
 
@@ -363,7 +330,9 @@ class TimeBinner:
         out : numpy.ndarray
         """
 
-        return np.nanstd(self.reshape(arr, n_bin=n_bin), axis=axis, dtype=np.float32)
+        return np.nanstd(
+            self.reshape(arr, step=step, n_bin=n_bin), axis=axis, dtype=np.float32
+        )
 
     def _psd_base(
         self,
@@ -399,7 +368,7 @@ class TimeBinner:
           n_fft of veldat2, number of elements per bin if 'None' is taken
           from VelBinner
         pct_overlap : float
-          The percent overlap between FFT windows (default: 0.667)
+          The percent overlap between FFT windows (default: 0.5)
 
         Returns
         -------
@@ -443,7 +412,16 @@ class TimeBinner:
             out[out < 0] = np.min(np.abs(out)) / 100
         return out
 
-    def _csd_base(self, dat1, dat2, fs=None, window="hann", n_fft=None, n_bin=None):
+    def _csd_base(
+        self,
+        dat1,
+        dat2,
+        fs=None,
+        window="hann",
+        n_fft=None,
+        n_bin=None,
+        pct_overlap=0.5,
+    ):
         """
         Compute the cross power spectral density (CPSD) of the signals dat1 and dat2.
 
@@ -462,10 +440,12 @@ class TimeBinner:
             - a length(nfft) array : use this as the window directly.
         n_fft : int
           Number of elements in the FFT. If 'None', is taken
-          from VelBinner
+          from VelBinner (uses n_fft_coh).
         n_bin : int
           Number of elements per bin. If 'None', is taken
-          from VelBinner
+          from VelBinner.
+        pct_overlap : float
+          The percent overlap between sliding windows (default: 0.5).
 
         Returns
         -------
@@ -475,8 +455,8 @@ class TimeBinner:
         Notes
         -----
         PSDs are calculated based on sample rate units.
-        This removes a linear trend from the signals and uses a 50% overlap between FFT windows.
-        The two signals should be the same length, and should both be real.
+        This removes a linear trend from the signals.
+        The two signals must be the same length and both be real.
 
         This performs:
 
@@ -493,18 +473,9 @@ class TimeBinner:
         """
 
         fs = self._parse_fs(fs)
-        if n_fft is None:
-            n_fft = self.n_fft_coh
-        # want each slice to carry the same timespan
-        n_bin2 = self._parse_nbin(n_bin)  # bins for shorter array
-        n_bin1 = int(dat1.shape[-1] / (dat2.shape[-1] / n_bin2))
+        n_fft = self._parse_nfft_coh(n_fft)
+        n_bin = self._parse_nbin(n_bin)
 
-        oshp = self._outshape_fft(dat1.shape, n_fft=n_fft, n_bin=n_bin1)
-        oshp[-2] = np.min([oshp[-2], int(dat2.shape[-1] // n_bin2)])
-
-        # The data is detrended in psd, so we don't need to do it here:
-        dat1 = self.reshape(dat1)
-        dat2 = self.reshape(dat2)
         if dat1.shape != dat2.shape:
             raise ValueError(
                 "Cross-spectral density requires equal-length input arrays. "
@@ -512,21 +483,26 @@ class TimeBinner:
             )
         if np.iscomplexobj(dat1) or np.iscomplexobj(dat2):
             raise ValueError("Velocity cannot be complex")
+
+        step = int((1 - pct_overlap) * n_bin)
+        oshp = self._outshape_fft(dat1.shape, n_fft=n_fft, n_bin=n_bin, step=step)
         out = np.empty(oshp, dtype="c{}".format(dat1.dtype.itemsize * 2))
-        for slc in slice1d_along_axis(out.shape, -1):
+        n_samples = oshp[-2]
+        for i in range(n_samples):
+            sample_slice = slice(i * step, i * step + int(n_bin))
             _, cpsd = scipy.signal.csd(
-                dat1[slc],
-                dat2[slc],
+                dat1[sample_slice],
+                dat2[sample_slice],
                 fs=fs,
                 window=window,
                 nperseg=n_fft,
-                noverlap=n_fft // 2,
+                noverlap=int(pct_overlap * n_fft),
                 detrend="linear",
                 return_onesided=True,
                 scaling="density",
             )
             # Drop DC bin (index 0): always ~0 after linear detrending, excluded by convention
-            out[slc] = cpsd[1:]
+            out[i, :] = cpsd[1:]
         return out
 
     def _fft_freq(self, fs=None, units="Hz", n_fft=None, coh=False):
@@ -568,5 +544,6 @@ class TimeBinner:
             fs = 2 * np.pi * fs
 
         f = np.fft.fftfreq(int(n_fft), 1 / fs)
+        half_freqs = np.abs(f[1 : int(n_fft / 2.0 + 1)])
 
-        return np.abs(f[1 : int(n_fft / 2.0 + 1)])
+        return half_freqs

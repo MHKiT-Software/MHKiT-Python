@@ -372,7 +372,7 @@ class ADPBinner(VelBinner):
 
         time_coord = psd.dims[0]  # no reason this shouldn't be time or time_b5
         return xr.DataArray(
-            noise_level.values.astype("float32"),
+            noise_level.values,
             coords={time_coord: psd.coords[time_coord]},
             attrs={
                 "units": "m s-1",
@@ -623,7 +623,7 @@ class ADPBinner(VelBinner):
         vpwp_ = (bp2_[2] - bp2_[3]) / denm
 
         return xr.DataArray(
-            np.stack([upwp_ * np.nan, upwp_, vpwp_]).astype("float32"),
+            np.stack([upwp_ * np.nan, upwp_, vpwp_]),
             coords={
                 "tau": ["upvp_", "upwp_", "vpwp_"],
                 "range": ds["range"],
@@ -739,7 +739,7 @@ class ADPBinner(VelBinner):
         ) / denm
 
         tke_vec = xr.DataArray(
-            np.stack([upup_, vpvp_, wpwp_]).astype("float32"),
+            np.stack([upup_, vpvp_, wpwp_]),
             coords={
                 "tke": ["upup_", "vpvp_", "wpwp_"],
                 "range": ds["range"],
@@ -759,9 +759,7 @@ class ADPBinner(VelBinner):
             # Guerra Thomson calculate u'v' bar from from the covariance of u' and v'
             ds.velds.rotate2("inst")
             vel = self.detrend(ds.vel.values)
-            upvp_ = np.nanmean(vel[0] * vel[1], axis=-1, dtype=np.float64).astype(
-                np.float32
-            )
+            upvp_ = np.nanmean(vel[0] * vel[1], axis=-1, dtype=np.float64)
 
             upwp_ = (
                 sin(th) ** 5 * cos(th) * (bp2_[1] - bp2_[0])
@@ -778,7 +776,7 @@ class ADPBinner(VelBinner):
             ) / denm
 
             stress_vec = xr.DataArray(
-                np.stack([upvp_, upwp_, vpwp_]).astype("float32"),
+                np.stack([upvp_, upwp_, vpwp_]),
                 coords={
                     "tau": ["upvp_", "upwp_", "vpwp_"],
                     "range": ds["range"],
@@ -952,7 +950,7 @@ class ADPBinner(VelBinner):
         ) / U.values
 
         return xr.DataArray(
-            out.astype("float32"),
+            out,
             attrs={
                 "units": "m2 s-3",
                 "long_name": "TKE Dissipation Rate",
@@ -1037,8 +1035,8 @@ class ADPBinner(VelBinner):
         # bm shape is [range, ensemble time, 'data within ensemble']
         bm = self.demean(vel_raw.values)  # take out the ensemble mean
 
-        e = np.empty(bm.shape[:2], dtype="float32") * np.nan
-        n = np.empty(bm.shape[:2], dtype="float32") * np.nan
+        e = np.empty(bm.shape[:2]) * np.nan
+        n = np.empty(bm.shape[:2]) * np.nan
 
         bin_size = round(np.diff(rng)[0], 3)
         R = int(r_range[0] / bin_size)
@@ -1076,7 +1074,7 @@ class ADPBinner(VelBinner):
         noise = np.sqrt(n / 2)
 
         epsilon = xr.DataArray(
-            epsilon.astype("float32"),
+            epsilon,
             coords={vel_raw.dims[0]: rng, vel_raw.dims[1]: time},
             dims=vel_raw.dims,
             attrs={
@@ -1089,7 +1087,7 @@ class ADPBinner(VelBinner):
         )
 
         noise = xr.DataArray(
-            noise.astype("float32"),
+            noise,
             coords={vel_raw.dims[0]: rng, vel_raw.dims[1]: time},
             attrs={
                 "units": "m s-1",
@@ -1098,7 +1096,7 @@ class ADPBinner(VelBinner):
         )
 
         SF = xr.DataArray(
-            D.astype("float32"),
+            D,
             coords={vel_raw.dims[0]: rng, "range_SF": r, vel_raw.dims[1]: time},
             attrs={
                 "units": "m2 s-2",

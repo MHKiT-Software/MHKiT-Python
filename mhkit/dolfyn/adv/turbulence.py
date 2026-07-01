@@ -77,7 +77,7 @@ class ADVBinner(VelBinner):
         time = self.mean(veldat["time"].values)
         vel = veldat.values
 
-        out = np.empty(self._outshape(vel[:3].shape)[:-1], dtype=np.float32)
+        out = np.empty(self._outshape(vel[:3].shape)[:-1])
 
         if detrend:
             vel = self.detrend(vel)
@@ -85,9 +85,7 @@ class ADVBinner(VelBinner):
             vel = self.demean(vel)
 
         for idx, p in enumerate(self._cross_pairs):
-            out[idx] = np.nanmean(vel[p[0]] * vel[p[1]], -1, dtype=np.float64).astype(
-                np.float32
-            )
+            out[idx] = np.nanmean(vel[p[0]] * vel[p[1]], -1, dtype=np.float64)
 
         da = xr.DataArray(
             out,
@@ -107,6 +105,7 @@ class ADVBinner(VelBinner):
         window="hann",
         n_bin=None,
         n_fft_coh=None,
+        pct_overlap=0,
     ):
         """
         Calculate the cross-spectral density of velocity components.
@@ -127,6 +126,11 @@ class ADVBinner(VelBinner):
           The bin-size. Default = `self.n_bin`
         n_fft_coh : int (optional)
           The fft size. Default = `self.n_fft_coh`
+        pct_overlap : float (optional)
+          Fractional overlap between consecutive sliding windows, in [0, 1).
+          Controls both the bin-to-bin advance and the within-bin FFT overlap
+          passed to scipy.signal.welch. Industry standard is 50%.
+          Default = 0 (0% overlap).
 
         Returns
         -------
@@ -141,8 +145,20 @@ class ADVBinner(VelBinner):
             raise ValueError("`freq_units` should be one of 'Hz' or 'rad/s'")
 
         fs_in = self._parse_fs(fs)
+        n_bin = self._parse_nbin(n_bin)
         n_fft = self._parse_nfft_coh(n_fft_coh)
-        time = self.mean(veldat["time"].values)
+        step = int((1 - pct_overlap) * n_bin)
+        if pct_overlap > 0:
+            warnings.warn(
+                "The PSD time coordinate differs from other VelBinner outputs when "
+                "pct_overlap > 0. Timestamps represent the center of each overlapping "
+                f"sliding window (step={step} samples, pct_overlap={pct_overlap}).",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        # Get time coord before changing veldat from xarray to numpy array
+        time_coord = self.mean(veldat["time"].values, step=step, n_bin=n_bin)
         veldat = veldat.values
         if len(np.shape(veldat)) != 2:
             raise Exception(
@@ -151,7 +167,7 @@ class ADVBinner(VelBinner):
             )
 
         out = np.empty(
-            self._outshape_fft(veldat[:3].shape, n_fft=n_fft, n_bin=n_bin),
+            self._outshape_fft(veldat[:3].shape, n_fft=n_fft, n_bin=n_bin, step=step),
             dtype="complex",
         )
 
@@ -183,11 +199,12 @@ class ADVBinner(VelBinner):
                 window=window,
                 n_bin=n_bin,
                 n_fft=n_fft,
+                pct_overlap=pct_overlap,
             )
 
         csd = xr.DataArray(
             out.astype("complex64"),
-            coords={"C": self.C, "time": time, "coh_freq": coh_freq},
+            coords={"C": self.C, "time": time_coord, "coh_freq": coh_freq},
             dims=["C", "time", "coh_freq"],
             attrs={
                 "units": units,
@@ -263,7 +280,7 @@ class ADVBinner(VelBinner):
         noise_level = np.sqrt(N2.mean(dim="freq"))
 
         return xr.DataArray(
-            noise_level.values.astype("float32"),
+            noise_level.values,
             coords={"S": psd["S"], "time": psd["time"]},
             attrs={
                 "units": "m/s",
@@ -448,7 +465,7 @@ class ADVBinner(VelBinner):
         ) ** (3 / 2) / U
 
         return xr.DataArray(
-            out.astype("float32"),
+            out,
             attrs={
                 "units": "m2 s-3",
                 "long_name": "TKE Dissipation Rate",
@@ -511,7 +528,7 @@ class ADVBinner(VelBinner):
             out[slc[:-1]] = (cv2m / 2.1) ** (3 / 2)
 
         return xr.DataArray(
-            out.astype("float32"),
+            out,
             coords=U_mag.coords,
             dims=U_mag.dims,
             attrs={
@@ -631,7 +648,7 @@ class ADVBinner(VelBinner):
         out *= 0.5
 
         return xr.DataArray(
-            out.astype("float32"),
+            out,
             coords={"time": dat_avg["time"]},
             dims="time",
             attrs={
@@ -695,7 +712,7 @@ class ADVBinner(VelBinner):
         L_int = U_mag.values * T_int
 
         return xr.DataArray(
-            L_int.astype("float32"),
+            L_int,
             coords={"dir": a_cov["dir"], "time": a_cov["time"]},
             attrs={
                 "units": "m",
