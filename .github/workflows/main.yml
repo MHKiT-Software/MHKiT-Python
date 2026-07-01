@@ -48,7 +48,7 @@ jobs:
   # The README code coverage badge is main-only. Because this is a simple metric we don't need to
   # calculate this for every code push, just the ones that can change the badge coverage percentage
   #
-  #   Specific code changes that require coveralls are:
+  # Specific code changes that are relevant to the coverage badge are:
   #     * a PR targeting main
   #     * a push to main
   # Coveralls badge:
@@ -60,17 +60,14 @@ jobs:
     steps:
       - id: gate
         run: |
-          # TEMP(test-coveralls): Force coveralls upload on every run to test the
-          # macOS reporter fix. Restore the gate logic below when done.
-          echo "should-upload=true" >> "$GITHUB_OUTPUT"
-          # should_upload=false
-          # if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "main" ]]; then
-          #   should_upload=true
-          # fi
-          # if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
-          #   should_upload=true
-          # fi
-          # echo "should-upload=$should_upload" >> "$GITHUB_OUTPUT"
+          should_upload=false
+          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "main" ]]; then
+            should_upload=true
+          fi
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            should_upload=true
+          fi
+          echo "should-upload=$should_upload" >> "$GITHUB_OUTPUT"
 
   # This job decides if the hindcast test suite should run.
   check-changes:
