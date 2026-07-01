@@ -357,8 +357,13 @@ class TestIOndbc(unittest.TestCase):
             metadata["provider"], "Owned and maintained by National Data Buoy Center"
         )
         self.assertEqual(metadata["type"], "3-meter foam buoy w/ seal cage")
-        self.assertAlmostEqual(float(metadata["lat"]), 36.785)
-        self.assertAlmostEqual(float(metadata["lon"]), 122.396)
+        # NDBC 46042 is a deployed buoy that drifts within its watch
+        # circle, so the NDBC output position can drift over time (observed
+        # lat 36.785 -> 36.787, lon 122.396 -> 122.408). Use a loose tolerance
+        # that tracks the buoy's nominal location without failing on real
+        # movement, while still catching large parsing errors.
+        self.assertAlmostEqual(float(metadata["lat"]), 36.785, delta=0.05)
+        self.assertAlmostEqual(float(metadata["lon"]), 122.396, delta=0.05)
         self.assertEqual(metadata["Site elevation"], "sea level")
 
     def test_get_buoy_metadata_invalid_station(self):
