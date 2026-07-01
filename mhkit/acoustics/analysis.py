@@ -257,7 +257,6 @@ def sound_pressure_spectral_density(
 
     # Use dolfyn PSD functionality
     binner = VelBinner(n_bin=nbin, fs=fs, n_fft=nfft)
-    # Always 50% overlap if numbers reshape perfectly
     # Mean square sound pressure
     psd = binner.power_spectral_density(pressure, freq_units="Hz")
     if rms:

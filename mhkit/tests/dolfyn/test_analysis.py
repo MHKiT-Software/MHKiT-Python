@@ -65,11 +65,16 @@ class analysis_testcase(unittest.TestCase):
         test_ds["tke_vec_demean"] = c.turbulent_kinetic_energy(
             self.adv1.vel, detrend=False
         )
-        test_ds["psd"] = c.power_spectral_density(self.adv1.vel, freq_units="Hz")
+        test_ds["psd"] = c.power_spectral_density(
+            self.adv1.vel, freq_units="Hz", pct_overlap=0
+        )
 
         # Test ADCP single vector spectra, cross-spectra to test radians code
         test_ds_adp["psd_b5"] = c2.power_spectral_density(
-            self.adp.vel_b5.isel(range_b5=5), freq_units="rad", window="hamming"
+            self.adp.vel_b5.isel(range_b5=5),
+            freq_units="rad",
+            window="hamming",
+            pct_overlap=0,
         )
         test_ds_adp["tke_b5"] = c2.turbulent_kinetic_energy(self.adp.vel_b5)
 
@@ -113,7 +118,7 @@ class analysis_testcase(unittest.TestCase):
             tdat["psd"][-1].mean("time"), freq_range=[10, 100]
         )
         tdat["psd_noise"] = bnr.power_spectral_density(
-            dat["vel"], freq_units="rad", noise=[0.06, 0.04, 0.01]
+            dat["vel"], freq_units="rad", noise=[0.06, 0.04, 0.01], pct_overlap=0
         )
 
         if make_data:
@@ -143,7 +148,9 @@ class analysis_testcase(unittest.TestCase):
         dat.velds.rotate2("beam")
 
         tdat["psd"] = bnr.power_spectral_density(
-            dat["vel_b5"].isel(range_b5=len(dat["range_b5"]) // 2), freq_units="Hz"
+            dat["vel_b5"].isel(range_b5=len(dat["range_b5"]) // 2),
+            freq_units="Hz",
+            pct_overlap=0,
         )
         tdat["noise"] = bnr.doppler_noise_level(tdat["psd"], pct_fN=0.8)
         tdat["stress_vec4"] = bnr.reynolds_stress_4beam(
@@ -186,6 +193,7 @@ class analysis_testcase(unittest.TestCase):
             dat["vel_b5"].isel(range_b5=len(dat["range_b5"]) // 2),
             freq_units="Hz",
             noise=0.01,
+            pct_overlap=0,
         )
         tdat["friction_vel"] = bnr.friction_velocity(
             tdat, upwp_=tdat["stress_vec5"].sel(tau="upwp_"), z_inds=slice(1, 5), H=50

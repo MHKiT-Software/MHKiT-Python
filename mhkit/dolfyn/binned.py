@@ -55,13 +55,16 @@ class TimeBinner:
         n_bin = int(self._parse_nbin(n_bin))
         return list(inshape[:-1]) + [int(inshape[-1] // n_bin), int(n_bin + n_pad)]
 
-    def _outshape_fft(self, inshape, n_fft=None, n_bin=None):
+    def _outshape_fft(self, inshape, n_fft=None, n_bin=None, step=None):
         """
         Returns `outshape` (the fft 'reshape'd shape) for an `inshape` array.
         """
         n_fft = self._parse_nfft(n_fft)
         n_bin = self._parse_nbin(n_bin)
-        return list(inshape[:-1]) + [int(inshape[-1] // n_bin), int(n_fft // 2)]
+        if step is None:
+            step = n_bin
+        n_slices = (inshape[-1] - n_bin) // step + 1
+        return list(inshape[:-1]) + [int(n_slices), int(n_fft // 2)]
 
     def _parse_fs(self, fs=None):
         if fs is None:
@@ -396,7 +399,7 @@ class TimeBinner:
           n_fft of veldat2, number of elements per bin if 'None' is taken
           from VelBinner
         pct_overlap : float
-          The percent overlap between FFT windows (default: 0.5)
+          The percent overlap between FFT windows (default: 0.667)
 
         Returns
         -------
@@ -413,9 +416,13 @@ class TimeBinner:
         n_bin = self._parse_nbin(n_bin)
         # n_fft determines the length and resolution of the frequency vector
         n_fft = self._parse_nfft(n_fft)
-        out = np.empty(self._outshape_fft(dat.shape, n_fft=n_fft, n_bin=n_bin))
-        step = int(pct_overlap * n_bin)
-        n_samples = out.shape[0]  # chops off last bin
+        # step is the advance between consecutive bin slices.
+        # For pct_overlap fraction of overlap: step = n_bin * (1 - pct_overlap).
+        step = int((1 - pct_overlap) * n_bin)
+        out = np.empty(
+            self._outshape_fft(dat.shape, n_fft=n_fft, n_bin=n_bin, step=step)
+        )
+        n_samples = out.shape[-2]
         for i in range(n_samples):
             sample_slice = slice(i * step, i * step + int(n_bin))
             _, psd = scipy.signal.welch(
@@ -423,30 +430,13 @@ class TimeBinner:
                 fs=fs,
                 window=window,
                 nperseg=n_fft,
-                noverlap=pct_overlap * n_fft,
-                nfft=n_fft,
+                noverlap=int(pct_overlap * n_fft),
                 detrend="linear",
                 return_onesided=True,
                 scaling="density",
             )
             # Drop DC bin (index 0): always ~0 after linear detrending, excluded by convention
             out[i, :] = psd[1:]
-
-        # # The data is detrended in psd, so we don't need to do it here.
-        # dat = self.reshape(dat, n_bin=n_bin, n_pad=int(n_bin_psd - n_fft))
-        # for slc in slice1d_along_axis(dat.shape, -1):
-        #     _, psd = scipy.signal.welch(
-        #         dat[slc],
-        #         fs=fs,
-        #         window=window,
-        #         nperseg=n_fft,
-        #         noverlap=pct_overlap * n_fft,
-        #         detrend="linear",
-        #         return_onesided=True,
-        #         scaling="density",
-        #     )
-        #     # Drop DC bin (index 0): always ~0 after linear detrending, excluded by convention
-        #     out[slc] = psd[1:]
         if np.any(noise):
             out -= noise**2 / (fs / 2)
             # Make sure all values of the PSD are >0 (but still small):

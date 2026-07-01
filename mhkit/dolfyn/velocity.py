@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 import xarray as xr
 from .binned import TimeBinner
@@ -948,7 +949,7 @@ class VelBinner(TimeBinner):
                     coords[nm] = veldat[nm].values
 
         return xr.DataArray(
-            out.astype("float32"),
+            out,
             dims=dims,
             coords=coords,
             attrs={
@@ -967,7 +968,7 @@ class VelBinner(TimeBinner):
         noise=0,
         n_bin=None,
         n_fft=None,
-        step=None,
+        pct_overlap=0.5,
     ):
         """
         Calculate the power spectral density of velocity.
@@ -990,11 +991,10 @@ class VelBinner(TimeBinner):
           The bin-size. Default = `self.n_bin`
         n_fft : int (optional)
           The fft size. Default = `self.n_fft`
-        step : int (optional)
-          Number of samples to advance between FFT windows (integer sample
-          count, not a fraction). Use ``step=n_fft//2`` for exactly 50%
-          overlap. Default: chosen to maximize data use, minimize nens, and
-          guarantee a minimum of 50% overlap.
+        pct_overlap : float (optional)
+          Fractional overlap between consecutive sliding windows, in [0, 1).
+          Controls both the bin-to-bin advance and the within-bin FFT overlap
+          passed to scipy.signal.welch. Default = 0.667 (66.7% overlap).
 
         Returns
         -------
@@ -1027,7 +1027,18 @@ class VelBinner(TimeBinner):
                 "long_name": "FFT Frequency Vector",
                 "coverage_content_type": "coordinate",
             },
-        ).astype("float32")
+        )
+
+        n_bin = self._parse_nbin(n_bin)
+        step = int((1 - pct_overlap) * n_bin)
+        if pct_overlap > 0:
+            warnings.warn(
+                "The PSD time coordinate differs from other VelBinner outputs when "
+                "pct_overlap > 0. Timestamps represent the center of each overlapping "
+                f"sliding window (step={step} samples, pct_overlap={pct_overlap}).",
+                UserWarning,
+                stacklevel=2,
+            )
 
         # Spectra, if input is full velocity or a single array
         if len(vel.shape) >= 2:
@@ -1044,8 +1055,7 @@ class VelBinner(TimeBinner):
                 noise = np.array([0, 0, 0])
 
             out = np.empty(
-                self._outshape_fft(vel[:3].shape, n_fft=n_fft, n_bin=n_bin),
-                dtype=np.float32,
+                self._outshape_fft(vel[:3].shape, n_fft=n_fft, n_bin=n_bin, step=step)
             )
             for idx in range(3):
                 out[idx] = self._psd_base(
@@ -1055,10 +1065,16 @@ class VelBinner(TimeBinner):
                     window=window,
                     n_bin=n_bin,
                     n_fft=n_fft,
+                    pct_overlap=pct_overlap,
                 )
+            time = veldat["time"].values
+            # !!! Refactor self.reshape to use "step", and then all the functions that rely on it to take "step" as input
+            time_coords = np.array(
+                [time[i * step + int(n_bin) // 2] for i in range(out.shape[1])]
+            )
             coords = {
                 "S": self.S,
-                "time": self.mean(veldat["time"].values),
+                "time": time_coords,
                 "freq": freq,
             }
             dims = ["S", "time", "freq"]
@@ -1073,15 +1089,20 @@ class VelBinner(TimeBinner):
                 window=window,
                 n_bin=n_bin,
                 n_fft=n_fft,
+                pct_overlap=pct_overlap,
+            )
+            time = veldat[veldat.dims[-1]].values
+            time_coords = np.array(
+                [time[i * step + int(n_bin) // 2] for i in range(out.shape[0])]
             )
             coords = {
-                veldat.dims[-1]: self.mean(veldat[veldat.dims[-1]].values),
+                veldat.dims[-1]: time_coords,
                 "freq": freq,
             }
             dims = [veldat.dims[-1], "freq"]
 
         return xr.DataArray(
-            out.astype("float32"),
+            out,
             coords=coords,
             dims=dims,
             attrs={

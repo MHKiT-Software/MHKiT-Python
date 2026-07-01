@@ -90,7 +90,7 @@ class ADVBinner(VelBinner):
             )
 
         da = xr.DataArray(
-            out.astype("float32"),
+            out,
             dims=veldat.dims,
             attrs={"units": "m2 s-2", "long_name": "Specific Reynolds Stress Vector"},
         )
@@ -173,7 +173,7 @@ class ADVBinner(VelBinner):
                 "long_name": "FFT Frequency Vector",
                 "coverage_content_type": "coordinate",
             },
-        ).astype("float32")
+        )
 
         for ip, ipair in enumerate(self._cross_pairs):
             out[ip] = self._csd_base(
