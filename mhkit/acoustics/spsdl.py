@@ -322,19 +322,6 @@ def time_aggregate(
         Time-averaged sound pressure spectral density level [dB re 1 uPa^2/Hz]
         indexed by time and frequency
     """
-    warnings.warn(
-        "The 'time_aggregate' function is deprecated and will be removed in a future release. "
-        "Please use one of the following alternatives instead to convert the SPSD to the "
-        "appropriate time-aggregated form before calculating the SPSDL using "
-        "'sound_pressure_spectral_density_level':\n"
-        "- For time-averaged SPSDLs, use the 'mhkit.acoustics.time_average' function.\n"
-        "- For time-summed SPSDLs, use the 'mhkit.acoustics.time_summation' function.\n"
-        "If you are using this function for a different purpose, please reach out to the MHKiT "
-        "developers to discuss how we can support your use case with a more specific function.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
     # Type checks
     if not isinstance(spsdl, xr.DataArray):
         raise TypeError("'spsdl' must be an xarray.DataArray.")
@@ -394,15 +381,17 @@ def time_aggregate(
 
 def time_average(spsdl, window):
     """
-    Reorganizes spectral density level frequency tensor into time windows and takes the
-    spectral average of all of the inputs along the time dimension. This is effectively
-    time-averaging the original SPSDs.
-    Note: 'window' must be larger than the original 'bin_length' of the SPSD
+    Reorganizes spectral density level frequency tensor into time windows and computes
+    the energy-averaged SPSDL for each window. Values are converted from dB to linear
+    power, averaged across the window, then converted back to dB. This is equivalent
+    to Welch's method: it produces the same result as recomputing the SPSD from the
+    original time series using 'bin_length=window'.
+    Note: 'window' must be larger than the original 'bin_length' of the SPSD.
 
     Parameters
     ----------
     spsdl: xarray.DataArray
-        Sound pressure spectral density level with dimensions (time, freq)
+        Sound pressure spectral density level with dimensions (time_psd, freq)
     window: int
         Time in seconds to group spectral density level into.
 
@@ -430,11 +419,14 @@ def time_average(spsdl, window):
 
 def time_summation(spsdl, window):
     """
-    Reorganizes spectral density level frequency tensor into time windows and takes the
-    spectral sum of each window. This is the equivalent of recalculating the SPSD using
-    `mhkit.acoustics.sound_presssure_spectral_density` with 'bin_length=window' instead
-    of the original 'bin_length'.
-    Note: 'window' must be larger than the original 'bin_length' of the SPSD
+    Reorganizes spectral density level frequency tensor into time windows and computes
+    the spectral sum for each window. Values are converted from dB to linear power,
+    summed across the window, then converted back to dB. This represents the total
+    accumulated spectral energy within each window and is proportional to N times the
+    window-averaged SPSDL (where N is the number of input bins per window). It is NOT
+    equivalent to recomputing the SPSD with a longer 'bin_length'; use 'time_average'
+    for that purpose.
+    Note: 'window' must be larger than the original 'bin_length' of the SPSD.
 
     Parameters
     ----------
