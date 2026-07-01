@@ -388,6 +388,7 @@ def time_aggregate(
     if method == "quantile":
         out = out.drop_vars("quantile")
 
+    out = out.rename({"time_psd_bins": "time_bins"})
     return out
 
 
