@@ -150,7 +150,7 @@ class analysis_testcase(unittest.TestCase):
         tdat["psd"] = bnr.power_spectral_density(
             dat["vel_b5"].isel(range_b5=len(dat["range_b5"]) // 2),
             freq_units="Hz",
-            pct_overlap=0.5,
+            pct_overlap=0,
         )
         tdat["noise"] = bnr.doppler_noise_level(tdat["psd"], pct_fN=0.8)
         tdat["stress_vec4"] = bnr.reynolds_stress_4beam(
@@ -192,8 +192,8 @@ class analysis_testcase(unittest.TestCase):
         tdat["psd_noise"] = bnr.power_spectral_density(
             dat["vel_b5"].isel(range_b5=len(dat["range_b5"]) // 2),
             freq_units="Hz",
-            noise=0.01,
-            pct_overlap=0,
+            noise=0.0001,
+            pct_overlap=0.5,
         )
         tdat["friction_vel"] = bnr.friction_velocity(
             tdat, upwp_=tdat["stress_vec5"].sel(tau="upwp_"), z_inds=slice(1, 5), H=50

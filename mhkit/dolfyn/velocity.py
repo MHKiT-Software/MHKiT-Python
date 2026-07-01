@@ -851,7 +851,11 @@ class VelBinner(TimeBinner):
             # Interpolate noise to the same time dimension as U_mag
             noise_time_dim = noise.dims[-1]
             time = self.mean(U_mag["time"].values)
-            noise = noise.interp({noise_time_dim: time}).values
+            # If overlap is not 0%
+            if time.size != noise[noise_time_dim].size:
+                noise = noise.interp({noise_time_dim: time}).values
+            else:
+                noise = noise.values
 
         if detrend:
             up = self.detrend(U)
@@ -919,7 +923,11 @@ class VelBinner(TimeBinner):
             # Interpolate noise to the same time dimension as U_mag
             noise_time_dim = noise.dims[-1]
             time = self.mean(veldat[veldat.dims[-1]].values)
-            noise = noise.interp({noise_time_dim: time}).values
+            # If overlap is not 0%
+            if time.size != noise[noise_time_dim].size:
+                noise = noise.interp({noise_time_dim: time}).values
+            else:
+                noise = noise.values
 
         if len(np.shape(vel)) > 2:
             raise ValueError(

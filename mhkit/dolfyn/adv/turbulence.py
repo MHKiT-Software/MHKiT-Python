@@ -446,7 +446,11 @@ class ADVBinner(VelBinner):
 
         # Interpolate U_mag to the same time dimension as PSD
         umag_time_dim = U_mag.dims[-1]
-        U_mag = U_mag.interp({umag_time_dim: psd["time_psd"]}).values
+        # If overlap is not 0%
+        if psd["time_psd"].size != U_mag[umag_time_dim].size:
+            U_mag = U_mag.interp({umag_time_dim: psd["time_psd"].values}).values
+        else:
+            U_mag = U_mag.values
 
         # Set the correct magnitude whether the frequency is in Hz or rad/s
         if freq.units == "Hz":
@@ -631,7 +635,11 @@ class ADVBinner(VelBinner):
 
         # Interpolate PSD to the same time dimension as dat_avg
         umag_time_dim = U_mag.dims[-1]
-        psd = dat_avg["psd"].interp({"time_psd": dat_avg[umag_time_dim]}).values
+        # If overlap is not 0%
+        if dat_avg["time_psd"].size != U_mag[umag_time_dim].size:
+            psd = dat_avg["psd"].interp({"time_psd": dat_avg[umag_time_dim]}).values
+        else:
+            psd = dat_avg["psd"].values
 
         # Index data to be used
         inds = (freq_range[0] < freq) & (freq < freq_range[1])

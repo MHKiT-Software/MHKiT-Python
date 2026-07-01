@@ -370,10 +370,9 @@ class ADPBinner(VelBinner):
         N2 = psd.sel(freq=f_range) * psd.freq.sel(freq=f_range)
         noise_level = np.sqrt(N2.mean(dim="freq"))
 
-        time_coord = psd.dims[0]  # no reason this shouldn't be time or time_b5
         return xr.DataArray(
             noise_level.values,
-            coords={time_coord: psd.coords[time_coord]},
+            coords={"time_psd": psd["time_psd"]},
             attrs={
                 "units": "m s-1",
                 "long_name": "Doppler Noise Level",
@@ -572,7 +571,11 @@ class ADPBinner(VelBinner):
             # Interpolate noise to the reshaped time dimension
             noise_time_dim = noise.dims[-1]
             time = self.mean(ds["time"].values)
-            noise = noise.interp({noise_time_dim: time}).values
+            # If overlap is not 0%
+            if time.size != noise[noise_time_dim].size:
+                noise = noise.interp({noise_time_dim: time}).values
+            else:
+                noise = noise.values
         bp2_ -= noise[..., :] ** 2
 
         return bp2_
@@ -941,7 +944,11 @@ class ADPBinner(VelBinner):
 
         # Interpolate U_mag to the same time dimension as PSD
         umag_time_dim = U_mag.dims[-1]
-        U_mag = U_mag.interp({umag_time_dim: psd["time_psd"].values}).values
+        # If overlap is not 0%
+        if psd["time_psd"].size != U_mag[umag_time_dim].size:
+            U_mag = U_mag.interp({umag_time_dim: psd["time_psd"].values}).values
+        else:
+            U_mag = U_mag.values
 
         # Set the correct magnitude whether the frequency is in Hz or rad/s
         if freq.units == "Hz":
