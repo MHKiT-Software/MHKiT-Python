@@ -180,19 +180,9 @@ class ADVBinner(VelBinner):
             fs = fs_in
             freq_units = "Hz"
             units = "m2 s-2 Hz-1"
-        coh_freq = xr.DataArray(
-            self._fft_freq(fs=fs_in, units=freq_units, n_fft=n_fft, coh=True),
-            dims=["coh_freq"],
-            name="coh_freq",
-            attrs={
-                "units": freq_units,
-                "long_name": "FFT Frequency Vector",
-                "coverage_content_type": "coordinate",
-            },
-        )
 
         for ip, ipair in enumerate(self._cross_pairs):
-            out[ip] = self._csd_base(
+            f, out[ip] = self._csd_base(
                 veldat[ipair[0]],
                 veldat[ipair[1]],
                 fs=fs,
@@ -201,6 +191,16 @@ class ADVBinner(VelBinner):
                 n_fft=n_fft,
                 pct_overlap=pct_overlap,
             )
+        coh_freq = xr.DataArray(
+            f,
+            dims=["coh_freq"],
+            name="coh_freq",
+            attrs={
+                "units": freq_units,
+                "long_name": "FFT Frequency Vector",
+                "coverage_content_type": "coordinate",
+            },
+        )
 
         csd = xr.DataArray(
             out.astype("complex64"),

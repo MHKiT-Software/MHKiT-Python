@@ -1042,16 +1042,6 @@ class VelBinner(TimeBinner):
             fs = fs_in
             freq_units = "Hz"
             units = "m2 s-2 Hz-1"
-        freq = xr.DataArray(
-            self._fft_freq(fs=fs_in, units=freq_units, n_fft=n_fft),
-            dims=["freq"],
-            name="freq",
-            attrs={
-                "units": freq_units,
-                "long_name": "FFT Frequency Vector",
-                "coverage_content_type": "coordinate",
-            },
-        )
 
         n_bin = self._parse_nbin(n_bin)
         step = int((1 - pct_overlap) * n_bin)
@@ -1064,7 +1054,7 @@ class VelBinner(TimeBinner):
                 stacklevel=2,
             )
 
-        # Spectra, if input is full velocity or a single array
+        # Spectra, if velocity is a 2D array (dir, time)
         if len(vel.shape) >= 2:
             if vel.shape[0] != 3:
                 raise ValueError(
@@ -1077,47 +1067,54 @@ class VelBinner(TimeBinner):
             else:
                 # Reset default to list of 3 zeros
                 noise = np.array([0, 0, 0])
-
-            out = np.empty(
-                self._outshape_fft(vel[:3].shape, n_fft=n_fft, n_bin=n_bin, step=step)
-            )
-            for idx in range(3):
-                out[idx] = self._psd_base(
-                    vel[idx],
-                    fs=fs,
-                    noise=noise[idx],
-                    window=window,
-                    n_bin=n_bin,
-                    n_fft=n_fft,
-                    pct_overlap=pct_overlap,
-                )
-            time_coord = self.mean(veldat["time"].values, step=step, n_bin=n_bin)
-            coords = {
-                "S": self.S,
-                "time_psd": time_coord,
-                "freq": freq,
-            }
-            dims = ["S", "time_psd", "freq"]
+            vel_in = vel[:3]
+            coords = {"S": self.S}
+            dims = ["S"]
+        # Spectra, if velocity is a single array
         else:
             if np.array(noise).any() and np.size(noise) > 1:
                 raise ValueError("Noise is expected to be a scalar")
+            vel_in = vel[np.newaxis]
+            noise = np.atleast_1d(noise)
+            coords = {}
+            dims = []
 
-            out = self._psd_base(
-                vel,
+        out = np.empty(
+            self._outshape_fft(vel_in.shape, n_fft=n_fft, n_bin=n_bin, step=step)
+        )
+        for idx in range(vel_in.shape[0]):
+            f, out[idx] = self._psd_base(
+                vel_in[idx],
                 fs=fs,
-                noise=noise,
+                noise=noise[idx],
                 window=window,
                 n_bin=n_bin,
                 n_fft=n_fft,
                 pct_overlap=pct_overlap,
             )
-            time = veldat[veldat.dims[-1]].values
-            time_coord = self.mean(time, step=step, n_bin=n_bin)
-            coords = {
+        if "S" not in dims:
+            out = out[0]
+
+        # Update coordinates and dimensions
+        freq = xr.DataArray(
+            f,
+            dims=["freq"],
+            name="freq",
+            attrs={
+                "units": freq_units,
+                "long_name": "FFT Frequency Vector",
+                "coverage_content_type": "coordinate",
+            },
+        )
+        time = veldat[veldat.dims[-1]].values
+        time_coord = self.mean(time, step=step, n_bin=n_bin)
+        coords.update(
+            {
                 "time_psd": time_coord,
                 "freq": freq,
             }
-            dims = ["time_psd", "freq"]
+        )
+        dims += ["time_psd", "freq"]
 
         return xr.DataArray(
             out,

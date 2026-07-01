@@ -86,13 +86,6 @@ class analysis_testcase(unittest.TestCase):
         assert_allclose(test_ds, load("vector_data01_func.nc"), atol=1e-6)
         assert_allclose(test_ds_adp, load("BenchFile01_func.nc"), atol=1e-6)
 
-    def test_fft_freq(self):
-        f = self.adv_tool._fft_freq(units="Hz")
-        omega = self.adv_tool._fft_freq(units="rad/s")
-
-        np.testing.assert_equal(f, np.arange(1, 17, 1, dtype="float"))
-        np.testing.assert_equal(omega, np.arange(1, 17, 1, dtype="float") * (2 * np.pi))
-
     def test_adv_turbulence(self):
         dat = tv.dat.copy(deep=True)
         bnr = avm.ADVBinner(n_bin=20.0, fs=dat.fs)

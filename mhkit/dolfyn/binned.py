@@ -396,7 +396,7 @@ class TimeBinner:
         n_samples = out.shape[-2]
         for i in range(n_samples):
             sample_slice = slice(i * step, i * step + int(n_bin))
-            _, psd = signal.welch(
+            freq, psd = signal.welch(
                 dat[sample_slice],
                 fs=fs,
                 window=window,
@@ -412,7 +412,7 @@ class TimeBinner:
             out -= noise**2 / (fs / 2)
             # Make sure all values of the PSD are >0 (but still small):
             out[out < 0] = np.min(np.abs(out)) / 100
-        return out
+        return freq[1:], out
 
     def _csd_base(
         self,
@@ -492,7 +492,7 @@ class TimeBinner:
         n_samples = oshp[-2]
         for i in range(n_samples):
             sample_slice = slice(i * step, i * step + int(n_bin))
-            _, cpsd = signal.csd(
+            freq, cpsd = signal.csd(
                 dat1[sample_slice],
                 dat2[sample_slice],
                 fs=fs,
@@ -505,47 +505,4 @@ class TimeBinner:
             )
             # Drop DC bin (index 0): always ~0 after linear detrending, excluded by convention
             out[i, :] = cpsd[1:]
-        return out
-
-    def _fft_freq(self, fs=None, units="Hz", n_fft=None, coh=False):
-        """
-        Calculate the ordinary or radial half-frequency vector for
-        a given sample rate and FFT size.
-
-        Parameters
-        ----------
-        fs : float (optional)
-          The sample rate (Hz).
-        units : string
-          Frequency units in either Hz or rad/s (f or omega)
-        coh : bool
-          Calculate the frequency vector for coherence/cross-spectra
-          (default: False) i.e. use self.n_fft_coh instead of
-          self.n_fft.
-        n_fft : int
-          n_fft of veldat2, number of elements per bin if 'None' is taken
-          from VelBinner
-
-        Returns
-        -------
-        out: numpy.ndarray
-          Spectrum frequency array in units of 'Hz' or 'rad/s'
-        """
-
-        if n_fft is None:
-            n_fft = self.n_fft
-            if coh:
-                n_fft = self.n_fft_coh
-
-        fs = float(self._parse_fs(fs))
-
-        if ("Hz" not in units) and ("rad" not in units):
-            raise Exception("Valid fft frequency vector units are Hz \
-                            or rad/s")
-        if "rad" in units:
-            fs = 2 * np.pi * fs
-
-        f = np.fft.fftfreq(int(n_fft), 1 / fs)
-        half_freqs = np.abs(f[1 : int(n_fft / 2.0 + 1)])
-
-        return half_freqs
+        return freq[1:], out
