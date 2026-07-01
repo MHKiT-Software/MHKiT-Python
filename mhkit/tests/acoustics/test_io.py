@@ -251,7 +251,7 @@ class TestIO(unittest.TestCase):
 
         np.testing.assert_allclose(td_spsd.head().values, cd_spsd, atol=1e-6)
         np.testing.assert_allclose(
-            td_spsd["time"].head().astype("int64"), cc.astype("int64"), atol=1
+            td_spsd["time_psd"].head().astype("int64"), cc.astype("int64"), atol=1
         )
 
     def test_wispr(self):

@@ -204,8 +204,8 @@ class ADVBinner(VelBinner):
 
         csd = xr.DataArray(
             out.astype("complex64"),
-            coords={"C": self.C, "time": time_coord, "coh_freq": coh_freq},
-            dims=["C", "time", "coh_freq"],
+            coords={"C": self.C, "time_psd": time_coord, "coh_freq": coh_freq},
+            dims=["C", "time_psd", "coh_freq"],
             attrs={
                 "units": units,
                 "n_fft_coh": n_fft,
@@ -281,7 +281,7 @@ class ADVBinner(VelBinner):
 
         return xr.DataArray(
             noise_level.values,
-            coords={"S": psd["S"], "time": psd["time"]},
+            coords={"S": psd["S"], "time_psd": psd["time_psd"]},
             attrs={
                 "units": "m/s",
                 "long_name": "Doppler Noise Level",
@@ -421,8 +421,6 @@ class ADVBinner(VelBinner):
             raise TypeError("`psd` must be an instance of `xarray.DataArray`.")
         if len(U_mag.shape) != 1:
             raise Exception("U_mag should be 1-dimensional (time).")
-        if len(psd["time"]) != len(U_mag["time"]):
-            raise Exception("`U_mag` should be from ensembled-averaged dataset.")
         if not hasattr(freq_range, "__iter__") or len(freq_range) != 2:
             raise ValueError("`freq_range` must be an iterable of length 2.")
         # if the spectra are 1D, then the first dimension should be time (any length)
@@ -445,6 +443,10 @@ class ADVBinner(VelBinner):
         freq = psd.freq
         idx = np.where((freq_range[0] < freq) & (freq < freq_range[1]))
         idx = idx[0]
+
+        # Interpolate U_mag to the same time dimension as PSD
+        umag_time_dim = U_mag.dims[-1]
+        U_mag = U_mag.interp({umag_time_dim: psd["time_psd"]}).values
 
         # Set the correct magnitude whether the frequency is in Hz or rad/s
         if freq.units == "Hz":
@@ -616,7 +618,7 @@ class ADVBinner(VelBinner):
             raise ValueError("`freq_range` must be an iterable of length 2.")
 
         # Assign local names
-        U_mag = dat_avg.velds.U_mag.values
+        U_mag = dat_avg.velds.U_mag
         I_tke = dat_avg.velds.I_tke.values
         theta = np.angle(dat_avg.velds.U.values) - self._up_angle(
             dat_raw.velds.U.values
@@ -627,9 +629,13 @@ class ADVBinner(VelBinner):
         alpha = 1.5
         intgrl = self._integral_TE01(I_tke, theta)
 
+        # Interpolate PSD to the same time dimension as dat_avg
+        umag_time_dim = U_mag.dims[-1]
+        psd = dat_avg["psd"].interp({"time_psd": dat_avg[umag_time_dim]}).values
+
         # Index data to be used
         inds = (freq_range[0] < freq) & (freq < freq_range[1])
-        psd = dat_avg["psd"][..., inds].values
+        psd = psd[..., inds]
         freq = freq[inds].reshape([1] * (dat_avg["psd"].ndim - 2) + [sum(inds)])
 
         # Estimate values
@@ -637,12 +643,12 @@ class ADVBinner(VelBinner):
         out = (
             np.nanmean((psd[0] + psd[1]) * freq ** (5 / 3), -1)
             / (21 / 55 * alpha * intgrl)
-        ) ** (3 / 2) / U_mag
+        ) ** (3 / 2) / U_mag.values
 
         # Add w component
         out += (
             np.nanmean(psd[2] * freq ** (5 / 3), -1) / (12 / 55 * alpha * intgrl)
-        ) ** (3 / 2) / U_mag
+        ) ** (3 / 2) / U_mag.values
 
         # Average the two estimates
         out *= 0.5

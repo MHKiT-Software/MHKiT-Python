@@ -29,7 +29,7 @@ def sound_pressure_spectral_density_level(spsd: xr.DataArray) -> xr.DataArray:
 
     Parameters
     ----------
-    spsd: xarray.DataArray (time, freq)
+    spsd: xarray.DataArray (time_psd, freq)
         Mean square sound pressure spectral density in Pa^2/Hz
 
     Returns
@@ -260,8 +260,8 @@ def band_aggregate(
         raise ValueError("'fmax' must be greater than 'fmin'.")
 
     # Value checks
-    if ("freq" not in spsdl.dims) or ("time" not in spsdl.dims):
-        raise ValueError("'spsdl' must have 'time' and 'freq' as dimensions.")
+    if ("freq" not in spsdl.dims) or ("time_psd" not in spsdl.dims):
+        raise ValueError("'spsdl' must have 'time_psd' and 'freq' as dimensions.")
 
     # Validate method and get method_name and method_arg
     method_name, method_arg = _validate_method(method)
@@ -307,7 +307,7 @@ def time_aggregate(
 
     Parameters
     ----------
-    spsdl: xarray.DataArray (time, freq)
+    spsdl: xarray.DataArray (time_psd, freq)
         Mean square sound pressure spectral density level in dB rel 1 uPa^2/Hz
     window: int
         Time in seconds to subdivide spectral density level into. Default: 60 s.
@@ -342,23 +342,23 @@ def time_aggregate(
         raise TypeError("'window' must be an integer.")
     if not isinstance(method, (str, dict)):
         raise TypeError("'method' must be a string or dictionary.")
-    if "time" not in spsdl.dims:
-        raise ValueError("'spsdl' must have 'time' dimension.")
+    if "time_psd" not in spsdl.dims:
+        raise ValueError("'spsdl' must have 'time_psd' dimension.")
 
     # Value checks
     if window <= 0:
         raise ValueError("'window' must be a positive integer.")
 
     # Ensure 'time' coordinate is of datetime64 dtype
-    if not np.issubdtype(spsdl["time"].dtype, np.datetime64):
-        raise TypeError("'spsdl['time']' must be of dtype 'datetime64'.")
+    if not np.issubdtype(spsdl["time_psd"].dtype, np.datetime64):
+        raise TypeError("'spsdl['time_psd']' must be of dtype 'datetime64'.")
 
     # Validate method and get method_name and method_arg
     method_name, method_arg = _validate_method(method)
 
     window = np.timedelta64(window, "s")
     time_bins_lower = np.arange(
-        spsdl["time"][0].values, spsdl["time"][-1].values, window
+        spsdl["time_psd"][0].values, spsdl["time_psd"][-1].values, window
     )
     time_bins_upper = time_bins_lower + window
     time_bins = np.append(time_bins_lower, time_bins_upper[-1])
@@ -367,7 +367,7 @@ def time_aggregate(
     )
 
     # Use xarray binning methods
-    spsdl_group = spsdl.groupby_bins("time", time_bins, labels=center_time)
+    spsdl_group = spsdl.groupby_bins("time_psd", time_bins, labels=center_time)
 
     # Handle method being a string or a dict
     if isinstance(method, str):
@@ -416,9 +416,9 @@ def time_average(spsdl, window):
         # Convert value in decibels to absolute magnitude, still relevant to original units
         magnitude = 10 ** (x / 10)
         # Sum energy in each time bin
-        summed_magnitude = magnitude.sum("time")
+        summed_magnitude = magnitude.sum("time_psd")
         # Take average
-        average_magnitude = summed_magnitude / magnitude["time"].size
+        average_magnitude = summed_magnitude / magnitude["time_psd"].size
         # Convert back to decibels
         result = 10 * np.log10(average_magnitude)
 
@@ -438,7 +438,7 @@ def time_summation(spsdl, window):
     Parameters
     ----------
     spsdl: xarray.DataArray
-        Sound pressure spectral density level with dimensions (time, freq)
+        Sound pressure spectral density level with dimensions (time_psd, freq)
     window: int
         Time in seconds to group spectral density level into.
 
@@ -453,7 +453,7 @@ def time_summation(spsdl, window):
         # Convert value in decibels to absolute magnitude, still relevant to original units
         magnitude = 10 ** (x / 10)
         # Sum energy in each time bin
-        summed_magnitude = magnitude.sum("time")
+        summed_magnitude = magnitude.sum("time_psd")
         # Convert back to decibels
         result = 10 * np.log10(summed_magnitude)
 

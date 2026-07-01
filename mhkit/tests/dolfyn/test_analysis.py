@@ -115,7 +115,7 @@ class analysis_testcase(unittest.TestCase):
         tdat["TE01"] = bnr.dissipation_rate_TE01(dat, tdat)
         tdat["L"] = bnr.integral_length_scales(acov, tdat.velds.U_mag)
         slope_check = bnr.check_turbulence_cascade_slope(
-            tdat["psd"][-1].mean("time"), freq_range=[10, 100]
+            tdat["psd"][-1].mean("time_psd"), freq_range=[10, 100]
         )
         tdat["psd_noise"] = bnr.power_spectral_density(
             dat["vel"], freq_units="rad", noise=[0.06, 0.04, 0.01], pct_overlap=0
@@ -150,12 +150,12 @@ class analysis_testcase(unittest.TestCase):
         tdat["psd"] = bnr.power_spectral_density(
             dat["vel_b5"].isel(range_b5=len(dat["range_b5"]) // 2),
             freq_units="Hz",
-            pct_overlap=0,
+            pct_overlap=0.5,
         )
         tdat["noise"] = bnr.doppler_noise_level(tdat["psd"], pct_fN=0.8)
         tdat["stress_vec4"] = bnr.reynolds_stress_4beam(
             dat, noise=tdat["noise"], orientation="up", beam_angle=25
-        )
+        )  # upvp is always nan here
         tdat["tke_vec5"], tdat["stress_vec5"] = bnr.stress_tensor_5beam(
             dat, noise=tdat["noise"], orientation="up", beam_angle=25, tke_only=False
         )
@@ -186,7 +186,7 @@ class analysis_testcase(unittest.TestCase):
         ) = bnr.dissipation_rate_SF(dat["vel"].isel(dir=2), r_range=[1, 5])
 
         slope_check = bnr.check_turbulence_cascade_slope(
-            tdat["psd"].mean("time_b5"), freq_range=[0.4, 4]
+            tdat["psd"].mean("time_psd"), freq_range=[0.4, 4]
         )
         # Check noise subtraction in psd function
         tdat["psd_noise"] = bnr.power_spectral_density(

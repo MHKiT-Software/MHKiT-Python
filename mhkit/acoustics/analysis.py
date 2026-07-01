@@ -222,7 +222,7 @@ def sound_pressure_spectral_density(
 
     Returns
     -------
-    spsd: xarray.DataArray (time, freq)
+    spsd: xarray.DataArray (time_psd, freq)
         Spectral density [Pa^2/Hz] or [V^2/Hz] indexed by time and frequency
     """
 
@@ -253,13 +253,13 @@ def sound_pressure_spectral_density(
 
     out = xr.DataArray(
         psd,
-        coords={"time": psd["time"], "freq": psd["freq"]},
+        coords={"time_psd": psd["time_psd"], "freq": psd["freq"]},
         attrs={
             "units": pressure.units + "^2/Hz",
             "long_name": "Mean Square Sound Pressure Spectral Density",
             "fs": fs,
             "bin_length": bin_length,
-            "overlap": "50%",
+            "overlap": f"{pct_overlap*100}%",
             "n_fft": nfft,
         },
     )
@@ -278,7 +278,7 @@ def apply_calibration(
 
     Parameters
     ----------
-    spsd: xarray.DataArray (time, freq)
+    spsd: xarray.DataArray (time_psd, freq)
         Mean square sound pressure spectral density in V^2/Hz.
     sensitivity_curve: xarray.DataArray (freq)
         Calibrated sensitivity curve in units of dB rel 1 V^2/uPa^2.
@@ -713,8 +713,8 @@ def _convert_to_band_spectral_density(
     )
     out = xr.DataArray(
         band_spsd,
-        coords={"time": spsd["time"], "freq": bands[:, 1]},
-        dims=["time", "freq"],
+        coords={"time_psd": spsd["time_psd"], "freq": bands[:, 1]},
+        dims=["time_psd", "freq"],
         attrs=spsd.attrs,
     )
 

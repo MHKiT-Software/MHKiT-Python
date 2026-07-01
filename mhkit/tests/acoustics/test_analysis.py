@@ -91,7 +91,7 @@ class TestAnalysis(unittest.TestCase):
         # Assert that output is an xarray DataArray with expected dimensions
         self.assertIsInstance(spsd, xr.DataArray)
         self.assertIn("freq", spsd.dims)
-        self.assertIn("time", spsd.dims)
+        self.assertIn("time_psd", spsd.dims)
         self.assertEqual(spsd.attrs["units"], "Pa^2/Hz")
         self.assertEqual(spsd.attrs["bin_length"], bin_length)
         self.assertEqual(spsd.attrs["n_fft"], bin_length * fs)

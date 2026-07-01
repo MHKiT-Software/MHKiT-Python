@@ -568,9 +568,12 @@ class ADPBinner(VelBinner):
             bp2_[i] = np.nanvar(self.reshape(beam_vel[beam]), axis=-1)
 
         # Remove doppler_noise
-        if type(noise) == type(ds["vel"]):
-            noise = noise.values
-        bp2_ -= noise**2
+        if type(noise) is type(ds["vel"]):
+            # Interpolate noise to the reshaped time dimension
+            noise_time_dim = noise.dims[-1]
+            time = self.mean(ds["time"].values)
+            noise = noise.interp({noise_time_dim: time}).values
+        bp2_ -= noise[..., :] ** 2
 
         return bp2_
 
@@ -936,6 +939,10 @@ class ADPBinner(VelBinner):
         idx = np.where((freq_range[0] < freq) & (freq < freq_range[1]))
         idx = idx[0]
 
+        # Interpolate U_mag to the same time dimension as PSD
+        umag_time_dim = U_mag.dims[-1]
+        U_mag = U_mag.interp({umag_time_dim: psd["time_psd"].values}).values
+
         # Set the correct magnitude whether the frequency is in Hz or rad/s
         if freq.units == "Hz":
             U = U_mag / (2 * np.pi)
@@ -945,9 +952,7 @@ class ADPBinner(VelBinner):
         # Use the transverse value derived from the Kolmogorov constant
         a = k_constant
         # Calculate dissipation
-        out = (psd[:, idx] * freq[idx] ** (5 / 3) / a).mean(axis=-1) ** (
-            3 / 2
-        ) / U.values
+        out = (psd[:, idx] * freq[idx] ** (5 / 3) / a).mean(axis=-1) ** (3 / 2) / U
 
         return xr.DataArray(
             out,

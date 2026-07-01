@@ -848,7 +848,10 @@ class VelBinner(TimeBinner):
         if "xarray" in type(U_mag).__module__:
             U = U_mag.values
         if "xarray" in type(noise).__module__:
-            noise = noise.values
+            # Interpolate noise to the same time dimension as U_mag
+            noise_time_dim = noise.dims[-1]
+            time = self.mean(U_mag["time"].values)
+            noise = noise.interp({noise_time_dim: time}).values
 
         if detrend:
             up = self.detrend(U)
@@ -913,7 +916,10 @@ class VelBinner(TimeBinner):
         if "xarray" in type(veldat).__module__:
             vel = veldat.values
         if "xarray" in type(noise).__module__:
-            noise = noise.values
+            # Interpolate noise to the same time dimension as U_mag
+            noise_time_dim = noise.dims[-1]
+            time = self.mean(veldat[veldat.dims[-1]].values)
+            noise = noise.interp({noise_time_dim: time}).values
 
         if len(np.shape(vel)) > 2:
             raise ValueError(
@@ -943,7 +949,7 @@ class VelBinner(TimeBinner):
         else:
             # Subtract noise
             if noise is not None:
-                if np.shape(noise) > np.shape(vel):
+                if np.shape(noise)[-1] > np.shape(vel)[-1]:
                     raise Exception(
                         "Noise should have same or fewer dimensions as velocity"
                     )
@@ -1080,10 +1086,10 @@ class VelBinner(TimeBinner):
             time_coord = self.mean(veldat["time"].values, step=step, n_bin=n_bin)
             coords = {
                 "S": self.S,
-                "time": time_coord,
+                "time_psd": time_coord,
                 "freq": freq,
             }
-            dims = ["S", "time", "freq"]
+            dims = ["S", "time_psd", "freq"]
         else:
             if np.array(noise).any() and np.size(noise) > 1:
                 raise ValueError("Noise is expected to be a scalar")
@@ -1100,10 +1106,10 @@ class VelBinner(TimeBinner):
             time = veldat[veldat.dims[-1]].values
             time_coord = self.mean(time, step=step, n_bin=n_bin)
             coords = {
-                veldat.dims[-1]: time_coord,
+                "time_psd": time_coord,
                 "freq": freq,
             }
-            dims = [veldat.dims[-1], "freq"]
+            dims = ["time_psd", "freq"]
 
         return xr.DataArray(
             out,
