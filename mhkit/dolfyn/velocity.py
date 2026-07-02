@@ -997,9 +997,10 @@ class VelBinner(TimeBinner):
           Frequency units of the returned spectra in either Hz or rad/s
         fs : float (optional)
           The sample rate. Default is `binner.fs`
-        window : string or array
-          Specify the window function.
-          Options = 1, None, 'hann', 'hamm'. Default = 'hann'
+        window: str
+          Type of window to apply to each FFT segment.
+          Options ('boxcar', 'hann', 'hamming', 'blackman', 'bartlett').
+          Default: 'hann'.
         noise : numeric or array
           Instrument noise level in same units as velocity.
           Default = 0 (ADCP) or [0, 0, 0] (ADV)

@@ -109,9 +109,10 @@ class ADVBinner(VelBinner):
           (`f` or :math:`\\omega`)
         fs : float (optional)
           The sample rate. Default = `self.fs`
-        window : string or array
-          Specify the window function.
-         Options: 1, None, 'hann', 'hamm'
+        window: str
+          Type of window to apply to each FFT segment.
+          Options ('boxcar', 'hann', 'hamming', 'blackman', 'bartlett').
+          Default: 'hann'.
         n_bin : int (optional)
           The bin-size. Default = `self.n_bin`
         n_fft_coh : int (optional)
