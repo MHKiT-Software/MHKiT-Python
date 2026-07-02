@@ -568,14 +568,7 @@ class ADPBinner(VelBinner):
 
         # Remove doppler_noise
         if type(noise) is type(ds["vel"]):
-            # Interpolate noise to the reshaped time dimension
-            noise_time_dim = noise.dims[-1]
-            time = self.mean(ds["time"].values)
-            # If overlap is not 0%
-            if time.size != noise[noise_time_dim].size:
-                noise = noise.interp({noise_time_dim: time}).values
-            else:
-                noise = noise.values
+            noise = self._interp_noise(noise, self.mean(ds["time"].values))
         bp2_ -= noise[..., :] ** 2
 
         return bp2_
@@ -765,7 +758,7 @@ class ADPBinner(VelBinner):
             # Guerra Thomson calculate u'v' bar from from the covariance of u' and v'
             ds.velds.rotate2("inst")
             vel = self.detrend(ds.vel.values)
-            upvp_ = np.nanmean(vel[0] * vel[1], axis=-1, dtype=np.float64)
+            upvp_ = np.nanmean(vel[0] * vel[1], axis=-1)
 
             upwp_ = (
                 sin(th) ** 5 * cos(th) * (bp2_[1] - bp2_[0])

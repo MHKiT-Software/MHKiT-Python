@@ -821,6 +821,13 @@ class VelBinner(TimeBinner):
 
         return da
 
+    def _interp_noise(self, noise, time):
+        """Return noise as a numpy array, interpolating to binned `time` if needed."""
+        noise_time_dim = noise.dims[-1]
+        if time.size != noise[noise_time_dim].size:
+            return noise.interp({noise_time_dim: time}).values
+        return noise.values
+
     def turbulence_intensity(self, U_mag, noise=0, thresh=0, detrend=False):
         """
         Calculate noise-corrected turbulence intensity (TI).
@@ -848,14 +855,7 @@ class VelBinner(TimeBinner):
         if "xarray" in type(U_mag).__module__:
             U = U_mag.values
         if "xarray" in type(noise).__module__:
-            # Interpolate noise to the same time dimension as U_mag
-            noise_time_dim = noise.dims[-1]
-            time = self.mean(U_mag["time"].values)
-            # If overlap is not 0%
-            if time.size != noise[noise_time_dim].size:
-                noise = noise.interp({noise_time_dim: time}).values
-            else:
-                noise = noise.values
+            noise = self._interp_noise(noise, self.mean(U_mag["time"].values))
 
         if detrend:
             up = self.detrend(U)
@@ -920,14 +920,7 @@ class VelBinner(TimeBinner):
         if "xarray" in type(veldat).__module__:
             vel = veldat.values
         if "xarray" in type(noise).__module__:
-            # Interpolate noise to the same time dimension as U_mag
-            noise_time_dim = noise.dims[-1]
-            time = self.mean(veldat[veldat.dims[-1]].values)
-            # If overlap is not 0%
-            if time.size != noise[noise_time_dim].size:
-                noise = noise.interp({noise_time_dim: time}).values
-            else:
-                noise = noise.values
+            noise = self._interp_noise(noise, self.mean(veldat[veldat.dims[-1]].values))
 
         if len(np.shape(vel)) > 2:
             raise ValueError(
@@ -1032,17 +1025,6 @@ class VelBinner(TimeBinner):
             vel = veldat.values
         if ("rad" not in freq_units) and ("Hz" not in freq_units):
             raise ValueError("`freq_units` should be one of 'Hz' or 'rad/s'")
-
-        # Create frequency vector, also checks whether using f or omega
-        if "rad" in freq_units:
-            fs = 2 * np.pi * fs_in
-            freq_units = "rad s-1"
-            units = "m2 s-1 rad-1"
-        else:
-            fs = fs_in
-            freq_units = "Hz"
-            units = "m2 s-2 Hz-1"
-
         n_bin = self._parse_nbin(n_bin)
         step = int((1 - pct_overlap) * n_bin)
         if pct_overlap > 0:
@@ -1053,6 +1035,15 @@ class VelBinner(TimeBinner):
                 UserWarning,
                 stacklevel=2,
             )
+        # Set units correctly
+        if "rad" in freq_units:
+            fs = 2 * np.pi * fs_in
+            freq_units = "rad s-1"
+            units = "m2 s-1 rad-1"
+        else:
+            fs = fs_in
+            freq_units = "Hz"
+            units = "m2 s-2 Hz-1"
 
         # Spectra, if velocity is a 2D array (dir, time)
         if len(vel.shape) >= 2:
@@ -1067,18 +1058,22 @@ class VelBinner(TimeBinner):
             else:
                 # Reset default to list of 3 zeros
                 noise = np.array([0, 0, 0])
+            # Set up input velocity array, coordinates, and dimensions
             vel_in = vel[:3]
             coords = {"S": self.S}
             dims = ["S"]
+
         # Spectra, if velocity is a single array
         else:
             if np.array(noise).any() and np.size(noise) > 1:
                 raise ValueError("Noise is expected to be a scalar")
+            # Add dummy axis
             vel_in = vel[np.newaxis]
             noise = np.atleast_1d(noise)
             coords = {}
             dims = []
 
+        # Do power spectral density calculation for each velocity component
         out = np.empty(
             self._outshape_fft(vel_in.shape, n_fft=n_fft, n_bin=n_bin, step=step)
         )
@@ -1092,10 +1087,11 @@ class VelBinner(TimeBinner):
                 n_fft=n_fft,
                 pct_overlap=pct_overlap,
             )
+        # If not 3D (ADV) data, remove the new axis
         if "S" not in dims:
             out = out[0]
 
-        # Update coordinates and dimensions
+        # Create frequency vector, also checks whether using f or omega
         freq = xr.DataArray(
             f,
             dims=["freq"],
@@ -1106,6 +1102,8 @@ class VelBinner(TimeBinner):
                 "coverage_content_type": "coordinate",
             },
         )
+
+        # Update coordinates and dimensions
         time = veldat[veldat.dims[-1]].values
         time_coord = self.mean(time, step=step, n_bin=n_bin)
         coords.update(

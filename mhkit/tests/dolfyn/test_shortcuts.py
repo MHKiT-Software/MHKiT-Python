@@ -15,7 +15,10 @@ class analysis_testcase(unittest.TestCase):
     def setUpClass(self):
         dat = tv.dat.copy(deep=True)
         self.dat = rotate2(dat, "earth", inplace=False)
-        self.tdat = avm.turbulence_statistics(self.dat, n_bin=20.0, fs=self.dat.fs)
+        bnr = avm.ADVBinner(n_bin=20.0, fs=dat.fs)
+        self.tdat = bnr.bin_average(self.dat)
+        self.tdat["tke_vec"] = bnr.turbulent_kinetic_energy(self.dat["vel"])
+        self.tdat["stress_vec"] = bnr.reynolds_stress(self.dat["vel"])
 
         short = xr.Dataset()
         short["u"] = self.tdat.velds.u

@@ -7,48 +7,38 @@ import xarray as xr
 
 
 class ADVBinner(VelBinner):
-    """
-    A class that builds upon `VelBinner` for calculating turbulence
-    statistics and velocity spectra from ADV data.
+    def __init__(
+        self,
+        n_bin,
+        fs,
+        n_fft=None,
+        n_fft_coh=None,
+        noise=None,
+    ):
+        """
+        A class that builds upon `VelBinner` for calculating turbulence
+        statistics and velocity spectra from ADV data.
 
-    Parameters
-    ----------
-    n_bin : int
-      The length of each bin, in number of points, for this averaging
-      operator.
-    fs : int
-      Instrument sampling frequency in Hz
-    n_fft : int
-      The length of the FFT for computing spectra (must be <= `n_bin`).
-      Optional, default `n_fft` = `n_bin`
-    n_fft_coh : int
-      Number of data points to use for coherence and cross-spectra FFT's.
-      Optional, default `n_fft_coh` = `n_fft`
-    noise : float or array-like
-      Instrument noise level in same units as velocity. Typically found from
-      :func:`doppler_noise_level <mhkit.dolfyn.adv.turbulence.ADVBinner.doppler_noise_level>`.
-      Default: None.
-    """
+        Parameters
+        ----------
+        n_bin : int
+          The length of each bin, in number of points, for this averaging
+          operator.
+        fs : int
+          Instrument sampling frequency in Hz
+        n_fft : int
+          The length of the FFT for computing spectra (must be <= `n_bin`).
+          Default = `n_fft` = `n_bin`
+        n_fft_coh : int
+          Number of data points to use for coherence and cross-spectra FFT's.
+          Default = `n_fft_coh` = `n_fft`
+        noise : float or array-like
+          Instrument noise level in same units as velocity. Typically found from
+          :func:`doppler_noise_level <mhkit.dolfyn.adv.turbulence.ADVBinner.doppler_noise_level>`.
+          Default = None
+        """
 
-    def __call__(self, ds, freq_units="rad/s", window="hann"):
-        out = type(ds)()
-        out = self.bin_average(ds, out)
-
-        out["tke_vec"] = self.turbulent_kinetic_energy(ds["vel"])
-        out["stress_vec"] = self.reynolds_stress(ds["vel"])
-
-        out["psd"] = self.power_spectral_density(
-            ds["vel"], window=window, freq_units=freq_units
-        )
-        for key in list(ds.attrs.keys()):
-            if "config" in key:
-                ds.attrs.pop(key)
-        out.attrs = ds.attrs
-        out.attrs["n_bin"] = self.n_bin
-        out.attrs["n_fft"] = self.n_fft
-        out.attrs["n_fft_coh"] = self.n_fft_coh
-
-        return out
+        VelBinner.__init__(self, n_bin, fs, n_fft, n_fft_coh, noise)
 
     def reynolds_stress(self, veldat, detrend=True):
         """
@@ -85,7 +75,7 @@ class ADVBinner(VelBinner):
             vel = self.demean(vel)
 
         for idx, p in enumerate(self._cross_pairs):
-            out[idx] = np.nanmean(vel[p[0]] * vel[p[1]], -1, dtype=np.float64)
+            out[idx] = np.nanmean(vel[p[0]] * vel[p[1]], -1)
 
         da = xr.DataArray(
             out,
@@ -528,7 +518,7 @@ class ADVBinner(VelBinner):
             lag = U_mag.values[slc[:-1]] / fs * np.arange(up.shape[0])
             DAA = _nans_like(lag)
             for L in range(int(fs / freq_range[1]), int(fs / freq_range[0])):
-                DAA[L] = np.nanmean((up[L:] - up[:-L]) ** 2, dtype=np.float64)
+                DAA[L] = np.nanmean((up[L:] - up[:-L]) ** 2)
             cv2 = DAA / (lag ** (2 / 3))
             cv2m = np.median(cv2[np.logical_not(np.isnan(cv2))])
             out[slc[:-1]] = (cv2m / 2.1) ** (3 / 2)
@@ -620,7 +610,12 @@ class ADVBinner(VelBinner):
             raise TypeError("`dat_avg` must be an instance of `xarray.Dataset`.")
         if not hasattr(freq_range, "__iter__") or len(freq_range) != 2:
             raise ValueError("`freq_range` must be an iterable of length 2.")
-
+        if "tke_vec" not in dat_avg:
+            raise Exception(
+                "The bin-averaged dataset must have the `tke_vec` variable "
+                "(i.e., calculated from `ADVBinner.calc_turbulence` or "
+                "`VelBinner.bin_average`)."
+            )
         # Assign local names
         U_mag = dat_avg.velds.U_mag
         I_tke = dat_avg.velds.I_tke.values
@@ -734,55 +729,3 @@ class ADVBinner(VelBinner):
                 "standard_name": "turbulent_mixing_length_of_sea_water",
             },
         )
-
-
-def turbulence_statistics(
-    ds_raw, n_bin, fs, n_fft=None, freq_units="rad/s", window="hann"
-):
-    """
-    Functional version of `ADVBinner` that computes a suite of turbulence
-    statistics for the input dataset, and returns a `binned` data object.
-
-    Parameters
-    ----------
-    ds_raw : xarray.Dataset
-      The raw adv datset to bin, average, and compute turbulence statistics
-      from.
-    freq_units : string
-      Frequency units of the returned spectra in either Hz or rad/s
-      (`f` or :math:`\\omega`). Default = 'rad/s'
-    window : string or array
-      The window to use for calculating spectra.
-
-    Returns
-    -------
-    ds : xarray.Dataset
-      Returns an 'binned' (i.e. 'averaged') data object. All
-      fields (variables) of the input data object are averaged in `n_bin`
-      chunks. This object also computes the following items over
-      those chunks:
-
-      - tke_vec : The energy in each component, each components is
-        alternatively accessible as:
-        :attr:`upup_ <dolfyn.velocity.Velocity.upup_>`,
-        :attr:`vpvp_ <dolfyn.velocity.Velocity.vpvp_>`,
-        :attr:`wpwp_ <dolfyn.velocity.Velocity.wpwp_>`)
-
-      - stress_vec : The Reynolds stresses, each component is
-        alternatively accessible as:
-        :attr:`upwp_ <dolfyn.data.velocity.Velocity.upwp_>`,
-        :attr:`vpwp_ <dolfyn.data.velocity.Velocity.vpwp_>`,
-        :attr:`upvp_ <dolfyn.data.velocity.Velocity.upvp_>`)
-
-      - U_std : The standard deviation of the horizontal
-        velocity `U_mag`.
-
-      - psd : DataArray containing the spectra of the velocity
-        in radial frequency units. The data-array contains:
-        - vel : the velocity spectra array (m^2/s/rad))
-        - omega : the radial frequncy (rad/s)
-    """
-
-    calculator = ADVBinner(n_bin, fs, n_fft=n_fft)
-
-    return calculator(ds_raw, freq_units=freq_units, window=window)

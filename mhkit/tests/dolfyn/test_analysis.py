@@ -89,15 +89,17 @@ class analysis_testcase(unittest.TestCase):
     def test_adv_turbulence(self):
         dat = tv.dat.copy(deep=True)
         bnr = avm.ADVBinner(n_bin=20.0, fs=dat.fs)
-        tdat = bnr(dat)
-        acov = bnr.autocovariance(dat["vel"])
-
-        assert_identical(tdat, avm.turbulence_statistics(dat, n_bin=20.0, fs=dat.fs))
+        tdat = bnr.bin_average(dat)
+        tdat["psd"] = bnr.power_spectral_density(
+            dat["vel"],
+            freq_units="rad",
+            window="hann",
+        )
 
         tdat["stress_detrend"] = bnr.reynolds_stress(dat["vel"])
         tdat["stress_demean"] = bnr.reynolds_stress(dat["vel"], detrend=False)
         tdat["csd"] = bnr.cross_spectral_density(
-            dat["vel"], freq_units="rad", window="hamming", n_fft_coh=10
+            dat["vel"], freq_units="rad", window="hann", n_fft_coh=10
         )
         tdat["LT83"] = bnr.dissipation_rate_LT83(tdat["psd"], tdat.velds.U_mag)
         tdat["noise"] = bnr.doppler_noise_level(tdat["psd"], pct_fN=0.8)
@@ -105,7 +107,10 @@ class analysis_testcase(unittest.TestCase):
             tdat["psd"], tdat.velds.U_mag, noise=tdat["noise"]
         )
         tdat["SF"] = bnr.dissipation_rate_SF(dat["vel"][0], tdat.velds.U_mag)
+        tdat["stress_vec"] = bnr.reynolds_stress(dat["vel"])
+        tdat["tke_vec"] = bnr.turbulent_kinetic_energy(dat["vel"], noise=tdat["noise"])
         tdat["TE01"] = bnr.dissipation_rate_TE01(dat, tdat)
+        acov = bnr.autocovariance(dat["vel"])
         tdat["L"] = bnr.integral_length_scales(acov, tdat.velds.U_mag)
         slope_check = bnr.check_turbulence_cascade_slope(
             tdat["psd"][-1].mean("time_psd"), freq_range=[10, 100]
