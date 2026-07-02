@@ -260,8 +260,8 @@ def band_aggregate(
         raise ValueError("'fmax' must be greater than 'fmin'.")
 
     # Value checks
-    if ("freq" not in spsdl.dims) or ("time_psd" not in spsdl.dims):
-        raise ValueError("'spsdl' must have 'time_psd' and 'freq' as dimensions.")
+    if ("freq" not in spsdl.dims) or ("time" not in spsdl.dims[0]):
+        raise ValueError("'spsdl' must have 'time' and 'freq' as dimensions.")
 
     # Validate method and get method_name and method_arg
     method_name, method_arg = _validate_method(method)
@@ -329,23 +329,24 @@ def time_aggregate(
         raise TypeError("'window' must be an integer.")
     if not isinstance(method, (str, dict)):
         raise TypeError("'method' must be a string or dictionary.")
-    if "time_psd" not in spsdl.dims:
-        raise ValueError("'spsdl' must have 'time_psd' dimension.")
+    if "time" not in spsdl.dims[0]:
+        raise ValueError("'spsdl' must have 'time' dimension.")
 
     # Value checks
     if window <= 0:
         raise ValueError("'window' must be a positive integer.")
 
     # Ensure 'time' coordinate is of datetime64 dtype
-    if not np.issubdtype(spsdl["time_psd"].dtype, np.datetime64):
-        raise TypeError("'spsdl['time_psd']' must be of dtype 'datetime64'.")
+    time_dim = spsdl.dims[0]
+    if not np.issubdtype(spsdl[time_dim].dtype, np.datetime64):
+        raise TypeError("spsdl 'time' must be of dtype 'datetime64'.")
 
     # Validate method and get method_name and method_arg
     method_name, method_arg = _validate_method(method)
 
     window = np.timedelta64(window, "s")
     time_bins_lower = np.arange(
-        spsdl["time_psd"][0].values, spsdl["time_psd"][-1].values, window
+        spsdl[time_dim][0].values, spsdl[time_dim][-1].values, window
     )
     time_bins_upper = time_bins_lower + window
     time_bins = np.append(time_bins_lower, time_bins_upper[-1])
@@ -354,7 +355,7 @@ def time_aggregate(
     )
 
     # Use xarray binning methods
-    spsdl_group = spsdl.groupby_bins("time_psd", time_bins, labels=center_time)
+    spsdl_group = spsdl.groupby_bins(time_dim, time_bins, labels=center_time)
 
     # Handle method being a string or a dict
     if isinstance(method, str):
@@ -403,12 +404,14 @@ def time_average(spsdl, window):
     """
 
     def spectral_average(x):
+        # time dimension name
+        time_dim = x.dims[0]
         # Convert value in decibels to absolute magnitude, still relevant to original units
         magnitude = 10 ** (x / 10)
         # Sum energy in each time bin
-        summed_magnitude = magnitude.sum("time_psd")
+        summed_magnitude = magnitude.sum(time_dim)
         # Take average
-        average_magnitude = summed_magnitude / magnitude["time_psd"].size
+        average_magnitude = summed_magnitude / magnitude[time_dim].size
         # Convert back to decibels
         result = 10 * np.log10(average_magnitude)
 
@@ -443,10 +446,12 @@ def time_summation(spsdl, window):
     """
 
     def spectral_sum(x):
+        # time dimension name
+        time_dim = x.dims[0]
         # Convert value in decibels to absolute magnitude, still relevant to original units
         magnitude = 10 ** (x / 10)
         # Sum energy in each time bin
-        summed_magnitude = magnitude.sum("time_psd")
+        summed_magnitude = magnitude.sum(time_dim)
         # Convert back to decibels
         result = 10 * np.log10(summed_magnitude)
 

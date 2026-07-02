@@ -270,9 +270,10 @@ class ADVBinner(VelBinner):
         N2 = psd.sel(freq=f_range) * psd.freq.sel(freq=f_range)
         noise_level = np.sqrt(N2.mean(dim="freq"))
 
+        time_dim = psd.dims[-2]
         return xr.DataArray(
             noise_level.values,
-            coords={"S": psd["S"], "time_psd": psd["time_psd"]},
+            coords={"S": psd["S"], time_dim: psd[time_dim]},
             attrs={
                 "units": "m/s",
                 "long_name": "Doppler Noise Level",
@@ -437,9 +438,10 @@ class ADVBinner(VelBinner):
 
         # Interpolate U_mag to the same time dimension as PSD
         umag_time_dim = U_mag.dims[-1]
+        psd_time_dim = psd.dims[-2]
         # If overlap is not 0%
-        if psd["time_psd"].size != U_mag[umag_time_dim].size:
-            U_mag = U_mag.interp({umag_time_dim: psd["time_psd"].values}).values
+        if psd[psd_time_dim].size != U_mag[umag_time_dim].size:
+            U_mag = U_mag.interp({umag_time_dim: psd[psd_time_dim].values}).values
         else:
             U_mag = U_mag.values
 
@@ -631,9 +633,10 @@ class ADVBinner(VelBinner):
 
         # Interpolate PSD to the same time dimension as dat_avg
         umag_time_dim = U_mag.dims[-1]
+        psd_time_dim = dat_avg["psd"].dims[-2]
         # If overlap is not 0%
-        if dat_avg["time_psd"].size != U_mag[umag_time_dim].size:
-            psd = dat_avg["psd"].interp({"time_psd": dat_avg[umag_time_dim]}).values
+        if dat_avg[psd_time_dim].size != U_mag[umag_time_dim].size:
+            psd = dat_avg["psd"].interp({psd_time_dim: dat_avg[umag_time_dim]}).values
         else:
             psd = dat_avg["psd"].values
 

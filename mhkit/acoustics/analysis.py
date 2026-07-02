@@ -718,10 +718,11 @@ def _convert_to_band_spectral_density(
         partial_pts=partial_pts,
         weights=weights,
     )
+    time_dim = spsd.dims[0]
     out = xr.DataArray(
         band_spsd,
-        coords={"time_psd": spsd["time_psd"], "freq": bands[:, 1]},
-        dims=["time_psd", "freq"],
+        coords={time_dim: spsd[time_dim], "freq": bands[:, 1]},
+        dims=[time_dim, "freq"],
         attrs=spsd.attrs,
     )
 

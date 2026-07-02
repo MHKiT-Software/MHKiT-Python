@@ -54,8 +54,8 @@ def _argument_check(spsd, fmin, fmax):
     _check_numeric(fmax, "fmax")
 
     # Ensure 'freq' and 'time' dimensions are present
-    if ("freq" not in spsd.dims) or ("time_psd" not in spsd.dims):
-        raise ValueError("'spsd' must have 'time_psd' and 'freq' as dimensions.")
+    if ("freq" not in spsd.dims) or ("time" not in spsd.dims[0]):
+        raise ValueError("'spsd' must have 'time' and 'freq' as dimensions.")
 
     # Check that 'fs' (sampling frequency) is available in attributes
     if "fs" not in spsd.attrs:
@@ -116,9 +116,10 @@ def sound_pressure_level(
     # Mean square sound pressure level
     mspl = 10 * np.log10(pressure_squared / reference)
 
+    time_dim = spsd.dims[0]
     out = xr.DataArray(
         mspl.astype(np.float32),
-        coords={"time_psd": spsd["time_psd"]},
+        coords={time_dim: spsd[time_dim]},
         attrs={
             "units": "dB re 1 uPa",
             "long_name": "Sound Pressure Level",
@@ -191,13 +192,14 @@ def _band_sound_pressure_level(spsd: xr.DataArray, octave: int, base: int):
             )
 
     # Mean square sound pressure level in dB rel 1 uPa
+    time_dim = spsd.dims[0]
     out_spl = xr.DataArray(
         10 * np.log10(out_sp / reference),
         coords={
-            "time_psd": spsd["time_psd"],
+            time_dim: spsd[time_dim],
             "freq_bins": bands[:, 1],
         },
-        dims=["time_psd", "freq_bins"],
+        dims=[time_dim, "freq_bins"],
     )
     return out_spl
 
