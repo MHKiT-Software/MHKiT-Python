@@ -201,7 +201,6 @@ def sound_pressure_spectral_density(
     fs: Union[int, float],
     bin_length: Union[int, float] = 1,
     fft_length: Optional[Union[int, float]] = None,
-    window: str = "hann",
     pct_overlap: float = 0.5,
 ) -> xr.DataArray:
     """
@@ -220,10 +219,6 @@ def sound_pressure_spectral_density(
         Length of time in seconds to create FFTs. Default: 1.
     fft_length: int or float, optional
         Length of FFT to use. If None, uses bin_length * fs. Default: None.
-    window: str
-        Type of window to apply to each FFT segment.
-        Options ('boxcar', 'hann', 'hamming', 'blackman', 'bartlett').
-        Default: 'hann'.
     pct_overlap: float
         Percentage of overlap between FFT segments. Default: 0.5 (50%).
 
@@ -255,7 +250,7 @@ def sound_pressure_spectral_density(
     binner = VelBinner(fs=fs, n_bin=nbin, n_fft=nfft)
     # Sound pressure spectral densities with 50% overlap between FFT windows
     psd = binner.power_spectral_density(
-        pressure, freq_units="Hz", window=window, pct_overlap=pct_overlap
+        pressure, freq_units="Hz", window="hann", pct_overlap=pct_overlap
     )
 
     out = xr.DataArray(
