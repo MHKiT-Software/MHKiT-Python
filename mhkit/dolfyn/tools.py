@@ -205,7 +205,7 @@ def fillgaps(a, maxgap=np.inf, dim=0, extrapFlg=False):
 
     See Also
     --------
-    mhkit.dolfyn.tools.tools._interpgaps : Linearly interpolates in time.
+    mhkit.dolfyn.tools._interpgaps : Linearly interpolates in time.
 
     Notes
     -----

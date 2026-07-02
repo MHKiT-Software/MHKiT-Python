@@ -950,7 +950,7 @@ class VelBinner(TimeBinner):
         else:
             # Subtract noise
             if noise is not None:
-                if np.shape(noise)[-1] > np.shape(vel)[-1]:
+                if np.shape(noise) > np.shape(vel):
                     raise Exception(
                         "Noise should have same or fewer dimensions as velocity"
                     )
