@@ -187,12 +187,13 @@ class analysis_testcase(unittest.TestCase):
             tdat["psd"].mean("time_psd"), freq_range=[0.4, 4]
         )
         # Check noise subtraction in psd function
-        tdat["psd_noise"] = bnr.power_spectral_density(
+        psd_noise = bnr.power_spectral_density(
             dat["vel_b5"].isel(range_b5=len(dat["range_b5"]) // 2),
             freq_units="Hz",
             noise=0.0001,
             pct_overlap=0.5,
         )
+        tdat["psd_noise"] = psd_noise.rename({"time_psd": "time_psd_50pct"})
         tdat["friction_vel"] = bnr.friction_velocity(
             tdat, upwp_=tdat["stress_vec5"].sel(tau="upwp_"), z_inds=slice(1, 5), H=50
         )

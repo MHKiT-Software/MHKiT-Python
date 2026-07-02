@@ -306,9 +306,7 @@ class TimeBinner:
         out : numpy.ndarray
         """
 
-        return np.nanvar(
-            self.reshape(arr, step=step, n_bin=n_bin), axis=axis, dtype=np.float32
-        )
+        return np.nanvar(self.reshape(arr, step=step, n_bin=n_bin), axis=axis)
 
     def standard_deviation(self, arr, axis=-1, step=None, n_bin=None):
         """
@@ -332,9 +330,7 @@ class TimeBinner:
         out : numpy.ndarray
         """
 
-        return np.nanstd(
-            self.reshape(arr, step=step, n_bin=n_bin), axis=axis, dtype=np.float32
-        )
+        return np.nanstd(self.reshape(arr, step=step, n_bin=n_bin), axis=axis)
 
     def _psd_base(
         self,
