@@ -1028,14 +1028,7 @@ class VelBinner(TimeBinner):
             raise ValueError("`freq_units` should be one of 'Hz' or 'rad/s'")
         n_bin = self._parse_nbin(n_bin)
         step = int((1 - pct_overlap) * n_bin)
-        if pct_overlap > 0:
-            warnings.warn(
-                "The PSD time coordinate differs from other VelBinner outputs when "
-                "pct_overlap > 0. Timestamps represent the center of each overlapping "
-                f"sliding window (step={step} samples, pct_overlap={pct_overlap}).",
-                UserWarning,
-                stacklevel=2,
-            )
+
         # Set units correctly
         if "rad" in freq_units:
             fs = 2 * np.pi * fs_in
