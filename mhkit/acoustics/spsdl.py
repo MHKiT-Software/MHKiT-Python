@@ -376,7 +376,8 @@ def time_aggregate(
     if method == "quantile":
         out = out.drop_vars("quantile")
 
-    out = out.rename({"time_psd_bins": "time_bins"})
+    if "time_psd_bins" in out.dims:  # if this dim has not already been changed
+        out = out.rename({"time_psd_bins": "time_bins"})
     return out
 
 
