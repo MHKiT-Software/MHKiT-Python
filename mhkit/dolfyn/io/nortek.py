@@ -8,7 +8,7 @@ from .. import time
 from . import base
 from . import nortek_defs as defs
 from . import nortek_lib as lib
-from ..tools import misc as tbx
+from .. import tools as tbx
 from ..rotate.vector import _calc_omat
 from ..rotate.base import _set_coords
 from ..rotate import api as rot

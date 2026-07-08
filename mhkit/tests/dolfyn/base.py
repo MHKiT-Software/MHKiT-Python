@@ -23,7 +23,7 @@ def assert_allclose(dat0, dat1, *args, **kwargs):
     # For problematic time check
     names = []
     for v in dat0.variables:
-        if np.issubdtype(dat0[v].dtype, np.datetime64):
+        if v in dat1.variables and np.issubdtype(dat0[v].dtype, np.datetime64):
             dat0[v] = time.dt642epoch(dat0[v])
             dat1[v] = time.dt642epoch(dat1[v])
             names.append(v)

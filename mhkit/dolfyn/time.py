@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import numpy as np
-from .tools.misc import fillgaps
+from .tools import fillgaps
 
 
 def _fullyear(year):
