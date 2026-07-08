@@ -201,21 +201,13 @@ def sound_pressure_spectral_density(
     fs: Union[int, float],
     bin_length: Union[int, float] = 1,
     fft_length: Optional[Union[int, float]] = None,
-    rms: bool = True,
+    pct_overlap: float = 0.5,
 ) -> xr.DataArray:
     """
     Calculates the sound pressure spectral density (SPSD) from audio
     samples split into FFTs with a specified bin length in seconds,
-    using Hanning windowing with 50% overlap.
-
-    By default (`rms=True`), this function returns the mean-squared SPSD,
-    which found by scaling the total spectral power (frequency domain) with
-    the time-domain averaged mean-squared power, in accordance with
-    Parseval's theorem.
-
-    Setting `rms=False` disables this scaling and returns the
-    power spectral density of the sound pressure signal.
-    Both forms have units of [Pa^2/Hz] or [V^2/Hz].
+    using Hanning windowing with 50% overlap. Uses Welch's method to
+    average overlapping FFT windows within each bin.
 
     Parameters
     ----------
@@ -227,14 +219,13 @@ def sound_pressure_spectral_density(
         Length of time in seconds to create FFTs. Default: 1.
     fft_length: int or float, optional
         Length of FFT to use. If None, uses bin_length * fs. Default: None.
-    rms: bool
-        If True, calculates the mean-squared SPSD. Set to False to
-        calculate standard SPSD. Default: True.
+    pct_overlap: float
+        Percentage of overlap between FFT segments. Default: 0.5 (50%).
 
     Returns
     -------
-    spsd: xarray.DataArray (time, freq)
-        Spectral density [Pa^2/Hz] indexed by time and frequency
+    spsd: xarray.DataArray (time_psd, freq)
+        Spectral density [Pa^2/Hz] or [V^2/Hz] indexed by time and frequency
     """
 
     # Type checks
@@ -256,36 +247,21 @@ def sound_pressure_spectral_density(
         nfft = nbin
 
     # Use dolfyn PSD functionality
-    binner = VelBinner(n_bin=nbin, fs=fs, n_fft=nfft)
-    # Always 50% overlap if numbers reshape perfectly
-    # Mean square sound pressure
-    psd = binner.power_spectral_density(pressure, freq_units="Hz")
-    if rms:
-        # Scale PSD by mean square of original signal
-        samples = (
-            binner.reshape(pressure.values) - binner.mean(pressure.values)[:, None]
-        )
-        # mean squared pressure ("power") in time domain
-        t_power = np.sum(samples**2, axis=1) / nbin
-        # pressure ("power") in frequency domain
-        f_power = psd.sum("freq") * (fs / nbin)
-        # Adjust the amplitude of the PSD to return the mean-squared PSD
-        # based on Parseval's theorem: total energy computed in the time
-        # domain must equal the total energy computed in the frequency domain
-        psd = psd * t_power[:, None] / f_power
-        long_name = "Mean Square Sound Pressure Spectral Density"
-    else:
-        long_name = "Sound Pressure Spectral Density"
+    binner = VelBinner(fs=fs, n_bin=nbin, n_fft=nfft)
+    # Sound pressure spectral densities with 50% overlap between FFT windows
+    psd = binner.power_spectral_density(
+        pressure, freq_units="Hz", window="hann", pct_overlap=pct_overlap
+    )
 
     out = xr.DataArray(
         psd,
-        coords={"time": psd["time"], "freq": psd["freq"]},
+        coords={"time_psd": psd["time_psd"], "freq": psd["freq"]},
         attrs={
             "units": pressure.units + "^2/Hz",
-            "long_name": long_name,
+            "long_name": "Mean Square Sound Pressure Spectral Density",
             "fs": fs,
             "bin_length": bin_length,
-            "overlap": "50%",
+            "overlap": f"{pct_overlap*100}%",
             "n_fft": nfft,
         },
     )
@@ -304,7 +280,7 @@ def apply_calibration(
 
     Parameters
     ----------
-    spsd: xarray.DataArray (time, freq)
+    spsd: xarray.DataArray (time_psd, freq)
         Mean square sound pressure spectral density in V^2/Hz.
     sensitivity_curve: xarray.DataArray (freq)
         Calibrated sensitivity curve in units of dB rel 1 V^2/uPa^2.
@@ -737,10 +713,11 @@ def _convert_to_band_spectral_density(
         partial_pts=partial_pts,
         weights=weights,
     )
+    time_dim = spsd.dims[0]
     out = xr.DataArray(
         band_spsd,
-        coords={"time": spsd["time"], "freq": bands[:, 1]},
-        dims=["time", "freq"],
+        coords={time_dim: spsd[time_dim], "freq": bands[:, 1]},
+        dims=[time_dim, "freq"],
         attrs=spsd.attrs,
     )
 
