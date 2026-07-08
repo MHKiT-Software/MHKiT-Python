@@ -91,7 +91,7 @@ def sound_exposure_level(
 
     Parameters
     ----------
-    spsd: xarray.DataArray (time, freq)
+    spsd: xarray.DataArray (time_psd, freq)
         Sound pressure spectral density in [Pa^2/Hz] with a bin length
         equal to the time over which sound exposure should be computed.
     group: str
@@ -136,9 +136,10 @@ def sound_exposure_level(
     # Sound exposure level (L_{E,p}) = (L_{p,rms} + 10log10(t))
     sel = 10 * np.log10(exposure / reference) + 10 * np.log10(spsd.attrs["bin_length"])
 
+    time_dim = spsd.dims[0]
     out = xr.DataArray(
         sel.astype(np.float32),
-        coords={"time": spsd["time"]},
+        coords={time_dim: spsd[time_dim]},
         attrs={
             "units": "dB re 1 uPa^2 s",
             "long_name": long_name,
