@@ -1,11 +1,10 @@
-from os.path import abspath, dirname, join, isfile, normpath, relpath
+from os.path import abspath, dirname, join, normpath
 from pandas.testing import assert_frame_equal
 import matplotlib.pylab as plt
 import mhkit.wave.io.hindcast.wind_toolkit as wtk
 import pandas as pd
 import unittest
 import pytest
-
 
 testdir = dirname(abspath(__file__))
 datadir = normpath(
@@ -24,6 +23,12 @@ datadir = normpath(
 )
 
 
+# TODO(restore-hindcast): 6/30/2026, NLR HSDS endpoint is non functional
+# https://github.com/MHKiT-Software/MHKiT-Python/issues/450
+@unittest.skip(
+    "TODO(restore-hindcast): NLR HSDS endpoint unavailable. See "
+    "https://github.com/MHKiT-Software/MHKiT-Python/issues/450"
+)
 class TestWINDToolkit(unittest.TestCase):
     @classmethod
     def setUpClass(self):
