@@ -999,7 +999,8 @@ class VelBinner(TimeBinner):
           The sample rate. Default is `binner.fs`
         window: str
           Type of window to apply to each FFT segment.
-          Options ('boxcar', 'hann', 'hamming', 'blackman', 'bartlett').
+          Example options: 'boxcar', 'hann', 'hamming', 'blackman', 'bartlett'.
+          See `scipy.signal.window` for more options.
           Default: 'hann'.
         noise : numeric or array
           Instrument noise level in same units as velocity.
@@ -1026,6 +1027,10 @@ class VelBinner(TimeBinner):
             vel = veldat.values
         if ("rad" not in freq_units) and ("Hz" not in freq_units):
             raise ValueError("`freq_units` should be one of 'Hz' or 'rad/s'")
+        if (pct_overlap < 0) or (pct_overlap > 1):
+            raise ValueError(
+                f"pct_overlap must be between 0 and 1, received {pct_overlap}."
+            )
         n_bin = self._parse_nbin(n_bin)
         step = int((1 - pct_overlap) * n_bin)
 

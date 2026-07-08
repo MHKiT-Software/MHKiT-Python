@@ -111,7 +111,8 @@ class ADVBinner(VelBinner):
           The sample rate. Default = `self.fs`
         window: str
           Type of window to apply to each FFT segment.
-          Options ('boxcar', 'hann', 'hamming', 'blackman', 'bartlett').
+          Example options: 'boxcar', 'hann', 'hamming', 'blackman', 'bartlett'.
+          See `scipy.signal.window` for more options.
           Default: 'hann'.
         n_bin : int (optional)
           The bin-size. Default = `self.n_bin`
@@ -134,19 +135,15 @@ class ADVBinner(VelBinner):
             raise TypeError("`veldat` must be an instance of `xarray.DataArray`.")
         if ("rad" not in freq_units) and ("Hz" not in freq_units):
             raise ValueError("`freq_units` should be one of 'Hz' or 'rad/s'")
+        if (pct_overlap < 0) or (pct_overlap > 1):
+            raise ValueError(
+                f"pct_overlap must be between 0 and 1, received {pct_overlap}."
+            )
 
         fs_in = self._parse_fs(fs)
         n_bin = self._parse_nbin(n_bin)
         n_fft = self._parse_nfft_coh(n_fft_coh)
         step = int((1 - pct_overlap) * n_bin)
-        if pct_overlap > 0:
-            warnings.warn(
-                "The PSD time coordinate differs from other VelBinner outputs when "
-                "pct_overlap > 0. Timestamps represent the center of each overlapping "
-                f"sliding window (step={step} samples, pct_overlap={pct_overlap}).",
-                UserWarning,
-                stacklevel=2,
-            )
 
         # Get time coord before changing veldat from xarray to numpy array
         time_coord = self.mean(veldat["time"].values, step=step, n_bin=n_bin)
@@ -426,7 +423,7 @@ class ADVBinner(VelBinner):
         else:
             noise = np.array([0, 0, 0])[:, None, None]
 
-        # Noise subtraction from binner.TimeBinner.calc_psd_base
+        # Noise subtraction
         psd = psd.copy()
         if noise is not None:
             psd -= noise**2 / (self.fs / 2)
