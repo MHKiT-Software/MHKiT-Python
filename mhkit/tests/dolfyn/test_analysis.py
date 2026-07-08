@@ -65,11 +65,16 @@ class analysis_testcase(unittest.TestCase):
         test_ds["tke_vec_demean"] = c.turbulent_kinetic_energy(
             self.adv1.vel, detrend=False
         )
-        test_ds["psd"] = c.power_spectral_density(self.adv1.vel, freq_units="Hz")
+        test_ds["psd"] = c.power_spectral_density(
+            self.adv1.vel, freq_units="Hz", pct_overlap=0
+        )
 
         # Test ADCP single vector spectra, cross-spectra to test radians code
         test_ds_adp["psd_b5"] = c2.power_spectral_density(
-            self.adp.vel_b5.isel(range_b5=5), freq_units="rad", window="hamm"
+            self.adp.vel_b5.isel(range_b5=5),
+            freq_units="rad",
+            window="hamming",
+            pct_overlap=0,
         )
         test_ds_adp["tke_b5"] = c2.turbulent_kinetic_energy(self.adp.vel_b5)
 
@@ -81,25 +86,20 @@ class analysis_testcase(unittest.TestCase):
         assert_allclose(test_ds, load("vector_data01_func.nc"), atol=1e-6)
         assert_allclose(test_ds_adp, load("BenchFile01_func.nc"), atol=1e-6)
 
-    def test_fft_freq(self):
-        f = self.adv_tool._fft_freq(units="Hz")
-        omega = self.adv_tool._fft_freq(units="rad/s")
-
-        np.testing.assert_equal(f, np.arange(1, 17, 1, dtype="float"))
-        np.testing.assert_equal(omega, np.arange(1, 17, 1, dtype="float") * (2 * np.pi))
-
     def test_adv_turbulence(self):
         dat = tv.dat.copy(deep=True)
         bnr = avm.ADVBinner(n_bin=20.0, fs=dat.fs)
-        tdat = bnr(dat)
-        acov = bnr.autocovariance(dat["vel"])
-
-        assert_identical(tdat, avm.turbulence_statistics(dat, n_bin=20.0, fs=dat.fs))
+        tdat = bnr.bin_average(dat)
+        tdat["psd"] = bnr.power_spectral_density(
+            dat["vel"],
+            freq_units="rad",
+            window="hann",
+        )
 
         tdat["stress_detrend"] = bnr.reynolds_stress(dat["vel"])
         tdat["stress_demean"] = bnr.reynolds_stress(dat["vel"], detrend=False)
         tdat["csd"] = bnr.cross_spectral_density(
-            dat["vel"], freq_units="rad", window="hamm", n_fft_coh=10
+            dat["vel"], freq_units="rad", window="hann", n_fft_coh=10
         )
         tdat["LT83"] = bnr.dissipation_rate_LT83(tdat["psd"], tdat.velds.U_mag)
         tdat["noise"] = bnr.doppler_noise_level(tdat["psd"], pct_fN=0.8)
@@ -107,13 +107,16 @@ class analysis_testcase(unittest.TestCase):
             tdat["psd"], tdat.velds.U_mag, noise=tdat["noise"]
         )
         tdat["SF"] = bnr.dissipation_rate_SF(dat["vel"][0], tdat.velds.U_mag)
+        tdat["stress_vec"] = bnr.reynolds_stress(dat["vel"])
+        tdat["tke_vec"] = bnr.turbulent_kinetic_energy(dat["vel"], noise=tdat["noise"])
         tdat["TE01"] = bnr.dissipation_rate_TE01(dat, tdat)
+        acov = bnr.autocovariance(dat["vel"])
         tdat["L"] = bnr.integral_length_scales(acov, tdat.velds.U_mag)
         slope_check = bnr.check_turbulence_cascade_slope(
-            tdat["psd"][-1].mean("time"), freq_range=[10, 100]
+            tdat["psd"][-1].mean("time_psd"), freq_range=[10, 100]
         )
         tdat["psd_noise"] = bnr.power_spectral_density(
-            dat["vel"], freq_units="rad", noise=[0.06, 0.04, 0.01]
+            dat["vel"], freq_units="rad", noise=[0.06, 0.04, 0.01], pct_overlap=0
         )
 
         if make_data:
@@ -143,12 +146,14 @@ class analysis_testcase(unittest.TestCase):
         dat.velds.rotate2("beam")
 
         tdat["psd"] = bnr.power_spectral_density(
-            dat["vel_b5"].isel(range_b5=len(dat["range_b5"]) // 2), freq_units="Hz"
+            dat["vel_b5"].isel(range_b5=len(dat["range_b5"]) // 2),
+            freq_units="Hz",
+            pct_overlap=0,
         )
         tdat["noise"] = bnr.doppler_noise_level(tdat["psd"], pct_fN=0.8)
         tdat["stress_vec4"] = bnr.reynolds_stress_4beam(
             dat, noise=tdat["noise"], orientation="up", beam_angle=25
-        )
+        )  # upvp is always nan here
         tdat["tke_vec5"], tdat["stress_vec5"] = bnr.stress_tensor_5beam(
             dat, noise=tdat["noise"], orientation="up", beam_angle=25, tke_only=False
         )
@@ -179,14 +184,16 @@ class analysis_testcase(unittest.TestCase):
         ) = bnr.dissipation_rate_SF(dat["vel"].isel(dir=2), r_range=[1, 5])
 
         slope_check = bnr.check_turbulence_cascade_slope(
-            tdat["psd"].mean("time_b5"), freq_range=[0.4, 4]
+            tdat["psd"].mean("time_psd"), freq_range=[0.4, 4]
         )
         # Check noise subtraction in psd function
-        tdat["psd_noise"] = bnr.power_spectral_density(
+        psd_noise = bnr.power_spectral_density(
             dat["vel_b5"].isel(range_b5=len(dat["range_b5"]) // 2),
             freq_units="Hz",
-            noise=0.01,
+            noise=0.0001,
+            pct_overlap=0.5,
         )
+        tdat["psd_noise"] = psd_noise.rename({"time_psd": "time_psd_50pct"})
         tdat["friction_vel"] = bnr.friction_velocity(
             tdat, upwp_=tdat["stress_vec5"].sel(tau="upwp_"), z_inds=slice(1, 5), H=50
         )

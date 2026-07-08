@@ -54,7 +54,7 @@ def _argument_check(spsd, fmin, fmax):
     _check_numeric(fmax, "fmax")
 
     # Ensure 'freq' and 'time' dimensions are present
-    if ("freq" not in spsd.dims) or ("time" not in spsd.dims):
+    if ("freq" not in spsd.dims) or ("time" not in spsd.dims[0]):
         raise ValueError("'spsd' must have 'time' and 'freq' as dimensions.")
 
     # Check that 'fs' (sampling frequency) is available in attributes
@@ -89,7 +89,7 @@ def sound_pressure_level(
 
     Parameters
     ----------
-    spsd: xarray.DataArray (time, freq)
+    spsd: xarray.DataArray (time_psd, freq)
         Mean square sound pressure spectral density in [Pa^2/Hz]
     fmin: int
         Lower frequency band limit (lower limit of the hydrophone). Default: 10 Hz
@@ -116,9 +116,10 @@ def sound_pressure_level(
     # Mean square sound pressure level
     mspl = 10 * np.log10(pressure_squared / reference)
 
+    time_dim = spsd.dims[0]
     out = xr.DataArray(
         mspl.astype(np.float32),
-        coords={"time": spsd["time"]},
+        coords={time_dim: spsd[time_dim]},
         attrs={
             "units": "dB re 1 uPa",
             "long_name": "Sound Pressure Level",
@@ -138,7 +139,7 @@ def _band_sound_pressure_level(spsd: xr.DataArray, octave: int, base: int):
 
     Parameters
     ----------
-    spsd: xarray.DataArray (time, freq)
+    spsd: xarray.DataArray (time_psd, freq)
         Mean square sound pressure spectral density in [Pa^2/Hz]
     octave: int
         Octave subdivision (1 = full octave, 3 = third-octave, etc.)
@@ -191,13 +192,14 @@ def _band_sound_pressure_level(spsd: xr.DataArray, octave: int, base: int):
             )
 
     # Mean square sound pressure level in dB rel 1 uPa
+    time_dim = spsd.dims[0]
     out_spl = xr.DataArray(
         10 * np.log10(out_sp / reference),
         coords={
-            "time": spsd["time"],
+            time_dim: spsd[time_dim],
             "freq_bins": bands[:, 1],
         },
-        dims=["time", "freq_bins"],
+        dims=[time_dim, "freq_bins"],
     )
     return out_spl
 
@@ -211,7 +213,7 @@ def third_octave_sound_pressure_level(
 
     Parameters
     ----------
-    spsd: xarray.DataArray (time, freq)
+    spsd: xarray.DataArray (time_psd, freq)
         Mean square sound pressure spectral in [Pa^2/Hz].
     fmin: int
         Lower frequency band limit (lower limit of the hydrophone).
@@ -253,7 +255,7 @@ def decidecade_sound_pressure_level(
 
     Parameters
     ----------
-    spsd: xarray.DataArray (time, freq)
+    spsd: xarray.DataArray (time_psd, freq)
         Mean square sound pressure spectral density in [Pa^2/Hz].
     fmin: int
         Lower frequency band limit (lower limit of the hydrophone).
