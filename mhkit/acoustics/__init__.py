@@ -18,11 +18,19 @@ pressure levels, and time or band aggregate spectral data.
 from mhkit.acoustics import io, graphics
 from .analysis import (
     minimum_frequency,
+    create_frequency_bands,
     sound_pressure_spectral_density,
     apply_calibration,
+    convert_to_third_octave,
+    convert_to_decidecade,
+    convert_to_millidecade,
+)
+from .spsdl import (
     sound_pressure_spectral_density_level,
     band_aggregate,
     time_aggregate,
+    time_summation,
+    time_average,
 )
 from .spl import (
     sound_pressure_level,

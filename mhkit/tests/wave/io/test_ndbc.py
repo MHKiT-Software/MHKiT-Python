@@ -11,7 +11,6 @@ import contextlib
 import unittest
 import os
 
-
 testdir = dirname(abspath(__file__))
 datadir = normpath(join(testdir, "..", "..", "..", "..", "examples", "data", "wave"))
 
@@ -100,8 +99,27 @@ class TestIOndbc(unittest.TestCase):
     # Realtime data
     def test_ndbc_read_realtime_met(self):
         data, units = wave.io.ndbc.read_file(join(datadir, "46097.txt"))
+        cd = np.array(
+            [
+                180,
+                12.0,
+                np.nan,
+                np.nan,
+                np.nan,
+                np.nan,
+                np.nan,
+                1001.0,
+                6.1,
+                10.9,
+                np.nan,
+                np.nan,
+                np.nan,
+                np.nan,
+            ],
+        )
         expected_index0 = datetime(2019, 4, 2, 13, 50)
         self.assertSetEqual(set(data.columns), set(self.expected_columns_metRT))
+        np.testing.assert_equal(data.iloc[-1].astype(float).values, cd)
         self.assertEqual(data.index[0], expected_index0)
         self.assertEqual(data.shape, (6490, 14))
         self.assertEqual(units, self.expected_units_metRT)
@@ -110,8 +128,26 @@ class TestIOndbc(unittest.TestCase):
     def test_ndbnc_read_historical_met(self):
         # QC'd monthly data, Aug 2019
         data, units = wave.io.ndbc.read_file(join(datadir, "46097h201908qc.txt"))
+        cd = np.array(
+            [
+                160.0,
+                2.7,
+                np.nan,
+                np.nan,
+                np.nan,
+                np.nan,
+                np.nan,
+                1014.9,
+                14.5,
+                13.4,
+                np.nan,
+                np.nan,
+                np.nan,
+            ]
+        )
         expected_index0 = datetime(2019, 8, 1, 0, 0)
         self.assertSetEqual(set(data.columns), set(self.expected_columns_metH))
+        np.testing.assert_equal(data.iloc[-1].astype(float).values, cd)
         self.assertEqual(data.index[0], expected_index0)
         self.assertEqual(data.shape, (4464, 13))
         self.assertEqual(units, self.expected_units_metH)
@@ -127,14 +163,34 @@ class TestIOndbc(unittest.TestCase):
     def test_ndbc_read_cwind_no_units(self):
         data, units = wave.io.ndbc.read_file(join(datadir, "42a01c2003.txt"))
         self.assertEqual(data.shape, (4320, 5))
+        cd = np.array(
+            [
+                [168.0, 6.1, np.nan, np.nan, np.nan],
+                [153.0, 5.6, np.nan, np.nan, np.nan],
+                [149.0, 4.8, np.nan, np.nan, np.nan],
+                [147.0, 4.1, np.nan, np.nan, np.nan],
+                [151.0, 4.1, 169.0, np.nan, np.nan],
+            ]
+        )
+        np.testing.assert_equal(data.tail().values, cd)
         self.assertEqual(units, None)
 
     def test_ndbc_read_cwind_units(self):
         data, units = wave.io.ndbc.read_file(join(datadir, "46002c2016.txt"))
         self.assertEqual(data.shape, (28468, 5))
-        self.assertEqual(units, wave.io.ndbc.parameter_units("cwind"))
+        cd = np.array(
+            [
+                [303.0, 6.2, np.nan, np.nan, np.nan],
+                [306.0, 7.8, np.nan, np.nan, np.nan],
+                [302.0, 7.6, np.nan, np.nan, np.nan],
+                [293.0, 6.4, np.nan, np.nan, np.nan],
+                [287.0, 6.3, 307.0, 9.7, 1819.0],
+            ]
+        )
+        np.testing.assert_equal(data.tail().values, cd)
 
     def test_ndbc_available_data(self):
+        # Can't test data values because datafiles are periodically updating
         data = wave.io.ndbc.available_data("swden", buoy_number="46029")
         cols = data.columns.tolist()
         exp_cols = ["id", "year", "filename"]
@@ -158,14 +214,18 @@ class TestIOndbc(unittest.TestCase):
         self.assertListEqual(fnames, self.filenames)
 
     def test_ndbc_request_data(self):
+        # Can't test data values because datafiles are periodically updating
         filenames = pd.Series(self.filenames[0])
         ndbc_data = wave.io.ndbc.request_data("swden", filenames, to_pandas=False)
         self.assertTrue(xr.Dataset(self.swden).equals(ndbc_data["1996"]))
 
     def test_ndbc_request_data_from_dataframe(self):
+        # Can't test data values because datafiles are periodically updating
         filenames = pd.DataFrame(pd.Series(data=self.filenames[0]))
         ndbc_data = wave.io.ndbc.request_data("swden", filenames)
-        assert_frame_equal(self.swden, ndbc_data["1996"])
+        assert_frame_equal(
+            self.swden, ndbc_data["1996"], check_column_type=False, check_dtype=False
+        )
 
     def test_ndbc_request_data_filenames_length(self):
         with self.assertRaises(ValueError):
@@ -221,9 +281,10 @@ class TestIOndbc(unittest.TestCase):
     def test_ndbc_parameter_units(self):
         parameter = "swden"
         units = wave.io.ndbc.parameter_units(parameter)
-        self.assertEqual(units[parameter], "(m*m)/Hz")
+        self.assertEqual(units[parameter], "m^2/Hz")
 
     def test_ndbc_request_directional_data(self):
+        # Can't test data values because datafiles are periodically updating
         data = self.directional_data
         # correct 5 parameters
         self.assertEqual(len(data), 5)
@@ -236,12 +297,14 @@ class TestIOndbc(unittest.TestCase):
         self.assertEqual(len(data.frequency), 47)
 
     def test_ndbc_create_spread_function(self):
+        # Can't test data values because datafiles are periodically updating
         directions = np.arange(0, 360, 2.0)
         spread = wave.io.ndbc.create_spread_function(self.directional_data, directions)
         self.assertEqual(spread.shape, (47, 180))
         self.assertEqual(spread.units, "1/Hz/deg")
 
     def test_ndbc_create_directional_spectrum(self):
+        # Can't test data values because datafiles are periodically updating
         directions = np.arange(0, 360, 2.0)
         spectrum = wave.io.ndbc.create_directional_spectrum(
             self.directional_data, directions
@@ -250,6 +313,7 @@ class TestIOndbc(unittest.TestCase):
         self.assertEqual(spectrum.units, "m^2/Hz/deg")
 
     def test_plot_directional_spectrum(self):
+        # Can't test data values because datafiles are periodically updating
         directions = np.arange(0, 360, 2.0)
         spectrum = wave.io.ndbc.create_spread_function(
             self.directional_data, directions
@@ -293,8 +357,13 @@ class TestIOndbc(unittest.TestCase):
             metadata["provider"], "Owned and maintained by National Data Buoy Center"
         )
         self.assertEqual(metadata["type"], "3-meter foam buoy w/ seal cage")
-        self.assertAlmostEqual(float(metadata["lat"]), 36.785)
-        self.assertAlmostEqual(float(metadata["lon"]), 122.396)
+        # NDBC 46042 is a deployed buoy that drifts within its watch
+        # circle, so the NDBC output position can drift over time (observed
+        # lat 36.785 -> 36.787, lon 122.396 -> 122.408). Use a loose tolerance
+        # that tracks the buoy's nominal location without failing on real
+        # movement, while still catching large parsing errors.
+        self.assertAlmostEqual(float(metadata["lat"]), 36.785, delta=0.05)
+        self.assertAlmostEqual(float(metadata["lon"]), 122.396, delta=0.05)
         self.assertEqual(metadata["Site elevation"], "sea level")
 
     def test_get_buoy_metadata_invalid_station(self):

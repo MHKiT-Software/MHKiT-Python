@@ -4,7 +4,6 @@ import numpy as np
 
 from . import nortek2_lib as lib
 
-
 dt32 = "float32"
 grav = 9.81
 # The starting value for the checksum:

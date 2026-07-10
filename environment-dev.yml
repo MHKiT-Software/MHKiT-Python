@@ -1,0 +1,35 @@
+name: mhkit-dev-env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.10,<3.14
+  - pip
+  - numpy>=2.0.0
+  - pandas>=2.2.2
+  # Provides pyarrow storage for the default string dtype in pandas 3.0+
+  - pyarrow>=16.0.0
+  - scipy>=1.14.0
+  - xarray>=2024.6.0
+  - scikit-learn>=1.5.1
+  - h5py>=3.11.0
+  - h5pyd>=0.18.0
+  - netCDF4>=1.6.5
+  - hdf5>=1.14.3
+  - statsmodels>=0.14.2
+  - requests
+  - beautifulsoup4
+  - numexpr>=2.10.0
+  - lxml
+  - bottleneck
+  - pecos>=0.3.0
+  - notebook
+  - matplotlib>=3.9.1
+  - fatpack
+  - cartopy
+  # rex is installed from PyPI (NLR-rex), not conda-forge. The conda-forge
+  # `nrel-rex` is frozen at 0.2.84, which predates the s3:// fsspec support
+  # needed to read the wave hindcast .h5 files directly from S3. The [hsds] extra
+  # pulls the HSDS client dependencies the hindcast reads use.
+  - pip:
+      - NLR-rex[hsds]>=0.5.0

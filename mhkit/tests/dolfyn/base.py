@@ -23,24 +23,28 @@ def assert_allclose(dat0, dat1, *args, **kwargs):
     # For problematic time check
     names = []
     for v in dat0.variables:
-        if np.issubdtype(dat0[v].dtype, np.datetime64):
+        if v in dat1.variables and np.issubdtype(dat0[v].dtype, np.datetime64):
             dat0[v] = time.dt642epoch(dat0[v])
             dat1[v] = time.dt642epoch(dat1[v])
             names.append(v)
     # Check coords and data_vars
     _assert_allclose(dat0, dat1, *args, **kwargs)
-    # Check attributes
-    mismatch = []
-    for nm in dat0.attrs:
-        # Ignore datatype
-        if str(dat0.attrs[nm]) != str(dat1.attrs[nm]):
-            mismatch.append(nm)
-    if mismatch:
-        raise ValueError(f"The following attributes do not match: {mismatch}.")
     # If test debugging
     for v in names:
         dat0[v] = time.epoch2dt64(dat0[v])
         dat1[v] = time.epoch2dt64(dat1[v])
+
+    # Check attributes
+    mismatch = []
+    for nm in dat0.attrs:
+        # Ignore datatype
+        if nm in dat1.attrs:
+            if str(dat0.attrs[nm]) != str(dat1.attrs[nm]):
+                mismatch.append(nm)
+        else:
+            mismatch.append(nm)
+    if mismatch:
+        raise ValueError(f"The following attributes do not match: {mismatch}.")
 
 
 def load_netcdf(name, *args, **kwargs):

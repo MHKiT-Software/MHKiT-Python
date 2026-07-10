@@ -935,6 +935,9 @@ def plot_directional_spectrum(
 
     a, f = np.meshgrid(np.deg2rad(spectrum.direction), spectrum.frequency)
     _, ax = plt.subplots(subplot_kw=dict(projection="polar"))
+    # Set 0 degrees to be at the top, and positive angles to be clockwise
+    ax.set_theta_zero_location("N")
+    ax.set_theta_direction(-1)
     tmp = np.floor(np.min(spectrum.data) * 10) / 10
     color_level_min = tmp if (color_level_min is None) else color_level_min
     color_level_max = np.ceil(np.max(spectrum.data) * 10) / 10

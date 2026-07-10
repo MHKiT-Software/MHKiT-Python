@@ -20,6 +20,8 @@ from rex import MultiYearWaveX, WaveX
 from mhkit.utils.cache import handle_caching
 from mhkit.utils.type_handling import convert_to_dataset
 
+from mhkit.wave.io.hindcast.hindcast_exceptions import hindcast_guard
+
 
 def region_selection(lat_lon: Union[List[float], Tuple[float, float]]) -> str:
     """
@@ -74,6 +76,7 @@ def region_selection(lat_lon: Union[List[float], Tuple[float, float]]) -> str:
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-statements
+@hindcast_guard
 def request_wpto_point_data(
     data_type: str,
     parameter: Union[str, List[str]],
@@ -283,6 +286,7 @@ def request_wpto_point_data(
 
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-statements
+@hindcast_guard
 def request_wpto_directional_spectrum(
     lat_lon: Union[Tuple[float, float], List[Tuple[float, float]]],
     year: str,

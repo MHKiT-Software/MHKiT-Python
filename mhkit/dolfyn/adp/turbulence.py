@@ -128,7 +128,7 @@ class ADPBinner(VelBinner):
         self.diff_style = diff_style
         self.orientation = orientation
 
-    def _diff_func(self, vel, u, orientation):
+    def _diff_func(self, vel, u, orientation, tag):
         """Applies the chosen style of numerical differentiation to velocity data.
 
         This method calculates the derivative of the velocity data 'vel' with respect to the 'range'
@@ -156,16 +156,16 @@ class ADPBinner(VelBinner):
             sign *= -1
 
         if self.diff_style == "first":
-            out = _diffz_first(vel[u].values, vel["range"].values)
-            return sign * out, vel.range[1:]
+            out = _diffz_first(vel[u].values, vel["range" + tag].values)
+            return sign * out, vel["range" + tag][1:]
 
         elif self.diff_style == "centered":
-            out = _diffz_centered(vel[u].values, vel["range"].values)
-            return sign * out, vel.range[1:-1]
+            out = _diffz_centered(vel[u].values, vel["range" + tag].values)
+            return sign * out, vel["range" + tag][1:-1]
 
         elif self.diff_style == "centered_extended":
-            out = _diffz_centered_extended(vel[u].values, vel["range"].values)
-            return sign * out, vel.range
+            out = _diffz_centered_extended(vel[u].values, vel["range" + tag].values)
+            return sign * out, vel["range" + tag]
 
     def dudz(self, vel, orientation=None):
         """
@@ -191,11 +191,16 @@ class ADPBinner(VelBinner):
         'true vertical' direction.
         """
 
-        dudz, rng = self._diff_func(vel, 0, orientation)
+        if "_" in vel.name:
+            tag = "_" + vel.name.split("_")[-1]
+        else:
+            tag = ""
+
+        dudz, rng = self._diff_func(vel, 0, orientation, tag)
         return xr.DataArray(
             dudz,
-            coords=[rng, vel.time],
-            dims=["range", "time"],
+            coords=[rng, vel["time" + tag]],
+            dims=["range" + tag, "time" + tag],
             attrs={"units": "s-1", "long_name": "Shear in X-direction"},
         )
 
@@ -223,11 +228,16 @@ class ADPBinner(VelBinner):
         'true vertical' direction.
         """
 
-        dvdz, rng = self._diff_func(vel, 1, orientation)
+        if "_" in vel.name:
+            tag = "_" + vel.name.split("_")[-1]
+        else:
+            tag = ""
+
+        dvdz, rng = self._diff_func(vel, 1, orientation, tag)
         return xr.DataArray(
             dvdz,
-            coords=[rng, vel.time],
-            dims=["range", "time"],
+            coords=[rng, vel["time" + tag]],
+            dims=["range" + tag, "time" + tag],
             attrs={"units": "s-1", "long_name": "Shear in Y-direction"},
         )
 
@@ -255,11 +265,16 @@ class ADPBinner(VelBinner):
         'true vertical' direction.
         """
 
-        dwdz, rng = self._diff_func(vel, 2, orientation)
+        if "_" in vel.name:
+            tag = "_" + vel.name.split("_")[-1]
+        else:
+            tag = ""
+
+        dwdz, rng = self._diff_func(vel, 2, orientation, tag)
         return xr.DataArray(
             dwdz,
-            coords=[rng, vel.time],
-            dims=["range", "time"],
+            coords=[rng, vel["time" + tag]],
+            dims=["range" + tag, "time" + tag],
             attrs={"units": "s-1", "long_name": "Shear in Z-direction"},
         )
 
@@ -355,10 +370,10 @@ class ADPBinner(VelBinner):
         N2 = psd.sel(freq=f_range) * psd.freq.sel(freq=f_range)
         noise_level = np.sqrt(N2.mean(dim="freq"))
 
-        time_coord = psd.dims[0]  # no reason this shouldn't be time or time_b5
+        time_dim = psd.dims[-2]
         return xr.DataArray(
-            noise_level.values.astype("float32"),
-            coords={time_coord: psd.coords[time_coord]},
+            noise_level.values,
+            coords={time_dim: psd[time_dim]},
             attrs={
                 "units": "m s-1",
                 "long_name": "Doppler Noise Level",
@@ -553,9 +568,9 @@ class ADPBinner(VelBinner):
             bp2_[i] = np.nanvar(self.reshape(beam_vel[beam]), axis=-1)
 
         # Remove doppler_noise
-        if type(noise) == type(ds["vel"]):
-            noise = noise.values
-        bp2_ -= noise**2
+        if type(noise) is type(ds["vel"]):
+            noise = self._interp_noise(noise, self.mean(ds["time"].values))
+        bp2_ -= noise[..., :] ** 2
 
         return bp2_
 
@@ -608,7 +623,7 @@ class ADPBinner(VelBinner):
         vpwp_ = (bp2_[2] - bp2_[3]) / denm
 
         return xr.DataArray(
-            np.stack([upwp_ * np.nan, upwp_, vpwp_]).astype("float32"),
+            np.stack([upwp_ * np.nan, upwp_, vpwp_]),
             coords={
                 "tau": ["upvp_", "upwp_", "vpwp_"],
                 "range": ds["range"],
@@ -724,7 +739,7 @@ class ADPBinner(VelBinner):
         ) / denm
 
         tke_vec = xr.DataArray(
-            np.stack([upup_, vpvp_, wpwp_]).astype("float32"),
+            np.stack([upup_, vpvp_, wpwp_]),
             coords={
                 "tke": ["upup_", "vpvp_", "wpwp_"],
                 "range": ds["range"],
@@ -744,9 +759,7 @@ class ADPBinner(VelBinner):
             # Guerra Thomson calculate u'v' bar from from the covariance of u' and v'
             ds.velds.rotate2("inst")
             vel = self.detrend(ds.vel.values)
-            upvp_ = np.nanmean(vel[0] * vel[1], axis=-1, dtype=np.float64).astype(
-                np.float32
-            )
+            upvp_ = np.nanmean(vel[0] * vel[1], axis=-1)
 
             upwp_ = (
                 sin(th) ** 5 * cos(th) * (bp2_[1] - bp2_[0])
@@ -763,7 +776,7 @@ class ADPBinner(VelBinner):
             ) / denm
 
             stress_vec = xr.DataArray(
-                np.stack([upvp_, upwp_, vpwp_]).astype("float32"),
+                np.stack([upvp_, upwp_, vpwp_]),
                 coords={
                     "tau": ["upvp_", "upwp_", "vpwp_"],
                     "range": ds["range"],
@@ -923,6 +936,14 @@ class ADPBinner(VelBinner):
         idx = np.where((freq_range[0] < freq) & (freq < freq_range[1]))
         idx = idx[0]
 
+        # Interpolate U_mag to the same time dimension as PSD
+        umag_time_dim = U_mag.dims[-1]
+        # If overlap is not 0%
+        if psd["time_psd"].size != U_mag[umag_time_dim].size:
+            U_mag = U_mag.interp({umag_time_dim: psd["time_psd"].values}).values
+        else:
+            U_mag = U_mag.values
+
         # Set the correct magnitude whether the frequency is in Hz or rad/s
         if freq.units == "Hz":
             U = U_mag / (2 * np.pi)
@@ -932,12 +953,10 @@ class ADPBinner(VelBinner):
         # Use the transverse value derived from the Kolmogorov constant
         a = k_constant
         # Calculate dissipation
-        out = (psd[:, idx] * freq[idx] ** (5 / 3) / a).mean(axis=-1) ** (
-            3 / 2
-        ) / U.values
+        out = (psd[:, idx] * freq[idx] ** (5 / 3) / a).mean(axis=-1) ** (3 / 2) / U
 
         return xr.DataArray(
-            out.astype("float32"),
+            out,
             attrs={
                 "units": "m2 s-3",
                 "long_name": "TKE Dissipation Rate",
@@ -1022,8 +1041,8 @@ class ADPBinner(VelBinner):
         # bm shape is [range, ensemble time, 'data within ensemble']
         bm = self.demean(vel_raw.values)  # take out the ensemble mean
 
-        e = np.empty(bm.shape[:2], dtype="float32") * np.nan
-        n = np.empty(bm.shape[:2], dtype="float32") * np.nan
+        e = np.empty(bm.shape[:2]) * np.nan
+        n = np.empty(bm.shape[:2]) * np.nan
 
         bin_size = round(np.diff(rng)[0], 3)
         R = int(r_range[0] / bin_size)
@@ -1061,7 +1080,7 @@ class ADPBinner(VelBinner):
         noise = np.sqrt(n / 2)
 
         epsilon = xr.DataArray(
-            epsilon.astype("float32"),
+            epsilon,
             coords={vel_raw.dims[0]: rng, vel_raw.dims[1]: time},
             dims=vel_raw.dims,
             attrs={
@@ -1074,7 +1093,7 @@ class ADPBinner(VelBinner):
         )
 
         noise = xr.DataArray(
-            noise.astype("float32"),
+            noise,
             coords={vel_raw.dims[0]: rng, vel_raw.dims[1]: time},
             attrs={
                 "units": "m s-1",
@@ -1083,7 +1102,7 @@ class ADPBinner(VelBinner):
         )
 
         SF = xr.DataArray(
-            D.astype("float32"),
+            D,
             coords={vel_raw.dims[0]: rng, "range_SF": r, vel_raw.dims[1]: time},
             attrs={
                 "units": "m2 s-2",

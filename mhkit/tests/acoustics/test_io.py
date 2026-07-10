@@ -6,7 +6,6 @@ import unittest
 
 import mhkit.acoustics as acoustics
 
-
 testdir = dirname(abspath(__file__))
 plotdir = join(testdir, "plots")
 isdir = os.path.isdir(plotdir)
@@ -53,10 +52,10 @@ class TestIO(unittest.TestCase):
         np.testing.assert_allclose(raw_voltage, expected_raw_voltage, atol=1e-6)
 
         # Expected time array
-        time_interval = pd.Timedelta(seconds=1 / fs)
-        expected_time = pd.date_range(
-            start=start_time, periods=len(raw) + 1, freq=time_interval
+        end_time = np.datetime64(start_time) + np.timedelta64(
+            raw.size * 1000000000, "ns"
         )
+        expected_time = pd.date_range(start_time, end_time, raw.size + 1)
         pd.testing.assert_index_equal(time, expected_time)
 
     def test_read_iclisten_metadata(self):
@@ -201,11 +200,11 @@ class TestIO(unittest.TestCase):
         # Check time coordinate
         cc = np.array(
             [
-                "2023-02-04T15:05:08.499983310",
-                "2023-02-04T15:05:09.499959707",
+                "2023-02-04T15:05:08.499983072",
+                "2023-02-04T15:05:08.999971389",
+                "2023-02-04T15:05:09.499959945",
+                "2023-02-04T15:05:09.999948263",
                 "2023-02-04T15:05:10.499936580",
-                "2023-02-04T15:05:11.499913454",
-                "2023-02-04T15:05:12.499890089",
             ],
             dtype="datetime64[ns]",
         )
@@ -213,47 +212,102 @@ class TestIO(unittest.TestCase):
         cd_spsd = np.array(
             [
                 [
-                    6.63068204e-02,
-                    3.81400273e-03,
-                    9.28277032e-04,
-                    3.86833846e-04,
-                    2.31924928e-05,
+                    7.04428102e-02,
+                    4.05186564e-03,
+                    9.86163910e-04,
+                    4.10977795e-04,
+                    2.46398082e-05,
                 ],
                 [
-                    1.32674948e-01,
-                    8.07329208e-03,
-                    3.35305424e-04,
-                    8.63341841e-05,
-                    3.23737989e-04,
+                    8.22255815e-02,
+                    5.62956783e-03,
+                    1.50523430e-03,
+                    5.62088860e-05,
+                    8.08846064e-05,
                 ],
                 [
-                    1.37353862e-02,
-                    1.03924150e-02,
-                    5.24537532e-03,
-                    1.18371618e-03,
-                    5.28236923e-05,
+                    1.25805956e-01,
+                    7.65523631e-03,
+                    3.17934716e-04,
+                    8.18645956e-05,
+                    3.06975506e-04,
                 ],
                 [
-                    2.70499444e-03,
-                    1.47833274e-04,
-                    2.46503548e-04,
-                    2.36905027e-04,
-                    1.92069973e-04,
+                    3.08283050e-02,
+                    1.12449483e-03,
+                    9.16890290e-04,
+                    5.18037680e-04,
+                    1.53328923e-04,
                 ],
                 [
-                    6.80966653e-03,
-                    2.33636493e-03,
-                    3.21849897e-04,
-                    9.13295549e-05,
-                    3.50420384e-05,
+                    1.24966808e-02,
+                    9.45535593e-03,
+                    4.77241430e-03,
+                    1.07700449e-03,
+                    4.80567438e-05,
                 ],
             ]
         )
 
         np.testing.assert_allclose(td_spsd.head().values, cd_spsd, atol=1e-6)
         np.testing.assert_allclose(
-            td_spsd["time"].head().astype("int64"), cc.astype("int64"), atol=1
+            td_spsd["time_psd"].head().astype("int64"), cc.astype("int64"), atol=1
         )
+
+    def test_wispr(self):
+        file_name = join(datadir, "WISPR_230825_003936.dat")
+        td = acoustics.io.read_wispr(file_name)
+
+        # Check time coordinate
+        cc = np.array(
+            [
+                "2023-08-25T00:39:36.000000000",
+                "2023-08-25T00:39:36.000020000",
+                "2023-08-25T00:39:36.000040000",
+                "2023-08-25T00:39:36.000060000",
+                "2023-08-25T00:39:36.000080000",
+            ],
+            dtype="datetime64[ns]",
+        )
+        # Check data
+        cd = np.array([-0.00167847, -0.00167847, -0.00152588, -0.00183105, -0.00106812])
+
+        np.testing.assert_allclose(td.head().values, cd, atol=1e-6)
+        np.testing.assert_equal(td["time"].head().values, cc)
+
+    def test_read_wispr_metadata(self):
+        from mhkit.acoustics.io import _read_wispr_metadata
+
+        file_name = join(datadir, "WISPR_230825_003936.dat")
+
+        with open(file_name, "rb") as f:
+            metadata = _read_wispr_metadata(f)
+
+        expected_metadata = {
+            "version": 1.2,
+            "time": "08:25:23:00:39:36",
+            "instrument_id": "PERI_1",
+            "location_id": "PWSPNE",
+            "volts": 15.77,
+            "blocks_free": 20.98,
+            "file_size": 58575,
+            "buffer_size": 16896,
+            "samples_per_buffer": 8448,
+            "sample_size": 2,
+            "sampling_rate": 50000,
+            "gain": 0,
+            "decimation": 16,
+            "adc_vref": 5.0,
+            "file_length_sec": 299.904,
+        }
+
+        # Assertions to check if metadata matches expected values
+        for key, expected_value in expected_metadata.items():
+            self.assertIn(key, metadata)
+            if isinstance(expected_value, float):
+                self.assertAlmostEqual(metadata[key], expected_value, places=6)
+            else:
+                self.assertEqual(metadata[key], expected_value)
 
     def test_audio_export(self):
         file_name = join(datadir, "RBW_6661_20240601_053114.wav")

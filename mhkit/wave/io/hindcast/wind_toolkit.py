@@ -30,6 +30,8 @@ from rex import MultiYearWindX
 from mhkit.utils.cache import handle_caching
 from mhkit.utils.type_handling import convert_to_dataset
 
+from mhkit.wave.io.hindcast.hindcast_exceptions import hindcast_guard
+
 
 def region_selection(lat_lon: Tuple[float, float], preferred_region: str = "") -> str:
     """
@@ -108,6 +110,7 @@ def region_selection(lat_lon: Tuple[float, float], preferred_region: str = "") -
     return region[0]
 
 
+@hindcast_guard
 def get_region_data(region: str) -> Tuple[np.ndarray, np.ndarray]:
     """
     Retrieves the latitude and longitude data points for the specified region
@@ -210,7 +213,7 @@ def plot_region(
     supported_regions = ["Offshore_CA", "Hawaii", "Mid_Atlantic", "NW_Pacific"]
     if region not in supported_regions:
         raise ValueError(
-            f'{region} not in list of supported regions: {", ".join(supported_regions)}'
+            f"{region} not in list of supported regions: {', '.join(supported_regions)}"
         )
 
     lats, lons = get_region_data(region)
@@ -278,6 +281,7 @@ def elevation_to_string(
 # pylint: disable=too-many-statements
 # pylint: disable=too-many-positional-arguments
 # pylint: disable=duplicate-code
+@hindcast_guard
 def request_wtk_point_data(
     time_interval: str,
     parameter: Union[str, List[str]],
@@ -369,7 +373,6 @@ def request_wtk_point_data(
     meta: DataFrame
         Location metadata for the requested data location
     """
-
     if not isinstance(parameter, (str, list)):
         raise TypeError("parameter must be of type string or list")
     if not isinstance(lat_lon, (list, tuple)):
@@ -427,6 +430,9 @@ def request_wtk_point_data(
         else:
             raise TypeError("Coordinates must be within the same region!")
 
+    # NOTE: NREL to NLR name changes
+    #   * developer.nlr.gov must be configured via ~/.hscfg
+    #   * As of June 2026 the HSDS data domain is still "/nrel/...".
     if time_interval == "1-hour":
         wind_path = f"/nrel/wtk/{region.lower()}/{region}_*.h5"
     elif time_interval == "5-minute":

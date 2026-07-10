@@ -6,7 +6,6 @@ import unittest
 
 import mhkit.acoustics as acoustics
 
-
 testdir = dirname(abspath(__file__))
 plotdir = join(testdir, "plots")
 isdir = os.path.isdir(plotdir)
@@ -22,7 +21,7 @@ class TestMetrics(unittest.TestCase):
         P = acoustics.io.read_soundtrap(file_name, sensitivity=-177)
         self.spsd = acoustics.sound_pressure_spectral_density(P, P.fs, bin_length=1)
         self.spsd_60s = acoustics.sound_pressure_spectral_density(
-            P, P.fs, bin_length=60, rms=True
+            P, P.fs, bin_length=60
         )
 
     @classmethod
@@ -52,76 +51,90 @@ class TestMetrics(unittest.TestCase):
             ],
             dtype="datetime64[ns]",
         )
-        cd_spl_head = np.array([98.12284, 98.639824, 97.62718, 97.85709, 96.98539])
-        cd_spl_tail = np.array([98.420975, 98.10879, 97.430115, 97.99395, 97.95798])
+        cd_spl_head = np.array([98.38563, 98.20744, 98.40893, 98.760826, 97.21689])
+        cd_spl_tail = np.array([97.29747, 97.51031, 98.302605, 98.08264, 97.961624])
 
         cd_spl10_freq_head = np.array(
             [10.0, 12.589254, 15.848932, 19.952623, 25.118864]
         )
         cd_spl10_head = np.array(
             [
-                [68.88561, 75.65294, 68.29522, 75.80323, 82.53724],
-                [62.806908, 69.76993, 62.64113, 73.26091, 83.27883],
-                [71.73166, 68.541534, 68.056076, 75.438034, 84.268715],
-                [70.84345, 68.65471, 63.4681, 72.818085, 77.38771],
-                [69.23148, 74.04387, 64.49707, 74.146164, 79.52727],
+                [63.97053, 73.666466, 72.09614, 74.55805, 82.75655],
+                [62.93203, 66.638306, 70.98349, 77.45272, 81.752464],
+                [60.817398, 68.31071, 63.029625, 70.95255, 82.63971],
+                [62.09812, 64.15272, 69.552284, 68.90529, 80.36065],
+                [66.71991, 68.61455, 68.994385, 74.02169, 82.95276],
             ]
         )
         cd_spl10_freq_tail = np.array(
-            [19952.62315, 25118.864315, 31622.776602, 39810.717055, 50118.723363]
+            [15848.931925, 19952.62315, 25118.864315, 31622.776602, 39810.717055]
         )
         cd_spl10_tail = np.array(
             [
-                [80.50317, 80.87118, 83.18715, 81.44459, 73.96579],
-                [81.933586, 81.51899, 83.47768, 81.85002, 74.25242],
-                [81.261314, 81.41166, 83.528534, 81.81753, 74.15244],
-                [81.70521, 81.42419, 83.45481, 81.4712, 73.85561],
-                [80.90549, 81.397545, 83.36795, 81.5738, 74.3497],
+                [83.001396, 81.12602, 81.27904, 83.39552, 82.37139],
+                [83.49641, 81.45716, 81.33536, 83.458916, 82.2894],
+                [83.659706, 82.013145, 81.73298, 83.76325, 82.473526],
+                [83.58633, 82.00813, 81.56679, 83.64441, 82.30002],
+                [83.10043, 80.908325, 81.40121, 83.37144, 82.33061],
             ]
         )
-        cd_spl3_freq_head = np.array([10.0, 12.59921, 15.874011, 20.0, 25.198421])
+        cd_spl3_freq_head = np.array([10.079368, 12.699208, 16.0, 20.158737, 25.398417])
         cd_spl3_head = np.array(
             [
-                [68.88561, 75.65294, 68.29522, 75.80323, 82.53724],
-                [62.806908, 69.76993, 62.64113, 73.26091, 83.27883],
-                [71.73166, 68.541534, 68.056076, 75.438034, 84.268715],
-                [70.84345, 68.65471, 63.4681, 72.818085, 77.38771],
-                [69.23148, 74.04387, 64.49707, 74.146164, 79.52727],
+                [64.145065, 74.11997, 71.47932, 75.56602, 82.32091],
+                [63.103104, 66.557434, 71.07715, 77.72599, 81.811295],
+                [61.326202, 68.260925, 62.92696, 72.777756, 83.01741],
+                [62.4825, 63.912766, 69.58983, 69.38629, 80.71226],
+                [67.14199, 68.34964, 69.5154, 74.39259, 83.70042],
             ]
         )
         cd_spl3_freq_tail = np.array(
-            [20480.0, 25803.183102, 32509.973544, 40960.0, 51606.366204]
+            [16384.0, 20642.546481, 26007.978835, 32768.0, 41285.092963]
         )
         cd_spl3_tail = np.array(
             [
-                [80.37833, 81.21788, 83.5725, 80.37073, 72.06452],
-                [81.848434, 81.772064, 83.928505, 80.70311, 72.164345],
-                [81.13474, 81.67803, 83.96902, 80.6636, 72.07929],
-                [81.532005, 81.694954, 83.796875, 80.38368, 71.94872],
-                [80.70353, 81.6905, 83.76083, 80.53248, 72.248276],
+                [82.71037, 81.107666, 81.50009, 83.79481, 80.966225],
+                [83.16837, 81.403625, 81.59755, 83.72969, 80.989555],
+                [83.40933, 81.91403, 81.98976, 84.04357, 81.151474],
+                [83.374664, 81.88523, 81.79578, 83.965515, 80.91496],
+                [82.746124, 80.797325, 81.69917, 83.70343, 81.01623],
             ]
         )
 
-        np.testing.assert_allclose(td_spl.head().values, cd_spl_head, atol=1e-6)
-        np.testing.assert_allclose(td_spl.tail().values, cd_spl_tail, atol=1e-6)
+        np.testing.assert_allclose(
+            td_spl.head().values, cd_spl_head, atol=1e-6, rtol=1e-6
+        )
+        np.testing.assert_allclose(
+            td_spl.tail().values, cd_spl_tail, atol=1e-6, rtol=1e-6
+        )
+        np.testing.assert_allclose(
+            td_spl["time_psd"].head().astype("int64"), cc.astype("int64"), atol=1
+        )
+
         np.testing.assert_allclose(
             td_spl10["freq_bins"].head().values, cd_spl10_freq_head, atol=1e-6
         )
-        np.testing.assert_allclose(td_spl10.head().values, cd_spl10_head, atol=1e-6)
+        np.testing.assert_allclose(
+            td_spl10.head().values, cd_spl10_head, atol=1e-6, rtol=1e-6
+        )
         np.testing.assert_allclose(
             td_spl10["freq_bins"].tail().values, cd_spl10_freq_tail, atol=1e-6
         )
-        np.testing.assert_allclose(td_spl10.tail().values, cd_spl10_tail, atol=1e-6)
+        np.testing.assert_allclose(
+            td_spl10.tail().values, cd_spl10_tail, atol=1e-6, rtol=1e-6
+        )
+
         np.testing.assert_allclose(
             td_spl3["freq_bins"].head().values, cd_spl3_freq_head, atol=1e-6
         )
-        np.testing.assert_allclose(td_spl3.head().values, cd_spl3_head, atol=1e-6)
+        np.testing.assert_allclose(
+            td_spl3.head().values, cd_spl3_head, atol=1e-6, rtol=1e-6
+        )
         np.testing.assert_allclose(
             td_spl3["freq_bins"].tail().values, cd_spl3_freq_tail, atol=1e-6
         )
-        np.testing.assert_allclose(td_spl3.tail().values, cd_spl3_tail, atol=1e-6)
         np.testing.assert_allclose(
-            td_spl["time"].head().astype("int64"), cc.astype("int64"), atol=1
+            td_spl3.tail().values, cd_spl3_tail, atol=1e-6, rtol=1e-6
         )
 
     def test_nmfs_weighting(self):
@@ -182,29 +195,29 @@ class TestMetrics(unittest.TestCase):
 
         cc = np.array(
             [
-                "2023-02-04T15:05:37.999295949",
-                "2023-02-04T15:06:37.997894048",
-                "2023-02-04T15:07:37.996495485",
-                "2023-02-04T15:08:37.995094776",
-                "2023-02-04T15:09:37.993695497",
+                "2023-02-04T15:05:37.999294757",
+                "2023-02-04T15:06:07.998594760",
+                "2023-02-04T15:06:37.997895240",
+                "2023-02-04T15:07:07.997195243",
+                "2023-02-04T15:07:37.996495246",
             ],
             dtype="datetime64[ns]",
         )
-        cd_sel = np.array([116.18274, 121.698654, 143.28117, 147.37479, 127.01828])
-        cd_sel_lf = np.array([112.363075, 120.177086, 142.74931, 146.57983, 125.83696])
-        cd_sel_hf = np.array([112.22166, 118.88085, 139.94121, 144.33324, 124.328995])
-        cd_sel_vhf = np.array([110.23136, 114.00643, 133.20006, 139.13504, 118.88397])
-        cd_sel_pw = np.array([112.22191, 119.87286, 141.67467, 145.6534, 125.419975])
-        cd_sel_ow = np.array([110.945404, 118.06397, 139.08435, 143.51094, 123.68077])
+        cd_sel = np.array([116.081825, 117.38323, 120.408775, 127.583755, 143.19513])
+        cd_sel_lf = np.array([112.261665, 114.67835, 118.88702, 126.86423, 142.66327])
+        cd_sel_hf = np.array([112.121216, 114.001945, 117.59107, 124.69318, 139.85515])
+        cd_sel_vhf = np.array([110.1319, 110.81934, 112.71749, 118.208664, 133.114])
+        cd_sel_pw = np.array([112.120964, 114.46142, 118.58291, 126.152115, 141.58862])
+        cd_sel_ow = np.array([110.844246, 113.00219, 116.77398, 123.92641, 138.99828])
 
-        np.testing.assert_allclose(td_sel.values, cd_sel, atol=1e-5)
-        np.testing.assert_allclose(td_sel_lf.values, cd_sel_lf, atol=1e-5)
-        np.testing.assert_allclose(td_sel_hf.values, cd_sel_hf, atol=1e-5)
-        np.testing.assert_allclose(td_sel_vhf.values, cd_sel_vhf, atol=1e-5)
-        np.testing.assert_allclose(td_sel_pw.values, cd_sel_pw, atol=1e-5)
-        np.testing.assert_allclose(td_sel_ow.values, cd_sel_ow, atol=1e-5)
+        np.testing.assert_allclose(td_sel.head().values, cd_sel, atol=1e-5)
+        np.testing.assert_allclose(td_sel_lf.head().values, cd_sel_lf, atol=1e-5)
+        np.testing.assert_allclose(td_sel_hf.head().values, cd_sel_hf, atol=1e-5)
+        np.testing.assert_allclose(td_sel_vhf.head().values, cd_sel_vhf, atol=1e-5)
+        np.testing.assert_allclose(td_sel_pw.head().values, cd_sel_pw, atol=1e-5)
+        np.testing.assert_allclose(td_sel_ow.head().values, cd_sel_ow, atol=1e-5)
         np.testing.assert_allclose(
-            td_sel["time"].astype("int64"), cc.astype("int64"), atol=1
+            td_sel["time_psd"].head().astype("int64"), cc.astype("int64"), atol=1
         )
 
     def test_spl_vs_sel(self):

@@ -1,10 +1,11 @@
+import warnings
 import numpy as np
 import xarray as xr
 from .binned import TimeBinner
 from .time import dt642epoch, dt642date
 from .rotate.api import rotate2, set_declination, set_inst2head_rotmat
 from .io.api import save
-from .tools.misc import slice1d_along_axis, convert_degrees
+from .tools import slice1d_along_axis, convert_degrees
 
 
 @xr.register_dataset_accessor("velds")  # 'vel dataset'
@@ -304,7 +305,10 @@ class Velocity:
         - earth:     east
         - principal: streamwise
         """
-        return self.ds["vel"][0].drop_vars("dir")
+        try:
+            return self.ds["vel"][0].drop_vars("dir")
+        except KeyError:
+            return self.ds["vel_avg"][0].drop_vars("dir")
 
     @property
     def v(
@@ -322,7 +326,10 @@ class Velocity:
         - earth:     north
         - principal: cross-stream
         """
-        return self.ds["vel"][1].drop_vars("dir")
+        try:
+            return self.ds["vel"][1].drop_vars("dir")
+        except KeyError:
+            return self.ds["vel_avg"][1].drop_vars("dir")
 
     @property
     def w(
@@ -340,7 +347,10 @@ class Velocity:
         - earth:     up
         - principal: up
         """
-        return self.ds["vel"][2].drop_vars("dir")
+        try:
+            return self.ds["vel"][2].drop_vars("dir")
+        except KeyError:
+            return self.ds["vel_avg"][2].drop_vars("dir")
 
     @property
     def U(
@@ -412,10 +422,10 @@ class Velocity:
         """
         Coherent turbulent energy
 
-        Niel Kelley's 'coherent turbulence energy', which is the
+        Neil Kelley's 'coherent turbulence energy', which is the
         root-mean-square of the Reynold's stresses.
 
-        See: NREL Technical Report TP-500-52353
+        See: NLR Technical Report TP-500-52353
         """
         E_coh = (self.upwp_**2 + self.upvp_**2 + self.vpwp_**2) ** (0.5)
 
@@ -659,7 +669,7 @@ class VelBinner(TimeBinner):
         std = self.standard_deviation(raw_ds.velds.U_mag.values)
         out_ds["U_std"] = xr.DataArray(
             std.astype("float32"),
-            dims=raw_ds.vel.dims[1:],
+            dims=raw_ds.velds.U_mag.dims,
             attrs={
                 "units": "m s-1",
                 "long_name": "Water Velocity Standard Deviation",
@@ -770,7 +780,16 @@ class VelBinner(TimeBinner):
             self._outshape(indat.shape, n_bin=n_bin)[:-1] + [int(n_bin // 4)],
             dtype=indat.dtype,
         )
-        dt1 = self.reshape(indat, n_pad=n_bin / 2 - 2)
+        # Need to pad velocity timeseries with zeros to incoporate the full range of
+        # the auto-covariance.
+        n_pad = int(n_bin / 2 - 2)
+        npd0 = n_pad // 2
+        npd1 = (n_pad + 1) // 2
+        # Pad with zeros at boundaries to replicate the original n_pad behavior
+        indat_padded = np.pad(
+            indat, pad_width=[(0, 0)] * (indat.ndim - 1) + [(npd0, npd1)]
+        )
+        dt1 = self.reshape(indat_padded, step=int(n_bin), n_bin=int(n_bin + n_pad))
         # Here we de-mean only on the 'valid' range:
         dt1 = dt1 - dt1[..., :, int(n_bin // 4) : int(-n_bin // 4)].mean(-1)[..., None]
         dt2 = self.demean(indat)
@@ -802,6 +821,13 @@ class VelBinner(TimeBinner):
 
         return da
 
+    def _interp_noise(self, noise, time):
+        """Return noise as a numpy array, interpolating to binned `time` if needed."""
+        noise_time_dim = noise.dims[-1]
+        if time.size != noise[noise_time_dim].size:
+            return noise.interp({noise_time_dim: time}).values
+        return noise.values
+
     def turbulence_intensity(self, U_mag, noise=0, thresh=0, detrend=False):
         """
         Calculate noise-corrected turbulence intensity (TI).
@@ -829,7 +855,7 @@ class VelBinner(TimeBinner):
         if "xarray" in type(U_mag).__module__:
             U = U_mag.values
         if "xarray" in type(noise).__module__:
-            noise = noise.values
+            noise = self._interp_noise(noise, self.mean(U_mag["time"].values))
 
         if detrend:
             up = self.detrend(U)
@@ -894,7 +920,7 @@ class VelBinner(TimeBinner):
         if "xarray" in type(veldat).__module__:
             vel = veldat.values
         if "xarray" in type(noise).__module__:
-            noise = noise.values
+            noise = self._interp_noise(noise, self.mean(veldat[veldat.dims[-1]].values))
 
         if len(np.shape(vel)) > 2:
             raise ValueError(
@@ -939,7 +965,7 @@ class VelBinner(TimeBinner):
                     coords[nm] = veldat[nm].values
 
         return xr.DataArray(
-            out.astype("float32"),
+            out,
             dims=dims,
             coords=coords,
             attrs={
@@ -958,8 +984,7 @@ class VelBinner(TimeBinner):
         noise=0,
         n_bin=None,
         n_fft=None,
-        n_pad=None,
-        step=None,
+        pct_overlap=0,
     ):
         """
         Calculate the power spectral density of velocity.
@@ -972,9 +997,11 @@ class VelBinner(TimeBinner):
           Frequency units of the returned spectra in either Hz or rad/s
         fs : float (optional)
           The sample rate. Default is `binner.fs`
-        window : string or array
-          Specify the window function.
-          Options = 1, None, 'hann', 'hamm'. Default = 'hann'
+        window: str
+          Type of window to apply to each FFT segment.
+          Example options: 'boxcar', 'hann', 'hamming', 'blackman', 'bartlett'.
+          See `scipy.signal.window` for more options.
+          Default: 'hann'.
         noise : numeric or array
           Instrument noise level in same units as velocity.
           Default = 0 (ADCP) or [0, 0, 0] (ADV)
@@ -982,12 +1009,11 @@ class VelBinner(TimeBinner):
           The bin-size. Default = `self.n_bin`
         n_fft : int (optional)
           The fft size. Default = `self.n_fft`
-        n_pad : int (optional)
-          The number of values to pad with zero. Default = 0
-        step : int (optional)
-          Controls amount of overlap in fft. Default: the step size is
-          chosen to maximize data use, minimize nens, and have a
-          minimum of 50% overlap.
+        pct_overlap : float (optional)
+          Fractional overlap between consecutive sliding windows, in [0, 1).
+          Controls both the bin-to-bin advance and the within-bin FFT overlap
+          passed to scipy.signal.welch. Industry standard is 50%.
+          Default = 0 (0% overlap).
 
         Returns
         -------
@@ -1001,8 +1027,14 @@ class VelBinner(TimeBinner):
             vel = veldat.values
         if ("rad" not in freq_units) and ("Hz" not in freq_units):
             raise ValueError("`freq_units` should be one of 'Hz' or 'rad/s'")
+        if (pct_overlap < 0) or (pct_overlap > 1):
+            raise ValueError(
+                f"pct_overlap must be between 0 and 1, received {pct_overlap}."
+            )
+        n_bin = self._parse_nbin(n_bin)
+        step = int((1 - pct_overlap) * n_bin)
 
-        # Create frequency vector, also checks whether using f or omega
+        # Set units correctly
         if "rad" in freq_units:
             fs = 2 * np.pi * fs_in
             freq_units = "rad s-1"
@@ -1011,18 +1043,8 @@ class VelBinner(TimeBinner):
             fs = fs_in
             freq_units = "Hz"
             units = "m2 s-2 Hz-1"
-        freq = xr.DataArray(
-            self._fft_freq(fs=fs_in, units=freq_units, n_fft=n_fft),
-            dims=["freq"],
-            name="freq",
-            attrs={
-                "units": freq_units,
-                "long_name": "FFT Frequency Vector",
-                "coverage_content_type": "coordinate",
-            },
-        ).astype("float32")
 
-        # Spectra, if input is full velocity or a single array
+        # Spectra, if velocity is a 2D array (dir, time)
         if len(vel.shape) >= 2:
             if vel.shape[0] != 3:
                 raise ValueError(
@@ -1035,50 +1057,64 @@ class VelBinner(TimeBinner):
             else:
                 # Reset default to list of 3 zeros
                 noise = np.array([0, 0, 0])
+            # Set up input velocity array, coordinates, and dimensions
+            vel_in = vel[:3]
+            coords = {"S": self.S}
+            dims = ["S"]
 
-            out = np.empty(
-                self._outshape_fft(vel[:3].shape, n_fft=n_fft, n_bin=n_bin),
-                dtype=np.float32,
-            )
-            for idx in range(3):
-                out[idx] = self._psd_base(
-                    vel[idx],
-                    fs=fs,
-                    noise=noise[idx],
-                    window=window,
-                    n_bin=n_bin,
-                    n_pad=n_pad,
-                    n_fft=n_fft,
-                    step=step,
-                )
-            coords = {
-                "S": self.S,
-                "time": self.mean(veldat["time"].values),
-                "freq": freq,
-            }
-            dims = ["S", "time", "freq"]
+        # Spectra, if velocity is a single array
         else:
             if np.array(noise).any() and np.size(noise) > 1:
                 raise ValueError("Noise is expected to be a scalar")
+            # Add dummy axis
+            vel_in = vel[np.newaxis]
+            noise = np.atleast_1d(noise)
+            coords = {}
+            dims = []
 
-            out = self._psd_base(
-                vel,
+        # Do power spectral density calculation for each velocity component
+        out = np.empty(
+            self._outshape_fft(vel_in.shape, n_fft=n_fft, n_bin=n_bin, step=step)
+        )
+        for idx in range(vel_in.shape[0]):
+            f, out[idx] = self._psd_base(
+                vel_in[idx],
                 fs=fs,
-                noise=noise,
+                noise=noise[idx],
                 window=window,
                 n_bin=n_bin,
-                n_pad=n_pad,
                 n_fft=n_fft,
-                step=step,
+                pct_overlap=pct_overlap,
             )
-            coords = {
-                veldat.dims[-1]: self.mean(veldat[veldat.dims[-1]].values),
+        # If not 3D (ADV) data, remove the new axis
+        if "S" not in dims:
+            out = out[0]
+
+        # Create frequency vector, also checks whether using f or omega
+        freq = xr.DataArray(
+            f,
+            dims=["freq"],
+            name="freq",
+            attrs={
+                "units": freq_units,
+                "long_name": "FFT Frequency Vector",
+                "coverage_content_type": "coordinate",
+            },
+        )
+
+        # Update coordinates and dimensions
+        time = veldat[veldat.dims[-1]].values
+        time_coord = self.mean(time, step=step, n_bin=n_bin)
+        coords.update(
+            {
+                "time_psd": time_coord,
                 "freq": freq,
             }
-            dims = [veldat.dims[-1], "freq"]
+        )
+        dims += ["time_psd", "freq"]
 
         return xr.DataArray(
-            out.astype("float32"),
+            out,
             coords=coords,
             dims=dims,
             attrs={

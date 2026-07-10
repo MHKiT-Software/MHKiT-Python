@@ -19,8 +19,40 @@ from mhkit.utils import (
     convert_nested_dict_and_pandas,
 )
 
-# Set pandas option to opt-in to future behavior
-pd.set_option("future.no_silent_downcasting", True)
+
+def replace_pandas_missing_values_with_nan(data, missing_values):
+    """
+    Replace missing values with NaN without silently downcasting dtypes.
+
+    Parameters
+    ------------
+    data: pandas DataFrame
+        Data in which to replace missing values
+
+    missing_values: list of values
+        List of values that denote missing data
+
+    Returns
+    ---------
+    data: pandas DataFrame
+        Data with missing values replaced by NaN and object columns converted
+        to their best-fit dtypes
+
+    Notes
+    -----
+    pandas versions above 2.x do not silently downcast in ``replace`` and
+    dropped the ``future.no_silent_downcasting`` option. On pandas 2.x the same
+    forward-looking behavior is opted into so the result is identical across
+    supported pandas versions and no deprecation warning is emitted.
+    ``infer_objects`` then converts the resulting object columns explicitly.
+    """
+    pandas_major = int(pd.__version__.split(".")[0])
+    if pandas_major <= 2:
+        with pd.option_context("future.no_silent_downcasting", True):
+            data = data.replace(missing_values, np.nan)
+    else:
+        data = data.replace(missing_values, np.nan)
+    return data.infer_objects()
 
 
 def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
@@ -57,7 +89,13 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
     metadata: dict or None
         Dictionary with {column name: units} key value pairs when the NDBC file
         contains unit information, otherwise None is returned
+
+    Notes
+    -----
+    NDBC documentation of measurement descriptions and units can be found here:
+    https://www.ndbc.noaa.gov/faq/measdes.shtml
     """
+
     if not isinstance(file_name, str):
         raise TypeError(f"file_name must be of type str. Got: {type(file_name)}")
     if not isinstance(missing_values, list):
@@ -147,8 +185,7 @@ def read_file(file_name, missing_values=["MM", 9999, 999, 99], to_pandas=True):
         data.columns = data.columns
 
     # Replace indicated missing values with nan
-    data = data.replace(missing_values, np.nan)
-    data = data.infer_objects(copy=False)
+    data = replace_pandas_missing_values_with_nan(data, missing_values)
 
     if not to_pandas:
         data = convert_to_dataset(data)
@@ -710,9 +747,9 @@ def parameter_units(parameter=""):
         }
     elif parameter == "cwind":
         units = {
-            "WDIR": "degT",
+            "WDIR": "degT",  # degree True North
             "WSPD": "m/s",
-            "GDR": "degT",
+            "GDR": "degT",  # degree True North
             "GST": "m/s",
             "GTIME": "hhmm",
         }
@@ -764,10 +801,10 @@ def parameter_units(parameter=""):
             "WWH": "m",
             "WWP": "sec",
             "SwD": "-",
-            "WWD": "degT",
+            "WWD": "degT",  # degree True North
             "STEEPNESS": "-",
             "APD": "sec",
-            "MWD": "degT",
+            "MWD": "degT",  # degree True North
         }
     elif parameter == "srad":
         units = {
@@ -777,13 +814,13 @@ def parameter_units(parameter=""):
         }
     elif parameter == "stdmet":
         units = {
-            "WDIR": "degT",
+            "WDIR": "degT",  # degree True North
             "WSPD": "m/s",
             "GST": "m/s",
             "WVHT": "m",
             "DPD": "sec",
             "APD": "sec",
-            "MWD": "degT",
+            "MWD": "degT",  # degree True North
             "PRES": "hPa",
             "ATMP": "degC",
             "WTMP": "degC",
@@ -797,11 +834,11 @@ def parameter_units(parameter=""):
             "PRES": "hPa",
             "PTIME": "hhmm",
             "WSPD": "m/s",
-            "WDIR": "degT",
+            "WDIR": "degT",  # degree True North
             "WTIME": "hhmm",
         }
     elif parameter == "swden":
-        units = {"swden": "(m*m)/Hz"}
+        units = {"swden": "m^2/Hz"}
     elif parameter == "swdir":
         units = {"swdir": "deg"}
     elif parameter == "swdir2":
@@ -812,13 +849,13 @@ def parameter_units(parameter=""):
         units = {"swr2": ""}
     else:
         units = {
-            "swden": "(m*m)/Hz",
+            "swden": "m^2/Hz",
             "PRES": "hPa",
             "PTIME": "hhmm",
-            "WDIR": "degT",
+            "WDIR": "degT",  # degree True North
             "WTIME": "hhmm",
             "DPD": "sec",
-            "MWD": "degT",
+            "MWD": "degT",  # degree True North
             "ATMP": "degC",
             "WTMP": "degC",
             "DEWP": "degC",
@@ -834,7 +871,7 @@ def parameter_units(parameter=""):
             "WWH": "m",
             "WWP": "sec",
             "SwD": "-",
-            "WWD": "degT",
+            "WWD": "degT",  # degree True North
             "STEEPNESS": "-",
             "APD": "sec",
             "RATE": "mm/h",
@@ -859,7 +896,7 @@ def parameter_units(parameter=""):
             "WSPD20": "m/s",
             "T": "-",
             "HEIGHT": "m",
-            "GDR": "degT",
+            "GDR": "degT",  # degree True North
             "GST": "m/s",
             "GTIME": "hhmm",
             "DEP01": "m",
@@ -1026,7 +1063,7 @@ def request_directional_data(buoy, year):
 
     data_dict["swden"].attrs = {
         "units": "m^2/Hz",
-        "long_name": "omnidirecational spectrum",
+        "long_name": "omnidirectional spectrum",
         "standard_name": "S",
         "description": "Omnidirectional *sea surface elevation variance (m^2)* spectrum (/Hz).",
     }
@@ -1062,7 +1099,7 @@ def request_directional_data(buoy, year):
     return xr.Dataset(data_dict)
 
 
-def _create_spectrum(data, frequencies, directions, name, units):
+def _create_spectrum_dataarray(data, frequencies, directions, name, units):
     """
     Create an xarray.DataArray for storing spectrum data with correct
     dimensions, coordinates, names, and units.
@@ -1166,16 +1203,18 @@ def create_spread_function(data, directions):
 
     r1 = data["swr1"].data.reshape(-1, 1)
     r2 = data["swr2"].data.reshape(-1, 1)
+    # a1 = degrees CW from N, according to NDBC documentation
     a1 = data["swdir"].data.reshape(-1, 1)
+    # a2 degrees CW from N, according to NDBC documentation
     a2 = data["swdir2"].data.reshape(-1, 1)
-    a = directions.reshape(1, -1)
+    a = directions.reshape(1, -1)  # degrees
     spread = (
         1
         / np.pi
         * (0.5 + r1 * np.cos(np.deg2rad(a - a1)) + r2 * np.cos(2 * np.deg2rad(a - a2)))
     )
-    spread = _create_spectrum(
-        spread, data.frequency.values, directions, name="Spread", units="1"
+    spread = _create_spectrum_dataarray(
+        np.rad2deg(spread), data.frequency.values, directions, name="Spread", units="1"
     )
     return spread
 
@@ -1209,9 +1248,9 @@ def create_directional_spectrum(data, directions):
     spread = create_spread_function(data, directions).values
     omnidirectional_spectrum = data["swden"].data.reshape(-1, 1)
     spectrum = omnidirectional_spectrum * spread
-    spectrum = _create_spectrum(
+    spectrum = _create_spectrum_dataarray(
         spectrum,
-        data.frequency.values,
+        data["frequency"].values,
         directions,
         name="Elevation variance",
         units="m^2",
