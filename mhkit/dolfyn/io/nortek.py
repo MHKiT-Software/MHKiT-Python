@@ -925,11 +925,12 @@ class _NortekReader:
         """Reads AWAC or Aquadopp profile data"""
         dat = self.data
         nbins = self.config["usr"]["n_bins"]
+        n = self.config["usr"]["n_beams"]
         init_bytes = 28 + skip_bytes
         # Note: docs state there is 'fill' byte at the end, if nbins is odd,
-        # but doesn't appear to be the case
-        n = self.config["usr"]["n_beams"]
-        byts = self.read(init_bytes + n * 3 * nbins)
+        # but doesn't appear to always be the case
+        fill_byte = 1 if (nbins % 2) else 0
+        byts = self.read(init_bytes + n * 3 * nbins + fill_byte)
         c = self.c
         dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
         ds = dat["sys"]
