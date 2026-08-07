@@ -527,6 +527,30 @@ jobs:
         run: |
           python -m pytest -c .github/workflows/pytest.ini mhkit/tests/${{ matrix.module }}/
 
+  windows-wheel-check:
+    # Verifies each mhkit extras group can be installed on Windows from prebuilt wheels alone,
+    # which is intented to mimic a user without windows MSVC compilers installed
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          [wave, tidal, river, dolfyn, power, loads, mooring, acoustics, utils, all]
+        python-version: ['3.13']
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Check ${{ matrix.module }} extra installs from wheels only on Windows
+        run: |
+          python -m pip install --upgrade pip
+          pip download --dest wheelhouse --only-binary=:all: --no-binary mhkit ".[${{ matrix.module }}]"
+
   notebook-matrix:
     runs-on: ubuntu-latest
     needs:

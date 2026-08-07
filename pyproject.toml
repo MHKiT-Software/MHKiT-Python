@@ -47,7 +47,7 @@ wave = [
     "scikit-learn>=1.5.1",
     "statsmodels>=0.14.2",
     "pytz",
-    "NLR-rex[hsds]>=0.5.0",
+    "NREL-rex",
     "beautifulsoup4",
     "bottleneck",
     "lxml",

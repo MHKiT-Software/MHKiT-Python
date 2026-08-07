@@ -27,9 +27,4 @@ dependencies:
   - matplotlib>=3.9.1
   - fatpack
   - cartopy
-  # rex is installed from PyPI (NLR-rex), not conda-forge. The conda-forge
-  # `nrel-rex` is frozen at 0.2.84, which predates the s3:// fsspec support
-  # needed to read the wave hindcast .h5 files directly from S3. The [hsds] extra
-  # pulls the HSDS client dependencies the hindcast reads use.
-  - pip:
-      - NLR-rex[hsds]>=0.5.0
+  - NREL-rex
