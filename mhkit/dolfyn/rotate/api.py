@@ -14,6 +14,7 @@ rot_module_dict = {
     # Nortek instruments
     "vector": r_vec,
     "awac": r_awac,
+    "aquadopp": r_awac,
     "signature": r_sig,
     "ad2cp": r_sig,
     # TRDI instruments

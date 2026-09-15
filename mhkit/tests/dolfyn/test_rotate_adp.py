@@ -118,19 +118,22 @@ class rotate_adp_testcase(unittest.TestCase):
         rotate2(td_sig, "inst", inplace=True)
         td_sig_i = load("Sig1000_IMU_rotate_inst2earth.nc")
         rotate2(td_sig_i, "inst", inplace=True)
+
+        # ship and inst are considered equivalent in dolfyn
+        cd_rdi = load("RDI_test01_rotate_beam2inst.nc")
+        cd_wr2 = tr.dat_wr2
+        cd_wr2.attrs["coord_sys"] = "inst"
+        cd_awac = load("AWAC_test01_earth2inst.nc")
+        cd_sig = load("BenchFile01_rotate_beam2inst.nc")
+        cd_sig_i = load("Sig1000_IMU_rotate_beam2inst.nc")
+
         # Just check that these run without error
         td_sig_avg = load("Sig100_avg.nc")
         rotate2(td_sig_avg, "inst", inplace=True)
         td_sig_dp1_ice = load("Sig500_dp_ice2.nc")
         rotate2(td_sig_dp1_ice, "inst", inplace=True)
-
-        cd_rdi = load("RDI_test01_rotate_beam2inst.nc")
-        cd_wr2 = tr.dat_wr2
-        # ship and inst are considered equivalent in dolfyn
-        cd_wr2.attrs["coord_sys"] = "inst"
-        cd_awac = load("AWAC_test01_earth2inst.nc")
-        cd_sig = load("BenchFile01_rotate_beam2inst.nc")
-        cd_sig_i = load("Sig1000_IMU_rotate_beam2inst.nc")
+        td_aqd = load("AQD_test01.nc")
+        rotate2(td_aqd, "inst", inplace=True)
 
         assert_allclose(td_rdi, cd_rdi, atol=1e-5)
         assert_allclose(tdwr2, cd_wr2, atol=1e-5)
