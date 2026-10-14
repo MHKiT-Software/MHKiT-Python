@@ -301,9 +301,11 @@ class _Ad2cpReader:
         string = string[1:-1]
         return id, string
 
-    def _read_burst(self, id, dat, c, echo=False):
+    def _read_burst(self, id, dat, c, sz, echo=False):
         rdr = self._burst_readers[id]
-        rdr.read_into(self.f, dat, c)
+        to_skip = rdr.read_into(self.f, dat, c, sz)
+        if to_skip:
+            self.f.seek(to_skip, 1)
 
     def readfile(self, ens_start=0, ens_stop=None):
         # If the lastblock is not whole, we don't read it.
@@ -326,10 +328,13 @@ class _Ad2cpReader:
             except IOError:
                 return outdat
             id = hdr["id"]
-            if id in [21, 22, 23, 24, 28]:  # "burst data record" (vel + ast),
+            if id not in outdat:
+                # If the ID was skipped in the indexer, it won't be in outdat
+                self.f.seek(hdr["sz"], 1)
+            elif id in [21, 22, 23, 24, 28]:  # "burst data record" (vel + ast),
                 # "avg data record" (vel_avg + ast_avg), "bottom track data record" (bt),
                 # "interleaved burst data record" (vel_b5), "echosounder record" (echo)
-                self._read_burst(id, outdat[id], c)
+                self._read_burst(id, outdat[id], c, hdr["sz"])
             elif id in [26, 31]:
                 # "burst altimeter raw record" (_altraw), "avg altimeter raw record" (_altraw_avg)
                 rdr = self._burst_readers[id]
@@ -367,7 +372,7 @@ class _Ad2cpReader:
                             "The number of samples in this 'Altimeter Raw' "
                             "burst is different from prior bursts."
                         )
-                self._read_burst(id, outdat[id], c_altraw[id])
+                self._read_burst(id, outdat[id], c_altraw[id], hdr["sz"])
                 outdat[id]["ensemble"][c_altraw[id]] = c
                 c_altraw[id] += 1
 
@@ -520,7 +525,8 @@ def _reorg(dat):
                 dnow["standard_name"].pop(ky)
         outdat["standard_name"].update(dnow["standard_name"])
         cfg["burst_config" + tag] = lib._headconfig_int2dict(
-            lib._collapse(dnow["config"], exclude=collapse_exclude, name="config")
+            lib._collapse(dnow["config"], exclude=collapse_exclude, name="config"),
+            mode="bt" if "bt" in tag else "burst",
         )
         outdat["coords"]["time" + tag] = lib._calc_time(
             dnow["year"] + np.uint16(1900),

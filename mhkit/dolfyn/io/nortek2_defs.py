@@ -71,13 +71,14 @@ class _DataDef:
             out[nm] = _nans(shp + [npings], dtype=np.dtype(fmt[0]))
         return out
 
-    def read_into(self, fobj, data, ens, cs=None):
-        dat_tuple = self.read(fobj, cs=cs)
+    def read_into(self, fobj, data, ens, sz, cs=None):
+        dat_tuple, to_skip = self.read(fobj, sz=sz, cs=cs)
         for nm, shp, d in zip(self._names, self._shape, dat_tuple):
             try:
                 data[nm][..., ens] = d
             except ValueError:
                 data[nm][..., ens] = np.asarray(d).reshape(shp)
+        return to_skip
 
     @property
     def format(
@@ -85,8 +86,11 @@ class _DataDef:
     ):
         return _format(self._format, self._N)
 
-    def read(self, fobj, cs=None):
+    def read(self, fobj, sz=None, cs=None):
         bytes = fobj.read(self.nbyte)
+        # For newer versions of id data packets
+        if sz is not None:
+            extra_bytes = sz - self.nbyte
         if len(bytes) != self.nbyte:
             raise IOError("End of file.")
         data = self._struct.unpack(bytes)
@@ -110,7 +114,10 @@ class _DataDef:
             else:
                 out.append(data[c : (c + n)])
             c += n
-        return out
+        if sz is not None:
+            return out, extra_bytes
+        else:
+            return out
 
     def read2dict(self, fobj, cs=False):
         return {self._names[idx]: dat for idx, dat in enumerate(self.read(fobj, cs=cs))}

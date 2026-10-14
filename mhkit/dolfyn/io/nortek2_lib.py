@@ -176,7 +176,7 @@ def _create_index(infile, outfile, init_pos, eof, debug):
         if init_pos and not pos:
             fin.seek(init_pos, 1)
         try:
-            dat = struct.unpack("<BBBBhhh", fin.read(10))
+            dat = struct.unpack("<BBBBHHH", fin.read(10))
         except Exception as e:
             logging.error(e)
             logging.error("Header is shorter than 10 bytes: %10d\n" % (pos))
@@ -187,7 +187,7 @@ def _create_index(infile, outfile, init_pos, eof, debug):
         if dat[1] != 10:
             if dat[1] == 12:
                 fin.seek(-10, 1)
-                dat = struct.unpack("<BBBBIhh", fin.read(12))
+                dat = struct.unpack("<BBBBIHH", fin.read(12))
             else:
                 # Lost header
                 if debug:
@@ -213,18 +213,31 @@ def _create_index(infile, outfile, init_pos, eof, debug):
         if dat[2] in ids:
             idk = dat[2]
             # version, byte offset to actual data, configuration bit mask
+            pos_common_data = fin.tell()
             d_ver, d_off, config = struct.unpack("<BBH", fin.read(4))
             if d_ver not in [1, 3, 7]:
-                # data-record definition version number
+                # Data record definition version number
                 # increases occasionally with instrument firmware updates
-                continue
+                logging.debug(
+                    f"Unknown data record version number {d_ver} for id {hex(idk)}"
+                )
+                # Not sure how to handle data record definition 9 for BT
+                if d_ver != 9:
+                    fin.seek(d_off - 4 + dat[4] - (36 + seek_2ens[idk]), 1)
+                    pos = fin.tell()
+                    last_ens[idk] = ens[idk]
+                    continue
+
             fin.seek(4, 1)  # instrument serial number
             yr, mo, dy, h, m, s, u = struct.unpack("6BH", fin.read(8))
             fin.seek(14, 1)  # soundspeed, temp, pres, h,p,r
-            beams_cy = struct.unpack("<H", fin.read(2))[0]  # cell_size
+            # cell_size (either in bytes or mm?)
+            beams_cy = struct.unpack("<H", fin.read(2))[0]
             fin.seek(seek_2ens[dat[2]], 1)
-            # should end at byte 74 or 76
             ens[idk] = struct.unpack("<I", fin.read(4))[0]
+            # we should now be "d_off" bytes later
+            if fin.tell() - pos_common_data != d_off:
+                logging.warning(f" {fin.tell()} Data offset incorrect!")
 
             if last_ens[idk] > 0:
                 if (ens[idk] == 1) or (ens[idk] < last_ens[idk]):
@@ -232,7 +245,7 @@ def _create_index(infile, outfile, init_pos, eof, debug):
                     # Covers ID keys not saved in sequential order
                     ens[idk] = last_ens[idk] + 1
 
-            if last_ens[idk] > 0 and last_ens[idk] != ens[idk]:
+            if last_ens[idk] > 0 and (last_ens[idk] != ens[idk]):
                 N[idk] += 1
 
             fout.write(
@@ -262,7 +275,7 @@ def _create_index(infile, outfile, init_pos, eof, debug):
                 # File Position: Valid ID keys (1A, 10), Hex ID, Length in bytes, Ensemble #, Last Ensemble Found'
                 # hex: [18, 15, 1C, 17] = [vel_b5, vel, echo, bt]
                 logging.info(
-                    "%10d: %02X, %d, %02X, %d, %d, %d, %d\n"
+                    "%10d: %02X, %d, %02X, %d, %d, %d, %d"
                     % (
                         pos,
                         dat[0],
@@ -309,8 +322,17 @@ def _check_index(idx, infile, fix_hw_ens=False, dp=False):
     for id in uid:
         # These are the indices for this ID
         inds = np.nonzero(idx["ID"] == id)[0]
+        # Sometimes there are multiple id pings in a single ping cycle
+        diff = np.diff(inds)
+        if len(set(diff)) == 1:
+            N_id = diff[0]
+        # If an id has multiple pings/cycle but also skipped pings,
+        # the id carrying multiple pings will have a smaller "diff"
+        # than the id's that do not. Therefore any skipped pings
+        # will have a "diff" greater than the original "N_id"
+
         # These are bad steps in the indices for this ID
-        ibad = np.nonzero(np.diff(inds) > N_id)[0]
+        ibad = np.nonzero(diff > N_id)[0]
 
         # Check if spacing is equal for dual profiling ADCPs
         if dp:
@@ -328,7 +350,7 @@ def _check_index(idx, infile, fix_hw_ens=False, dp=False):
             # the ensemble count is wrong.
             logging.warning(
                 "Skipped ping (ID: {}) in file {} at ensemble {}.".format(
-                    id, infile, idx["ens"][inds[ib + 1] - 1]
+                    hex(id), infile, idx["ens"][inds[ib + 1] - 1]
                 )
             )
             hwe[inds[(ib + 1) :]] += 1
@@ -509,7 +531,8 @@ def _headconfig_int2dict(val, mode="burst"):
             tilt_valid=_getbit(val, 3),
             # bit 4 is unused
             vel=_getbit(val, 5),
-            # bits 6-7 unused
+            amp=_getbit(val, 6),
+            corr=_getbit(val, 7),
             dist=_getbit(val, 8),
             fom=_getbit(val, 9),
             ahrs=_getbit(val, 10),
