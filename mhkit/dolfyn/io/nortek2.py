@@ -246,7 +246,7 @@ class _Ad2cpReader:
                 )
             elif rdr_id == 23:
                 self._burst_readers[rdr_id] = defs._calc_bt_struct(
-                    cfg["_config"], cfg["n_beams"]
+                    cfg["_config"], cfg["n_beams"], cfg["n_cells"], cfg["_d_ver"]
                 )
             else:
                 self._burst_readers[rdr_id] = defs._calc_burst_struct(
@@ -537,34 +537,36 @@ def _reorg(dat):
             dnow["second"],
             dnow["usec100"].astype("uint32") * 100,
         )
-        tmp = lib._beams_cy_int2dict(
-            lib._collapse(
-                dnow["beam_config"], exclude=collapse_exclude, name="beam_config"
-            ),
-            21,  # always 21 here
+
+        d_ver = lib._collapse(dnow["ver"], exclude=collapse_exclude, name="ver")
+        beams_cy = lib._collapse(
+            dnow["beam_config"], exclude=collapse_exclude, name="beam_config"
         )
+        # Deal with data version 9 for bottom track
+        if (id == 23) and (d_ver >= 9):
+            n_cells = lib._collapse(
+                dnow["n_cells"], exclude=collapse_exclude, name="n_cells"
+            )
+            beams_cy = lib._repack_bt_beams_cy(beams_cy, n_cells)
+
+        # Unpack cells, coordinate axes and beams
+        tmp = lib._beams_cy_int2dict(beams_cy, id, d_ver)
         cfg["n_cells" + tag] = int(tmp["n_cells"])
         cfg["coord_sys_axes" + tag] = tmp["cy"]
         cfg["n_beams" + tag] = int(tmp["n_beams"])
-        cfg["ambig_vel" + tag] = round(
-            float(lib._collapse(dnow["ambig_vel"], name="ambig_vel")), 3
+
+        cfg["SerialNum" + tag] = int(
+            lib._collapse(dnow["SerialNum"], exclude=collapse_exclude, name="SerialNum")
         )
-
-        for ky in [
-            "SerialNum",
-            "nominal_corr",
-        ]:
-            cfg[ky + tag] = int(
-                lib._collapse(dnow[ky], exclude=collapse_exclude, name=ky)
-            )
-
-        for ky in [
-            "cell_size",
-            "blank_dist",
-            "power_level_dB",
-        ]:
+        for ky in ["cell_size", "power_level_dB", "ambig_vel"]:
             cfg[ky + tag] = float(
                 lib._collapse(dnow[ky], exclude=collapse_exclude, name=ky)
+            )
+        if id != 23:
+            cfg["blank_dist" + tag] = float(
+                lib._collapse(
+                    dnow["blank_dist"], exclude=collapse_exclude, name="blank_dist"
+                )
             )
 
         for ky in [
