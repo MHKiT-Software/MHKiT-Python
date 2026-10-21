@@ -170,13 +170,15 @@ def _create_index(infile, outfile, init_pos, eof, debug):
             if d_ver not in [1, 3, 7, 9]:
                 # Data record definition version number
                 # increases occasionally with instrument firmware updates
-                logging.debug(
-                    f"Unknown data record version number {d_ver} for id {hex(idk)}"
-                )
+                msg = f"Unknown data record version number {d_ver} for id {hex(idk)}"
+                warnings.warn(msg)
+                logging.debug(msg)
+
                 fin.seek(dat[4] - 4, 1)
                 pos = fin.tell()
                 last_ens[idk] = ens[idk]
                 continue
+
             fin.seek(4, 1)  # instrument serial number
             yr, mo, dy, h, m, s, u = struct.unpack("6BH", fin.read(8))
             fin.seek(14, 1)  # soundspeed, temp, pres, h,p,r
@@ -191,18 +193,18 @@ def _create_index(infile, outfile, init_pos, eof, debug):
             else:
                 # Data definition for versions 1, 3, 7
                 beams_cy = struct.unpack("<H", fin.read(2))[0]
+
             # Skip ahead to ensemble number
             data_read = fin.tell() - pos_common_data
             fin.seek(d_off - data_read - 4, 1)
             ens[idk] = struct.unpack("<I", fin.read(4))[0]
-            # Skip to next ID number
-            fin.seek(dat[4] - d_off, 1)
-
             # Increase N even if stored "ensemble" does not increase
             if last_ens[idk] > 0:
                 N[idk] += 1
             # Update our last ensemble before writing to index file
             last_ens[idk] = ens[idk]
+            # Skip to next ID number
+            fin.seek(dat[4] - d_off, 1)
 
             # Write to index file
             fout.write(

@@ -205,16 +205,16 @@ class io_adp_testcase(unittest.TestCase):
             save(td_sig_ieb, "VelEchoBT01.nc")
             save(td_sig_ie, "Sig500_Echo.nc")
             save(td_sig_tide, "Sig1000_tidal.nc")
-            save(td_sig_raw_avg, "Sig100_raw_avg.nc")  #
-            save(td_sig_avg, "Sig100_avg.nc")  #
-            save(td_sig_rt, "Sig1000_online.nc")  #
+            save(td_sig_raw_avg, "Sig100_raw_avg.nc")
+            save(td_sig_avg, "Sig100_avg.nc")
+            save(td_sig_rt, "Sig1000_online.nc")
             save(td_sig_skip, "Sig_SkippedPings01.nc")
             save(td_sig_badt, "Sig1000_BadTime01.nc")
             save(td_sig5_leiw, "Sig500_last_ensemble_is_whole.nc")
             save(td_sig_dp1_all, "Sig500_dp_ice1.nc")
-            save(td_sig_dp1_ice, "Sig500_dp_ice2.nc")  #
-            save(td_sig_dp2_echo, "Sig1000_dp_echo1.nc")  #
-            save(td_sig_dp2_avg, "Sig1000_dp_echo2.nc")  #
+            save(td_sig_dp1_ice, "Sig500_dp_ice2.nc")
+            save(td_sig_dp2_echo, "Sig1000_dp_echo1.nc")
+            save(td_sig_dp2_avg, "Sig1000_dp_echo2.nc")
             return
 
         assert_allclose(td_sig, dat_sig, atol=1e-6)

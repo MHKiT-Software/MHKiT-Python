@@ -93,7 +93,8 @@ class _DataDef:
             extra_bytes = sz - self.nbyte
             if extra_bytes < 0:
                 raise ValueError(
-                    f"Data defintion contains different number of bytes data packet {extra_bytes}"
+                    "Data definition contains different number of bytes than "
+                    f"data packet: {extra_bytes}"
                 )
         if len(bytes) != self.nbyte:
             raise IOError("End of file.")
