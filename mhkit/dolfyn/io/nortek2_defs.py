@@ -485,42 +485,7 @@ def _calc_bt_struct(config, nb, nc, d_ver=1):
                     "Bottom Track Measured Depth",
                 )
             )
-        # Does not appear to contain AHRS data
-        # if flags["aux"]:
-        #     dd.append(("win_start1", "H", [nb], None, "1"))
-        #     dd.append(("win_end1", "H", [nb], None, "1"))
-        #     dd.append(("win_score1", "H", [nb], _LinFunc(0.001, dtype=dt32), "1"))
-        #     dd.append(("win_start2", "H", [nb], None, "1"))
-        #     dd.append(("win_end2", "H", [nb], None, "1"))
-        #     dd.append(("win_score2", "H", [nb], _LinFunc(0.001, dtype=dt32), "1"))
-        #     dd.append(("win_start3", "H", [nb], None, "1"))
-        #     dd.append(("win_end3", "H", [nb], None, "1"))
-        #     dd.append(("win_score3", "H", [nb], _LinFunc(0.001, dtype=dt32), "1"))
-        #     dd.append(("win_start4", "H", [nb], None, "1"))
-        #     dd.append(("win_end4", "H", [nb], None, "1"))
-        #     dd.append(("win_score4", "H", [nb], _LinFunc(0.001, dtype=dt32), "1"))
-        # if flags["amp"]:
-        #     dd.append(
-        #         (
-        #             "amp",
-        #             "B",
-        #             [nb, nc],
-        #             _LinFunc(0.5, dtype=dt32),
-        #             "1",
-        #             "Bottom track ping acoustic backscatter",
-        #         )
-        #     )
-        # if flags["corr"]:
-        #     dd.append(
-        #         (
-        #             "corr",
-        #             "B",
-        #             [nb, nc],
-        #             None,
-        #             "1",
-        #             "Bottom track ping signal correlation",
-        #         )
-        #     )
+        # Does not appear to contain AHRS data even if flag says so
     return _DataDef(dd)
 
 

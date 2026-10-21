@@ -205,16 +205,16 @@ class io_adp_testcase(unittest.TestCase):
             save(td_sig_ieb, "VelEchoBT01.nc")
             save(td_sig_ie, "Sig500_Echo.nc")
             save(td_sig_tide, "Sig1000_tidal.nc")
-            save(td_sig_raw_avg, "Sig100_raw_avg.nc")
-            save(td_sig_avg, "Sig100_avg.nc")
-            save(td_sig_rt, "Sig1000_online.nc")
+            save(td_sig_raw_avg, "Sig100_raw_avg.nc")  #
+            save(td_sig_avg, "Sig100_avg.nc")  #
+            save(td_sig_rt, "Sig1000_online.nc")  #
             save(td_sig_skip, "Sig_SkippedPings01.nc")
             save(td_sig_badt, "Sig1000_BadTime01.nc")
             save(td_sig5_leiw, "Sig500_last_ensemble_is_whole.nc")
             save(td_sig_dp1_all, "Sig500_dp_ice1.nc")
-            save(td_sig_dp1_ice, "Sig500_dp_ice2.nc")
-            save(td_sig_dp2_echo, "Sig1000_dp_echo1.nc")
-            save(td_sig_dp2_avg, "Sig1000_dp_echo2.nc")
+            save(td_sig_dp1_ice, "Sig500_dp_ice2.nc")  #
+            save(td_sig_dp2_echo, "Sig1000_dp_echo1.nc")  #
+            save(td_sig_dp2_avg, "Sig1000_dp_echo2.nc")  #
             return
 
         assert_allclose(td_sig, dat_sig, atol=1e-6)
@@ -226,9 +226,9 @@ class io_adp_testcase(unittest.TestCase):
         assert_allclose(td_sig_raw_avg, dat_sig_raw_avg, atol=1e-6)
         assert_allclose(td_sig_avg, dat_sig_avg, atol=1e-6)
         assert_allclose(td_sig_rt, dat_sig_rt, atol=1e-6)
-        assert_allclose(td_sig5_leiw, dat_sig5_leiw, atol=1e-6)
         assert_allclose(td_sig_skip, dat_sig_skip, atol=1e-6)
         assert_allclose(td_sig_badt, dat_sig_badt, atol=1e-6)
+        assert_allclose(td_sig5_leiw, dat_sig5_leiw, atol=1e-6)
         assert_allclose(td_sig_dp1_all, dat_sig_dp1_all, atol=1e-6)
         assert_allclose(td_sig_dp1_ice, dat_sig_dp1_ice, atol=1e-6)
         assert_allclose(td_sig_dp2_echo, dat_sig_dp2_echo, atol=1e-6)

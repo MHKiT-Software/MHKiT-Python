@@ -7,37 +7,6 @@ import numpy as np
 from .. import time
 from .base import _abspath
 
-
-def _reduce_by_average(data, ky0, ky1):
-    # Average two arrays together, if they both exist.
-    if ky1 in data:
-        tmp = data.pop(ky1)
-        if ky0 in data:
-            data[ky0] += tmp
-            data[ky0] = data[ky0] / 2
-        else:
-            data[ky0] = tmp
-
-
-def _reduce_by_average_angle(data, ky0, ky1, degrees=True):
-    # Average two arrays of angles together, if they both exist.
-    if degrees:
-        rad_fact = np.pi / 180
-    else:
-        rad_fact = 1
-    if ky1 in data:
-        if ky0 in data:
-            data[ky0] = (
-                np.angle(
-                    np.exp(1j * data.pop(ky0) * rad_fact)
-                    + np.exp(1j * data.pop(ky1) * rad_fact)
-                )
-                / rad_fact
-            )
-        else:
-            data[ky0] = data.pop(ky1)
-
-
 # This is the data-type of the index file.
 # This must match what is written-out by the create_index function.
 _index_version = 1
@@ -212,7 +181,7 @@ def _create_index(infile, outfile, init_pos, eof, debug):
             yr, mo, dy, h, m, s, u = struct.unpack("6BH", fin.read(8))
             fin.seek(14, 1)  # soundspeed, temp, pres, h,p,r
             if (d_ver == 9) and (idk == 23):
-                # data definition version 9 saves "n_cells" as a separate byte
+                # Data definition version 9 saves "n_cells" as a separate byte
                 beams_cy = struct.unpack("<B", fin.read(1))[0]
                 fin.seek(1, 1)  # padding byte
                 n_cells = struct.unpack("<H", fin.read(2))[0]
@@ -220,7 +189,7 @@ def _create_index(infile, outfile, init_pos, eof, debug):
                 # "n_cells" is not stored in the index file
                 beams_cy = _repack_bt_beams_cy(beams_cy, n_cells)
             else:
-                # data definition for versions 1, 3, 7
+                # Data definition for versions 1, 3, 7
                 beams_cy = struct.unpack("<H", fin.read(2))[0]
             # Skip ahead to ensemble number
             data_read = fin.tell() - pos_common_data
@@ -229,15 +198,10 @@ def _create_index(infile, outfile, init_pos, eof, debug):
             # Skip to next ID number
             fin.seek(dat[4] - d_off, 1)
 
-            # Set last ensemble properly
+            # Increase N even if stored "ensemble" does not increase
             if last_ens[idk] > 0:
-                if (ens[idk] == 1) or (ens[idk] < last_ens[idk]):
-                    # if idk != 28:
-                    # Covers all id keys saved in "burst mode"
-                    # Covers ID keys not saved in sequential order
-                    ens[idk] = last_ens[idk] + 1
-            if last_ens[idk] > 0 and (last_ens[idk] != ens[idk]):
                 N[idk] += 1
+            # Update our last ensemble before writing to index file
             last_ens[idk] = ens[idk]
 
             # Write to index file
@@ -340,11 +304,12 @@ def _check_index(idx, infile, fix_hw_ens=False, dp=False):
         for ib in ibad:
             # The ping number reported here may not be quite right if
             # the ensemble count is wrong.
-            logging.warning(
-                "Skipped ping (ID: {}) in file {} at ensemble {}.".format(
-                    hex(id), infile, idx["ens"][inds[ib + 1] - 1]
-                )
+            msg = (
+                f"Skipped ping (ID: {hex(id)}) in file {infile} at ensemble "
+                f"{idx['ens'][inds[ib + 1] - 1]}."
             )
+            warnings.warn(msg)
+            logging.warning(msg)
             hwe[inds[(ib + 1) :]] += 1
             ens[inds[(ib + 1) :]] += 1
 

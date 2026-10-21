@@ -81,10 +81,8 @@ def read_signature(
     )
     d = rdr.readfile(nens[0], nens[1])
     rdr.sci_data(d)
-    if rdr._dp:
-        _clean_dp_skips(d)
-    out = _reorg(d)
-    _reduce(out)
+    _clean_skips(d)
+    out = _reduce(_reorg(d))
 
     # Convert time to dt64 and fill gaps
     coords = out["coords"]
@@ -511,10 +509,6 @@ def _reorg(dat):
         (28, "_echo"),
         (31, "raw_avg"),
     ]:
-        if id in [24, 26]:
-            collapse_exclude = [0]
-        else:
-            collapse_exclude = []
         if id not in dat:
             continue
         dnow = dat[id]
@@ -525,7 +519,7 @@ def _reorg(dat):
                 dnow["standard_name"].pop(ky)
         outdat["standard_name"].update(dnow["standard_name"])
         cfg["burst_config" + tag] = lib._headconfig_int2dict(
-            lib._collapse(dnow["config"], exclude=collapse_exclude, name="config"),
+            lib._collapse(dnow["config"], exclude=[0], name="config"),
             mode="bt" if "bt" in tag else "burst",
         )
         outdat["coords"]["time" + tag] = lib._calc_time(
@@ -538,15 +532,11 @@ def _reorg(dat):
             dnow["usec100"].astype("uint32") * 100,
         )
 
-        d_ver = lib._collapse(dnow["ver"], exclude=collapse_exclude, name="ver")
-        beams_cy = lib._collapse(
-            dnow["beam_config"], exclude=collapse_exclude, name="beam_config"
-        )
+        d_ver = lib._collapse(dnow["ver"], exclude=[0], name="ver")
+        beams_cy = lib._collapse(dnow["beam_config"], exclude=[0], name="beam_config")
         # Deal with data version 9 for bottom track
         if (id == 23) and (d_ver >= 9):
-            n_cells = lib._collapse(
-                dnow["n_cells"], exclude=collapse_exclude, name="n_cells"
-            )
+            n_cells = lib._collapse(dnow["n_cells"], exclude=[0], name="n_cells")
             beams_cy = lib._repack_bt_beams_cy(beams_cy, n_cells)
 
         # Unpack cells, coordinate axes and beams
@@ -556,17 +546,15 @@ def _reorg(dat):
         cfg["n_beams" + tag] = int(tmp["n_beams"])
 
         cfg["SerialNum" + tag] = int(
-            lib._collapse(dnow["SerialNum"], exclude=collapse_exclude, name="SerialNum")
+            lib._collapse(dnow["SerialNum"], exclude=[0], name="SerialNum")
         )
         for ky in ["cell_size", "power_level_dB", "ambig_vel"]:
-            cfg[ky + tag] = float(
-                lib._collapse(dnow[ky], exclude=collapse_exclude, name=ky)
+            cfg[ky + tag] = round(
+                float(lib._collapse(dnow[ky], exclude=[0], name=ky)), 3
             )
         if id != 23:
             cfg["blank_dist" + tag] = float(
-                lib._collapse(
-                    dnow["blank_dist"], exclude=collapse_exclude, name="blank_dist"
-                )
+                lib._collapse(dnow["blank_dist"], exclude=[0], name="blank_dist")
             )
 
         for ky in [
@@ -682,9 +670,7 @@ def _reorg(dat):
         cfg["rotate_vars"] = []
         cy = cfg["coord_sys_axes_avg"]
     else:
-        cfg["rotate_vars"] = [
-            "vel",
-        ]
+        cfg["rotate_vars"] = ["vel"]
         cy = cfg["coord_sys_axes"]
     outdat["attrs"]["coord_sys"] = {"XYZ": "inst", "ENU": "earth", "beam": "beam"}[cy]
 
@@ -701,10 +687,9 @@ def _reorg(dat):
     return outdat
 
 
-def _clean_dp_skips(data):
+def _clean_skips(data):
     """
-    Removes zeros from interwoven measurements taken in a dual profile
-    configuration.
+    Removes zeros from interwoven measurements
     """
 
     for id in data:
@@ -731,14 +716,6 @@ def _reduce(data):
     dv = data["data_vars"]
     dc = data["coords"]
     da = data["attrs"]
-
-    # Average these fields
-    for ky in ["c_sound", "temp", "pressure", "temp_press", "temp_clock", "batt"]:
-        lib._reduce_by_average(dv, ky, ky + "_b5")
-
-    # Angle-averaging is treated separately
-    for ky in ["heading", "pitch", "roll"]:
-        lib._reduce_by_average_angle(dv, ky, ky + "_b5")
 
     if "vel" in dv:
         dc["range"] = (np.arange(dv["vel"].shape[1]) + 1) * da["cell_size"] + da[
@@ -791,6 +768,8 @@ def _reduce(data):
         for icol in range(tmat["COLS"]):
             tm[irow, icol] = tmat["M" + str(irow + 1) + str(icol + 1)]
     dv["beam2inst_orientmat"] = tm
+
+    return data
 
 
 def split_dp_datasets(ds):
