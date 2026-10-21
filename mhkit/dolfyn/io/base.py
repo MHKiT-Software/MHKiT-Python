@@ -323,11 +323,8 @@ def _create_dataset(data):
                 else:  # amp, corr, prcnt_gd, status
                     dim0 = "beam"
 
-                if not any(val in key for val in tag) or ("_avg" in key):
-                    if "_avg" in key:
-                        tg = "_avg"
-                    else:
-                        tg = ""
+                if not any(val in key for val in tag) or (tg in ["_avg", "_bt"]):
+                    tg = "" if tg not in ["_avg", "_bt"] else tg
                     ds_dict[key] = {
                         "dims": (dim0, "range" + tg, "time" + tg),
                         "data": data["data_vars"][key],

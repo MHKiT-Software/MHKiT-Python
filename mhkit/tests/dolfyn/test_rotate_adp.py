@@ -86,7 +86,7 @@ class rotate_adp_testcase(unittest.TestCase):
             save(tdwr2, "winriver02_rotate_ship2earth.nc")
             save(td_sig, "BenchFile01_rotate_inst2earth.nc")
             save(td_sig_i, "Sig1000_IMU_rotate_inst2earth.nc")
-            save(td_sig_ie, "Sig500_Echo_earth2inst.nc")
+
             return
 
         td_awac = rotate2(load("AWAC_test01_earth2inst.nc"), "earth", inplace=False)

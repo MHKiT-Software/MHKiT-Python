@@ -7,37 +7,6 @@ import numpy as np
 from .. import time
 from .base import _abspath
 
-
-def _reduce_by_average(data, ky0, ky1):
-    # Average two arrays together, if they both exist.
-    if ky1 in data:
-        tmp = data.pop(ky1)
-        if ky0 in data:
-            data[ky0] += tmp
-            data[ky0] = data[ky0] / 2
-        else:
-            data[ky0] = tmp
-
-
-def _reduce_by_average_angle(data, ky0, ky1, degrees=True):
-    # Average two arrays of angles together, if they both exist.
-    if degrees:
-        rad_fact = np.pi / 180
-    else:
-        rad_fact = 1
-    if ky1 in data:
-        if ky0 in data:
-            data[ky0] = (
-                np.angle(
-                    np.exp(1j * data.pop(ky0) * rad_fact)
-                    + np.exp(1j * data.pop(ky1) * rad_fact)
-                )
-                / rad_fact
-            )
-        else:
-            data[ky0] = data.pop(ky1)
-
-
 # This is the data-type of the index file.
 # This must match what is written-out by the create_index function.
 _index_version = 1
@@ -152,23 +121,6 @@ def _create_index(infile, outfile, init_pos, eof, debug):
     N = dict.fromkeys(ids, 0)
     config = 0
     last_ens = dict.fromkeys(ids, -1)
-    seek_2ens = {
-        21: 40,  # 0x15 burst
-        22: 40,  # 0x16 average
-        23: 42,  # 0x17 bottom track, starts from "42"
-        24: 40,  # 0x18 interleaved burst (beam 5)
-        26: 40,  # 0x1A burst altimeter
-        27: 40,  # 0x1B DVL bottom track
-        28: 40,  # 0x1C echo sounder
-        29: 40,  # 0x1D DVL water track
-        30: 40,  # 0x1E altimeter
-        31: 40,  # 0x1F avg altimeter
-        35: 40,  # 0x23 raw echo sounder
-        36: 40,  # 0x24 raw tx echo sounder
-        48: 40,  # 0x30 processed wave
-        # 160: 40, # 0xA0 string (header info, GPS NMEA data)
-        # 192: 40, # 0xC0 Nortek Data format 8 record
-    }
     pos = 0
     header_check_flag = 0
     # leave room for header plus other data (12 + 76)
@@ -176,7 +128,7 @@ def _create_index(infile, outfile, init_pos, eof, debug):
         if init_pos and not pos:
             fin.seek(init_pos, 1)
         try:
-            dat = struct.unpack("<BBBBhhh", fin.read(10))
+            dat = struct.unpack("<BBBBHHH", fin.read(10))
         except Exception as e:
             logging.error(e)
             logging.error("Header is shorter than 10 bytes: %10d\n" % (pos))
@@ -187,7 +139,7 @@ def _create_index(infile, outfile, init_pos, eof, debug):
         if dat[1] != 10:
             if dat[1] == 12:
                 fin.seek(-10, 1)
-                dat = struct.unpack("<BBBBIhh", fin.read(12))
+                dat = struct.unpack("<BBBBIHH", fin.read(12))
             else:
                 # Lost header
                 if debug:
@@ -213,28 +165,48 @@ def _create_index(infile, outfile, init_pos, eof, debug):
         if dat[2] in ids:
             idk = dat[2]
             # version, byte offset to actual data, configuration bit mask
+            pos_common_data = fin.tell()
             d_ver, d_off, config = struct.unpack("<BBH", fin.read(4))
-            if d_ver not in [1, 3, 7]:
-                # data-record definition version number
+            if d_ver not in [1, 3, 7, 9]:
+                # Data record definition version number
                 # increases occasionally with instrument firmware updates
+                msg = f"Unknown data record version number {d_ver} for id {hex(idk)}"
+                warnings.warn(msg)
+                logging.debug(msg)
+
+                fin.seek(dat[4] - 4, 1)
+                pos = fin.tell()
+                last_ens[idk] = ens[idk]
                 continue
+
             fin.seek(4, 1)  # instrument serial number
             yr, mo, dy, h, m, s, u = struct.unpack("6BH", fin.read(8))
             fin.seek(14, 1)  # soundspeed, temp, pres, h,p,r
-            beams_cy = struct.unpack("<H", fin.read(2))[0]  # cell_size
-            fin.seek(seek_2ens[dat[2]], 1)
-            # should end at byte 74 or 76
+            if (d_ver == 9) and (idk == 23):
+                # Data definition version 9 saves "n_cells" as a separate byte
+                beams_cy = struct.unpack("<B", fin.read(1))[0]
+                fin.seek(1, 1)  # padding byte
+                n_cells = struct.unpack("<H", fin.read(2))[0]
+                # Repack into a smaller value (needs to be less than 16 bits) because
+                # "n_cells" is not stored in the index file
+                beams_cy = _repack_bt_beams_cy(beams_cy, n_cells)
+            else:
+                # Data definition for versions 1, 3, 7
+                beams_cy = struct.unpack("<H", fin.read(2))[0]
+
+            # Skip ahead to ensemble number
+            data_read = fin.tell() - pos_common_data
+            fin.seek(d_off - data_read - 4, 1)
             ens[idk] = struct.unpack("<I", fin.read(4))[0]
-
+            # Increase N even if stored "ensemble" does not increase
             if last_ens[idk] > 0:
-                if (ens[idk] == 1) or (ens[idk] < last_ens[idk]):
-                    # Covers all id keys saved in "burst mode"
-                    # Covers ID keys not saved in sequential order
-                    ens[idk] = last_ens[idk] + 1
-
-            if last_ens[idk] > 0 and last_ens[idk] != ens[idk]:
                 N[idk] += 1
+            # Update our last ensemble before writing to index file
+            last_ens[idk] = ens[idk]
+            # Skip to next ID number
+            fin.seek(dat[4] - d_off, 1)
 
+            # Write to index file
             fout.write(
                 struct.pack(
                     "<QIQ4H6BHB",
@@ -255,14 +227,12 @@ def _create_index(infile, outfile, init_pos, eof, debug):
                     d_ver,
                 )
             )
-            fin.seek(dat[4] - (36 + seek_2ens[idk]), 1)
-            last_ens[idk] = ens[idk]
-
             if debug:
-                # File Position: Valid ID keys (1A, 10), Hex ID, Length in bytes, Ensemble #, Last Ensemble Found'
+                # File Position: Valid ID keys (1A, 10), Hex ID, Length in bytes,
+                # Ensemble #, Last Ensemble Found'
                 # hex: [18, 15, 1C, 17] = [vel_b5, vel, echo, bt]
                 logging.info(
-                    "%10d: %02X, %d, %02X, %d, %d, %d, %d\n"
+                    "%10d: %02X, %d, %02X, %d, %d, %d, %d"
                     % (
                         pos,
                         dat[0],
@@ -280,6 +250,7 @@ def _create_index(infile, outfile, init_pos, eof, debug):
                     logging.info("Invalid skip byte at pos: %10d\n" % (pos))
                 break
             fin.seek(dat[4], 1)
+
         # Update for while loop check
         pos = fin.tell()
 
@@ -309,8 +280,17 @@ def _check_index(idx, infile, fix_hw_ens=False, dp=False):
     for id in uid:
         # These are the indices for this ID
         inds = np.nonzero(idx["ID"] == id)[0]
+        # Sometimes there are multiple id pings in a single ping cycle
+        diff = np.diff(inds)
+        if len(set(diff)) == 1:
+            N_id = diff[0]
+        # If an id has multiple pings/cycle but also skipped pings,
+        # the id carrying multiple pings will have a smaller "diff"
+        # than the id's that do not. Therefore any skipped pings
+        # will have a "diff" greater than the original "N_id"
+
         # These are bad steps in the indices for this ID
-        ibad = np.nonzero(np.diff(inds) > N_id)[0]
+        ibad = np.nonzero(diff > N_id)[0]
 
         # Check if spacing is equal for dual profiling ADCPs
         if dp:
@@ -326,11 +306,12 @@ def _check_index(idx, infile, fix_hw_ens=False, dp=False):
         for ib in ibad:
             # The ping number reported here may not be quite right if
             # the ensemble count is wrong.
-            logging.warning(
-                "Skipped ping (ID: {}) in file {} at ensemble {}.".format(
-                    id, infile, idx["ens"][inds[ib + 1] - 1]
-                )
+            msg = (
+                f"Skipped ping (ID: {hex(id)}) in file {infile} at ensemble "
+                f"{idx['ens'][inds[ib + 1] - 1]}."
             )
+            warnings.warn(msg)
+            logging.warning(msg)
             hwe[inds[(ib + 1) :]] += 1
             ens[inds[(ib + 1) :]] += 1
 
@@ -488,7 +469,7 @@ def _headconfig_int2dict(val, mode="burst"):
             temp_valid=_getbit(val, 1),
             compass_valid=_getbit(val, 2),
             tilt_valid=_getbit(val, 3),
-            # bit 4 is unused
+            # ext_sensor=_getbit(val, 4),
             vel=_getbit(val, 5),
             amp=_getbit(val, 6),
             corr=_getbit(val, 7),
@@ -499,7 +480,7 @@ def _headconfig_int2dict(val, mode="burst"):
             ahrs=_getbit(val, 12),
             p_gd=_getbit(val, 13),
             std=_getbit(val, 14),
-            # bit 15 is unused
+            # spec=_getbit(val, 15),
         )
     elif mode == "bt":
         return dict(
@@ -509,11 +490,13 @@ def _headconfig_int2dict(val, mode="burst"):
             tilt_valid=_getbit(val, 3),
             # bit 4 is unused
             vel=_getbit(val, 5),
-            # bits 6-7 unused
+            amp=_getbit(val, 6),
+            corr=_getbit(val, 7),
             dist=_getbit(val, 8),
             fom=_getbit(val, 9),
             ahrs=_getbit(val, 10),
-            # bits 10-15 unused
+            aux=_getbit(val, 11),
+            # bits 12-15 unused
         )
 
 
@@ -565,12 +548,28 @@ def _alt_status2data(val):
     return out
 
 
-def _beams_cy_int2dict(val, id):
+def _repack_bt_beams_cy(beams_cy, n_cells):
+    # "beams_cy": < bit 7-5: Number of beams, bit 4-3: coordinate system
+    n_beams = (beams_cy >> 5) & 0b111
+    cy_idx = (beams_cy >> 3) & 0b11
+    return (n_cells << 5) | (n_beams << 2) | cy_idx
+
+
+def _beams_cy_int2dict(val, id, d_ver=3):
     """Convert the beams/coordinate-system bytes to a dict of values."""
     if id == 28:  # 0x1C (echosounder)
-        return dict(n_cells=val)
-    elif id in [26, 31]:
+        return dict(n_cells=val, cy="beam", n_beams=1)
+    elif id in [26, 31]:  # Altimeter
         return dict(n_cells=val & (2**10 - 1), cy="beam", n_beams=1)
+    elif (id == 23) and (d_ver == 9):
+        # Unpack custom beams_cy for bottom track data version 9
+        return dict(
+            n_cells=val >> 5,
+            cy=["ENU", "XYZ", "beam", None][(val & 31) & 3],
+            n_beams=((val & 31) >> 2) & 7,  # usually = 4
+        )
+    # Data definition version 1 and 3
+    # "ncells from bits 9-0, nbeams from bits 15-12, and coordinate system from bits 11-10".
     return dict(
         n_cells=val & (2**10 - 1),
         cy=["ENU", "XYZ", "beam", None][val >> 10 & 3],
@@ -640,6 +639,7 @@ def _calc_config(index):
         inds = index["ID"] == id
         _config = index["config"][inds]
         _beams_cy = index["beams_cy"][inds]
+        _data_ver = index["d_ver"][inds]
 
         # Check that these variables are consistent
         if not _isuniform(_config):
@@ -649,7 +649,14 @@ def _calc_config(index):
             if id == 23:
                 # change in "n_cells" doesn't matter
                 lob = np.unique(_beams_cy)
-                beams = list(map(_beams_cy_int2dict, lob, 23 * np.ones(lob.size)))
+                beams = list(
+                    map(
+                        _beams_cy_int2dict,
+                        lob,
+                        23 * np.ones(lob.size),
+                        _data_ver[0] * np.ones(lob.size),
+                    )
+                )
                 if all([d["cy"] for d in beams]) and all([d["n_beams"] for d in beams]):
                     err = False
             if err:
@@ -657,9 +664,10 @@ def _calc_config(index):
 
         # Now that we've confirmed they are the same:
         config[id] = _headconfig_int2dict(_config[0], mode=type)
-        config[id].update(_beams_cy_int2dict(_beams_cy[0], id))
+        config[id].update(_beams_cy_int2dict(_beams_cy[0], id, _data_ver[0]))
         config[id]["_config"] = _config[0]
         config[id]["_beams_cy"] = _beams_cy[0]
+        config[id]["_d_ver"] = _data_ver[0]
         config[id]["type"] = type
         config[id].pop("cy", None)
 
