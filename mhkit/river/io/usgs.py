@@ -323,6 +323,163 @@ def _time_windows(
     ]
 
 
+# pylint: disable=too-many-arguments, too-many-locals
+def _request_ogc_data(
+    station: str,
+    parameter: str,
+    start_date: str,
+    end_date: str,
+    data_type: str,
+    request_options: Dict,
+    proxy: Optional[Dict],
+    timeout: Union[int, float],
+) -> DataFrame:
+    """
+    Requests data from the USGS Water Data OGC APIs.
+
+    Parameters
+    ----------
+    station : str
+        USGS station number
+    parameter : str
+        USGS parameter code
+    start_date : str
+        Start date in the format 'YYYY-MM-DD'
+    end_date : str
+        End date in the format 'YYYY-MM-DD', inclusive
+    data_type : str
+        'Daily' or 'Instantaneous'
+    request_options : dict
+        'api_key' (str or None), 'include_status' (bool) and 'timezone' (str)
+    proxy : dict or None
+        Proxy settings for the request
+    timeout : int or float
+        Timeout in seconds for the HTTP request
+
+    Returns
+    -------
+    data : pandas.DataFrame
+        Processed time series data
+    """
+    api_key = request_options["api_key"]
+    base_url = "https://api.waterdata.usgs.gov/ogcapi/v1/collections"
+    headers = {"X-Api-Key": api_key} if api_key else {}
+    location_id = station if station.startswith("USGS-") else f"USGS-{station}"
+    params = {
+        "f": "json",
+        "monitoring_location_id": location_id,
+        "parameter_code": parameter,
+        # Maximum number of features the API returns per page
+        "limit": 50000,
+    }
+    if data_type == "Daily":
+        data_url = f"{base_url}/daily/items"
+        params["statistic_id"] = "00003"
+    else:
+        data_url = f"{base_url}/continuous/items"
+
+    features = []
+    for window_start, window_end in _time_windows(
+        start_date, end_date, data_type, request_options["timezone"]
+    ):
+        params["time"] = f"{window_start}/{window_end}"
+        for page in _get_ogc_pages(data_url, dict(params), headers, proxy, timeout):
+            features.extend(page.get("features", []))
+
+    # Name the column with the parameter description, as the legacy service did
+    try:
+        column_name = _get_ogc_pages(
+            f"{base_url}/parameter-codes/items/{parameter}",
+            {"f": "json"},
+            headers,
+            proxy,
+            timeout,
+        )[0]["properties"]["parameter_description"]
+    except (requests.exceptions.RequestException, KeyError) as e:
+        print(f"Warning: Failed to look up parameter {parameter}: {str(e)}")
+        column_name = parameter
+
+    return _read_usgs_json(
+        {"type": "FeatureCollection", "features": features},
+        True,
+        column_name,
+        request_options["include_status"],
+    )
+
+
+# pylint: disable=too-many-arguments
+def _request_waterservices_data(
+    station: str,
+    parameter: str,
+    start_date: str,
+    end_date: str,
+    data_type: str,
+    proxy: Optional[Dict],
+    timeout: Union[int, float],
+) -> DataFrame:
+    """
+    Requests data from the legacy USGS WaterServices, which USGS is
+    decommissioning in Q1 2027. Instantaneous dates are station local days.
+
+    Parameters
+    ----------
+    station : str
+        USGS station number
+    parameter : str
+        USGS parameter code
+    start_date : str
+        Start date in the format 'YYYY-MM-DD'
+    end_date : str
+        End date in the format 'YYYY-MM-DD'
+    data_type : str
+        'Daily' or 'Instantaneous'
+    proxy : dict or None
+        Proxy settings for the request
+    timeout : int or float
+        Timeout in seconds for the HTTP request
+
+    Returns
+    -------
+    data : pandas.DataFrame
+        Processed time series data
+    """
+    service = "dv" if data_type == "Daily" else "iv"
+    params = {
+        "format": "json",
+        "sites": station,
+        "startDT": start_date,
+        "endDT": end_date,
+        "parameterCd": parameter,
+        "siteStatus": "all",
+    }
+    if data_type == "Daily":
+        params["statCd"] = "00003"
+    url = f"https://waterservices.usgs.gov/nwis/{service}/"
+
+    print(
+        "Data request URL: ", requests.Request("GET", url, params=params).prepare().url
+    )
+
+    max_retries = 3
+    retry_count = 0
+    while True:
+        try:
+            response = requests.get(
+                url=url, params=params, proxies=proxy, timeout=timeout, verify=True
+            )
+            break
+        except requests.exceptions.SSLError as e:
+            retry_count += 1
+            if retry_count == max_retries:
+                raise e
+            print(
+                f"SSL Error occurred, retrying... (Attempt {retry_count}/{max_retries})"
+            )
+    response.raise_for_status()
+
+    return _read_usgs_json(json.loads(response.text), True)
+
+
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-statements
@@ -372,6 +529,12 @@ def request_usgs_data(
         - include_status: bool
             If True, include the 'approval_status' ('Approved' or 'Provisional')
             and 'qualifier' columns. Default = False
+        - use_legacy_api: bool
+            If True, request data from the legacy USGS WaterServices
+            (https://waterservices.usgs.gov), which USGS is decommissioning in
+            Q1 2027, instead of the OGC APIs. Deprecated and will be removed
+            by 2027-01-31. The timezone and include_status options are not
+            supported and api_key is ignored. Default = False
         - timezone: str
             Timezone of start_date and end_date for Instantaneous data, as an
             IANA name (e.g. 'America/Anchorage'), so that each date covers that
@@ -399,6 +562,7 @@ def request_usgs_data(
     api_key = options.get("api_key", None) or os.environ.get("USGS_API_KEY")
     include_status = options.get("include_status", False)
     timezone = options.get("timezone", "UTC")
+    use_legacy_api = options.get("use_legacy_api", False)
 
     if data_type not in ["Daily", "Instantaneous"]:
         raise ValueError(f"data_type must be Daily or Instantaneous. Got: {data_type}")
@@ -423,6 +587,28 @@ def request_usgs_data(
             f"Got: {timezone}"
         )
 
+    if not isinstance(use_legacy_api, bool):
+        raise TypeError(
+            f"use_legacy_api must be of type bool. Got: {type(use_legacy_api)}"
+        )
+
+    if use_legacy_api:
+        if include_status or timezone != "UTC":
+            raise ValueError(
+                "The include_status and timezone options are not supported with "
+                "use_legacy_api."
+            )
+        warnings.warn(
+            "The use_legacy_api option is deprecated. USGS is decommissioning the "
+            "legacy WaterServices (waterservices.usgs.gov) in Q1 2027 "
+            "(https://waterdata.usgs.gov/blog/api-waterservices-decom/) and MHKiT "
+            "will remove support by 2027-01-31. To use the new USGS Water Data "
+            "APIs, remove use_legacy_api from the options passed to "
+            "request_usgs_data.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
     # Define the path to the cache directory
     cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "mhkit", "usgs")
 
@@ -430,6 +616,8 @@ def request_usgs_data(
     # The "ogc" prefix keeps results cached from the legacy WaterServices, which
     # used station local time, from being returned
     hash_params = f"ogc_{station}_{parameter}_{start_date}_{end_date}_{data_type}"
+    if use_legacy_api:
+        hash_params = f"{station}_{parameter}_{start_date}_{end_date}_{data_type}"
     if include_status:
         hash_params += "_status"
     if data_type == "Instantaneous" and timezone != "UTC":
@@ -451,50 +639,26 @@ def request_usgs_data(
         return cached_data
 
     # If no cached data, proceed with the API request
-    base_url = "https://api.waterdata.usgs.gov/ogcapi/v1/collections"
-    headers = {"X-Api-Key": api_key} if api_key else {}
-    location_id = station if station.startswith("USGS-") else f"USGS-{station}"
-    params = {
-        "f": "json",
-        "monitoring_location_id": location_id,
-        "parameter_code": parameter,
-        # Maximum number of features the API returns per page
-        "limit": 50000,
-    }
-    if data_type == "Daily":
-        data_url = f"{base_url}/daily/items"
-        params["statistic_id"] = "00003"
+    if use_legacy_api:
+        data = _request_waterservices_data(
+            station, parameter, start_date, end_date, data_type, proxy, timeout
+        )
     else:
-        data_url = f"{base_url}/continuous/items"
-
-    features = []
-    for window_start, window_end in _time_windows(
-        start_date, end_date, data_type, timezone
-    ):
-        params["time"] = f"{window_start}/{window_end}"
-        for page in _get_ogc_pages(data_url, dict(params), headers, proxy, timeout):
-            features.extend(page.get("features", []))
-
-    # Name the column with the parameter description, as the legacy service did
-    try:
-        column_name = _get_ogc_pages(
-            f"{base_url}/parameter-codes/items/{parameter}",
-            {"f": "json"},
-            headers,
+        request_options = {
+            "api_key": api_key,
+            "include_status": include_status,
+            "timezone": timezone,
+        }
+        data = _request_ogc_data(
+            station,
+            parameter,
+            start_date,
+            end_date,
+            data_type,
+            request_options,
             proxy,
             timeout,
-        )[0]["properties"]["parameter_description"]
-    except (requests.exceptions.RequestException, KeyError) as e:
-        print(f"Warning: Failed to look up parameter {parameter}: {str(e)}")
-        column_name = parameter
-
-    # handle_caching is only set-up for pandas, so force this data to output as pandas for now
-    data = _read_usgs_json(
-        {"type": "FeatureCollection", "features": features},
-        True,
-        column_name,
-        include_status,
-    )
+        )
 
     # After making the API request and processing the response, write the
     #  response to a cache file
