@@ -46,7 +46,7 @@ class mc_testcase(unittest.TestCase):
         # ensure trailing nans are removed from AHRS data
         ahrs = read("vector_data_imu01.VEC", userdata=True)
         for var in ["accel", "angrt", "mag"]:
-            assert not ahrs[var].isnull().any(), "nan's in {} variable".format(var)
+            assert not ahrs[var].isnull().any(), f"nan's in variable '{var}'"
 
         if make_data:
             save(tdm, "vector_data_imu01_mc.nc")

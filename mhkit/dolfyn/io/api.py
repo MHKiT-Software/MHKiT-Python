@@ -1,7 +1,8 @@
+from os.path import abspath, dirname, join, normpath, relpath
+from pathlib import Path
 import numpy as np
 import scipy.io as sio
 import xarray as xr
-from os.path import abspath, dirname, join, normpath, relpath
 from .nortek import read_nortek
 from .nortek2 import read_signature
 from .rdi import read_rdi
@@ -18,16 +19,15 @@ from ..time import (
 
 
 def _check_file_ext(path, ext):
-    filename = path.replace("\\", "/").rsplit("/")[-1]  # windows/linux
-    # for a filename like mcrl.water_velocity-1s.b1.20200813.150000.nc
-    file_ext = filename.rsplit(".")[-1]
-    if "." in filename:
-        if file_ext != ext:
-            raise IOError("File extension must be of the type {}".format(ext))
-        if file_ext == ext:
-            return path
-
-    return path + "." + ext
+    if isinstance(path, str):
+        path = Path(path)
+    file_ext = path.suffix
+    if file_ext and (file_ext != ext):
+        raise IOError(f"File extension must be of the type {ext}")
+    if file_ext == ext:
+        return path
+    else:
+        return path.with_suffix(ext)
 
 
 def _decode_cf(dataset: xr.Dataset) -> xr.Dataset:
@@ -173,7 +173,7 @@ def save(ds, filename, format="NETCDF4", engine="netcdf4", compression=False, **
     See the xarray.to_netcdf documentation for more details.
     """
 
-    filename = _check_file_ext(filename, "nc")
+    filename = _check_file_ext(filename, ".nc")
 
     # Handling complex values for netCDF4
     ds.attrs["complex_vars"] = []
@@ -238,7 +238,7 @@ def load(filename):
       An xarray dataset from the binary instrument data.
     """
 
-    filename = _check_file_ext(filename, "nc")
+    filename = _check_file_ext(filename, ".nc")
 
     ds = xr.load_dataset(filename, engine="netcdf4")
 
@@ -295,7 +295,7 @@ def save_mat(ds, filename, datenum=True):
         if hasattr(ds[key], "standard_name"):
             matfile["standard_name"][key] = ds[key].standard_name
 
-    filename = _check_file_ext(filename, "mat")
+    filename = _check_file_ext(filename, ".mat")
 
     # Convert time to datenum
     t_coords = [t for t in ds.coords if np.issubdtype(ds[t].dtype, np.datetime64)]
@@ -361,7 +361,7 @@ def load_mat(filename, datenum=True):
     scipy.io.loadmat()
     """
 
-    filename = _check_file_ext(filename, "mat")
+    filename = _check_file_ext(filename, ".mat")
 
     data = sio.loadmat(filename, struct_as_record=False, squeeze_me=True)
 

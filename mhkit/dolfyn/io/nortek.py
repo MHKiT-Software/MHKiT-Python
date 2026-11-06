@@ -14,9 +14,7 @@ from ..rotate.base import _set_coords
 from ..rotate import api as rot
 
 
-def read_nortek(
-    filename, userdata=True, debug=False, do_checksum=False, nens=None, **kwargs
-):
+def read_nortek(filename, userdata=True, debug=False, nens=None, **kwargs):
     """
     Read a classic Nortek (AWAC and Vector) datafile
 
@@ -29,8 +27,6 @@ def read_nortek(
       Default = True
     debug : bool
       Logs debugger ouput if true. Default = False
-    do_checksum : bool
-      Whether to perform the checksum of each data block. Default = False
     nens : None, int or 2-element tuple (start, stop)
       Number of pings or ensembles to read from the file.
       Default is None, read entire file
@@ -56,7 +52,7 @@ def read_nortek(
 
     userdata = base._find_userdata(filename, userdata)
 
-    rdr = _NortekReader(filename, debug=debug, do_checksum=do_checksum, nens=nens)
+    rdr = _NortekReader(filename, debug=debug, nens=nens)
     rdr.readfile()
     rdr.cleanup()
     dat = rdr.data
@@ -73,9 +69,9 @@ def read_nortek(
         if np.isnan(tdat).any():
             tag = ky.lstrip("time")
             warnings.warn(
-                "Zero/NaN values found in '{}'. Interpolating and "
+                f"Zero/NaN values found in '{ky}'. Interpolating and "
                 "extrapolating them. To identify which values were filled later, "
-                "look for 0 values in 'status{}'".format(ky, tag)
+                f"look for 0 values in 'status{tag}'"
             )
             tdat = time._fill_time_gaps(tdat, sample_rate_hz=dat["attrs"]["fs"])
         coords[ky] = time.epoch2dt64(tdat).astype("datetime64[ns]")
@@ -136,8 +132,6 @@ class _NortekReader:
       default the reader will attempt to determine this.
     debug : {True, False*} (optional)
       Print debug/progress information?
-    do_checksum : {True*, False} (optional)
-      Specifies whether to perform the checksum.
     bufsize : int
       The size of the read buffer to use. Default = 100000
     nens : None, int or 2-element tuple (start, stop)
@@ -168,19 +162,39 @@ class _NortekReader:
         "0x81": "read_aqd_mag",  # Aquadopp with magnetometer
     }
 
+    size_map = {
+        "0x00": 512,  # User configuration
+        "0x01": 48,  # Aquadopp velocity
+        "0x04": 224,  # Header configuration
+        "0x05": 48,  # Hardware configuration
+        "0x06": 36,  # Aquadopp diagnostics header
+        "0x07": None,  # Vector probe check
+        "0x10": 24,  # Vector velocity
+        "0x11": 28,  # Vector system data
+        "0x12": 42,  # Vector header
+        "0x20": None,  # AWAC profile
+        "0x21": None,  # Aquadopp profiler velocity
+        "0x2a": None,  # Aquadopp profiler high-res velocity
+        "0x30": 24,  # AWAC and Aquadopp waves
+        "0x31": 60,  # AWAC and Aquadopp waves header
+        "0x36": 24,  # AWAC waves + "SUV"
+        "0x42": None,  # AWAC stage data (altimeter AST)
+        "0x71": None,  # Vector IMU (this varies between 72 and 86)
+        "0x80": 48,  # Aquadopp diagnostics
+        "0x81": 48,  # Aquadopp with magnetometer
+    }
+
     def __init__(
         self,
         fname,
         endian=None,
         debug=False,
-        do_checksum=True,
         bufsize=100000,
         nens=None,
     ):
         self.fname = fname
         self._bufsize = bufsize
         self.f = open(base._abspath(fname), "rb", 1000)
-        self.do_checksum = do_checksum
         self.filesize  # initialize the filesize.
         self.debug = debug
         self.c = 0
@@ -239,19 +253,18 @@ class _NortekReader:
             self._inst = "ADV"
         elif self.config["hdw"]["serial_number"][0:3].upper() in ["AQD", "PRF"]:
             self._inst = "AQD"  # Use AWAC configuration for Aquadopp
-        # This is the position after reading the 'hardware',
-        # 'head', and 'user' configuration.
-        pnow = self.pos
-
         # Run the appropriate initialization routine (e.g. init_ADV).
         getattr(self, "init_" + self._inst)()
+        # No apparent way to determine how many samples are in a file
+        if nens is None:
+            self.ensemble_count()
+
         self.f.close()  # This has a small buffer, so close it.
         # This has a large buffer...
         self.f = open(base._abspath(fname), "rb", bufsize)
         self.close = self.f.close
         if self._npings is not None:
-            self.n_samp_guess = self._npings
-        self.f.seek(pnow, 0)  # Seek to the previous position.
+            self.n_ensembles = self._npings
 
         da = self.data["attrs"]
         if (self.config["adv"]["n_burst"] > 0) and ("ADV" in da["inst_type"]):
@@ -263,12 +276,11 @@ class _NortekReader:
             else:
                 burst_seconds = round(1 / fs, 3)
             da["duty_cycle_description"] = (
-                "{} second bursts collected at {} Hz, with bursts taken every {} minutes".format(
-                    burst_seconds, fs, self.config["burst_interval"] / 60
-                )
+                f"{burst_seconds} second bursts collected at {fs} Hz, "
+                f"with bursts taken every {self.config['burst_interval'] / 60} minutes"
             )
 
-        self.burst_start = np.zeros(self.n_samp_guess, dtype="bool")
+        self.burst_start = np.zeros(self.n_ensembles, dtype="bool")
         da["fs"] = self.config["fs"]
         da["coord_sys"] = {"XYZ": "inst", "ENU": "earth", "beam": "beam"}[
             self.config["coord_sys_axes"]
@@ -316,8 +328,6 @@ class _NortekReader:
         da.update(self.config["adv"])
         da.update(self.config["hdr"])
         da.update(self.config["hdw"])
-        # No apparent way to determine how many samples are in a file
-        self.ensemble_count()
 
     def init_AWAC(self):
         dat = self.data = {
@@ -346,8 +356,6 @@ class _NortekReader:
             da.update(self.config["waves"])
         da.update(self.config["hdr"])
         da.update(self.config["hdw"])
-        # No apparent way to determine how many samples are in a file
-        self.ensemble_count()
 
     def init_AQD(self):
         dat = self.data = {
@@ -376,8 +384,6 @@ class _NortekReader:
             da.update(self.config["waves"])
         da.update(self.config["hdr"])
         da.update(self.config["hdw"])
-        # No apparent way to determine how many samples are in a file
-        self.ensemble_count()
 
     def _init_data(self, vardict):
         """Initialize the data object according to vardict.
@@ -389,7 +395,7 @@ class _NortekReader:
           how to initialize each data variable.
 
         """
-        shape_args = {"n": self.n_samp_guess}
+        shape_args = {"n": self.n_ensembles}
         try:
             shape_args["nbins"] = self.config["usr"]["n_bins"]
         except KeyError:
@@ -413,12 +419,8 @@ class _NortekReader:
             raise EOFError("Reached the end of the file")
         return byts
 
-    def findnext(self, do_cs=True):
-        """Find the next data block by checking the checksum and the
-        sync byte(0xa5)
-        """
-        sum = np.uint16(int("0xb58c", 0))  # Initialize the sum
-        cs = 0
+    def findnext(self):
+        """Find the next data block by checking the sync byte(0xa5)"""
         func = lib._bitshift8
         func2 = np.uint8
         if self.endian == "<":
@@ -427,36 +429,34 @@ class _NortekReader:
         searching = False
         while True:
             val = unpack(self.endian + "H", self.read(2))[0]
-            if np.array(val).astype(func) == 165 and (not do_cs or cs == sum):
+            if np.array(val).astype(func) == 165:
                 self.f.seek(-2, 1)
                 return hex(func2(val))
-            sum += cs
-            cs = val
             if self.debug and not searching:
                 logging.debug("Scanning every 2 bytes for next datablock...")
                 searching = True
 
-    def read_id(self, log=True):
+    def read_id(self):
         """Read the next 'ID' from the file."""
-        self._thisid_bytes = bts = self.read(2)
+        self._current_id = bts = self.read(2)
         tmp = unpack(self.endian + "BB", bts)
-        if self.debug and log:
-            logging.info("Position: {}, codes: {}".format(self.f.tell(), tmp))
         if tmp[0] != 165:  # This catches a corrupted data block.
             if self.debug:
+                logging.info(f"Position: {self.f.tell()}, codes: {tmp[0], hex(tmp[1])}")
                 logging.warning(
-                    "Corrupted data block sync code (%d, %d) found "
+                    "Incorrect data block sync code (%d, %d) found "
                     "in ping %d. Searching for next valid code..."
                     % (tmp[0], tmp[1], self.c)
                 )
-            val = int(self.findnext(do_cs=False), 0)
+            val = int(self.findnext(), 0)
             self.f.seek(2, 1)
             if self.debug:
-                logging.debug(" ...FOUND {} at position: {}.".format(val, self.pos))
+                logging.debug(f" ...FOUND {val} at position: {self.pos}.")
             return val
         return tmp[1]
 
     def readnext(self):
+        # function id
         id = "0x%02x" % self.read_id()
         if id in self.fun_map:
             func_name = self.fun_map[id]
@@ -488,29 +488,30 @@ class _NortekReader:
                     break
         except EOFError:
             if self.debug:
-                logging.info(" end of file at {} bytes.".format(self.pos))
+                logging.info(f" end of file at {self.pos} bytes.")
         else:
             if self.debug:
-                logging.info(" stopped at {} bytes.".format(self.pos))
+                logging.info(f" stopped at {self.pos} bytes.")
         self.c -= 1
-        lib._crop_data(self.data, slice(0, self.c), self.n_samp_guess)
+        lib._crop_data(self.data, slice(0, self.c), self.n_ensembles)
 
     def ensemble_count(self):
         """Find the total number of ensembles in the datafile."""
-        p0 = self.pos
+        print("Scanning file %s ..." % self.fname)
         id_count = {}
         id_size = {}
         # Find the spacing, in bytes, between each sample set of pings
         while True:
             try:
                 pos = self.pos
-                nowid = self.read_id(log=False)  # read the ID
-                if nowid == 16:
-                    shift = 22
-                else:
-                    # now read the next byte, which is the size of the data block
-                    sz = 2 * unpack(self.endian + "H", self.read(2))[0]
-                    shift = sz - 4
+                nowid = self.read_id()  # read the ID
+                # now read the next byte, which is the size of the data block
+                # (except for vector velocity block)
+                sz = 2 * unpack(self.endian + "H", self.read(2))[0]
+                shift = sz - 4
+                true_size = self.size_map["0x%02x" % nowid]
+                if not sz or (true_size is not None):
+                    shift = true_size - 4
                 if nowid not in id_count:
                     id_count[nowid] = 1
                 else:
@@ -519,57 +520,40 @@ class _NortekReader:
                     id_size[nowid] = [sz]
                 else:
                     id_size[nowid].append(sz)
+                if self.debug and (id_count[nowid] <= 10):
+                    logging.info(
+                        f"Position: {self.f.tell()}, id: {hex(nowid)}, packet size: {shift+4}"
+                    )
                 self.f.seek(shift, 1)
                 # If we get stuck in a while loop
                 if self.pos == pos:
                     self.f.seek(2, 1)
             except EOFError:
                 break
-        # Take median size of each ID data block
-        for id in id_size:
-            id_size[id] = int(np.median(id_size[id]))
+
         # Return size of most common data block found
-        if len(id_count) >= 1:
-            sample_block_size = id_size[max(id_count, key=id_count.get)]
-        else:
+        n_ensembles = max(id_count.values())
+        if not n_ensembles:
             raise Exception("No data blocks found in file.")
-
-        self.n_samp_guess = (self.filesize - p0) // sample_block_size
-
-    def checksum(self, byts):
-        """Perform a checksum on `byts` and read the checksum value."""
-        if self.do_checksum:
-            if (
-                not np.sum(
-                    unpack(
-                        self.endian + str(int(1 + len(byts) / 2)) + "H",
-                        self._thisid_bytes + byts,
-                    )
-                )
-                + 46476
-                - unpack(self.endian + "H", self.read(2))
-            ):
-                raise Exception("CheckSum Failed at {}".format(self.pos))
         else:
-            self.f.seek(2, 1)
+            self.n_ensembles = max(id_count.values())
 
     def read_user_cfg(self):
         """Read User configuration data block (0x00)"""
-        if self.debug:
-            logging.info(
-                "Reading user configuration (0x00) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
-            )
         cfg_u = self.config
-        byts = self.read(508)
-        # the first two bytes are the size.
-        tmp = unpack(self.endian + "2x18H6s4HI9H90H80s48xH50x6H4xH2x2H2xH30x8H", byts)
         cfg_u["usr"] = {}
         cfg_u["adv"] = {}
         cfg_u["adp"] = {}
         cfg_u["waves"] = {}
+        if self.debug:
+            logging.info(
+                f"Position: {self.pos} - Reading user configuration (0x00) ping {self.c}"
+            )
+        # size is in # of words (1 word = 2 bytes)
+        size = unpack(self.endian + "H", self.read(2))[0] * 2
+        byts = self.read(size - 6)
 
+        tmp = unpack(self.endian + "18H6s4HI9H90H80s48xH50x6H4xH2x2H2xH30x8H", byts)
         cfg_u["transmit_pulse_length_m"] = tmp[0]  # counts
         cfg_u["blank_dist"] = tmp[1]  # counts
         cfg_u["receive_length_m"] = tmp[2]  # counts
@@ -635,7 +619,8 @@ class _NortekReader:
         cfg_u["corr_thresh"] = tmp[133]
         cfg_u["transmit_pulse_lag2"] = tmp[134]  # counts
         cfg_u["QualConst"] = np.array(tmp[135:143])
-        self.checksum(byts)
+        self.f.seek(2, 1)  # checksum
+
         # Mode bits:
         cfg_u["usr"]["user_specified_sound_speed"] = str(mode[0])
         cfg_u["adp"]["wave_mode"] = ["Disabled", "Enabled"][int(mode[1])]
@@ -657,20 +642,21 @@ class _NortekReader:
             "pct_of_mean_pressure",
             "pct_of_min_re",
         ][int(wave_meas_mode[2])]
+        cfg_u
 
     def read_hdr_cfg(self):
         """Read header configuration block (0x04)"""
         # ID: '0x04' = 04
-        if self.debug:
-            logging.info(
-                "Reading header configuration (0x04) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
-            )
         cfg = self.config
         cfg["hdr"] = {}
-        byts = self.read(220)
-        tmp = unpack(self.endian + "2x3H12s176s22sH", byts)
+        if self.debug:
+            logging.info(
+                f"Position: {self.pos} - Reading header configuration (0x04) ping {self.c}"
+            )
+        # size is in # of words (1 word = 2 bytes)
+        size = unpack(self.endian + "H", self.read(2))[0] * 2
+        byts = self.read(size - 6)
+        tmp = unpack(self.endian + "3H12s176s22sH", byts)
         head_config = lib._int2binarray(tmp[0], 16).astype(int)
         cfg["hdr"]["pressure_sensor"] = ["no", "yes"][head_config[0]]
         cfg["hdr"]["compass"] = ["no", "yes"][head_config[1]]
@@ -680,21 +666,22 @@ class _NortekReader:
         cfg["beam2inst_orientmat"] = (
             np.array(unpack(self.endian + "9h", tmp[4][8:26])).reshape(3, 3) / 4096.0
         )
-        self.checksum(byts)
+        self.f.seek(2, 1)  # checksum
 
     def read_hdw_cfg(self):
         """Read hardware configuration block (0x05)"""
         # ID '0x05' = 05
-        if self.debug:
-            logging.info(
-                "Reading hardware configuration (0x05) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
-            )
         cfg_hw = self.config
         cfg_hw["hdw"] = {}
-        byts = self.read(44)
-        tmp = unpack(self.endian + "2x14s6H12x4s", byts)
+        if self.debug:
+            logging.info(
+                f"Position: {self.pos} - Reading hardware configuration (0x05) ping {self.c}"
+            )
+        # size is in # of words (1 word = 2 bytes)
+        size = unpack(self.endian + "H", self.read(2))[0] * 2
+        byts = self.read(size - 6)
+
+        tmp = unpack(self.endian + "14s6H12x4s", byts)
         cfg_hw["hdw"]["serial_number"] = tmp[0][:8].decode("utf-8")
         cfg_hw["ProLogID"] = unpack("B", tmp[0][8:9])[0]
         cfg_hw["hdw"]["ProLogFWver"] = tmp[0][10:].decode("utf-8")
@@ -706,7 +693,7 @@ class _NortekReader:
         status = lib._int2binarray(tmp[6], 16).astype(int)
         cfg_hw["hdw"]["vel_range"] = ["normal", "high"][status[0]]
         cfg_hw["hdw"]["firmware_version"] = tmp[7].decode("utf-8")
-        self.checksum(byts)
+        self.f.seek(2, 1)  # checksum
 
     def read_aqd(self):
         """Read Aquadopp velocity block (0x01)"""
@@ -715,14 +702,16 @@ class _NortekReader:
         dat = self.data
         if self.debug:
             logging.info(
-                "Reading Aquadopp (0x01) ping #{} @ {}...".format(self.c, self.pos)
+                f"Position: {self.pos} - Reading Aquadopp (0x01) ping {self.c}"
             )
         if "temp" not in self.data["data_vars"]:
             self._init_data(defs.vec_data)
             self._dtypes += ["vec_data"]
 
-        byts = self.read(38)
-        dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
+        # size is in # of words (1 word = 2 bytes)
+        size = unpack(self.endian + "H", self.read(2))[0] * 2
+        byts = self.read(size - 6)
+        dat["coords"]["time"][c] = lib.rd_time(byts[:6])
         ds = dat["sys"]
         dv = dat["data_vars"]
         (
@@ -743,9 +732,9 @@ class _NortekReader:
             dv["amp"][0, c],
             dv["amp"][1, c],
             dv["amp"][2, c],
-        ) = unpack(self.endian + "5H2h2BH4h3Bx", byts[8:38])
+        ) = unpack(self.endian + "5H2h2BH4h3Bx", byts[6:])
         dv["pressure"][c] = 65536 * p_msb + p_lsw
-        self.checksum(byts)
+        self.f.seek(2, 1)  # checksum
         self.c += 1
 
     def read_aqd_diag_hdr(self):
@@ -753,13 +742,12 @@ class _NortekReader:
         # ID: '0x06' = 6
         if self.debug:
             logging.info(
-                "Reading Aquadopp diagnostics (0x06) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
+                f"Position: {self.pos} - Reading Aquadopp diagnostics (0x06) ping {self.c}"
             )
-        byts = self.read(32)
-        # The first two are size, the next 6 are time.
-        tmp = unpack(self.endian + "2x2H4B8H6x", byts)
+        # size is in # of words (1 word = 2 bytes)
+        size = unpack(self.endian + "H", self.read(2))[0] * 2
+        byts = self.read(size - 6)
+        tmp = unpack(self.endian + "2H4B8H6x", byts)
         hdrnow = {}
         hdrnow["n_records"] = tmp[0]
         hdrnow["cell_size_diag"] = tmp[1]
@@ -775,7 +763,7 @@ class _NortekReader:
         hdrnow["distance2"] = tmp[11]
         hdrnow["distance3"] = tmp[12]
         hdrnow["distance4"] = tmp[13]
-        self.checksum(byts)
+        self.f.seek(2, 1)  # checksum
         if "data_header" not in self.config:
             self.config["data_header"] = hdrnow
         else:
@@ -788,30 +776,28 @@ class _NortekReader:
         # ID: '0x07' = 07
         if self.debug:
             logging.info(
-                "Reading Vector check data (0x07) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
+                f"Position: {self.pos} - Reading Vector check data (0x07) ping {self.c}"
             )
-        byts0 = self.read(6)
         checknow = {}
-        tmp = unpack(self.endian + "2x2H", byts0)  # The first two are size.
+        self.f.seek(2, 1)  # size
+        tmp = unpack(self.endian + "2H", self.read(4))
         checknow["Samples"] = tmp[0]
         n = checknow["Samples"]
         checknow["First_samp"] = tmp[1]
         checknow["Amp1"] = tbx._nans(n, dtype=np.uint8) + 8
         checknow["Amp2"] = tbx._nans(n, dtype=np.uint8) + 8
         checknow["Amp3"] = tbx._nans(n, dtype=np.uint8) + 8
-        byts1 = self.read(3 * n)
-        tmp = unpack(self.endian + (3 * n * "B"), byts1)
+        byts = self.read(3 * n)
+        tmp = unpack(self.endian + (3 * n * "B"), byts)
         for idx, nm in enumerate(["Amp1", "Amp2", "Amp3"]):
             checknow[nm] = np.array(tmp[idx * n : (idx + 1) * n], dtype=np.uint8)
-        self.checksum(byts0 + byts1)
         if "checkdata" not in self.config:
             self.config["checkdata"] = checknow
         else:
             if not isinstance(self.config["checkdata"], list):
                 self.config["checkdata"] = [self.config["checkdata"]]
             self.config["checkdata"] += [checknow]
+        self.f.seek(2, 1)  # checksum
 
     def read_vec(self):
         """Read Vector velocity block (0x10)"""
@@ -820,15 +806,16 @@ class _NortekReader:
         dat = self.data
         if self.debug:
             logging.info(
-                "Reading Vector measurements (0x10) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
+                f"Position: {self.pos} - Reading Vector measurements (0x10) ping {self.c}"
             )
+        if self.n_ensembles == c:
+            raise IndexError("There are more ensembles in the file than expected.")
 
         if "vel" not in dat["data_vars"]:
             self._init_data(defs.vec_data)
             self._dtypes += ["vec_data"]
 
+        # The size byte in read_vec is
         byts = self.read(20)
         ds = dat["sys"]
         dv = dat["data_vars"]
@@ -851,7 +838,7 @@ class _NortekReader:
         ) = unpack(self.endian + "4B2H3h6B", byts)
         ds["AnaIn2"] = 65536 * a2_msb + a2_lsw
         dv["pressure"][c] = 65536 * p_msb + p_lsw
-        self.checksum(byts)
+        self.f.seek(2, 1)  # checksum
         self.c += 1
 
     def read_vec_sys(self):
@@ -860,9 +847,7 @@ class _NortekReader:
         c = self.c
         if self.debug:
             logging.info(
-                "Reading Vector system data (0x11) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
+                f"Position: {self.pos} - Reading Vector system data (0x11) ping {self.c}"
             )
         dat = self.data
         if self._lastread[:2] == [
@@ -873,9 +858,11 @@ class _NortekReader:
         if "time" not in dat["coords"]:
             self._init_data(defs.vec_sys)
             self._dtypes += ["vec_sys"]
-        byts = self.read(24)
-        # The first two are size (skip them).
-        dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
+
+        self.f.seek(2, 1)  # size
+        timestamp = lib.rd_time(self.read(6))
+        dat["coords"]["time"][c] = timestamp
+        dat["coords"]["time_sys"][c] = timestamp
         ds = dat["sys"]
         dv = dat["data_vars"]
         (
@@ -888,23 +875,22 @@ class _NortekReader:
             dv["error"][c],
             dv["status"][c],
             ds["AnaIn"][c],
-        ) = unpack(self.endian + "3H3h2BH", byts[8:])
-        self.checksum(byts)
+        ) = unpack(self.endian + "3H3h2BH", self.read(16))
+        self.f.seek(2, 1)  # checksum
 
     def read_vec_hdr(self):
         """Read Vector header block (0x12)"""
         # ID: '0x12' = 18
         if self.debug:
             logging.info(
-                "Reading Vector header data (0x12) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
+                f"Position: {self.pos} - Reading Vector header data (0x12) ping {self.c}"
             )
         hdrnow = {}
-        byts = self.read(38)
-        hdrnow["time"] = lib.rd_time(byts[2:8])
-        # The first two are size, the next 6 are time.
-        tmp = unpack(self.endian + "H3Bx3B21x", byts[8:38])
+        # size is in # of words (1 word = 2 bytes)
+        size = unpack(self.endian + "H", self.read(2))[0] * 2
+        byts = self.read(size - 6)
+        hdrnow["time"] = lib.rd_time(byts[:6])
+        tmp = unpack(self.endian + "H3Bx3B21x", byts[6:36])
         hdrnow["n_records"] = tmp[0]
         hdrnow["noise1"] = tmp[1]
         hdrnow["noise2"] = tmp[2]
@@ -912,7 +898,7 @@ class _NortekReader:
         hdrnow["corr1"] = tmp[4]
         hdrnow["corr2"] = tmp[5]
         hdrnow["corr3"] = tmp[6]
-        self.checksum(byts)
+        self.f.seek(2, 1)  # checksum
 
         if "data_header" not in self.config:
             self.config["data_header"] = hdrnow
@@ -926,13 +912,12 @@ class _NortekReader:
         dat = self.data
         nbins = self.config["usr"]["n_bins"]
         n = self.config["usr"]["n_beams"]
-        init_bytes = 28 + skip_bytes
-        # Note: docs state there is 'fill' byte at the end, if nbins is odd,
-        # but doesn't appear to always be the case
+        self.f.seek(2, 1)  # size
+        init_bytes = 26 + skip_bytes
         fill_byte = 1 if (nbins % 2) else 0
         byts = self.read(init_bytes + n * 3 * nbins + fill_byte)
         c = self.c
-        dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
+        dat["coords"]["time"][c] = lib.rd_time(byts[:6])
         ds = dat["sys"]
         dv = dat["data_vars"]
         (
@@ -947,7 +932,7 @@ class _NortekReader:
             dv["status"][c],
             p_lsw,
             dv["temp"][c],
-        ) = unpack(self.endian + "5H2h2BHh", byts[8:28])
+        ) = unpack(self.endian + "5H2h2BHh", byts[6:26])
         dv["pressure"][c] = 65536 * p_msb + p_lsw
 
         tmp = unpack(
@@ -957,7 +942,8 @@ class _NortekReader:
         for idx in range(n):
             dv["vel"][idx, :, c] = tmp[idx * nbins : (idx + 1) * nbins]
             dv["amp"][idx, :, c] = tmp[(idx + n) * nbins : (idx + n + 1) * nbins]
-        self.checksum(byts)
+
+        self.f.seek(2, 1)  # checksum
         self.c += 1
 
     def read_awac_profile(self):
@@ -965,9 +951,7 @@ class _NortekReader:
         # ID: '0x20' = 32
         if self.debug:
             logging.info(
-                "Reading AWAC velocity data (0x20) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
+                f"Position: {self.pos} - Reading AWAC velocity data (0x20) ping {self.c}"
             )
         if "temp" not in self.data["data_vars"]:
             self._init_data(defs.awac_profile)
@@ -982,9 +966,7 @@ class _NortekReader:
         # ID: '0x21' = 33
         if self.debug:
             logging.info(
-                "Reading Aquadopp velocity data (0x21) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
+                f"Position: {self.pos} - Reading Aquadopp velocity data (0x21) ping {self.c}"
             )
         if "temp" not in self.data["data_vars"]:
             self._init_data(defs.awac_profile)
@@ -998,19 +980,17 @@ class _NortekReader:
         dat = self.data
         if self.debug:
             logging.info(
-                "Reading Aquadopp velocity data (0x2a) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
+                f"Position: {self.pos} - Reading Aquadopp velocity data (0x2a) ping {self.c}"
             )
         if "temp" not in dat["data_vars"]:
             self._init_data(defs.aqd_hr_profile)
             self._dtypes += ["awac_profile"]
             self.data["attrs"]["hr_profile"] = 1
 
-        byts = self.read(52)
+        self.f.seek(2, 1)  # size
+        byts = self.read(50)
         c = self.c
-        # first two bytes are the data block size
-        dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
+        dat["coords"]["time"][c] = lib.rd_time(byts[:6])
         ds = dat["sys"]
         dv = dat["data_vars"]
         (
@@ -1029,7 +1009,7 @@ class _NortekReader:
             ds["AnaIn2"][c],
             nbeams,
             ncells,
-        ) = unpack(self.endian + "5H2h2BHh2H2B", byts[8:34])
+        ) = unpack(self.endian + "5H2h2BHh2H2B", byts[6:32])
         dat["coords"]["time"][c] += milliseconds / 1000
         dv["pressure"][c] = 65536 * p_msb + p_lsw
 
@@ -1046,7 +1026,7 @@ class _NortekReader:
             dv["corr"][idx, :, c] = tmp[
                 (idx + 2 * nbeams) * ncells : (idx + 2 * nbeams + 1) * ncells
             ]
-        self.checksum(byts)
+        self.f.seek(2, 1)  # checksum
         self.c += 1
 
     def read_awac_waves(self):
@@ -1056,17 +1036,17 @@ class _NortekReader:
         dat = self.data
         nbeams = self.config["usr"]["n_beams"]
         if self.debug:
-            print(
-                "Reading AWAC wave data (0x30) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
+            logging.info(
+                f"Position: {self.pos} - Reading AWAC wave data (0x30) ping {self.c}"
             )
         if "dist1" not in dat["data_vars"]:
             self._init_data(defs.wave_data)
             self._dtypes += ["wave_data"]
-        # The first two are size
-        byts = self.read(20)
-        tmp = unpack(self.endian + "2xh2H4h4B", byts)
+
+        # size is in # of words (1 word = 2 bytes)
+        size = unpack(self.endian + "H", self.read(2))[0] * 2
+        byts = self.read(size - 6)
+        tmp = unpack(self.endian + "h2H4h4B", byts)
         ds = dat["sys"]
         dv = dat["data_vars"]
         dv["pressure"][c] = tmp[0]  # (0.001 dbar)
@@ -1086,23 +1066,22 @@ class _NortekReader:
             dv["amp"][3, c] = tmp[10]  # amplitude beam 4 (counts) (non-AST AWACs)
         else:
             dv["quality"][c] = tmp[10]  # AST quality (counts)
-        self.checksum(byts)
+        self.f.seek(2, 1)  # checksum
         self.c += 1
 
     def read_awac_waves_hdr(self):
         """Read AWAC header bock for wave data (0x31)"""
         # ID: '0x31' == 49
         if self.debug:
-            print(
-                "Reading AWAC header data (0x31) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
+            logging.info(
+                f"Position: {self.pos} - Reading AWAC header data (0x31) ping {self.c}"
             )
         hdrnow = {}
-        byts = self.read(56)
-        # The first two are size, the next 6 are time.
-        hdrnow["time"] = lib.rd_time(byts[2:8])
-        tmp = unpack(self.endian + "5H2h2HhH4B4H14x", byts[8:56])
+        # size is in # of words (1 word = 2 bytes)
+        size = unpack(self.endian + "H", self.read(2))[0] * 2
+        byts = self.read(size - 6)
+        hdrnow["time"] = lib.rd_time(byts[:6])
+        tmp = unpack(self.endian + "5H2h2HhH4B4H14x", byts[6:54])
         hdrnow["n_records"] = tmp[0]
         hdrnow["blank_dist"] = tmp[1]  # counts
         hdrnow["batt"] = tmp[2]  # voltage (0.1 V)
@@ -1122,34 +1101,32 @@ class _NortekReader:
         hdrnow["proc_magn2"] = tmp[16]
         hdrnow["proc_magn3"] = tmp[17]
         hdrnow["proc_magn4"] = tmp[18]
-        self.checksum(byts)
+        self.f.seek(2, 1)  # checksum
         if "data_header" not in self.config:
             self.config["data_header"] = hdrnow
         else:
             if not isinstance(self.config["data_header"], list):
                 self.config["data_header"] = [self.config["data_header"]]
             self.config["data_header"] += [hdrnow]
+        self.f.seek(2, 1)  # checksum
 
     def read_awac_stage(self):
         """Read AWAC altimeter (0x42) data block"""
         # IDs: '0x42'  == 66
         c = self.c
         dat = self.data
-        # Note: docs state there is 'fill' byte at the end, if nbins is odd,
-        # but doesn't appear to be the case
         nbins = self.config["usr"]["n_bins"]
         nbeams = self.config["usr"]["n_beams"]
         if self.debug:
-            print(
-                "Reading {} wave data (0x42) ping #{} @ {}...".format(
-                    self._inst, self.c, self.pos
-                )
+            logging.info(
+                f"Position: {self.pos} - Reading wave data (0x42) ping {self.c}"
             )
         if "ast_dist1" not in dat["data_vars"]:
             self._init_data(defs.stage_data)
             self._dtypes += ["stage_data"]
-        # The first two are size
-        byts = self.read(30)
+
+        self.f.seek(2, 1)  # size
+        byts = self.read(28)
         dv = dat["data_vars"]
         (
             dv["amp_alt"][0, c],  # amplitude beam 1 (counts)
@@ -1163,7 +1140,7 @@ class _NortekReader:
             dv["vel_alt"][0, c],  # velocity beam 1 (mm/s) East for SUV
             dv["vel_alt"][1, c],  # North for SUV
             dv["vel_alt"][2, c],  # Up for SUV
-        ) = unpack(self.endian + "4x3B2x2hH2h2x3h3x", byts)
+        ) = unpack(self.endian + "2x3B2x2hH2h2x3h3x", byts)
         alt_bytes = self.read(nbeams * nbins)
         tmp = unpack(
             self.endian + str(nbeams * nbins) + "B",
@@ -1171,7 +1148,9 @@ class _NortekReader:
         )
         for idx in range(nbeams):
             dv["amp"][idx, :, c] = tmp[idx * nbins : (idx + 1) * nbins]
-        self.checksum(byts)
+
+        fill_byte = 1 if (nbins % 2) else 0
+        self.f.seek(fill_byte + 2, 1)  # checksum
         self.c += 1
 
     def read_imu(self):
@@ -1204,13 +1183,13 @@ class _NortekReader:
             self.c -= 1
         if self.debug:
             logging.info(
-                "Reading Vector IMU data (0x71) ping #{} @ {}...".format(
-                    self.c, self.pos
-                )
+                f"Position: {self.pos} - Reading Vector IMU data (0x71) ping {self.c}"
             )
-        byts0 = self.read(4)
-        # The first 2 are the size, 3rd is count, 4th is the id.
-        ahrsid = unpack(self.endian + "3xB", byts0)[0]
+
+        # size is in # of words (1 word = 2 bytes)
+        size = unpack(self.endian + "H", self.read(2))[0] * 2
+        # first is count, 2nd is the id
+        ahrsid = unpack(self.endian + "xB", self.read(2))[0]
         if hasattr(self, "_ahrsid") and self._ahrsid != ahrsid:
             logging.warning("AHRS_ID changes mid-file!")
 
@@ -1226,9 +1205,9 @@ class _NortekReader:
             self._dtypes += ["imu"]
             if ahrsid == 195:
                 self._orient_dnames = ["accel", "angrt", "orientmat"]
-                dv["accel"] = tbx._nans((3, self.n_samp_guess), dtype=np.float32)
-                dv["angrt"] = tbx._nans((3, self.n_samp_guess), dtype=np.float32)
-                dv["orientmat"] = tbx._nans((3, 3, self.n_samp_guess), dtype=np.float32)
+                dv["accel"] = tbx._nans((3, self.n_ensembles), dtype=np.float32)
+                dv["angrt"] = tbx._nans((3, self.n_ensembles), dtype=np.float32)
+                dv["orientmat"] = tbx._nans((3, 3, self.n_ensembles), dtype=np.float32)
                 rv = ["accel", "angrt"]
                 if not all(x in da["rotate_vars"] for x in rv):
                     da["rotate_vars"].extend(rv)
@@ -1236,31 +1215,30 @@ class _NortekReader:
 
             if ahrsid in [204, 210]:
                 self._orient_dnames = ["accel", "angrt", "mag", "orientmat"]
-                dv["accel"] = tbx._nans((3, self.n_samp_guess), dtype=np.float32)
-                dv["angrt"] = tbx._nans((3, self.n_samp_guess), dtype=np.float32)
-                dv["mag"] = tbx._nans((3, self.n_samp_guess), dtype=np.float32)
+                dv["accel"] = tbx._nans((3, self.n_ensembles), dtype=np.float32)
+                dv["angrt"] = tbx._nans((3, self.n_ensembles), dtype=np.float32)
+                dv["mag"] = tbx._nans((3, self.n_ensembles), dtype=np.float32)
                 rv = ["accel", "angrt", "mag"]
                 if not all(x in da["rotate_vars"] for x in rv):
                     da["rotate_vars"].extend(rv)
                 if ahrsid == 204:
                     dv["orientmat"] = tbx._nans(
-                        (3, 3, self.n_samp_guess), dtype=np.float32
+                        (3, 3, self.n_ensembles), dtype=np.float32
                     )
                 update_defs(dat, mag=True, orientmat=True)
 
             if ahrsid == 211:
                 self._orient_dnames = ["angrt", "accel", "mag"]
-                dv["angrt"] = tbx._nans((3, self.n_samp_guess), dtype=np.float32)
-                dv["accel"] = tbx._nans((3, self.n_samp_guess), dtype=np.float32)
-                dv["mag"] = tbx._nans((3, self.n_samp_guess), dtype=np.float32)
+                dv["angrt"] = tbx._nans((3, self.n_ensembles), dtype=np.float32)
+                dv["accel"] = tbx._nans((3, self.n_ensembles), dtype=np.float32)
+                dv["mag"] = tbx._nans((3, self.n_ensembles), dtype=np.float32)
                 rv = ["angrt", "accel", "mag"]
                 if not all(x in da["rotate_vars"] for x in rv):
                     da["rotate_vars"].extend(rv)
                 update_defs(dat, mag=True, orientmat=False)
 
-        byts = ""
         if ahrsid == 195:  # 0xc3
-            byts = self.read(64)
+            byts = self.read(size - 8)
             dt = unpack(self.endian + "6f9f4x", byts)
             dv["angrt"][:, c], dv["accel"][:, c] = (
                 dt[0:3],
@@ -1268,9 +1246,7 @@ class _NortekReader:
             )
             dv["orientmat"][:, :, c] = (dt[6:9], dt[9:12], dt[12:15])
         elif ahrsid == 204:  # 0xcc
-            byts = self.read(78)
-            # This skips the "DWORD" (4 bytes) and the AHRS checksum
-            # (2 bytes)
+            byts = self.read(size - 8)
             dt = unpack(self.endian + "18f6x", byts)
             dv["accel"][:, c], dv["angrt"][:, c], dv["mag"][:, c] = (
                 dt[0:3],
@@ -1279,7 +1255,7 @@ class _NortekReader:
             )
             dv["orientmat"][:, :, c] = (dt[9:12], dt[12:15], dt[15:18])
         elif ahrsid == 211:
-            byts = self.read(42)
+            byts = self.read(size - 8)
             dt = unpack(self.endian + "9f6x", byts)
             dv["angrt"][:, c], dv["accel"][:, c], dv["mag"][:, c] = (
                 dt[0:3],
@@ -1290,7 +1266,8 @@ class _NortekReader:
             logging.warning("Unrecognized IMU identifier: " + str(ahrsid))
             self.f.seek(-2, 1)
             return 10
-        self.checksum(byts0 + byts)
+
+        self.f.seek(2, 1)  # checksum
         self.c += 1  # reset the increment
 
     def read_aqd_mag(self):
@@ -1300,15 +1277,17 @@ class _NortekReader:
         dat = self.data
         if self.debug:
             logging.info(
-                "Reading Aquadopp (0x81) ping #{} @ {}...".format(self.c, self.pos)
+                f"Position: {self.pos} - Reading Aquadopp (0x81) ping {self.c}"
             )
         if "temp" not in self.data["data_vars"]:
             self._init_data(defs.vec_data)
             self._init_data(defs.vec_sys)
             self._dtypes += ["vec_data", "vec_sys"]
 
-        byts = self.read(48)
-        dat["coords"]["time"][c] = lib.rd_time(byts[2:8])
+        # size is in # of words (1 word = 2 bytes)
+        size = unpack(self.endian + "H", self.read(2))[0] * 2
+        byts = self.read(size - 6)
+        dat["coords"]["time"][c] = lib.rd_time(byts[:6])
         ds = dat["sys"]
         dv = dat["data_vars"]
         (
@@ -1334,9 +1313,9 @@ class _NortekReader:
             dv["amp"][0, c],
             dv["amp"][1, c],
             dv["amp"][2, c],
-        ) = unpack(self.endian + "5H2h2BHhH7h3Bx", byts[8:48])
+        ) = unpack(self.endian + "5H2h2BHhH7h3Bx", byts[6:46])
         dv["pressure"][c] = 65536 * p_msb + p_lsw
-        self.checksum(byts)
+        self.f.seek(2, 1)  # checksum
         self.c += 1
 
     def cleanup(self):
@@ -1373,17 +1352,19 @@ class _NortekReader:
         dat = self.data
         fs = dat["attrs"]["fs"]
         self._convert_data(defs.vec_sys)
-        t = dat["coords"]["time"]
+        time = dat["coords"]["time"]
         dv = dat["data_vars"]
-        dat["sys"]["_sysi"] = ~np.isnan(t)
-        # These are the indices in the system variables
-        # that are not interpolated.
+        dat["sys"]["_sysi"] = ~np.isnan(time)
+        # Timestamps are recorded in the vector system block,
+        # not the velocity block. Therefore we must interpolate
+        # what the velocity timestamps are based on the number
+        # of pings per burst (time is saved in-place here)
         nburst = self.config["adv"]["n_burst"]
         if nburst == 0:
             num_bursts = 1
-            nburst = len(t)
+            nburst = len(time)
         else:
-            num_bursts = int(len(t) // nburst + 1)
+            num_bursts = int(len(time) // nburst + 1)
         for nb in range(num_bursts):
             iburst = slice(nb * nburst, (nb + 1) * nburst)
             sysi = dat["sys"]["_sysi"][iburst]
@@ -1391,21 +1372,33 @@ class _NortekReader:
                 break
             # Skip the first entry for the interpolation process
             inds = np.nonzero(sysi)[0][1:]
-            arng = np.arange(len(t[iburst]), dtype=np.float64)
+            arng = np.arange(len(time[iburst]), dtype=np.float64)
             if len(inds) >= 2:
-                p = np.poly1d(np.polyfit(inds, t[iburst][inds], 1))
-                t[iburst] = p(arng)
+                p = np.poly1d(np.polyfit(inds, time[iburst][inds], 1))
+                time[iburst] = p(arng)
             elif len(inds) == 1:
-                t[iburst] = (arng - inds[0]) / (fs * 3600 * 24) + t[iburst][inds[0]]
+                time[iburst] = (arng - inds[0]) / (fs * 3600 * 24) + time[iburst][
+                    inds[0]
+                ]
             else:
-                t[iburst] = t[iburst][0] + arng / (fs * 24 * 3600)
+                time[iburst] = time[iburst][0] + arng / (fs * 24 * 3600)
 
-        tbx.interpgaps(dv["batt"], t)
-        tbx.interpgaps(dv["c_sound"], t)
-        tbx.interpgaps(dv["heading"], t)
-        tbx.interpgaps(dv["pitch"], t)
-        tbx.interpgaps(dv["roll"], t)
-        tbx.interpgaps(dv["temp"], t)
+        # If the orientation matrix is saved in the dataset, then we
+        # don't need to interpolate heading, pitch, and roll.
+        to_ignore = []
+        if "orientmat" not in dv:
+            tbx.interpgaps(dv["heading"], time)
+            tbx.interpgaps(dv["pitch"], time)
+            tbx.interpgaps(dv["roll"], time)
+            to_ignore = ["heading", "pitch", "roll"]
+
+        # Drop nan's from system variables
+        mask = np.isnan(dat["coords"]["time_sys"])
+        for var in defs.vec_sys.keys():
+            if (var not in dv) or (var in to_ignore):
+                continue
+            dv[var] = dv[var][~mask]
+        dat["coords"]["time_sys"] = dat["coords"]["time_sys"][~mask]
 
     def convert_vec_data(self):
         """Convert raw Vector measurements to physical quantities."""

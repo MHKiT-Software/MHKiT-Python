@@ -42,6 +42,7 @@ def _get_filetype(fname):
 def _find_userdata(filename, userdata=True):
     # This function finds the file to read
     if userdata:
+        # TODO rsplit fails when using a pathlib Path object
         for basefile in [filename.rsplit(".", 1)[0], filename]:
             jsonfile = basefile + ".userdata.json"
             if os.path.isfile(jsonfile):
@@ -252,6 +253,10 @@ def _create_dataset(data):
             if len(shp) == 1:  # 1D variables
                 if "_altraw_avg" in key:
                     tg = "_altraw_avg"
+                elif (data["attrs"]["inst_model"] == "Vector") and (
+                    shp[0] != len(data["coords"]["time"])
+                ):
+                    tg = "_sys"
                 elif any(val in key for val in tag):
                     tg = "_" + key.rsplit("_")[-1]
                 else:

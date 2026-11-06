@@ -175,6 +175,15 @@ vec_sys = {
         long_name="Time",
         standard_name="time",
     ),
+    "time_sys": _VarAtts(
+        dims=[],
+        dtype=np.float64,
+        group="coords",
+        default_val=nan,
+        units="seconds since 1970-01-01 00:00:00 UTC",
+        long_name="System Time",
+        standard_name="time",
+    ),
     "batt": _VarAtts(
         dims=[],
         dtype=np.float32,
