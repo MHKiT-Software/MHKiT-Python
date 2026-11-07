@@ -1,101 +1,101 @@
-root - INFO - Position: 2, codes: (165, 5)
-root - INFO - Reading hardware configuration (0x05) ping #0 @ 2...
-root - INFO - Position: 50, codes: (165, 4)
-root - INFO - Reading header configuration (0x04) ping #0 @ 50...
-root - INFO - Position: 274, codes: (165, 0)
-root - INFO - Reading user configuration (0x00) ping #0 @ 274...
+root - INFO - Position: 2 - Reading hardware configuration (0x05) ping 0
+root - INFO - Position: 50 - Reading header configuration (0x04) ping 0
+root - INFO - Position: 274 - Reading user configuration (0x00) ping 0
+root - INFO - Position: 788, id: 0x12, packet size: 42
+root - INFO - Position: 830, id: 0x7, packet size: 910
+root - INFO - Position: 1740, id: 0x11, packet size: 28
+root - INFO - Position: 1768, id: 0x10, packet size: 24
+root - INFO - Position: 1792, id: 0x71, packet size: 86
+root - INFO - Position: 1878, id: 0x10, packet size: 24
+root - INFO - Position: 1902, id: 0x71, packet size: 86
+root - INFO - Position: 1988, id: 0x10, packet size: 24
+root - INFO - Position: 2012, id: 0x71, packet size: 86
+root - INFO - Position: 2098, id: 0x10, packet size: 24
+root - INFO - Position: 2122, id: 0x71, packet size: 86
+root - INFO - Position: 2208, id: 0x10, packet size: 24
+root - INFO - Position: 2232, id: 0x71, packet size: 86
+root - INFO - Position: 2318, id: 0x10, packet size: 24
+root - INFO - Position: 2342, id: 0x71, packet size: 86
+root - INFO - Position: 2428, id: 0x10, packet size: 24
+root - INFO - Position: 2452, id: 0x71, packet size: 86
+root - INFO - Position: 2538, id: 0x10, packet size: 24
+root - INFO - Position: 2562, id: 0x71, packet size: 86
+root - INFO - Position: 2648, id: 0x10, packet size: 24
+root - INFO - Position: 2672, id: 0x71, packet size: 86
+root - INFO - Position: 2758, id: 0x10, packet size: 24
+root - INFO - Position: 2782, id: 0x71, packet size: 86
+root - INFO - Position: 2868, id: 0x11, packet size: 28
+root - INFO - Position: 6440, id: 0x11, packet size: 28
+root - INFO - Position: 10074, id: 0x11, packet size: 28
+root - INFO - Position: 13622, id: 0x11, packet size: 28
+root - INFO - Position: 17170, id: 0x11, packet size: 28
+root - INFO - Position: 20742, id: 0x11, packet size: 28
+root - INFO - Position: 24376, id: 0x11, packet size: 28
+root - INFO - Position: 27924, id: 0x11, packet size: 28
+root - INFO - Position: 31472, id: 0x11, packet size: 28
 root - INFO - Init completed
-root - INFO - Position: 786, codes: (165, 18)
-root - INFO - Reading Vector header data (0x12) ping #0 @ 786...
-root - INFO - Position: 828, codes: (165, 7)
-root - INFO - Reading Vector check data (0x07) ping #0 @ 828...
-root - INFO - Position: 1738, codes: (165, 17)
-root - INFO - Reading Vector system data (0x11) ping #0 @ 1738...
-root - INFO - Position: 1766, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #0 @ 1766...
-root - INFO - Position: 1790, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #0 @ 1790...
-root - INFO - Position: 1876, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #1 @ 1876...
-root - INFO - Position: 1900, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #1 @ 1900...
-root - INFO - Position: 1986, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #2 @ 1986...
-root - INFO - Position: 2010, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #2 @ 2010...
-root - INFO - Position: 2096, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #3 @ 2096...
-root - INFO - Position: 2120, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #3 @ 2120...
-root - INFO - Position: 2206, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #4 @ 2206...
-root - INFO - Position: 2230, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #4 @ 2230...
-root - INFO - Position: 2316, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #5 @ 2316...
-root - INFO - Position: 2340, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #5 @ 2340...
-root - INFO - Position: 2426, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #6 @ 2426...
-root - INFO - Position: 2450, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #6 @ 2450...
-root - INFO - Position: 2536, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #7 @ 2536...
-root - INFO - Position: 2560, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #7 @ 2560...
-root - INFO - Position: 2646, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #8 @ 2646...
-root - INFO - Position: 2670, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #8 @ 2670...
-root - INFO - Position: 2756, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #9 @ 2756...
-root - INFO - Position: 2780, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #9 @ 2780...
-root - INFO - Position: 2866, codes: (165, 17)
-root - INFO - Reading Vector system data (0x11) ping #10 @ 2866...
-root - INFO - Position: 2894, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #10 @ 2894...
-root - INFO - Position: 2918, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #10 @ 2918...
-root - INFO - Position: 3004, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #11 @ 3004...
-root - INFO - Position: 3028, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #11 @ 3028...
-root - INFO - Position: 3114, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #12 @ 3114...
-root - INFO - Position: 3138, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #12 @ 3138...
-root - INFO - Position: 3224, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #13 @ 3224...
-root - INFO - Position: 3248, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #13 @ 3248...
-root - INFO - Position: 3334, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #14 @ 3334...
-root - INFO - Position: 3358, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #14 @ 3358...
-root - INFO - Position: 3444, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #15 @ 3444...
-root - INFO - Position: 3468, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #15 @ 3468...
-root - INFO - Position: 3554, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #16 @ 3554...
-root - INFO - Position: 3578, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #16 @ 3578...
-root - INFO - Position: 3664, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #17 @ 3664...
-root - INFO - Position: 3688, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #17 @ 3688...
-root - INFO - Position: 3774, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #18 @ 3774...
-root - INFO - Position: 3798, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #18 @ 3798...
-root - INFO - Position: 3884, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #19 @ 3884...
-root - INFO - Position: 3908, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #19 @ 3908...
-root - INFO - Position: 3994, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #20 @ 3994...
-root - INFO - Position: 4018, codes: (165, 113)
-root - INFO - Reading Vector IMU data (0x71) ping #20 @ 4018...
-root - INFO - Position: 4104, codes: (165, 16)
-root - INFO - Reading Vector measurements (0x10) ping #21 @ 4104...
+root - INFO - Position: 2 - Reading hardware configuration (0x05) ping 0
+root - INFO - Position: 50 - Reading header configuration (0x04) ping 0
+root - INFO - Position: 274 - Reading user configuration (0x00) ping 0
+root - INFO - Position: 786 - Reading Vector header data (0x12) ping 0
+root - INFO - Position: 828 - Reading Vector check data (0x07) ping 0
+root - INFO - Position: 1738 - Reading Vector system data (0x11) ping 0
+root - INFO - Position: 1766 - Reading Vector measurements (0x10) ping 0
+root - INFO - Position: 1790 - Reading Vector IMU data (0x71) ping 0
+root - INFO - Position: 1876 - Reading Vector measurements (0x10) ping 1
+root - INFO - Position: 1900 - Reading Vector IMU data (0x71) ping 1
+root - INFO - Position: 1986 - Reading Vector measurements (0x10) ping 2
+root - INFO - Position: 2010 - Reading Vector IMU data (0x71) ping 2
+root - INFO - Position: 2096 - Reading Vector measurements (0x10) ping 3
+root - INFO - Position: 2120 - Reading Vector IMU data (0x71) ping 3
+root - INFO - Position: 2206 - Reading Vector measurements (0x10) ping 4
+root - INFO - Position: 2230 - Reading Vector IMU data (0x71) ping 4
+root - INFO - Position: 2316 - Reading Vector measurements (0x10) ping 5
+root - INFO - Position: 2340 - Reading Vector IMU data (0x71) ping 5
+root - INFO - Position: 2426 - Reading Vector measurements (0x10) ping 6
+root - INFO - Position: 2450 - Reading Vector IMU data (0x71) ping 6
+root - INFO - Position: 2536 - Reading Vector measurements (0x10) ping 7
+root - INFO - Position: 2560 - Reading Vector IMU data (0x71) ping 7
+root - INFO - Position: 2646 - Reading Vector measurements (0x10) ping 8
+root - INFO - Position: 2670 - Reading Vector IMU data (0x71) ping 8
+root - INFO - Position: 2756 - Reading Vector measurements (0x10) ping 9
+root - INFO - Position: 2780 - Reading Vector IMU data (0x71) ping 9
+root - INFO - Position: 2866 - Reading Vector system data (0x11) ping 10
+root - INFO - Position: 2894 - Reading Vector measurements (0x10) ping 10
+root - INFO - Position: 2918 - Reading Vector IMU data (0x71) ping 10
+root - INFO - Position: 3004 - Reading Vector measurements (0x10) ping 11
+root - INFO - Position: 3028 - Reading Vector IMU data (0x71) ping 11
+root - INFO - Position: 3114 - Reading Vector measurements (0x10) ping 12
+root - INFO - Position: 3138 - Reading Vector IMU data (0x71) ping 12
+root - INFO - Position: 3224 - Reading Vector measurements (0x10) ping 13
+root - INFO - Position: 3248 - Reading Vector IMU data (0x71) ping 13
+root - INFO - Position: 3334 - Reading Vector measurements (0x10) ping 14
+root - INFO - Position: 3358 - Reading Vector IMU data (0x71) ping 14
+root - INFO - Position: 3444 - Reading Vector measurements (0x10) ping 15
+root - INFO - Position: 3468 - Reading Vector IMU data (0x71) ping 15
+root - INFO - Position: 3554 - Reading Vector measurements (0x10) ping 16
+root - INFO - Position: 3578 - Reading Vector IMU data (0x71) ping 16
+root - INFO - Position: 3664 - Reading Vector measurements (0x10) ping 17
+root - INFO - Position: 3688 - Reading Vector IMU data (0x71) ping 17
+root - INFO - Position: 3774 - Reading Vector measurements (0x10) ping 18
+root - INFO - Position: 3798 - Reading Vector IMU data (0x71) ping 18
+root - INFO - Position: 3884 - Reading Vector measurements (0x10) ping 19
+root - INFO - Position: 3908 - Reading Vector IMU data (0x71) ping 19
+root - INFO - Position: 3994 - Reading Vector measurements (0x10) ping 20
+root - INFO - Position: 4018 - Reading Vector IMU data (0x71) ping 20
+root - INFO - Position: 4104 - Reading Vector measurements (0x10) ping 21
+root - INFO - Position: 4128 - Reading Vector IMU data (0x71) ping 21
+root - INFO - Position: 4214 - Reading Vector measurements (0x10) ping 22
+root - INFO - Position: 4238 - Reading Vector IMU data (0x71) ping 22
+root - INFO - Position: 4324 - Reading Vector measurements (0x10) ping 23
+root - INFO - Position: 4348 - Reading Vector IMU data (0x71) ping 23
+root - INFO - Position: 4434 - Reading Vector measurements (0x10) ping 24
+root - INFO - Position: 4458 - Reading Vector IMU data (0x71) ping 24
+root - INFO - Position: 4544 - Reading Vector measurements (0x10) ping 25
+root - INFO - Position: 4568 - Reading Vector IMU data (0x71) ping 25
+root - INFO - Position: 4654 - Reading Vector measurements (0x10) ping 26
+root - INFO - Position: 4678 - Reading Vector IMU data (0x71) ping 26
+root - INFO - Position: 4764 - Reading Vector measurements (0x10) ping 27
+root - INFO - Position: 4788 - Reading Vector IMU data (0x71) ping 27
+root - INFO - Position: 4874 - Reading Vector measurements (0x10) ping 28
+root - INFO - Position: 4898 - Reading Vector IMU data (0x71) ping 28
