@@ -225,6 +225,54 @@ class TestUSGSRequest(unittest.TestCase):
                 self.assertEqual(kwargs["headers"]["X-Api-Key"], "option-key")
                 self.assertNotIn("api_key", kwargs["params"])
 
+    @patch("mhkit.river.io.usgs.requests.get")
+    def test_request_usgs_data_legacy(self, mock_get):
+        payload = {
+            "value": {
+                "timeSeries": [
+                    {
+                        "variable": {
+                            "variableDescription": "Discharge, cubic feet per second"
+                        },
+                        "values": [
+                            {
+                                "value": [
+                                    {
+                                        "dateTime": "2009-08-01T00:00:00.000",
+                                        "value": "1000",
+                                        "qualifiers": ["A"],
+                                    }
+                                ]
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+        with self.assertWarns(FutureWarning):
+            data = self._request(
+                mock_get,
+                [_mock_response(payload)],
+                {"use_legacy_api": True, "data_type": "Instantaneous"},
+            )
+
+        _, kwargs = mock_get.call_args_list[-1]
+        self.assertEqual(kwargs["url"], "https://waterservices.usgs.gov/nwis/iv/")
+        self.assertEqual(kwargs["params"]["sites"], "15515500")
+        self.assertEqual(list(data.columns), ["Discharge, cubic feet per second"])
+        self.assertEqual(len(data), 1)
+
+    def test_request_usgs_data_legacy_unsupported_options(self):
+        for options in ({"include_status": True}, {"timezone": "America/Anchorage"}):
+            with self.assertRaises(ValueError):
+                river.io.usgs.request_usgs_data(
+                    "15515500",
+                    "00060",
+                    "2009-08-01",
+                    "2009-08-10",
+                    options={"use_legacy_api": True, **options},
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
