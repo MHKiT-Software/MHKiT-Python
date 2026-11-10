@@ -230,8 +230,9 @@ class _Ad2cpReader:
         blocksize, blocksize_count = np.unique(
             np.diff(self._ens_pos), return_counts=True
         )
-        standard_blocksize = blocksize[blocksize_count.argmax()]
-        return (self._eof - self._ens_pos[-1]) == standard_blocksize
+        min_blocksize = blocksize[blocksize_count == 1]
+        last_block_size = self._eof - self._ens_pos[-1]
+        return last_block_size not in min_blocksize
 
     def _init_burst_readers(
         self,
