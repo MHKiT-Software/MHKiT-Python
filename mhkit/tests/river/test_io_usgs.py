@@ -6,6 +6,8 @@ import unittest
 import os
 from unittest.mock import patch, MagicMock
 import json
+import warnings
+import requests
 import shutil
 from datetime import timezone
 
@@ -272,6 +274,53 @@ class TestUSGSRequest(unittest.TestCase):
                     "2009-08-10",
                     options={"use_legacy_api": True, **options},
                 )
+
+
+class TestUSGSParity(unittest.TestCase):
+    """
+    Compares the OGC Water Data APIs against the legacy WaterServices using the
+    live services. Skipped if either service is unavailable. Remove with the
+    use_legacy_api option.
+    """
+
+    def _compare(self, start, end, options, ogc_options=None):
+        options = {"clear_cache": True, **options}
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", FutureWarning)
+                legacy = river.io.usgs.request_usgs_data(
+                    "15515500",
+                    "00060",
+                    start,
+                    end,
+                    options={
+                        "use_legacy_api": True,
+                        **options,
+                    },
+                )
+            ogc = river.io.usgs.request_usgs_data(
+                "15515500",
+                "00060",
+                start,
+                end,
+                options={**options, **(ogc_options or {})},
+            )
+        except (requests.exceptions.RequestException, ValueError) as e:
+            self.skipTest(f"USGS service unavailable: {e}")
+
+        pd.testing.assert_frame_equal(ogc, legacy, check_freq=False)
+
+    def test_parity_daily(self):
+        self._compare("2009-08-01", "2009-08-31", {"data_type": "Daily"})
+
+    def test_parity_instantaneous(self):
+        # Legacy instantaneous dates are station local days (Alaska)
+        self._compare(
+            "2009-08-01",
+            "2009-08-03",
+            {"data_type": "Instantaneous"},
+            ogc_options={"timezone": "America/Anchorage"},
+        )
 
 
 if __name__ == "__main__":
