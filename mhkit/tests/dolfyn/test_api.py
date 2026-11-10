@@ -8,7 +8,7 @@ rdi = load("RDI_test01.nc")
 
 
 class api_testcase(unittest.TestCase):
-    def test_repr(self, make_data=True):
+    def test_repr(self):
         _str = []
         for dat, fnm in [
             (vec, rfnm("vector_data01.repr.txt")),

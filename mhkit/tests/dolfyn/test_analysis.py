@@ -31,7 +31,7 @@ class analysis_testcase(unittest.TestCase):
     def tearDownClass(self):
         pass
 
-    def test_do_func(self, make_data=False):
+    def test_do_func(self):
         ds_vec = self.adv_tool.bin_average(self.adv1)
         ds_vec = self.adv_tool.bin_variance(self.adv1, out_ds=ds_vec)
 
@@ -50,7 +50,7 @@ class analysis_testcase(unittest.TestCase):
         assert_allclose(ds_vec, load("vector_data01_avg.nc"), atol=1e-6)
         assert_allclose(ds_sig, load("BenchFile01_avg.nc"), atol=1e-6)
 
-    def test_calc_func(self, make_data=False):
+    def test_calc_func(self):
         c = self.adv_tool
         c2 = self.adp_tool
 
@@ -85,7 +85,7 @@ class analysis_testcase(unittest.TestCase):
         assert_allclose(test_ds, load("vector_data01_func.nc"), atol=1e-6)
         assert_allclose(test_ds_adp, load("BenchFile01_func.nc"), atol=1e-6)
 
-    def test_adv_turbulence(self, make_data=False):
+    def test_adv_turbulence(self):
         dat = tv.dat.copy(deep=True)
         bnr = avm.ADVBinner(n_bin=20.0, fs=dat.fs)
         tdat = bnr.bin_average(dat)
@@ -125,7 +125,7 @@ class analysis_testcase(unittest.TestCase):
         assert np.round(slope_check[0].values, 4), 0.1713
         assert_allclose(tdat, load("vector_data01_bin.nc"), atol=1e-6)
 
-    def test_adcp_turbulence(self, make_data=False):
+    def test_adcp_turbulence(self):
         dat = tr.dat_sig_tide.copy(deep=True)
         dat.velds.rotate2("earth")
         dat.attrs["principal_heading"] = apm.calc_principal_heading(
