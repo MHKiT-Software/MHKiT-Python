@@ -162,7 +162,6 @@ class _Ad2cpReader:
         self._ens_pos = self._index["pos"][
             lib._boolarray_firstensemble_ping(self._index)
         ]
-        self._lastblock_iswhole = self._calc_lastblock_iswhole()
         self._config = lib._calc_config(self._index)
         self._init_burst_readers()
         self.unknown_ID_count = {}
@@ -226,13 +225,12 @@ class _Ad2cpReader:
                 out2[ky] = out[ky]
         return out2
 
-    def _calc_lastblock_iswhole(self):
+    def _lastblock_iswhole(self):
         blocksize, blocksize_count = np.unique(
             np.diff(self._ens_pos), return_counts=True
         )
-        min_blocksize = blocksize[blocksize_count == 1]
         last_block_size = self._eof - self._ens_pos[-1]
-        return last_block_size not in min_blocksize
+        return last_block_size in blocksize
 
     def _init_burst_readers(
         self,
@@ -256,7 +254,8 @@ class _Ad2cpReader:
         outdat = {}
         nens = int(ens_stop - ens_start)
 
-        # ID 26 and 31 recorded infrequently
+        # If there are multiple pings in an ensemble, nens will
+        # be the total number of pings read in
         def n_id(id):
             return (
                 (self._index["ID"] == id)
@@ -264,6 +263,7 @@ class _Ad2cpReader:
                 & (self._index["ens"] < ens_stop)
             ).sum()
 
+        # ID 26 and 31 recorded infrequently
         n_altraw = {26: n_id(26), 31: n_id(31)}
         if not n_altraw[26] and 26 in self._burst_readers:
             self._burst_readers.pop(26)
@@ -309,7 +309,7 @@ class _Ad2cpReader:
     def readfile(self, ens_start=0, ens_stop=None):
         # If the lastblock is not whole, we don't read it.
         # If it is, we do (don't subtract 1)
-        nens_total = len(self._ens_pos) - int(not self._lastblock_iswhole)
+        nens_total = len(self._ens_pos) - int(not self._lastblock_iswhole())
         if ens_stop is None or ens_stop > nens_total:
             ens_stop = nens_total
         ens_start = int(ens_start)
