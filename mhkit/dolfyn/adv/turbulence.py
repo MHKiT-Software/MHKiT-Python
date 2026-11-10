@@ -64,7 +64,9 @@ class ADVBinner(VelBinner):
         if not isinstance(veldat, xr.DataArray):
             raise TypeError("`veldat` must be an instance of `xarray.DataArray`.")
 
-        time = self.mean(veldat["time"].values)
+        time = xr.DataArray(
+            self.mean(veldat["time"].values), dims="time", attrs=veldat["time"].attrs
+        )
         vel = veldat.values
 
         out = np.empty(self._outshape(vel[:3].shape)[:-1])
@@ -146,7 +148,14 @@ class ADVBinner(VelBinner):
         step = int((1 - pct_overlap) * n_bin)
 
         # Get time coord before changing veldat from xarray to numpy array
-        time_coord = self.mean(veldat["time"].values, step=step, n_bin=n_bin)
+        time_csd = self.mean(veldat["time"].values, step=step, n_bin=n_bin)
+        time_coord = xr.DataArray(
+            time_csd,
+            dims=["time_psd"],
+            name="time_psd",
+            attrs=veldat["time"].attrs,
+        )
+
         veldat = veldat.values
         if len(np.shape(veldat)) != 2:
             raise Exception(

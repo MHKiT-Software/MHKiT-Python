@@ -1,7 +1,6 @@
 from .base import load_netcdf as load, rfnm
 import unittest
 
-
 make_data = False
 vec = load("vector_data01.nc")
 sig = load("BenchFile01.nc")
@@ -9,7 +8,7 @@ rdi = load("RDI_test01.nc")
 
 
 class api_testcase(unittest.TestCase):
-    def test_repr(self):
+    def test_repr(self, make_data=True):
         _str = []
         for dat, fnm in [
             (vec, rfnm("vector_data01.repr.txt")),

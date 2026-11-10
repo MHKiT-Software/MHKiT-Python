@@ -1354,6 +1354,7 @@ class _NortekReader:
         self._convert_data(defs.vec_sys)
         time = dat["coords"]["time"]
         dv = dat["data_vars"]
+        dc = dat["coords"]
         dat["sys"]["_sysi"] = ~np.isnan(time)
         # Timestamps are recorded in the vector system block,
         # not the velocity block. Therefore we must interpolate
@@ -1393,12 +1394,12 @@ class _NortekReader:
             to_ignore = ["heading", "pitch", "roll"]
 
         # Drop nan's from system variables
-        mask = np.isnan(dat["coords"]["time_sys"])
+        mask = np.isnan(dc["time_sys"])
         for var in defs.vec_sys.keys():
             if (var not in dv) or (var in to_ignore):
                 continue
             dv[var] = dv[var][~mask]
-        dat["coords"]["time_sys"] = dat["coords"]["time_sys"][~mask]
+        dc["time_sys"] = dc["time_sys"][~mask]
 
     def convert_vec_data(self):
         """Convert raw Vector measurements to physical quantities."""
