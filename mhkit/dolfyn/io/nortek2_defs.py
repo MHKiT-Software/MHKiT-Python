@@ -397,7 +397,7 @@ def _bt_hdr(ver):
             "Battery Voltage",
             "battery_voltage",
         ),
-        ("mag", "h", [3], None, "uT", "Compass"),
+        ("mag", "h", [3], _LinFunc(0.1, dtype=dt32), "uT", "Compass"),
         (
             "accel",
             "h",

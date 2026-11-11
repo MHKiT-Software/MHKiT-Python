@@ -72,6 +72,8 @@ class rotate_adp_testcase(unittest.TestCase):
         td_sig_ie = tr.dat_sig_ie.copy(deep=True)
         rotate2(td_sig_ie, "inst", inplace=True)
         td_sig_o = td_sig_ie.copy(deep=True)
+        td_sig_dp1_ice = tr.dat_sig_dp1_ice.copy(deep=True)
+        rotate2(td_sig_dp1_ice, "inst", inplace=True)
 
         td = rotate2(tr.dat_rdi, "earth", inplace=False)
         tdwr2 = rotate2(tr.dat_wr2, "earth", inplace=False)
@@ -79,6 +81,8 @@ class rotate_adp_testcase(unittest.TestCase):
         rotate2(td_sig, "earth", inplace=True)
         td_sig_i = load("Sig1000_IMU_rotate_beam2inst.nc")
         rotate2(td_sig_i, "earth", inplace=True)
+        td_sig_ieb = load("VelEchoBT01_rotate_beam2inst.nc")
+        rotate2(td_sig_ieb, "earth", inplace=True)
 
         if make_data:
             save(td_awac, "AWAC_test01_earth2inst.nc")
@@ -86,25 +90,28 @@ class rotate_adp_testcase(unittest.TestCase):
             save(tdwr2, "winriver02_rotate_ship2earth.nc")
             save(td_sig, "BenchFile01_rotate_inst2earth.nc")
             save(td_sig_i, "Sig1000_IMU_rotate_inst2earth.nc")
-
+            save(td_sig_ieb, "VelEchoBT01_rotate_inst2earth.nc")
+            save(td_sig_dp1_ice, "Sig500_dp_ice2_rotate_earth2inst.nc")
             return
 
-        td_awac = rotate2(load("AWAC_test01_earth2inst.nc"), "earth", inplace=False)
-        td_sig_ie = rotate2(load("Sig500_Echo_earth2inst.nc"), "earth", inplace=False)
         td_sig_o = rotate2(td_sig_o.drop_vars("orientmat"), "earth", inplace=False)
 
+        cd_awac = load("AWAC_test01_earth2inst.nc")
         cd = load("RDI_test01_rotate_inst2earth.nc")
         cdwr2 = load("winriver02_rotate_ship2earth.nc")
         cd_sig = load("BenchFile01_rotate_inst2earth.nc")
         cd_sig_i = load("Sig1000_IMU_rotate_inst2earth.nc")
+        cd_sig_ieb = load("VelEchoBT01_rotate_inst2earth.nc")
+        cd_sig_dp1_ice = load("Sig500_dp_ice2_rotate_earth2inst.nc")
 
         assert_allclose(td, cd, atol=1e-5)
         assert_allclose(tdwr2, cdwr2, atol=1e-5)
-        assert_allclose(td_awac, tr.dat_awac, atol=1e-5)
+        assert_allclose(td_awac, cd_awac, atol=1e-5)
         assert_allclose(td_sig, cd_sig, atol=1e-5)
         assert_allclose(td_sig_i, cd_sig_i, atol=1e-5)
-        assert_allclose(td_sig_ie, tr.dat_sig_ie, atol=1e-5)
         npt.assert_allclose(td_sig_o.vel, tr.dat_sig_ie.vel, atol=1e-5)
+        assert_allclose(td_sig_ieb, cd_sig_ieb, atol=1e-5)
+        assert_allclose(td_sig_dp1_ice, cd_sig_dp1_ice, atol=1e-5)
 
     def test_rotate_earth2inst(self):
         td_rdi = load("RDI_test01_rotate_inst2earth.nc")
