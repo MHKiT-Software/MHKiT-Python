@@ -170,7 +170,10 @@ def _create_index(infile, outfile, init_pos, eof, debug):
             if d_ver not in [1, 3, 7, 9]:
                 # Data record definition version number
                 # increases occasionally with instrument firmware updates
-                msg = f"Unknown data record version number {d_ver} for id {hex(idk)}"
+                msg = (
+                    f"Unknown data record version number {d_ver} for id {hex(idk)}. "
+                    "Please notify the MHKiT team with a copy of this warning message."
+                )
                 warnings.warn(msg)
                 logging.debug(msg)
 

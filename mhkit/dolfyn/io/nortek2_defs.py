@@ -465,8 +465,7 @@ def _calc_bt_struct(config, nb, nc, d_ver=1):
             )
         if flags["fom"]:
             dd.append(("fom", "H", [nb], None, "1", "Figure of Merit"))
-        if flags["ahrs"]:
-            dd += _ahrs_def
+        # Does not appear to contain AHRS data even if flag says so
     else:  # Data record version 9
         if flags["fom"]:
             dd.append(("fom", "H", [nb], None, "1", "Figure of Merit"))

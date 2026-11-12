@@ -102,7 +102,7 @@ def rotate(axis):
         )
 
     # bottom-track
-    assert_allclose(td_sig_ieb.vel_bt.values, vel_bt[axis][..., :nens], atol=5e-3)
+    assert_allclose(td_sig_ieb.vel_bt.values, vel_bt[axis][..., :nens], atol=1e-5)
 
 
 class nortek_testcase(unittest.TestCase):

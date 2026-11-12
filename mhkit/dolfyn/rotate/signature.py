@@ -6,6 +6,44 @@ import warnings
 from numpy.linalg import inv
 
 
+def _update_orientation_matrix(omat, reverse: bool):
+    # Take the transpose of the orientation to get the inst->earth rotation
+    # matrix.
+    rmat = np.rollaxis(omat.data, 1)
+
+    _dcheck = rotb._check_rotmat_det(rmat)
+    if not _dcheck.all():
+        warnings.warn(
+            "Invalid orientation matrix (determinant != 1) at indices: {}. "
+            "If rotated, data at these indices will be erroneous.".format(
+                np.nonzero(~_dcheck)[0]
+            ),
+            UserWarning,
+        )
+
+    # The dictionary of rotation matrices for different sized arrays.
+    rmd = {
+        3: rmat,
+    }
+
+    # The 4-row rotation matrix assume that rows 0,1 are u,v,
+    # and 2,3 are independent estimates of w.
+    tmp = rmd[4] = np.zeros((4, 4, rmat.shape[-1]), dtype=np.float64)
+    tmp[:3, :3] = rmat
+    # Copy row 2 to 3
+    tmp[3, :2] = rmat[2, :2]
+    tmp[3, 3] = rmat[2, 2]
+    # Extend rows 0,1
+    tmp[0, 2:] = rmat[0, 2] / 2
+    tmp[1, 2:] = rmat[1, 2] / 2
+
+    if reverse:
+        # 3-element inverse handled by sumstr definition (transpose)
+        rmd[4] = np.moveaxis(inv(np.moveaxis(rmd[4], -1, 0)), 0, -1)
+
+    return rmd
+
+
 def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
     """
     Rotate data in an ADCP object to the earth from the instrument
@@ -55,60 +93,40 @@ def _inst2earth(adcpo, reverse=False, rotate_vars=None, force=False):
                 "Data must be in the '%s' frame when using this function" % cs_now
             )
 
-    if "orientmat" in adcpo:
-        omat = adcpo["orientmat"]
-    elif "orientmat_avg" in adcpo:
-        omat = adcpo["orientmat_avg"]
-    elif "time" in adcpo:
-        omat = _euler2orient(
-            adcpo["time"],
-            adcpo["heading"].values,
-            adcpo["pitch"].values,
-            adcpo["roll"].values,
-        )
-    elif "time_avg" in adcpo:
-        omat = _euler2orient(
-            adcpo["time_avg"],
-            adcpo["heading_avg"].values,
-            adcpo["pitch_avg"].values,
-            adcpo["roll_avg"].values,
-        )
-
-    # Take the transpose of the orientation to get the inst->earth rotation
-    # matrix.
-    rmat = np.rollaxis(omat.data, 1)
-
-    _dcheck = rotb._check_rotmat_det(rmat)
-    if not _dcheck.all():
-        warnings.warn(
-            "Invalid orientation matrix (determinant != 1) at indices: {}. "
-            "If rotated, data at these indices will be erroneous.".format(
-                np.nonzero(~_dcheck)[0]
-            ),
-            UserWarning,
-        )
-
-    # The dictionary of rotation matrices for different sized arrays.
-    rmd = {
-        3: rmat,
-    }
-
-    # The 4-row rotation matrix assume that rows 0,1 are u,v,
-    # and 2,3 are independent estimates of w.
-    tmp = rmd[4] = np.zeros((4, 4, rmat.shape[-1]), dtype=np.float64)
-    tmp[:3, :3] = rmat
-    # Copy row 2 to 3
-    tmp[3, :2] = rmat[2, :2]
-    tmp[3, 3] = rmat[2, 2]
-    # Extend rows 0,1
-    tmp[0, 2:] = rmat[0, 2] / 2
-    tmp[1, 2:] = rmat[1, 2] / 2
-
-    if reverse:
-        # 3-element inverse handled by sumstr definition (transpose)
-        rmd[4] = np.moveaxis(inv(np.moveaxis(rmd[4], -1, 0)), 0, -1)
+    # Make sure there is an orientation matrix in the dataset
+    tags = ["", "_avg", "_echo", "_b5", "_bt"]
+    omat_list = ["orientmat" + tg for tg in tags]
+    orientmat = None
+    # Fetch the stored orientation matrix if there is one
+    # Always want the default to be "orientmat" or "orientmat_avg"
+    for tg, nm in zip(tags, omat_list):
+        if nm in adcpo:
+            orientmat = adcpo[nm]
+            break
+    # Recalculate the orientation matrix if there is not
+    # Always want the default to be "orientmat" or "orientmat_avg"
+    # Primarily for backwards-compatibility
+    if orientmat is None:
+        for tg in tags:
+            if "time" + tg in adcpo:
+                orientmat = _euler2orient(
+                    adcpo["time" + tg],
+                    adcpo["heading" + tg].values,
+                    adcpo["pitch" + tg].values,
+                    adcpo["roll" + tg].values,
+                )
+                break
 
     for nm in rotate_vars:
+        # Fetch the correct orientation matrix
+        if "_" in nm:
+            tag = "_" + nm.split("_")[-1]
+        else:
+            tag = ""
+        # Pick the tagged orientation matrix, otherwise use the default
+        omat = getattr(adcpo, "orientmat" + tag, orientmat)
+        rmd = _update_orientation_matrix(omat, reverse=reverse)
+
         dat = adcpo[nm].values
         n = dat.shape[0]
         # Nortek documents sign change for upside-down instruments

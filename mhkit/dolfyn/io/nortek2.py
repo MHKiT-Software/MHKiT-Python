@@ -111,14 +111,13 @@ def read_signature(
     ds = _create_dataset(out)
     ds = _set_coords(ds, ref_frame=ds.coord_sys)
 
-    if ("orientmat" not in ds) and ("heading" in ds):
-        ds["orientmat"] = _euler2orient(
-            ds["time"], ds["heading"], ds["pitch"], ds["roll"]
-        )
-    elif ("orientmat_avg" not in ds) and ("heading_avg" in ds):
-        ds["orientmat_avg"] = _euler2orient(
-            ds["time_avg"], ds["heading_avg"], ds["pitch_avg"], ds["roll_avg"]
-        )
+    # Add orientation matrices
+    tags = ["", "_avg", "_b5", "_echo", "_bt"]
+    for tg in tags:
+        if ("orientmat" + tg not in ds) and ("heading" + tg in ds):
+            ds["orientmat" + tg] = _euler2orient(
+                ds["time" + tg], ds["heading" + tg], ds["pitch" + tg], ds["roll" + tg]
+            )
 
     if declin is not None:
         set_declination(ds, declin, inplace=True)
