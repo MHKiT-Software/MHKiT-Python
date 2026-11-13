@@ -1,7 +1,6 @@
 from .base import load_netcdf as load, rfnm
 import unittest
 
-
 make_data = False
 vec = load("vector_data01.nc")
 sig = load("BenchFile01.nc")

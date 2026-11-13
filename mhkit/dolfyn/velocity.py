@@ -601,6 +601,68 @@ class VelBinner(TimeBinner):
         },
     )
 
+    def _bin(self, function, raw_ds, out_ds=None, names=None):
+        """Do binning routine."""
+
+        out_ds = self._check_ds(raw_ds, out_ds)
+        if names is None:
+            names = raw_ds.data_vars
+
+        # Variables for variance binner get a _var tag
+        if function == self.variance:
+            suffix = "_var"
+        else:
+            suffix = ""
+
+        # ADV system variables - these are usually saved at 1 Hz
+        if "time_sys" in raw_ds.dims:
+            fs_sys = np.timedelta64(1, "s") / np.median(np.diff(raw_ds["time_sys"]))
+            n_bin_sys = max(self.n_bin / self.fs * fs_sys, 1)
+
+        for ky in names:
+            # Checks based on dimensions
+            dims_list = raw_ds[ky].dims
+            # Skip any raw altimeter variables
+            if any([ar for ar in dims_list if "_altraw" in ar]):
+                continue
+            # Averaged ensemble counts are nonsensicle
+            if "ensemble" in ky:
+                continue
+
+            # Add variables
+            try:
+                # Non-time variables
+                if not any([ar for ar in dims_list if "time" in ar]):
+                    out_ds[ky] = raw_ds[ky]
+                # Variables with time coordinate
+                n_bin = self.n_bin if "time_sys" not in dims_list else n_bin_sys
+                out_ds[ky + suffix] = xr.DataArray(
+                    function(raw_ds[ky].values, n_bin=n_bin),
+                    # coords=coords_dict,
+                    dims=raw_ds[ky].dims,
+                    attrs=raw_ds[ky].attrs,
+                ).astype("float32")
+            except:  # variables not needing averaging
+                pass
+
+        # Add coordinates
+        coord_dict = {}
+        for ky in raw_ds.coords:
+            if "_altraw" in ky:
+                continue
+            elif "time" in ky:
+                n_bin = self.n_bin if ky != "time_sys" else n_bin_sys
+                coord_dict[ky] = xr.DataArray(
+                    self.mean(raw_ds[ky].values, n_bin=n_bin),
+                    dims=ky,
+                    attrs=raw_ds[ky].attrs,
+                )
+            else:
+                coord_dict[ky] = raw_ds[ky]
+        out_ds = out_ds.assign_coords(coord_dict)
+
+        return out_ds
+
     def bin_average(self, raw_ds, out_ds=None, names=None):
         """
         Bin the dataset and calculate the ensemble averages of each
@@ -636,34 +698,7 @@ class VelBinner(TimeBinner):
         AttributeError.
         """
 
-        out_ds = self._check_ds(raw_ds, out_ds)
-
-        if names is None:
-            names = raw_ds.data_vars
-
-        for ky in names:
-            # set up dimensions and coordinates for Dataset
-            dims_list = raw_ds[ky].dims
-            if any([ar for ar in dims_list if "altraw" in ar]):
-                continue
-            coords_dict = {}
-            for nm in dims_list:
-                if "time" in nm:
-                    coords_dict[nm] = self.mean(raw_ds[ky][nm].values)
-                else:
-                    coords_dict[nm] = raw_ds[ky][nm].values
-
-            # create Dataset
-            if "ensemble" not in ky:
-                try:  # variables with time coordinate
-                    out_ds[ky] = xr.DataArray(
-                        self.mean(raw_ds[ky].values),
-                        coords=coords_dict,
-                        dims=dims_list,
-                        attrs=raw_ds[ky].attrs,
-                    ).astype("float32")
-                except:  # variables not needing averaging
-                    pass
+        out_ds = self._bin(self.mean, raw_ds=raw_ds, out_ds=out_ds, names=names)
 
         # Add standard deviation
         std = self.standard_deviation(raw_ds.velds.U_mag.values)
@@ -675,13 +710,13 @@ class VelBinner(TimeBinner):
                 "long_name": "Water Velocity Standard Deviation",
             },
         )
-
         return out_ds
 
-    def bin_variance(self, raw_ds, out_ds=None, names=None, suffix="_var"):
+    def bin_variance(self, raw_ds, out_ds=None, names=None):
         """
         Bin the dataset and calculate the ensemble variances of each
-        variable. Complementary to :func:`bin_average <mhkit.dolfyn.velocity.VelBinner.bin_average>`.
+        variable.
+        Complementary to :func:`bin_average <mhkit.dolfyn.velocity.VelBinner.bin_average>`
 
         Parameters
         ----------
@@ -715,36 +750,7 @@ class VelBinner(TimeBinner):
         AttributeError.
         """
 
-        out_ds = self._check_ds(raw_ds, out_ds)
-
-        if names is None:
-            names = raw_ds.data_vars
-
-        for ky in names:
-            # set up dimensions and coordinates for dataarray
-            dims_list = raw_ds[ky].dims
-            if any([ar for ar in dims_list if "altraw" in ar]):
-                continue
-            coords_dict = {}
-            for nm in dims_list:
-                if "time" in nm:
-                    coords_dict[nm] = self.mean(raw_ds[ky][nm].values)
-                else:
-                    coords_dict[nm] = raw_ds[ky][nm].values
-
-            # create Dataset
-            if "ensemble" not in ky:
-                try:  # variables with time coordinate
-                    out_ds[ky + suffix] = xr.DataArray(
-                        self.variance(raw_ds[ky].values),
-                        coords=coords_dict,
-                        dims=dims_list,
-                        attrs=raw_ds[ky].attrs,
-                    ).astype("float32")
-                except:  # variables not needing averaging
-                    pass
-
-        return out_ds
+        return self._bin(self.variance, raw_ds=raw_ds, out_ds=out_ds, names=names)
 
     def autocovariance(self, veldat, n_bin=None):
         """
@@ -872,9 +878,10 @@ class VelBinner(TimeBinner):
         coords = {}
         for nm in U_mag.dims:
             if "time" in nm:
-                coords[nm] = self.mean(U_mag[nm].values)
+                coord = self.mean(U_mag[nm].values)
             else:
-                coords[nm] = U_mag[nm].values
+                coord = U_mag[nm].values
+            coords[nm] = xr.DataArray(coord, dims=nm, attrs=U_mag[nm].attrs)
 
         return xr.DataArray(
             ti.data.astype("float32"),
@@ -960,9 +967,10 @@ class VelBinner(TimeBinner):
             coords = {}
             for nm in veldat.dims:
                 if "time" in nm:
-                    coords[nm] = self.mean(veldat[nm].values)
+                    coord = self.mean(veldat[nm].values)
                 else:
-                    coords[nm] = veldat[nm].values
+                    coord = veldat[nm].values
+                coords[nm] = xr.DataArray(coord, dims=nm, attrs=veldat[nm].attrs)
 
         return xr.DataArray(
             out,
@@ -1103,8 +1111,13 @@ class VelBinner(TimeBinner):
         )
 
         # Update coordinates and dimensions
-        time = veldat[veldat.dims[-1]].values
-        time_coord = self.mean(time, step=step, n_bin=n_bin)
+        time = veldat[veldat.dims[-1]]
+        time_coord = xr.DataArray(
+            self.mean(time.values, step=step, n_bin=n_bin),
+            dims=["time_psd"],
+            name="time_psd",
+            attrs=time.attrs,
+        )
         coords.update(
             {
                 "time_psd": time_coord,

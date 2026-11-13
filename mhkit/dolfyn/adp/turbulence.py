@@ -614,8 +614,10 @@ class ADPBinner(VelBinner):
         beam_order = self._check_orientation(ds, orientation, beam5=False)
 
         # Calculate beam variance and subtract noise
-        time = self.mean(ds["time"].values)
-        bp2_ = self._beam_variance(ds, time, noise, beam_order, n_beams=4)
+        time = xr.DataArray(
+            self.mean(ds["time"].values), dims="time", attrs=ds["time"].attrs
+        )
+        bp2_ = self._beam_variance(ds, time.values, noise, beam_order, n_beams=4)
 
         # Run stress calculations
         denm = 4 * np.sin(np.deg2rad(b_angle)) * np.cos(np.deg2rad(b_angle))
@@ -699,8 +701,10 @@ class ADPBinner(VelBinner):
         beam_order, phi2, phi3 = self._check_orientation(ds, orientation, beam5=True)
 
         # Calculate beam variance and subtract noise
-        time = self.mean(ds["time"].values)
-        bp2_ = self._beam_variance(ds, time, noise, beam_order, n_beams=5)
+        time = xr.DataArray(
+            self.mean(ds["time"].values), dims="time", attrs=ds["time"].attrs
+        )
+        bp2_ = self._beam_variance(ds, time.values, noise, beam_order, n_beams=5)
 
         # Run tke and stress calculations
         th = np.deg2rad(b_angle)

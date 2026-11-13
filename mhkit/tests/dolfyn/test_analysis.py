@@ -7,7 +7,6 @@ from mhkit.tests.dolfyn.base import (
 from mhkit.dolfyn import VelBinner, read_example
 import mhkit.dolfyn.adv.api as avm
 import mhkit.dolfyn.adp.api as apm
-from xarray.testing import assert_identical
 import unittest
 import pytest
 import numpy as np

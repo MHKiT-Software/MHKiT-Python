@@ -1,8 +1,12 @@
 from . import test_read_adv as tv
-from mhkit.tests.dolfyn.base import load_netcdf as load, save_netcdf as save, rfnm
+from mhkit.tests.dolfyn.base import (
+    load_netcdf as load,
+    save_netcdf as save,
+    rfnm,
+    assert_allclose,
+)
 from mhkit.dolfyn import rotate2
 import mhkit.dolfyn.adv.api as avm
-from xarray.testing import assert_allclose
 import xarray as xr
 import os
 import unittest
@@ -48,8 +52,8 @@ class analysis_testcase(unittest.TestCase):
         if make_data:
             save(ds, "vector_data01_u.nc")
             return
-
-        assert_allclose(ds, load("vector_data01_u.nc"), atol=1e-6)
+        cd = load("vector_data01_u.nc")
+        assert_allclose(ds, cd, atol=1e-6)
 
     def test_save_complex_data(self):
         # netcdf4 cannot natively handle complex values

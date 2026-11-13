@@ -1,8 +1,9 @@
+import os
+import json
+import warnings
+from pathlib import Path
 import numpy as np
 import xarray as xr
-import json
-import os
-import warnings
 
 
 def _abspath(fname):
@@ -40,12 +41,13 @@ def _get_filetype(fname):
 
 
 def _find_userdata(filename, userdata=True):
-    # This function finds the file to read
+    """This function finds the userdata json file to read."""
     if userdata:
-        for basefile in [filename.rsplit(".", 1)[0], filename]:
-            jsonfile = basefile + ".userdata.json"
-            if os.path.isfile(jsonfile):
-                return _read_userdata(jsonfile)
+        if isinstance(filename, str):
+            filename = Path(filename)
+        jsonfile = filename.with_suffix(".userdata.json")
+        if os.path.isfile(jsonfile):
+            return _read_userdata(jsonfile)
 
     elif isinstance(userdata, (str,)) or hasattr(userdata, "read"):
         return _read_userdata(userdata)
@@ -252,6 +254,10 @@ def _create_dataset(data):
             if len(shp) == 1:  # 1D variables
                 if "_altraw_avg" in key:
                     tg = "_altraw_avg"
+                elif (data["attrs"]["inst_model"] == "Vector") and (
+                    shp[0] != len(data["coords"]["time"])
+                ):
+                    tg = "_sys"
                 elif any(val in key for val in tag):
                     tg = "_" + key.rsplit("_")[-1]
                 else:

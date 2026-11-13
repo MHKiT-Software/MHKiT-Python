@@ -12,7 +12,6 @@ from mhkit.dolfyn.adv import api
 from mhkit.dolfyn.io.api import read_example as read
 import unittest
 
-
 make_data = False
 
 
@@ -46,7 +45,7 @@ class mc_testcase(unittest.TestCase):
         # ensure trailing nans are removed from AHRS data
         ahrs = read("vector_data_imu01.VEC", userdata=True)
         for var in ["accel", "angrt", "mag"]:
-            assert not ahrs[var].isnull().any(), "nan's in {} variable".format(var)
+            assert not ahrs[var].isnull().any(), f"nan's in variable '{var}'"
 
         if make_data:
             save(tdm, "vector_data_imu01_mc.nc")
@@ -54,14 +53,16 @@ class mc_testcase(unittest.TestCase):
             save(tdmj, "vector_data_imu01-json_mc.nc")
             return
 
+        cdm = load("vector_data_imu01_mc.nc")
         cdm10 = load("vector_data_imu01_mcDeclin10.nc")
+        cdmj = load("vector_data_imu01-json_mc.nc")
 
-        assert_allclose(tdm, load("vector_data_imu01_mc.nc"), atol=1e-7)
+        assert_allclose(tdm, cdm, atol=1e-7)
         assert_allclose(tdm10, tdmj, atol=1e-7)
         assert_allclose(tdm0, tdm, atol=1e-7)
         assert_allclose(tdm10, cdm10, atol=1e-7)
         assert_allclose(tdmE, cdm10, atol=1e-6)
-        assert_allclose(tdmj, load("vector_data_imu01-json_mc.nc"), atol=1e-7)
+        assert_allclose(tdmj, cdmj, atol=1e-7)
 
     def test_sep_probes(self):
         tdm = tv.dat_imu.copy(deep=True)
