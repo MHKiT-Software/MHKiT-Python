@@ -161,7 +161,7 @@ class _NortekReader:
         "0x80": "read_aqd",  # Aquadopp diagnostics
         "0x81": "read_aqd_mag",  # Aquadopp with magnetometer
     }
-
+    # Size in bytes of all data packets if set
     size_map = {
         "0x00": 512,  # User configuration
         "0x01": 48,  # Aquadopp velocity
@@ -255,7 +255,7 @@ class _NortekReader:
             self._inst = "AQD"  # Use AWAC configuration for Aquadopp
         # Run the appropriate initialization routine (e.g. init_ADV).
         getattr(self, "init_" + self._inst)()
-        # No apparent way to determine how many samples are in a file
+        # Determine total number of samples by scanning through the file
         if nens is None:
             self.ensemble_count()
 
@@ -642,7 +642,6 @@ class _NortekReader:
             "pct_of_mean_pressure",
             "pct_of_min_re",
         ][int(wave_meas_mode[2])]
-        cfg_u
 
     def read_hdr_cfg(self):
         """Read header configuration block (0x04)"""
@@ -815,7 +814,7 @@ class _NortekReader:
             self._init_data(defs.vec_data)
             self._dtypes += ["vec_data"]
 
-        # The size byte in read_vec is
+        # There isn't a size byte in vector velocity packet
         byts = self.read(20)
         ds = dat["sys"]
         dv = dat["data_vars"]
@@ -914,6 +913,7 @@ class _NortekReader:
         n = self.config["usr"]["n_beams"]
         self.f.seek(2, 1)  # size
         init_bytes = 26 + skip_bytes
+        # There is a fill byte if the number of bins is odd
         fill_byte = 1 if (nbins % 2) else 0
         byts = self.read(init_bytes + n * 3 * nbins + fill_byte)
         c = self.c
@@ -1149,6 +1149,7 @@ class _NortekReader:
         for idx in range(nbeams):
             dv["amp"][idx, :, c] = tmp[idx * nbins : (idx + 1) * nbins]
 
+        # There is a fill byte if the number of bins is odd
         fill_byte = 1 if (nbins % 2) else 0
         self.f.seek(fill_byte + 2, 1)  # checksum
         self.c += 1
