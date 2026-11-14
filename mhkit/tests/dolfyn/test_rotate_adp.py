@@ -66,89 +66,80 @@ class rotate_adp_testcase(unittest.TestCase):
         assert_allclose(td_sig_ie, cd_sig_ie, atol=1e-5)
 
     def test_rotate_inst2earth(self):
-        # AWAC & Sig500 are loaded in earth
-        td_awac = tr.dat_awac.copy(deep=True)
-        rotate2(td_awac, "inst", inplace=True)
-        td_sig_ie = tr.dat_sig_ie.copy(deep=True)
-        rotate2(td_sig_ie, "inst", inplace=True)
-        td_sig_o = td_sig_ie.copy(deep=True)
-        td_sig_dp1_ice = tr.dat_sig_dp1_ice.copy(deep=True)
-        rotate2(td_sig_dp1_ice, "inst", inplace=True)
-
         td = rotate2(tr.dat_rdi, "earth", inplace=False)
-        tdwr2 = rotate2(tr.dat_wr2, "earth", inplace=False)
+        td_wr2 = rotate2(tr.dat_wr2, "earth", inplace=False)
         td_sig = load("BenchFile01_rotate_beam2inst.nc")
         rotate2(td_sig, "earth", inplace=True)
         td_sig_i = load("Sig1000_IMU_rotate_beam2inst.nc")
         rotate2(td_sig_i, "earth", inplace=True)
         td_sig_ieb = load("VelEchoBT01_rotate_beam2inst.nc")
         rotate2(td_sig_ieb, "earth", inplace=True)
+        # Test that loss of orientmat doesn't error out
+        td_sig_o = tr.dat_sig_ie.copy(deep=True)
+        rotate2(td_sig_o, "inst", inplace=True)
+        td_sig_o = rotate2(td_sig_o.drop_vars("orientmat"), "earth", inplace=False)
 
         if make_data:
-            save(td_awac, "AWAC_test01_earth2inst.nc")
             save(td, "RDI_test01_rotate_inst2earth.nc")
-            save(tdwr2, "winriver02_rotate_ship2earth.nc")
+            save(td_wr2, "winriver02_rotate_ship2earth.nc")
             save(td_sig, "BenchFile01_rotate_inst2earth.nc")
             save(td_sig_i, "Sig1000_IMU_rotate_inst2earth.nc")
             save(td_sig_ieb, "VelEchoBT01_rotate_inst2earth.nc")
-            save(td_sig_dp1_ice, "Sig500_dp_ice2_rotate_earth2inst.nc")
             return
 
-        td_sig_o = rotate2(td_sig_o.drop_vars("orientmat"), "earth", inplace=False)
-
-        cd_awac = load("AWAC_test01_earth2inst.nc")
         cd = load("RDI_test01_rotate_inst2earth.nc")
         cdwr2 = load("winriver02_rotate_ship2earth.nc")
         cd_sig = load("BenchFile01_rotate_inst2earth.nc")
         cd_sig_i = load("Sig1000_IMU_rotate_inst2earth.nc")
         cd_sig_ieb = load("VelEchoBT01_rotate_inst2earth.nc")
-        cd_sig_dp1_ice = load("Sig500_dp_ice2_rotate_earth2inst.nc")
 
         assert_allclose(td, cd, atol=1e-5)
-        assert_allclose(tdwr2, cdwr2, atol=1e-5)
-        assert_allclose(td_awac, cd_awac, atol=1e-5)
+        assert_allclose(td_wr2, cdwr2, atol=1e-5)
         assert_allclose(td_sig, cd_sig, atol=1e-5)
         assert_allclose(td_sig_i, cd_sig_i, atol=1e-5)
-        npt.assert_allclose(td_sig_o.vel, tr.dat_sig_ie.vel, atol=1e-5)
         assert_allclose(td_sig_ieb, cd_sig_ieb, atol=1e-5)
-        assert_allclose(td_sig_dp1_ice, cd_sig_dp1_ice, atol=1e-5)
+        npt.assert_allclose(td_sig_o.vel, tr.dat_sig_ie.vel, atol=1e-5)
 
     def test_rotate_earth2inst(self):
         td_rdi = load("RDI_test01_rotate_inst2earth.nc")
         rotate2(td_rdi, "inst", inplace=True)
-        tdwr2 = load("winriver02_rotate_ship2earth.nc")
-        rotate2(tdwr2, "inst", inplace=True)
-
+        td_wr2 = load("winriver02_rotate_ship2earth.nc")
+        rotate2(td_wr2, "inst", inplace=True)
         td_awac = tr.dat_awac.copy(deep=True)
-        rotate2(td_awac, "inst", inplace=True)  # AWAC is in earth coords
+        rotate2(td_awac, "inst", inplace=True)
         td_sig = load("BenchFile01_rotate_inst2earth.nc")
         rotate2(td_sig, "inst", inplace=True)
         td_sig_i = load("Sig1000_IMU_rotate_inst2earth.nc")
         rotate2(td_sig_i, "inst", inplace=True)
+        td_sig_dp1_ice = tr.dat_sig_dp1_ice.copy(deep=True)
+        rotate2(td_sig_dp1_ice, "inst", inplace=True)
 
-        # ship and inst are considered equivalent in dolfyn
         cd_rdi = load("RDI_test01_rotate_beam2inst.nc")
         cd_wr2 = tr.dat_wr2
+        # Set to "inst" (originally in "ship", which is identical)
         cd_wr2.attrs["coord_sys"] = "inst"
         cd_awac = load("AWAC_test01_earth2inst.nc")
         cd_sig = load("BenchFile01_rotate_beam2inst.nc")
         cd_sig_i = load("Sig1000_IMU_rotate_beam2inst.nc")
+        cd_sig_dp1_ice = load("Sig500_dp_ice2_rotate_earth2inst.nc")
 
         # Just check that these run without error
-        td_sig_avg = load("Sig100_avg.nc")
-        rotate2(td_sig_avg, "inst", inplace=True)
-        td_sig_dp1_ice = load("Sig500_dp_ice2.nc")
-        rotate2(td_sig_dp1_ice, "inst", inplace=True)
-        td_aqd = load("AQD_test01.nc")
-        rotate2(td_aqd, "inst", inplace=True)
+        td_sig_avg = rotate2(tr.dat_sig_avg, "inst", inplace=False)
+        td_aqd = rotate2(tr.dat_aqd, "inst", inplace=False)
+
+        if make_data:
+            save(td_awac, "AWAC_test01_earth2inst.nc")
+            save(td_sig_dp1_ice, "Sig500_dp_ice2_rotate_earth2inst.nc")
+            return
 
         assert_allclose(td_rdi, cd_rdi, atol=1e-5)
-        assert_allclose(tdwr2, cd_wr2, atol=1e-5)
+        assert_allclose(td_wr2, cd_wr2, atol=1e-5)
         assert_allclose(td_awac, cd_awac, atol=1e-5)
         assert_allclose(td_sig, cd_sig, atol=1e-5)
         # known failure due to orientmat, see test_vs_nortek
         # assert_allclose(td_sig_i, cd_sig_i, atol=1e-3)
         npt.assert_allclose(td_sig_i.accel.values, cd_sig_i.accel.values, atol=1e-3)
+        assert_allclose(td_sig_dp1_ice, cd_sig_dp1_ice, atol=1e-5)
 
     def test_rotate_earth2principal(self):
         td_rdi = load("RDI_test01_rotate_inst2earth.nc")
