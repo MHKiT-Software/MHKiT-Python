@@ -56,13 +56,13 @@ def load_nortek_matfile(filename):
 
 def rotate(axis):
     # BenchFile01.ad2cp
-    td_sig = rotate2(tr.dat_sig, axis, inplace=False)
+    td_sig = rotate2(tr.dat_sig.copy(deep=True), axis, inplace=False)
     # Sig1000_IMU.ad2cp no userdata
-    td_sig_i = rotate2(tr.dat_sig_i, axis, inplace=False)
+    td_sig_i = rotate2(tr.dat_sig_i.copy(deep=True), axis, inplace=False)
     # VelEchoBT01.ad2cp
-    td_sig_ieb = rotate2(tr.dat_sig_ieb, axis, inplace=False)
+    td_sig_ieb = rotate2(tr.dat_sig_ieb.copy(deep=True), axis, inplace=False)
     # Sig500_Echo.ad2cp
-    td_sig_ie = rotate2(tr.dat_sig_ie, axis, inplace=False)
+    td_sig_ie = rotate2(tr.dat_sig_ie.copy(deep=True), axis, inplace=False)
 
     td_sig_vel = load_nortek_matfile(base.rfnm("BenchFile01.mat"))
     td_sig_i_vel = load_nortek_matfile(base.rfnm("Sig1000_IMU.mat"))

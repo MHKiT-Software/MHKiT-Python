@@ -10,10 +10,10 @@ make_data = False
 
 class rotate_adp_testcase(unittest.TestCase):
     def test_rotate_beam2inst(self):
-        td_rdi = rotate2(tr.dat_rdi, "inst", inplace=False)
-        td_sig = rotate2(tr.dat_sig, "inst", inplace=False)
-        td_sig_i = rotate2(tr.dat_sig_i, "inst", inplace=False)
-        td_sig_ieb = rotate2(tr.dat_sig_ieb, "inst", inplace=False)
+        td_rdi = rotate2(tr.dat_rdi.copy(deep=True), "inst", inplace=False)
+        td_sig = rotate2(tr.dat_sig.copy(deep=True), "inst", inplace=False)
+        td_sig_i = rotate2(tr.dat_sig_i.copy(deep=True), "inst", inplace=False)
+        td_sig_ieb = rotate2(tr.dat_sig_ieb.copy(deep=True), "inst", inplace=False)
 
         if make_data:
             save(td_rdi, "RDI_test01_rotate_beam2inst.nc")
@@ -66,8 +66,8 @@ class rotate_adp_testcase(unittest.TestCase):
         assert_allclose(td_sig_ie, cd_sig_ie, atol=1e-5)
 
     def test_rotate_inst2earth(self):
-        td = rotate2(tr.dat_rdi, "earth", inplace=False)
-        td_wr2 = rotate2(tr.dat_wr2, "earth", inplace=False)
+        td = rotate2(tr.dat_rdi.copy(deep=True), "earth", inplace=False)
+        td_wr2 = rotate2(tr.dat_wr2.copy(deep=True), "earth", inplace=False)
         td_sig = load("BenchFile01_rotate_beam2inst.nc")
         rotate2(td_sig, "earth", inplace=True)
         td_sig_i = load("Sig1000_IMU_rotate_beam2inst.nc")
@@ -115,8 +115,7 @@ class rotate_adp_testcase(unittest.TestCase):
         rotate2(td_sig_dp1_ice, "inst", inplace=True)
 
         cd_rdi = load("RDI_test01_rotate_beam2inst.nc")
-        cd_wr2 = tr.dat_wr2
-        # Set to "inst" (originally in "ship", which is identical)
+        cd_wr2 = tr.dat_wr2.copy(deep=True)
         cd_wr2.attrs["coord_sys"] = "inst"
         cd_awac = load("AWAC_test01_earth2inst.nc")
         cd_sig = load("BenchFile01_rotate_beam2inst.nc")
@@ -124,8 +123,8 @@ class rotate_adp_testcase(unittest.TestCase):
         cd_sig_dp1_ice = load("Sig500_dp_ice2_rotate_earth2inst.nc")
 
         # Just check that these run without error
-        td_sig_avg = rotate2(tr.dat_sig_avg, "inst", inplace=False)
-        td_aqd = rotate2(tr.dat_aqd, "inst", inplace=False)
+        td_sig_avg = rotate2(tr.dat_sig_avg.copy(deep=True), "inst", inplace=False)
+        td_aqd = rotate2(tr.dat_aqd.copy(deep=True), "inst", inplace=False)
 
         if make_data:
             save(td_awac, "AWAC_test01_earth2inst.nc")

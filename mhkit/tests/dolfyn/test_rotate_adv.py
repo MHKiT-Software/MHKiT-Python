@@ -16,7 +16,7 @@ make_data = False
 
 class rotate_adv_testcase(unittest.TestCase):
     def test_heading(self):
-        td = tr.dat_imu.copy(deep=True)
+        td = tr.dat.copy(deep=True)
 
         head, pitch, roll = orient2euler(td)
         td["pitch"].values = pitch

@@ -20,19 +20,21 @@ def exdt(filename):
 
 
 def assert_allclose(dat0, dat1, *args, **kwargs):
-    # For problematic time check
-    names = []
+    # For problematic time check (memory leaks?)
     for v in dat0.variables:
-        if v in dat1.variables and np.issubdtype(dat0[v].dtype, np.datetime64):
-            dat0[v] = time.dt642epoch(dat0[v])
-            dat1[v] = time.dt642epoch(dat1[v])
-            names.append(v)
+        if v in dat1.variables:
+            if np.issubdtype(dat0[v].dtype, np.datetime64):
+                if v in dat0.dims:
+                    dat0 = dat0.assign_coords({v: time.dt642epoch(dat0[v])})
+                else:
+                    dat0[v] = time.dt642epoch(dat0[v])
+            if np.issubdtype(dat1[v].dtype, np.datetime64):
+                if v in dat1.dims:
+                    dat1 = dat1.assign_coords({v: time.dt642epoch(dat1[v])})
+                else:
+                    dat1[v] = time.dt642epoch(dat1[v])
     # Check coords and data_vars
     _assert_allclose(dat0, dat1, *args, **kwargs)
-    # If test debugging
-    for v in names:
-        dat0[v] = time.epoch2dt64(dat0[v])
-        dat1[v] = time.epoch2dt64(dat1[v])
 
     # Check attributes
     mismatch = []
