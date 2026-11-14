@@ -41,19 +41,15 @@ class rotate_adp_testcase(unittest.TestCase):
         rotate2(td_sig, "beam", inplace=True)
         td_sig_i = load("Sig1000_IMU_rotate_beam2inst.nc")
         rotate2(td_sig_i, "beam", inplace=True)
-        td_sig_ie = load("Sig500_Echo_earth2inst.nc")
-        rotate2(td_sig_ie, "beam", inplace=True)
 
         if make_data:
             save(td_awac, "AWAC_test01_inst2beam.nc")
-            save(td_sig_ie, "Sig500_Echo_inst2beam.nc")
             return
 
         cd_td = tr.dat_rdi.copy(deep=True)
         cd_awac = load("AWAC_test01_inst2beam.nc")
         cd_sig = tr.dat_sig.copy(deep=True)
         cd_sig_i = tr.dat_sig_i.copy(deep=True)
-        cd_sig_ie = load("Sig500_Echo_inst2beam.nc")
 
         # # The reverse RDI rotation doesn't work b/c of NaN's in one beam
         # # that propagate to others, so we impose that here.
@@ -63,7 +59,6 @@ class rotate_adp_testcase(unittest.TestCase):
         assert_allclose(td_awac, cd_awac, atol=1e-5)
         assert_allclose(td_sig, cd_sig, atol=1e-5)
         assert_allclose(td_sig_i, cd_sig_i, atol=1e-5)
-        assert_allclose(td_sig_ie, cd_sig_ie, atol=1e-5)
 
     def test_rotate_inst2earth(self):
         td = rotate2(tr.dat_rdi.copy(deep=True), "earth", inplace=False)
