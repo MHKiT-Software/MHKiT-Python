@@ -81,10 +81,8 @@ def read_signature(
     )
     d = rdr.readfile(nens[0], nens[1])
     rdr.sci_data(d)
-    if rdr._dp:
-        _clean_dp_skips(d)
-    out = _reorg(d)
-    _reduce(out)
+    _clean_skips(d)
+    out = _reduce(_reorg(d))
 
     # Convert time to dt64 and fill gaps
     coords = out["coords"]
@@ -113,14 +111,13 @@ def read_signature(
     ds = _create_dataset(out)
     ds = _set_coords(ds, ref_frame=ds.coord_sys)
 
-    if ("orientmat" not in ds) and ("heading" in ds):
-        ds["orientmat"] = _euler2orient(
-            ds["time"], ds["heading"], ds["pitch"], ds["roll"]
-        )
-    elif ("orientmat_avg" not in ds) and ("heading_avg" in ds):
-        ds["orientmat_avg"] = _euler2orient(
-            ds["time_avg"], ds["heading_avg"], ds["pitch_avg"], ds["roll_avg"]
-        )
+    # Add orientation matrices
+    tags = ["", "_avg", "_b5", "_echo", "_bt"]
+    for tg in tags:
+        if ("orientmat" + tg not in ds) and ("heading" + tg in ds):
+            ds["orientmat" + tg] = _euler2orient(
+                ds["time" + tg], ds["heading" + tg], ds["pitch" + tg], ds["roll" + tg]
+            )
 
     if declin is not None:
         set_declination(ds, declin, inplace=True)
@@ -164,7 +161,6 @@ class _Ad2cpReader:
         self._ens_pos = self._index["pos"][
             lib._boolarray_firstensemble_ping(self._index)
         ]
-        self._lastblock_iswhole = self._calc_lastblock_iswhole()
         self._config = lib._calc_config(self._index)
         self._init_burst_readers()
         self.unknown_ID_count = {}
@@ -228,12 +224,12 @@ class _Ad2cpReader:
                 out2[ky] = out[ky]
         return out2
 
-    def _calc_lastblock_iswhole(self):
+    def _lastblock_iswhole(self):
         blocksize, blocksize_count = np.unique(
             np.diff(self._ens_pos), return_counts=True
         )
-        standard_blocksize = blocksize[blocksize_count.argmax()]
-        return (self._eof - self._ens_pos[-1]) == standard_blocksize
+        last_block_size = self._eof - self._ens_pos[-1]
+        return last_block_size in blocksize
 
     def _init_burst_readers(
         self,
@@ -246,7 +242,7 @@ class _Ad2cpReader:
                 )
             elif rdr_id == 23:
                 self._burst_readers[rdr_id] = defs._calc_bt_struct(
-                    cfg["_config"], cfg["n_beams"]
+                    cfg["_config"], cfg["n_beams"], cfg["n_cells"], cfg["_d_ver"]
                 )
             else:
                 self._burst_readers[rdr_id] = defs._calc_burst_struct(
@@ -257,7 +253,8 @@ class _Ad2cpReader:
         outdat = {}
         nens = int(ens_stop - ens_start)
 
-        # ID 26 and 31 recorded infrequently
+        # If there are multiple pings in an ensemble, nens will
+        # be the total number of pings read in
         def n_id(id):
             return (
                 (self._index["ID"] == id)
@@ -265,6 +262,7 @@ class _Ad2cpReader:
                 & (self._index["ens"] < ens_stop)
             ).sum()
 
+        # ID 26 and 31 recorded infrequently
         n_altraw = {26: n_id(26), 31: n_id(31)}
         if not n_altraw[26] and 26 in self._burst_readers:
             self._burst_readers.pop(26)
@@ -301,14 +299,16 @@ class _Ad2cpReader:
         string = string[1:-1]
         return id, string
 
-    def _read_burst(self, id, dat, c, echo=False):
+    def _read_burst(self, id, dat, c, sz, echo=False):
         rdr = self._burst_readers[id]
-        rdr.read_into(self.f, dat, c)
+        to_skip = rdr.read_into(self.f, dat, c, sz)
+        if to_skip:
+            self.f.seek(to_skip, 1)
 
     def readfile(self, ens_start=0, ens_stop=None):
         # If the lastblock is not whole, we don't read it.
         # If it is, we do (don't subtract 1)
-        nens_total = len(self._ens_pos) - int(not self._lastblock_iswhole)
+        nens_total = len(self._ens_pos) - int(not self._lastblock_iswhole())
         if ens_stop is None or ens_stop > nens_total:
             ens_stop = nens_total
         ens_start = int(ens_start)
@@ -326,10 +326,13 @@ class _Ad2cpReader:
             except IOError:
                 return outdat
             id = hdr["id"]
-            if id in [21, 22, 23, 24, 28]:  # "burst data record" (vel + ast),
+            if id not in outdat:
+                # If the ID was skipped in the indexer, it won't be in outdat
+                self.f.seek(hdr["sz"], 1)
+            elif id in [21, 22, 23, 24, 28]:  # "burst data record" (vel + ast),
                 # "avg data record" (vel_avg + ast_avg), "bottom track data record" (bt),
                 # "interleaved burst data record" (vel_b5), "echosounder record" (echo)
-                self._read_burst(id, outdat[id], c)
+                self._read_burst(id, outdat[id], c, hdr["sz"])
             elif id in [26, 31]:
                 # "burst altimeter raw record" (_altraw), "avg altimeter raw record" (_altraw_avg)
                 rdr = self._burst_readers[id]
@@ -367,7 +370,7 @@ class _Ad2cpReader:
                             "The number of samples in this 'Altimeter Raw' "
                             "burst is different from prior bursts."
                         )
-                self._read_burst(id, outdat[id], c_altraw[id])
+                self._read_burst(id, outdat[id], c_altraw[id], hdr["sz"])
                 outdat[id]["ensemble"][c_altraw[id]] = c
                 c_altraw[id] += 1
 
@@ -506,10 +509,6 @@ def _reorg(dat):
         (28, "_echo"),
         (31, "raw_avg"),
     ]:
-        if id in [24, 26]:
-            collapse_exclude = [0]
-        else:
-            collapse_exclude = []
         if id not in dat:
             continue
         dnow = dat[id]
@@ -520,7 +519,8 @@ def _reorg(dat):
                 dnow["standard_name"].pop(ky)
         outdat["standard_name"].update(dnow["standard_name"])
         cfg["burst_config" + tag] = lib._headconfig_int2dict(
-            lib._collapse(dnow["config"], exclude=collapse_exclude, name="config")
+            lib._collapse(dnow["config"], exclude=[0], name="config"),
+            mode="bt" if "bt" in tag else "burst",
         )
         outdat["coords"]["time" + tag] = lib._calc_time(
             dnow["year"] + np.uint16(1900),
@@ -531,34 +531,30 @@ def _reorg(dat):
             dnow["second"],
             dnow["usec100"].astype("uint32") * 100,
         )
-        tmp = lib._beams_cy_int2dict(
-            lib._collapse(
-                dnow["beam_config"], exclude=collapse_exclude, name="beam_config"
-            ),
-            21,  # always 21 here
-        )
+
+        d_ver = lib._collapse(dnow["ver"], exclude=[0], name="ver")
+        beams_cy = lib._collapse(dnow["beam_config"], exclude=[0], name="beam_config")
+        # Deal with data version 9 for bottom track
+        if (id == 23) and (d_ver >= 9):
+            n_cells = lib._collapse(dnow["n_cells"], exclude=[0], name="n_cells")
+            beams_cy = lib._repack_bt_beams_cy(beams_cy, n_cells)
+
+        # Unpack cells, coordinate axes and beams
+        tmp = lib._beams_cy_int2dict(beams_cy, id, d_ver)
         cfg["n_cells" + tag] = int(tmp["n_cells"])
         cfg["coord_sys_axes" + tag] = tmp["cy"]
         cfg["n_beams" + tag] = int(tmp["n_beams"])
-        cfg["ambig_vel" + tag] = round(
-            float(lib._collapse(dnow["ambig_vel"], name="ambig_vel")), 3
+
+        cfg["SerialNum" + tag] = int(
+            lib._collapse(dnow["SerialNum"], exclude=[0], name="SerialNum")
         )
-
-        for ky in [
-            "SerialNum",
-            "nominal_corr",
-        ]:
-            cfg[ky + tag] = int(
-                lib._collapse(dnow[ky], exclude=collapse_exclude, name=ky)
+        for ky in ["cell_size", "power_level_dB", "ambig_vel"]:
+            cfg[ky + tag] = round(
+                float(lib._collapse(dnow[ky], exclude=[0], name=ky)), 3
             )
-
-        for ky in [
-            "cell_size",
-            "blank_dist",
-            "power_level_dB",
-        ]:
-            cfg[ky + tag] = float(
-                lib._collapse(dnow[ky], exclude=collapse_exclude, name=ky)
+        if id != 23:
+            cfg["blank_dist" + tag] = float(
+                lib._collapse(dnow["blank_dist"], exclude=[0], name="blank_dist")
             )
 
         for ky in [
@@ -674,9 +670,7 @@ def _reorg(dat):
         cfg["rotate_vars"] = []
         cy = cfg["coord_sys_axes_avg"]
     else:
-        cfg["rotate_vars"] = [
-            "vel",
-        ]
+        cfg["rotate_vars"] = ["vel"]
         cy = cfg["coord_sys_axes"]
     outdat["attrs"]["coord_sys"] = {"XYZ": "inst", "ENU": "earth", "beam": "beam"}[cy]
 
@@ -693,10 +687,9 @@ def _reorg(dat):
     return outdat
 
 
-def _clean_dp_skips(data):
+def _clean_skips(data):
     """
-    Removes zeros from interwoven measurements taken in a dual profile
-    configuration.
+    Removes zeros from interwoven measurements
     """
 
     for id in data:
@@ -723,14 +716,6 @@ def _reduce(data):
     dv = data["data_vars"]
     dc = data["coords"]
     da = data["attrs"]
-
-    # Average these fields
-    for ky in ["c_sound", "temp", "pressure", "temp_press", "temp_clock", "batt"]:
-        lib._reduce_by_average(dv, ky, ky + "_b5")
-
-    # Angle-averaging is treated separately
-    for ky in ["heading", "pitch", "roll"]:
-        lib._reduce_by_average_angle(dv, ky, ky + "_b5")
 
     if "vel" in dv:
         dc["range"] = (np.arange(dv["vel"].shape[1]) + 1) * da["cell_size"] + da[
@@ -783,6 +768,8 @@ def _reduce(data):
         for icol in range(tmat["COLS"]):
             tm[irow, icol] = tmat["M" + str(irow + 1) + str(icol + 1)]
     dv["beam2inst_orientmat"] = tm
+
+    return data
 
 
 def split_dp_datasets(ds):

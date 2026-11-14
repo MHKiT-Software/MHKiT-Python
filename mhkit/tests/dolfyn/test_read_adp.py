@@ -47,6 +47,7 @@ dat_sig_dp1_all = load("Sig500_dp_ice1.nc")
 dat_sig_dp1_ice = load("Sig500_dp_ice2.nc")
 dat_sig_dp2_echo = load("Sig1000_dp_echo1.nc")
 dat_sig_dp2_avg = load("Sig1000_dp_echo2.nc")
+dat_sigvm_bt_09 = load("sigvm_bt_09.nc")
 
 
 class io_adp_testcase(unittest.TestCase):
@@ -172,6 +173,7 @@ class io_adp_testcase(unittest.TestCase):
         td_sig_dp2_echo, td_sig_dp2_avg = read(
             "Sig1000_dp_echo.ad2cp", rebuild_index=True
         )
+        td_sigvm_bt_09 = read("sigvm_bt_09.AD2CP", rebuild_index=True)
 
         with pytest.warns(UserWarning):
             # This issues a warning...
@@ -197,6 +199,7 @@ class io_adp_testcase(unittest.TestCase):
         os.remove(tb.rfnm("Sig1000_BadTime01.ad2cp.index"))
         os.remove(tb.exdt("Sig500_dp_ice.ad2cp.index"))
         os.remove(tb.exdt("Sig1000_dp_echo.ad2cp.index"))
+        os.remove(tb.exdt("sigvm_bt_09.AD2CP.index"))
 
         if make_data:
             save(td_sig, "BenchFile01.nc")
@@ -215,6 +218,7 @@ class io_adp_testcase(unittest.TestCase):
             save(td_sig_dp1_ice, "Sig500_dp_ice2.nc")
             save(td_sig_dp2_echo, "Sig1000_dp_echo1.nc")
             save(td_sig_dp2_avg, "Sig1000_dp_echo2.nc")
+            save(td_sigvm_bt_09, "sigvm_bt_09.nc")
             return
 
         assert_allclose(td_sig, dat_sig, atol=1e-6)
@@ -226,13 +230,14 @@ class io_adp_testcase(unittest.TestCase):
         assert_allclose(td_sig_raw_avg, dat_sig_raw_avg, atol=1e-6)
         assert_allclose(td_sig_avg, dat_sig_avg, atol=1e-6)
         assert_allclose(td_sig_rt, dat_sig_rt, atol=1e-6)
-        assert_allclose(td_sig5_leiw, dat_sig5_leiw, atol=1e-6)
         assert_allclose(td_sig_skip, dat_sig_skip, atol=1e-6)
         assert_allclose(td_sig_badt, dat_sig_badt, atol=1e-6)
+        assert_allclose(td_sig5_leiw, dat_sig5_leiw, atol=1e-6)
         assert_allclose(td_sig_dp1_all, dat_sig_dp1_all, atol=1e-6)
         assert_allclose(td_sig_dp1_ice, dat_sig_dp1_ice, atol=1e-6)
         assert_allclose(td_sig_dp2_echo, dat_sig_dp2_echo, atol=1e-6)
         assert_allclose(td_sig_dp2_avg, dat_sig_dp2_avg, atol=1e-6)
+        assert_allclose(td_sigvm_bt_09, dat_sigvm_bt_09, atol=1e-6)
 
     def test_nortek2_crop(self):
         # Test file cropping function

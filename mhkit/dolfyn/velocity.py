@@ -634,11 +634,13 @@ class VelBinner(TimeBinner):
                 # Non-time variables
                 if not any([ar for ar in dims_list if "time" in ar]):
                     out_ds[ky] = raw_ds[ky]
-                # Variables with time coordinate
+                # Don't take the variance of orientation matrices
+                if (function == self.variance) and ("orientmat" in ky):
+                    continue
+                # Variables with time coordinate (use different n_bin for ADV system vars)
                 n_bin = self.n_bin if "time_sys" not in dims_list else n_bin_sys
                 out_ds[ky + suffix] = xr.DataArray(
                     function(raw_ds[ky].values, n_bin=n_bin),
-                    # coords=coords_dict,
                     dims=raw_ds[ky].dims,
                     attrs=raw_ds[ky].attrs,
                 ).astype("float32")

@@ -91,7 +91,12 @@ class mc_testcase(unittest.TestCase):
         for i in range(n_ensembles):
             cd0 = tdc.isel(time=slice(n_burst * i, n_burst * i + n_burst))
             cd0 = correct_motion(cd0, accel_filtfreq=0.03, to_earth=False)
-            cd = xr.merge((cd, cd0), combine_attrs="no_conflicts")
+            cd = xr.merge(
+                (cd, cd0),
+                combine_attrs="no_conflicts",
+                join="outer",
+                compat="no_conflicts",
+            )
         cd.attrs["duty_cycle_n_burst"] = n_burst
 
         cd_ENU = cd.velds.rotate2("earth", inplace=False)
